@@ -22,15 +22,18 @@
 /* Card body with no padding for VerticalTabs, compact height */
 .card_body {
     padding: 0;
+    height: min(500px, 60vh);
     max-height: min(500px, 60vh);
+    min-height: 0;
     container-type: inline-size;
     container-name: connection-overlay;
 }
 
 .content_sized_tabs {
-    height: auto;
+    height: 100%;
     max-height: min(500px, 60vh);
-    grid-template-rows: minmax(0, max-content);
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
 }
 
 /* Enable overflow for tab bodies */

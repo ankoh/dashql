@@ -18,6 +18,7 @@ interface OAuthSubscriber {
     signal: AbortSignal;
     /// The listener for client cancellation
     abortListener: () => void;
+    accepts: (data: app_event.OAuthRedirectData) => boolean;
 }
 
 export abstract class PlatformEventListener {
@@ -87,6 +88,9 @@ export abstract class PlatformEventListener {
             console.warn("Received oauth redirect data but there's no registered oauth subscriber", {}, LOG_CTX);
         } else {
             const sub = this.oAuthSubscriber;
+            if (!sub.accepts(data)) {
+                return;
+            }
             sub.signal.removeEventListener("abort", sub.abortListener!);
             this.oAuthSubscriber = null;
             if (!sub.signal.aborted) {
@@ -102,7 +106,10 @@ export abstract class PlatformEventListener {
     }
 
     /// Wait for the oauth code to arrive
-    public async waitForOAuthRedirect(signal: AbortSignal): Promise<app_event.OAuthRedirectData> {
+    public async waitForOAuthRedirect(
+        signal: AbortSignal,
+        accepts: (data: app_event.OAuthRedirectData) => boolean = () => true,
+    ): Promise<app_event.OAuthRedirectData> {
         // Already set?
         if (this.oAuthSubscriber != null) {
             // Just throw, we don't support multiple outstanding listeners
@@ -114,6 +121,7 @@ export abstract class PlatformEventListener {
                     signal,
                     resolve,
                     reject,
+                    accepts,
                     abortListener: () => { }
                 };
                 subscriber.abortListener = () => {
@@ -221,7 +229,6 @@ export abstract class PlatformEventListener {
             // Deep link format: dashql://localhost?data=<base64>
             try {
                 const deepLink = new URL(pastedText);
-                this.logger.info("Received deep link", { "link": deepLink.toString() }, LOG_CTX);
                 eventData = deepLink.searchParams.get(EVENT_QUERY_PARAMETER);
                 if (!eventData) {
                     this.logger.warn("Deep link lacks the data query parameter", {}, LOG_CTX);

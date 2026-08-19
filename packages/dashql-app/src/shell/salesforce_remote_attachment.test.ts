@@ -1,0 +1,183 @@
+// @vitest-environment node
+import type { EmbeddedConnection } from '../platform/database/embedded_database.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
+import {
+    quoteSqlIdentifier,
+    quoteSqlString,
+    SALESFORCE_CATALOG_RANK,
+    SalesforceRemoteAttachmentManager,
+    type SalesforceRemoteAttachmentDependencies,
+    type SalesforceRemoteCatalog,
+    type SalesforceRemoteDataCloudToken,
+} from './salesforce_remote_attachment.js';
+
+const CATALOG: SalesforceRemoteCatalog = {
+    tables: [
+        { name: 'Account', columns: [{ name: 'Id', ordinalPosition: 0, dataType: 'Text' }] },
+        {
+            name: 'Opportunity',
+            columns: [
+                { name: 'Id', ordinalPosition: 0, dataType: 'Text' },
+                { name: 'Amount', ordinalPosition: 1, dataType: 'Number' },
+            ],
+        },
+    ],
+};
+
+function makeToken(instanceUrl: string, tenant: string, raw: string): SalesforceRemoteDataCloudToken {
+    return { instanceUrl, jwt: { raw, payload: { audienceTenantId: tenant } } };
+}
+
+function createManager(options: {
+    failAt?: number;
+    createEndpointKey?: (alias: string) => string;
+} = {}) {
+    const sql: string[] = [];
+    const queryArrowIPC = vi.fn(async (query: string) => {
+        sql.push(query);
+        if (options.failAt === sql.length) throw new Error('query failed');
+        return new Uint8Array();
+    });
+    const connection = { queryArrowIPC } as unknown as EmbeddedConnection;
+    const loadCatalogScript = vi.fn();
+    const logger = new TestLogger();
+    const dependencies: SalesforceRemoteAttachmentDependencies = {
+        loadPrefetchedFunctionSql: vi.fn().mockResolvedValue('functions'),
+        createEndpointKey: options.createEndpointKey ?? (alias => `key-${alias.toLowerCase()}`),
+        logger,
+    };
+    return {
+        manager: new SalesforceRemoteAttachmentManager(connection, { loadCatalogScript }, dependencies),
+        sql,
+        queryArrowIPC,
+        loadCatalogScript,
+        dependencies,
+        logger,
+    };
+}
+
+describe('SalesforceRemoteAttachmentManager', () => {
+    it('quotes SQL strings and identifiers safely', () => {
+        expect(quoteSqlString("x'; DROP TABLE secrets; --")).toBe("'x''; DROP TABLE secrets; --'");
+        expect(quoteSqlIdentifier('a"; DETACH db; --')).toBe('"a""; DETACH db; --"');
+    });
+
+    it('uses safely quoted injected aliases, endpoint keys, and tokens', async () => {
+        const endpointKey = "key'; DROP TABLE endpoints; --";
+        const { manager, sql } = createManager({ createEndpointKey: () => endpointKey });
+        await manager.attach(
+            'a"; DETACH db; --',
+            makeToken('https://data.example.com:8443/path', "tenant'one", "jwt'one"),
+            CATALOG,
+        );
+        expect(sql[0]).toContain("SET global.hyper_remote_endpoints = '");
+        expect(sql[0]).toContain("jwt''one");
+        expect(sql[2]).toBe(
+            'ATTACH DATABASE "hyper.remote://key\'; DROP TABLE endpoints; --" AS "a""; DETACH db; --"',
+        );
+    });
+
+    it('executes setting, gate, and attach in order before loading catalogs', async () => {
+        const { manager, sql, loadCatalogScript, logger } = createManager();
+        await expect(manager.attach(
+            'Salesforce',
+            makeToken('https://data.example.com:8443/api', 'tenant-1', 'jwt.payload.signature'),
+            CATALOG,
+        )).resolves.toEqual({ alias: 'Salesforce', tableCount: 2, columnCount: 3 });
+
+        expect(sql).toEqual([
+            'SET global.hyper_remote_endpoints = \'{"key-salesforce":{"connection":{"host":"https://data.example.com","port":8443},"tenant":"tenant-1","token":"jwt.payload.signature"}}\'',
+            'SET global.experimental_dbregistry_hyper_remote = true',
+            'ATTACH DATABASE "hyper.remote://key-salesforce" AS "Salesforce"',
+        ]);
+        expect(loadCatalogScript).toHaveBeenCalledTimes(2);
+        expect(loadCatalogScript).toHaveBeenNthCalledWith(
+            1,
+            'functions',
+            SALESFORCE_CATALOG_RANK,
+        );
+        expect(loadCatalogScript).toHaveBeenNthCalledWith(
+            2,
+            expect.stringMatching(/^CREATE TABLE "Salesforce"\."public"\."Account"/),
+            SALESFORCE_CATALOG_RANK,
+        );
+        expect(manager.hasAlias('salesforce')).toBe(true);
+        expect(Array.from({ length: logger.buffer.length }, (_, index) => logger.buffer.at(index)?.message)).toContain(
+            'Completed Salesforce relation catalog load',
+        );
+        const startRecord = Array.from({ length: logger.buffer.length }, (_, index) => logger.buffer.at(index))
+            .find(record => record?.message === 'Starting Salesforce database attachment');
+        expect(startRecord?.keyValues).toMatchObject({
+            hostOrigin: 'https://data.example.com',
+            port: '8443',
+            tenantPresent: 'true',
+            tokenPresent: 'true',
+            tokenPartCount: '3',
+        });
+        for (let index = 0; index < logger.buffer.length; ++index) {
+            expect(JSON.stringify(logger.buffer.at(index))).not.toContain('jwt.payload.signature');
+        }
+    });
+
+    it('preserves the first endpoint and loads function SQL only once for a second alias', async () => {
+        const { manager, sql, loadCatalogScript, dependencies } = createManager();
+        await manager.attach('One', makeToken('https://one.example.com', 'tenant-1', 'jwt-1'), CATALOG);
+        await manager.attach('Two', makeToken('https://two.example.com:9443', 'tenant-2', 'jwt-2'), CATALOG);
+
+        const secondSetting = sql[3];
+        expect(secondSetting).toContain('"key-one":{"connection":{"host":"https://one.example.com","port":443}');
+        expect(secondSetting).toContain('"key-two":{"connection":{"host":"https://two.example.com","port":9443}');
+        expect(dependencies.loadPrefetchedFunctionSql).toHaveBeenCalledTimes(1);
+        expect(loadCatalogScript).toHaveBeenCalledTimes(3);
+        expect(manager.hasAlias('ONE')).toBe(true);
+        expect(manager.hasAlias('two')).toBe(true);
+    });
+
+    it('rejects duplicate aliases case-insensitively without executing more SQL', async () => {
+        const { manager, queryArrowIPC } = createManager();
+        const token = makeToken('https://data.example.com', 'tenant-1', 'jwt-1');
+        await manager.attach('Salesforce', token, CATALOG);
+        await expect(manager.attach('salesFORCE', token, CATALOG)).rejects.toThrow(
+            'Salesforce alias already exists: salesFORCE',
+        );
+        expect(queryArrowIPC).toHaveBeenCalledTimes(3);
+    });
+
+    it('rolls back attachment and the complete endpoint setting when catalog loading fails', async () => {
+        const { manager, sql, loadCatalogScript } = createManager();
+        loadCatalogScript.mockImplementationOnce(() => {
+            throw new Error('catalog failed');
+        });
+        await expect(manager.attach(
+            'Salesforce',
+            makeToken('https://data.example.com', 'tenant-1', 'jwt-1'),
+            CATALOG,
+        )).rejects.toThrow('catalog failed');
+
+        expect(sql).toEqual([
+            'SET global.hyper_remote_endpoints = \'{"key-salesforce":{"connection":{"host":"https://data.example.com","port":443},"tenant":"tenant-1","token":"jwt-1"}}\'',
+            'SET global.experimental_dbregistry_hyper_remote = true',
+            'ATTACH DATABASE "hyper.remote://key-salesforce" AS "Salesforce"',
+            'DETACH "Salesforce"',
+            "SET global.hyper_remote_endpoints = '{}'",
+            'SET global.experimental_dbregistry_hyper_remote = false',
+        ]);
+        expect(manager.hasAlias('salesforce')).toBe(false);
+    });
+
+    it('restores the setting without detaching when attach fails', async () => {
+        const { manager, sql, logger } = createManager({ failAt: 3 });
+        await expect(manager.attach(
+            'Salesforce',
+            makeToken('https://data.example.com', 'tenant-1', 'jwt-1'),
+            CATALOG,
+        )).rejects.toThrow('query failed');
+        expect(sql.slice(-2)).toEqual([
+            "SET global.hyper_remote_endpoints = '{}'",
+            'SET global.experimental_dbregistry_hyper_remote = false',
+        ]);
+        for (let index = 0; index < logger.buffer.length; ++index) {
+            expect(JSON.stringify(logger.buffer.at(index))).not.toContain('jwt-1');
+        }
+    });
+});

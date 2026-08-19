@@ -41,6 +41,10 @@ function makeDataCloudAccessToken(customAttributes: unknown): connection.Salesfo
     } as connection.SalesforceDataCloudAccessToken;
 }
 
+function encodeJwtPart(value: unknown): string {
+    return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
+
 describe('SalesforceApiClient metadata', () => {
     const logger = new NullLogger();
 
@@ -106,6 +110,35 @@ describe('SalesforceApiClient metadata', () => {
             'default',
             new AbortController().signal,
         )).rejects.toThrow('Salesforce metadata request failed: 503 Error');
+    });
+});
+
+describe('SalesforceApiClient Data Cloud token parsing', () => {
+    it('decodes Base64URL JWT parts without changing the raw token', async () => {
+        const payload = {
+            exp: '1800000000',
+            audienceTenantId: 'tenant-1',
+            custom_attributes: { dataspace: 'Marketing' },
+        };
+        const rawToken = `${encodeJwtPart({ alg: 'none', marker: '\u083e' })}.${encodeJwtPart(payload)}.`;
+        expect(rawToken).toMatch(/[-_]/);
+        const fetch = vi.fn().mockResolvedValue(makeResponse({
+            access_token: rawToken,
+            instance_url: 'data.example.com',
+            token_type: 'Bearer',
+        }));
+        const client = new SalesforceApiClient(new NullLogger(), { fetch });
+        const coreToken = {
+            accessToken: 'core-token',
+            instanceUrl: 'https://example.my.salesforce.com',
+        } as connection.SalesforceCoreAccessToken;
+
+        const token = await client.getDataCloudAccessToken(coreToken, new AbortController().signal);
+
+        expect(token.jwt?.raw).toBe(rawToken);
+        expect(token.jwt?.payload?.audienceTenantId).toBe(payload.audienceTenantId);
+        expect(getSalesforceDataSpace(token)).toBe('Marketing');
+        expect(token.instanceUrl).toBe('https://data.example.com/');
     });
 });
 

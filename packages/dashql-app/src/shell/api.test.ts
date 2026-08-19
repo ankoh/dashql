@@ -347,6 +347,25 @@ describe('DashQL shell Wasm', () => {
         await expect(shell.submitPrompt()).resolves.toContain('.login');
     });
 
+    it('forwards command progress through the asynchronous effect interface', async () => {
+        shell.destroy();
+        const progress = vi.fn();
+        const execute = vi.fn((_args: readonly string[], context: { onProgress?: (message: string) => void }) => {
+            context.onProgress?.('Waiting for authorization');
+            return 'connected';
+        });
+        shell = await DashQLShell.create({
+            environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
+            commands: [['login', 'Log in to the service', execute]],
+            terminalColumns: 80,
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        });
+        shell.setPrompt('.login');
+
+        await expect(shell.submitPrompt(undefined, progress)).resolves.toBe('connected\r\n');
+        expect(progress).toHaveBeenCalledWith('Waiting for authorization');
+    });
+
     it('normalizes trailing newlines in JavaScript dot command output', async () => {
         shell.destroy();
         shell = await DashQLShell.create({

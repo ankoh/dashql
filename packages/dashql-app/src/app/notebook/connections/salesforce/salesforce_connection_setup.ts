@@ -1,7 +1,5 @@
-import * as shell from '@tauri-apps/plugin-shell';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { OAuthState } from '../connection_types.js';
 import { dateToTimestamp } from '../proto_helper.js';
 
 import {
@@ -23,9 +21,6 @@ import {
     SF_CHANNEL_READY,
     SF_CHANNEL_SETUP_STARTED,
 } from './salesforce_connection_state.js';
-import { generatePKCEChallenge } from '../../../../utils/pkce.js';
-import { BASE64URL_CODEC } from '../../../../utils/base64.js';
-import { isDebugBuild } from '../../../../globals.js';
 import { PlatformType } from '../../../../platform/platform_type.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
 import { collectSalesforceAuthInfo, getSalesforceLakehousePath, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
@@ -34,11 +29,9 @@ import { Logger, stringifyError } from '../../../../platform/logger/logger.js';
 import { PlatformEventListener } from '../../../../platform/events/event_listener.js';
 import { RESET_CONNECTION } from '../connection_state.js';
 import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
+import { authenticateSalesforce, SalesforceAuthenticationProgress } from './salesforce_authentication.js';
 
 const LOG_CTX = "salesforce_setup";
-
-// By default, a Salesforce OAuth Access Token expires after 2 hours = 7200 seconds
-const DEFAULT_EXPIRATION_TIME_MS = 2 * 60 * 60 * 1000;
 
 // We use the web-server OAuth Flow with or without consumer secret.
 //
@@ -70,187 +63,69 @@ const DEFAULT_EXPIRATION_TIME_MS = 2 * 60 * 60 * 1000;
 //  5. Client sends authorization_code and code_verifier to the token endpoint. (RFC 7636, Section 4.5)
 //  6. Server transforms the code_verifier using the code_challenge_method from the initial authorization request and checks the result against the code_challenge. If the value of both strings match, then the server has verified that the requests came from the same client and will issue an access_token. (RFC 7636, Section 4.6)
 
-const OAUTH_POPUP_NAME = 'DashQL OAuth';
-const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top=100, left=100';
-
 export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, appEvents: PlatformEventListener, forceReLogin: boolean, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     let hyperChannel: HyperDatabaseChannel;
     let sfChannel: SalesforceDatabaseChannel;
-    let oauthPopup: Window | null = null;
-    const closeOAuthPopup = () => {
-        if (oauthPopup && !oauthPopup.closed) {
-            oauthPopup.close();
-        }
-        if (oauthPopup) {
-            oauthPopup = null;
-            modifyState({ type: OAUTH_WEB_WINDOW_CLOSED, value: null });
-        }
-    };
     try {
         // Start the authorization process
         modifyState({
             type: SETUP_STARTED,
             value: params,
         });
-        abortSignal.throwIfAborted()
-
-        // Generate new PKCE challenge
-        modifyState({
-            type: GENERATING_PKCE_CHALLENGE,
-            value: null,
-        });
-        const pkceChallenge = await generatePKCEChallenge();
         abortSignal.throwIfAborted();
-        modifyState({
-            type: GENERATED_PKCE_CHALLENGE,
-            value: pkceChallenge,
-        });
-
-        // Select the oauth flow variant.
-        // This will instruct the redirect to dashql.app/oauth.html about the "actual" target.
-        // When initiating the OAuth flow from the native app, the redirect will then open a deep link with the OAuth code.
-        // When initiating from the web, the redirect will assume there's an opener that it can post the code to.
-        const flowVariant: OAuthState['flowVariant'] = platformType !== PlatformType.WEB
-            ? "NATIVE_LINK_FLOW"
-            : "WEB_OPENER_FLOW";
-
-        // Construct the auth state.
-        // For WEB_OPENER_FLOW, embed the actual app origin so that dashql.app/oauth.html
-        // can redirect back to the same origin as the initiating app before posting the
-        // event. This is needed when the app runs on a different origin than dashql.app
-        // (e.g. localhost dev server), because BroadcastChannel is same-origin only and
-        // COOP severs window.opener after the popup crosses origins to Salesforce.
-        const callbackUrl = flowVariant === "WEB_OPENER_FLOW"
-            ? `${window.location.origin}/oauth.html`
-            : undefined;
-        const authState: OAuthState = {
-            flowVariant: flowVariant,
-            debugMode: isDebugBuild(),
-            ...(callbackUrl ? { callbackUrl } : {}),
-            salesforceProvider: {
-                instanceUrl: params.instanceUrl,
-                appConsumerKey: params.appConsumerKey,
-                requestedAt: Date.now(),
-                expiresAt: Date.now() + DEFAULT_EXPIRATION_TIME_MS
-            }
-        };
-        // Encode to JSON
-        const authStateJson = JSON.stringify(authState);
-        const authStateBuffer = new TextEncoder().encode(authStateJson);
-        const authStateBase64 = BASE64URL_CODEC.encode(authStateBuffer.buffer);
-
-        // Collect the oauth parameters
-        const paramParts = [
-            `client_id=${params.appConsumerKey}`,
-            `redirect_uri=${config.auth?.oauthRedirect}`,
-            `code_challenge=${pkceChallenge.value}`,
-            `code_challange_method=S256`,
-            `response_type=code`,
-            `state=${authStateBase64}`
-        ];
-        if (forceReLogin) {
-            // Force the identity provider to re-authenticate instead of silently reusing an
-            // existing session cookie in the browser (or system browser for native flows).
-            paramParts.push(`prompt=login`);
-        }
-        if (params.login) {
-            // Emails/usernames can contain characters like '+' and '@' that must be encoded.
-            paramParts.push(`login_hint=${encodeURIComponent(params.login)}`);
-        }
-        const url = `${params.instanceUrl}/services/oauth2/authorize?${paramParts.join('&')}`;
-
-        // Either start request the oauth flow through a browser popup or by opening a url using the shell plugin
-        if (flowVariant == "WEB_OPENER_FLOW") {
-            logger.info("Opening popup", { "url": url.toString() }, LOG_CTX);
-            // Open popup window
-            const popup = window.open(url, OAUTH_POPUP_NAME, OAUTH_POPUP_SETTINGS);
-            if (!popup) {
-                // Something went wrong, Browser might prevent the popup.
-                // (E.g. FF blocks by default)
-                throw new Error('could not open oauth window');
-            }
-            popup.focus();
-            oauthPopup = popup;
-            modifyState({ type: OAUTH_WEB_WINDOW_OPENED, value: null });
-        } else {
-            // Just open the link with the default browser
-            logger.info("Opening URL", { "url": url.toString() }, LOG_CTX);
-            shell.open(url);
-            modifyState({ type: OAUTH_NATIVE_LINK_OPENED, value: null });
-        }
-
-        // Await the oauth redirect
-        const authCode = await appEvents.waitForOAuthRedirect(abortSignal);
-        abortSignal.throwIfAborted();
-        logger.info("Received OAuth code", { "code": JSON.stringify(authCode) }, LOG_CTX);
-
-        closeOAuthPopup();
-
-        // Received an oauth error?
-        if (authCode.error) {
-            throw new Error(authCode.error);
-        }
-        modifyState({
-            type: RECEIVED_CORE_AUTH_CODE,
-            value: {
-                token: authCode.code,
-                createdAt: dateToTimestamp(new Date())!
-            },
-        });
-
-        // Request the core access token
-        modifyState({
-            type: REQUESTING_CORE_AUTH_TOKEN,
-            value: null,
-        });
-
-        // Missing the oauth redirect?
         if (!config.auth?.oauthRedirect) {
             throw new Error(`missing oauth redirect url`);
         }
-        const coreAccessToken = await apiClient.getCoreAccessToken(
-            config.auth,
-            params,
-            authCode.code,
-            pkceChallenge.verifier,
-            abortSignal,
-        );
-        logger.info("Received core access token", { "token": JSON.stringify(coreAccessToken) }, LOG_CTX);
-        modifyState({
-            type: RECEIVED_CORE_AUTH_TOKEN,
-            value: coreAccessToken,
-        });
-        abortSignal.throwIfAborted();
-
-        // Resolve the account identity (email/username) to prefill the OAuth login_hint on
-        // future connects and shared links. This is strictly best-effort: the userinfo
-        // endpoint requires the openid/profile scope, which the connected app may not grant.
-        // A failure here must never abort the auth flow, so we swallow it and continue.
-        try {
-            const userInfo = await apiClient.getCoreUserInfo(coreAccessToken, abortSignal);
-            logger.info("Received core user info", { "userInfo": JSON.stringify(userInfo) }, LOG_CTX);
-            modifyState({
-                type: RECEIVED_CORE_USER_INFO,
-                value: userInfo,
-            });
-        } catch (error: any) {
-            if (error?.name === 'AbortError') {
-                throw error;
+        const onAuthenticationProgress = (progress: SalesforceAuthenticationProgress) => {
+            switch (progress.stage) {
+                case 'GENERATING_PKCE_CHALLENGE':
+                    modifyState({ type: GENERATING_PKCE_CHALLENGE, value: null });
+                    break;
+                case 'GENERATED_PKCE_CHALLENGE':
+                    modifyState({ type: GENERATED_PKCE_CHALLENGE, value: progress.pkceChallenge });
+                    break;
+                case 'OAUTH_NATIVE_LINK_OPENED':
+                    modifyState({ type: OAUTH_NATIVE_LINK_OPENED, value: null });
+                    break;
+                case 'OAUTH_WEB_WINDOW_OPENED':
+                    modifyState({ type: OAUTH_WEB_WINDOW_OPENED, value: null });
+                    break;
+                case 'OAUTH_WEB_WINDOW_CLOSED':
+                    modifyState({ type: OAUTH_WEB_WINDOW_CLOSED, value: null });
+                    break;
+                case 'RECEIVED_CORE_AUTH_CODE':
+                    modifyState({
+                        type: RECEIVED_CORE_AUTH_CODE,
+                        value: { token: progress.code, createdAt: dateToTimestamp(new Date())! },
+                    });
+                    break;
+                case 'REQUESTING_CORE_AUTH_TOKEN':
+                    modifyState({ type: REQUESTING_CORE_AUTH_TOKEN, value: null });
+                    break;
+                case 'RECEIVED_CORE_AUTH_TOKEN':
+                    modifyState({ type: RECEIVED_CORE_AUTH_TOKEN, value: progress.coreAccessToken });
+                    break;
+                case 'RECEIVED_CORE_USER_INFO':
+                    modifyState({ type: RECEIVED_CORE_USER_INFO, value: progress.coreUserInfo });
+                    break;
+                case 'REQUESTING_DATA_CLOUD_ACCESS_TOKEN':
+                    modifyState({ type: REQUESTING_DATA_CLOUD_ACCESS_TOKEN, value: null });
+                    break;
+                case 'RECEIVED_DATA_CLOUD_ACCESS_TOKEN':
+                    modifyState({ type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN, value: progress.dataCloudAccessToken });
+                    break;
             }
-            logger.info("Could not resolve core user info (login hint will be skipped)", { "error": stringifyError(error) }, LOG_CTX);
-        }
-        abortSignal.throwIfAborted();
-
-        // Request the data cloud access token
-        modifyState({
-            type: REQUESTING_DATA_CLOUD_ACCESS_TOKEN,
-            value: null,
-        });
-        const dcToken = await apiClient.getDataCloudAccessToken(coreAccessToken, abortSignal);
-        logger.info("Received data cloud token", { "token": JSON.stringify(dcToken) }, LOG_CTX);
-        modifyState({
-            type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
-            value: dcToken,
+        };
+        const { coreAccessToken, dataCloudAccessToken: dcToken } = await authenticateSalesforce({
+            logger,
+            params,
+            authConfig: config.auth,
+            platformType,
+            apiClient,
+            appEvents,
+            forceReLogin,
+            abortSignal,
+            onProgress: onAuthenticationProgress,
         });
         abortSignal.throwIfAborted();
 
@@ -314,7 +189,6 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         abortSignal.throwIfAborted();
 
     } catch (error: any) {
-        closeOAuthPopup();
         if (error.name === 'AbortError') {
             logger.info("Cancelled OAuth flow", {}, LOG_CTX);
             modifyState({

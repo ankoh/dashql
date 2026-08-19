@@ -120,6 +120,9 @@ export class WebPlatformEventListener extends PlatformEventListener {
         if (!isAppEventPostMessage(event.data)) {
             return;
         }
+        if (event.origin !== window.location.origin) {
+            return;
+        }
         const data = this.readAppEvent(event.data.data, `event message`);
         if (data != null) {
             event.stopPropagation();

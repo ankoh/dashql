@@ -12,7 +12,7 @@ describe('embedded database shell environment', () => {
         const environment = createEmbeddedDatabaseShellEnvironment({ queryArrowIPC } as any);
 
         await expect(environment.executeQuery('SELECT 42')).resolves.toBe(result);
-        expect(queryArrowIPC).toHaveBeenCalledWith('SELECT 42');
+        expect(queryArrowIPC).toHaveBeenCalledWith('SELECT 42', expect.any(AbortSignal));
     });
 
     it('executes repeated queries against the database instead of caching results', async () => {
@@ -59,7 +59,7 @@ describe('embedded database shell environment', () => {
         const result = await environment.executeQuery('CREATE TABLE foo(a INT)');
 
         expect(arrow.tableFromIPC(result).numCols).toBe(0);
-        expect(queryArrowIPC).toHaveBeenCalledWith('CREATE TABLE foo(a INT)');
+        expect(queryArrowIPC).toHaveBeenCalledWith('CREATE TABLE foo(a INT)', expect.any(AbortSignal));
     });
 
     it('prepares and opens results in UI mode', async () => {
@@ -116,7 +116,7 @@ describe('embedded database shell environment', () => {
         const result = await environment.executeQuery('SELECT 42', undefined, undefined, onResult);
 
         expect(arrow.tableFromIPC(result).numCols).toBe(0);
-        expect(queryArrowIPC).toHaveBeenCalledWith('SELECT 42');
+        expect(queryArrowIPC).toHaveBeenCalledWith('SELECT 42', expect.any(AbortSignal));
         expect(onResult).not.toHaveBeenCalled();
     });
 

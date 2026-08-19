@@ -4,7 +4,7 @@ import * as pb from "../../../../proto.js";
 import { Logger } from '../../../../platform/logger/logger.js';
 import { HttpClient } from '../../../../platform/http/http_client.js';
 import { HyperDatabaseChannel, HyperQueryResultStream } from '../hyper/hyperdb_grpc_client.js';
-import { BASE64_CODEC } from "../../../../utils/base64.js";
+import { BASE64URL_CODEC } from "../../../../utils/base64.js";
 import { dateToTimestamp } from "../proto_helper.js";
 
 const LOG_CTX = "salesforce_api";
@@ -145,7 +145,7 @@ function parseDataCloudJWTPayload(obj: any): connection.SalesforceDataCloudJWTPa
         sfuid: obj.sfuid,
         issuerTenantId: obj.issuerTenantId,
         audienceTenantId: obj.audienceTenantId,
-        customAttributes: obj.customAttributes,
+        customAttributes: obj.customAttributes ?? obj.custom_attributes,
     };
 }
 
@@ -247,13 +247,13 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
 
         // Parse the JWT header
         const jwtHeaderRaw = jwtParts[0];
-        const jwtHeaderBytes = BASE64_CODEC.decode(jwtHeaderRaw);
+        const jwtHeaderBytes = BASE64URL_CODEC.decode(jwtHeaderRaw);
         const jwtHeaderText = this.textDecoder.decode(jwtHeaderBytes);
         const jwtHeaderParsed = JSON.parse(jwtHeaderText);
 
         // Parse the JWT payload
         const jwtPayloadRaw = jwtParts[1];
-        const jwtPayloadBytes = BASE64_CODEC.decode(jwtPayloadRaw);
+        const jwtPayloadBytes = BASE64URL_CODEC.decode(jwtPayloadRaw);
         const jwtPayloadText = this.textDecoder.decode(jwtPayloadBytes);
         const jwtPayloadParsed = parseDataCloudJWTPayload(JSON.parse(jwtPayloadText));
 

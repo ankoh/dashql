@@ -1,4 +1,5 @@
 import * as dashql from '../../../../core/index.js';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { SalesforceApiClientInterface } from './salesforce_api_client.js';
 import { getSalesforceDataSpace } from './salesforce_api_client.js';
@@ -8,6 +9,48 @@ import { LoggerLike } from '../../../../platform/logger/logger.js';
 import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
 
 const SALESFORCE_CATALOG_RANK = 100;
+
+export interface ResolvedSalesforceCatalog {
+    tables: Map<string, ColumnMetadata[]>;
+    functionsSQL: string;
+    tableCount: number;
+    columnCount: number;
+}
+
+export async function resolveSalesforceCatalog(
+    logger: LoggerLike,
+    coreAccessToken: connection.SalesforceCoreAccessToken,
+    dataCloudAccessToken: connection.SalesforceDataCloudAccessToken,
+    api: SalesforceApiClientInterface,
+    signal: AbortSignal,
+): Promise<ResolvedSalesforceCatalog> {
+    if (!coreAccessToken.accessToken || !coreAccessToken.instanceUrl) {
+        throw new Error('Salesforce core access token is missing');
+    }
+    const dataSpace = getSalesforceDataSpace(dataCloudAccessToken);
+    logger.info('Resolving Salesforce catalog metadata', { dataSpace }, 'salesforce_catalog');
+    const metadataStartedAt = performance.now();
+    const [metadata, functionsSQL] = await Promise.all([
+        api.getDataCloudMetadata(coreAccessToken, dataSpace, signal),
+        fetchPrefetchedHyperFunctions(signal),
+    ]);
+    logger.info('Received Salesforce catalog metadata', {
+        dataSpace,
+        entities: (metadata.metadata?.length ?? 0).toString(),
+        durationMs: (performance.now() - metadataStartedAt).toFixed(2),
+    }, 'salesforce_catalog');
+
+    const tables = new Map<string, ColumnMetadata[]>();
+    for (const entry of metadata.metadata ?? []) {
+        tables.set(entry.name, (entry.fields ?? []).map((field, ordinalPosition) => ({
+            name: field.name,
+            ordinalPosition,
+            dataType: field.type ?? null,
+        })));
+    }
+    const columnCount = Array.from(tables.values()).reduce((total, columns) => total + columns.length, 0);
+    return { tables, functionsSQL, tableCount: tables.size, columnCount };
+}
 
 export async function updateSalesforceCatalog(
     logger: LoggerLike,
@@ -28,47 +71,17 @@ export async function updateSalesforceCatalog(
         throw new Error(`Salesforce data cloud access token is missing`);
     }
     const dataSpace = getSalesforceDataSpace(conn.proto.oauthState.dataCloudAccessToken);
-    logger.info("Resolving Salesforce catalog metadata", { dataSpace }, "salesforce_catalog");
-
-    // Get Data Cloud metadata through the Salesforce Connect API.
-    const metadataStartedAt = performance.now();
-    const [metadata, functionsSQL] = await Promise.all([
-        api.getDataCloudMetadata(
-            coreAccessToken,
-            dataSpace,
-            abortController.signal,
-        ),
-        fetchPrefetchedHyperFunctions(abortController.signal),
-    ]);
-    logger.info("Received Salesforce catalog metadata", {
-        dataSpace,
-        entities: (metadata.metadata?.length ?? 0).toString(),
-        durationMs: (performance.now() - metadataStartedAt).toFixed(2),
-    }, "salesforce_catalog");
-
-    // Build table metadata
-    const tables = new Map<string, ColumnMetadata[]>();
-    if (metadata.metadata) {
-        for (const entry of metadata.metadata) {
-            const columns: ColumnMetadata[] = [];
-            if (entry.fields) {
-                for (let i = 0; i < entry.fields.length; i++) {
-                    const field = entry.fields[i];
-                    columns.push({
-                        name: field.name,
-                        ordinalPosition: i,
-                        dataType: field.type ?? null,
-                    });
-                }
-            }
-            tables.set(entry.name, columns);
-        }
-    }
+    const { tables, functionsSQL, columnCount } = await resolveSalesforceCatalog(
+        logger,
+        coreAccessToken,
+        conn.proto.oauthState.dataCloudAccessToken,
+        api,
+        abortController.signal,
+    );
 
     // Generate SQL from metadata
     const header = generateCatalogScriptHeader(CatalogSource.SalesforceMetadataApi);
     const catalogSQL = generateUnqualifiedSchemaSQL(tables);
-    const columnCount = Array.from(tables.values()).reduce((total, columns) => total + columns.length, 0);
     logger.info("Generated Salesforce catalog script", {
         dataSpace,
         tables: tables.size.toString(),

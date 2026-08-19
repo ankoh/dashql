@@ -30,6 +30,7 @@ describe('Base64Codec', () => {
 
     it("encode salesforce oauth web flow state", () => {
         const authState: auth.OAuthState = {
+            flowId: "web-flow-id",
             flowVariant: "WEB_OPENER_FLOW",
             debugMode: false,
             salesforceProvider: {
@@ -52,6 +53,7 @@ describe('Base64Codec', () => {
 
     it("encode salesforce oauth native flow state", () => {
         const authState: auth.OAuthState = {
+            flowId: "native-flow-id",
             flowVariant: "NATIVE_LINK_FLOW",
             debugMode: false,
             salesforceProvider: {
@@ -86,6 +88,7 @@ describe('Base64UrlCodec oauth event roundtrip', () => {
                 oauthRedirect: {
                     code: "auth_code_abc123",
                     state: {
+                        flowId: `flow-${ts}`,
                         flowVariant: "WEB_OPENER_FLOW",
                         debugMode: false,
                         salesforceProvider: {

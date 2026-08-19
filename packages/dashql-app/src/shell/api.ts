@@ -93,6 +93,7 @@ export interface DashQLShellEnvironment {
 
 export interface DashQLShellCommandContext {
     readonly signal?: AbortSignal;
+    readonly onProgress?: (message: string) => void;
 }
 
 export type DashQLShellCommandFunction = (
@@ -722,7 +723,7 @@ export class DashQLShell {
                     if (effect.type === DashQLShellEffectType.EXECUTE_QUERY) {
                         return await this.environment.executeQuery(effectInput, signal, onProgress, onResult);
                     }
-                    const command = await this.executeCommand(effectInput, signal);
+                    const command = await this.executeCommand(effectInput, signal, onProgress);
                     const output = this.textEncoder.encode(withTrailingNewline(command.output));
                     const encoded = new Uint8Array(output.byteLength + 1);
                     encoded[0] = command.clearTerminal ? 1 : 0;
@@ -748,12 +749,13 @@ export class DashQLShell {
     protected async executeCommand(
         input: string,
         signal?: AbortSignal,
+        onProgress?: (message: string) => void,
     ): Promise<{ output: string; clearTerminal: boolean }> {
         const [name, ...args] = input.trim().substring(1).split(/\s+/);
         const command = this.commands.get(name.toLowerCase());
         if (command == null) throw new Error(`unknown command: .${name}`);
         return {
-            output: await command[2](args, { signal }) ?? '',
+            output: await command[2](args, { signal, onProgress }) ?? '',
             clearTerminal: name.toLowerCase() === 'clear',
         };
     }

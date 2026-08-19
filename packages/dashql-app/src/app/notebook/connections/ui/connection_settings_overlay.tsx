@@ -46,6 +46,8 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
             align={AnchorAlignment.Start}
             minWidth={OverlaySize.L}
             maxWidth={OverlaySize.XXL}
+            height={OverlaySize.XL}
+            maxHeight={OverlaySize.XL}
         >
             <div className={styles.overlay_container}>
                 <ConnectorConfigTabs

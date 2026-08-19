@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as style from './connection_settings.module.css';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { KeyIcon, PersonIcon, PlugIcon, XIcon } from '@primer/octicons-react';
+import { KeyIcon, PersonIcon } from '@primer/octicons-react';
 
 import { useConnectionState } from '../connection_registry.js';
 import { ConnectionHealth, ConnectionStatus } from '../connection_state.js';
@@ -19,7 +19,6 @@ import {
 import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js';
 import { classNames } from '../../../../utils/classnames.js';
 import { Logger } from '../../../../platform/logger/logger.js';
-import { Button, ButtonVariant } from '../../../../ui/foundations/button.js';
 import { CONNECTOR_INFOS, ConnectorType, DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
 import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { ConnectionStateDetailsVariant } from '../connection_state_details.js';
@@ -126,12 +125,188 @@ interface Props {
     onClose?: () => void;
 }
 
+export interface SalesforceConnectionAliasField {
+    value: string;
+    onChange: React.ChangeEventHandler<HTMLInputElement>;
+    validation?: TextFieldValidationStatus;
+}
+
+interface SalesforceConnectionSettingsPageProps {
+    connectionState: ReturnType<typeof useConnectionState>[0];
+    notebookScripts: ReturnType<typeof useAnyConnectionNotebookScripts>;
+    hyperProtocol: connection.HyperProtocol;
+    protocols?: connection.HyperProtocol[];
+    wrongPlatform: boolean;
+    freezeInput: boolean;
+    instanceUrl: string;
+    appConsumerKey: string;
+    login: string;
+    coreAccessToken: string;
+    dataCloudInstanceUrl: string;
+    dataCloudAccessToken: string;
+    coreTenantId: string;
+    dataCloudTenantId: string;
+    instanceUrlValidation: TextFieldValidationStatus;
+    appConsumerValidation: TextFieldValidationStatus;
+    setHyperProtocol: (protocol: connection.HyperProtocol) => void;
+    updateInstanceUrl: React.ChangeEventHandler<HTMLInputElement>;
+    updateAppConsumerKey: React.ChangeEventHandler<HTMLInputElement>;
+    setupConnection: () => void;
+    cancelSetup: () => void;
+    resetSetup: () => void;
+    onClose?: () => void;
+    alias?: SalesforceConnectionAliasField;
+    statusText?: string;
+    indicatorStatus?: IndicatorStatus;
+    statusError?: string | null;
+    connectionHealth?: ConnectionHealth;
+}
+
+export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSettingsPageProps> = props => {
+    const connectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+    return (
+        <div className={style.layout}>
+            <ConnectionInlineHeader
+                connector={connectorInfo}
+                connection={props.connectionState}
+                wrongPlatform={props.wrongPlatform}
+                setupConnection={props.setupConnection}
+                cancelSetup={props.cancelSetup}
+                resetSetup={props.resetSetup}
+                notebookScripts={props.notebookScripts}
+                protocol={props.hyperProtocol}
+                protocols={props.protocols ?? ["V3_GRPC", "V3_HTTP"]}
+                onProtocolChange={props.setHyperProtocol}
+                freezeInput={props.freezeInput}
+                onClose={props.onClose}
+                statusText={props.statusText}
+                indicatorStatus={props.indicatorStatus}
+                statusError={props.statusError}
+                connectionHealth={props.connectionHealth}
+            />
+            <div className={style.body_container}>
+                {props.alias && (
+                    <div className={style.section}>
+                        <div className={classNames(style.section_layout, style.body_section_layout)}>
+                            <TextField
+                                name="Connection Alias"
+                                caption="Alias used to address this connection in the shell"
+                                value={props.alias.value}
+                                onChange={props.alias.onChange}
+                                placeholder="Alias"
+                                leadingVisual={() => <div>AS</div>}
+                                validation={props.alias.validation}
+                                logContext={LOG_CTX}
+                                disabled={props.freezeInput}
+                                readOnly={props.freezeInput}
+                            />
+                        </div>
+                    </div>
+                )}
+                <div className={style.section}>
+                    <div className={classNames(style.section_layout, style.body_section_layout)}>
+                        <TextField
+                            name="Salesforce Instance URL"
+                            caption="URL of the Salesforce Instance"
+                            value={props.instanceUrl}
+                            onChange={props.updateInstanceUrl}
+                            placeholder="Salesforce Instance"
+                            leadingVisual={() => <div>URL</div>}
+                            validation={props.instanceUrlValidation}
+                            logContext={LOG_CTX}
+                            disabled={props.freezeInput}
+                            readOnly={props.freezeInput}
+                        />
+                        <TextField
+                            name="Connected App"
+                            caption="Setup > App Manager > [App] > Manage Consumer Details"
+                            value={props.appConsumerKey}
+                            onChange={props.updateAppConsumerKey}
+                            placeholder="Consumer Key"
+                            leadingVisual={() => <div>ID</div>}
+                            validation={props.appConsumerValidation}
+                            logContext={LOG_CTX}
+                            disabled={props.freezeInput}
+                            readOnly={props.freezeInput}
+                        />
+                    </div>
+                </div>
+                <div className={style.section}>
+                    <div className={classNames(style.section_layout, style.body_section_layout)}>
+                        <TextField
+                            name="Core Access Token"
+                            caption="Access Token for Salesforce Core"
+                            value={props.coreAccessToken}
+                            placeholder=""
+                            leadingVisual={KeyIcon}
+                            readOnly
+                            disabled
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            name="Login"
+                            caption="Account offered as the sign-in hint"
+                            value={props.login}
+                            placeholder=""
+                            leadingVisual={PersonIcon}
+                            readOnly
+                            disabled
+                            logContext={LOG_CTX}
+                        />
+                    </div>
+                </div>
+                <div className={style.section}>
+                    <div className={classNames(style.section_layout, style.body_section_layout)}>
+                        <TextField
+                            name="Data Cloud Instance URL"
+                            caption="URL of the Data Cloud instance"
+                            value={props.dataCloudInstanceUrl}
+                            placeholder=""
+                            leadingVisual={() => <div>URL</div>}
+                            readOnly
+                            disabled
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            name="Data Cloud Access Token"
+                            caption="Raw Data Cloud JWT"
+                            value={props.dataCloudAccessToken}
+                            placeholder=""
+                            leadingVisual={KeyIcon}
+                            readOnly
+                            disabled
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            name="Core Tenant ID"
+                            caption="Tenant id for core apis"
+                            value={props.coreTenantId}
+                            placeholder=""
+                            leadingVisual={() => <div>ID</div>}
+                            readOnly
+                            disabled
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            name="Data Cloud Tenant ID"
+                            caption="Tenant id for Data Cloud apis"
+                            value={props.dataCloudTenantId}
+                            placeholder=""
+                            leadingVisual={() => <div>ID</div>}
+                            readOnly
+                            disabled
+                            logContext={LOG_CTX}
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const sfSetup = useSalesforceSetup();
     const queryExecutor = useQueryExecutor();
-
-    // Can we use the connector here?
-    const connectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
 
     // Resolve connection state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
@@ -193,49 +368,29 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         let validationSucceeded = true;
         if (pageState.instanceUrl == "") {
             validationSucceeded = false;
-            setInstanceUrlValidation({
-                type: VALIDATION_ERROR,
-                value: "Instance URL cannot be empty"
-            });
+            setInstanceUrlValidation({ type: VALIDATION_ERROR, value: "Instance URL cannot be empty" });
         } else {
-            setInstanceUrlValidation({
-                type: VALIDATION_UNKNOWN,
-                value: null
-            });
+            setInstanceUrlValidation({ type: VALIDATION_UNKNOWN, value: null });
         }
         if (pageState.appConsumerKey === "") {
             validationSucceeded = false;
-            setAppConsumerValidation({
-                type: VALIDATION_ERROR,
-                value: "Connected App cannot be empty"
-            });
+            setAppConsumerValidation({ type: VALIDATION_ERROR, value: "Connected App cannot be empty" });
         } else {
-            setAppConsumerValidation({
-                type: VALIDATION_UNKNOWN,
-                value: null
-            });
+            setAppConsumerValidation({ type: VALIDATION_UNKNOWN, value: null });
         }
-        if (!validationSucceeded || !sfSetup) {
-            return;
-        }
+        if (!validationSucceeded || !sfSetup) return;
 
         try {
-            // Authorize the client
             setupAbortController.current = new AbortController();
             const sfChannel = await sfSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
             if (connectionState != null) {
                 await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'salesforce', channel: sfChannel }, dispatchConnectionState, setupAbortController.current.signal);
             }
-
-
-            // Start the catalog update
-            // XXX
-
-        } catch (error: any) {
-            // XXX
+        } catch {
+            // Setup updates connection state with the failure details.
+        } finally {
+            setupAbortController.current = null;
         }
-
-        setupAbortController.current = null;
     };
 
     // Helper to cancel and reset the setup
@@ -251,30 +406,16 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         }
     };
 
-    // Get the action button
-    let connectButton: React.ReactElement = <div />;
     let freezeInput = false;
     switch (connectionState?.connectionHealth) {
         case ConnectionHealth.NOT_STARTED:
         case ConnectionHealth.FAILED:
         case ConnectionHealth.CANCELLED:
-            connectButton = (
-                <Button
-                    variant={ButtonVariant.Primary}
-                    leadingVisual={PlugIcon}
-                    onClick={setupConnection}
-                    disabled={wrongPlatform}
-                >
-                    Connect
-                </Button>
-            );
             break;
         case ConnectionHealth.CONNECTING:
-            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={cancelSetup}>Cancel</Button>;
             freezeInput = true;
             break;
         case ConnectionHealth.ONLINE:
-            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={resetSetup}>Disconnect</Button>;
             freezeInput = true;
             break;
     }
@@ -288,119 +429,29 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
 
     // Lock any changes?
     return (
-        <div className={style.layout}>
-            <ConnectionInlineHeader
-                connector={connectorInfo}
-                connection={connectionState}
-                wrongPlatform={wrongPlatform}
-                setupConnection={setupConnection}
-                cancelSetup={cancelSetup}
-                resetSetup={resetSetup}
-                notebookScripts={connectionNotebookScripts}
-                protocol={hyperProtocol}
-                protocols={["V3_GRPC", "V3_HTTP"]}
-                onProtocolChange={setHyperProtocol}
-                freezeInput={freezeInput}
-                onClose={props.onClose}
-            />
-            <div className={style.body_container}>
-                <div className={style.section}>
-                    <div className={classNames(style.section_layout, style.body_section_layout)}>
-                        <TextField
-                            name="Salesforce Instance URL"
-                            caption="URL of the Salesforce Instance"
-                            value={pageState.instanceUrl}
-                            onChange={updateInstanceUrl}
-                            placeholder="Salesforce Instance"
-                            leadingVisual={() => <div>URL</div>}
-                            validation={instanceUrlValidation}
-                            logContext={LOG_CTX}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                        />
-                        <TextField
-                            name="Connected App"
-                            caption="Setup > App Manager > [App] > Manage Consumer Details"
-                            value={pageState.appConsumerKey}
-                            onChange={updateAppConsumerKey}
-                            placeholder="Consumer Key"
-                            leadingVisual={() => <div>ID</div>}
-                            validation={appConsumerValidation}
-                            logContext={LOG_CTX}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                        />
-                    </div>
-                </div>
-                <div className={style.section}>
-                    <div className={classNames(style.section_layout, style.body_section_layout)}>
-                        <TextField
-                            name="Core Access Token"
-                            caption="Access Token for Salesforce Core"
-                            value={dcAuthInfo?.coreAccessToken ?? ''}
-                            placeholder=""
-                            leadingVisual={KeyIcon}
-                            readOnly
-                            disabled
-                            logContext={LOG_CTX}
-                        />
-                        <TextField
-                            name="Login"
-                            caption="Account offered as the sign-in hint"
-                            value={restoredLogin}
-                            placeholder=""
-                            leadingVisual={PersonIcon}
-                            readOnly
-                            disabled
-                            logContext={LOG_CTX}
-                        />
-                    </div>
-                </div>
-                <div className={style.section}>
-                    <div className={classNames(style.section_layout, style.body_section_layout)}>
-                        <TextField
-                            name="Data Cloud Instance URL"
-                            caption="URL of the Data Cloud instance"
-                            value={dcAuthInfo?.offcoreInstanceUrl ?? ''}
-                            placeholder=""
-                            leadingVisual={() => <div>URL</div>}
-                            readOnly
-                            disabled
-                            logContext={LOG_CTX}
-                        />
-                        <TextField
-                            name="Data Cloud Access Token"
-                            caption="Raw Data Cloud JWT"
-                            value={dcAuthInfo?.offcoreRawJwt ?? ''}
-                            placeholder=""
-                            leadingVisual={KeyIcon}
-                            readOnly
-                            disabled
-                            logContext={LOG_CTX}
-                        />
-                        <TextField
-                            name="Core Tenant ID"
-                            caption="Tenant id for core apis"
-                            value={dcAuthInfo?.coreTenantId ?? ''}
-                            placeholder=""
-                            leadingVisual={() => <div>ID</div>}
-                            readOnly
-                            disabled
-                            logContext={LOG_CTX}
-                        />
-                        <TextField
-                            name="Data Cloud Tenant ID"
-                            caption="Tenant id for Data Cloud apis"
-                            value={dcAuthInfo?.offcoreTenantId ?? ''}
-                            placeholder=""
-                            leadingVisual={() => <div>ID</div>}
-                            readOnly
-                            disabled
-                            logContext={LOG_CTX}
-                        />
-                    </div>
-                </div>
-            </div>
-        </div>
+        <SalesforceConnectionSettingsPage
+            connectionState={connectionState}
+            notebookScripts={connectionNotebookScripts}
+            hyperProtocol={hyperProtocol}
+            wrongPlatform={wrongPlatform}
+            freezeInput={freezeInput}
+            instanceUrl={pageState.instanceUrl}
+            appConsumerKey={pageState.appConsumerKey}
+            login={restoredLogin}
+            coreAccessToken={dcAuthInfo?.coreAccessToken ?? ''}
+            dataCloudInstanceUrl={dcAuthInfo?.offcoreInstanceUrl ?? ''}
+            dataCloudAccessToken={dcAuthInfo?.offcoreRawJwt ?? ''}
+            coreTenantId={dcAuthInfo?.coreTenantId ?? ''}
+            dataCloudTenantId={dcAuthInfo?.offcoreTenantId ?? ''}
+            instanceUrlValidation={instanceUrlValidation}
+            appConsumerValidation={appConsumerValidation}
+            setHyperProtocol={setHyperProtocol}
+            updateInstanceUrl={updateInstanceUrl}
+            updateAppConsumerKey={updateAppConsumerKey}
+            setupConnection={setupConnection}
+            cancelSetup={cancelSetup}
+            resetSetup={resetSetup}
+            onClose={props.onClose}
+        />
     );
 };

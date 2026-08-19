@@ -240,14 +240,16 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 )}
             />
             {isDocker ? (
-                <HyperDockerSettingsPanel
-                    notebookId={props.notebookId}
-                    freezeInput={freezeInput}
-                    mode={dockerMode}
-                    setMode={setDockerMode}
-                    isEditMode={dockerEditMode}
-                    onClose={props.onClose}
-                />
+                <div className={style.body_container}>
+                    <HyperDockerSettingsPanel
+                        notebookId={props.notebookId}
+                        freezeInput={freezeInput}
+                        mode={dockerMode}
+                        setMode={setDockerMode}
+                        isEditMode={dockerEditMode}
+                        onClose={props.onClose}
+                    />
+                </div>
             ) : protocol === 'WASM' ? (
             <div className={style.body_container}>
                 <div className={style.section}>

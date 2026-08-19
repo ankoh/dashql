@@ -37,6 +37,10 @@ interface Props {
     onClose?: () => void;
     /// Extra actions rendered fully right in the status bar, after the connect button.
     trailingStatusActions?: React.ReactNode;
+    statusText?: string;
+    indicatorStatus?: IndicatorStatus;
+    statusError?: string | null;
+    connectionHealth?: ConnectionHealth;
 }
 
 const PROTOCOL_LABELS: Record<connection.HyperProtocol, string> = {
@@ -55,7 +59,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
     const headerActionsProvided = props.setupConnection || props.cancelSetup || props.resetSetup;
     let connectButton: React.ReactElement = <div />;
     if (props.connector.features.manualSetup && headerActionsProvided) {
-        switch (props.connection?.connectionHealth) {
+        switch (props.connectionHealth ?? props.connection?.connectionHealth) {
             case ConnectionHealth.NOT_STARTED:
             case ConnectionHealth.CANCELLED:
             case ConnectionHealth.FAILED:
@@ -98,18 +102,18 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
     }
 
     // Get the connection status
-    let statusText: string = "";
-    let indicatorStatus: IndicatorStatus = IndicatorStatus.None;
+    let statusText: string = props.statusText ?? "";
+    let indicatorStatus: IndicatorStatus = props.indicatorStatus ?? IndicatorStatus.None;
     if (props.wrongPlatform) {
         statusText = "Connector is unavailable on this platform";
         indicatorStatus = IndicatorStatus.Skip;
-    } else {
+    } else if (props.statusText == null && props.indicatorStatus == null) {
         statusText = getConnectionStatusText(props.connection?.connectionStatus, logger);
         indicatorStatus = getConnectionHealthIndicator(props.connection?.connectionHealth ?? null);
     }
 
     // Get the connection error (if any)
-    const connectionError = getConnectionError(props.connection?.details ?? null);
+    const connectionError = props.statusError ?? getConnectionError(props.connection?.details ?? null)?.message.toString();
 
     return (
         <div className={style.container}>
@@ -125,7 +129,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     </div>
                 </div>
                 <div className={style.actions}>
-                    {props.protocol !== undefined && props.onProtocolChange && props.protocols && props.protocols.length > 0 && (
+                    {props.protocol !== undefined && props.onProtocolChange && props.protocols && props.protocols.length > 1 && (
                         <SegmentedControl
                             aria-label="Connection protocol"
                             onChange={(index) => {
@@ -166,7 +170,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                             </div>
                             {connectionError && (
                                 <div className={style.status_error}>
-                                    {connectionError.message.toString()}
+                                    {connectionError}
                                 </div>
                             )}
                         </div>

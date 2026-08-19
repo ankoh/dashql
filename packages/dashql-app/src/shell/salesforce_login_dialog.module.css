@@ -1,0 +1,11 @@
+.dialog {
+    width: 100%;
+    height: min(600px, 80vh);
+    max-height: min(600px, 80vh);
+    overflow: hidden;
+    color: #24292f;
+    background: white;
+    border-radius: inherit;
+    container-type: inline-size;
+    container-name: connection-overlay;
+}

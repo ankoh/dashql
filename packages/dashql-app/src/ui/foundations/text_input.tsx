@@ -9,57 +9,60 @@ export enum TextInputValidationStatus {
     Error = 3,
 }
 
-interface TextInputProps {
+interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'className' | 'size' | 'autoComplete'> {
     className?: string;
-    value?: string;
-    placeholder?: string;
     leadingVisual?: React.ElementType;
     trailingVisual?: React.ElementType;
     trailingAction?: React.ReactElement<React.HTMLProps<HTMLButtonElement>>;
-    onChange?: React.ChangeEventHandler;
-    disabled?: boolean;
-    readOnly?: boolean;
     block?: boolean;
     validationStatus?: TextInputValidationStatus;
-    autoComplete?: boolean;
+    autoComplete?: boolean | string;
 }
 
-export function TextInput(props: TextInputProps): React.ReactElement {
+export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>((props, ref): React.ReactElement => {
+    const {
+        autoComplete,
+        block,
+        className,
+        disabled,
+        leadingVisual: LeadingVisual,
+        trailingAction,
+        trailingVisual: TrailingVisual,
+        validationStatus,
+        ...inputProps
+    } = props;
     return (
-        <span className={classNames(styles.root, props.className, {
-            [styles.root_disabled]: props.disabled,
-            [styles.root_block]: props.block,
-            [styles.root_validation_success]: props.validationStatus == TextInputValidationStatus.Success,
-            [styles.root_validation_warning]: props.validationStatus == TextInputValidationStatus.Warning,
-            [styles.root_validation_error]: props.validationStatus == TextInputValidationStatus.Error,
+        <span className={classNames(styles.root, className, {
+            [styles.root_disabled]: disabled,
+            [styles.root_block]: block,
+            [styles.root_validation_success]: validationStatus == TextInputValidationStatus.Success,
+            [styles.root_validation_warning]: validationStatus == TextInputValidationStatus.Warning,
+            [styles.root_validation_error]: validationStatus == TextInputValidationStatus.Error,
         })}>
-            {props.leadingVisual && (
+            {LeadingVisual && (
                 <span className={styles.leading_visual_container}>
-                    {<props.leadingVisual />}
+                    <LeadingVisual />
                 </span>
             )}
             <input
+                {...inputProps}
+                ref={ref}
                 className={styles.input_container}
-                value={props.value}
-                readOnly={props.readOnly}
-                placeholder={props.placeholder}
-                disabled={props.disabled}
-                onChange={props.onChange}
-                autoComplete={props.autoComplete ? "on" : "off"}
+                disabled={disabled}
+                autoComplete={typeof autoComplete === 'string' ? autoComplete : autoComplete ? 'on' : 'off'}
                 autoCorrect="off"
                 autoCapitalize="off"
-                spellCheck={false}
             />
-            {props.trailingVisual && (
+            {TrailingVisual && (
                 <span className={styles.trailing_visual_container}>
-                    {<props.trailingVisual />}
+                    <TrailingVisual />
                 </span>
             )}
-            {props.trailingAction && (
+            {trailingAction && (
                 <span className={styles.trailing_action_container}>
-                    {props.trailingAction}
+                    {trailingAction}
                 </span>
             )}
         </span>
     );
-}
+});

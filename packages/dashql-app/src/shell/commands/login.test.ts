@@ -1,25 +1,112 @@
 // @vitest-environment node
-import { DashQLShell } from '../api.js';
-import { LOGIN_UNAVAILABLE_MESSAGE, loginCommand } from './login.js';
+import {
+    createLoginCommand,
+    type SalesforceLoginAuthentication,
+    type SalesforceLoginCatalog,
+    type SalesforceLoginCommandDependencies,
+    type SalesforceLoginCommandContext,
+} from './login.js';
+import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
+function createDependencies(overrides: Partial<SalesforceLoginCommandDependencies> = {}) {
+    const authentication: SalesforceLoginAuthentication = {
+        coreAccessToken: { createdAt: '', accessToken: 'core-token' } as connection.SalesforceCoreAccessToken,
+        dataCloudAccessToken: {
+            jwt: { raw: 'data-cloud-token', header: {}, payload: {} },
+        } as connection.SalesforceDataCloudAccessToken,
+    };
+    const catalog: SalesforceLoginCatalog = {
+        tableCount: 2,
+        columnCount: 5,
+        tables: [],
+        functionsSQL: 'functions',
+    };
+    const dependencies: SalesforceLoginCommandDependencies = {
+        requestForm: vi.fn().mockResolvedValue({
+            alias: 'salesforce',
+            instanceUrl: 'https://example.my.salesforce.com',
+            appConsumerKey: 'consumer-key',
+            loginHint: '',
+        }),
+        hasAlias: vi.fn().mockReturnValue(false),
+        authenticate: vi.fn().mockResolvedValue(authentication),
+        resolveCatalog: vi.fn().mockResolvedValue(catalog),
+        attach: vi.fn().mockResolvedValue(undefined),
+        ...overrides,
+    };
+    return { dependencies, authentication, catalog };
+}
 
-describe('standalone shell login command', () => {
-    it('is discoverable and does not execute SQL', async () => {
-        const executeQuery = vi.fn();
-        const shell = await DashQLShell.create({
-            environment: { executeQuery },
-            commands: [loginCommand],
-            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+function execute(dependencies: SalesforceLoginCommandDependencies, context: SalesforceLoginCommandContext = {}) {
+    return createLoginCommand(dependencies)[2]([], context);
+}
+
+describe('Salesforce login command', () => {
+    it('rejects arguments with usage before opening the form', async () => {
+        const { dependencies } = createDependencies();
+        await expect(createLoginCommand(dependencies)[2](['unexpected'], {})).rejects.toThrow('usage: .login');
+        expect(dependencies.requestForm).not.toHaveBeenCalled();
+    });
+
+    it('returns no text when the form is cancelled', async () => {
+        const { dependencies } = createDependencies({ requestForm: vi.fn().mockResolvedValue(null) });
+        await expect(execute(dependencies)).resolves.toBeUndefined();
+        expect(dependencies.authenticate).not.toHaveBeenCalled();
+    });
+
+    it('rejects duplicate aliases case-insensitively before authentication', async () => {
+        const { dependencies } = createDependencies({
+            requestForm: vi.fn().mockResolvedValue({
+                alias: 'SaLeSfOrCe',
+                instanceUrl: 'https://example.my.salesforce.com',
+                appConsumerKey: 'consumer-key',
+                loginHint: '',
+            }),
+            hasAlias: vi.fn(alias => alias.toLowerCase() === 'salesforce'),
         });
-        try {
-            shell.setPrompt('.help');
-            expect(await shell.submitPrompt()).toContain('.login');
-            shell.setPrompt('.login');
-            expect(await shell.submitPrompt()).toBe(LOGIN_UNAVAILABLE_MESSAGE + '\r\n');
-            expect(executeQuery).not.toHaveBeenCalled();
-        } finally {
-            shell.destroy();
-        }
+        await expect(execute(dependencies)).rejects.toThrow('Salesforce alias already exists: SaLeSfOrCe');
+        expect(dependencies.authenticate).not.toHaveBeenCalled();
+    });
+
+    it('authenticates, resolves the optimized catalog, attaches, and reports counts', async () => {
+        const { dependencies, authentication, catalog } = createDependencies();
+        const onProgress = vi.fn();
+        await expect(execute(dependencies, { onProgress })).resolves.toBe(
+            'Attached Salesforce as salesforce: 2 tables, 5 columns',
+        );
+        expect(dependencies.authenticate).toHaveBeenCalledWith(
+            {
+                alias: 'salesforce',
+                instanceUrl: 'https://example.my.salesforce.com',
+                appConsumerKey: 'consumer-key',
+                loginHint: '',
+            },
+            undefined,
+            onProgress,
+        );
+        expect(dependencies.resolveCatalog).toHaveBeenCalledWith(authentication, undefined, onProgress);
+        expect(dependencies.attach).toHaveBeenCalledWith(
+            'salesforce',
+            authentication,
+            catalog,
+            undefined,
+            onProgress,
+        );
+        expect(onProgress).toHaveBeenNthCalledWith(1, 'Authenticating with Salesforce');
+        expect(onProgress).toHaveBeenNthCalledWith(2, 'Resolving optimized Salesforce catalog');
+        expect(onProgress).toHaveBeenNthCalledWith(3, 'Attaching Salesforce connection as salesforce');
+    });
+
+    it('returns no text when authentication is aborted', async () => {
+        const abort = new AbortController();
+        const { dependencies } = createDependencies({
+            authenticate: vi.fn(async () => {
+                abort.abort();
+                abort.signal.throwIfAborted();
+                throw new Error('unreachable');
+            }),
+        });
+        await expect(execute(dependencies, { signal: abort.signal })).resolves.toBeUndefined();
+        expect(dependencies.resolveCatalog).not.toHaveBeenCalled();
     });
 });

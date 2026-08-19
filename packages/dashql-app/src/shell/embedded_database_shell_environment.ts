@@ -46,7 +46,7 @@ export function createEmbeddedDatabaseShellEnvironment(
                     },
                     execute: async tracked => {
                         onProgress?.('Executing query');
-                        let queryResult = await connection.queryArrowIPC(query);
+                        let queryResult = await connection.queryArrowIPC(query, cancellation.signal);
                         cancellation.signal.throwIfAborted();
                         const totalDataBytesReceived = queryResult.byteLength;
                         if (queryResult.byteLength === 0) {

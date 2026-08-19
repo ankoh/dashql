@@ -3,8 +3,6 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from '../ui/banner/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
 
-import * as auth from '@ankoh/dashql-jsonschema/auth.js';
-
 import type { OAuthState, AppEventData } from '../oauth_types.js';
 
 import { createRoot } from 'react-dom/client';
@@ -24,6 +22,7 @@ import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARN
 import { classNames } from '../utils/classnames.js';
 import { formatHHMMSS, formatTimeDifference } from '../utils/format.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
+import { isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
 
 import '../../static/fonts/fonts.css';
 import '../styles/globals.css';
@@ -45,7 +44,7 @@ function buildDeepLink(eventBase64: string) {
 function triggerFlow(state: OAuthState, eventBase64: string, deepLink: string, logger: Logger) {
     switch (state.flowVariant) {
         case "NATIVE_LINK_FLOW": {
-            logger.info(`opening deep link`, { "link": deepLink }, LOG_CTX);
+            logger.info(`Opening OAuth deep link`, {}, LOG_CTX);
             window.open(deepLink, '_self');
             break;
         }
@@ -54,12 +53,15 @@ function triggerFlow(state: OAuthState, eventBase64: string, deepLink: string, l
             // the popup navigates to Salesforce. Use BroadcastChannel as the primary path
             // since it works same-origin regardless of COOP, and fall back to postMessage
             // for environments that lack BroadcastChannel support.
-            logger.info(`posting oauth data via broadcast channel`, { "data": eventBase64 }, LOG_CTX);
+            logger.info(`Posting OAuth result via broadcast channel`, {}, LOG_CTX);
             const channel = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
             channel.postMessage(eventBase64);
             channel.close();
             if (window.opener) {
-                window.opener.postMessage({ kind: APP_EVENT_POST_MESSAGE_KIND, data: eventBase64 });
+                window.opener.postMessage(
+                    { kind: APP_EVENT_POST_MESSAGE_KIND, data: eventBase64 },
+                    window.location.origin,
+                );
             }
             // Close self — opener.close() can be blocked by COOP after the cross-origin
             // bounce through Salesforce, but window.close() on the popup itself works
@@ -73,7 +75,9 @@ function triggerFlow(state: OAuthState, eventBase64: string, deepLink: string, l
 const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProps) => {
     const logger = useLogger();
 
-    const code = props.params.get('code') ?? '';
+    const code = props.params.get('code') ?? undefined;
+    const oauthError = props.params.get('error') ?? undefined;
+    const oauthErrorDescription = props.params.get('error_description') ?? undefined;
     const now = new Date();
     const [logsAreOpen, setLogsAreOpen] = React.useState<boolean>(false);
 
@@ -82,6 +86,8 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
         const eventMessage: AppEventData = {
             oauthRedirect: {
                 code,
+                error: oauthError,
+                errorDescription: oauthErrorDescription,
                 state: props.state
             }
         };
@@ -93,7 +99,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
             eventBase64: event,
             deepLink: buildDeepLink(event).toString(),
         }
-    }, [code, props.state]);
+    }, [code, oauthError, oauthErrorDescription, props.state]);
 
     // Setup auto-trigger
     const skipAutoTrigger = props.state.flowVariant == "NATIVE_LINK_FLOW" && props.state.debugMode;
@@ -178,8 +184,13 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
 
     // Get expiration validation
     let codeExpirationValidation: TextFieldValidationStatus;
-    const codeIsEmpty = (props.params.get('code') ?? '').length == 0;
-    if (codeIsEmpty) {
+    const codeIsEmpty = !code;
+    if (oauthError) {
+        codeExpirationValidation = {
+            type: VALIDATION_ERROR,
+            value: oauthErrorDescription || oauthError,
+        };
+    } else if (codeIsEmpty) {
         codeExpirationValidation = {
             type: VALIDATION_ERROR,
             value: "Code is empty"
@@ -202,7 +213,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                 <div className={baseStyles.card_section}>
                     <div className={baseStyles.section_entries}>
                         <div className={baseStyles.section_description}>
-                            The authorization code was sent to the app automatically.
+                            The authorization result was sent to the app automatically.
                             If the app did not receive it, copy the event data below and paste it into the app window.
                         </div>
                         <TextField
@@ -314,7 +325,9 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                     <div className={baseStyles.card}>
                         <div className={baseStyles.card_header}>
                             <div className={baseStyles.card_header_left_container}>
-                                <div className={baseStyles.card_header_left_title}>Authorization Succeeded</div>
+                                <div className={baseStyles.card_header_left_title}>
+                                    {oauthError ? 'Authorization Failed' : 'Authorization Succeeded'}
+                                </div>
                             </div>
                             <div className={baseStyles.card_header_right_container}>
                                 <LogsOverlay
@@ -401,9 +414,11 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
         try {
             const authStateBuffer = BASE64URL_CODEC.decode(state);
             const authStateString = new TextDecoder().decode(authStateBuffer);
+            const parsed = JSON.parse(authStateString) as OAuthState;
+            validateOAuthRedirectState(parsed);
             return {
                 type: RESULT_OK,
-                value: JSON.parse(authStateString) as auth.OAuthState
+                value: parsed,
             };
         } catch (e: any) {
             return {
@@ -419,6 +434,9 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
     if (authState.type == RESULT_OK) {
         const callbackUrl = authState.value.callbackUrl;
         if (callbackUrl) {
+            if (!isAllowedOAuthCallbackUrl(callbackUrl, new URL(window.location.href))) {
+                return <OAuthFailed error={new Error('OAuth callback URL is not allowed')} />;
+            }
             const target = new URL(callbackUrl);
             if (target.origin !== window.location.origin) {
                 // Forward all query params (code, state, error, ...) to the target origin

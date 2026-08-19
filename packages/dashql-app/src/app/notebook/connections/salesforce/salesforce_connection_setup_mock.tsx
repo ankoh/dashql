@@ -75,7 +75,6 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
             pkceChallenge.verifier,
             abortSignal,
         );
-        console.log(coreAccessToken);
         updateState({
             type: RECEIVED_CORE_AUTH_TOKEN,
             value: coreAccessToken,
@@ -88,7 +87,6 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
             value: null,
         });
         const token = await apiClient.getDataCloudAccessToken(coreAccessToken, abortSignal);
-        console.log(token);
         updateState({
             type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
             value: token,

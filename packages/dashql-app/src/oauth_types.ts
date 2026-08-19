@@ -1,4 +1,5 @@
 export interface OAuthState {
+    flowId: string;
     flowVariant: 'UNSPECIFIED_FLOW' | 'WEB_OPENER_FLOW' | 'NATIVE_LINK_FLOW';
     debugMode: boolean;
     callbackUrl?: string;
