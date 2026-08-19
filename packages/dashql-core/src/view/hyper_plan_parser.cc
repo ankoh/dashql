@@ -254,16 +254,56 @@ void PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]
         }
     } while (!pending.empty());
 
-    // Create default fragment
-    // XXX
-    fragments.emplace_back();
-
     // Flatten the Hyper operators
     FlattenOperators(std::move(parsed_operators), std::move(root_operators));
+    // Identify fragments introduced by federates
+    IdentifyFragments();
     // Identify the operator edges
     IdentifyOperatorEdges(operators, child_edge_count);
     // Read pipelines if this plan format provides them. Legacy plans render without pipeline overlays.
     ParseHyperPipelines();
+}
+
+void PlanViewModel::IdentifyFragments() {
+    std::vector<uint32_t> boundaries;
+    std::vector<uint32_t> pending;
+    pending.reserve(operators.size());
+    for (auto iter = root_operators.rbegin(); iter != root_operators.rend(); ++iter) {
+        pending.push_back(*iter);
+    }
+    while (!pending.empty()) {
+        uint32_t operator_id = pending.back();
+        pending.pop_back();
+        const auto& op = operators[operator_id];
+        if (op.operator_type == "federate") boundaries.push_back(operator_id);
+        for (size_t i = op.children_count; i > 0; --i) {
+            pending.push_back(op.children_begin + i - 1);
+        }
+    }
+
+    for (uint32_t boundary_id : boundaries) {
+        const auto& boundary = operators[boundary_id];
+
+        auto& fragment = fragments.emplace_back();
+        fragment.fragment_id = static_cast<uint32_t>(fragments.size() - 1);
+        fragment.operators.push_back(boundary_id);
+
+        pending.clear();
+        pending.reserve(boundary.children_count);
+        for (size_t i = boundary.children_count; i > 0; --i) {
+            pending.push_back(boundary.children_begin + i - 1);
+        }
+        while (!pending.empty()) {
+            uint32_t operator_id = pending.back();
+            pending.pop_back();
+            fragment.operators.push_back(operator_id);
+
+            const auto& op = operators[operator_id];
+            for (size_t i = op.children_count; i > 0; --i) {
+                pending.push_back(op.children_begin + i - 1);
+            }
+        }
+    }
 }
 
 void PlanViewModel::IdentifyOperatorEdges(std::span<OperatorNode> ops, size_t child_edge_count) {
@@ -302,11 +342,6 @@ void PlanViewModel::ParseHyperPipelines() {
             source_pipeline_id = id->value.GetUint64();
         }
         auto& pipeline = RegisterPipeline(source_pipeline_id);
-        if (auto fragment = source.FindMember("fragmentId");
-            fragment != source.MemberEnd() && fragment->value.IsUint()) {
-            pipeline.fragment_id = fragment->value.GetUint();
-        }
-
         auto members = source.FindMember("operators");
         if (members == source.MemberEnd() || !members->value.IsArray()) continue;
         for (auto& source_operator : members->value.GetArray()) {

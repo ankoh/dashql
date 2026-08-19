@@ -157,6 +157,28 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
             }}>
                 <g ref={sceneRef}>
                     <g>
+                        {scene.fragments.map(fragment => (
+                            <g
+                                key={fragment.id}
+                                role="img"
+                                aria-label={`Fragment ${fragment.id + 1}, containing operators: ${fragment.operatorIds
+                                    .map(operatorId => scene.operators[operatorId]?.label)
+                                    .filter((label): label is string => label != null)
+                                    .join(', ')}`}
+                            >
+                                <rect
+                                    className={styles.fragment}
+                                    x={fragment.rect.x}
+                                    y={fragment.rect.y}
+                                    width={fragment.rect.width}
+                                    height={fragment.rect.height}
+                                    rx={10}
+                                    ry={10}
+                                />
+                            </g>
+                        ))}
+                    </g>
+                    <g>
                         {scene.pipelines.map(pipeline => (
                             <path
                                 key={pipeline.id}

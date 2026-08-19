@@ -19,6 +19,9 @@ struct PlanViewModelSnapshotTest {
 
     std::string name;
     std::string input;
+    /// Expected fragments
+    c4::yml::Tree* expected_fragments_tree = nullptr;
+    c4::yml::id_type expected_fragments_node_id = c4::yml::NONE;
     /// Expected operators (tree not owned, node id in tree)
     c4::yml::Tree* expected_operators_tree = nullptr;
     c4::yml::id_type expected_operators_node_id = c4::yml::NONE;

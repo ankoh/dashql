@@ -29,6 +29,16 @@
     stroke-linejoin: round;
 }
 
+.fragment {
+    pointer-events: none;
+    fill: hsl(211, 100%, 97%);
+    fill-opacity: 0.55;
+    stroke: hsl(211, 70%, 42%);
+    stroke-width: 1.5px;
+    stroke-dasharray: 6 4;
+    vector-effect: non-scaling-stroke;
+}
+
 .pipeline {
     display: none;
     fill: rgba(220, 220, 220, 0.5);

@@ -264,6 +264,19 @@ TEST(ShellSessionTest, RendersInlineDotCommandHint) {
     EXPECT_EQ(output.data.find("╭"), std::string::npos) << output.data;
 }
 
+TEST(ShellSessionTest, RendersRegisteredDotCommandNamesInBold) {
+    Catalog catalog;
+    ShellSession session{catalog};
+    ASSERT_EQ(session.SetCommands("login\nrefresh"), ShellStatus::kOk);
+    session.OpenTerminal("hyperdb> ");
+
+    const auto output = session.ConsumeTerminalInput(PromptInputKey::kText, ".refresh");
+    EXPECT_NE(output.data.find(std::string{vt100::kBoldForegroundPink} + ".refresh" +
+                               std::string{vt100::kResetAttributes}),
+              std::string::npos)
+        << output.data;
+}
+
 TEST(ShellSessionTest, CompilesPlainSQLBeforeExecution) {
     Catalog catalog;
     ShellSession session{catalog, 80};

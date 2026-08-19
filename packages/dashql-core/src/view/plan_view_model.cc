@@ -312,10 +312,15 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
 
     // Pack plan fragments
     std::vector<buffers::view::PlanFragment> flat_fragments;
+    std::vector<uint32_t> flat_fragment_operators;
     flat_fragments.reserve(fragments.size());
-    for ([[maybe_unused]] auto& f : fragments) {
-        // XXX
-        flat_fragments.emplace_back();
+    for (const auto& f : fragments) {
+        size_t operators_begin = flat_fragment_operators.size();
+        flat_fragment_operators.insert(flat_fragment_operators.end(), f.operators.begin(), f.operators.end());
+        auto& fragment = flat_fragments.emplace_back();
+        fragment.mutate_fragment_id(f.fragment_id);
+        fragment.mutate_operators_begin(operators_begin);
+        fragment.mutate_operator_count(flat_fragment_operators.size() - operators_begin);
     }
 
     // Pack plan pipelines
@@ -340,7 +345,6 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
         flat_pipeline_operators.insert(flat_pipeline_operators.end(), p.operators.begin(), p.operators.end());
         size_t pipeline_id = flat_pipelines.size();
         auto& pipeline = flat_pipelines.emplace_back();
-        pipeline.mutate_fragment_id(p.fragment_id);
         pipeline.mutate_pipeline_id(pipeline_id);
         pipeline.mutate_edges_begin(edges_begin);
         pipeline.mutate_edge_count(flat_pipeline_edges.size() - edges_begin);
@@ -364,6 +368,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     }
 
     auto flat_fragments_ofs = builder.CreateVectorOfStructs(flat_fragments);
+    auto flat_fragment_operators_ofs = builder.CreateVector(flat_fragment_operators);
     auto flat_pipelines_ofs = builder.CreateVectorOfStructs(flat_pipelines);
     auto flat_pipeline_edges_ofs = builder.CreateVectorOfStructs(flat_pipeline_edges);
     auto flat_pipeline_operators_ofs = builder.CreateVector(flat_pipeline_operators);
@@ -378,6 +383,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     vm.add_layout_config(&layout_config);
     vm.add_string_dictionary(string_dictionary_ofs);
     vm.add_fragments(flat_fragments_ofs);
+    vm.add_fragment_operators(flat_fragment_operators_ofs);
     vm.add_pipelines(flat_pipelines_ofs);
     vm.add_pipeline_edges(flat_pipeline_edges_ofs);
     vm.add_pipeline_operators(flat_pipeline_operators_ofs);

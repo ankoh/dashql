@@ -46,12 +46,19 @@ export interface PlanScenePipeline {
     path: string;
 }
 
+export interface PlanSceneFragment {
+    id: number;
+    operatorIds: readonly number[];
+    rect: PlanSceneRect;
+}
+
 export interface PlanScene {
     width: number;
     height: number;
     layoutConfig: dashql.buffers.view.DerivedPlanLayoutConfigT;
     operators: readonly PlanSceneOperator[];
     edges: readonly PlanSceneEdge[];
+    fragments: readonly PlanSceneFragment[];
     pipelines: readonly PlanScenePipeline[];
 }
 
@@ -130,6 +137,32 @@ function buildPipelinePath(operatorIds: readonly number[], operators: readonly P
     return parts.join(' ');
 }
 
+export function buildFragmentRect(
+    operatorIds: readonly number[],
+    operators: readonly Pick<PlanSceneOperator, 'rect'>[],
+    padding = 12,
+): PlanSceneRect {
+    let left = Number.POSITIVE_INFINITY;
+    let top = Number.POSITIVE_INFINITY;
+    let right = Number.NEGATIVE_INFINITY;
+    let bottom = Number.NEGATIVE_INFINITY;
+    for (const operatorId of operatorIds) {
+        const op = operators[operatorId];
+        if (op == null) continue;
+        left = Math.min(left, op.rect.x - op.rect.width / 2);
+        top = Math.min(top, op.rect.y - op.rect.height / 2);
+        right = Math.max(right, op.rect.x + op.rect.width / 2);
+        bottom = Math.max(bottom, op.rect.y + op.rect.height / 2);
+    }
+    if (!Number.isFinite(left)) return { x: 0, y: 0, width: 0, height: 0 };
+    return {
+        x: left - padding,
+        y: top - padding,
+        width: right - left + padding * 2,
+        height: bottom - top + padding * 2,
+    };
+}
+
 export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>): PlanScene {
     const vm = viewModel.read();
     const layoutConfig = vm.layoutConfig()!.unpack();
@@ -196,6 +229,22 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         });
     }
 
+    const fragments: PlanSceneFragment[] = [];
+    const tmpFragment = new dashql.buffers.view.PlanFragment();
+    for (let i = 0; i < vm.fragmentsLength(); ++i) {
+        const fragment = vm.fragments(i, tmpFragment)!;
+        const operatorIds: number[] = [];
+        for (let j = 0; j < fragment.operatorCount(); ++j) {
+            const operatorId = vm.fragmentOperators(fragment.operatorsBegin() + j);
+            if (operatorId != null) operatorIds.push(operatorId);
+        }
+        fragments[fragment.fragmentId()] = {
+            id: fragment.fragmentId(),
+            operatorIds,
+            rect: buildFragmentRect(operatorIds, operators),
+        };
+    }
+
     const pipelines: PlanScenePipeline[] = [];
     const tmpPipeline = new dashql.buffers.view.PlanPipeline();
     for (let i = 0; i < vm.pipelinesLength(); ++i) {
@@ -219,6 +268,7 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         layoutConfig,
         operators,
         edges,
+        fragments,
         pipelines,
     };
 }

@@ -1074,41 +1074,60 @@ std::string ShellSession::RenderTerminalPrompt() {
                                      ? std::string_view{"dashql> "}
                                      : std::string_view{terminal_prompt_storage_.data(), terminal_prompt_length_};
     std::string highlighted;
-    if (prompt_.script().GetParsedScript() == nullptr ||
-        prompt_.script().GetParsedScript()->scanned_script->text_version != prompt_.script().text_version) {
-        prompt_.script().Parse();
-    }
-    auto parsed = prompt_.script().GetParsedScript();
-    auto packed = parsed->PackTokens();
-    const auto& comments = parsed->scanned_script->comments;
-    highlighted.reserve(text.size() + (packed->token_offsets.size() + comments.size()) * 16);
-    size_t offset = 0;
-    size_t token_idx = 0;
-    size_t comment_idx = 0;
-    while (token_idx < packed->token_offsets.size() || comment_idx < comments.size()) {
-        const auto token_begin = token_idx < packed->token_offsets.size()
-                                     ? static_cast<size_t>(packed->token_offsets[token_idx])
-                                     : std::numeric_limits<size_t>::max();
-        const auto comment_begin = comment_idx < comments.size() ? static_cast<size_t>(comments[comment_idx].offset())
-                                                                 : std::numeric_limits<size_t>::max();
-        const bool is_comment = comment_begin < token_begin;
-        const auto begin = is_comment ? comment_begin : token_begin;
-        const auto length = is_comment ? comments[comment_idx].length() : packed->token_lengths[token_idx];
-        const auto type = is_comment ? ScannerTokenType::COMMENT : packed->token_types[token_idx];
-        const auto end = begin + length;
-        if (begin > offset) highlighted.append(text.substr(offset, begin - offset));
-        const auto style = TokenStyle(type);
-        if (!style.empty()) highlighted.append(style);
-        highlighted.append(text.substr(begin, end - begin));
-        if (!style.empty()) highlighted.append(vt100::kResetAttributes);
-        offset = end;
-        if (is_comment) {
-            ++comment_idx;
-        } else {
-            ++token_idx;
+    const auto command_begin = text.find_first_not_of(" \t");
+    const auto command_end = command_begin == std::string::npos ? std::string::npos
+                                                                 : text.find_first_of(" \t\r\n", command_begin);
+    const auto command_name_end = command_end == std::string::npos ? text.size() : command_end;
+    const auto command_name = command_begin != std::string::npos && text[command_begin] == '.'
+                                  ? std::string_view{text}.substr(command_begin + 1,
+                                                                  command_name_end - command_begin - 1)
+                                  : std::string_view{};
+    const auto is_registered_command = std::find(commands_.begin(), commands_.end(), command_name) != commands_.end();
+    if (is_registered_command) {
+        highlighted.reserve(text.size() + vt100::kBoldForegroundPink.size() + vt100::kResetAttributes.size());
+        highlighted.append(text.substr(0, command_begin));
+        highlighted.append(vt100::kBoldForegroundPink);
+        highlighted.append(text.substr(command_begin, command_name_end - command_begin));
+        highlighted.append(vt100::kResetAttributes);
+        highlighted.append(text.substr(command_name_end));
+    } else {
+        if (prompt_.script().GetParsedScript() == nullptr ||
+            prompt_.script().GetParsedScript()->scanned_script->text_version != prompt_.script().text_version) {
+            prompt_.script().Parse();
         }
+        auto parsed = prompt_.script().GetParsedScript();
+        auto packed = parsed->PackTokens();
+        const auto& comments = parsed->scanned_script->comments;
+        highlighted.reserve(text.size() + (packed->token_offsets.size() + comments.size()) * 16);
+        size_t offset = 0;
+        size_t token_idx = 0;
+        size_t comment_idx = 0;
+        while (token_idx < packed->token_offsets.size() || comment_idx < comments.size()) {
+            const auto token_begin = token_idx < packed->token_offsets.size()
+                                         ? static_cast<size_t>(packed->token_offsets[token_idx])
+                                         : std::numeric_limits<size_t>::max();
+            const auto comment_begin = comment_idx < comments.size()
+                                           ? static_cast<size_t>(comments[comment_idx].offset())
+                                           : std::numeric_limits<size_t>::max();
+            const bool is_comment = comment_begin < token_begin;
+            const auto begin = is_comment ? comment_begin : token_begin;
+            const auto length = is_comment ? comments[comment_idx].length() : packed->token_lengths[token_idx];
+            const auto type = is_comment ? ScannerTokenType::COMMENT : packed->token_types[token_idx];
+            const auto end = begin + length;
+            if (begin > offset) highlighted.append(text.substr(offset, begin - offset));
+            const auto style = TokenStyle(type);
+            if (!style.empty()) highlighted.append(style);
+            highlighted.append(text.substr(begin, end - begin));
+            if (!style.empty()) highlighted.append(vt100::kResetAttributes);
+            offset = end;
+            if (is_comment) {
+                ++comment_idx;
+            } else {
+                ++token_idx;
+            }
+        }
+        highlighted.append(text.substr(offset));
     }
-    highlighted.append(text.substr(offset));
 
     const auto terminal_columns = renderer_.terminal_columns();
     const auto desired_layout = LayoutPrompt(text, terminal_prompt, terminal_continuation_, terminal_columns);

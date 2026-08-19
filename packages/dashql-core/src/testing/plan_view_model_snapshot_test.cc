@@ -44,9 +44,27 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(c4::yml::NodeRef root, const
     auto ops = vm->operators();
     auto roots = vm->root_operators();
     auto strings = vm->string_dictionary();
+    auto fragments = vm->fragments();
+    auto fragment_operators = vm->fragment_operators();
     auto edges = vm->operator_edges();
     auto pipelines = vm->pipelines();
     auto pipeline_edges = vm->pipeline_edges();
+
+    auto out_fragments = root.append_child();
+    tree->to_seq(out_fragments.id(), tree->to_arena(c4::to_csubstr("fragments")));
+    for (const auto* fragment : *fragments) {
+        auto out_fragment = out_fragments.append_child();
+        out_fragment.set_type(c4::yml::MAP);
+        add_keyval(tree, out_fragment, "id", static_cast<uint64_t>(fragment->fragment_id()));
+        auto operators_seq = out_fragment.append_child();
+        tree->to_seq(operators_seq.id(), tree->to_arena(c4::to_csubstr("operators")));
+        operators_seq.set_container_style(c4::yml::FLOW_SL);
+        for (size_t i = 0; i < fragment->operator_count(); ++i) {
+            std::string operator_id =
+                std::to_string(fragment_operators->Get(fragment->operators_begin() + i));
+            operators_seq.append_child().set_val(tree->to_arena(c4::to_csubstr(operator_id)));
+        }
+    }
 
     auto out_ops = root.append_child();
     tree->to_seq(out_ops.id(), tree->to_arena(c4::to_csubstr("operators")));
@@ -86,7 +104,6 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(c4::yml::NodeRef root, const
         if (op->parent_operator_id() != std::numeric_limits<uint32_t>::max()) {
             add_keyval(tree, self, "parent", static_cast<uint64_t>(op->parent_operator_id()));
         }
-        add_keyval(tree, self, "fragment", static_cast<uint64_t>(op->fragment_id()));
         auto pos_seq = self.append_child();
         tree->to_seq(pos_seq.id(), tree->to_arena(c4::to_csubstr("position")));
         pos_seq.set_container_style(c4::yml::FLOW_SL);  // emit as [x, y]
@@ -194,6 +211,9 @@ void PlanViewModelSnapshotTest::LoadTests(const std::filesystem::path& snapshots
                 c4::csubstr v = test_node["input"].val();
                 t.input = v.str ? std::string(v.str, v.len) : std::string();
             }
+            if (test_node.has_child("fragments")) {
+                t.expected_fragments_node_id = test_node["fragments"].id();
+            }
             if (test_node.has_child("operators")) {
                 t.expected_operators_node_id = test_node["operators"].id();
             }
@@ -207,6 +227,7 @@ void PlanViewModelSnapshotTest::LoadTests(const std::filesystem::path& snapshots
         for (auto& t : it->second.tests) {
             t.expected_operators_tree = &it->second.tree;
             t.expected_edges_tree = &it->second.tree;
+            t.expected_fragments_tree = &it->second.tree;
         }
     }
     LOADED_GROUPS.insert(group);

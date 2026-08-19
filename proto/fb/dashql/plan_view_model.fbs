@@ -36,8 +36,10 @@ table PlanViewModel {
     /// The string dictionary allows us to implement most view model types as flat structs.
     /// We do this to simplify the renderer logic.
     string_dictionary: [string];
-    /// The pipelines
+    /// The fragments
     fragments: [PlanFragment];
+    /// Operator ids grouped by fragment
+    fragment_operators: [uint32];
     /// The pipelines
     pipelines: [PlanPipeline];
     /// The pipeline edges
@@ -72,11 +74,13 @@ struct PlanFragment {
     attributes_begin: uint32;
     /// The number of attributes
     attribute_count: uint32;
+    /// The begin of the fragment's operator membership
+    operators_begin: uint32;
+    /// The number of operators in the fragment
+    operator_count: uint32;
 }
 
 struct PlanPipeline {
-    /// The fragment id
-    fragment_id: uint32;
     /// The pipeline id
     pipeline_id: uint32;
     /// The execution status
@@ -139,8 +143,6 @@ struct PlanLayoutRect {
 }
 
 struct PlanOperator {
-    /// The fragment id
-    fragment_id: uint32;
     /// The operator id
     operator_id: uint32;
     /// The operator name (if any)

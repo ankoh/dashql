@@ -1,4 +1,4 @@
-import { hasOutputCardinalityProduced, scaleRowWidths, selectDefaultRowMetric, truncatePlanLabel } from './plan_scene.js';
+import { buildFragmentRect, hasOutputCardinalityProduced, scaleRowWidths, selectDefaultRowMetric, truncatePlanLabel } from './plan_scene.js';
 
 describe('truncatePlanLabel', () => {
     it('preserves labels that fit', () => {
@@ -64,5 +64,35 @@ describe('scaleRowWidths', () => {
 
     it('uses the minimum width for missing or zero rows', () => {
         expect(scaleRowWidths([0, null, Number.NaN])).toEqual([1, 1, 1]);
+    });
+});
+
+describe('buildFragmentRect', () => {
+    const operators = [
+        { rect: { x: 50, y: 40, width: 40, height: 20 } },
+        { rect: { x: 100, y: 100, width: 60, height: 30 } },
+        { rect: { x: 180, y: 60, width: 20, height: 20 } },
+    ];
+
+    it('bounds all fragment operators with padding', () => {
+        expect(buildFragmentRect([0, 1], operators, 10)).toEqual({
+            x: 20,
+            y: 20,
+            width: 120,
+            height: 105,
+        });
+    });
+
+    it('ignores operators outside the fragment', () => {
+        expect(buildFragmentRect([2], operators, 8)).toEqual({
+            x: 162,
+            y: 42,
+            width: 36,
+            height: 36,
+        });
+    });
+
+    it('returns an empty rectangle for empty membership', () => {
+        expect(buildFragmentRect([], operators)).toEqual({ x: 0, y: 0, width: 0, height: 0 });
     });
 });

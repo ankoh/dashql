@@ -37,14 +37,20 @@ TEST_P(HyperPlanSnapshotTestSuite, Test) {
     root |= c4::yml::MAP;
     PlanViewModelSnapshotTest::EncodePlanViewModel(root, view_model);
 
+    auto have_fragments = root["fragments"];
     auto have_ops = root["operators"];
     auto have_edges = root["operator-edges"];
+    ASSERT_FALSE(have_fragments.invalid());
     ASSERT_FALSE(have_ops.invalid());
     ASSERT_FALSE(have_edges.invalid());
     if (test->expected_operators_node_id != c4::yml::NONE &&
         test->expected_edges_node_id != c4::yml::NONE) {
         ASSERT_TRUE(Matches(have_ops, test->expected_operators_tree->ref(test->expected_operators_node_id)));
         ASSERT_TRUE(Matches(have_edges, test->expected_edges_tree->ref(test->expected_edges_node_id)));
+    }
+    if (test->expected_fragments_node_id != c4::yml::NONE) {
+        ASSERT_TRUE(Matches(have_fragments,
+                            test->expected_fragments_tree->ref(test->expected_fragments_node_id)));
     }
 }
 

@@ -83,6 +83,24 @@ describe('Plan View Model', () => {
             expect(plan.pipelineEdges(0)!.childOperator()).toEqual(0);
             expect(plan.pipelineEdges(0)!.parentOperator()).toEqual(1);
         });
+        it('creates fragments from federate descendants', () => {
+            const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
+            const planPtr = viewModel.loadHyperPlan(`{
+                "operator":"output",
+                "inputs":[{
+                    "operator":"federate",
+                    "inputs":[{"operator":"map","input":{"operator":"scan"}}]
+                }]
+            }`);
+            const plan = planPtr.read();
+            expect(plan.fragmentsLength()).toEqual(1);
+            const fragment = plan.fragments(0)!;
+            expect(fragment.fragmentId()).toEqual(0);
+            expect(fragment.operatorCount()).toEqual(3);
+            expect(plan.fragmentOperators(fragment.operatorsBegin())).toEqual(2);
+            expect(plan.fragmentOperators(fragment.operatorsBegin() + 1)).toEqual(1);
+            expect(plan.fragmentOperators(fragment.operatorsBegin() + 2)).toEqual(0);
+        });
         it('preserves estimated and analyzed output rows', () => {
             const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
             const planPtr = viewModel.loadHyperPlan(`{

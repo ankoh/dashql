@@ -90,13 +90,16 @@ class PlanViewModel {
               source_location(source_location) {}
     };
     /// A fragment
-    struct Fragment {};
+    struct Fragment {
+        /// The fragment id
+        uint32_t fragment_id = 0;
+        /// The introducing federate and all operators reachable below it
+        std::vector<uint32_t> operators;
+    };
     /// A pipeline.
     /// Note that a pipeline does not need to to be linear.
     /// Hyper implements a Fork operator that will effectively result in two pipeline targets.
     struct Pipeline {
-        /// The fragment id
-        uint32_t fragment_id = 0;
         /// The pipeline id
         uint32_t pipeline_id = 0;
         /// The id serialized by Hyper
@@ -200,6 +203,8 @@ class PlanViewModel {
                           std::vector<std::reference_wrapper<ParsedOperatorNode>>&& roots);
     /// Identify the operators edges
     void IdentifyOperatorEdges(std::span<OperatorNode> ops, size_t child_edge_count);
+    /// Identify fragments introduced by federate operators
+    void IdentifyFragments();
     /// Read explicit Hyper pipelines. Plans without this field have no pipelines.
     void ParseHyperPipelines();
 

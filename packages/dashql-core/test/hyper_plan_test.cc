@@ -104,7 +104,75 @@ TEST(HyperPlanTest, LegacyPlansDoNotInferPipelines) {
     })JSON");
     auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
     EXPECT_EQ(plan->operators()->size(), 2);
+    EXPECT_EQ(plan->fragments()->size(), 0);
     EXPECT_EQ(plan->pipelines()->size(), 0);
+}
+
+TEST(HyperPlanTest, FederateCreatesFragmentFromReachableChildren) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"output",
+        "inputs":[{
+            "inputs":[{
+                "operator":"join",
+                "left":{"operator":"scan"},
+                "right":{"operator":"scan"}
+            }],
+            "operator":"federate"
+        }]
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_EQ(plan->fragments()->size(), 1);
+    const auto* fragment = plan->fragments()->Get(0);
+    EXPECT_EQ(fragment->fragment_id(), 0);
+    ASSERT_EQ(fragment->operator_count(), 4);
+    EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin()), 3);
+    EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin() + 1), 2);
+    EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin() + 2), 0);
+    EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin() + 3), 1);
+}
+
+TEST(HyperPlanTest, SiblingFederatesCreateDistinctFragments) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"join",
+        "left":{"operator":"federate","inputs":[{"operator":"scan"}]},
+        "right":{"operator":"federate","inputs":[{"operator":"map","input":{"operator":"scan"}}]}
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_EQ(plan->fragments()->size(), 2);
+    const auto* left = plan->fragments()->Get(0);
+    ASSERT_EQ(left->operator_count(), 2);
+    EXPECT_EQ(plan->fragment_operators()->Get(left->operators_begin()), 3);
+    EXPECT_EQ(plan->fragment_operators()->Get(left->operators_begin() + 1), 0);
+    const auto* right = plan->fragments()->Get(1);
+    ASSERT_EQ(right->operator_count(), 3);
+    EXPECT_EQ(plan->fragment_operators()->Get(right->operators_begin()), 4);
+    EXPECT_EQ(plan->fragment_operators()->Get(right->operators_begin() + 1), 2);
+    EXPECT_EQ(plan->fragment_operators()->Get(right->operators_begin() + 2), 1);
+}
+
+TEST(HyperPlanTest, NestedFederatesHaveOverlappingFragments) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"federate",
+        "inputs":[{
+            "operator":"map",
+            "input":{"operator":"federate","inputs":[{"operator":"scan"}]}
+        }]
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_EQ(plan->fragments()->size(), 2);
+    const auto* outer = plan->fragments()->Get(0);
+    ASSERT_EQ(outer->operator_count(), 4);
+    EXPECT_EQ(plan->fragment_operators()->Get(outer->operators_begin()), 3);
+    EXPECT_EQ(plan->fragment_operators()->Get(outer->operators_begin() + 1), 2);
+    EXPECT_EQ(plan->fragment_operators()->Get(outer->operators_begin() + 2), 1);
+    EXPECT_EQ(plan->fragment_operators()->Get(outer->operators_begin() + 3), 0);
+    const auto* inner = plan->fragments()->Get(1);
+    ASSERT_EQ(inner->operator_count(), 2);
+    EXPECT_EQ(plan->fragment_operators()->Get(inner->operators_begin()), 1);
+    EXPECT_EQ(plan->fragment_operators()->Get(inner->operators_begin() + 1), 0);
 }
 
 TEST(HyperPlanTest, InfersScanLabelFromDefinedAttributes) {
