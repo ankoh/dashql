@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+    <symbol id="relalg_right_semi_join" viewBox="0 0 16 16">
+        <path d="M3 3 13 13V3L3 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+    <use href="#relalg_right_semi_join" />
+</svg>

@@ -1,6 +1,7 @@
 import * as dashql from '../../../../../core/index.js';
 import { U32_MAX } from '../../../../../utils/numeric_limits.js';
 import { buildEdgePathBetweenRectangles, PathBuilder, selectVerticalEdgeType } from '../../../../../utils/graph_edges.js';
+import { getPlanOperatorDisplayWidth } from './plan_operator_symbol.js';
 
 export interface PlanSceneRect {
     x: number;
@@ -143,12 +144,22 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         const label = readString(vm, op.operatorLabel()) ?? typeName ?? 'operator';
         const properties = readProperties(vm, op);
         const hasProducedRows = hasOutputCardinalityProduced(properties);
+        const input = layoutConfig.input!;
+        const width = getPlanOperatorDisplayWidth(
+            typeName,
+            label,
+            layout.width(),
+            input.nodePaddingLeft,
+            input.iconWidth,
+            input.iconMarginRight,
+            input.nodePaddingRight,
+        );
         operators[op.operatorId()] = {
             id: op.operatorId(),
             typeName,
             label,
             displayLabel: truncatePlanLabel(label, layoutConfig.input!.maxLabelChars),
-            rect: { x: layout.x(), y: layout.y(), width: layout.width(), height: layout.height() },
+            rect: { x: layout.x(), y: layout.y(), width, height: layout.height() },
             statistics: {
                 inputCardinalityEstimated: statistics.inputCardinalityEstimated(),
                 inputCardinalityConsumed: statistics.inputCardinalityConsumed(),

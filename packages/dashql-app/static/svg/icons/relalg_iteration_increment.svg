@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+    <symbol id="relalg_iteration_increment" viewBox="0 0 16 16">
+        <path d="M8 2.5 3.5 12.5h9L8 2.5Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+    </symbol>
+    <use href="#relalg_iteration_increment" />
+</svg>

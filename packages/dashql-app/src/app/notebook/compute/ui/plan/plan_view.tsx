@@ -9,7 +9,9 @@ import { ButtonGroup } from '../../../../../ui/foundations/button_group.js';
 import { AnchoredOverlay } from '../../../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../../../ui/foundations/anchored_position.js';
 import { OverlaySize } from '../../../../../ui/foundations/overlay.js';
+import { SymbolIcon } from '../../../../../ui/foundations/symbol_icon.js';
 import { PlanExecutionController } from './plan_execution_controller.js';
+import { getPlanOperatorSymbol, PLAN_OPERATOR_SYMBOL_SIZE, shouldRenderPlanOperatorSymbol } from './plan_operator_symbol.js';
 import { materializePlanScene, PlanRowMetric, PlanScene, PlanSceneOperator, scaleRowWidths, selectDefaultRowMetric } from './plan_scene.js';
 import * as styles from './plan_view.module.css';
 
@@ -257,6 +259,9 @@ function PlanOperatorNode(props: {
     const input = scene.layoutConfig.input!;
     const regionStart = input.nodePaddingLeft + input.iconWidth + input.iconMarginRight;
     const regionEnd = operator.rect.width - input.nodePaddingRight;
+    const renderSymbol = shouldRenderPlanOperatorSymbol(operator.typeName, operator.label);
+    const symbolName = renderSymbol ? getPlanOperatorSymbol(operator.typeName) : null;
+    const OperatorSymbol = symbolName != null ? SymbolIcon(symbolName) : null;
     const activate = (event: React.MouseEvent<SVGGElement> | React.KeyboardEvent<SVGGElement>) => {
         if ('key' in event && event.key !== 'Enter' && event.key !== ' ') return;
         if ('key' in event) event.preventDefault();
@@ -289,7 +294,9 @@ function PlanOperatorNode(props: {
                     {Object.entries(STATUS_PATHS).map(([status, path]) => <path key={status} data-status-icon={status} d={path} transform={`scale(${input.iconWidth / 16})`} />)}
                 </g>
             )}
-            <text clipPath={`url(#${labelClipId})`} x={(regionStart + regionEnd) / 2} y={input.nodeHeight / 2 + 5}>{operator.displayLabel}</text>
+            {OperatorSymbol != null
+                ? <g className={styles.operator_symbol} transform={`translate(${(regionStart + regionEnd - PLAN_OPERATOR_SYMBOL_SIZE) / 2}, ${(input.nodeHeight - PLAN_OPERATOR_SYMBOL_SIZE) / 2})`} aria-hidden="true"><OperatorSymbol size={PLAN_OPERATOR_SYMBOL_SIZE} /></g>
+                : <text clipPath={`url(#${labelClipId})`} x={(regionStart + regionEnd) / 2} y={input.nodeHeight / 2 + 5}>{operator.displayLabel}</text>}
         </g>
     );
 }

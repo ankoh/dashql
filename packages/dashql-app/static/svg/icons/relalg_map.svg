@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+    <symbol id="relalg_map" viewBox="0 0 16 16">
+        <path d="M4 3.5 12 12.5M12 3.5 4 12.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    </symbol>
+    <use href="#relalg_map" />
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+    <symbol id="relalg_union_all" viewBox="0 0 16 16">
+        <path d="M3.5 3v5.2a4.5 4.5 0 0 0 9 0V3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M10.5 12.5h3M12 11v3" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" />
+    </symbol>
+    <use href="#relalg_union_all" />
+</svg>

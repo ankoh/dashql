@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+    <symbol id="relalg_left_outer_join" viewBox="0 0 16 16">
+        <path d="M3 13H1M3 3H1M3 13 13 3V13L3 3Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+    <use href="#relalg_left_outer_join" />
+</svg>

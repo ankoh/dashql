@@ -50,6 +50,10 @@
     text-anchor: middle;
     pointer-events: none;
 }
+.operator_symbol {
+    color: hsl(210, 18%, 24%);
+    pointer-events: none;
+}
 .operator:hover rect { fill: hsl(210, 30%, 98%); }
 .operator[data-selected="true"] rect {
     fill: hsl(211, 100%, 97%);
