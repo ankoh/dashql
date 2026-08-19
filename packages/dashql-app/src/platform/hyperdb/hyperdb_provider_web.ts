@@ -39,6 +39,7 @@ export async function setupWebHyperDB(context: string, logger: Logger): Promise<
                     workerUrl: HYPERDB_WORKER_URL,
                 }),
                 {
+                    identifier_resolution: 'case_insensitive',
                     'global.experimental_view_creation': true,
                     'global.experimental_persisted_view_creation': true,
                 },

@@ -64,6 +64,7 @@ describe('setupWebHyperDB', () => {
         expect(mockState.createHyperDB).toHaveBeenCalledWith(
             mockState.client,
             {
+                identifier_resolution: 'case_insensitive',
                 'global.experimental_view_creation': true,
                 'global.experimental_persisted_view_creation': true,
             },
