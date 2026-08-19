@@ -344,7 +344,7 @@ fn permissive_cors() -> Cors {
     Cors::new()
         .with_origins(["*"])
         .with_methods([Method::Get, Method::Post, Method::Options])
-        .with_allowed_headers(["Authorization", "Content-Type"])
+        .with_allowed_headers(["Authorization", "Content-Type", "x-b3-traceid", "x-b3-spanid"])
 }
 
 #[cfg(test)]
