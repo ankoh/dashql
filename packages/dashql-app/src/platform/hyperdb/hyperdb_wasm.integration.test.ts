@@ -107,7 +107,12 @@ describe('HyperDB embedded database integration', () => {
         const { client: rawClient, release } = await createIsolatedNodeTestClient();
         releaseClient = release;
         client = new CountingClient(rawClient);
-        database = await HyperDB.create(client);
+        database = await HyperDB.create(client, {
+            experimental_hyper_introspection_functions: true,
+            log_json_export: true,
+            log_file_size_limit: '1M',
+            log_file_max_count: 10,
+        });
     }, 60_000);
 
     afterEach(async () => {
@@ -125,6 +130,12 @@ describe('HyperDB embedded database integration', () => {
         expect(toPlainObjects(result)).toEqual([{ answer: 42, engine: 'hyper' }]);
         expect(await database!.getVersion()).toContain('hyper version');
 
+        await connection.close();
+    });
+
+    it('initializes Hyper log introspection and rotation settings', async () => {
+        const connection = await database!.connect();
+        expect(await connection.query("SELECT * FROM hyper_log('current_session') LIMIT 0")).toBeDefined();
         await connection.close();
     });
 
