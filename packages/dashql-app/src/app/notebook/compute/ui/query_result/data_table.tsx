@@ -43,6 +43,27 @@ const ROW_HEIGHT = 26;
 const GRID_OVERSCAN_COUNT = 10;
 const NOOP_BRUSHING = () => { };
 
+export function computeGridHeight(
+    baseRowCount: number,
+    visibleRowCount: number,
+    headerHeight: number,
+    scrollbarHeight: number,
+    fitHeight: boolean,
+    maxHeight?: number,
+    measuredHeight: number = 0,
+    maxRows?: number,
+): number {
+    const contentHeight = headerHeight + visibleRowCount * ROW_HEIGHT + scrollbarHeight;
+    if (fitHeight) {
+        const fittedRowCount = maxRows == null ? baseRowCount : Math.min(baseRowCount, maxRows);
+        return Math.min(
+            headerHeight + fittedRowCount * ROW_HEIGHT + scrollbarHeight,
+            maxHeight ?? Number.POSITIVE_INFINITY,
+        );
+    }
+    return maxRows != null ? contentHeight : Math.max(measuredHeight, MIN_GRID_HEIGHT);
+}
+
 interface FocusedCells {
     row: number | null,
     field: number | null
@@ -253,12 +274,17 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         : COLUMN_HEADER_HEIGHT;
     const scrollbarHeight = useScrollbarHeight();
     const needsHorizontalScroll = totalColumnsWidth > gridContainerWidth;
-    const contentHeight = headerHeight + dataRowCount * ROW_HEIGHT + (needsHorizontalScroll ? scrollbarHeight : 0);
-    const gridContainerHeight = props.fitHeight
-        ? Math.min(contentHeight, props.maxHeight ?? Number.POSITIVE_INFINITY)
-        : props.maxRows != null
-            ? contentHeight
-            : Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
+    const horizontalScrollbarHeight = needsHorizontalScroll ? scrollbarHeight : 0;
+    const gridContainerHeight = computeGridHeight(
+        dataTable.numRows,
+        dataRowCount,
+        headerHeight,
+        horizontalScrollbarHeight,
+        props.fitHeight ?? false,
+        props.maxHeight,
+        gridContainerSize?.height ?? 0,
+        props.maxRows,
+    );
     const firstRenderedColumn = gridLayout.columnCount > 1
         ? Math.max(1, Math.min(renderedCells.columnStart, gridLayout.columnCount - 1))
         : 1;
