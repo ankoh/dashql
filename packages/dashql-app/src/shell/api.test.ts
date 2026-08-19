@@ -61,6 +61,53 @@ describe('DashQL shell Wasm', () => {
         expect(() => shell.setPrompt('select sales.discount(1.0);')).not.toThrow();
     });
 
+    it('auto-qualifies non-default database tables on the first Tab when enabled', async () => {
+        shell.destroy();
+        shell = await DashQLShell.create({
+            environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
+            terminalColumns: 100,
+            autoQualifyNonDefaultDatabaseTables: true,
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        });
+        shell.loadCatalogScript(
+            'CREATE TABLE "Salesforce".public."Account" (id BIGINT);',
+            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+        );
+        shell.openTerminal('db> ');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'select * from Acc');
+        const candidates = shell.completePrompt(50);
+        const candidateIndex = candidates.findIndex(candidate => candidate.completionText === '"Account"');
+        expect(candidateIndex).toBeGreaterThanOrEqual(0);
+        let selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
+        if (candidateIndex === 0) {
+            selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_PREVIOUS);
+        } else {
+            for (let i = 1; i < candidateIndex; ++i) {
+                selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
+            }
+        }
+        expect(selected.data).toContain('"Salesforce".public.');
+
+        shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
+        expect(shell.movePromptRight().text).toBe('select * from "Salesforce".public."Account"');
+    });
+
+    it('keeps automatic table qualification disabled by default', () => {
+        shell.loadCatalogScript(
+            'CREATE TABLE "Salesforce".public."Account" (id BIGINT);',
+            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+        );
+        shell.openTerminal('db> ');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'select * from Acc');
+        const candidates = shell.completePrompt(50);
+        const candidateIndex = candidates.findIndex(candidate => candidate.completionText === '"Account"');
+        expect(candidateIndex).toBeGreaterThanOrEqual(0);
+        for (let i = 0; i < candidateIndex; ++i) shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
+
+        shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
+        expect(shell.movePromptRight().text).toBe('select * from "Account"');
+    });
+
     it('tracks relations created and dropped by successful shell queries', async () => {
         shell.destroy();
         shell = await DashQLShell.create({
@@ -522,6 +569,8 @@ describe('DashQL shell Wasm', () => {
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
         shell.consumeTerminalInput(DashQLShellPromptInput.LEFT);
         shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
+        shell.consumeTerminalInput(DashQLShellPromptInput.END);
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.TAB).data).toContain('╭');
         shell.consumeTerminalInput(DashQLShellPromptInput.TAB);
         expect(shell.movePromptRight().text).toBe(candidates[0].completionText);
     });
@@ -557,8 +606,8 @@ describe('DashQL shell Wasm', () => {
         shell.openTerminal('db> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel\nFROM supplier');
         for (let i = 0; i < '\nFROM supplier'.length; ++i) shell.movePromptLeft();
-        shell.consumeTerminalInput(DashQLShellPromptInput.RIGHT);
-        const output = shell.consumeTerminalInput(DashQLShellPromptInput.LEFT);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'x');
+        const output = shell.consumeTerminalInput(DashQLShellPromptInput.BACKSPACE);
         expect(output.data).not.toContain(vt100Sequence(9, VT100Command.INSERT_LINE));
         expect(output.data).toContain(
             vt100Sequence(1, VT100Command.CURSOR_DOWN) + vt100Sequence(4, VT100Command.CURSOR_FORWARD) +

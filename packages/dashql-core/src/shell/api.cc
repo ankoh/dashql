@@ -12,7 +12,9 @@
 #include "dashql/shell/shell_session.h"
 
 struct DashQLShell {
-    explicit DashQLShell(dashql::Catalog& catalog, uint32_t terminal_columns) : session{catalog, terminal_columns} {}
+    explicit DashQLShell(dashql::Catalog& catalog, uint32_t terminal_columns,
+                         bool auto_qualify_non_default_database_tables)
+        : session{catalog, terminal_columns, auto_qualify_non_default_database_tables} {}
 
     dashql::shell::ShellSession session;
 };
@@ -182,12 +184,13 @@ uint32_t InvokeTerminal(DashQLShell* shell, DashQLShellTerminalResult* result, C
 
 extern "C" {
 
-DashQLShell* dashql_shell_new(dashql::Catalog* catalog, uint32_t terminal_columns) {
+DashQLShell* dashql_shell_new(dashql::Catalog* catalog, uint32_t terminal_columns,
+                              bool auto_qualify_non_default_database_tables) {
     if (catalog == nullptr) {
         return nullptr;
     }
     try {
-        return new DashQLShell{*catalog, terminal_columns};
+        return new DashQLShell{*catalog, terminal_columns, auto_qualify_non_default_database_tables};
     } catch (...) {
         return nullptr;
     }

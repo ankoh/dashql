@@ -16,7 +16,7 @@ declare module '@ankoh/dashql-shell-js' {
         _dashql_free(pointer: number): void;
         _dashql_delete_owner(ownerPointer: number, ownerDeleter: number): void;
         [name: string]: unknown;
-        _dashql_shell_new(catalog: number, terminalColumns: number): number;
+        _dashql_shell_new(catalog: number, terminalColumns: number, autoQualifyNonDefaultDatabaseTables: boolean): number;
         _dashql_shell_destroy(shell: number): void;
         _dashql_shell_resize(shell: number, terminalColumns: number): void;
         _dashql_shell_session_relations_set(shell: number, enabled: boolean): number;

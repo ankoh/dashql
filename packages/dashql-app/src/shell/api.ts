@@ -37,7 +37,7 @@ enum DashQLShellEffectCompletionStatus {
 export interface DashQLShellModule extends EmscriptenModule {
     HEAPU8: Uint8Array;
     HEAPU32: Uint32Array;
-    _dashql_shell_new(catalog: number, terminalColumns: number): number;
+    _dashql_shell_new(catalog: number, terminalColumns: number, autoQualifyNonDefaultDatabaseTables: boolean): number;
     _dashql_shell_destroy(shell: number): void;
     _dashql_shell_resize(shell: number, terminalColumns: number): void;
     _dashql_shell_session_relations_set(shell: number, enabled: boolean): number;
@@ -130,6 +130,7 @@ interface DashQLShellSettings {
 export interface DashQLShellOptions {
     environment: DashQLShellEnvironment;
     trackSessionRelations?: boolean;
+    autoQualifyNonDefaultDatabaseTables?: boolean;
     commands?: readonly DashQLShellCommand[];
     terminalColumns?: number;
     instantiateWasm?: DashQLModuleOptions['instantiateWasm'];
@@ -228,12 +229,17 @@ export class DashQLShell {
         public readonly catalog: DashQLCatalog,
         protected readonly environment: DashQLShellEnvironment,
         terminalColumns: number,
+        autoQualifyNonDefaultDatabaseTables: boolean,
         commands: Map<string, DashQLShellCommand>,
         settings: DashQLShellSettings,
     ) {
         this.commands = commands;
         this.settings = settings;
-        this.shell = module._dashql_shell_new(catalog.ptr.assertNotNull(), terminalColumns);
+        this.shell = module._dashql_shell_new(
+            catalog.ptr.assertNotNull(),
+            terminalColumns,
+            autoQualifyNonDefaultDatabaseTables,
+        );
         if (this.shell === 0) {
             throw new DashQLShellError(DashQLShellStatus.INTERNAL_ERROR, 'failed to create DashQL shell');
         }
@@ -340,6 +346,7 @@ export class DashQLShell {
             catalog,
             options.environment,
             options.terminalColumns ?? 100,
+            options.autoQualifyNonDefaultDatabaseTables ?? false,
             commands,
             settings,
         );

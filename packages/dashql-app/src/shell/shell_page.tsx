@@ -197,6 +197,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     ),
                 }),
                 trackSessionRelations: true,
+                autoQualifyNonDefaultDatabaseTables: true,
                 commands: [
                     examplesCommand,
                     loginCommand,

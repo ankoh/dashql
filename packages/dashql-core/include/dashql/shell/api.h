@@ -110,7 +110,8 @@ static_assert(sizeof(DashQLShellCompletionResult) == 12);
 static_assert(sizeof(DashQLShellCompletionCandidate) == 24);
 #endif
 
-DASHQL_SHELL_EXPORT DashQLShell* dashql_shell_new(dashql::Catalog* catalog, uint32_t terminal_columns);
+DASHQL_SHELL_EXPORT DashQLShell* dashql_shell_new(dashql::Catalog* catalog, uint32_t terminal_columns,
+                                                  bool auto_qualify_non_default_database_tables = false);
 DASHQL_SHELL_EXPORT void dashql_shell_destroy(DashQLShell* shell);
 DASHQL_SHELL_EXPORT void dashql_shell_resize(DashQLShell* shell, uint32_t terminal_columns);
 DASHQL_SHELL_EXPORT uint32_t dashql_shell_session_relations_set(DashQLShell* shell, bool enabled);

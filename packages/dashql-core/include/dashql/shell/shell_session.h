@@ -104,6 +104,7 @@ enum class PromptInputAction : uint32_t {
 class ShellSession {
    public:
     explicit ShellSession(Catalog& catalog, uint32_t terminal_columns = 100);
+    ShellSession(Catalog& catalog, uint32_t terminal_columns, bool auto_qualify_non_default_database_tables);
     ~ShellSession();
 
     ShellSession(const ShellSession&) = delete;
@@ -206,6 +207,7 @@ class ShellSession {
     std::optional<OutgoingEffect> outgoing_effect_;
     std::optional<ShellOperation> completed_operation_;
     bool clear_terminal_after_command_ = false;
+    bool auto_qualify_non_default_database_tables_ = false;
     std::vector<std::string> commands_;
     std::array<char, 256> terminal_prompt_storage_ = {};
     size_t terminal_prompt_length_ = 0;
