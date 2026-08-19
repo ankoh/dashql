@@ -4,7 +4,7 @@ import { useLogger } from '../logger/logger_provider.js';
 import { isNativePlatform } from '../native_globals.js';
 import { NativeHttpClient } from './native_http_client.js';
 import { WebHttpClient } from './web_http_client.js';
-import { B3TraceHttpClient, HttpClient } from './http_client.js';
+import { HttpClient } from './http_client.js';
 
 type Props = {
     children: React.ReactElement;
@@ -23,7 +23,7 @@ export const HttpClientProvider: React.FC<Props> = (props: Props) => {
         } else {
             client = new WebHttpClient(logger);
         }
-        setClient(new B3TraceHttpClient(client));
+        setClient(client);
     }, []);
     return (
         <CLIENT_CTX.Provider value={client}>{props.children}</CLIENT_CTX.Provider>
