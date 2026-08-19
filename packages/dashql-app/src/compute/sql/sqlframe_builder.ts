@@ -75,11 +75,16 @@ function formatLiteral(value: number): string {
 }
 
 function toNumeric(expr: string, fn?: string): string {
-    return fn === "EPOCH"
-        ? `EXTRACT(EPOCH FROM ${expr})`
-        : fn
-            ? `${fn}(${expr})`
-            : `CAST(${expr} AS DOUBLE PRECISION)`;
+    switch (fn) {
+        case "EPOCH":
+            return `EXTRACT(EPOCH FROM ${expr})`;
+        case "BOOLEAN":
+            return `CASE WHEN ${expr} THEN 1.0 WHEN NOT ${expr} THEN 0.0 END`;
+        default:
+            return fn
+                ? `${fn}(${expr})`
+                : `CAST(${expr} AS DOUBLE PRECISION)`;
+    }
 }
 
 function formatAggExpr(agg: GroupByAggregate): string {
@@ -304,19 +309,20 @@ export class SQLFrame {
         const binAlias = binnedKeyDef.outputAlias;
         const fn = binning.toNumericFn;
 
-        // Stats CTE: when toNumericFn is set, keep __min in the original type for
-        // bounds and compute __bin_width via the numeric conversion function.
+        // Temporal bounds are kept in the original type for date formatting below.
+        // Other converted values, such as booleans, use a numeric __min.
         const statsCteName = "__grp_stats";
         const minField = quoteIdent(binning.statsMinField);
         const maxField = quoteIdent(binning.statsMaxField);
-        const statsSql = fn
+        const isTemporal = fn === "EPOCH";
+        const statsSql = isTemporal
             ? `SELECT ` +
               `${minField} AS __min, ` +
               `GREATEST(ABS(${toNumeric(maxField, fn)} - ${toNumeric(minField, fn)}) / ${binCount}, 1e-15) AS __bin_width ` +
               `FROM ${quoteIdent(binning.statsTable)}`
             : `SELECT ` +
-              `CAST(${minField} AS DOUBLE PRECISION) AS __min, ` +
-              `GREATEST(ABS(CAST(${maxField} AS DOUBLE PRECISION) - CAST(${minField} AS DOUBLE PRECISION)) / ${binCount}, 1e-15) AS __bin_width ` +
+              `${toNumeric(minField, fn)} AS __min, ` +
+              `GREATEST(ABS(${toNumeric(maxField, fn)} - ${toNumeric(minField, fn)}) / ${binCount}, 1e-15) AS __bin_width ` +
               `FROM ${quoteIdent(binning.statsTable)}`;
         ctes.push(`${statsCteName} AS (\n    ${statsSql}\n  )`);
 
@@ -325,9 +331,9 @@ export class SQLFrame {
         if (binning.preBinnedFieldName) {
             binExpr = `t.${quoteIdent(binning.preBinnedFieldName)}`;
         } else {
-            binExpr = fn
+            binExpr = isTemporal
                 ? `(${toNumeric(`t.${quoteIdent(binnedKeyDef.fieldName)}`, fn)} - ${toNumeric('s.__min', fn)}) / s.__bin_width`
-                : `(CAST(t.${quoteIdent(binnedKeyDef.fieldName)} AS DOUBLE PRECISION) - s.__min) / s.__bin_width`;
+                : `(${toNumeric(`t.${quoteIdent(binnedKeyDef.fieldName)}`, fn)} - s.__min) / s.__bin_width`;
         }
 
         // Clamped bin. The floating-point bin index must be clamped to
@@ -394,15 +400,14 @@ export class SQLFrame {
         const withBinsSql = `SELECT ${withBinsSelect} FROM ${allBinsCteName} ab LEFT JOIN ${groupedCteName} g ON ab.${quoteIdent(binAlias)} = g.${quoteIdent(binAlias)}`;
         ctes.push(`${withBinsCteName} AS (\n    ${withBinsSql}\n  )`);
 
-        // Bin metadata CTE: when toNumericFn is set, __min is the original type
-        // so we use interval arithmetic to produce bounds in the source type.
+        // Temporal bounds are returned as epoch milliseconds for Arrow formatting.
         const metaCteName = "__bin_meta";
         const widthAlias = binning.outputBinWidthAlias;
         const lbAlias = binning.outputBinLbAlias;
         const ubAlias = binning.outputBinUbAlias;
         const binRef = quoteIdent(binAlias);
 
-        const offsetExpr = (offset: string) => fn
+        const offsetExpr = (offset: string) => isTemporal
             ? `${toNumeric('s.__min', fn)} * 1000.0 + (${offset}) * 1000.0`
             : `s.__min + (${offset})`;
 

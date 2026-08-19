@@ -189,6 +189,31 @@ describe('SQLFrame execution', () => {
         expect(rows.map(row => row.time_bin)).toEqual([0, 1, 2]);
     });
 
+    it('bins boolean values', async () => {
+        await conn.query(`CREATE TABLE input (email_opt_out BOOLEAN)`);
+        await conn.query(`INSERT INTO input VALUES (FALSE), (TRUE), (NULL)`);
+        await conn.query(
+            `CREATE TABLE stats AS ` +
+            `SELECT MIN(email_opt_out) AS min_value, MAX(email_opt_out) AS max_value FROM input`,
+        );
+
+        const sql = SQLFrame.from("input")
+            .binning({
+                fieldName: "email_opt_out",
+                statsTable: "stats",
+                statsMinField: "min_value",
+                statsMaxField: "max_value",
+                binCount: 16,
+                outputAlias: "value_bin",
+                toNumericFn: "BOOLEAN",
+            })
+            .orderBy([{ field: "email_opt_out" }])
+            .toSQL();
+        const rows = toPlainObjects(await conn.query(sql));
+
+        expect(rows.map(row => row.value_bin)).toEqual([0, 16, null]);
+    });
+
     it('semi-join filter', async () => {
         const mainTable = arrow.tableFromArrays({
             id: new Int32Array([1, 2, 3, 4, 5]),
@@ -334,6 +359,44 @@ describe('SQLFrame execution', () => {
         expect(rows[0].bin_ub).toBeCloseTo(3515.5, 1);
         expect(rows[7].bin_lb).toBeCloseTo(24548.5, 1);
         expect(rows[7].bin_ub).toBeCloseTo(28054, 1);
+    });
+
+    it('groups pre-binned boolean values', async () => {
+        await conn.query(`CREATE TABLE input (email_opt_out BOOLEAN, value_bin DOUBLE PRECISION)`);
+        await conn.query(`INSERT INTO input VALUES (FALSE, 0), (TRUE, 16), (NULL, NULL)`);
+        await conn.query(
+            `CREATE TABLE stats AS ` +
+            `SELECT MIN(email_opt_out) AS min_value, MAX(email_opt_out) AS max_value FROM input`,
+        );
+
+        const sql = SQLFrame.from("input")
+            .groupBy({
+                keys: [{
+                    fieldName: "email_opt_out",
+                    outputAlias: "bin",
+                    binning: {
+                        preBinnedFieldName: "value_bin",
+                        statsTable: "stats",
+                        statsMinField: "min_value",
+                        statsMaxField: "max_value",
+                        binCount: 16,
+                        outputBinWidthAlias: "bin_width",
+                        outputBinLbAlias: "bin_lb",
+                        outputBinUbAlias: "bin_ub",
+                        includeNullBin: true,
+                        toNumericFn: "BOOLEAN",
+                    },
+                }],
+                aggregates: [{ func: "count_star", outputAlias: "count" }],
+            })
+            .orderBy([{ field: "bin" }])
+            .toSQL();
+        const rows = toPlainObjects(await conn.query(sql));
+
+        expect(rows).toHaveLength(17);
+        expect(rows[0]).toMatchObject({ bin: 0, count: 1n, bin_lb: 0, bin_ub: 0.0625 });
+        expect(rows[15]).toMatchObject({ bin: 15, count: 1n, bin_lb: 0.9375, bin_ub: 1 });
+        expect(rows[16]).toMatchObject({ bin: 16, count: 1n, bin_lb: null, bin_ub: null });
     });
 
     it('binned group by with NaN / Inf / near-constant Float32', async () => {

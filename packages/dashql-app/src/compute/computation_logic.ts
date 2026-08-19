@@ -44,6 +44,13 @@ function isTemporalType(typeId: arrow.Type): boolean {
     }
 }
 
+function getToNumericFn(typeId: arrow.Type): string | undefined {
+    if (isTemporalType(typeId)) {
+        return "EPOCH";
+    }
+    return typeId === arrow.Type.Bool ? "BOOLEAN" : undefined;
+}
+
 /// Analyze a table.
 ///
 /// This function computes multiple summaries for displaying the data in the table grid component.
@@ -398,7 +405,7 @@ function buildSystemColumnSQLFrame(schema: arrow.Schema, columns: ColumnGroup[],
                     statsMaxField: column.value.statsFields!.maxAggregateFieldName!,
                     binCount: column.value.binCount,
                     outputAlias: binFieldName,
-                    toNumericFn: isTemporalType(column.value.inputFieldType.typeId) ? "EPOCH" : undefined,
+                    toNumericFn: getToNumericFn(column.value.inputFieldType.typeId),
                 });
                 gridColumns[i] = {
                     type: ORDINAL_COLUMN,
@@ -1028,7 +1035,7 @@ function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: [Filte
                         outputBinLbAlias: "binLowerBound",
                         outputBinUbAlias: "binUpperBound",
                         includeNullBin: true,
-                        toNumericFn: isTemporalType(task.columnEntry.value.inputFieldType.typeId) ? "EPOCH" : undefined,
+                        toNumericFn: getToNumericFn(task.columnEntry.value.inputFieldType.typeId),
                     }
                 }],
                 aggregates: [{
