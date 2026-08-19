@@ -66,6 +66,8 @@ table PlanViewModel {
 struct PlanFragment {
     /// The fragment id
     fragment_id: uint32;
+    /// The operator that introduces the fragment
+    anchor_operator: uint32;
     /// The execution status
     execution_status: PlanExecutionStatus;
     /// The execution statistics

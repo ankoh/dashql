@@ -266,9 +266,11 @@ void PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]
 
 void PlanViewModel::IdentifyFragments() {
     std::vector<uint32_t> boundaries;
+    std::vector<uint32_t> root_boundaries;
     std::vector<uint32_t> pending;
     pending.reserve(operators.size());
     for (auto iter = root_operators.rbegin(); iter != root_operators.rend(); ++iter) {
+        if (operators[*iter].operator_type == "executiontarget") root_boundaries.push_back(*iter);
         pending.push_back(*iter);
     }
     while (!pending.empty()) {
@@ -280,12 +282,14 @@ void PlanViewModel::IdentifyFragments() {
             pending.push_back(op.children_begin + i - 1);
         }
     }
+    boundaries.insert(boundaries.begin(), root_boundaries.begin(), root_boundaries.end());
 
     for (uint32_t boundary_id : boundaries) {
         const auto& boundary = operators[boundary_id];
 
         auto& fragment = fragments.emplace_back();
         fragment.fragment_id = static_cast<uint32_t>(fragments.size() - 1);
+        fragment.anchor_operator = boundary_id;
         fragment.operators.push_back(boundary_id);
 
         pending.clear();

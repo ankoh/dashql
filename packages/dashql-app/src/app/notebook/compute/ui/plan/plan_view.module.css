@@ -36,6 +36,7 @@
     stroke: hsl(211, 70%, 42%);
     stroke-width: 1.5px;
     stroke-dasharray: 6 4;
+    stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
 }
 

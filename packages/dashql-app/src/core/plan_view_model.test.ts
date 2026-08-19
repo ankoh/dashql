@@ -1,4 +1,5 @@
 import * as dashql from './index.js';
+import { materializePlanScene } from '../app/notebook/compute/ui/plan/plan_scene.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -96,10 +97,26 @@ describe('Plan View Model', () => {
             expect(plan.fragmentsLength()).toEqual(1);
             const fragment = plan.fragments(0)!;
             expect(fragment.fragmentId()).toEqual(0);
+            expect(fragment.anchorOperator()).toEqual(2);
             expect(fragment.operatorCount()).toEqual(3);
             expect(plan.fragmentOperators(fragment.operatorsBegin())).toEqual(2);
             expect(plan.fragmentOperators(fragment.operatorsBegin() + 1)).toEqual(1);
             expect(plan.fragmentOperators(fragment.operatorsBegin() + 2)).toEqual(0);
+        });
+        it('anchors a root fragment at the execution target', () => {
+            const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
+            const planPtr = viewModel.loadHyperPlan(`{
+                "operator":"executiontarget",
+                "input":{"operator":"tablescan"}
+            }`);
+            const plan = planPtr.read();
+            expect(plan.fragmentsLength()).toEqual(1);
+            const fragment = plan.fragments(0)!;
+            expect(fragment.anchorOperator()).toEqual(1);
+            expect(fragment.operatorCount()).toEqual(2);
+            expect(plan.fragmentOperators(fragment.operatorsBegin())).toEqual(1);
+            expect(plan.fragmentOperators(fragment.operatorsBegin() + 1)).toEqual(0);
+            expect(materializePlanScene(planPtr).fragments).toHaveLength(0);
         });
         it('preserves estimated and analyzed output rows', () => {
             const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);

@@ -97,14 +97,19 @@ TEST(HyperPlanTest, ExplicitPipelinesAndProperties) {
     EXPECT_GT(plan->operators()->Get(0)->attribute_count(), 0);
 }
 
-TEST(HyperPlanTest, LegacyPlansDoNotInferPipelines) {
+TEST(HyperPlanTest, ExecutionTargetCreatesRootFragmentButDoesNotInferPipelines) {
     auto builder = PackPlan(R"JSON({
         "operator":"executiontarget","operatorId":1,
         "input":{"operator":"tablescan","operatorId":2}
     })JSON");
     auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
     EXPECT_EQ(plan->operators()->size(), 2);
-    EXPECT_EQ(plan->fragments()->size(), 0);
+    ASSERT_EQ(plan->fragments()->size(), 1);
+    const auto* fragment = plan->fragments()->Get(0);
+    EXPECT_EQ(fragment->anchor_operator(), 1);
+    ASSERT_EQ(fragment->operator_count(), 2);
+    EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin()), 1);
+    EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin() + 1), 0);
     EXPECT_EQ(plan->pipelines()->size(), 0);
 }
 
@@ -125,11 +130,33 @@ TEST(HyperPlanTest, FederateCreatesFragmentFromReachableChildren) {
     ASSERT_EQ(plan->fragments()->size(), 1);
     const auto* fragment = plan->fragments()->Get(0);
     EXPECT_EQ(fragment->fragment_id(), 0);
+    EXPECT_EQ(fragment->anchor_operator(), 3);
     ASSERT_EQ(fragment->operator_count(), 4);
     EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin()), 3);
     EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin() + 1), 2);
     EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin() + 2), 0);
     EXPECT_EQ(plan->fragment_operators()->Get(fragment->operators_begin() + 3), 1);
+}
+
+TEST(HyperPlanTest, ExecutionTargetRootFragmentContainsFederatedFragments) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"executiontarget",
+        "input":{"operator":"federate","inputs":[{"operator":"scan"}]}
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_EQ(plan->fragments()->size(), 2);
+    const auto* root = plan->fragments()->Get(0);
+    EXPECT_EQ(root->fragment_id(), 0);
+    EXPECT_EQ(root->anchor_operator(), 2);
+    ASSERT_EQ(root->operator_count(), 3);
+    EXPECT_EQ(plan->fragment_operators()->Get(root->operators_begin()), 2);
+    EXPECT_EQ(plan->fragment_operators()->Get(root->operators_begin() + 1), 1);
+    EXPECT_EQ(plan->fragment_operators()->Get(root->operators_begin() + 2), 0);
+    const auto* federated = plan->fragments()->Get(1);
+    EXPECT_EQ(federated->fragment_id(), 1);
+    EXPECT_EQ(federated->anchor_operator(), 1);
+    ASSERT_EQ(federated->operator_count(), 2);
 }
 
 TEST(HyperPlanTest, SiblingFederatesCreateDistinctFragments) {
@@ -142,10 +169,12 @@ TEST(HyperPlanTest, SiblingFederatesCreateDistinctFragments) {
 
     ASSERT_EQ(plan->fragments()->size(), 2);
     const auto* left = plan->fragments()->Get(0);
+    EXPECT_EQ(left->anchor_operator(), 3);
     ASSERT_EQ(left->operator_count(), 2);
     EXPECT_EQ(plan->fragment_operators()->Get(left->operators_begin()), 3);
     EXPECT_EQ(plan->fragment_operators()->Get(left->operators_begin() + 1), 0);
     const auto* right = plan->fragments()->Get(1);
+    EXPECT_EQ(right->anchor_operator(), 4);
     ASSERT_EQ(right->operator_count(), 3);
     EXPECT_EQ(plan->fragment_operators()->Get(right->operators_begin()), 4);
     EXPECT_EQ(plan->fragment_operators()->Get(right->operators_begin() + 1), 2);
@@ -164,12 +193,14 @@ TEST(HyperPlanTest, NestedFederatesHaveOverlappingFragments) {
 
     ASSERT_EQ(plan->fragments()->size(), 2);
     const auto* outer = plan->fragments()->Get(0);
+    EXPECT_EQ(outer->anchor_operator(), 3);
     ASSERT_EQ(outer->operator_count(), 4);
     EXPECT_EQ(plan->fragment_operators()->Get(outer->operators_begin()), 3);
     EXPECT_EQ(plan->fragment_operators()->Get(outer->operators_begin() + 1), 2);
     EXPECT_EQ(plan->fragment_operators()->Get(outer->operators_begin() + 2), 1);
     EXPECT_EQ(plan->fragment_operators()->Get(outer->operators_begin() + 3), 0);
     const auto* inner = plan->fragments()->Get(1);
+    EXPECT_EQ(inner->anchor_operator(), 1);
     ASSERT_EQ(inner->operator_count(), 2);
     EXPECT_EQ(plan->fragment_operators()->Get(inner->operators_begin()), 1);
     EXPECT_EQ(plan->fragment_operators()->Get(inner->operators_begin() + 1), 0);

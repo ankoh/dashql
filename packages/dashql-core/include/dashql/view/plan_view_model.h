@@ -93,7 +93,9 @@ class PlanViewModel {
     struct Fragment {
         /// The fragment id
         uint32_t fragment_id = 0;
-        /// The introducing federate and all operators reachable below it
+        /// The operator that introduces the fragment
+        uint32_t anchor_operator = 0;
+        /// The anchor and all operators reachable below it
         std::vector<uint32_t> operators;
     };
     /// A pipeline.

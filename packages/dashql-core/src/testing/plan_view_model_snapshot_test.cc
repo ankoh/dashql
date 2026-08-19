@@ -56,6 +56,7 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(c4::yml::NodeRef root, const
         auto out_fragment = out_fragments.append_child();
         out_fragment.set_type(c4::yml::MAP);
         add_keyval(tree, out_fragment, "id", static_cast<uint64_t>(fragment->fragment_id()));
+        add_keyval(tree, out_fragment, "anchor", static_cast<uint64_t>(fragment->anchor_operator()));
         auto operators_seq = out_fragment.append_child();
         tree->to_seq(operators_seq.id(), tree->to_arena(c4::to_csubstr("operators")));
         operators_seq.set_container_style(c4::yml::FLOW_SL);

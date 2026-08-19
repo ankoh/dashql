@@ -319,6 +319,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
         flat_fragment_operators.insert(flat_fragment_operators.end(), f.operators.begin(), f.operators.end());
         auto& fragment = flat_fragments.emplace_back();
         fragment.mutate_fragment_id(f.fragment_id);
+        fragment.mutate_anchor_operator(f.anchor_operator);
         fragment.mutate_operators_begin(operators_begin);
         fragment.mutate_operator_count(flat_fragment_operators.size() - operators_begin);
     }

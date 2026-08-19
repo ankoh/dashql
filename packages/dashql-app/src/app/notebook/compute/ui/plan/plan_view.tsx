@@ -166,14 +166,9 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                                     .filter((label): label is string => label != null)
                                     .join(', ')}`}
                             >
-                                <rect
+                                <path
                                     className={styles.fragment}
-                                    x={fragment.rect.x}
-                                    y={fragment.rect.y}
-                                    width={fragment.rect.width}
-                                    height={fragment.rect.height}
-                                    rx={10}
-                                    ry={10}
+                                    d={fragment.path}
                                 />
                             </g>
                         ))}
