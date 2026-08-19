@@ -30,6 +30,7 @@ import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { usePlatformType } from '../platform/platform_type.js';
 import { useAppConfig } from '../app/config/app_config.js';
+import { useShellQueryResult } from './use_shell_query_result.js';
 import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';
@@ -66,15 +67,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating database');
-    const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
-    const queryExecutionSnapshot = React.useSyncExternalStore(
-        queryExecutions.subscribe,
-        queryExecutions.getSnapshot,
-        queryExecutions.getSnapshot,
-    );
-    const resultQuery = resultQueryId == null
-        ? null
-        : queryExecutionSnapshot.find(query => query.queryId === resultQueryId) ?? null;
+    const { resultQuery, showResultQuery, closeResultQuery } = useShellQueryResult(queryExecutions);
 
     React.useEffect(() => {
         if (containerRef.current == null) return;
@@ -274,7 +267,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 ],
                 prompt: 'hyperdb> ',
                 inputAriaLabel: 'HyperDB shell input',
-                onQueryResult: setResultQueryId,
+                onQueryResult: showResultQuery,
                 onTerminalResize: columns => { terminalColumnsRef.current = columns; },
             });
             if (cancelled) {
@@ -300,7 +293,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             setConnected(false);
             void connection?.close();
         };
-    }, [appConfig, appEvents, dispatchComputation, fileDownloader, httpClient, logger, loginDialog, platformType, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase]);
+    }, [appConfig, appEvents, dispatchComputation, fileDownloader, httpClient, logger, loginDialog, platformType, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase, showResultQuery]);
 
     return (
         <main className={styles.page} aria-label="HyperDB Shell">
@@ -313,7 +306,11 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 </div>
             )}
             {resultQuery != null && (
-                <ShellQueryResultOverlay query={resultQuery} onClose={() => setResultQueryId(null)} />
+                <ShellQueryResultOverlay
+                    query={resultQuery}
+                    onClose={closeResultQuery}
+                    dismissOnClickOutside={false}
+                />
             )}
             {dialog}
         </main>

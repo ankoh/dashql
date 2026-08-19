@@ -12,11 +12,13 @@ import * as styles from './shell_query_result_overlay.module.css';
 interface Props {
     query: QueryExecutionState;
     onClose: () => void;
+    dismissOnClickOutside?: boolean;
 }
 
 const MAX_OVERLAY_HEIGHT = 600;
+const IGNORE_OUTSIDE_CLICK = () => {};
 
-export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose }) => {
+export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose, dismissOnClickOutside = true }) => {
     const closeRef = React.useRef<HTMLButtonElement>(null);
     const dialogRef = React.useRef<HTMLElement>(null);
     const CloseIcon = SymbolIcon('x_16');
@@ -33,7 +35,7 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose }) => 
             maxHeight={OverlaySize.XL}
             initialFocusRef={closeRef}
             onEscape={onClose}
-            onClickOutside={onClose}
+            onClickOutside={dismissOnClickOutside ? onClose : IGNORE_OUTSIDE_CLICK}
         >
             <section ref={dialogRef} className={styles.card} role="dialog" aria-modal="true" aria-label="Shell query results">
                 <QueryResultDetails
