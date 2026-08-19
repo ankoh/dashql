@@ -2,13 +2,10 @@ import * as dashql from '../../../core/index.js';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 
-const PREFETCHED_HYPER_FUNCTIONS_URL = new URL(
-    '../../static/catalog/hyper/dashql-functions.sql',
-    import.meta.url,
-);
+import prefetchedHyperFunctionsUrl from '../../../../static/catalog/hyper/dashql-functions.sql?url';
 
 export async function fetchPrefetchedHyperFunctions(signal?: AbortSignal): Promise<string> {
-    const response = await fetch(PREFETCHED_HYPER_FUNCTIONS_URL, { signal });
+    const response = await fetch(prefetchedHyperFunctionsUrl, { signal });
     if (!response.ok) {
         throw new Error(`failed to load prefetched Hyper functions: ${response.status} ${response.statusText}`);
     }
