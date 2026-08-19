@@ -181,6 +181,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 },
                 onError: error => {
                     loginDialog.fail(stringifyError(error));
+                    return 'retry';
                 },
             });
             const nextShell = await createDashQLShell({

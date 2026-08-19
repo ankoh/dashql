@@ -93,21 +93,31 @@ export function useSalesforceLoginDialog(
         const pending = pendingRequestRef.current;
         if (pending == null || pending.submitted) return;
         pending.submitted = true;
-        setDialogState(state => ({
-            ...state,
+        setDialogState({
             phase: 'running',
             status: 'Starting authorization',
             indicator: IndicatorStatus.Running,
             login: values.loginHint,
-        }));
+        });
         pending.resolve(values);
     }, []);
 
     const request = React.useCallback((signal?: AbortSignal) => {
-        if (pendingRequestRef.current != null) {
+        const existing = pendingRequestRef.current;
+        if (existing != null && !existing.submitted) {
             return Promise.reject(new Error('A Salesforce login request is already pending.'));
         }
-        if (signal?.aborted) return Promise.resolve(null);
+        if (signal?.aborted) {
+            dismiss();
+            return Promise.resolve(null);
+        }
+
+        if (existing != null) {
+            existing.submitted = false;
+            return new Promise<SalesforceLoginFormValues | null>(resolve => {
+                existing.resolve = resolve;
+            });
+        }
 
         setDialogState({ phase: 'form', status: 'Disconnected', indicator: IndicatorStatus.None });
         setIsOpen(true);

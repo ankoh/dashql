@@ -109,4 +109,31 @@ describe('Salesforce login command', () => {
         await expect(execute(dependencies, { signal: abort.signal })).resolves.toBeUndefined();
         expect(dependencies.resolveCatalog).not.toHaveBeenCalled();
     });
+
+    it('restarts the login flow after a handled error', async () => {
+        const firstForm = {
+            alias: 'salesforce',
+            instanceUrl: 'https://example.my.salesforce.com',
+            appConsumerKey: 'consumer-key',
+            loginHint: '',
+        };
+        const secondForm = { ...firstForm };
+        const requestForm = vi.fn()
+            .mockResolvedValueOnce(firstForm)
+            .mockResolvedValueOnce(secondForm);
+        const authenticate = vi.fn()
+            .mockRejectedValueOnce(new Error('authorization failed'));
+        const onError = vi.fn(() => 'retry' as const);
+        const { dependencies, authentication } = createDependencies({ requestForm, authenticate, onError });
+        authenticate.mockResolvedValueOnce(authentication);
+
+        await expect(execute(dependencies)).resolves.toBe(
+            'Attached Salesforce as salesforce: 2 tables, 5 columns',
+        );
+        expect(requestForm).toHaveBeenCalledTimes(2);
+        expect(authenticate).toHaveBeenNthCalledWith(1, firstForm, undefined, undefined);
+        expect(authenticate).toHaveBeenNthCalledWith(2, secondForm, undefined, undefined);
+        expect(onError).toHaveBeenCalledOnce();
+        expect(dependencies.attach).toHaveBeenCalledOnce();
+    });
 });

@@ -40,7 +40,7 @@ export interface SalesforceLoginCommandDependencies {
         onProgress?: (message: string) => void,
     ): Promise<void>;
     onSuccess?(alias: string, catalog: SalesforceLoginCatalog): void;
-    onError?(error: unknown): void;
+    onError?(error: unknown): 'retry' | void;
 }
 
 export type SalesforceLoginCommandContext = DashQLShellCommandContext;
@@ -56,38 +56,39 @@ export function createLoginCommand(dependencies: SalesforceLoginCommandDependenc
         async (args, context) => {
             if (args.length !== 0) throw new Error('usage: .login');
             const { signal, onProgress } = context;
-            let form: SalesforceLoginForm | null = null;
 
-            try {
-                form = await dependencies.requestForm(signal);
-                if (form == null || signal?.aborted) return;
-                const alias = form.alias.trim();
-                if (alias.length === 0) throw new Error('Salesforce alias is required');
-                if (dependencies.hasAlias(alias)) {
-                    form.oauthPopup?.close();
-                    throw new Error(`Salesforce alias already exists: ${alias}`);
+            while (true) {
+                let form: SalesforceLoginForm | null = null;
+                try {
+                    form = await dependencies.requestForm(signal);
+                    if (form == null || signal?.aborted) return;
+                    const alias = form.alias.trim();
+                    if (alias.length === 0) throw new Error('Salesforce alias is required');
+                    if (dependencies.hasAlias(alias)) {
+                        form.oauthPopup?.close();
+                        throw new Error(`Salesforce alias already exists: ${alias}`);
+                    }
+
+                    const operationSignal = form.abortSignal ?? signal;
+                    onProgress?.('Authenticating with Salesforce');
+                    const authentication = await dependencies.authenticate(form, operationSignal, onProgress);
+                    operationSignal?.throwIfAborted();
+
+                    onProgress?.('Resolving optimized Salesforce catalog');
+                    const catalog = await dependencies.resolveCatalog(authentication, operationSignal, onProgress);
+                    operationSignal?.throwIfAborted();
+
+                    onProgress?.(`Attaching Salesforce connection as ${alias}`);
+                    await dependencies.attach(alias, authentication, catalog, operationSignal, onProgress);
+                    operationSignal?.throwIfAborted();
+
+                    dependencies.onSuccess?.(alias, catalog);
+                    return `Attached Salesforce as ${alias}: ${catalog.tableCount} tables, ${catalog.columnCount} columns`;
+                } catch (error) {
+                    if (form?.oauthPopup && !form.oauthPopup.closed) form.oauthPopup.close();
+                    if (isAbortError(error, form?.abortSignal ?? signal)) return;
+                    if (dependencies.onError?.(error) !== 'retry') throw error;
                 }
-
-                const operationSignal = form.abortSignal ?? signal;
-                onProgress?.('Authenticating with Salesforce');
-                const authentication = await dependencies.authenticate(form, operationSignal, onProgress);
-                operationSignal?.throwIfAborted();
-
-                onProgress?.('Resolving optimized Salesforce catalog');
-                const catalog = await dependencies.resolveCatalog(authentication, operationSignal, onProgress);
-                operationSignal?.throwIfAborted();
-
-                onProgress?.(`Attaching Salesforce connection as ${alias}`);
-                await dependencies.attach(alias, authentication, catalog, operationSignal, onProgress);
-                operationSignal?.throwIfAborted();
-
-                dependencies.onSuccess?.(alias, catalog);
-                return `Attached Salesforce as ${alias}: ${catalog.tableCount} tables, ${catalog.columnCount} columns`;
-            } catch (error) {
-                if (form?.oauthPopup && !form.oauthPopup.closed) form.oauthPopup.close();
-                if (isAbortError(error, form?.abortSignal ?? signal)) return;
-                dependencies.onError?.(error);
-                throw error;
             }
         },
     ];

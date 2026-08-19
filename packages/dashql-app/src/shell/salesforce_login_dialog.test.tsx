@@ -222,6 +222,34 @@ describe('useSalesforceLoginDialog', () => {
         await expect(result).resolves.toBeNull();
     });
 
+    it('reuses the current settings when connecting again after a failure', async () => {
+        const firstPopup = {} as Window;
+        const secondPopup = {} as Window;
+        openOAuthPopup.mockReturnValueOnce(firstPopup).mockReturnValueOnce(secondPopup);
+        const first = open();
+        fillValidForm();
+        submit();
+        await expect(first).resolves.toEqual(expect.objectContaining({ oauthPopup: firstPopup }));
+
+        act(() => controller.fail('authorization failed'));
+        const retry = open();
+        expect(document.querySelector('[role="dialog"]')?.textContent).toContain('authorization failed');
+        expect(inputForLabel('Connection Alias').value).toBe('production');
+        expect(inputForLabel('Salesforce Instance URL').value).toBe('https://example.my.salesforce.com');
+        expect(inputForLabel('Connected App').value).toBe('consumer-key');
+
+        submit();
+        await expect(retry).resolves.toEqual(expect.objectContaining({
+            alias: 'production',
+            instanceUrl: 'https://example.my.salesforce.com',
+            appConsumerKey: 'consumer-key',
+            oauthPopup: secondPopup,
+        }));
+        expect(openOAuthPopup).toHaveBeenCalledTimes(2);
+
+        act(() => closeButton().click());
+    });
+
     it('rejects concurrent requests without disturbing the pending request', async () => {
         const first = open();
         const second = controller.request();
