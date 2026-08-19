@@ -115,6 +115,36 @@ TEST(CompletionTest, DotCompletionBeforeLaterCteLines) {
     EXPECT_NE(FindCandidate(*completion, "processed_rows"), nullptr);
 }
 
+TEST(CompletionTest, CompletesQualifiedColumnsInExplicitJoin) {
+    Catalog catalog;
+    Script schema{catalog};
+    schema.InsertTextAt(0, "CREATE TABLE test1(a int, a_value int); CREATE TABLE test2(b int, b_value int);");
+    ASSERT_NO_THROW(schema.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
+
+    for (auto [qualifier, expected_column] : {
+             std::pair{std::string_view{"a."}, std::string_view{"a_value"}},
+             std::pair{std::string_view{"b."}, std::string_view{"b_value"}},
+         }) {
+        std::string text = "select * from test1 a left outer join test2 b on ";
+        text += qualifier;
+
+        Script script{catalog};
+        script.InsertTextAt(0, text);
+        ASSERT_NO_THROW(script.Analyze());
+        const ScriptCursor* cursor = nullptr;
+        ASSERT_NO_THROW(cursor = script.MoveCursor(text.size()));
+        ASSERT_NE(cursor, nullptr);
+        EXPECT_FALSE(cursor->name_scopes.empty()) << qualifier;
+        ASSERT_TRUE(cursor->name_scopes.front().get().referenced_tables_by_name.contains("a"));
+        ASSERT_TRUE(cursor->name_scopes.front().get().referenced_tables_by_name.contains("b"));
+        EXPECT_TRUE(std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor->context)) << qualifier;
+
+        auto completion = script.CompleteAtCursor(50);
+        EXPECT_NE(FindCandidate(*completion, expected_column), nullptr) << qualifier;
+    }
+}
+
 TEST(CompletionTest, KeywordContinuation_GroupBy) {
     const std::string_view main_script_text = R"SQL(
 SELECT * FROM supplier gro

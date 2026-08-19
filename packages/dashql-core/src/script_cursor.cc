@@ -173,10 +173,12 @@ std::unique_ptr<ScriptCursor> ScriptCursor::Place(const Script& script, size_t t
                 }
             }
         }
-        // In incomplete multiline SQL, the parser can omit the column-ref node for `alias.` even
-        // though name resolution already registered the alias in a scope. Recover the innermost
-        // matching scope and mark a synthetic column-ref context for dot completion.
-        if (cursor->name_scopes.empty() && cursor->scanner_location.has_value() && script.analyzed_script) {
+        // In incomplete SQL, the parser can omit the column-ref node for `alias.` even though name
+        // resolution already registered the alias in a scope. This also occurs inside explicit JOIN
+        // predicates, where the AST path still reaches the SELECT scope. Recover a synthetic
+        // column-ref context from the semantic scope in either case.
+        if (std::holds_alternative<std::monostate>(cursor->context) && cursor->scanner_location.has_value() &&
+            script.analyzed_script) {
             const auto& current = cursor->scanner_location->current;
             const auto* dot = (current.symbolIsDot() || current.symbolIsTrailingDot())
                                   ? &current
@@ -199,24 +201,33 @@ std::unique_ptr<ScriptCursor> ScriptCursor::Place(const Script& script, size_t t
             const auto qualifier_text = input.substr(qualifier_begin, qualifier_end - qualifier_begin);
             AnalyzedScript::NameScope* best_scope = nullptr;
             size_t best_scope_length = std::numeric_limits<size_t>::max();
+            for (auto& scope_ref : cursor->name_scopes) {
+                auto& scope = scope_ref.get();
+                if (scope.referenced_tables_by_name.contains(qualifier_text)) {
+                    best_scope = &scope;
+                    break;
+                }
+            }
             // Prefer the narrowest scope containing the cursor. The same alias can legally occur
             // in nested queries, so choosing the first global match would leak the wrong columns.
-            script.analyzed_script->name_scopes.ForEach([&](size_t, AnalyzedScript::NameScope& scope) {
-                if (!scope.referenced_tables_by_name.contains(qualifier_text)) return;
-                const auto scope_span = script.scanned_script->ResolveTextSpan(
-                    script.parsed_script->nodes[scope.ast_node_id].symbol_span());
-                const auto scope_end = static_cast<size_t>(scope_span.offset()) + scope_span.length();
-                const bool contains_cursor = scope_span.offset() <= text_offset && text_offset <= scope_end;
-                if (contains_cursor && scope_span.length() < best_scope_length) {
-                    best_scope = &scope;
-                    best_scope_length = scope_span.length();
-                } else if (best_scope == nullptr &&
-                           (!cursor->statement_id.has_value() || scope.ast_statement_id == *cursor->statement_id)) {
-                    best_scope = &scope;
-                }
-            });
+            if (best_scope == nullptr && cursor->name_scopes.empty()) {
+                script.analyzed_script->name_scopes.ForEach([&](size_t, AnalyzedScript::NameScope& scope) {
+                    if (!scope.referenced_tables_by_name.contains(qualifier_text)) return;
+                    const auto scope_span = script.scanned_script->ResolveTextSpan(
+                        script.parsed_script->nodes[scope.ast_node_id].symbol_span());
+                    const auto scope_end = static_cast<size_t>(scope_span.offset()) + scope_span.length();
+                    const bool contains_cursor = scope_span.offset() <= text_offset && text_offset <= scope_end;
+                    if (contains_cursor && scope_span.length() < best_scope_length) {
+                        best_scope = &scope;
+                        best_scope_length = scope_span.length();
+                    } else if (best_scope == nullptr &&
+                               (!cursor->statement_id.has_value() || scope.ast_statement_id == *cursor->statement_id)) {
+                        best_scope = &scope;
+                    }
+                });
+            }
             if (best_scope != nullptr) {
-                cursor->name_scopes.emplace_back(*best_scope);
+                if (cursor->name_scopes.empty()) cursor->name_scopes.emplace_back(*best_scope);
                 cursor->context = ColumnRefContext{std::numeric_limits<uint32_t>::max()};
             }
         }
