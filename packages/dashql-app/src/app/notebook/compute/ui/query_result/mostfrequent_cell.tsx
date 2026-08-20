@@ -7,7 +7,7 @@ import { dataTypeToString } from '../../../../../compute/arrow_formatter.js';
 import { observeSize } from '../../../../../ui/foundations/size_observer.js';
 import { assert } from '../../../../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
-import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
+import { COLUMN_SUMMARY_COLORS, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 import { formatHistogramFocusDescription } from './histogram_label.js';
 
 export type MostFrequentValueFilterCallback = (table: TableAggregation, columnIndex: number, column: StringColumnAggregation, frequentValueId: number | null) => void;
@@ -226,6 +226,13 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                             </clipPath>
                         </defs>
                         <g transform={`translate(${margin.left},${margin.top})`} clipPath="url(#rounded-bar)">
+                            <rect
+                                x={0}
+                                y={0}
+                                width={width}
+                                height={height}
+                                fill={COLUMN_SUMMARY_COLORS.totalBarWithFilter}
+                            />
                             {[...Array(frequentValueStrings.length)].map((_, i) => {
                                 const barX = Math.min(xScale(Number(xOffsets[i])) + xPadding, xUB);
                                 const barWidth = Math.max(xScale(Number(xCounts[i])) - 2 * xPadding, 0);
