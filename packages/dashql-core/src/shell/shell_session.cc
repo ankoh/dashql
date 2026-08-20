@@ -674,6 +674,8 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     if (action == PromptInputAction::kSubmit) {
         if (!output_prefix.empty()) output_prefix.append(RenderTerminalPrompt());
         terminal_action_ = action;
+        AppendCursorMove(output_prefix, terminal_prompt_rows_ - terminal_prompt_cursor_row_ - 1,
+                         vt100::Command::kCursorDown);
         terminal_prompt_rows_ = 1;
         terminal_prompt_cursor_row_ = 0;
         output_prefix.append(vt100::kEnableAutoWrap);

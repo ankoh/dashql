@@ -530,6 +530,20 @@ describe('DashQL shell Wasm', () => {
         expect(shell.clearTerminalQueryProgress().data).toBe('');
     });
 
+    it('starts query progress after the last multiline prompt row', () => {
+        shell.setPrompt('SELECT 42\n;');
+        shell.consumePromptInput(DashQLShellPromptInput.UP);
+        shell.openTerminal('db> ');
+
+        const submitted = shell.consumeTerminalInput(DashQLShellPromptInput.ENTER);
+        expect(submitted.action).toBe(DashQLShellPromptAction.SUBMIT);
+        expect(submitted.data).toContain(
+            vt100Sequence(1, VT100Command.CURSOR_DOWN) + VT100.ENABLE_AUTO_WRAP + VT100.NEW_LINE,
+        );
+
+        expect(shell.renderTerminalQueryProgress('Executing query').data).toContain('⠋ Executing query');
+    });
+
     it('navigates, accepts, and dismisses terminal completion overlays', () => {
         shell.openTerminal('db> ');
         const opened = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel');

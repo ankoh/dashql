@@ -658,6 +658,42 @@ TEST(ShellApiTest, RendersAndClearsSingleLineQueryProgress) {
     dashql_shell_destroy(shell);
 }
 
+TEST(ShellApiTest, StartsQueryProgressAfterLastMultilinePromptRow) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    constexpr std::string_view query = "SELECT 42\n;";
+    DashQLShellPromptResult prompt{};
+    ASSERT_EQ(dashql_shell_prompt_set(shell, reinterpret_cast<const uint8_t*>(query.data()), query.size(), &prompt),
+              DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_UP, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_ENTER, &output), DASHQL_SHELL_OK);
+    EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_SUBMIT);
+    const auto submitted = std::string{TerminalData(output)};
+    const auto cursor_down = dashql::shell::vt100::Sequence(1, dashql::shell::vt100::Command::kCursorDown);
+    EXPECT_NE(submitted.find(cursor_down + std::string{dashql::shell::vt100::kEnableAutoWrap} +
+                             std::string{dashql::shell::vt100::kNewLine}),
+              std::string::npos)
+        << submitted;
+    dashql_shell_terminal_result_destroy(&output);
+
+    constexpr std::string_view message = "Executing query";
+    ASSERT_EQ(dashql_shell_terminal_query_progress(shell, reinterpret_cast<const uint8_t*>(message.data()),
+                                                   message.size(), false, &output),
+              DASHQL_SHELL_OK);
+    EXPECT_NE(TerminalData(output).find("⠋ Executing query"), std::string_view::npos) << TerminalData(output);
+    dashql_shell_terminal_result_destroy(&output);
+    dashql_shell_destroy(shell);
+}
+
 TEST(ShellApiTest, ReflowsLongPromptWithoutRepeatingPreviousRender) {
     dashql::Catalog catalog;
     auto* shell = dashql_shell_new(&catalog, 16);
