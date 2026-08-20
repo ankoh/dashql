@@ -1,5 +1,6 @@
 import type { Logger } from '../logger/logger.js';
 import { stringifyError } from '../logger/logger.js';
+import type { SetupProgress } from '../database/embedded_database_provider.js';
 
 import { HyperDB } from './hyperdb_wasm.js';
 
@@ -30,7 +31,11 @@ function createEngineScript(): { url: string; revoke: () => void } {
     return { url, revoke: () => URL.revokeObjectURL(url) };
 }
 
-export async function setupWebHyperDB(context: string, logger: Logger): Promise<HyperDB> {
+export async function setupWebHyperDB(
+    context: string,
+    logger: Logger,
+    onSetupProgress?: (progress: SetupProgress) => void,
+): Promise<HyperDB> {
     const initStart = performance.now();
     try {
         const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
@@ -47,6 +52,8 @@ export async function setupWebHyperDB(context: string, logger: Logger): Promise<
                 createBrowserClient({
                     engineUrl: engineScript.url,
                     workerUrl: HYPERDB_WORKER_URL,
+                    wasmUrl: HYPERDB_WASM_URL,
+                    onSetupProgress,
                 }),
                 HYPERDB_SETTINGS,
             );

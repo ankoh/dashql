@@ -54,12 +54,15 @@ describe('setupWebHyperDB', () => {
     });
 
     it('creates an isolated browser client and initializes the adapter', async () => {
-        const database = await setupWebHyperDB('provider-test', logger);
+        const onSetupProgress = vi.fn();
+        const database = await setupWebHyperDB('provider-test', logger, onSetupProgress);
 
         expect(database).toBe(mockState.database);
         expect(mockState.createBrowserClient).toHaveBeenCalledWith({
             engineUrl: 'blob:https://example.test/hyperdb-engine',
             workerUrl: expect.any(URL),
+            wasmUrl: expect.any(URL),
+            onSetupProgress,
         });
         expect(mockState.createHyperDB).toHaveBeenCalledWith(
             mockState.client,

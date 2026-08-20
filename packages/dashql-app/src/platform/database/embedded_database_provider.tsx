@@ -6,6 +6,11 @@ import { isNativePlatform } from '../native_globals.js';
 
 const SETUP_CTX = React.createContext<EmbeddedDatabaseSetupFn | null>(null);
 
+export interface SetupProgress {
+    readonly bytesLoaded: number;
+    readonly bytesTotal: number;
+}
+
 interface Props {
     children: React.ReactElement;
 }
@@ -14,7 +19,10 @@ export const EmbeddedDatabaseProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const instantiation = React.useRef<Promise<EmbeddedComputeDatabase> | null>(null);
 
-    const setup = React.useCallback(async (context: string): Promise<EmbeddedComputeDatabase> => {
+    const setup = React.useCallback(async (
+        context: string,
+        onSetupProgress?: (progress: SetupProgress) => void,
+    ): Promise<EmbeddedComputeDatabase> => {
         if (instantiation.current != null) {
             return await instantiation.current;
         }
@@ -25,7 +33,7 @@ export const EmbeddedDatabaseProvider: React.FC<Props> = (props: Props) => {
                 return await setupNativeDuckDB(context, logger);
             }
             const { setupWebHyperDB } = await import('../hyperdb/hyperdb_provider_web.js');
-            return await setupWebHyperDB(context, logger);
+            return await setupWebHyperDB(context, logger, onSetupProgress);
         };
 
         instantiation.current = instantiate();
@@ -51,7 +59,10 @@ export const EmbeddedDatabaseProvider: React.FC<Props> = (props: Props) => {
     );
 };
 
-export type EmbeddedDatabaseSetupFn = (context: string) => Promise<EmbeddedComputeDatabase>;
+export type EmbeddedDatabaseSetupFn = (
+    context: string,
+    onSetupProgress?: (progress: SetupProgress) => void,
+) => Promise<EmbeddedComputeDatabase>;
 export function useEmbeddedDatabaseSetup(): EmbeddedDatabaseSetupFn {
     return React.useContext(SETUP_CTX)!;
 }

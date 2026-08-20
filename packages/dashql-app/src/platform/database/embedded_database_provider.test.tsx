@@ -33,11 +33,15 @@ vi.mock('../hyperdb/hyperdb_provider_web.js', () => ({
 
 import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
 
-function SetupConsumer(props: { context: string; onReady: (db: any) => void }) {
+function SetupConsumer(props: {
+    context: string;
+    onSetupProgress?: (progress: { bytesLoaded: number; bytesTotal: number }) => void;
+    onReady: (db: any) => void;
+}) {
     const setup = useEmbeddedDatabaseSetup();
     React.useEffect(() => {
-        void setup(props.context).then(props.onReady);
-    }, [props.context, props.onReady, setup]);
+        void setup(props.context, props.onSetupProgress).then(props.onReady);
+    }, [props.context, props.onSetupProgress, props.onReady, setup]);
     return null;
 }
 
@@ -100,8 +104,33 @@ describe('EmbeddedDatabaseProvider', () => {
 
         expect(db).toBe(mockState.hyperDb);
         expect(mockState.setupWebHyperDB).toHaveBeenCalledTimes(1);
-        expect(mockState.setupWebHyperDB).toHaveBeenCalledWith('web-test', mockState.logger);
+        expect(mockState.setupWebHyperDB).toHaveBeenCalledWith('web-test', mockState.logger, undefined);
         expect(mockState.setupNativeDuckDB).not.toHaveBeenCalled();
+    });
+
+    it('forwards setup progress to HyperDB setup', async () => {
+        const onSetupProgress = vi.fn();
+        let resolveDb: ((db: any) => void) | null = null;
+        const dbPromise = new Promise<any>((resolve) => { resolveDb = resolve; });
+
+        await act(async () => {
+            root.render(
+                <EmbeddedDatabaseProvider>
+                    <SetupConsumer
+                        context="progress-test"
+                        onSetupProgress={onSetupProgress}
+                        onReady={(db) => resolveDb?.(db)}
+                    />
+                </EmbeddedDatabaseProvider>
+            );
+        });
+        await dbPromise;
+
+        expect(mockState.setupWebHyperDB).toHaveBeenCalledWith(
+            'progress-test',
+            mockState.logger,
+            onSetupProgress,
+        );
     });
 
     it('uses the native setup helper in native builds even before native platform globals exist', async () => {

@@ -82,7 +82,11 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         let controller: BrowserShellController | null = null;
 
         const setup = async () => {
-            const database = await setupEmbeddedDatabase(LOG_CTX);
+            const database = await setupEmbeddedDatabase(LOG_CTX, progress => {
+                if (!cancelled) {
+                    setStatus(`Instantiating database: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
+                }
+            });
             void database.getVersion()
                 .then(version => {
                     if (!cancelled) props.onEngineVersion(version);

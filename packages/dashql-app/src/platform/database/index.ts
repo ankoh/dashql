@@ -9,4 +9,7 @@ export {
     EmbeddedDatabaseProvider,
     useEmbeddedDatabaseSetup,
 } from './embedded_database_provider.js';
-export type { EmbeddedDatabaseSetupFn } from './embedded_database_provider.js';
+export type {
+    SetupProgress,
+    EmbeddedDatabaseSetupFn,
+} from './embedded_database_provider.js';
