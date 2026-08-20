@@ -40,6 +40,12 @@
     vector-effect: non-scaling-stroke;
 }
 
+.fragment[data-color="1"] { fill: hsl(145, 55%, 96%); stroke: hsl(145, 55%, 34%); }
+.fragment[data-color="2"] { fill: hsl(270, 55%, 97%); stroke: hsl(270, 45%, 44%); }
+.fragment[data-color="3"] { fill: hsl(32, 80%, 96%); stroke: hsl(32, 75%, 38%); }
+.fragment[data-color="4"] { fill: hsl(180, 50%, 96%); stroke: hsl(180, 60%, 31%); }
+.fragment[data-color="5"] { fill: hsl(340, 65%, 97%); stroke: hsl(340, 55%, 43%); }
+
 .pipeline {
     display: none;
     fill: rgba(220, 220, 220, 0.5);

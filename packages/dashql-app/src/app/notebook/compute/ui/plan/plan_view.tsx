@@ -157,7 +157,7 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
             }}>
                 <g ref={sceneRef}>
                     <g>
-                        {scene.fragments.map(fragment => (
+                        {scene.fragments.map((fragment, fragmentIndex) => (
                             <g
                                 key={fragment.id}
                                 role="img"
@@ -169,6 +169,7 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                                 <path
                                     className={styles.fragment}
                                     d={fragment.path}
+                                    data-color={fragmentIndex % 6}
                                 />
                             </g>
                         ))}
