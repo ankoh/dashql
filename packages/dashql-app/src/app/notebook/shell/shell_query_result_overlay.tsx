@@ -13,6 +13,7 @@ import { PlanView } from '../compute/ui/plan/plan_view.js';
 import { useHyperPlan } from '../compute/ui/plan/hyper_plan_view.js';
 import { TabHeader } from '../ui/tab_header.js';
 import { getPlanResultText } from '../../../shell/shell_result.js';
+import { classNames } from '../../../utils/classnames.js';
 import * as styles from './shell_query_result_overlay.module.css';
 
 interface Props {
@@ -32,6 +33,8 @@ const enum ResultTab {
 export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose, dismissOnClickOutside = true }) => {
     const closeRef = React.useRef<HTMLButtonElement>(null);
     const dialogRef = React.useRef<HTMLElement>(null);
+    const [lockedHeight, setLockedHeight] = React.useState<{ queryId: number; height: number } | null>(null);
+    const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
     const CloseIcon = SymbolIcon('x_16');
     const planText = React.useMemo(() => getPlanResultText(query.resultTable), [query.resultTable]);
     const { plan } = useHyperPlan(planText);
@@ -40,16 +43,20 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose, dismi
     const selectedPlanRef = React.useRef(false);
     React.useEffect(() => {
         selectedPlanRef.current = false;
+        setLockedHeight(null);
         setSelectedTab(ResultTab.Data);
     }, [query.queryId]);
     React.useEffect(() => {
         if (hasPlan && !selectedPlanRef.current) {
+            const height = dialogRef.current?.getBoundingClientRect().height;
+            setLockedHeight(height == null ? null : { queryId: query.queryId, height });
             selectedPlanRef.current = true;
             setSelectedTab(ResultTab.Plan);
         } else if (!hasPlan && selectedTab === ResultTab.Plan) {
+            setLockedHeight(null);
             setSelectedTab(ResultTab.Data);
         }
-    }, [hasPlan, selectedTab]);
+    }, [hasPlan, query.queryId, selectedTab]);
 
     const closeButton = (
         <IconButton
@@ -113,7 +120,14 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose, dismi
             onEscape={onClose}
             onClickOutside={dismissOnClickOutside ? onClose : IGNORE_OUTSIDE_CLICK}
         >
-            <section ref={dialogRef} className={styles.card} role="dialog" aria-modal="true" aria-label="Shell query results">
+            <section
+                ref={dialogRef}
+                className={classNames(styles.card, { [styles.card_locked_height]: currentLockedHeight != null })}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Shell query results"
+                style={currentLockedHeight == null ? undefined : { height: currentLockedHeight }}
+            >
                 <VerticalTabs
                     className={styles.tabs}
                     variant={VerticalTabVariant.Stacked}

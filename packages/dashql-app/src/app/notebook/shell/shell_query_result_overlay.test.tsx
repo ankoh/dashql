@@ -12,7 +12,7 @@ vi.mock('../../../ui/foundations/button.js', async () => fakeButtonModule(await 
 vi.mock('../../../ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
 vi.mock('../compute/ui/query_result/query_result_details.js', async () => {
     const React = await import('react');
-    return { QueryResultDetails: () => React.createElement('div', null, 'Query results') };
+    return { QueryResultDetails: () => React.createElement('div', { style: { height: 240 } }, 'Query results') };
 });
 vi.mock('../compute/ui/plan/hyper_plan_view.js', () => ({
     useHyperPlan: (planText: string | null) => ({
@@ -48,6 +48,7 @@ describe('ShellQueryResultOverlay', () => {
     });
 
     afterEach(() => {
+        vi.restoreAllMocks();
         act(() => root.unmount());
         container.remove();
         document.getElementById('__dashqlPortalRoot__')?.remove();
@@ -121,5 +122,26 @@ describe('ShellQueryResultOverlay', () => {
 
         expect(document.querySelector('button[aria-label="Query plan"]')).toBeNull();
         expect(document.body.textContent).toContain('Query results');
+        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.height).toBe('');
+    });
+
+    it('locks the initial result height before selecting the Plan tab', () => {
+        const plan = '{"operator":"executiontarget","operatorId":1}';
+        const getBoundingClientRect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+            .mockReturnValue({ height: 272 } as DOMRect);
+
+        act(() => root.render(
+            <ShellQueryResultOverlay
+                query={{
+                    queryId: 42,
+                    status: QueryExecutionStatus.SUCCEEDED,
+                    resultTable: arrow.tableFromArrays({ value: [plan] }),
+                } as any}
+                onClose={vi.fn()}
+            />,
+        ));
+
+        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.height).toBe('272px');
+        expect(getBoundingClientRect).toHaveBeenCalled();
     });
 });
