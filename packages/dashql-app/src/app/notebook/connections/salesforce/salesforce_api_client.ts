@@ -63,7 +63,7 @@ export function formatSalesforceMetadataProgress(
         }
         if (progress?.state === 'requesting') {
             running += 1;
-            return `${labels[collection]} ...`;
+            return `${labels[collection]} -`;
         }
         pending += 1;
         return `${labels[collection]} -`;

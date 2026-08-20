@@ -18,6 +18,7 @@ const AUTHENTICATION: SalesforceLoginAuthentication = {
 const CATALOG: SalesforceRefreshCatalog = {
     tableCount: 2,
     columnCount: 5,
+    metadataStatus: 'Metadata: 2 done, 0 active, 1 failed | DMO 1 | DLO failed | CI 1',
     tables: [],
     functionsSQL: 'functions',
 };
@@ -49,7 +50,10 @@ describe('Salesforce refresh command', () => {
         const onProgress = vi.fn();
 
         await expect(createRefreshCommand(dependencies)[2]([], { onProgress })).resolves.toBe(
-            'Refreshed One: 2 tables, 5 columns\r\nRefreshed Two: 2 tables, 5 columns',
+            'Metadata: 2 done, 0 active, 1 failed | DMO 1 | DLO failed | CI 1\r\n' +
+            'Refreshed One: 2 tables, 5 columns\r\n' +
+            'Metadata: 2 done, 0 active, 1 failed | DMO 1 | DLO failed | CI 1\r\n' +
+            'Refreshed Two: 2 tables, 5 columns',
         );
         expect(dependencies.resolveCatalog).toHaveBeenNthCalledWith(
             1,
@@ -73,6 +77,7 @@ describe('Salesforce refresh command', () => {
         const dependencies = createDependencies();
 
         await expect(createRefreshCommand(dependencies)[2](['oNe'], {})).resolves.toBe(
+            'Metadata: 2 done, 0 active, 1 failed | DMO 1 | DLO failed | CI 1\r\n' +
             'Refreshed oNe: 2 tables, 5 columns',
         );
         expect(dependencies.resolveCatalog).toHaveBeenCalledOnce();

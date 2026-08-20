@@ -211,6 +211,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     return {
                         tableCount: resolved.tableCount,
                         columnCount: resolved.columnCount,
+                        metadataStatus: formatSalesforceMetadataProgress(metadataProgress),
                         functionsSQL: resolved.functionsSQL,
                         tables: Array.from(resolved.tables, ([name, columns]) => ({ name, columns })),
                     };

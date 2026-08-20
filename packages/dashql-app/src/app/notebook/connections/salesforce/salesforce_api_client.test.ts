@@ -234,7 +234,7 @@ describe('SalesforceApiClient metadata', () => {
         ]);
 
         expect(formatSalesforceMetadataProgress(progress)).toBe(
-            'Metadata: 1 done, 1 active, 1 failed | DMO 120 | DLO ... | CI failed',
+            'Metadata: 1 done, 1 active, 1 failed | DMO 120 | DLO - | CI failed',
         );
     });
 });

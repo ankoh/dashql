@@ -5,6 +5,7 @@ import type { SalesforceRemoteCatalog } from '../salesforce_remote_attachment.js
 export interface SalesforceRefreshCatalog extends SalesforceRemoteCatalog {
     readonly tableCount: number;
     readonly columnCount: number;
+    readonly metadataStatus: string;
 }
 
 export interface SalesforceRefreshCommandDependencies {
@@ -42,7 +43,10 @@ export function createRefreshCommand(dependencies: SalesforceRefreshCommandDepen
                 context.signal?.throwIfAborted();
                 await dependencies.refreshCatalog(alias, catalog, context.signal);
                 context.signal?.throwIfAborted();
-                summaries.push(`Refreshed ${alias}: ${catalog.tableCount} tables, ${catalog.columnCount} columns`);
+                summaries.push(
+                    `${catalog.metadataStatus}\r\n` +
+                    `Refreshed ${alias}: ${catalog.tableCount} tables, ${catalog.columnCount} columns`,
+                );
             }
             return summaries.join('\r\n');
         },
