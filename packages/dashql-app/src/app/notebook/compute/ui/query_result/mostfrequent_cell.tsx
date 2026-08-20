@@ -44,6 +44,8 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
     const svgContainerSize = observeSize(svgContainer);
     const pendingFilterFrame = React.useRef<number | null>(null);
     const pendingFilterValueId = React.useRef<number | null>(null);
+    const diagonalStripesId = React.useId();
+    const roundedBarClipId = React.useId();
 
     const margin = { top: 4, right: 8, bottom: 20, left: 8 },
         width = (svgContainerSize?.width ?? 130) - margin.left - margin.right,
@@ -213,7 +215,7 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                         height={height + margin.top + margin.bottom}
                     >
                         <defs>
-                            <pattern id="diagonal-stripes" patternUnits="userSpaceOnUse" width="4" height="4">
+                            <pattern id={diagonalStripesId} patternUnits="userSpaceOnUse" width="4" height="4">
                                 <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style={{
                                     stroke: "hsl(208.5deg 20.69% 50.76%)",
                                     strokeOpacity: 0.8,
@@ -221,11 +223,11 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                                 }}
                                 />
                             </pattern>
-                            <clipPath id="rounded-bar">
+                            <clipPath id={roundedBarClipId}>
                                 <rect x={0} y={0} width={width} height={height} rx={3} ry={3} />
                             </clipPath>
                         </defs>
-                        <g transform={`translate(${margin.left},${margin.top})`} clipPath="url(#rounded-bar)">
+                        <g transform={`translate(${margin.left},${margin.top})`} clipPath={`url(#${roundedBarClipId})`}>
                             <rect
                                 x={0}
                                 y={0}
@@ -280,7 +282,7 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                                 y={0}
                                 width={Math.max(xScale(Number(xCounts[nullRow])) - 2 * xPadding, 0)}
                                 height={height}
-                                fill="url(#diagonal-stripes)"
+                                fill={`url(#${diagonalStripesId})`}
                             />}
                             {hasMore && (
                                 <g>
