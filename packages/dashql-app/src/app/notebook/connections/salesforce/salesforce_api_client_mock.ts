@@ -3,7 +3,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { sleep } from '../../../../utils/sleep.js';
 import { QueryExecutionResponseStream } from '../query_execution_state.js';
-import { SalesforceApiClientInterface } from './salesforce_api_client.js';
+import { SalesforceApiClientInterface, type SalesforceMetadataProgress } from './salesforce_api_client.js';
 import { QueryExecutionResponseStreamMock } from '../query_execution_mock.js';
 
 export interface SalesforceConnectorMockConfig {
@@ -51,6 +51,7 @@ export class SalesforceAPIClientMock implements SalesforceApiClientInterface {
         _access: connection.SalesforceCoreAccessToken,
         _dataSpace: string,
         _cancel: AbortSignal,
+        _onProgress?: (progress: SalesforceMetadataProgress) => void,
     ): Promise<connection.SalesforceDataCloudMetadata> {
         console.log('mock(getDataCloudMetadata)');
         await sleep(200);

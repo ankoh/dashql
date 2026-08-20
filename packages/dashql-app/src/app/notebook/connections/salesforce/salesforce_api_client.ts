@@ -10,6 +10,7 @@ import { dateToTimestamp } from "../proto_helper.js";
 const LOG_CTX = "salesforce_api";
 const SALESFORCE_API_VERSION = "v64.0";
 export const DEFAULT_SALESFORCE_DATA_SPACE = "default";
+export const SALESFORCE_METADATA_ENTITY_TYPES = ['DataModelObject', 'DataLakeObject', 'CalculatedInsight'] as const;
 
 /// The Data Cloud auth infos
 export interface SalesforceAuthInfo {
@@ -27,6 +28,49 @@ export interface SalesforceAuthInfo {
     offcoreAccessToken: string | null;
     /// The dataspace
     dataspace: string;
+}
+
+export interface SalesforceMetadataProgress {
+    collection: string;
+    page: number;
+    loaded: number;
+    total: number | null;
+    state: 'requesting' | 'complete' | 'failed';
+    error?: string;
+}
+
+export function formatSalesforceMetadataProgress(
+    progressByCollection: ReadonlyMap<string, SalesforceMetadataProgress>,
+): string {
+    const labels: Record<string, string> = {
+        DataModelObject: 'DMO',
+        DataLakeObject: 'DLO',
+        CalculatedInsight: 'CI',
+    };
+    let completed = 0;
+    let running = 0;
+    let failed = 0;
+    let pending = 0;
+    const stages = SALESFORCE_METADATA_ENTITY_TYPES.map(collection => {
+        const progress = progressByCollection.get(collection);
+        if (progress?.state === 'complete') {
+            completed += 1;
+            return `${labels[collection]} ${progress.loaded}`;
+        }
+        if (progress?.state === 'failed') {
+            failed += 1;
+            return `${labels[collection]} failed`;
+        }
+        if (progress?.state === 'requesting') {
+            running += 1;
+            return `${labels[collection]} ...`;
+        }
+        pending += 1;
+        return `${labels[collection]} -`;
+    });
+    const counts = [`${completed} done`, `${running} active`, `${failed} failed`];
+    if (pending > 0) counts.push(`${pending} pending`);
+    return `Metadata: ${counts.join(', ')} | ${stages.join(' | ')}`;
 }
 
 export function getSalesforceDataSpace(access: connection.SalesforceDataCloudAccessToken): string {
@@ -169,6 +213,7 @@ export interface SalesforceApiClientInterface {
         access: connection.SalesforceCoreAccessToken,
         dataSpace: string,
         cancel: AbortSignal,
+        onProgress?: (progress: SalesforceMetadataProgress) => void,
     ): Promise<connection.SalesforceDataCloudMetadata>;
 }
 
@@ -328,50 +373,109 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         access: connection.SalesforceCoreAccessToken,
         dataSpace: string,
         cancel: AbortSignal,
+        onProgress: (progress: SalesforceMetadataProgress) => void = () => { },
     ): Promise<connection.SalesforceDataCloudMetadata> {
         const base = (access.instanceUrl ?? "").replace(/\/+$/, '');
         const headers = new Headers({
             authorization: `Bearer ${access.accessToken}`,
             accept: 'application/json',
         });
-        const url = new URL(`${base}/services/data/${SALESFORCE_API_VERSION}/ssot/metadata`);
-        url.searchParams.set('dataspace', dataSpace);
+        const endpoint = `${base}/services/data/${SALESFORCE_API_VERSION}/ssot/metadata`;
         this.logger.info("Requesting Salesforce metadata", {
             method: "GET",
-            url: url.toString(),
+            endpoint,
             apiVersion: SALESFORCE_API_VERSION,
             dataSpace,
+            entityTypes: SALESFORCE_METADATA_ENTITY_TYPES.join(','),
         }, LOG_CTX);
         const requestStartedAt = performance.now();
-        const response = await this.httpClient.fetch(url, {
-            headers,
-            signal: cancel,
+        const requestResults = await Promise.allSettled(SALESFORCE_METADATA_ENTITY_TYPES.map(async entityType => {
+            const url = new URL(endpoint);
+            url.searchParams.set('dataspace', dataSpace);
+            url.searchParams.set('entityType', entityType);
+            onProgress({ collection: entityType, page: 1, loaded: 0, total: null, state: 'requesting' });
+            try {
+                const response = await this.httpClient.fetch(url, {
+                    headers,
+                    signal: cancel,
+                });
+                if (response.status < 200 || response.status >= 300) {
+                    const bodyText = await response.text().catch(() => '');
+                    throw new Error(`${response.status} ${response.statusText}${bodyText ? ` — ${bodyText.slice(0, 200)}` : ''}`);
+                }
+                const body = await response.json();
+                const entities = Array.isArray(body.metadata) ? body.metadata : [];
+                onProgress({
+                    collection: entityType,
+                    page: 1,
+                    loaded: entities.length,
+                    total: entities.length,
+                    state: 'complete',
+                });
+                return entities;
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                this.logger.warn('Salesforce metadata request failed', {
+                    dataSpace,
+                    entityType,
+                    error: message,
+                }, LOG_CTX);
+                onProgress({
+                    collection: entityType,
+                    page: 1,
+                    loaded: 0,
+                    total: null,
+                    state: 'failed',
+                    error: message,
+                });
+                throw new Error(`Salesforce ${entityType} metadata request failed: ${message}`);
+            }
+        }));
+        const progressByCollection = new Map<string, SalesforceMetadataProgress>();
+        const responseEntities: any[][] = [];
+        let failedRequests = 0;
+        requestResults.forEach((result, index) => {
+            const collection = SALESFORCE_METADATA_ENTITY_TYPES[index];
+            if (result.status === 'fulfilled') {
+                responseEntities.push(result.value);
+                progressByCollection.set(collection, {
+                    collection,
+                    page: 1,
+                    loaded: result.value.length,
+                    total: result.value.length,
+                    state: 'complete',
+                });
+            } else {
+                const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+                failedRequests += 1;
+                progressByCollection.set(collection, {
+                    collection,
+                    page: 1,
+                    loaded: 0,
+                    total: null,
+                    state: 'failed',
+                    error: message,
+                });
+            }
         });
+        if (failedRequests === SALESFORCE_METADATA_ENTITY_TYPES.length) {
+            throw new Error(formatSalesforceMetadataProgress(progressByCollection));
+        }
         this.logger.info("Received Salesforce metadata response", {
-            status: response.status.toString(),
-            statusText: response.statusText,
             durationMs: (performance.now() - requestStartedAt).toFixed(2),
             dataSpace,
-            requestId: response.headers.get('x-request-id') ?? response.headers.get('sfdc-request-id'),
+            failedRequests: failedRequests.toString(),
         }, LOG_CTX);
-        if (response.status < 200 || response.status >= 300) {
-            // Don't silently return empty metadata: that would overwrite the
-            // existing catalog with nothing. Throw so the catalog loader
-            // dispatches CATALOG_UPDATE_FAILED and preserves prior state.
-            const bodyText = await response.text().catch(() => '');
-            throw new Error(`Salesforce metadata request failed: ${response.status} ${response.statusText}${bodyText ? ` — ${bodyText.slice(0, 200)}` : ''}`);
-        }
-        const responseJson = await response.json();
 
         // Parse the Data Cloud metadata
         const entities: connection.SalesforceDataCloudMetadataEntity[] = [];
         let fieldCount = 0;
-        const md = responseJson["metadata"];
-        if (md && Array.isArray(md)) {
-            for (const entityJson of md) {
+        for (const collectionEntities of responseEntities) {
+            for (const entityJson of collectionEntities) {
+                const rawFields = entityJson.fields ?? [];
                 const fields: connection.SalesforceDataCloudMetadataEntityField[] = [];
-                if (entityJson.fields && Array.isArray(entityJson.fields)) {
-                    for (const fieldJson of entityJson.fields) {
+                if (Array.isArray(rawFields)) {
+                    for (const fieldJson of rawFields) {
                         fields.push(({
                             name: fieldJson.name ?? '',
                             displayName: fieldJson.displayName ?? '',

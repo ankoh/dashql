@@ -1,7 +1,7 @@
 import * as dashql from '../../../../core/index.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { SalesforceApiClientInterface } from './salesforce_api_client.js';
+import { SalesforceApiClientInterface, type SalesforceMetadataProgress } from './salesforce_api_client.js';
 import { getSalesforceDataSpace } from './salesforce_api_client.js';
 import { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
 import { generateUnqualifiedSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from '../catalog_sql_generator.js';
@@ -23,6 +23,7 @@ export async function resolveSalesforceCatalog(
     dataCloudAccessToken: connection.SalesforceDataCloudAccessToken,
     api: SalesforceApiClientInterface,
     signal: AbortSignal,
+    onProgress?: (progress: SalesforceMetadataProgress) => void,
 ): Promise<ResolvedSalesforceCatalog> {
     if (!coreAccessToken.accessToken || !coreAccessToken.instanceUrl) {
         throw new Error('Salesforce core access token is missing');
@@ -31,7 +32,7 @@ export async function resolveSalesforceCatalog(
     logger.info('Resolving Salesforce catalog metadata', { dataSpace }, 'salesforce_catalog');
     const metadataStartedAt = performance.now();
     const [metadata, functionsSQL] = await Promise.all([
-        api.getDataCloudMetadata(coreAccessToken, dataSpace, signal),
+        api.getDataCloudMetadata(coreAccessToken, dataSpace, signal, onProgress),
         fetchPrefetchedHyperFunctions(signal),
     ]);
     logger.info('Received Salesforce catalog metadata', {

@@ -22,7 +22,11 @@ import { createShellFilesCommand, ShellFileRegistry } from './shell_files.js';
 import { useFileDownloader } from '../platform/file/file_downloader_provider.js';
 import { useSalesforceLoginDialog } from './salesforce_login_dialog.js';
 import { SalesforceRemoteAttachmentManager } from './salesforce_remote_attachment.js';
-import { SalesforceApiClient } from '../app/notebook/connections/salesforce/salesforce_api_client.js';
+import {
+    formatSalesforceMetadataProgress,
+    SalesforceApiClient,
+    type SalesforceMetadataProgress,
+} from '../app/notebook/connections/salesforce/salesforce_api_client.js';
 import { authenticateSalesforce } from '../app/notebook/connections/salesforce/salesforce_authentication.js';
 import { resolveSalesforceCatalog } from '../app/notebook/connections/salesforce/salesforce_catalog_update.js';
 import { fetchPrefetchedHyperFunctions } from '../app/notebook/connections/prefetched_hyper_functions.js';
@@ -192,12 +196,17 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 resolveCatalog: async (alias, authentication, signal, onProgress) => {
                     if (!httpClient) throw new Error('HTTP client is not ready');
                     onProgress?.(`Fetching Salesforce catalog metadata for ${alias}`);
+                    const metadataProgress = new Map<string, SalesforceMetadataProgress>();
                     const resolved = await resolveSalesforceCatalog(
                         logger,
                         authentication.coreAccessToken,
                         authentication.dataCloudAccessToken,
                         new SalesforceApiClient(logger, httpClient),
                         signal ?? new AbortController().signal,
+                        progress => {
+                            metadataProgress.set(progress.collection, progress);
+                            onProgress?.(formatSalesforceMetadataProgress(metadataProgress));
+                        },
                     );
                     return {
                         tableCount: resolved.tableCount,
