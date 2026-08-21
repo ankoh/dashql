@@ -8,6 +8,9 @@ export class TestLogger extends Logger {
     /// Destroy the logger
     public async destroy(): Promise<void> { }
 
+    /// Test loggers are buffer-only, even when production code requests console output.
+    protected pipeToConsole(_value: unknown): void { }
+
     /// Helper to flush pending records
     protected flushPendingRecords(): void {
         if (this.pendingRecords.length == 0) {

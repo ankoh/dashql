@@ -130,6 +130,10 @@ export abstract class Logger {
     public abstract destroy(): void;
     /// Helper to flush pending records
     protected abstract flushPendingRecords(): void;
+    /// Write a value to the platform console
+    protected pipeToConsole(value: unknown): void {
+        console.log(value);
+    }
 
     /// Access the log buffer
     public get buffer() { return this.outputBuffer; }
@@ -154,7 +158,7 @@ export abstract class Logger {
         this.logStatistics.push(entry);
         this.flushPendingRecords();
         if (pipeToConsole) {
-            console.log(entry);
+            this.pipeToConsole(entry);
         }
     }
     /// Log an debug message
@@ -164,7 +168,7 @@ export abstract class Logger {
         this.logStatistics.push(entry);
         this.flushPendingRecords();
         if (pipeToConsole) {
-            console.log(entry);
+            this.pipeToConsole(entry);
         }
     }
     /// Log an info message
@@ -174,7 +178,7 @@ export abstract class Logger {
         this.logStatistics.push(entry);
         this.flushPendingRecords();
         if (pipeToConsole) {
-            console.log(entry);
+            this.pipeToConsole(entry);
         }
     }
     /// Log a warning message
@@ -184,7 +188,7 @@ export abstract class Logger {
         this.logStatistics.push(entry);
         this.flushPendingRecords();
         if (pipeToConsole) {
-            console.log(entry);
+            this.pipeToConsole(entry);
         }
     }
     /// Log an error message
@@ -194,7 +198,7 @@ export abstract class Logger {
         this.logStatistics.push(entry);
         this.flushPendingRecords();
         if (pipeToConsole) {
-            console.log(entry);
+            this.pipeToConsole(entry);
         }
     }
     /// Log an exception
@@ -205,7 +209,7 @@ export abstract class Logger {
             this.error(stringifyError(error), {});
         }
         if (pipeToConsole) {
-            console.log(error);
+            this.pipeToConsole(error);
         }
     }
 }
