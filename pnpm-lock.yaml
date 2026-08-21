@@ -136,8 +136,8 @@ importers:
         specifier: ^10.4.1
         version: 10.4.1
       hyperdb-wasm:
-        specifier: 0.0.26312-dev.wasm.g913ac019
-        version: 0.0.26312-dev.wasm.g913ac019
+        specifier: 0.0.26313-dev.wasm.g630768ec
+        version: 0.0.26313-dev.wasm.g630768ec
       immutable:
         specifier: ^5.1.9
         version: 5.1.9
@@ -1515,8 +1515,8 @@ packages:
     resolution: {integrity: sha512-CV9TW3Y3f8/wT0BRFc1/KAVQ3TUHiXmaAb6VW9vtiMFf7SLoMd1PdAc4W3KFOFETBJUb90KatHqlsZMWV+R9Gg==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
 
-  hyperdb-wasm@0.0.26312-dev.wasm.g913ac019:
-    resolution: {integrity: sha512-MwZLKNAcg+du9lPAOYOJKR01tYgVKmIz8jBHG7BDlmH9/ijPqxGTeiVBaVEBSZxnpBFSLu36ly7hcSva0lthtA==}
+  hyperdb-wasm@0.0.26313-dev.wasm.g630768ec:
+    resolution: {integrity: sha512-1sHnUNl3KTgGWztg7CVewzXZKrqlWBSs8i7boUIDsyySzWza38CW44lLb0rPElQ8MZWRQJjVfJVUQmE4CVQ3Sg==}
     engines: {node: '>=24'}
 
   iconv-lite@0.6.3:
@@ -3776,7 +3776,7 @@ snapshots:
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  hyperdb-wasm@0.0.26312-dev.wasm.g913ac019:
+  hyperdb-wasm@0.0.26313-dev.wasm.g630768ec:
     dependencies:
       apache-arrow: 21.1.0
     transitivePeerDependencies:
