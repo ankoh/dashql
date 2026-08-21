@@ -106,6 +106,11 @@ table ResolvedTable {
     table_name: QualifiedTableName;
 }
 
+enum TableReferenceRole: uint8 {
+    READ = 0,
+    WRITE = 1,
+}
+
 table TableReference {
     // The id of the AST node that created this table reference
     ast_node_id: uint32;
@@ -121,6 +126,34 @@ table TableReference {
     alias_name: string;
     /// The resolved relation
     resolved_table: ResolvedTable;
+    /// Whether the relation is read from or written to
+    role: TableReferenceRole = READ;
+}
+
+table InsertTargetColumn {
+    /// The target-column NAME node
+    ast_node_id: uint32;
+    /// The written column name
+    column_name: string;
+    /// The resolved target column, if available
+    resolved_column: algebra.ResolvedColumn;
+}
+
+table InsertStatement {
+    /// The INSERT root node
+    ast_node_id: uint32;
+    /// The statement containing the INSERT
+    ast_statement_id: uint32;
+    /// Index into AnalyzedScript.table_references
+    target_table_reference_id: uint32;
+    /// Source SELECT node, or UINT32_MAX for DEFAULT VALUES
+    source_ast_node_id: uint32;
+    /// Whether this is INSERT ... DEFAULT VALUES
+    default_values: bool;
+    /// Whether the statement has a RETURNING projection
+    returning: bool;
+    /// Explicit target columns, in source order
+    target_columns: [InsertTargetColumn];
 }
 
 table FunctionParam {
@@ -363,4 +396,7 @@ table AnalyzedScript {
     /// The inferred schemas for tables that are referenced but not present in the catalog.
     /// Derived from how columns are used against unresolved tables (schema inference).
     inferred_table_schemas: [InferredTableSchema];
+
+    /// INSERT statements and their resolved write targets
+    insert_statements: [InsertStatement];
 }

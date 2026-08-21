@@ -135,7 +135,7 @@ void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap
 
     if (snap.tree && snap.node_id != c4::yml::NONE) {
         auto expected = snap.tree->ref(snap.node_id);
-        const char* keys[] = {"errors", "tables", "table-refs", "expressions", "constants", "inferred-tables"};
+        const char* keys[] = {"errors", "tables", "table-refs", "inserts", "expressions", "constants", "inferred-tables"};
         for (const char* key : keys) {
             if (!expected.has_child(key)) continue;
             auto have = node[key];
@@ -215,10 +215,53 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
             if (ref.ast_statement_id.has_value()) {
                 yml_ref.append_child() << c4::yml::key("statement-id") << *ref.ast_statement_id;
             }
+            if (ref.role == TableReference::Role::Write) {
+                yml_ref.append_child() << c4::yml::key("role") << "write";
+            }
             EncodeLocationText(yml_ref,
                                script.parsed_script->scanned_script->ResolveTextSpan(
                                    script.parsed_script->nodes[ref.ast_node_id].symbol_span()),
                                script.parsed_script->scanned_script->GetInput());
+        });
+    }
+
+    if (!script.insert_statements.IsEmpty()) {
+        auto inserts_node = out.append_child();
+        inserts_node << c4::yml::key("inserts");
+        inserts_node |= c4::yml::SEQ;
+        script.insert_statements.ForEach([&](size_t, const InsertStatement& insert) {
+            auto yml_insert = inserts_node.append_child();
+            yml_insert.set_type(c4::yml::MAP);
+            if (insert.ast_statement_id) {
+                yml_insert.append_child() << c4::yml::key("statement-id") << *insert.ast_statement_id;
+            }
+            yml_insert.append_child() << c4::yml::key("target-ref")
+                                      << insert.target.get().table_reference_id.GetObject();
+            if (insert.source_ast_node_id) {
+                EncodeLocationText(yml_insert,
+                                   script.parsed_script->scanned_script->ResolveTextSpan(
+                                       script.parsed_script->nodes[*insert.source_ast_node_id].symbol_span()),
+                                   script.parsed_script->scanned_script->GetInput(), "source");
+            }
+            if (insert.default_values) {
+                yml_insert.append_child() << c4::yml::key("default-values") << c4::fmt::boolalpha(true);
+            }
+            if (insert.returning) {
+                yml_insert.append_child() << c4::yml::key("returning") << c4::fmt::boolalpha(true);
+            }
+            if (!insert.target_columns.empty()) {
+                auto columns = yml_insert.append_child();
+                columns << c4::yml::key("columns");
+                columns |= c4::yml::SEQ;
+                for (auto& column : insert.target_columns) {
+                    auto out_column = columns.append_child();
+                    out_column.set_type(c4::yml::MAP);
+                    out_column.append_child() << c4::yml::key("name")
+                                              << std::string(column.column_name.get().text);
+                    out_column.append_child() << c4::yml::key("resolved")
+                                              << c4::fmt::boolalpha(column.resolved.has_value());
+                }
+            }
         });
     }
 

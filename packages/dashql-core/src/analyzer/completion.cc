@@ -644,6 +644,7 @@ void Completion::FindCandidatesForNamePath() {
                         }
                         break;
                     }
+                    if (name_scope.get().column_correlation_barrier) break;
                 }
                 break;
             }
@@ -1143,6 +1144,10 @@ void Completion::FindCandidatesInInlineVisualizeSource() {
 void Completion::PromoteIdentifiersInScope() {
     // We can be a bit more involved here since the number of entities in a scope should be small(ish)
 
+    bool in_insert_source = std::ranges::any_of(cursor.name_scopes, [](auto scope) {
+        return scope.get().column_correlation_barrier;
+    });
+
     // Check all naming scopes for tables that are in scope.
     for (auto& name_scope : cursor.name_scopes) {
         auto& scope = name_scope.get();
@@ -1150,6 +1155,7 @@ void Completion::PromoteIdentifiersInScope() {
         // Iterate over all table references in the scope.
         // A column name belonging to a table ref gets boosted.
         for (auto& table_ref : scope.table_references) {
+            if (in_insert_source && table_ref.role == TableReference::Role::Write) continue;
             // Resolved table ref?
             auto* rel_expr = std::get_if<AnalyzedScript::TableReference::RelationExpression>(&table_ref.inner);
             if (!rel_expr || !rel_expr->resolved_table.has_value()) {

@@ -265,6 +265,15 @@ std::unique_ptr<buffers::parser::StatementT> ParsedScript::PackStatement(size_t 
         return std::string(parsed.scanned_script->GetNames().At(source->children_begin_or_value()).text);
     };
     auto read_target = [&](const buffers::parser::Node* source) {
+        if (source && source->node_type() == buffers::parser::NodeType::OBJECT_SQL_TABLEREF) {
+            for (size_t i = 0; i < source->children_count(); ++i) {
+                const auto& child = parsed.nodes[source->children_begin_or_value() + i];
+                if (child.attribute_key() == buffers::parser::AttributeKey::SQL_TABLEREF_NAME) {
+                    source = &child;
+                    break;
+                }
+            }
+        }
         if (!source || source->node_type() != buffers::parser::NodeType::ARRAY) return;
         auto children = std::span{parsed.nodes}.subspan(source->children_begin_or_value(), source->children_count());
         if (children.empty() || children.size() > 3) return;
@@ -318,6 +327,10 @@ std::unique_ptr<buffers::parser::StatementT> ParsedScript::PackStatement(size_t 
             out->attach_database = std::move(attach);
             break;
         }
+        case buffers::parser::StatementType::INSERT:
+            set_target(buffers::parser::StatementTargetType::TABLE,
+                       buffers::parser::AttributeKey::SQL_INSERT_TARGET);
+            break;
         default:
             break;
     }
@@ -676,6 +689,8 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
     if (!resolved_ofs.IsNull()) {
         out.add_resolved_table(resolved_ofs);
     }
+    out.add_role(role == Role::Write ? buffers::analyzer::TableReferenceRole::WRITE
+                                     : buffers::analyzer::TableReferenceRole::READ);
     return out.Finish();
 }
 
@@ -929,6 +944,49 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     // Pack table references
     auto table_references_ofs =
         PackVector<AnalyzedScript::TableReference, buffers::analyzer::TableReference>(builder, table_references);
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::analyzer::InsertStatement>>>
+        insert_statements_ofs;
+    {
+        std::vector<flatbuffers::Offset<buffers::analyzer::InsertStatement>> insert_offsets;
+        insert_offsets.reserve(insert_statements.GetSize());
+        insert_statements.ForEach([&](size_t, const InsertStatement& insert) {
+            std::vector<flatbuffers::Offset<buffers::analyzer::InsertTargetColumn>> column_offsets;
+            column_offsets.reserve(insert.target_columns.size());
+            for (auto& column : insert.target_columns) {
+                auto name_ofs = builder.CreateString(column.column_name.get().text);
+                flatbuffers::Offset<buffers::algebra::ResolvedColumn> resolved_ofs;
+                if (column.resolved) {
+                    auto& resolved_column = column.resolved->get();
+                    auto& table = resolved_column.table->get();
+                    auto [db_id, schema_id] = table.catalog_schema_id.UnpackSchemaID();
+                    auto [table_id, column_id] = resolved_column.object_id.UnpackTableColumnID();
+                    buffers::algebra::ResolvedColumnBuilder rb{builder};
+                    rb.add_catalog_database_id(db_id);
+                    rb.add_catalog_schema_id(schema_id);
+                    rb.add_catalog_table_id(table_id.Pack());
+                    rb.add_column_id(column_id);
+                    rb.add_referenced_catalog_version(table.catalog_version);
+                    resolved_ofs = rb.Finish();
+                }
+                buffers::analyzer::InsertTargetColumnBuilder cb{builder};
+                cb.add_ast_node_id(column.ast_node_id);
+                cb.add_column_name(name_ofs);
+                if (!resolved_ofs.IsNull()) cb.add_resolved_column(resolved_ofs);
+                column_offsets.push_back(cb.Finish());
+            }
+            auto columns_ofs = builder.CreateVector(column_offsets);
+            buffers::analyzer::InsertStatementBuilder ib{builder};
+            ib.add_ast_node_id(insert.ast_node_id);
+            ib.add_ast_statement_id(insert.ast_statement_id.value_or(PROTO_NULL_U32));
+            ib.add_target_table_reference_id(insert.target.get().table_reference_id.GetObject());
+            ib.add_source_ast_node_id(insert.source_ast_node_id.value_or(PROTO_NULL_U32));
+            ib.add_default_values(insert.default_values);
+            ib.add_returning(insert.returning);
+            ib.add_target_columns(columns_ofs);
+            insert_offsets.push_back(ib.Finish());
+        });
+        insert_statements_ofs = builder.CreateVector(insert_offsets);
+    }
     // Pack expressions
     auto expressions_ofs = PackVector<AnalyzedScript::Expression, buffers::algebra::Expression>(builder, expressions);
 
@@ -1152,6 +1210,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     out.add_catalog_entry_id(catalog_entry_id);
     out.add_tables(tables_ofs);
     out.add_table_references(table_references_ofs);
+    out.add_insert_statements(insert_statements_ofs);
     out.add_resolved_table_references_by_id(resolved_table_refs_by_id_ofs);
     out.add_expressions(expressions_ofs);
     out.add_resolved_column_references_by_id(resolved_column_refs_by_id_ofs);

@@ -90,6 +90,10 @@ struct NameResolutionPass : public PassManager::LTRPass {
     void AssociateUnresolvedColumns(AnalyzedScript::NameScope& scope);
     /// Populate a scope's output_columns from its result targets
     void PopulateOutputColumns(AnalyzedScript::NameScope& scope);
+    /// Attach parsed CTE definitions to a SELECT or INSERT scope.
+    void AttachCTEs(AnalyzedScript::NameScope& scope, IntrusiveList<AnalyzedScript::CTEDefinition>&& ctes);
+    /// Bind explicit INSERT target columns after target-table resolution.
+    void ResolveInsertTargetColumns();
     /// Resolve all names
     void ResolveNames();
     /// Solve the schema-inference constraints into per-table inferred schemas.

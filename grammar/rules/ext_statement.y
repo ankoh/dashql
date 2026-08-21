@@ -31,4 +31,5 @@ sql_query_statement:
   | sql_drop_table_stmt       { $$ = std::move($1); }
   | sql_drop_view_stmt        { $$ = std::move($1); }
   | sql_attach_database_stmt  { $$ = std::move($1); }
+  | sql_insert_stmt           { $$ = std::move($1); }
     ;

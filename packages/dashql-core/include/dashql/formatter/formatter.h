@@ -59,6 +59,7 @@ struct Formatter {
     FmtReg FormatNode(size_t node_id);
     FmtReg FormatArray(const buffers::parser::Node& node);
     FmtReg FormatSelect(size_t node_id);
+    FmtReg FormatInsert(const buffers::parser::Node& node);
     FmtReg FormatCreate(size_t node_id);
     FmtReg FormatCreateAs(const buffers::parser::Node& node);
     FmtReg FormatView(const buffers::parser::Node& node);

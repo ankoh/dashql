@@ -20,6 +20,7 @@ LIB_SRCS = [
     "src/formatter/formatter.cc",
     "src/formatter/formatter_create.cc",
     "src/formatter/formatter_explain.cc",
+    "src/formatter/formatter_insert.cc",
     "src/formatter/formatter_select.cc",
     "src/formatter/formatter_vis.cc",
     "src/formatter/formatting_program.cc",
@@ -364,6 +365,7 @@ cc_test(
     size = "small",
     srcs = [
         "test/analyzer_declaration_test.cc",
+        "test/analyzer_insert_test.cc",
         "test/api_test.cc",
         "test/chunk_buffer_test.cc",
         "test/cursor_test.cc",

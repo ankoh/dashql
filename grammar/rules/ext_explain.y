@@ -51,6 +51,7 @@ explainable_stmt:
   | sql_create_stmt     { $$ = std::move($1); }
   | sql_create_as_stmt  { $$ = std::move($1); }
   | sql_view_stmt       { $$ = std::move($1); }
+  | sql_insert_stmt     { $$ = std::move($1); }
     ;
 
 explain_option_list:

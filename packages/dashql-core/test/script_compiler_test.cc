@@ -33,6 +33,16 @@ TEST(ScriptCompilerTest, ReturnsPlainSQLVerbatim) {
     EXPECT_EQ(result.sql, sql);
 }
 
+TEST(ScriptCompilerTest, ClassifiesInsertAsQuery) {
+    constexpr std::string_view sql = "INSERT INTO target VALUES (1);";
+    auto result = Compile(sql);
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    EXPECT_EQ(result.kind, buffers::execution::ScriptCompilationStatementKind::QUERY);
+    EXPECT_EQ(result.terminal_statement_id, 0);
+    EXPECT_EQ(result.sql, sql);
+}
+
 TEST(ScriptCompilerTest, CompilesTrailingVisualization) {
     auto result = Compile(R"SQL(
 WITH source AS (SELECT category, amount FROM sales)

@@ -1,0 +1,72 @@
+formatter-snapshots:
+
+  - name: coverage_insert_values
+    input: INSERT INTO insert_target VALUES(1,'one'),(2,'two')
+    dialects:
+      hyper:
+        validation:
+          setup: create table insert_target(id int, label text);
+
+  - name: coverage_insert_columns_default
+    input: INSERT INTO insert_target(id,label) VALUES(DEFAULT,'generated')
+    dialects:
+      hyper:
+        validation:
+          setup: create table insert_target(id int default 42, label text);
+
+  - name: coverage_insert_select
+    input: INSERT INTO insert_target(id,label) SELECT id,label FROM insert_source WHERE active
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table insert_target(id int, label text);
+            create table insert_source(id int, label text, active boolean);
+
+  - name: coverage_insert_table
+    input: INSERT INTO insert_target TABLE insert_source
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table insert_target(id int);
+            create table insert_source(id int);
+
+  - name: coverage_insert_default_values
+    input: INSERT INTO insert_target DEFAULT VALUES
+    dialects:
+      hyper:
+        validation:
+          setup: create table insert_target(id int default 42);
+
+  - name: coverage_insert_with
+    input: WITH source AS(SELECT id,label FROM insert_source) INSERT INTO insert_target(id,label) SELECT id,label FROM source
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table insert_target(id int, label text);
+            create table insert_source(id int, label text);
+
+  - name: coverage_insert_returning
+    input: INSERT INTO insert_target(id,label) VALUES(1,'one') RETURNING id,label AS inserted_label
+    dialects:
+      hyper:
+        validation:
+          setup: create table insert_target(id int, label text);
+
+  - name: coverage_insert_qualified_target_returning_star
+    input: INSERT INTO insert_schema.insert_target DEFAULT VALUES RETURNING *
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create schema insert_schema;
+            create table insert_schema.insert_target(id int default 42);
+
+  - name: coverage_explain_insert
+    input: EXPLAIN INSERT INTO insert_target VALUES(1)
+    dialects:
+      hyper:
+        validation:
+          setup: create table insert_target(id int);

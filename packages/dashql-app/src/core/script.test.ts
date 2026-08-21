@@ -72,4 +72,28 @@ describe('DashQL scripts', () => {
         script.destroy();
         catalog.destroy();
     });
+
+    it('analyzes insert write targets through wasm', () => {
+        const catalog = dql!.createCatalog();
+        const schema = dql!.createScript(catalog);
+        schema.insertTextAt(0, 'create table target(id int, label text);');
+        schema.analyze();
+        catalog.loadScript(schema, 0);
+
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, "insert into target(id, label) values (1, 'one') returning id");
+        script.analyze();
+        const analyzedBuffer = script.getAnalyzed();
+        const analyzed = analyzedBuffer.read();
+
+        expect(analyzed.insertStatementsLength()).toBe(1);
+        expect(analyzed.insertStatements(0)!.targetColumnsLength()).toBe(2);
+        expect(analyzed.tableReferencesLength()).toBe(1);
+        expect(analyzed.tableReferences(0)!.role()).toBe(dashql.buffers.analyzer.TableReferenceRole.WRITE);
+
+        analyzedBuffer.destroy();
+        script.destroy();
+        schema.destroy();
+        catalog.destroy();
+    });
 });

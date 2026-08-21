@@ -32,6 +32,7 @@ std::optional<uint32_t> ReadTerminalSqlNode(const ParsedScript& parsed, uint32_t
         case buffers::parser::StatementType::ATTACH_DATABASE:
         case buffers::parser::StatementType::EXPLAIN:
         case buffers::parser::StatementType::SELECT:
+        case buffers::parser::StatementType::INSERT:
         case buffers::parser::StatementType::SET:
             kind = StatementKind::QUERY;
             return statement.root;

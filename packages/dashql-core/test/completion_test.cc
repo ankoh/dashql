@@ -145,6 +145,101 @@ TEST(CompletionTest, CompletesQualifiedColumnsInExplicitJoin) {
     }
 }
 
+TEST(CompletionTest, InsertTargetColumnsAreInScope) {
+    Catalog catalog;
+    Script schema{catalog};
+    schema.InsertTextAt(0, "CREATE TABLE target(id int, label text);");
+    ASSERT_NO_THROW(schema.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
+
+    constexpr std::string_view text = "insert into target(la) values (1)";
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.find("la)") + 2);
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "label");
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+}
+
+TEST(CompletionTest, InsertReturningColumnsAreInScope) {
+    Catalog catalog;
+    Script schema{catalog};
+    schema.InsertTextAt(0, "CREATE TABLE target(id int, label text);");
+    ASSERT_NO_THROW(schema.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
+
+    constexpr std::string_view text = "insert into target values (1, 'one') returning la";
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "label");
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+}
+
+TEST(CompletionTest, InsertSourceDoesNotSeeWriteTargetColumns) {
+    Catalog catalog;
+    Script schema{catalog};
+    schema.InsertTextAt(0, "CREATE TABLE target(id int, label text); CREATE TABLE source(source_id int);");
+    ASSERT_NO_THROW(schema.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
+
+    constexpr std::string_view text = "insert into target select la from source";
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.find("la from") + 2);
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "label");
+    if (candidate) {
+        EXPECT_FALSE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+    }
+}
+
+TEST(CompletionTest, InsertSourceCompletesLeadingCte) {
+    Catalog catalog;
+    Script schema{catalog};
+    schema.InsertTextAt(0, "CREATE TABLE target(id int);");
+    ASSERT_NO_THROW(schema.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
+
+    constexpr std::string_view text =
+        "with source as (select 1 as id) insert into target select * from sou";
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.size());
+
+    auto completion = script.CompleteAtCursor();
+    auto* candidate = FindCandidate(*completion, "source");
+    ASSERT_NE(candidate, nullptr);
+    EXPECT_TRUE(candidate->candidate_tags.contains(buffers::completion::CandidateTag::IN_NAME_SCOPE));
+}
+
+TEST(CompletionTest, InsertSourceDoesNotDotCompleteWriteTarget) {
+    Catalog catalog;
+    Script schema{catalog};
+    schema.InsertTextAt(0, "CREATE TABLE target(id int, label text);");
+    ASSERT_NO_THROW(schema.Analyze());
+    ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
+
+    constexpr std::string_view text = "insert into target select target.la";
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    ASSERT_NO_THROW(script.Analyze());
+    script.MoveCursor(text.size());
+
+    auto completion = script.CompleteAtCursor();
+    EXPECT_EQ(FindCandidate(*completion, "label"), nullptr);
+}
+
 TEST(CompletionTest, KeywordContinuation_GroupBy) {
     const std::string_view main_script_text = R"SQL(
 SELECT * FROM supplier gro

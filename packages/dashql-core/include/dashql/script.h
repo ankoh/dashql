@@ -218,6 +218,7 @@ class AnalyzedScript : public CatalogEntry {
    public:
     // Type aliases for backward compatibility - types are now defined in dashql/analyzer/analyzer_types.h
     using TableReference = dashql::TableReference;
+    using InsertStatement = dashql::InsertStatement;
     using Expression = dashql::Expression;
     using ResultTarget = dashql::ResultTarget;
     using CTEDefinition = dashql::CTEDefinition;
@@ -243,6 +244,8 @@ class AnalyzedScript : public CatalogEntry {
 
     /// The table references
     ChunkBuffer<TableReference, 16> table_references;
+    /// INSERT statements
+    ChunkBuffer<InsertStatement, 4> insert_statements;
     /// The expressions
     ChunkBuffer<Expression, 16> expressions;
     /// The function arguments (referenced by function call expressions)

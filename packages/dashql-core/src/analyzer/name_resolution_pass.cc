@@ -254,11 +254,18 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
         for (auto* s = &scope; s != nullptr; s = s->parent_scope) {
             auto cte_it = s->cte_definitions.find(ref_name);
             if (cte_it != s->cte_definitions.end()) {
+                if (!s->ctes_recursive) {
+                    auto& definition = state.ast[cte_it->second.definition_node_id];
+                    auto definition_begin = definition.symbol_span().offset();
+                    auto definition_end = definition_begin + definition.symbol_span().length();
+                    auto reference_offset = state.ast[table_ref.ast_node_id].symbol_span().offset();
+                    if (reference_offset <= definition_end) continue;
+                }
                 matched_cte = &cte_it->second;
                 break;
             }
         }
-        if (matched_cte) {
+        if (matched_cte && table_ref.role == TableReference::Role::Read) {
             std::string_view alias = table_ref.alias.has_value() ? table_ref.alias.value().first.get().text : ref_name;
             register_in_scope(table_ref, alias, ReferencedTable{.source = std::ref(*matched_cte)});
             continue;
@@ -388,6 +395,7 @@ void NameResolutionPass::ResolveColumnRefsLocally(AnalyzedScript::NameScope& sco
 }
 
 void NameResolutionPass::ResolveColumnRefsFromChildOutputs(AnalyzedScript::NameScope& scope) {
+    if (scope.child_output_resolution_barrier) return;
     for (auto& expr : scope.expressions) {
         if (auto col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
             col_ref != nullptr && !col_ref->IsResolved()) {
@@ -403,6 +411,7 @@ void NameResolutionPass::ResolveColumnRefsFromChildOutputs(AnalyzedScript::NameS
 }
 
 void NameResolutionPass::ResolveColumnRefsFromParents(AnalyzedScript::NameScope& scope) {
+    if (scope.column_correlation_barrier) return;
     for (auto& expr : scope.expressions) {
         if (auto col_ref = std::get_if<AnalyzedScript::Expression::ColumnRef>(&expr.inner);
             col_ref != nullptr && !col_ref->IsResolved()) {
@@ -410,8 +419,35 @@ void NameResolutionPass::ResolveColumnRefsFromParents(AnalyzedScript::NameScope&
                 if (TryResolveColumnInScope(expr, *target, state)) {
                     break;
                 }
+                if (target->column_correlation_barrier) break;
             }
         }
+    }
+}
+
+void NameResolutionPass::AttachCTEs(AnalyzedScript::NameScope& scope,
+                                    IntrusiveList<AnalyzedScript::CTEDefinition>&& ctes) {
+    for (auto& cte : ctes) {
+        auto it = state.analyzed->name_scopes_by_root_node.find(cte.select_node_id);
+        if (it == state.analyzed->name_scopes_by_root_node.end()) continue;
+        auto& child_scope = it->second.get();
+        ResolvedCTE def{
+            .cte_name = cte.cte_name,
+            .child_scope = &child_scope,
+            .definition_node_id = cte.ast_node_id,
+        };
+        if (cte.columns_count > 0) {
+            auto& cols_node = state.ast[cte.columns_node_id];
+            for (uint16_t ci = 0; ci < cte.columns_count; ++ci) {
+                auto& col_node = state.ast[cols_node.children_begin_or_value() + ci];
+                if (col_node.node_type() == buffers::parser::NodeType::NAME) {
+                    def.column_aliases.push_back(
+                        state.scanned.GetNames().At(col_node.children_begin_or_value()));
+                }
+            }
+        }
+        scope.cte_definitions.emplace(cte.cte_name.get().text, std::move(def));
+        scope.cte_definition_nodes.emplace(cte.cte_name.get().text, cte.ast_node_id);
     }
 }
 
@@ -798,31 +834,75 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                 auto [recursive_node] = state.GetAttributes<AttributeKey::SQL_SELECT_WITH_RECURSIVE>(node);
                 scope.ctes_recursive = recursive_node != nullptr;
 
-                // Collect the CTE definitions
-                for (auto& cte : cte_defs) {
-                    auto it = state.analyzed->name_scopes_by_root_node.find(cte.select_node_id);
-                    if (it == state.analyzed->name_scopes_by_root_node.end()) continue;
-                    auto& child_scope = it->second.get();
-                    ResolvedCTE def{.cte_name = cte.cte_name, .child_scope = &child_scope};
-                    if (cte.columns_count > 0) {
-                        auto& cols_node = state.ast[cte.columns_node_id];
-                        for (uint16_t ci = 0; ci < cte.columns_count; ++ci) {
-                            auto& col_node = state.ast[cols_node.children_begin_or_value() + ci];
-                            if (col_node.node_type() == buffers::parser::NodeType::NAME) {
-                                auto& col_name = state.scanned.GetNames().At(col_node.children_begin_or_value());
-                                def.column_aliases.push_back(col_name);
-                            }
-                        }
-                    }
-                    scope.cte_definitions.emplace(cte.cte_name.get().text, std::move(def));
-                    scope.cte_definition_nodes.emplace(cte.cte_name.get().text, cte.ast_node_id);
-                }
+                AttachCTEs(scope, std::move(cte_defs));
 
                 auto [into_node] = state.GetAttributes<AttributeKey::SQL_SELECT_INTO>(node);
                 if (into_node && into_node->node_type() == buffers::parser::NodeType::OBJECT_SQL_INTO) {
                     auto [into_name_node] = state.GetAttributes<AttributeKey::SQL_TEMP_NAME>(*into_node);
                     RegisterDerivedTable(*into_node, into_name_node, nullptr, node);
                 }
+                break;
+            }
+
+            case buffers::parser::NodeType::OBJECT_SQL_INSERT: {
+                auto [target_node, columns_node, source_node, default_values_node, returning_node, recursive_node] =
+                    state.GetAttributes<AttributeKey::SQL_INSERT_TARGET, AttributeKey::SQL_INSERT_COLUMNS,
+                                        AttributeKey::SQL_INSERT_SOURCE, AttributeKey::SQL_INSERT_DEFAULT_VALUES,
+                                        AttributeKey::SQL_INSERT_RETURNING, AttributeKey::SQL_SELECT_WITH_RECURSIVE>(node);
+                if (!target_node) {
+                    MergeChildStates(node_state, node);
+                    break;
+                }
+
+                auto& target_state = node_states[target_node - state.ast.data()];
+                if (target_state.table_references.IsEmpty()) {
+                    MergeChildStates(node_state, node);
+                    break;
+                }
+                auto& target_ref = *target_state.table_references.begin();
+                target_ref.role = TableReference::Role::Write;
+
+                MergeChildStates(node_state, node);
+                auto result_targets = std::move(node_state.result_targets);
+                auto cte_defs = std::move(node_state.ctes);
+                auto& scope = CreateScope(node_state, node_id);
+                scope.result_targets.Append(std::move(result_targets));
+                scope.ctes_recursive = recursive_node != nullptr;
+                scope.child_output_resolution_barrier = true;
+                AttachCTEs(scope, std::move(cte_defs));
+                if (source_node) {
+                    auto source_scope = state.analyzed->name_scopes_by_root_node.find(source_node - state.ast.data());
+                    if (source_scope != state.analyzed->name_scopes_by_root_node.end()) {
+                        source_scope->second.get().column_correlation_barrier = true;
+                    }
+                }
+                for (auto& [_, cte] : scope.cte_definitions) {
+                    if (cte.child_scope) cte.child_scope->column_correlation_barrier = true;
+                }
+
+                InsertStatement insert{
+                    .ast_node_id = static_cast<uint32_t>(node_id),
+                    .ast_statement_id = FindStatementId(node_id),
+                    .target = target_ref,
+                    .source_ast_node_id = source_node ? std::optional<uint32_t>(source_node - state.ast.data())
+                                                      : std::nullopt,
+                    .default_values = default_values_node != nullptr,
+                    .returning = returning_node != nullptr,
+                };
+                if (columns_node && columns_node->node_type() == buffers::parser::NodeType::ARRAY) {
+                    auto columns = state.ast.subspan(columns_node->children_begin_or_value(), columns_node->children_count());
+                    insert.target_columns.reserve(columns.size());
+                    for (auto& column : columns) {
+                        if (column.node_type() != buffers::parser::NodeType::NAME) continue;
+                        auto& name = state.scanned.GetNames().At(column.children_begin_or_value());
+                        name.coarse_analyzer_tags |= buffers::analyzer::NameTag::COLUMN_NAME;
+                        insert.target_columns.push_back({
+                            .ast_node_id = static_cast<uint32_t>(&column - state.ast.data()),
+                            .column_name = name,
+                        });
+                    }
+                }
+                state.analyzed->insert_statements.PushBack(std::move(insert));
                 break;
             }
 
@@ -1030,6 +1110,25 @@ void NameResolutionPass::Finish() {
 
     // Solve the schema-inference constraints collected during name resolution.
     RunSchemaInference();
+    ResolveInsertTargetColumns();
+}
+
+void NameResolutionPass::ResolveInsertTargetColumns() {
+    state.analyzed->insert_statements.ForEach([&](size_t, InsertStatement& insert) {
+        auto* relation = std::get_if<TableReference::RelationExpression>(&insert.target.get().inner);
+        if (!relation || !relation->resolved_table) return;
+        auto table_id = relation->resolved_table->catalog_table_id.UnpackTableID();
+        const auto* table = table_id.GetOrigin() == state.catalog_entry_id
+                                ? state.analyzed->ResolveTableById(table_id)
+                                : state.catalog.ResolveTable(table_id);
+        if (!table) return;
+        for (auto& target_column : insert.target_columns) {
+            auto it = table->table_columns_by_name.find(target_column.column_name.get().text);
+            if (it == table->table_columns_by_name.end()) continue;
+            auto& column = it->second.get();
+            target_column.resolved = std::cref(column);
+        }
+    });
 }
 
 namespace {

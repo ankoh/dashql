@@ -13,6 +13,28 @@ afterEach(async () => {
 });
 
 describe('DashQL formatting', () => {
+    it('formats inserts through WebAssembly', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `INSERT INTO target(id,label) VALUES(DEFAULT,'one') RETURNING id`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            80,
+            4,
+        );
+        script.parse();
+        const formatted = script.format(config, catalog);
+
+        expect(formatted.toString()).toEqual(
+            "insert into target(id, label) values (default, 'one') returning id;"
+        );
+
+        formatted.destroy();
+        script.destroy();
+        catalog.destroy();
+    });
+
     it('instantiates WebAssembly module', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

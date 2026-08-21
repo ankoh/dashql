@@ -70,7 +70,7 @@ TEST(ParserTest, ExposesNormalizedStatementMetadata) {
         std::string_view attach_alias;
         bool attach_local;
     };
-    constexpr std::array<TestCase, 9> tests = {{
+    constexpr std::array<TestCase, 10> tests = {{
         {"create table foo (a integer)", buffers::parser::StatementType::CREATE_TABLE,
          buffers::parser::StatementTargetType::TABLE, {}, {}, "foo", {}, {}, false},
         {"create table target as select 1", buffers::parser::StatementType::CREATE_TABLE_AS,
@@ -85,6 +85,8 @@ TEST(ParserTest, ExposesNormalizedStatementMetadata) {
          buffers::parser::StatementTargetType::TABLE, {}, "schema", "target", {}, {}, false},
         {"select 1 into schema.target union all select 2", buffers::parser::StatementType::SELECT_INTO,
          buffers::parser::StatementTargetType::TABLE, {}, "schema", "target", {}, {}, false},
+        {"insert into catalog.schema.target values (1)", buffers::parser::StatementType::INSERT,
+         buffers::parser::StatementTargetType::TABLE, "catalog", "schema", "target", {}, {}, false},
         {"attach database \"path/to/source.hyper\" as source", buffers::parser::StatementType::ATTACH_DATABASE,
          buffers::parser::StatementTargetType::NONE, {}, {}, {}, "path/to/source.hyper", "source", false},
         {"attach local database local_source as attached with (access_mode = 'readonly')",
@@ -120,6 +122,52 @@ TEST(ParserTest, ExposesNormalizedStatementMetadata) {
             << test.input;
         EXPECT_EQ(attach ? attach->local() : false, test.attach_local) << test.input;
     }
+}
+
+TEST(ParserTest, ParsesHyperInsertForms) {
+    constexpr std::array<std::string_view, 9> tests = {{
+        "insert into target values (1), (2)",
+        "insert into analytics.target(id, label) values (1, default)",
+        "insert into target(id, label) select id, label from source",
+        "insert into target table source",
+        "insert into target default values",
+        "with source as (select 1 as id) insert into target select id from source",
+        "with recursive source as (select 1 as id) insert into target select id from source",
+        "insert into target(id) values (1) returning id, id + 1 as next_id",
+        "explain insert into target values (1)",
+    }};
+
+    for (auto input : tests) {
+        SCOPED_TRACE(input);
+        auto script = ParseString(input);
+        ASSERT_TRUE(script->errors.empty())
+            << (script->errors.empty() ? "" : script->errors.front().message);
+        ASSERT_EQ(script->statements.size(), 1u);
+    }
+}
+
+TEST(ParserTest, RejectsExcludedInsertForms) {
+    for (auto input : {
+             std::string_view{"insert bulk into target values (1)"},
+             std::string_view{"insert into target overriding system value values (1)"},
+             std::string_view{"insert into target values (1) on conflict do nothing"},
+         }) {
+        SCOPED_TRACE(input);
+        auto script = ParseString(input);
+        EXPECT_FALSE(script->errors.empty());
+    }
+}
+
+TEST(ParserTest, DoesNotFullyFormatDefaultOutsideInsertValues) {
+    auto script = ParseString("select default");
+    ASSERT_TRUE(script->errors.empty());
+
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = buffers::formatting::FormattingDialect::HYPER;
+    config.mode = buffers::formatting::FormattingMode::INLINE;
+    Formatter formatter{*script};
+    formatter.Format(config);
+    EXPECT_FALSE(formatter.IsFullyFormatted());
 }
 
 TEST(ParserTest, FormatsDropAndAttachStatements) {

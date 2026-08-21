@@ -149,6 +149,7 @@ enum NodeType: uint16 {
     OBJECT_SQL_DROP_VIEW,
     OBJECT_SQL_ATTACH_DATABASE,
     OBJECT_SQL_ATTACH_DATABASE_OPTION,
+    OBJECT_SQL_INSERT,
 }
 
 enum AttributeKey: uint16 {
@@ -561,6 +562,11 @@ enum AttributeKey: uint16 {
     SQL_ATTACH_DATABASE_ALIAS,
     SQL_ATTACH_DATABASE_LOCAL,
     SQL_ATTACH_DATABASE_OPTIONS,
+    SQL_INSERT_TARGET,
+    SQL_INSERT_COLUMNS,
+    SQL_INSERT_SOURCE,
+    SQL_INSERT_DEFAULT_VALUES,
+    SQL_INSERT_RETURNING,
 }
 
 enum StatementType: uint8 {
@@ -577,6 +583,7 @@ enum StatementType: uint8 {
     DROP_VIEW = 10,
     SELECT_INTO = 11,
     ATTACH_DATABASE = 12,
+    INSERT = 13,
 }
 
 enum StatementTargetType: uint8 {

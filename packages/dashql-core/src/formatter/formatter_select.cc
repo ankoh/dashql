@@ -14,7 +14,7 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
 
     auto [select_all, select_distinct, select_targets, select_into, select_from, select_where, select_groups,
           select_having, select_windows, select_order, select_row_locking, select_with_ctes, select_with_recursive,
-          select_offset, select_limit, select_limit_all, select_sample, select_values, combine_operation,
+           select_offset, select_limit, select_limit_all, select_sample, select_values, select_table, combine_operation,
           combine_modifier, combine_input, select_statement] =
         GetAttributes<AttributeKey::SQL_SELECT_ALL, AttributeKey::SQL_SELECT_DISTINCT, AttributeKey::SQL_SELECT_TARGETS,
                       AttributeKey::SQL_SELECT_INTO, AttributeKey::SQL_SELECT_FROM, AttributeKey::SQL_SELECT_WHERE,
@@ -23,7 +23,7 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
                       AttributeKey::SQL_SELECT_ROW_LOCKING, AttributeKey::SQL_SELECT_WITH_CTES,
                       AttributeKey::SQL_SELECT_WITH_RECURSIVE, AttributeKey::SQL_SELECT_OFFSET,
                       AttributeKey::SQL_SELECT_LIMIT, AttributeKey::SQL_SELECT_LIMIT_ALL,
-                      AttributeKey::SQL_SELECT_SAMPLE, AttributeKey::SQL_SELECT_VALUES,
+                      AttributeKey::SQL_SELECT_SAMPLE, AttributeKey::SQL_SELECT_VALUES, AttributeKey::SQL_SELECT_TABLE,
                       AttributeKey::SQL_COMBINE_OPERATION, AttributeKey::SQL_COMBINE_MODIFIER,
                       AttributeKey::SQL_COMBINE_INPUT, AttributeKey::SQL_SELECT_EXPRESSION_STATEMENT>(node);
 
@@ -88,6 +88,11 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
             } else {
                 clauses.push_back(fmt.Concat({fmt.Text("values "), values_reg}));
             }
+        }
+        if (select_table) {
+            auto table_reg = Reg(*select_table);
+            if (table_reg == 0) return FormatUnimplemented(*select_table);
+            clauses.push_back(fmt.Concat({fmt.Text("table "), table_reg}));
         }
         if (select_targets) {
             auto body = Reg(*select_targets);

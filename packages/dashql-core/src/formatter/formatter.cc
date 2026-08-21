@@ -350,6 +350,8 @@ std::string_view GetOperatorText(ExpressionOperator op) {
             return "collate";
         case ExpressionOperator::AT_TIMEZONE:
             return "at time zone";
+        case ExpressionOperator::DEFAULT:
+            return "default";
         default:
             return "";
     }
@@ -579,6 +581,8 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_NUMERIC_TYPE_MODIFIERS:
         case AttributeKey::EXT_EXPLAIN_OPTIONS:
         case AttributeKey::SQL_ATTACH_DATABASE_OPTIONS:
+        case AttributeKey::SQL_INSERT_COLUMNS:
+        case AttributeKey::SQL_INSERT_RETURNING:
             return FormatCommaList(node);
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
             return fmt.Parenthesized(FormatCommaList(node));
@@ -2181,6 +2185,27 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
 
     auto [op_node, args_node] =
         GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
+    if (op_node && op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR &&
+        static_cast<ExpressionOperator>(op_node->children_begin_or_value()) == ExpressionOperator::DEFAULT &&
+        !args_node) {
+        bool in_insert_values = false;
+        auto parent_id = node.parent();
+        for (size_t depth = 0; parent_id < ast.size() && depth < ast.size(); ++depth) {
+            const auto& parent = ast[parent_id];
+            if (parent.attribute_key() == AttributeKey::SQL_INSERT_SOURCE) {
+                auto [values] = GetAttributes<AttributeKey::SQL_SELECT_VALUES>(parent);
+                in_insert_values = parent.node_type() == NodeType::OBJECT_SQL_SELECT &&
+                                   values != nullptr;
+                break;
+            }
+            if (parent.node_type() == NodeType::OBJECT_SQL_INSERT) break;
+            auto next_parent = parent.parent();
+            if (next_parent == parent_id) break;
+            parent_id = next_parent;
+        }
+        if (!in_insert_values) return FormatUnimplemented(node);
+        return Reg(*op_node);
+    }
     if (!op_node || !args_node ||
         (op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR &&
          op_node->node_type() != NodeType::OPERATOR) ||
@@ -2275,6 +2300,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatArray(node);
         case NodeType::OBJECT_SQL_SELECT:
             return FormatSelect(node_id);
+        case NodeType::OBJECT_SQL_INSERT:
+            return FormatInsert(node);
         case NodeType::OBJECT_SQL_CREATE:
             return FormatCreate(node_id);
         case NodeType::OBJECT_SQL_CREATE_AS:

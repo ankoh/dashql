@@ -27,7 +27,8 @@ completion-snapshots:
           location-qualified: "s"
           objects: []
         - score: 50
-          value: values
+          value: insert
+          keyword-continuation: into
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "s"
           location-qualified: "s"
@@ -61,7 +62,8 @@ completion-snapshots:
           location-qualified: "se"
           objects: []
         - score: 50
-          value: values
+          value: insert
+          keyword-continuation: into
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "se"
           location-qualified: "se"

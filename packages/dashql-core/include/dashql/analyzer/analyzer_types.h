@@ -29,6 +29,7 @@ using QualifiedFunctionName = CatalogEntry::QualifiedFunctionName;
 
 /// A table reference
 struct TableReference : public IntrusiveListNode {
+    enum class Role : uint8_t { Read = 0, Write = 1 };
     /// A resolved table entry
     struct ResolvedTableEntry {
         /// The table name, may refer to different catalog entry
@@ -65,12 +66,32 @@ struct TableReference : public IntrusiveListNode {
     std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::SymbolSpan>> alias;
     /// The inner relation type
     std::variant<std::monostate, RelationExpression> inner;
+    /// Whether this reference reads from or writes to the table
+    Role role = Role::Read;
 
     /// Constructor
     TableReference(std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::SymbolSpan>> alias)
         : alias(alias) {}
     /// Pack as FlatBuffer
     flatbuffers::Offset<buffers::analyzer::TableReference> Pack(flatbuffers::FlatBufferBuilder& builder) const;
+};
+
+/// An explicit INSERT destination column.
+struct InsertTargetColumn {
+    uint32_t ast_node_id = 0;
+    std::reference_wrapper<RegisteredName> column_name;
+    std::optional<std::reference_wrapper<const CatalogEntry::TableColumn>> resolved;
+};
+
+/// Resolved structure of an INSERT statement.
+struct InsertStatement {
+    uint32_t ast_node_id = 0;
+    std::optional<uint32_t> ast_statement_id;
+    std::reference_wrapper<TableReference> target;
+    std::optional<uint32_t> source_ast_node_id;
+    bool default_values = false;
+    bool returning = false;
+    std::vector<InsertTargetColumn> target_columns;
 };
 
 struct ScopeColumn;
@@ -338,6 +359,8 @@ struct ResolvedCTE {
     std::reference_wrapper<RegisteredName> cte_name;
     /// The child scope containing the CTE's SELECT
     NameScope* child_scope = nullptr;
+    /// The AST node id of the CTE definition
+    uint32_t definition_node_id = 0;
     /// Optional column aliases (override the SELECT's output column names)
     std::vector<std::reference_wrapper<RegisteredName>> column_aliases;
 };
@@ -395,6 +418,10 @@ struct NameScope : public IntrusiveListNode {
     std::unordered_map<std::string_view, uint32_t> cte_definition_nodes;
     /// Whether this scope's WITH clause is recursive
     bool ctes_recursive = false;
+    /// Do not use child-scope outputs to resolve expressions in this scope.
+    bool child_output_resolution_barrier = false;
+    /// Do not resolve child expressions against this scope or scopes above it.
+    bool column_correlation_barrier = false;
     /// The named table-like sources in scope (catalog tables and CTEs brought in via FROM)
     std::unordered_map<std::string_view, ReferencedTable> referenced_tables_by_name;
 };
