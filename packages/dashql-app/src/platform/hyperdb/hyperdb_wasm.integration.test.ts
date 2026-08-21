@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DataFrame, generateTableName } from '../../compute/data_frame.js';
-import { createIsolatedNodeTestClient } from './hyperdb_test_client.js';
+import { createIsolatedNodeTestClient, createNodeTestClient } from './hyperdb_test_client.js';
 import { HyperDB, type HyperDBEngineClient, type HyperDBResult } from './hyperdb_wasm.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
@@ -41,6 +41,18 @@ class CountingClient implements HyperDBEngineClient {
     createDatabase(databaseName: string, persistent: boolean): Promise<HyperDBResult> {
         this.createDatabaseCount++;
         return this.client.createDatabase(databaseName, persistent);
+    }
+
+    openDatabase(databaseName: string): Promise<HyperDBResult> {
+        return this.client.openDatabase(databaseName);
+    }
+
+    listDatabases(): Promise<HyperDBResult> {
+        return this.client.listDatabases();
+    }
+
+    checkpointDatabase(databaseName: string): Promise<HyperDBResult> {
+        return this.client.checkpointDatabase(databaseName);
     }
 
     dropDatabase(databaseName: string): Promise<HyperDBResult> {
@@ -91,6 +103,10 @@ class CountingClient implements HyperDBEngineClient {
 
     releaseQuery(query: number): Promise<HyperDBResult> {
         return this.client.releaseQuery(query);
+    }
+
+    shutdown(): Promise<HyperDBResult> {
+        return this.client.shutdown();
     }
 
     terminate(): Promise<void> {
@@ -148,6 +164,35 @@ describe('HyperDB embedded database integration', () => {
         expect(toPlainObjects(await connection.query('SELECT * FROM foo'))).toEqual([]);
         await connection.close();
     });
+
+    it('reopens a persistent database after a new engine instance starts', async () => {
+        const { mkdtemp, readdir, rm } = await import('node:fs/promises');
+        const { join } = await import('node:path');
+        const hostPath = await mkdtemp(join(process.env.TEST_TMPDIR ?? process.cwd(), 'hyperdb-wasm-persistent-'));
+        const databaseName = 'shell_persisted';
+        try {
+            const first = await HyperDB.create(await createNodeTestClient(hostPath));
+            await first.createPersistentDatabase(databaseName);
+            const writer = await first.connect();
+            await writer.attachPersistentDatabase(databaseName, 'saved');
+            await writer.query('CREATE TABLE saved.public.rows(id INTEGER)');
+            await writer.query('INSERT INTO saved.public.rows VALUES (42)');
+            await writer.close();
+            await first.checkpointPersistentDatabase(databaseName);
+            expect(await readdir(join(hostPath, 'hyperdb'))).toContain(`${databaseName}.hyper`);
+            await first.terminate();
+
+            const second = await HyperDB.create(await createNodeTestClient(hostPath));
+            await second.openPersistentDatabase(databaseName);
+            const reader = await second.connect();
+            await reader.attachPersistentDatabase(databaseName, 'saved');
+            expect(toPlainObjects(await reader.query('SELECT id FROM saved.public.rows'))).toEqual([{ id: 42 }]);
+            await reader.close();
+            await second.terminate();
+        } finally {
+            await rm(hostPath, { recursive: true, force: true });
+        }
+    }, 60_000);
 
     it('keeps shared tables visible across physical DataFrame connections', async () => {
         const inputName = generateTableName('__hyper_input');

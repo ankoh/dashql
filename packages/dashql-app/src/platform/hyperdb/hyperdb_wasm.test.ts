@@ -27,6 +27,8 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
     connectCount = 0;
     disconnectCount = 0;
     createDatabaseCount = 0;
+    openDatabaseCount = 0;
+    checkpointDatabaseCount = 0;
     dropDatabaseCount = 0;
     attachDatabaseCount = 0;
     detachDatabaseCount = 0;
@@ -66,6 +68,24 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
     createDatabase(databaseName: string, persistent: boolean): Promise<HyperDBResult> {
         this.calls.push(`create-database:${databaseName}:${persistent}`);
         this.createDatabaseCount++;
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    openDatabase(databaseName: string): Promise<HyperDBResult> {
+        this.calls.push(`open-database:${databaseName}`);
+        this.openDatabaseCount++;
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    listDatabases(): Promise<HyperDBResult> {
+        const payload = new Uint8Array(4);
+        new DataView(payload.buffer).setUint32(0, 0, true);
+        return Promise.resolve({ state: 'ok', payload });
+    }
+
+    checkpointDatabase(databaseName: string): Promise<HyperDBResult> {
+        this.calls.push(`checkpoint-database:${databaseName}`);
+        this.checkpointDatabaseCount++;
         return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
     }
 
@@ -164,6 +184,11 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
         return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
     }
 
+    shutdown(): Promise<HyperDBResult> {
+        this.calls.push('shutdown');
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
     terminate(): Promise<void> {
         this.calls.push('terminate');
         this.terminateCount++;
@@ -203,6 +228,7 @@ describe('HyperDB embedded database adapter', () => {
         expect(client.detachDatabaseCount).toBe(3);
         expect(client.dropDatabaseCount).toBe(1);
         expect(client.terminateCount).toBe(1);
+        expect(client.calls).toContain('shutdown');
     });
 
     it('initializes the engine settings before creating the shared database', async () => {

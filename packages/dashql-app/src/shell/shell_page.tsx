@@ -6,7 +6,7 @@ import type { EmbeddedConnection } from '../platform/database/embedded_database.
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { createDashQLShell, type DashQLShell } from './api.js';
+import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from './api.js';
 import type { BrowserShellController } from './browser_shell.js';
 import { analyzeTable } from '../compute/computation_logic.js';
 import { useComputationRegistry } from '../compute/computation_registry.js';
@@ -19,6 +19,8 @@ import { examplesCommand } from './commands/examples.js';
 import { useShellConnection } from './shell_connection.js';
 import { createShellOutputCommand, type ShellOutputMode } from './shell_result.js';
 import { createShellFilesCommand, ShellFileRegistry } from './shell_files.js';
+import { createDatabaseCommand } from './commands/database.js';
+import { OPFSPersistentDatabaseRegistry } from './persistent_database_registry.js';
 import { useFileDownloader } from '../platform/file/file_downloader_provider.js';
 import { useSalesforceLoginDialog } from './salesforce_login_dialog.js';
 import { SalesforceRemoteAttachmentManager } from './salesforce_remote_attachment.js';
@@ -68,6 +70,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     });
     const containerRef = React.useRef<HTMLDivElement>(null);
     const fileRegistryRef = React.useRef(new ShellFileRegistry());
+    const databaseRegistryRef = React.useRef(new OPFSPersistentDatabaseRegistry());
     const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating database');
@@ -222,6 +225,20 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 },
                 refreshCatalog: (alias, catalog, signal) => attachmentManager.refreshCatalog(alias, catalog, signal),
             });
+            const commands: DashQLShellCommand[] = [
+                examplesCommand,
+                loginCommand,
+                refreshCommand,
+                createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
+                createShellFilesCommand(fileRegistryRef.current, fileDownloader),
+            ];
+            const databaseCommand = createDatabaseCommand(
+                database,
+                connection,
+                databaseRegistryRef.current,
+                fileDownloader,
+            );
+            if (databaseCommand != null) commands.push(databaseCommand);
             const nextShell = await createDashQLShell({
                 environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions, {
                     getOutputMode,
@@ -236,13 +253,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 }),
                 trackSessionRelations: true,
                 autoQualifyNonDefaultDatabaseTables: true,
-                commands: [
-                    examplesCommand,
-                    loginCommand,
-                    refreshCommand,
-                    createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
-                    createShellFilesCommand(fileRegistryRef.current, fileDownloader),
-                ],
+                commands,
                 onProgress: progress => {
                     if (!cancelled) {
                         setStatus(`Instantiating shell: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
