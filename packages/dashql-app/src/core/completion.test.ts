@@ -35,6 +35,7 @@ describe('DashQL Completion', () => {
         it('s', () => test('s', 1, [
             'select',
             'set',
+            'insert',
             'values',
             'with',
             'attach',
