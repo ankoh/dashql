@@ -12,7 +12,6 @@
     box-sizing: border-box;
     border-radius: 8px;
     font-weight: 500;
-    text-transform: uppercase;
 }
 
 .folder_name_clickable {
@@ -40,7 +39,6 @@
     border-radius: 8px;
     padding: 2px 8px;
     font-weight: 500;
-    text-transform: uppercase;
     gap: 4px;
     height: 24px;
 }
@@ -70,7 +68,6 @@
     border-radius: 8px;
     padding: 1px 4px;
     font-weight: 500;
-    text-transform: uppercase;
     gap: 4px;
 }
 
@@ -83,7 +80,6 @@
     color: inherit;
     font: inherit;
     font-weight: 500;
-    text-transform: uppercase;
     min-width: 0;
     width: 18ch;
 }
