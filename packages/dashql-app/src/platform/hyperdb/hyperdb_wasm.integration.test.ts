@@ -165,6 +165,32 @@ describe('HyperDB embedded database integration', () => {
         await connection.close();
     });
 
+    it('keeps compute and default as separate in-memory databases', async () => {
+        const localConnection = await database!.connect({ defaultDatabase: 'default' });
+        await localConnection.query('CREATE TABLE local_state(user_id INT)');
+
+        const computeConnection = await database!.connect();
+        await computeConnection.query('CREATE TABLE compute_state(value INT)');
+
+        await database!.createPersistentDatabase('source');
+        await localConnection.attachPersistentDatabase('source', 'source');
+
+        expect(toPlainObjects(await localConnection.query(
+            'SELECT COUNT(*)::INTEGER AS row_count FROM "default".public.local_state',
+        ))).toEqual([{ row_count: 0 }]);
+        expect(toPlainObjects(await computeConnection.query(
+            'SELECT COUNT(*)::INTEGER AS row_count FROM compute_state',
+        ))).toEqual([{ row_count: 0 }]);
+        await expect(localConnection.query(
+            'SELECT * FROM "default".public.compute_state',
+        )).rejects.toThrow();
+        await expect(computeConnection.query(
+            'SELECT * FROM local_state',
+        )).rejects.toThrow();
+        await localConnection.close();
+        await computeConnection.close();
+    });
+
     it('reopens a persistent database after a new engine instance starts', async () => {
         const { mkdtemp, readdir, rm } = await import('node:fs/promises');
         const { join } = await import('node:path');
@@ -219,7 +245,7 @@ describe('HyperDB embedded database integration', () => {
             summaryName,
         );
         expect(toPlainObjects(await summary.readTable())).toEqual([{ row_count: 3 }]);
-        expect(client.createDatabaseCount).toBe(1);
+        expect(client.createDatabaseCount).toBe(2);
         expect(client.connectCount).toBeGreaterThan(1);
         expect(client.attachDatabaseCount).toBe(client.connectCount);
         expect(client.disconnectCount).toBe(client.connectCount);

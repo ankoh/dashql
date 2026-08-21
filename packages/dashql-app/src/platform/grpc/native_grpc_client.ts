@@ -30,7 +30,7 @@ export interface NativeGrpcServerStreamOptions {
     readTimeoutMs?: number;
 }
 
-const DEFAULT_READ_TIMEOUT = 1000;
+const DEFAULT_READ_TIMEOUT = 60_000;
 const DEFAULT_BATCH_TIMEOUT = 100;
 const DEFAULT_BATCH_BYTES = 8000000;
 

@@ -2,6 +2,7 @@ import * as arrow from 'apache-arrow';
 
 import type {
     EmbeddedComputeDatabase,
+    EmbeddedConnectionOptions,
     EmbeddedPersistentDatabase,
     EmbeddedPersistentDatabaseConnection,
     EmbeddedTableImportConnection,
@@ -9,7 +10,8 @@ import type {
     PersistentDatabaseMetadata,
 } from '../database/embedded_database.js';
 
-const DATABASE_NAME = '__dashql_compute';
+const COMPUTE_DATABASE_NAME = '__dashql_compute';
+const DEFAULT_DATABASE_NAME = 'default';
 const DATABASE_SCHEMA = 'public';
 
 export type HyperDBResult =
@@ -165,16 +167,17 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
         return database;
     }
 
-    async connect(): Promise<HyperDBConnection> {
+    async connect(options: EmbeddedConnectionOptions = {}): Promise<HyperDBConnection> {
         await this.initialize();
         if (this.termination || this.terminated) {
             throw new Error('database is terminated');
         }
 
         const connectionHandle = readHandle(await this.client.connect(), 'connect');
+        const databaseName = options.defaultDatabase === 'default' ? DEFAULT_DATABASE_NAME : COMPUTE_DATABASE_NAME;
         try {
             expectOK(
-                await this.client.attachDatabase(connectionHandle, DATABASE_NAME, DATABASE_NAME),
+                await this.client.attachDatabase(connectionHandle, databaseName, databaseName),
                 'attach database',
             );
         } catch (error) {
@@ -183,12 +186,12 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
         }
 
         if (this.termination || this.terminated) {
-            expectOK(await this.client.detachDatabase(connectionHandle, DATABASE_NAME), 'detach database');
+            expectOK(await this.client.detachDatabase(connectionHandle, databaseName), 'detach database');
             expectOK(await this.client.disconnect(connectionHandle), 'disconnect');
             throw new Error('database is terminated');
         }
 
-        const connection = new HyperDBConnection(this.client, connectionHandle, () => {
+        const connection = new HyperDBConnection(this.client, connectionHandle, databaseName, () => {
             this.connections.delete(connection);
         });
         this.connections.add(connection);
@@ -245,7 +248,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
             this.termination = (async () => {
                 try {
                     await Promise.all([...this.connections].map(connection => connection.closeForTermination()));
-                    expectOK(await this.client.dropDatabase(DATABASE_NAME), 'drop database');
+                    expectOK(await this.client.dropDatabase(DEFAULT_DATABASE_NAME), 'drop default database');
+                    expectOK(await this.client.dropDatabase(COMPUTE_DATABASE_NAME), 'drop compute database');
                     expectOK(await this.client.shutdown(), 'shutdown');
                     await this.client.terminate();
                     this.terminated = true;
@@ -271,7 +275,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
                         'initialize HyperDB settings',
                     );
                 }
-                expectOK(await this.client.createDatabase(DATABASE_NAME, false), 'create database');
+                expectOK(await this.client.createDatabase(COMPUTE_DATABASE_NAME, false), 'create compute database');
+                expectOK(await this.client.createDatabase(DEFAULT_DATABASE_NAME, false), 'create default database');
             })().catch(error => {
                 this.initialization = null;
                 throw error;
@@ -303,6 +308,7 @@ export class HyperDBConnection implements EmbeddedTableImportConnection, Embedde
     constructor(
         private readonly client: HyperDBEngineClient,
         private readonly connectionHandle: number,
+        private readonly databaseAlias: string,
         private readonly onClose: () => void,
     ) {}
 
@@ -463,7 +469,7 @@ export class HyperDBConnection implements EmbeddedTableImportConnection, Embedde
                     expectOK(await this.client.detachDatabase(this.connectionHandle, alias), 'detach persistent database');
                 }
                 this.persistentAliases.clear();
-                expectOK(await this.client.detachDatabase(this.connectionHandle, DATABASE_NAME), 'detach database');
+                expectOK(await this.client.detachDatabase(this.connectionHandle, this.databaseAlias), 'detach database');
                 expectOK(await this.client.disconnect(this.connectionHandle), 'disconnect');
                 this.closed = true;
                 this.onClose();

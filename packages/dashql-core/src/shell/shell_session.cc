@@ -16,6 +16,8 @@
 namespace dashql::shell {
 namespace {
 
+constexpr std::string_view DEFAULT_DATABASE_NAME = "default";
+
 using ScannerTokenType = buffers::parser::ScannerTokenType;
 
 constexpr uint32_t EFFECT_ENVELOPE_VERSION = 1;
@@ -299,7 +301,8 @@ bool IsNonDefaultThreePartName(std::string_view name) {
         database.remove_prefix(1);
         database.remove_suffix(1);
     }
-    return fuzzy_ci_string_view{database.data(), database.size()} != fuzzy_ci_string_view{"default"};
+    return fuzzy_ci_string_view{database.data(), database.size()} !=
+           fuzzy_ci_string_view{DEFAULT_DATABASE_NAME.data(), DEFAULT_DATABASE_NAME.size()};
 }
 
 }  // namespace
@@ -482,7 +485,7 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
                 object.catalog_object.GetObjectType() == CatalogObjectType::TableDeclaration &&
                 object.qualified_name.size() == 3 &&
                 fuzzy_ci_string_view{object.qualified_name.front().data(), object.qualified_name.front().size()} !=
-                    fuzzy_ci_string_view{"default"};
+                    fuzzy_ci_string_view{DEFAULT_DATABASE_NAME.data(), DEFAULT_DATABASE_NAME.size()};
             if ((object.prefer_qualified || auto_qualify_table) && !object.qualified_name.empty()) {
                 std::string qualification_text;
                 std::string quoted_name;

@@ -217,19 +217,17 @@ sql_cte_list:
     ;
 
 sql_common_table_expr:
-    sql_name AS LRB sql_preparable_stmt RRB sql_create_generic_options {
+    sql_name AS LRB sql_preparable_stmt RRB {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_CTE, {
             Attr(Key::SQL_CTE_NAME, $1),
             Attr(Key::SQL_CTE_STATEMENT, std::move($4)),
-            Attr(Key::SQL_CTE_OPTIONS, $6),
         });
     }
-  | sql_name LRB sql_name_list RRB AS LRB sql_preparable_stmt RRB sql_create_generic_options {
+  | sql_name LRB sql_name_list RRB AS LRB sql_preparable_stmt RRB {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_CTE, {
             Attr(Key::SQL_CTE_NAME, $1),
             Attr(Key::SQL_CTE_COLUMNS, ctx.Array(@3, std::move($3))),
             Attr(Key::SQL_CTE_STATEMENT, std::move($7)),
-            Attr(Key::SQL_CTE_OPTIONS, $9),
         });
     }
     ;

@@ -172,9 +172,9 @@ describe('DashQL shell Wasm', () => {
         shell.setPrompt('select * from reta');
         expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'retained')).toBe(true);
 
-        await shell.executeQuery('ATTACH DATABASE "source.hyper" AS source');
-        shell.setPrompt('select * from sou');
-        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'source')).toBe(false);
+        await shell.executeQuery('ATTACH DATABASE "source.hyper" AS attached');
+        shell.setPrompt('select * from atta');
+        expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'attached')).toBe(false);
     });
 
     it('does not track session relations unless requested', async () => {

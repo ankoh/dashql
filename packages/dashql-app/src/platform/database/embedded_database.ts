@@ -12,6 +12,10 @@ export interface EmbeddedConnection {
     queryArrowIPC(query: string, abort?: AbortSignal): Promise<Uint8Array>;
 }
 
+export interface EmbeddedConnectionOptions {
+    defaultDatabase?: 'compute' | 'default';
+}
+
 export interface EmbeddedTableImportConnection extends EmbeddedConnection {
     insertArrowTable(table: arrow.Table, options: EmbeddedTableInsertOptions): Promise<void>;
     createTableAs(name: string, query: string): Promise<void>;
@@ -39,7 +43,7 @@ export interface EmbeddedPersistentDatabaseConnection extends EmbeddedConnection
 export interface EmbeddedDatabase<Connection extends EmbeddedConnection = EmbeddedConnection> {
     terminate(): void | Promise<void>;
     getVersion(): Promise<string>;
-    connect(): Promise<Connection>;
+    connect(options?: EmbeddedConnectionOptions): Promise<Connection>;
 }
 
 export type EmbeddedComputeDatabase = EmbeddedDatabase<EmbeddedTableImportConnection>;

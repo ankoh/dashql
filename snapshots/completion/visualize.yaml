@@ -1070,7 +1070,7 @@ completion-snapshots:
           location-qualified: "no"
           objects: []
         - score: 55
-          value: nominal
+          value: node
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "no"
           location-qualified: "no"

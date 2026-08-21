@@ -206,7 +206,7 @@ function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
 }
 
 describe('HyperDB embedded database adapter', () => {
-    it('attaches the shared database to each physical connection', async () => {
+    it('attaches the compute database to each physical connection', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await HyperDB.create(client);
         const first = await database.connect();
@@ -217,8 +217,9 @@ describe('HyperDB embedded database adapter', () => {
 
         expect(client.connectCount).toBe(3);
         expect(client.disconnectCount).toBe(1);
-        expect(client.createDatabaseCount).toBe(1);
+        expect(client.createDatabaseCount).toBe(2);
         expect(client.attachDatabaseCount).toBe(3);
+        expect(client.calls).toContain('attach:7:__dashql_compute:__dashql_compute');
 
         await second.close();
         await third.close();
@@ -226,7 +227,8 @@ describe('HyperDB embedded database adapter', () => {
 
         expect(client.disconnectCount).toBe(3);
         expect(client.detachDatabaseCount).toBe(3);
-        expect(client.dropDatabaseCount).toBe(1);
+        expect(client.calls).toContain('detach:7:__dashql_compute');
+        expect(client.dropDatabaseCount).toBe(2);
         expect(client.terminateCount).toBe(1);
         expect(client.calls).toContain('shutdown');
     });
@@ -242,7 +244,22 @@ describe('HyperDB embedded database adapter', () => {
             'ready',
             'initialize:{"global.experimental_view_creation":true,"global.experimental_persisted_view_creation":true}',
             'create-database:__dashql_compute:false',
+            'create-database:default:false',
         ]);
+    });
+
+    it('attaches the separate default database for user-facing connections', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await HyperDB.create(client);
+
+        const connection = await database.connect({ defaultDatabase: 'default' });
+
+        expect(client.calls).toContain('attach:7:default:default');
+
+        await connection.close();
+        await database.terminate();
+
+        expect(client.calls).toContain('detach:7:default');
     });
 
     it('creates shared Arrow tables in the attached database', async () => {

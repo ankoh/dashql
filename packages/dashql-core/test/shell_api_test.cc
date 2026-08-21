@@ -219,13 +219,13 @@ TEST(ShellApiTest, SessionRelationsOnlyTrackSuccessfulSingleDdlStatements) {
     EXPECT_EQ(CompleteQuery(shell, "CREATE TABLE alpha_untracked (id BIGINT); CREATE TABLE beta_untracked (id BIGINT)",
                             DASHQL_SHELL_EFFECT_SUCCESS),
               DASHQL_SHELL_ARROW_ERROR);
-    EXPECT_EQ(CompleteQuery(shell, "ATTACH DATABASE source AS source", DASHQL_SHELL_EFFECT_SUCCESS),
+    EXPECT_EQ(CompleteQuery(shell, "ATTACH DATABASE source AS attached", DASHQL_SHELL_EFFECT_SUCCESS),
               DASHQL_SHELL_ARROW_ERROR);
 
     EXPECT_FALSE(HasCompletion(shell, "select * from fail", "failed"));
     EXPECT_FALSE(HasCompletion(shell, "select * from alpha_untr", "alpha_untracked"));
     EXPECT_FALSE(HasCompletion(shell, "select * from beta_untr", "beta_untracked"));
-    EXPECT_FALSE(HasCompletion(shell, "select * from sou", "source"));
+    EXPECT_FALSE(HasCompletion(shell, "select * from atta", "attached"));
     dashql_shell_destroy(shell);
 }
 
@@ -1583,7 +1583,7 @@ TEST(ShellApiTest, NarrowCompletionListKeepsLeftAndRightAsCursorKeys) {
 TEST(ShellApiTest, DoesNotAutoQualifyDefaultDatabaseTable) {
     dashql::Catalog catalog;
     dashql::Script schema{catalog};
-    schema.InsertTextAt(0, "CREATE TABLE default.public.orders(id BIGINT);");
+    schema.InsertTextAt(0, "CREATE TABLE \"default\".public.orders(id BIGINT);");
     schema.Analyze();
     ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
 

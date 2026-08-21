@@ -2,22 +2,20 @@
 
 sql_common_element_expr:
     sql_common_table_expr { $$ = $1; }
-  | sql_name AS SECURE LRB sql_select_stmt RRB sql_create_generic_options {
+  | sql_name AS SECURE LRB sql_select_stmt RRB {
         auto select = ctx.Object(@5, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($5));
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_CTE, {
             Attr(Key::SQL_CTE_NAME, $1),
             Attr(Key::SQL_CTE_STATEMENT, select),
-            Attr(Key::SQL_CTE_OPTIONS, $7),
             Attr(Key::SQL_CTE_SECURE, Bool(@3, true)),
         });
     }
-  | sql_name LRB sql_name_list RRB AS SECURE LRB sql_select_stmt RRB sql_create_generic_options {
+  | sql_name LRB sql_name_list RRB AS SECURE LRB sql_select_stmt RRB {
         auto select = ctx.Object(@8, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($8));
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_CTE, {
             Attr(Key::SQL_CTE_NAME, $1),
             Attr(Key::SQL_CTE_COLUMNS, ctx.Array(@3, std::move($3))),
             Attr(Key::SQL_CTE_STATEMENT, select),
-            Attr(Key::SQL_CTE_OPTIONS, $10),
             Attr(Key::SQL_CTE_SECURE, Bool(@6, true)),
         });
     }

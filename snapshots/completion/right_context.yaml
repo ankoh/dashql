@@ -742,6 +742,12 @@ completion-snapshots:
           location-qualified: "gro"
           objects: []
         - score: 55
+          value: graph
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 55
           value: grid
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "gro"
@@ -750,12 +756,6 @@ completion-snapshots:
         - score: 55
           value: grouping
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "gro"
-          location-qualified: "gro"
-          objects: []
-        - score: 50
-          value: aggregate
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "gro"
           location-qualified: "gro"
           objects: []
@@ -811,13 +811,13 @@ completion-snapshots:
           location-qualified: "gro"
           objects: []
         - score: 40
-          value: grid
+          value: graph
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
           location: "gro"
           location-qualified: "gro"
           objects: []
         - score: 40
-          value: grouping
+          value: grid
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
           location: "gro"
           location-qualified: "gro"
@@ -886,6 +886,12 @@ completion-snapshots:
           location-qualified: "gro"
           objects: []
         - score: 56
+          value: graph
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 56
           value: grid
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "gro"
@@ -941,12 +947,6 @@ completion-snapshots:
           objects: []
         - score: 1
           value: abort
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
-          objects: []
-        - score: 1
-          value: absolute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "gro"
           location-qualified: "gro"

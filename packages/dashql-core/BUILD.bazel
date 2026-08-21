@@ -197,7 +197,7 @@ SHELL_WASM_LINKOPTS = dashql_wasm_linkopts(
     "web,node,worker",
     2147483648,
     "createDashQLShellModule",
-)
+) + ["-sSTACK_SIZE=1048576"]
 
 cc_library(
     name = "dashql_shell",

@@ -186,6 +186,33 @@ describe('Native gRPC client', () => {
         expect(request.headers.get(HEADER_NAME_READ_TIMEOUT)).toBe("60000");
     });
 
+    it("allows slow streams by default", async () => {
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockResolvedValueOnce(new Response(null, {
+            status: 200,
+            headers: { "dashql-stream-id": "1" },
+        }));
+        fetchMock.mockResolvedValueOnce(new Response(null, {
+            status: 200,
+            headers: {
+                "dashql-batch-event": "StreamFinished",
+                "dashql-batch-messages": "0",
+            },
+        }));
+        const channel = new NativeGrpcChannel({
+            proxyEndpoint: new URL("dashql-native://localhost")
+        }, 7, fakeMetadataProvider, new TestLogger());
+
+        const stream = await channel.startServerStream({
+            path: "/test.Service/Stream",
+            body: new Uint8Array(),
+        });
+        await stream.read();
+
+        const request = fetchMock.mock.calls[fetchMock.mock.calls.length - 1][0] as Request;
+        expect(request.headers.get(HEADER_NAME_READ_TIMEOUT)).toBe("60000");
+    });
+
     it("reads from a gRPC output stream", async () => {
         const server = new TestHyperGrpcServer();
         await server.start();
