@@ -13,7 +13,7 @@ export interface EmbeddedConnection {
 }
 
 export interface EmbeddedConnectionOptions {
-    defaultDatabase?: 'compute' | 'default';
+    defaultDatabase?: '__dashql_compute' | 'pg_catalog';
 }
 
 export interface EmbeddedTableImportConnection extends EmbeddedConnection {

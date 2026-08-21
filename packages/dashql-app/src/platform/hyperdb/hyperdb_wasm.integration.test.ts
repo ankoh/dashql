@@ -165,8 +165,8 @@ describe('HyperDB embedded database integration', () => {
         await connection.close();
     });
 
-    it('keeps compute and default as separate in-memory databases', async () => {
-        const localConnection = await database!.connect({ defaultDatabase: 'default' });
+    it('keeps compute and pg_catalog as separate in-memory databases', async () => {
+        const localConnection = await database!.connect({ defaultDatabase: 'pg_catalog' });
         await localConnection.query('CREATE TABLE local_state(user_id INT)');
 
         const computeConnection = await database!.connect();
@@ -176,13 +176,13 @@ describe('HyperDB embedded database integration', () => {
         await localConnection.attachPersistentDatabase('source', 'source');
 
         expect(toPlainObjects(await localConnection.query(
-            'SELECT COUNT(*)::INTEGER AS row_count FROM "default".public.local_state',
+            'SELECT COUNT(*)::INTEGER AS row_count FROM pg_catalog.public.local_state',
         ))).toEqual([{ row_count: 0 }]);
         expect(toPlainObjects(await computeConnection.query(
             'SELECT COUNT(*)::INTEGER AS row_count FROM compute_state',
         ))).toEqual([{ row_count: 0 }]);
         await expect(localConnection.query(
-            'SELECT * FROM "default".public.compute_state',
+            'SELECT * FROM pg_catalog.public.compute_state',
         )).rejects.toThrow();
         await expect(computeConnection.query(
             'SELECT * FROM local_state',

@@ -62,7 +62,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
             if (isNativePlatform()) throw new Error('Hyper WASM is only available in the browser');
             const database = await setupEmbeddedDatabase('hyper_wasm_connector');
             channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(
-                await database.connect({ defaultDatabase: 'default' }),
+                await database.connect({ defaultDatabase: 'pg_catalog' }),
             ));
         } else {
             const client = resolveClient(params.protocol, grpcClient, httpClient);

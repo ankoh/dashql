@@ -209,7 +209,7 @@ describe('HyperDB embedded database adapter', () => {
     it('attaches the compute database to each physical connection', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await HyperDB.create(client);
-        const first = await database.connect();
+        const first = await database.connect({ defaultDatabase: '__dashql_compute' });
         const second = await database.connect();
 
         await first.close();
@@ -244,22 +244,22 @@ describe('HyperDB embedded database adapter', () => {
             'ready',
             'initialize:{"global.experimental_view_creation":true,"global.experimental_persisted_view_creation":true}',
             'create-database:__dashql_compute:false',
-            'create-database:default:false',
+            'create-database:pg_catalog:false',
         ]);
     });
 
-    it('attaches the separate default database for user-facing connections', async () => {
+    it('attaches pg_catalog as the separate user-facing database', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await HyperDB.create(client);
 
-        const connection = await database.connect({ defaultDatabase: 'default' });
+        const connection = await database.connect({ defaultDatabase: 'pg_catalog' });
 
-        expect(client.calls).toContain('attach:7:default:default');
+        expect(client.calls).toContain('attach:7:pg_catalog:pg_catalog');
 
         await connection.close();
         await database.terminate();
 
-        expect(client.calls).toContain('detach:7:default');
+        expect(client.calls).toContain('detach:7:pg_catalog');
     });
 
     it('creates shared Arrow tables in the attached database', async () => {
