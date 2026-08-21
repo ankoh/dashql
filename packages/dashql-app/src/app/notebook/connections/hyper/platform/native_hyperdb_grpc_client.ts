@@ -210,12 +210,20 @@ export class NativeHyperDatabaseClient implements HyperDatabaseClient {
 
     /// Create a database connection
     public async connect(hyperArgs: connection.HyperConnectionParams, connection: HyperDatabaseConnectionContext): Promise<NativeHyperDatabaseChannel> {
+        const tls = hyperArgs.tls;
+        const isHttps = new URL(hyperArgs.endpoint).protocol === "https:";
+        const useTls = isHttps || Boolean(
+            tls?.clientKeyPath || tls?.clientCertPath || tls?.caCertsPath,
+        );
+        if (useTls && !isHttps) {
+            throw new Error("TLS certificate paths require an https:// endpoint");
+        }
         const args: ChannelArgs = {
             endpoint: hyperArgs.endpoint,
-            tls: hyperArgs.tls ? {
-                keyPath: hyperArgs.tls.clientKeyPath,
-                pubPath: hyperArgs.tls.clientCertPath,
-                caPath: hyperArgs.tls.caCertsPath,
+            tls: useTls ? {
+                keyPath: tls?.clientKeyPath,
+                pubPath: tls?.clientCertPath,
+                caPath: tls?.caCertsPath,
             } : undefined
         };
         const channel = await this.client.connect(args, connection);

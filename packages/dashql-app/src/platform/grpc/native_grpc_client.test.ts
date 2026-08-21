@@ -5,9 +5,16 @@ import * as buf from "@bufbuild/protobuf";
 
 import { NativeAPIRustBridge } from '../native_api_rust_bridge.js';
 import { TestHyperGrpcServer } from '../native_proxy_test_servers.js';
-import { NativeGrpcClient, NativeGrpcServerStreamBatchEvent } from './native_grpc_client.js';
+import { NativeGrpcChannel, NativeGrpcClient, NativeGrpcServerStreamBatchEvent } from './native_grpc_client.js';
 import { ChannelArgs, ChannelMetadataProvider } from '../channel_common.js';
 import { TestLogger } from '../logger/test_logger.js';
+import {
+    HEADER_NAME_ENDPOINT,
+    HEADER_NAME_TLS,
+    HEADER_NAME_TLS_CACERTS,
+    HEADER_NAME_TLS_CLIENT_CERT,
+    HEADER_NAME_TLS_CLIENT_KEY,
+} from '../native_proxy_headers.js';
 
 describe('Native gRPC client', () => {
     let bridge: NativeAPIRustBridge;
@@ -37,6 +44,55 @@ describe('Native gRPC client', () => {
         };
         await expect(client.connect(testChannelArgs, fakeMetadataProvider)).resolves.toBeDefined();
         await server.close();
+    });
+
+    it("forwards TLS certificate paths when creating a channel", async () => {
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockResolvedValue(new Response(null, {
+            status: 200,
+            headers: { "dashql-channel-id": "1" },
+        }));
+        const client = new NativeGrpcClient({
+            proxyEndpoint: new URL("dashql-native://localhost")
+        }, new TestLogger());
+
+        await client.connect({
+            endpoint: "https://hyper.example.com:443",
+            tls: {
+                keyPath: "/certs/client.key",
+                pubPath: "/certs/client.pem",
+                caPath: "/certs/ca.pem",
+            },
+        }, fakeMetadataProvider);
+
+        const request = fetchMock.mock.calls[fetchMock.mock.calls.length - 1][0] as Request;
+        expect(request.headers.get(HEADER_NAME_ENDPOINT)).toBe("https://hyper.example.com:443");
+        expect(request.headers.get(HEADER_NAME_TLS)).toBe("1");
+        expect(request.headers.get(HEADER_NAME_TLS_CLIENT_KEY)).toBe("/certs/client.key");
+        expect(request.headers.get(HEADER_NAME_TLS_CLIENT_CERT)).toBe("/certs/client.pem");
+        expect(request.headers.get(HEADER_NAME_TLS_CACERTS)).toBe("/certs/ca.pem");
+    });
+
+    it("omits empty TLS certificate path headers", async () => {
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockResolvedValue(new Response(null, {
+            status: 200,
+            headers: { "dashql-channel-id": "1" },
+        }));
+        const client = new NativeGrpcClient({
+            proxyEndpoint: new URL("dashql-native://localhost")
+        }, new TestLogger());
+
+        await client.connect({
+            endpoint: "https://hyper.example.com:443",
+            tls: {},
+        }, fakeMetadataProvider);
+
+        const request = fetchMock.mock.calls[fetchMock.mock.calls.length - 1][0] as Request;
+        expect(request.headers.get(HEADER_NAME_TLS)).toBe("1");
+        expect(request.headers.has(HEADER_NAME_TLS_CLIENT_KEY)).toBe(false);
+        expect(request.headers.has(HEADER_NAME_TLS_CLIENT_CERT)).toBe(false);
+        expect(request.headers.has(HEADER_NAME_TLS_CACERTS)).toBe(false);
     });
 
     it("fails to create a channel with invalid foundations URL", async () => {
@@ -80,6 +136,25 @@ describe('Native gRPC client', () => {
         expect(server.executeQueryRequests).toHaveLength(1);
         expect(server.executeQueryRequests[0].query).toEqual("select 1");
         await server.close();
+    });
+
+    it("forwards request metadata when starting a stream", async () => {
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockResolvedValue(new Response(null, {
+            status: 200,
+            headers: { "dashql-stream-id": "1" },
+        }));
+        const metadataProvider: ChannelMetadataProvider = {
+            getRequestMetadata: () => Promise.resolve({ "ctx-tenant-id": "tenant-123" }),
+        };
+        const channel = new NativeGrpcChannel({
+            proxyEndpoint: new URL("dashql-native://localhost")
+        }, 7, metadataProvider, new TestLogger());
+
+        await channel.startServerStream({ path: "/test.Service/Stream", body: new Uint8Array() });
+
+        const request = fetchMock.mock.calls[fetchMock.mock.calls.length - 1][0] as Request;
+        expect(request.headers.get("ctx-tenant-id")).toBe("tenant-123");
     });
 
     it("reads from a gRPC output stream", async () => {

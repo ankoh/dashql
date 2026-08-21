@@ -19,7 +19,7 @@ export type TextFieldValidationStatus =
     | VariantKind<typeof VALIDATION_WARNING, string>
     | VariantKind<typeof VALIDATION_ERROR, string>;
 
-function TextFieldValidation(props: { validation?: TextFieldValidationStatus }) {
+function TextFieldValidation(props: { id: string; validation?: TextFieldValidationStatus }) {
     if (!props.validation) {
         return undefined;
     }
@@ -30,7 +30,7 @@ function TextFieldValidation(props: { validation?: TextFieldValidationStatus }) 
         }
         case VALIDATION_WARNING: {
             return (
-                <div className={styles.text_field_validation_warning}>
+                <div id={props.id} className={styles.text_field_validation_warning}>
                     <svg className={styles.text_field_validation_icon} width="12px" height="12px">
                         <use xlinkHref={`${icons}#alert_fill_12`} />
                     </svg>
@@ -42,7 +42,7 @@ function TextFieldValidation(props: { validation?: TextFieldValidationStatus }) 
         }
         case VALIDATION_ERROR: {
             return (
-                <div className={styles.text_field_validation_error}>
+                <div id={props.id} className={styles.text_field_validation_error}>
                     <svg className={styles.text_field_validation_icon} width="12px" height="12px">
                         <use xlinkHref={`${icons}#alert_fill_12`} />
                     </svg>
@@ -73,6 +73,7 @@ export function TextField(props: {
     autoComplete?: boolean;
     style?: React.CSSProperties;
 }) {
+    const validationId = React.useId();
     let validationStatus: undefined | TextInputValidationStatus = undefined;
     if (props.validation?.type === VALIDATION_OK) {
         validationStatus = TextInputValidationStatus.Success;
@@ -81,6 +82,7 @@ export function TextField(props: {
     } else if (props.validation?.type === VALIDATION_ERROR) {
         validationStatus = TextInputValidationStatus.Error;
     }
+    const hasValidationMessage = props.validation?.type === VALIDATION_WARNING || props.validation?.type === VALIDATION_ERROR;
     const value = props.concealed ? "*".repeat(props.value.length) : props.value;
     return (
         <div className={classNames(styles.text_field, props.className)} style={props.style}>
@@ -99,10 +101,13 @@ export function TextField(props: {
                 onChange={props.onChange}
                 disabled={props.disabled}
                 readOnly={props.readOnly}
+                aria-label={props.name}
+                aria-invalid={validationStatus === TextInputValidationStatus.Error}
+                aria-describedby={hasValidationMessage ? validationId : undefined}
                 autoComplete={props.autoComplete}
                 validationStatus={validationStatus}
             />
-            <TextFieldValidation validation={props.validation} />
+            <TextFieldValidation id={validationId} validation={props.validation} />
         </div>
     );
 }
@@ -121,10 +126,21 @@ export function KeyValueTextField(props: {
     onChangeValue?: React.ChangeEventHandler<HTMLInputElement>;
     disabled?: boolean;
     readOnly?: boolean;
+    validation?: TextFieldValidationStatus;
     keyAriaLabel: string;
     valueAriaLabel: string;
     logContext: string;
 }) {
+    const validationId = React.useId();
+    let validationStatus: undefined | TextInputValidationStatus = undefined;
+    if (props.validation?.type === VALIDATION_OK) {
+        validationStatus = TextInputValidationStatus.Success;
+    } else if (props.validation?.type === VALIDATION_WARNING) {
+        validationStatus = TextInputValidationStatus.Warning;
+    } else if (props.validation?.type === VALIDATION_ERROR) {
+        validationStatus = TextInputValidationStatus.Error;
+    }
+    const hasValidationMessage = props.validation?.type === VALIDATION_WARNING || props.validation?.type === VALIDATION_ERROR;
     return (
         <div className={classNames(styles.kv_field, props.className)}>
             <div className={styles.kv_field_name}>{props.name}</div>
@@ -139,6 +155,10 @@ export function KeyValueTextField(props: {
                 onChange={props.onChangeKey}
                 readOnly={props.readOnly}
                 disabled={props.disabled}
+                aria-label={props.keyAriaLabel}
+                aria-invalid={validationStatus === TextInputValidationStatus.Error}
+                aria-describedby={hasValidationMessage ? validationId : undefined}
+                validationStatus={validationStatus}
             />
             <div className={styles.kv_field_input_value}>
                 <TextInput
@@ -150,8 +170,13 @@ export function KeyValueTextField(props: {
                     onChange={props.onChangeValue}
                     readOnly={props.readOnly}
                     disabled={props.disabled}
+                    aria-label={props.valueAriaLabel}
+                    aria-invalid={validationStatus === TextInputValidationStatus.Error}
+                    aria-describedby={hasValidationMessage ? validationId : undefined}
+                    validationStatus={validationStatus}
                 />
             </div>
+            <TextFieldValidation id={validationId} validation={props.validation} />
         </div>
     );
 }

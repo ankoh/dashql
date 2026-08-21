@@ -28,6 +28,17 @@ import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedd
 
 const LOG_CTX = "hyper_setup";
 
+function resolveRequestMetadata(metadata: connection.HyperConnectionParams["metadata"]): Record<string, string> {
+    if (!metadata || typeof metadata !== "object") return {};
+
+    const legacyMetadata = metadata as unknown as { details?: unknown; data?: unknown };
+    const nested = legacyMetadata.details ?? legacyMetadata.data;
+    if (nested && typeof nested === "object") {
+        return nested as Record<string, string>;
+    }
+    return metadata;
+}
+
 function resolveClient(protocol: connection.HyperProtocol, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null): HyperDatabaseClient {
     if (protocol === 'V3_HTTP') {
         if (!httpClient) throw new Error("HTTP client is not available");
@@ -61,7 +72,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
                     return (params.attachedDatabases ?? []) as any;
                 },
                 async getRequestMetadata(): Promise<Record<string, string>> {
-                    return (params.metadata as any)?.data ?? {};
+                    return resolveRequestMetadata(params.metadata);
                 },
                 getQueryParameters(): Record<string, string> {
                     return params.queryParameters ?? {};

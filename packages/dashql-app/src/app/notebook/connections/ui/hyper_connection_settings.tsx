@@ -17,7 +17,13 @@ import {
 import { ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 
 import { classNames } from '../../../../utils/classnames.js';
-import { KeyValueTextField, TextField } from '../../../../ui/foundations/text_field.js';
+import {
+    KeyValueTextField,
+    TextField,
+    TextFieldValidationStatus,
+    VALIDATION_ERROR,
+    VALIDATION_UNKNOWN,
+} from '../../../../ui/foundations/text_field.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useHyperGrpcClient, useHyperHttpClient } from '../hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../../../../ui/foundations/keyvalue_list.js';
@@ -36,7 +42,7 @@ import { HyperDockerPanelMode, HyperDockerSettingsPanel } from './hyper_docker_s
 
 const LOG_CTX = "hyper_connector";
 
-interface PageState {
+export interface HyperConnectionPageState {
     protocol: connection.HyperProtocol;
     endpoint: string;
     mTlsKeyPath: string;
@@ -47,8 +53,21 @@ interface PageState {
     queryParameters: KeyValueListElement[];
 };
 
-function buildPageStateFromParams(params: connection.HyperConnectionParams | undefined): PageState {
-    const metadataDetails = (params?.metadata as { details?: Record<string, string> } | undefined)?.details;
+function readHyperConnectionMetadata(params: connection.HyperConnectionParams | undefined): Record<string, string> {
+    const metadata = params?.metadata as unknown;
+    if (!metadata || typeof metadata !== "object") return {};
+
+    // Read notebooks written before Hyper metadata was aligned with its flat-map schema.
+    const legacyMetadata = metadata as { details?: unknown; data?: unknown };
+    const nested = legacyMetadata.details ?? legacyMetadata.data;
+    if (nested && typeof nested === "object") {
+        return nested as Record<string, string>;
+    }
+    return metadata as Record<string, string>;
+}
+
+export function buildHyperConnectionPageState(params: connection.HyperConnectionParams | undefined): HyperConnectionPageState {
+    const metadata = readHyperConnectionMetadata(params);
     return {
         protocol: params?.protocol ?? (isNativePlatform() ? "V3_DOCKER" : "WASM"),
         endpoint: params?.endpoint ?? "http://localhost:7484",
@@ -59,8 +78,26 @@ function buildPageStateFromParams(params: connection.HyperConnectionParams | und
             key: db?.path ?? "",
             value: db?.alias ?? "",
         })),
-        gRPCMetadata: Object.entries(metadataDetails ?? {}).map(([k, v]) => ({ key: k, value: v ?? "" })),
+        gRPCMetadata: Object.entries(metadata).map(([k, v]) => ({ key: k, value: v ?? "" })),
         queryParameters: Object.entries(params?.queryParameters ?? {}).map(([k, v]) => ({ key: k, value: v ?? "" })),
+    };
+}
+
+export function buildHyperConnectionSetupParams(pageState: HyperConnectionPageState): connection.HyperConnectionParams {
+    return {
+        protocol: pageState.protocol,
+        endpoint: pageState.endpoint,
+        tls: {
+            clientKeyPath: pageState.mTlsKeyPath,
+            clientCertPath: pageState.mTlsPubPath,
+            caCertsPath: pageState.mTlsCaPath,
+        },
+        attachedDatabases: pageState.attachedDatabases.map(v => buf.create(pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, {
+            path: v.key,
+            alias: v.value,
+        })),
+        metadata: flattenKeyValueList(pageState.gRPCMetadata),
+        queryParameters: flattenKeyValueList(pageState.queryParameters),
     };
 }
 
@@ -89,14 +126,14 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     // Re-seeds whenever the stored setupParams reference changes (notebook
     // switch, async storage hydration, or an action like RESET that swaps
     // the wrapper state).
-    const [pageState, setPageState] = React.useState<PageState>(() =>
-        buildPageStateFromParams(hyperConnection?.proto.setupParams));
+    const [pageState, setPageState] = React.useState<HyperConnectionPageState>(() =>
+        buildHyperConnectionPageState(hyperConnection?.proto.setupParams));
     const seededParamsRef = React.useRef(hyperConnection?.proto.setupParams);
     React.useEffect(() => {
         const params = hyperConnection?.proto.setupParams;
         if (params !== seededParamsRef.current) {
             seededParamsRef.current = params;
-            setPageState(buildPageStateFromParams(params));
+            setPageState(buildHyperConnectionPageState(params));
         }
     }, [hyperConnection]);
 
@@ -119,32 +156,51 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const modifyGrpcMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, gRPCMetadata: action(s.gRPCMetadata) }));
     const modifyQueryParameters: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, queryParameters: action(s.queryParameters) }));
     const isGrpc = protocol === "V3_GRPC";
+    const [clientIdentityValidation, setClientIdentityValidation] = React.useState<TextFieldValidationStatus>({
+        type: VALIDATION_UNKNOWN,
+        value: null,
+    });
+    const [endpointValidation, setEndpointValidation] = React.useState<TextFieldValidationStatus>({
+        type: VALIDATION_UNKNOWN,
+        value: null,
+    });
+
+    React.useEffect(() => {
+        setClientIdentityValidation({ type: VALIDATION_UNKNOWN, value: null });
+        setEndpointValidation({ type: VALIDATION_UNKNOWN, value: null });
+    }, [hyperConnection?.proto.setupParams, pageState.protocol, pageState.endpoint, pageState.mTlsKeyPath, pageState.mTlsPubPath, pageState.mTlsCaPath]);
 
     // Docker panel state — lifted so the +/− IconButtons can live in the connection header.
     const [dockerMode, setDockerMode] = React.useState<HyperDockerPanelMode>('list');
     const [dockerEditMode, setDockerEditMode] = React.useState(false);
 
     // Helper to setup the connection
-    const setupParams = React.useMemo<connection.HyperConnectionParams>(() => ({
-        protocol: pageState.protocol,
-        endpoint: pageState.endpoint,
-        tls: {
-            clientKeyPath: "",
-            clientCertPath: "",
-            caCertsPath: ""
-        },
-        attachedDatabases: pageState.attachedDatabases.map(v => buf.create(pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, {
-            path: v.key,
-            alias: v.value,
-        })),
-        metadata: {
-            message: "",
-            details: flattenKeyValueList(pageState.gRPCMetadata)
-        } as any,
-        queryParameters: flattenKeyValueList(pageState.queryParameters),
-    }), [pageState.protocol, pageState.endpoint, pageState.attachedDatabases, pageState.gRPCMetadata, pageState.queryParameters]);
+    const setupParams = React.useMemo<connection.HyperConnectionParams>(() => buildHyperConnectionSetupParams(pageState), [pageState]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
+        const hasTlsPaths = Boolean(pageState.mTlsKeyPath || pageState.mTlsPubPath || pageState.mTlsCaPath);
+        let isHttps = false;
+        try {
+            isHttps = new URL(pageState.endpoint).protocol === "https:";
+        } catch {
+            // Endpoint parsing and error reporting remain part of connection setup.
+        }
+        if (isGrpc && hasTlsPaths && !isHttps) {
+            setEndpointValidation({
+                type: VALIDATION_ERROR,
+                value: "TLS certificate paths require an https:// endpoint",
+            });
+            return;
+        }
+        if (isGrpc && Boolean(pageState.mTlsKeyPath) !== Boolean(pageState.mTlsPubPath)) {
+            setClientIdentityValidation({
+                type: VALIDATION_ERROR,
+                value: "Client key and certificate paths must both be provided",
+            });
+            return;
+        }
+        setClientIdentityValidation({ type: VALIDATION_UNKNOWN, value: null });
+
         // Is there a Hyper client?
         if ((protocol !== 'WASM' && !grpcClient && !httpClient) || hyperSetup == null) {
             logger.error("Hyper connector is unavailable", {}, LOG_CTX);
@@ -276,6 +332,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             onChange={(e) => setEndpoint(e.target.value)}
                             disabled={freezeInput}
                             readOnly={freezeInput}
+                            validation={endpointValidation}
                             logContext={LOG_CTX}
                         />
                         {isGrpc && <KeyValueTextField
@@ -293,8 +350,9 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             keyAriaLabel='mTLS Client Key'
                             valueAriaLabel='mTLS Client Certificate'
                             logContext={LOG_CTX}
-                            disabled={true}
-                            readOnly={true}
+                            validation={clientIdentityValidation}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
                         />}
                         {isGrpc && <TextField
                             name="mTLS CA certificates"
@@ -304,8 +362,8 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             leadingVisual={ChecklistIcon}
                             onChange={(e) => setMTLSCaPath(e.target.value)}
                             logContext={LOG_CTX}
-                            disabled={true}
-                            readOnly={true}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
                         />}
                     </div>
                 </div>

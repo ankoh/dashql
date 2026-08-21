@@ -113,12 +113,14 @@ export class TestHyperGrpcServer {
     endpoint: string | null;
     sessions: Set<http2.ServerHttp2Session>;
     executeQueryRequests: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam[];
+    executeQueryHeaders: http2.IncomingHttpHeaders[];
     executeQueryHandler: ((request: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam) => ExecuteQueryHandlerResult | Promise<ExecuteQueryHandlerResult>) | null;
 
     constructor() {
         this.endpoint = null;
         this.sessions = new Set();
         this.executeQueryRequests = [];
+        this.executeQueryHeaders = [];
         this.executeQueryHandler = null;
         this.server = http2.createServer();
         this.server.on('session', (session) => {
@@ -188,6 +190,7 @@ export class TestHyperGrpcServer {
             const [message] = decodeGrpcFrames(body);
             const request = buf.fromBinary(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, message) as proto.salesforce_hyperdb_grpc_v1.pb.QueryParam;
             this.executeQueryRequests.push(request);
+            this.executeQueryHeaders.push(headers);
             const result = await this.executeQueryHandler(request);
             stream.respond({
                 ':status': 200,

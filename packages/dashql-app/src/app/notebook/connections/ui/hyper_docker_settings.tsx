@@ -188,7 +188,7 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
                 endpoint: endpointForPort(port),
                 tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
                 attachedDatabases: [],
-                metadata: { message: '', details: {} } as any,
+                metadata: {},
                 queryParameters: { user: 'tableau_internal_user' },
             };
             const channel = await hyperSetup.setup(dispatchConnectionState, params, setupAbort.current.signal);
