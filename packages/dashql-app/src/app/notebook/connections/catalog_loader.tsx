@@ -7,6 +7,7 @@ import { CatalogResolver, DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLO
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
+    CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
     CATALOG_UPDATE_SUCCEEDED,
     SET_CATALOG_SCRIPT,
     UPDATE_CATALOG,
@@ -16,9 +17,9 @@ import { useQueryExecutor } from './query_executor.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { createTrace } from '../../../platform/logger/trace_context.js';
 import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
-import { updatePgCatalog } from './catalog_query_pg_attribute.js';
 import { useConnectionScriptsDispatch } from '../scripts/notebook_scripts_registry.js';
 import { CATALOG_DID_UPDATE } from '../scripts/notebook_scripts.js';
+import { updateHyperCatalog } from './hyper/hyper_catalog_update.js';
 
 const LOG_CTX = 'catalog_loader';
 
@@ -103,6 +104,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
 
         // Update the catalog
         try {
+            let partialError: Error | null = null;
             switch (conn.connectorInfo.catalogResolver) {
                 // Update the catalog by querying the information_schema?
                 case CatalogResolver.SQL_INFORMATION_SCHEMA: {
@@ -126,14 +128,40 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 }
                 // Update the catalog by querying the pg_attribute?
                 case CatalogResolver.SQL_PG_ATTRIBUTE: {
-                    if (conn.details.type == HYPER_CONNECTOR) {
-                        const databaseName = ""; // XXX: Get from Hyper connection details
-                        const schemas: string[] = []; // XXX
-                        await updatePgCatalog(traced, connectionId, connDispatch, updateId, databaseName, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
-                    } else {
+                    throw new Error(
+                        `cannot load pg_attribute catalog for ${conn.connectorInfo.names.displayShort} connections`,
+                    );
+                }
+                case CatalogResolver.SQL_HYPER: {
+                    if (conn.details.type !== HYPER_CONNECTOR) {
                         throw new Error(
-                            `cannot load pg_attribute catalog for ${conn.connectorInfo.names.displayShort} connections`,
+                            `cannot load Hyper catalog for ${conn.connectorInfo.names.displayShort} connections`,
                         );
+                    }
+                    const result = await updateHyperCatalog(
+                        traced,
+                        connectionId,
+                        connDispatch,
+                        updateId,
+                        (conn.details.value.proto.setupParams?.attachedDatabases ?? []).map(database => ({
+                            path: database.path ?? '',
+                            alias: database.alias,
+                        })),
+                        executor,
+                        conn.catalog,
+                        conn.instance,
+                        conn.catalogRelationScript,
+                        abortController.signal,
+                    );
+                    if (result.failures.length > 0) {
+                        partialError = new Error(result.failures
+                            .map(failure => `${failure.database}: ${failure.error.message}`)
+                            .join('; '));
+                        traced.warn('Partially updated Hyper catalog', {
+                            notebookId,
+                            updated: result.updatedDatabases.join(', '),
+                            failed: result.failures.map(failure => failure.database).join(', '),
+                        }, LOG_CTX);
                     }
                     break;
                 }
@@ -169,10 +197,17 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             traced.debug("Updated catalog", { notebookId }, LOG_CTX);
 
             // Mark the update successful
-            connDispatch(connectionId, {
-                type: CATALOG_UPDATE_SUCCEEDED,
-                value: [updateId],
-            });
+            if (partialError == null) {
+                connDispatch(connectionId, {
+                    type: CATALOG_UPDATE_SUCCEEDED,
+                    value: [updateId],
+                });
+            } else {
+                connDispatch(connectionId, {
+                    type: CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
+                    value: [updateId, partialError],
+                });
+            }
             // Mark all connection notebooks outdated
             connScriptsDispatch(connectionId, {
                 type: CATALOG_DID_UPDATE,
@@ -221,6 +256,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
     const updatesInProgress = React.useRef<Set<string> | null>(null);
     React.useEffect(() => {
         const inProgress = updatesInProgress.current ?? new Set();
+        updatesInProgress.current = inProgress;
 
         // Helper to perform the catalog update
         const doUpdate = async (connectionId: string) => {

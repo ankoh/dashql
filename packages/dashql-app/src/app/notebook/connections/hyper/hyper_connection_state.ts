@@ -71,6 +71,10 @@ export function computeHyperConnectionSignature(details: HyperConnectionDetails,
     hasher.add("hyper");
     hasher.add(details.proto.setupParams?.protocol ?? "");
     hasher.add(details.proto.setupParams?.endpoint ?? "");
+    const databases = [...(details.proto.setupParams?.attachedDatabases ?? [])]
+        .map(database => `${database.path}\0${database.alias}`)
+        .sort();
+    for (const database of databases) hasher.add(database);
 }
 
 export const HYPER_CHANNEL_SETUP_CANCELLED = Symbol('HYPER_CHANNEL_SETUP_CANCELLED');

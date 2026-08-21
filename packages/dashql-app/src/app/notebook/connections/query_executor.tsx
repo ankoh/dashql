@@ -390,6 +390,12 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             cancellation: new AbortController(),
             resultStream: null,
         };
+        const cancelFromCaller = () => runtime.cancellation.abort(args.abortSignal?.reason);
+        if (args.abortSignal?.aborted) {
+            cancelFromCaller();
+        } else {
+            args.abortSignal?.addEventListener('abort', cancelFromCaller, { once: true });
+        }
         queryRuntimes.current.set(queryId, runtime);
         const logObserver = args.onLog == null ? null : (record: LogRecord) => {
             try {
@@ -401,6 +407,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         if (logObserver != null) logger.buffer.subscribeTrace(trace.traceId, logObserver);
         const execution = executeImpl(connectionId, args, queryId, runtime, trace);
         const removeRuntime = () => {
+            args.abortSignal?.removeEventListener('abort', cancelFromCaller);
             queryRuntimes.current.delete(queryId);
             if (logObserver != null) logger.buffer.unsubscribeTrace(trace.traceId, logObserver);
         };

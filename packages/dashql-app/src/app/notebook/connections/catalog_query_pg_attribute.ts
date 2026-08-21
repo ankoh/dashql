@@ -7,7 +7,7 @@ import { DynamicConnectionDispatch } from './connection_registry.js';
 import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from "./connection_state.js";
 import { QueryType } from './query_execution_state.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
-import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from './catalog_sql_generator.js';
+import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, quoteIdentifier, type ColumnMetadata } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { queryPgProc, generateCatalogSQLFromPgProc } from './catalog_query_pg_proc.js';
 import { type LoggerLike } from '../../../platform/logger/logger.js';
@@ -29,7 +29,7 @@ export type PgAttributeColumnsTable = arrow.Table<{
  * Generates SQL DDL from pg_attribute query results.
  * Builds a hierarchy of schema -> table -> columns and generates CREATE TABLE statements.
  */
-function generateCatalogSQLFromPgAttribute(result: PgAttributeColumnsTable, databaseName: string): string {
+export function generateCatalogSQLFromPgAttribute(result: PgAttributeColumnsTable, databaseName: string): string {
     // Build hierarchy: schema -> table -> columns
     const schemas = new Map<string, Map<string, ColumnMetadata[]>>();
 
@@ -93,8 +93,16 @@ export async function queryPgAttribute(
     updateId: number,
     databaseName: string,
     schemaNames: string[],
-    executor: QueryExecutor
+    executor: QueryExecutor,
+    queryDatabaseName: string | null = null,
+    abortSignal?: AbortSignal,
 ): Promise<PgAttributeColumnsTable | null> {
+    const pgCatalog = queryDatabaseName == null
+        ? 'pg_catalog'
+        : `${quoteIdentifier(queryDatabaseName)}.${quoteIdentifier('pg_catalog')}`;
+    const schemaFilter = schemaNames.length > 0
+        ? `AND n.nspname IN (${schemaNames.map(name => `'${name.replace(/'/g, "''")}'`).join(', ')})`
+        : '';
     const query = `
         SELECT
             n.nspname AS table_schema,
@@ -115,20 +123,22 @@ export async function queryPgAttribute(
                 WHEN a.atttypid = 1700 THEN (a.atttypmod - 4) & 65535
                 ELSE NULL
             END AS numeric_scale
-        FROM pg_class c
-        JOIN pg_namespace n ON n.oid = c.relnamespace
-        JOIN pg_attribute a ON a.attrelid = c.oid
-        JOIN pg_type t ON t.oid = a.atttypid
-        LEFT JOIN pg_attrdef d ON d.adrelid = c.oid AND d.adnum = a.attnum
+        FROM ${pgCatalog}.pg_class c
+        JOIN ${pgCatalog}.pg_namespace n ON n.oid = c.relnamespace
+        JOIN ${pgCatalog}.pg_attribute a ON a.attrelid = c.oid
+        JOIN ${pgCatalog}.pg_type t ON t.oid = a.atttypid
+        LEFT JOIN ${pgCatalog}.pg_attrdef d ON d.adrelid = c.oid AND d.adnum = a.attnum
         WHERE c.relkind IN ('r', 'v', 'm', 'f', 'p')
           AND a.attnum > 0
           AND NOT a.attisdropped
-        ${schemaNames.length > 0 ? `AND n.nspname IN ('${schemaNames.join("','")}')` : ''}
+        ${schemaFilter}
         ORDER BY n.nspname, c.relname, a.attnum
     `;
 
     const args: QueryExecutionArgs = {
         query: query,
+        abortSignal,
+        throwOnError: true,
         metadata: {
             queryType: QueryType.CATALOG_QUERY_PG_ATTRIBUTE,
             title: "Query Postgres Schema Columns",

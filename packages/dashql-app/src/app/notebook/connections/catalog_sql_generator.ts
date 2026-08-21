@@ -129,6 +129,7 @@ export enum CatalogSource {
     InformationSchema = 0,
     PgClass = 1,
     SalesforceMetadataApi = 2,
+    Hyper = 3,
     Unknown = 4,
 }
 
@@ -139,6 +140,7 @@ export function generateCatalogScriptHeader(method: CatalogSource, updatedAt: Da
         case CatalogSource.InformationSchema: methodStr = 'SQL information_schema'; break;
         case CatalogSource.PgClass: methodStr = 'SQL pg_class'; break;
         case CatalogSource.SalesforceMetadataApi: methodStr = 'Salesforce Connect /ssot/metadata API'; break;
+        case CatalogSource.Hyper: methodStr = 'Hyper attached databases'; break;
         default: methodStr = '-'; break;
     }
     return `-- DashQL Connection Relations.

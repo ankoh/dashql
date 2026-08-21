@@ -23,6 +23,7 @@ export enum CatalogResolver {
     SQL_INFORMATION_SCHEMA = 1,
     SQL_PG_ATTRIBUTE = 2,
     SALESFORCE_METDATA_API = 3,
+    SQL_HYPER = 4,
 }
 
 export interface ConnectorInfo {
@@ -84,7 +85,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             uncolored: "hyper_nocolor",
             outlines: "hyper_outlines",
         },
-        catalogResolver: CatalogResolver.SQL_PG_ATTRIBUTE,
+        catalogResolver: CatalogResolver.SQL_HYPER,
         features: {
             manualSetup: true,
             healthChecks: true,

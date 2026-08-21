@@ -212,6 +212,7 @@ export const CATALOG_UPDATE_STARTED = Symbol('CATALOG_UPDATE_STARTED');
 export const CATALOG_UPDATE_REGISTER_QUERY = Symbol('CATALOG_UPDATE_REGISTER_QUERY');
 export const CATALOG_UPDATE_SCHEMA_SCRIPT = Symbol('CATALOG_UPDATE_SCHEMA_SCRIPT');
 export const CATALOG_UPDATE_SUCCEEDED = Symbol('CATALOG_UPDATE_SUCCEEDED');
+export const CATALOG_UPDATE_PARTIALLY_SUCCEEDED = Symbol('CATALOG_UPDATE_PARTIALLY_SUCCEEDED');
 export const CATALOG_UPDATE_FAILED = Symbol('CATALOG_UPDATE_FAILED');
 export const CATALOG_UPDATE_CANCELLED = Symbol('CATALOG_UPDATE_CANCELLED');
 
@@ -228,6 +229,7 @@ export type CatalogAction =
     | VariantKind<typeof CATALOG_UPDATE_CANCELLED, [number, Error]>
     | VariantKind<typeof CATALOG_UPDATE_FAILED, [number, Error]>
     | VariantKind<typeof CATALOG_UPDATE_SUCCEEDED, [number]>
+    | VariantKind<typeof CATALOG_UPDATE_PARTIALLY_SUCCEEDED, [number, Error]>
     ;
 
 export type ConnectionStateAction =
@@ -257,6 +259,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
         case CATALOG_UPDATE_SCHEMA_SCRIPT:
         case CATALOG_UPDATE_CANCELLED:
         case CATALOG_UPDATE_SUCCEEDED:
+        case CATALOG_UPDATE_PARTIALLY_SUCCEEDED:
         case CATALOG_UPDATE_FAILED:
             return reduceCatalogAction(state, action, storage);
 

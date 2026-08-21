@@ -11,6 +11,7 @@ import {
     CATALOG_UPDATE_FAILED,
     CATALOG_UPDATE_SCHEMA_SCRIPT,
     CATALOG_UPDATE_REGISTER_QUERY,
+    CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
     CATALOG_UPDATE_SUCCEEDED,
     CatalogAction,
     ConnectionState,
@@ -32,12 +33,14 @@ export enum CatalogUpdateTaskStatus {
     SUCCEEDED = 1,
     FAILED = 2,
     CANCELLED = 3,
+    PARTIALLY_SUCCEEDED = 4,
 }
 export const CATALOG_UPDATE_TASK_STATUS_NAMES: string[] = [
     "Started",
     "Succeeded",
     "Failed",
     "Cancelled",
+    "Partially Succeeded",
 ];
 
 export interface CatalogUpdateTaskState {
@@ -59,6 +62,20 @@ export interface CatalogUpdateTaskState {
     finishedAt: Date | null;
     /// The time at which the task was last updated
     lastUpdateAt: Date | null;
+}
+
+function persistCatalogScripts(state: ConnectionState, storage: StorageWriter): void {
+    if (!state.active) return;
+    storage.write(
+        groupNotebookSchemaWrites(state.notebookId),
+        { type: WRITE_NOTEBOOK_CATALOG_SCRIPT, value: [state.notebookId, state.catalogRelationScript] },
+        DEBOUNCE_DURATION_NOTEBOOK_WRITE,
+    );
+    storage.write(
+        groupNotebookFunctionWrites(state.notebookId),
+        { type: WRITE_NOTEBOOK_FUNCTION_SCRIPT, value: [state.notebookId, state.catalogFunctionScript] },
+        DEBOUNCE_DURATION_NOTEBOOK_WRITE,
+    );
 }
 
 export function isCatalogRefreshRunning(connection: ConnectionState | null): boolean {
@@ -166,9 +183,13 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                 }
             };
         case CATALOG_UPDATE_SUCCEEDED:
+        case CATALOG_UPDATE_PARTIALLY_SUCCEEDED:
             update = {
                 ...update,
-                status: CatalogUpdateTaskStatus.SUCCEEDED,
+                status: action.type === CATALOG_UPDATE_SUCCEEDED
+                    ? CatalogUpdateTaskStatus.SUCCEEDED
+                    : CatalogUpdateTaskStatus.PARTIALLY_SUCCEEDED,
+                error: action.type === CATALOG_UPDATE_PARTIALLY_SUCCEEDED ? action.value[1] : null,
                 finishedAt: now,
                 lastUpdateAt: now,
             };
@@ -184,20 +205,8 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                     lastFullRefresh: updateId,
                 }
             };
-            // Persist the updated catalog script so it survives reloads.
-            // Debounced on the schema path so bursts of updates collapse to a single write.
-            if (newState.active) {
-                storage.write(
-                    groupNotebookSchemaWrites(newState.notebookId),
-                    { type: WRITE_NOTEBOOK_CATALOG_SCRIPT, value: [newState.notebookId, newState.catalogRelationScript] },
-                    DEBOUNCE_DURATION_NOTEBOOK_WRITE,
-                );
-                storage.write(
-                    groupNotebookFunctionWrites(newState.notebookId),
-                    { type: WRITE_NOTEBOOK_FUNCTION_SCRIPT, value: [newState.notebookId, newState.catalogFunctionScript] },
-                    DEBOUNCE_DURATION_NOTEBOOK_WRITE,
-                );
-            }
+            // Persist successful and partial updates so each database section survives reloads.
+            persistCatalogScripts(newState, storage);
             return newState;
         default:
             return state;
