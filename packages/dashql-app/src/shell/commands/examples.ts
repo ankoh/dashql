@@ -16,7 +16,7 @@ select
     avg(l_discount) as avg_disc,
     count(*) as count_order
 from
-    external('https://data.dashql.app/tpch-0.1/v1/lineitem.parquet')
+    external('https://data.dashql.app/tpch-0.01/v1/lineitem.parquet')
 where
     l_shipdate <= '1998-09-02'
 group by
@@ -31,12 +31,12 @@ select
         n_name,
         sum(l_extendedprice * (1 - l_discount)) as revenue
 from
-        external('https://data.dashql.app/tpch-0.1/v1/customer.parquet') customer,
-        external('https://data.dashql.app/tpch-0.1/v1/orders.parquet') orders,
-        external('https://data.dashql.app/tpch-0.1/v1/lineitem.parquet') lineitem,
-        external('https://data.dashql.app/tpch-0.1/v1/supplier.parquet') supplier,
-        external('https://data.dashql.app/tpch-0.1/v1/nation.parquet') nation,
-        external('https://data.dashql.app/tpch-0.1/v1/region.parquet') region
+        external('https://data.dashql.app/tpch-0.01/v1/customer.parquet') customer,
+        external('https://data.dashql.app/tpch-0.01/v1/orders.parquet') orders,
+        external('https://data.dashql.app/tpch-0.01/v1/lineitem.parquet') lineitem,
+        external('https://data.dashql.app/tpch-0.01/v1/supplier.parquet') supplier,
+        external('https://data.dashql.app/tpch-0.01/v1/nation.parquet') nation,
+        external('https://data.dashql.app/tpch-0.01/v1/region.parquet') region
 where
         c_custkey = o_custkey
         and l_orderkey = o_orderkey
