@@ -183,16 +183,18 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
     async saveNotebookManifest(notebookId: string, data: NotebookData): Promise<void> {
         const backend = await this.backendFor(notebookId);
         await backend.saveNotebookManifest(notebookId, data);
-        // The OPFS backend updates the registry entry itself (storageType=opfs). The native backend
-        // does not touch the registry, so when a notebook lives on disk we keep its registry entry
-        // in sync here.
         const loc = this.locationOf(notebookId);
         if (loc.type === StorageBackendType.Native && loc.nativePath) {
+            // The native backend does not touch the registry, so keep its OPFS entry in sync here.
             await this.opfs.upsertNotebookEntry({
                 path: notebookId,
                 storageType: StorageBackendType.Native,
                 nativePath: loc.nativePath,
             });
+        } else if (!this.locations.has(notebookId)) {
+            // The OPFS backend registered a newly-created notebook. Mirror that append in memory so
+            // getNotebookOrder() can include it immediately, before the next app initialization.
+            this.locations.set(notebookId, loc);
         }
     }
 

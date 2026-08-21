@@ -49,7 +49,7 @@ class MemoryRegistry implements NotebookRegistryBackend {
     async initialize(): Promise<void> { this.initialized = true; }
 
     async listNotebooks(): Promise<NotebookEntry[]> {
-        return [...this.manifest].sort((a, b) => a.path.localeCompare(b.path));
+        return [...this.manifest];
     }
     async loadAppSettings(): Promise<AppSettings | null> { return this.appSettings; }
     async saveAppSettings(settings: AppSettings): Promise<void> { this.appSettings = settings; }
@@ -301,6 +301,23 @@ describe('CompositeStorageBackend', () => {
             await composite.saveNotebookManifest(OPFS_ID, notebookData(OPFS_ID, 'Opfs'));
             const entry = opfs.manifest.find(s => s.path === OPFS_ID);
             expect(entry?.storageType).toBe(StorageBackendType.OPFS);
+        });
+
+        it('can reorder a newly-created OPFS notebook before re-initialization', async () => {
+            await opfs.saveNotebookManifest(OPFS_ID, notebookData(OPFS_ID, 'Existing'));
+            await composite.initialize();
+            await composite.saveNotebookManifest(NATIVE_ID, notebookData(NATIVE_ID, 'New'));
+
+            expect(composite.getNotebookOrder()).toEqual([OPFS_ID, NATIVE_ID]);
+
+            await composite.reorderNotebooks([NATIVE_ID, OPFS_ID]);
+
+            expect(composite.getNotebookOrder()).toEqual([NATIVE_ID, OPFS_ID]);
+            expect(opfs.manifest.map(entry => entry.path)).toEqual([NATIVE_ID, OPFS_ID]);
+
+            const reloaded = new CompositeStorageBackend(opfs, logger);
+            await reloaded.initialize();
+            expect(reloaded.getNotebookOrder()).toEqual([NATIVE_ID, OPFS_ID]);
         });
 
         it('keeps a native registry entry native when re-saving a native notebook', async () => {
