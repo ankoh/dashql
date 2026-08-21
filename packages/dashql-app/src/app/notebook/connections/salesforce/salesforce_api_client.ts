@@ -3,7 +3,7 @@ import * as pb from "../../../../proto.js";
 
 import { Logger } from '../../../../platform/logger/logger.js';
 import { HttpClient } from '../../../../platform/http/http_client.js';
-import { HyperDatabaseChannel, HyperQueryResultStream } from '../hyper/hyperdb_grpc_client.js';
+import { HyperDatabaseChannel, HyperQueryExecutionOptions, HyperQueryResultStream } from '../hyper/hyperdb_grpc_client.js';
 import { BASE64URL_CODEC } from "../../../../utils/base64.js";
 import { dateToTimestamp } from "../proto_helper.js";
 
@@ -534,8 +534,8 @@ export class SalesforceDatabaseChannel implements HyperDatabaseChannel {
     }
 
     /// Execute Query
-    async executeQuery(param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream> {
-        return this.hyperChannel.executeQuery(param, abort);
+    async executeQuery(param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal, options?: HyperQueryExecutionOptions): Promise<HyperQueryResultStream> {
+        return this.hyperChannel.executeQuery(param, abort, options);
     }
     /// Destroy the connection
     async close(): Promise<void> {

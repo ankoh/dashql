@@ -91,6 +91,12 @@ export function unpackQualifiedObjectName(co: dashql.buffers.completion.Completi
     return out;
 }
 
+export function shouldAutoQualifyNonDefaultTable(co: dashql.buffers.completion.CompletionCandidateObject): boolean {
+    if (co.objectType() !== dashql.buffers.completion.CompletionCandidateObjectType.TABLE) return false;
+    if (co.qualifiedNameLength() !== 3) return false;
+    return co.qualifiedName(0)?.toLowerCase() !== 'default';
+}
+
 function copyLazily(nextState: DashQLCompletionState, prevState: DashQLCompletionState): DashQLCompletionState {
     return nextState === prevState ? { ...prevState } : nextState;
 };
@@ -160,7 +166,8 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
     const catalogObject = candidate.catalogObjects(catalogObjectId)!;
 
     // Update catalog object patch?
-    if (updateFrom <= UpdatePatchStartingFrom.CatalogObject && catalogObject.preferQualified()) {
+    if (updateFrom <= UpdatePatchStartingFrom.CatalogObject
+        && (catalogObject.preferQualified() || shouldAutoQualifyNonDefaultTable(catalogObject))) {
         nextState = copyLazily(nextState, prevState);
         nextState.catalogObjectPatch = [];
 

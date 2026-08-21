@@ -26,6 +26,10 @@ export interface NativeGrpcProxyConfig {
     proxyEndpoint: URL;
 }
 
+export interface NativeGrpcServerStreamOptions {
+    readTimeoutMs?: number;
+}
+
 const DEFAULT_READ_TIMEOUT = 1000;
 const DEFAULT_BATCH_TIMEOUT = 100;
 const DEFAULT_BATCH_BYTES = 8000000;
@@ -61,15 +65,18 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
     streamId: number;
     /// The metadata provider
     metadataProvider: ChannelMetadataProvider;
+    /// Maximum time to wait for the next stream batch.
+    readTimeoutMs: number;
     /// Reached the end of the stream?
     reachedEndOfStream: boolean;
 
-    constructor(endpoint: NativeGrpcProxyConfig, channelId: number, streamId: number, metadata: ChannelMetadataProvider, logger: Logger) {
+    constructor(endpoint: NativeGrpcProxyConfig, channelId: number, streamId: number, metadata: ChannelMetadataProvider, logger: Logger, options: NativeGrpcServerStreamOptions = {}) {
         this.logger = logger;
         this.endpoint = endpoint;
         this.channelId = channelId;
         this.streamId = streamId;
         this.metadataProvider = metadata;
+        this.readTimeoutMs = options.readTimeoutMs ?? DEFAULT_READ_TIMEOUT;
         this.reachedEndOfStream = false;
     }
 
@@ -80,7 +87,7 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
         const requestMetadata = await this.metadataProvider.getRequestMetadata();
         const headers = new Headers({
             ...requestMetadata,
-            [HEADER_NAME_READ_TIMEOUT]: DEFAULT_READ_TIMEOUT.toString(),
+            [HEADER_NAME_READ_TIMEOUT]: this.readTimeoutMs.toString(),
             [HEADER_NAME_BATCH_TIMEOUT]: DEFAULT_BATCH_TIMEOUT.toString(),
             [HEADER_NAME_BATCH_BYTES]: DEFAULT_BATCH_BYTES.toString(),
         });
@@ -220,6 +227,8 @@ interface StartServerStreamArgs {
     path: string;
     /// The request body
     body: Uint8Array;
+    /// Maximum time to wait for the next stream batch.
+    readTimeoutMs?: number;
 }
 
 export class NativeGrpcChannel {
@@ -262,7 +271,9 @@ export class NativeGrpcChannel {
         await throwIfError(response);
 
         const streamId = requireIntegerHeader(response.headers, HEADER_NAME_STREAM_ID);
-        return new NativeGrpcServerStream(this.endpoint, this.channelId, streamId, this.metadataProvider, this.logger);
+        return new NativeGrpcServerStream(this.endpoint, this.channelId, streamId, this.metadataProvider, this.logger, {
+            readTimeoutMs: args.readTimeoutMs,
+        });
     }
 
     // Destroy a channel

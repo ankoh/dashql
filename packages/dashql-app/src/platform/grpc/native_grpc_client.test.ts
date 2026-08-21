@@ -10,6 +10,7 @@ import { ChannelArgs, ChannelMetadataProvider } from '../channel_common.js';
 import { TestLogger } from '../logger/test_logger.js';
 import {
     HEADER_NAME_ENDPOINT,
+    HEADER_NAME_READ_TIMEOUT,
     HEADER_NAME_TLS,
     HEADER_NAME_TLS_CACERTS,
     HEADER_NAME_TLS_CLIENT_CERT,
@@ -155,6 +156,34 @@ describe('Native gRPC client', () => {
 
         const request = fetchMock.mock.calls[fetchMock.mock.calls.length - 1][0] as Request;
         expect(request.headers.get("ctx-tenant-id")).toBe("tenant-123");
+    });
+
+    it("uses the configured stream read timeout", async () => {
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockResolvedValueOnce(new Response(null, {
+            status: 200,
+            headers: { "dashql-stream-id": "1" },
+        }));
+        fetchMock.mockResolvedValueOnce(new Response(null, {
+            status: 200,
+            headers: {
+                "dashql-batch-event": "StreamFinished",
+                "dashql-batch-messages": "0",
+            },
+        }));
+        const channel = new NativeGrpcChannel({
+            proxyEndpoint: new URL("dashql-native://localhost")
+        }, 7, fakeMetadataProvider, new TestLogger());
+
+        const stream = await channel.startServerStream({
+            path: "/test.Service/Stream",
+            body: new Uint8Array(),
+            readTimeoutMs: 60_000,
+        });
+        await stream.read();
+
+        const request = fetchMock.mock.calls[fetchMock.mock.calls.length - 1][0] as Request;
+        expect(request.headers.get(HEADER_NAME_READ_TIMEOUT)).toBe("60000");
     });
 
     it("reads from a gRPC output stream", async () => {

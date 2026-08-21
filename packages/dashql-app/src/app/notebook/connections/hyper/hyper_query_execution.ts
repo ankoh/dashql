@@ -13,5 +13,5 @@ export async function executeHyperQuery(conn: HyperConnectionDetails, args: Quer
     const param = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
         query: args.query
     });
-    return await channel.executeQuery(param, abort);
+    return await channel.executeQuery(param, abort, { readTimeoutMs: args.readTimeoutMs });
 }

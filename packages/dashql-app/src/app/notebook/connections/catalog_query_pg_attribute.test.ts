@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import { queryPgAttribute, updatePgSchemaScript } from './catalog_query_pg_attribute.js';
+import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, updatePgSchemaScript } from './catalog_query_pg_attribute.js';
 import type { QueryExecutor } from './query_executor.js';
 
 describe('updatePgSchemaScript', () => {
@@ -34,5 +34,6 @@ describe('queryPgAttribute', () => {
 
         expect(query).toContain('FROM "db""name"."pg_catalog".pg_class c');
         expect(query).toContain('JOIN "db""name"."pg_catalog".pg_attribute a');
+        expect(executor.mock.calls[0][1].readTimeoutMs).toBe(CATALOG_QUERY_READ_TIMEOUT_MS);
     });
 });

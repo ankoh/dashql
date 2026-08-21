@@ -4,11 +4,13 @@ import { EditorSelection, EditorState, Transaction } from '@codemirror/state';
 import {
     analyzeScript,
     DashQLCompletionAbortEffect,
+    DashQLCompletionNextCandidateVariantEffect,
     DashQLCompletionStatus,
     DashQLProcessorPlugin,
     DashQLProcessorUpdateIn,
     DashQLUpdateEffect,
 } from './dashql_processor.js';
+import { computePatches } from './dashql_completion_patches.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -23,6 +25,73 @@ afterEach(() => {
 });
 
 describe('DashQL processor completion triggers', () => {
+    it('cycles catalog objects for the selected completion candidate', () => {
+        const catalog = dql!.createCatalog();
+        const schemaScript = dql!.createScript(catalog);
+        schemaScript.insertTextAt(0, [
+            'create table db0.public.orders(id int);',
+            'create table db1.public.orders(id int);',
+        ].join('\n'));
+        schemaScript.analyze();
+        catalog.loadScript(schemaScript, 0);
+
+        const text = 'select * from ord';
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, text);
+        script.analyze();
+        script.moveCursor(text.length).destroy();
+        const completionBuffer = script.completeAtCursor(10);
+        const completion = completionBuffer.read();
+        let candidateId = -1;
+        for (let i = 0; i < completion.candidatesLength(); ++i) {
+            if (completion.candidates(i)?.displayText() === 'orders') {
+                candidateId = i;
+                break;
+            }
+        }
+        expect(candidateId).toBeGreaterThanOrEqual(0);
+        expect(completion.candidates(candidateId)?.catalogObjectsLength()).toBe(2);
+
+        const scriptBuffers = analyzeScript(script);
+        const cursor = script.moveCursor(text.length);
+        const initialCompletion = computePatches({
+            status: DashQLCompletionStatus.AVAILABLE,
+            passiveHint: false,
+            buffer: completionBuffer,
+            candidateId,
+            candidatePatch: [],
+            catalogObjectId: 0,
+            catalogObjectPatch: [],
+            catalogObjectCursorOffset: null,
+        }, EditorState.create({ doc: text }).doc, text.length);
+        const processorState: DashQLProcessorUpdateIn = {
+            scriptKey: 1,
+            script,
+            scriptBuffers,
+            scriptCursor: cursor,
+            scriptCompletion: initialCompletion,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: () => {},
+        };
+        let editorState = EditorState.create({
+            doc: text,
+            selection: EditorSelection.cursor(text.length),
+            extensions: [DashQLProcessorPlugin],
+        });
+        editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+
+        editorState = editorState.update({
+            effects: DashQLCompletionNextCandidateVariantEffect.of(null),
+        }).state;
+
+        const next = editorState.field(DashQLProcessorPlugin).scriptCompletion!;
+        expect(next.catalogObjectId).toBe(1);
+        const selectedObject = next.buffer.read().candidates(next.candidateId)!.catalogObjects(next.catalogObjectId)!;
+        expect(next.catalogObjectPatch).not.toHaveLength(0);
+        expect(selectedObject.qualifiedName(0)).toBe('db1');
+    });
+
     it('does not start completion when deleting selected comments before a token', () => {
         const catalog = dql!.createCatalog();
         const text = `-- Fetch and visualize vega cars data from a parquet file, rendering a point

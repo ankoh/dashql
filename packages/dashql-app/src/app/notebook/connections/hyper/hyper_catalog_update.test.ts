@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '../../../../core/index.js';
 import { buildHyperCloudCatalogQuery, generateCatalogSQLFromHyperCloud, updateHyperCatalog } from './hyper_catalog_update.js';
 import type { QueryExecutor } from '../query_executor.js';
+import { CATALOG_QUERY_READ_TIMEOUT_MS } from '../catalog_query_pg_attribute.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -95,6 +96,7 @@ describe('updateHyperCatalog', () => {
         expect(queries).toHaveLength(2);
         expect(queries[0]).toContain('FROM "lake db"."pg_catalog".pg_class c');
         expect(queries[1]).toContain('FROM "cloud"."_hyper_catalog"."databases" d');
+        expect(executor.mock.calls.every(call => call[1].readTimeoutMs === CATALOG_QUERY_READ_TIMEOUT_MS)).toBe(true);
         expect(script.toString()).toContain('CREATE TABLE "lake db"."public"."lake_table"');
         expect(script.toString()).toContain('CREATE TABLE "cloud"."sales"."orders"');
         expect(script.toString()).not.toContain('CREATE TABLE "Cloud Database"');

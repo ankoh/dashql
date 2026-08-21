@@ -3,7 +3,7 @@ import * as dashql from '../../../../core/index.js';
 import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
-import { DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 import { CompletionCandidateType, getCandidateTypeSymbolColor, getCandidateTypeSymbolText } from './dashql_completion_candidate_type.js';
 
 import * as styles from './dashql_completion_list.module.css';
@@ -50,6 +50,7 @@ class CandidateRenderer {
     objectContainerVisible: boolean;
     /// Selected object index visible?
     objectSelectionVisible: boolean;
+    navVisible: boolean;
 
     /// The entry element
     public readonly rootElement: HTMLDivElement;
@@ -73,7 +74,7 @@ class CandidateRenderer {
     /// The span for the catalog object count
     readonly objectTotalSpan: HTMLSpanElement;
 
-    constructor(candidate: VirtualCandidate) {
+    constructor(candidate: VirtualCandidate, selectPreviousVariant: () => void, selectNextVariant: () => void) {
         this.rendered = null;
         this.rootElement = document.createElement('div');
         this.iconElement = document.createElement('span');
@@ -82,6 +83,7 @@ class CandidateRenderer {
         this.infoVisible = true;
         this.objectContainerVisible = true;
         this.objectSelectionVisible = true;
+        this.navVisible = true;
 
         this.navContainerElement = document.createElement('div');
         this.navArrowLeftElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -98,6 +100,18 @@ class CandidateRenderer {
         this.navArrowRightElement.setAttribute('width', '13px');
         this.navArrowRightElement.setAttribute('height', '13px');
         navArrowRightUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#arrow_right_16`);
+        this.navArrowLeftElement.setAttribute('role', 'button');
+        this.navArrowLeftElement.setAttribute('aria-label', 'Previous catalog object');
+        this.navArrowRightElement.setAttribute('role', 'button');
+        this.navArrowRightElement.setAttribute('aria-label', 'Next catalog object');
+        this.navArrowLeftElement.addEventListener('mousedown', event => {
+            event.preventDefault();
+            selectPreviousVariant();
+        });
+        this.navArrowRightElement.addEventListener('mousedown', event => {
+            event.preventDefault();
+            selectNextVariant();
+        });
 
         this.objectContainerElement = document.createElement('div');
         this.objectSelectedSpan = document.createElement('span');
@@ -186,6 +200,16 @@ class CandidateRenderer {
             this.objectContainerVisible = true;
         }
     }
+    protected hideNavigation() {
+        if (!this.navVisible) return;
+        this.navContainerElement.classList.add(styles.hidden);
+        this.navVisible = false;
+    }
+    protected showNavigation() {
+        if (this.navVisible) return;
+        this.navContainerElement.classList.remove(styles.hidden);
+        this.navVisible = true;
+    }
     public render(candidate: VirtualCandidate) {
         // Is the element selected?
         if (candidate.isSelected != this.rendered?.isSelected) {
@@ -228,6 +252,11 @@ class CandidateRenderer {
         } else {
             this.hideObjectContainer();
         }
+        if (candidate.totalObjectCount > 1) {
+            this.showNavigation();
+        } else {
+            this.hideNavigation();
+        }
         this.rendered = candidate;
     }
 }
@@ -244,13 +273,18 @@ class CandidateListRenderer {
     readonly listContainer: HTMLDivElement;
     /// The list entries
     readonly renderedCandidates: CandidateRenderer[];
+    readonly selectPreviousVariant: () => void;
+    readonly selectNextVariant: () => void;
 
-    constructor() {
+    constructor(selectPreviousVariant: () => void, selectNextVariant: () => void) {
         this.rootVisible = true;
         this.rootPosition = { top: null, bottom: null, left: -1 };
+        this.selectPreviousVariant = selectPreviousVariant;
+        this.selectNextVariant = selectNextVariant;
 
         this.rootElement = document.createElement('div');
         this.rootElement.className = styles.overlay_container;
+        this.rootElement.dataset.dashqlCompletionList = 'true';
         this.listContainer = document.createElement('div');
         this.listContainer.className = styles.list_container;
         this.rootElement.appendChild(this.listContainer);
@@ -310,7 +344,7 @@ class CandidateListRenderer {
         }
         // Create new rendered
         for (let i = n; i < candidates.length; ++i) {
-            const entry = new CandidateRenderer(candidates[i]);
+            const entry = new CandidateRenderer(candidates[i], this.selectPreviousVariant, this.selectNextVariant);
             this.listContainer.appendChild(entry.rootElement);
             this.renderedCandidates.push(entry);
         }
@@ -325,8 +359,11 @@ class CompletionList {
     /// The rendered completion
     renderedCompletion: DashQLCompletionState | null = null;
 
-    constructor() {
-        this.list = new CandidateListRenderer();
+    constructor(view: EditorView) {
+        this.list = new CandidateListRenderer(
+            () => view.dispatch({ effects: DashQLCompletionPreviousCandidateVariantEffect.of(null) }),
+            () => view.dispatch({ effects: DashQLCompletionNextCandidateVariantEffect.of(null) }),
+        );
     }
     /// Destroy the container
     destroy() {
@@ -415,7 +452,7 @@ class CompletionList {
         }
 
         // Mark selected
-        if (selectedCandidate >= out.length) {
+        if (selectedCandidate < out.length) {
             out[selectedCandidate].isSelected = true;
         }
 
@@ -496,8 +533,8 @@ export const DashQLCompletionListPlugin = ViewPlugin.fromClass(
     class {
         container: CompletionList;
 
-        constructor(_view: EditorView) {
-            this.container = new CompletionList();
+        constructor(view: EditorView) {
+            this.container = new CompletionList(view);
         }
         update(update: ViewUpdate) {
             this.container.mount(update.view.dom);

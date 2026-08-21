@@ -5,7 +5,7 @@ import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from '../
 import { DynamicConnectionDispatch } from '../connection_registry.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../catalog_update_state.js';
 import { CatalogSource, generateCatalogScriptHeader, generateSchemaSQL, quoteIdentifier, type ColumnMetadata } from '../catalog_sql_generator.js';
-import { queryPgAttribute, generateCatalogSQLFromPgAttribute } from '../catalog_query_pg_attribute.js';
+import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, generateCatalogSQLFromPgAttribute } from '../catalog_query_pg_attribute.js';
 import { QueryExecutionArgs } from '../query_execution_args.js';
 import { QueryExecutor } from '../query_executor.js';
 import { QueryType } from '../query_execution_state.js';
@@ -134,6 +134,7 @@ async function queryHyperCloudCatalog(
     const args: QueryExecutionArgs = {
         query: buildHyperCloudCatalogQuery(databaseAlias),
         abortSignal,
+        readTimeoutMs: CATALOG_QUERY_READ_TIMEOUT_MS,
         throwOnError: true,
         metadata: {
             queryType: QueryType.CATALOG_QUERY_HYPER_CLOUD,

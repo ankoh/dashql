@@ -135,9 +135,18 @@ describe('Completion Hint', () => {
             }
         });
 
-        // Check qualification hint.
-        // We prefer unqualified here.
-        expect(hints!.catalogObjectHints.length).toEqual(0);
+        // Tables in attached, non-default databases are completed with their
+        // database and schema so the resulting query resolves unambiguously.
+        expect(hints!.catalogObjectHints).toEqual([{
+            controls: true,
+            target: CompletionPatchTarget.CatalogObject,
+            type: PATCH_INSERT_TEXT,
+            value: {
+                at: text.length - "tab".length,
+                text: "db0.schema0.",
+                textAnchor: TextAnchor.Left,
+            },
+        }]);
     });
 
 

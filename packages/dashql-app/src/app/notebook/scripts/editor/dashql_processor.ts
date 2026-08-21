@@ -401,6 +401,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             const candidateCount = c?.candidatesLength() ?? 0;
             if (candidateCount > 1 && state.scriptCompletion?.candidateId !== undefined) {
                 state.scriptCompletion.candidateId += 1;
+                state.scriptCompletion.catalogObjectId = 0;
                 if (state.scriptCompletion.candidateId == candidateCount) {
                     state.scriptCompletion.candidateId = 0;
                 }
@@ -415,6 +416,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             const candidateCount = c?.candidatesLength() ?? 0;
             if (candidateCount > 1 && state.scriptCompletion?.candidateId !== undefined) {
                 state.scriptCompletion.candidateId -= 1;
+                state.scriptCompletion.catalogObjectId = 0;
                 if (state.scriptCompletion.candidateId < 0) {
                     state.scriptCompletion.candidateId = candidateCount - 1;
                 }

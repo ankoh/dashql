@@ -20,9 +20,14 @@ export interface HyperQueryExecutionProgress extends QueryExecutionProgress { }
 
 export interface HyperQueryResultStream extends QueryExecutionResponseStream { }
 
+export interface HyperQueryExecutionOptions {
+    /// Maximum time to wait for the next result batch from the native gRPC proxy.
+    readTimeoutMs?: number;
+}
+
 export interface HyperDatabaseChannel {
     /// Execute Query
-    executeQuery(param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream>;
+    executeQuery(param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal, options?: HyperQueryExecutionOptions): Promise<HyperQueryResultStream>;
     /// Destroy the connection
     close(): Promise<void>;
 }

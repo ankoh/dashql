@@ -11,6 +11,8 @@ export interface QueryExecutionArgs {
     /// Optional caller-owned cancellation signal. The executor links this to its
     /// own query cancellation controller without taking ownership of it.
     abortSignal?: AbortSignal;
+    /// Maximum time to wait for the next native gRPC result batch.
+    readTimeoutMs?: number;
     analyzeResults?: boolean;
     /// Receives trace-scoped query execution log messages as they are emitted. Intended for
     /// transient progress surfaces such as the notebook shell.

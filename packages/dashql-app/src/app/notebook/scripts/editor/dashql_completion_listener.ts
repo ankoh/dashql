@@ -3,7 +3,7 @@ import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemir
 import { insertTab } from '@codemirror/commands';
 
 import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
-import { applyCompletion, updateCursorWithCompletion } from './dashql_completion_patches.js';
+import { applyCompletion, shouldAutoQualifyNonDefaultTable, updateCursorWithCompletion } from './dashql_completion_patches.js';
 
 type EventListener = (event: Event) => void;
 
@@ -53,6 +53,9 @@ class DashQLCompletionEventListener {
 
     private handleMousedownEvent(_event: Event) {
         if (this.listenerTarget == null) {
+            return;
+        }
+        if (_event.target instanceof Element && _event.target.closest('[data-dashql-completion-list]')) {
             return;
         }
         this.listenerTarget.view.dispatch({
@@ -115,16 +118,27 @@ function onTab(view: EditorView) {
                 const candidate = processor.scriptCompletion.buffer.read().candidates(
                     processor.scriptCompletion.candidateId,
                 );
+                const catalogObject = candidate?.catalogObjects(processor.scriptCompletion.catalogObjectId);
+                const applyQualification = catalogObject != null
+                    && shouldAutoQualifyNonDefaultTable(catalogObject)
+                    && processor.scriptCompletion.catalogObjectPatch.length > 0;
+                const patches = applyQualification
+                    ? [...processor.scriptCompletion.candidatePatch, ...processor.scriptCompletion.catalogObjectPatch]
+                    : processor.scriptCompletion.candidatePatch;
                 const target = candidate?.targetLocation();
                 const cursorOverride = target == null
                     ? null
                     : target.offset() + (candidate?.completionCursorOffset() ?? target.length());
                 view.dispatch({
-                    changes: applyCompletion(processor.scriptCompletion.candidatePatch),
-                    effects: DashQLCompletionSelectCandidateEffect.of(null),
+                    changes: applyCompletion(patches),
+                    effects: applyQualification
+                        ? DashQLCompletionSelectCatalogObjectEffect.of(null)
+                        : DashQLCompletionSelectCandidateEffect.of(null),
                     selection: {
-                        anchor: cursorOverride ?? updateCursorWithCompletion(
-                            processor.scriptCompletion.candidatePatch,
+                        anchor: applyQualification
+                            ? updateCursorWithCompletion(patches, view.state.selection.main.anchor)
+                            : cursorOverride ?? updateCursorWithCompletion(
+                            patches,
                             view.state.selection.main.anchor
                         )
                     }

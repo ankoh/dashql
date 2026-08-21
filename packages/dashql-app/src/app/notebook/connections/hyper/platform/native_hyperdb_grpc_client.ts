@@ -7,6 +7,7 @@ import {
     HyperDatabaseChannel,
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
+    HyperQueryExecutionOptions,
     HyperQueryResultStream,
 } from '../hyperdb_grpc_client.js';
 import {
@@ -170,7 +171,7 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
     }
 
     /// Execute a query against Hyper
-    public async executeQuery(params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream> {
+    public async executeQuery(params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal, options?: HyperQueryExecutionOptions): Promise<HyperQueryResultStream> {
         abort?.throwIfAborted();
         params.outputFormat = pb.salesforce_hyperdb_grpc_v1.pb.QueryParam_OutputFormat.ARROW_STREAM;
         for (const db of this.connection.getAttachedDatabases()) {
@@ -181,7 +182,8 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
         }
         const stream = await this.grpcChannel.startServerStream({
             path: "/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery",
-            body: buf.toBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params)
+            body: buf.toBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params),
+            readTimeoutMs: options?.readTimeoutMs,
         });
         if (abort?.aborted) {
             await stream.destroy();

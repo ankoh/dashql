@@ -13,6 +13,7 @@ import { queryPgProc, generateCatalogSQLFromPgProc } from './catalog_query_pg_pr
 import { type LoggerLike } from '../../../platform/logger/logger.js';
 
 const LOG_CTX = "catalog_pg";
+export const CATALOG_QUERY_READ_TIMEOUT_MS = 60_000;
 
 export type PgAttributeColumnsTable = arrow.Table<{
     table_schema: arrow.Utf8;
@@ -138,6 +139,7 @@ export async function queryPgAttribute(
     const args: QueryExecutionArgs = {
         query: query,
         abortSignal,
+        readTimeoutMs: CATALOG_QUERY_READ_TIMEOUT_MS,
         throwOnError: true,
         metadata: {
             queryType: QueryType.CATALOG_QUERY_PG_ATTRIBUTE,
