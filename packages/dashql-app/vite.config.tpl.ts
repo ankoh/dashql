@@ -236,7 +236,10 @@ export default vite.defineConfig(({ mode, command }) => {
         test: {
             globals: true,
             environment: 'jsdom',
-            pool: 'threads',
+            // HyperDB WASM owns native file descriptors, which are process-wide and
+            // unsafe to share between Node worker threads.
+            pool: 'forks',
+            execArgv: ['--experimental-wasm-exnref'],
             maxWorkers: 4,
             isolate: false,
             testTimeout: 60_000,
