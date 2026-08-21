@@ -45,7 +45,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
     const resultQuery = useQueryState(connection?.notebookId ?? null, resultQueryId);
     const connectorName = connection?.connectorInfo.names.displayShort ?? '';
-    const shellName = `${connectorName} Shell`;
+    const shellName = `${connection?.name ?? connectorName} Shell`;
     const relationsSql = connection?.catalogRelationScript.toString() ?? '';
     const functionsSql = connection?.catalogFunctionScript.toString() ?? '';
 
