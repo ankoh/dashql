@@ -89,7 +89,7 @@ describe('NativeDuckDB API', () => {
         await conn.cancelPending();
 
         await conn.close();
-        duckdb.terminate();
+        await duckdb.terminate();
     });
 
     it('supports parallel queries on separate connections', async () => {
@@ -116,6 +116,6 @@ describe('NativeDuckDB API', () => {
 
         await conn1.close();
         await conn2.close();
-        duckdb.terminate();
+        await duckdb.terminate();
     });
 });

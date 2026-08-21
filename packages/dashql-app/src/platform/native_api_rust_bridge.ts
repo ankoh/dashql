@@ -45,6 +45,7 @@ export class NativeAPIRustBridge {
     nextRequestId: number;
     pending: Map<number, { resolve: (response: BridgeResponse) => void; reject: (error: Error) => void }>;
     stdoutBuffer: string;
+    closing: boolean;
 
     constructor(bridgePath: string = getBridgePath()) {
         this.bridgePath = bridgePath;
@@ -52,6 +53,7 @@ export class NativeAPIRustBridge {
         this.nextRequestId = 1;
         this.pending = new Map();
         this.stdoutBuffer = '';
+        this.closing = false;
     }
 
     protected ensureProcess(): ChildProcessWithoutNullStreams {
@@ -71,7 +73,9 @@ export class NativeAPIRustBridge {
         child.stderr.on('data', (_chunk: string) => {
         });
         events.on('exit', (code, signal) => {
-            const error = new Error(`native IPC bridge exited unexpectedly: code=${code ?? 'null'} signal=${signal ?? 'null'}`);
+            const error = this.closing
+                ? new Error('native IPC bridge closed')
+                : new Error(`native IPC bridge exited unexpectedly: code=${code ?? 'null'} signal=${signal ?? 'null'}`);
             const pending = Array.from(this.pending.values());
             this.pending.clear();
             this.childProcess = null;
@@ -150,9 +154,14 @@ export class NativeAPIRustBridge {
     async close(): Promise<void> {
         const child = this.childProcess;
         if (child != null) {
+            this.closing = true;
             const closed = new Promise<void>(resolve => child.once('close', () => resolve()));
             child.kill();
-            await closed;
+            try {
+                await closed;
+            } finally {
+                this.closing = false;
+            }
             if (this.childProcess === child) {
                 this.childProcess = null;
             }
