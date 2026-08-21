@@ -23,6 +23,7 @@ interface Props {
 }
 
 const MAX_OVERLAY_HEIGHT = 600;
+const MIN_PLAN_OVERLAY_HEIGHT = 'min(360px, 80vh)';
 const IGNORE_OUTSIDE_CLICK = () => {};
 
 const enum ResultTab {
@@ -126,7 +127,10 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose, dismi
                 role="dialog"
                 aria-modal="true"
                 aria-label="Shell query results"
-                style={currentLockedHeight == null ? undefined : { height: currentLockedHeight }}
+                style={{
+                    height: currentLockedHeight ?? undefined,
+                    minHeight: selectedTab === ResultTab.Plan ? MIN_PLAN_OVERLAY_HEIGHT : undefined,
+                }}
             >
                 <VerticalTabs
                     className={styles.tabs}

@@ -100,12 +100,17 @@ describe('ShellQueryResultOverlay', () => {
         expect(document.querySelector('button[aria-label="Query plan"]')).not.toBeNull();
         expect(document.body.textContent).toContain('Query plan viewer');
         expect(document.body.textContent).not.toContain('Query results');
+        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight)
+            .toBe('min(360px, 80vh)');
 
         act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Query results"]')!.click());
         expect(document.body.textContent).toContain('Query results');
+        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight).toBe('');
 
         act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Query plan"]')!.click());
         expect(document.body.textContent).toContain('Query plan viewer');
+        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight)
+            .toBe('min(360px, 80vh)');
     });
 
     it('keeps only the Data tab for ordinary 1x1 JSON results', () => {
@@ -142,6 +147,8 @@ describe('ShellQueryResultOverlay', () => {
         ));
 
         expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.height).toBe('272px');
+        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight)
+            .toBe('min(360px, 80vh)');
         expect(getBoundingClientRect).toHaveBeenCalled();
     });
 });
