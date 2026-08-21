@@ -553,6 +553,13 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         if (parent_id < ast.size() && ast[parent_id].attribute_key() == AttributeKey::SQL_ROW_LOCKING_OF) {
             return FormatQualifiedName(node);
         }
+        if (parent_id < ast.size() && ast[parent_id].attribute_key() == AttributeKey::SQL_GRAPH_MATCH_PATTERNS) {
+            auto children = GetArrayStates(node);
+            std::vector<FmtReg> parts;
+            parts.reserve(children.size());
+            for (auto& child : children) parts.push_back(child.reg);
+            return fmt.Concat(std::move(parts));
+        }
         if (parent_id < ast.size() && ast[parent_id].node_type() == NodeType::OBJECT_SQL_NARY_EXPRESSION) {
             return FormatCommaList(node);
         }
@@ -583,6 +590,17 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_ATTACH_DATABASE_OPTIONS:
         case AttributeKey::SQL_INSERT_COLUMNS:
         case AttributeKey::SQL_INSERT_RETURNING:
+        case AttributeKey::SQL_PROPERTY_GRAPH_VERTEX_TABLES:
+        case AttributeKey::SQL_PROPERTY_GRAPH_EDGE_TABLES:
+        case AttributeKey::SQL_GRAPH_ELEMENT_TABLE_KEY:
+        case AttributeKey::SQL_GRAPH_ELEMENT_TABLE_LABELS:
+        case AttributeKey::SQL_GRAPH_VERTEX_REFERENCE_KEY:
+        case AttributeKey::SQL_GRAPH_VERTEX_REFERENCE_COLUMNS:
+        case AttributeKey::SQL_GRAPH_PROPERTIES_COLUMNS:
+        case AttributeKey::SQL_GRAPH_PROPERTIES_EXCLUDE:
+        case AttributeKey::SQL_GRAPH_MATCH_PATTERNS:
+        case AttributeKey::SQL_GRAPH_TABLE_COLUMNS:
+        case AttributeKey::SQL_RESULT_TARGET_EXCLUDE:
             return FormatCommaList(node);
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
             return fmt.Parenthesized(FormatCommaList(node));
@@ -623,6 +641,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_CREATE_FUNCTION_NAME:
         case AttributeKey::SQL_DROP_NAME:
         case AttributeKey::EXT_VARARG_FIELD_KEY:
+        case AttributeKey::SQL_GRAPH_TABLE_GRAPH:
             return FormatQualifiedName(node);
         case AttributeKey::SQL_SELECT_DISTINCT:
         case AttributeKey::SQL_SELECT_WITH_CTES:
@@ -2113,26 +2132,40 @@ FmtReg Formatter::FormatExistsExpression(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatCTE(const buffers::parser::Node& node) {
-    auto [name, columns, statement] =
-        GetAttributes<AttributeKey::SQL_CTE_NAME, AttributeKey::SQL_CTE_COLUMNS, AttributeKey::SQL_CTE_STATEMENT>(node);
-    if (!name || !statement) return FormatUnimplemented(node);
+    auto [name, columns, statement, graph, secure, options] =
+        GetAttributes<AttributeKey::SQL_CTE_NAME, AttributeKey::SQL_CTE_COLUMNS, AttributeKey::SQL_CTE_STATEMENT,
+                      AttributeKey::SQL_CTE_PROPERTY_GRAPH, AttributeKey::SQL_CTE_SECURE,
+                      AttributeKey::SQL_CTE_OPTIONS>(node);
+    if (!name || (!statement && !graph)) return FormatUnimplemented(node);
     auto name_reg = Reg(*name);
-    auto stmt_reg = Reg(*statement);
-    if (name_reg == 0 || stmt_reg == 0) return FormatUnimplemented(node);
+    auto body_reg = statement ? Reg(*statement) : Reg(*graph);
+    if (name_reg == 0 || body_reg == 0) return FormatUnimplemented(node);
 
     FmtReg body;
-    if (config.mode == buffers::formatting::FormattingMode::PRETTY) {
+    if (graph && graph->children_count() == 0) {
+        body = fmt.Text("()");
+    } else if (config.mode == buffers::formatting::FormattingMode::PRETTY) {
         body = fmt.Concat(
-            {fmt.Text("("), fmt.Indented(fmt.Concat({fmt.Break(), stmt_reg})), fmt.Break(), fmt.Text(")")});
+            {fmt.Text("("), fmt.Indented(fmt.Concat({fmt.Break(), body_reg})), fmt.Break(), fmt.Text(")")});
     } else {
-        body = fmt.Parenthesized(stmt_reg);
+        body = fmt.Parenthesized(body_reg);
     }
 
+    auto as_reg = graph ? fmt.Text(" as property graph ")
+                        : (secure ? fmt.Text(" as secure ") : fmt.Text(" as "));
+    FmtReg result;
     if (columns && columns->node_type() == NodeType::ARRAY && columns->children_count() > 0) {
         auto cols_reg = FormatCommaList(*columns);
-        return fmt.Concat({name_reg, fmt.Text(" "), fmt.Parenthesized(cols_reg), fmt.Text(" as "), body});
+        result = fmt.Concat({name_reg, fmt.Text(" "), fmt.Parenthesized(cols_reg), as_reg, body});
+    } else {
+        result = fmt.Concat({name_reg, as_reg, body});
     }
-    return fmt.Concat({name_reg, fmt.Text(" as "), body});
+    if (options) {
+        auto options_reg = Reg(*options);
+        if (options_reg == 0) return FormatUnimplemented(*options);
+        result = fmt.Concat({result, fmt.Text(" options "), fmt.Parenthesized(options_reg)});
+    }
+    return result;
 }
 
 FmtReg Formatter::FormatExpressionOperatorType(const buffers::parser::Node& node) {
@@ -2147,15 +2180,23 @@ FmtReg Formatter::FormatExpressionOperatorType(const buffers::parser::Node& node
 }
 
 FmtReg Formatter::FormatResultTarget(const buffers::parser::Node& node) {
-    auto [value, name, star] =
+    auto [value, name, star, exclude] =
         GetAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE, AttributeKey::SQL_RESULT_TARGET_NAME,
-                      AttributeKey::SQL_RESULT_TARGET_STAR>(node);
+                      AttributeKey::SQL_RESULT_TARGET_STAR, AttributeKey::SQL_RESULT_TARGET_EXCLUDE>(node);
     if (star) {
-        if (value || name) return FormatUnimplemented(node);
+        if (name) return FormatUnimplemented(node);
         if (star->node_type() != NodeType::BOOL || star->children_begin_or_value() == 0) {
             return FormatUnimplemented(*star);
         }
-        return fmt.Text("*");
+        FmtReg result = value ? fmt.Concat({Reg(*value), fmt.Text(".*")}) : fmt.Text("*");
+        if (exclude) {
+            auto exclude_reg = Reg(*exclude);
+            if (exclude_reg == 0) return FormatUnimplemented(*exclude);
+            result = exclude->children_count() == 1
+                         ? fmt.Concat({result, fmt.Text(" exclude "), exclude_reg})
+                         : fmt.Concat({result, fmt.Text(" exclude "), fmt.Parenthesized(exclude_reg)});
+        }
+        return result;
     }
     if (!value) return FormatUnimplemented(node);
 
@@ -2433,6 +2474,30 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatExistsExpression(node);
         case NodeType::OBJECT_SQL_CTE:
             return FormatCTE(node);
+        case NodeType::OBJECT_SQL_PROPERTY_GRAPH:
+            return FormatPropertyGraph(node);
+        case NodeType::OBJECT_SQL_GRAPH_ELEMENT_TABLE:
+            return FormatGraphElementTable(node);
+        case NodeType::OBJECT_SQL_GRAPH_VERTEX_REFERENCE:
+            return FormatGraphVertexReference(node);
+        case NodeType::OBJECT_SQL_GRAPH_LABEL:
+            return FormatGraphLabel(node);
+        case NodeType::OBJECT_SQL_GRAPH_PROPERTIES:
+            return FormatGraphProperties(node);
+        case NodeType::OBJECT_SQL_GRAPH_PROPERTY:
+            return FormatGraphProperty(node);
+        case NodeType::OBJECT_SQL_GRAPH_TABLE:
+            return FormatGraphTable(node);
+        case NodeType::OBJECT_SQL_GRAPH_MATCH:
+            return FormatGraphMatch(node);
+        case NodeType::OBJECT_SQL_GRAPH_PATH_ELEMENT:
+            return FormatGraphPathElement(node);
+        case NodeType::OBJECT_SQL_GRAPH_QUANTIFIER:
+            return FormatGraphQuantifier(node);
+        case NodeType::OBJECT_SQL_GRAPH_LABEL_EXPRESSION:
+            return FormatGraphLabelExpression(node);
+        case NodeType::OBJECT_SQL_GRAPH_ROWS:
+            return FormatGraphRows(node);
         case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION:
             return FormatFunctionExpression(node);
         case NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS:

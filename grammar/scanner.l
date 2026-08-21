@@ -279,6 +279,8 @@ raw_lrb         \(
 raw_rrb         \)
 raw_lsb         \[
 raw_rsb         \]
+raw_lcb         \{
+raw_rcb         \}
 raw_semicolon   \;
 raw_colon       \:
 raw_plus        \+
@@ -287,6 +289,9 @@ raw_star        \*
 raw_divide      \/
 raw_modulo      \%
 raw_circumflex  \^
+raw_ampersand   \&
+raw_pipe        \|
+raw_exclamation_mark \!
 raw_less_than   \<
 raw_greater_than \>
 raw_equals      \=
@@ -435,6 +440,8 @@ auto& ext_depth = ctx.ext_depth;
 {raw_rrb}           { return Parser::make_RRB(loc); }
 {raw_lsb}           { return Parser::make_LSB(loc); }
 {raw_rsb}           { return Parser::make_RSB(loc); }
+{raw_lcb}           { return Parser::make_LCB(loc); }
+{raw_rcb}           { return Parser::make_RCB(loc); }
 {raw_semicolon}     { return Parser::make_SEMICOLON(loc); }
 {raw_colon}         { return Parser::make_COLON(loc); }
 {raw_plus}          { return Parser::make_PLUS(loc); }
@@ -443,6 +450,9 @@ auto& ext_depth = ctx.ext_depth;
 {raw_star}          { return Parser::make_STAR(loc); }
 {raw_modulo}        { return Parser::make_MODULO(loc); }
 {raw_circumflex}    { return Parser::make_CIRCUMFLEX(loc); }
+{raw_ampersand}     { return Parser::make_AMPERSAND(loc); }
+{raw_pipe}          { return Parser::make_PIPE(loc); }
+{raw_exclamation_mark} { return Parser::make_EXCLAMATION_MARK(loc); }
 {raw_less_than}     { return Parser::make_LESS_THAN(loc); }
 {raw_greater_than}  { return Parser::make_GREATER_THAN(loc); }
 {raw_equals}        { return Parser::make_EQUALS(loc); }
@@ -521,7 +531,7 @@ auto& ext_depth = ctx.ext_depth;
                          * that the "self" rule would have.
                          */
                         if (nchars == 1 &&
-                            strchr(",()[].;:+-*/%^<>=?", yytext[0])) {
+                            strchr(",()[].{};:+-*/%^&|!<>=?", yytext[0])) {
                             return matchSpecialCharacter(yytext[0], loc);
                         }
                         /*

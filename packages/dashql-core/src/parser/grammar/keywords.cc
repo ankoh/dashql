@@ -113,7 +113,6 @@ const Keyword* Keyword::Find(std::string_view text) {
     } else {
         return nullptr;
     }
-    return nullptr;
 }
 
 // Debug ostream operator

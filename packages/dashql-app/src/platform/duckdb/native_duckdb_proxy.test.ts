@@ -77,9 +77,9 @@ describe('Native DuckDB proxy integration', () => {
         });
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         vi.restoreAllMocks();
-        bridge.close();
+        await bridge.close();
     });
 
     it('runs a real DuckDB query through the Rust proxy', async () => {

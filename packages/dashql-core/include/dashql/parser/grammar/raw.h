@@ -21,6 +21,8 @@ inline Parser::symbol_type matchSpecialCharacter(char c, Parser::location_type l
         X(')', RRB);
         X('[', LSB);
         X(']', RSB);
+        X('{', LCB);
+        X('}', RCB);
         X('.', DOT);
         X(';', SEMICOLON);
         X(':', COLON);
@@ -31,6 +33,9 @@ inline Parser::symbol_type matchSpecialCharacter(char c, Parser::location_type l
         X('%', MODULO);
         X('?', QUESTION_MARK);
         X('^', CIRCUMFLEX);
+        X('&', AMPERSAND);
+        X('|', PIPE);
+        X('!', EXCLAMATION_MARK);
         X('<', LESS_THAN);
         X('>', GREATER_THAN);
         X('=', EQUALS);

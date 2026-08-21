@@ -662,6 +662,23 @@ uint32_t NameResolutionPass::FindStatementId(uint32_t ast_node_id) const {
     return PROTO_NULL_U32;
 }
 
+bool NameResolutionPass::IsInsideGraphSyntax(uint32_t ast_node_id) const {
+    uint32_t node_id = ast_node_id;
+    for (size_t depth = 0; depth < state.ast.size(); ++depth) {
+        uint32_t parent_id = state.ast[node_id].parent();
+        if (parent_id >= state.ast.size()) return false;
+        switch (state.ast[parent_id].node_type()) {
+            case buffers::parser::NodeType::OBJECT_SQL_PROPERTY_GRAPH:
+            case buffers::parser::NodeType::OBJECT_SQL_GRAPH_TABLE:
+                return true;
+            default:
+                node_id = parent_id;
+                break;
+        }
+    }
+    return false;
+}
+
 /// Prepare the analysis pass
 void NameResolutionPass::Prepare() {}
 
@@ -704,6 +721,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF: {
+                if (IsInsideGraphSyntax(node_id)) break;
                 // Read column ref path
                 auto [column_ref_node] = state.GetAttributes<AttributeKey::SQL_COLUMN_REF_PATH>(node);
                 auto column_name = state.ReadQualifiedColumnName(column_ref_node);
@@ -726,6 +744,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_TABLEREF: {
+                if (IsInsideGraphSyntax(node_id)) break;
                 // Read a table ref name
                 auto [name_node, alias_node] =
                     state.GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS>(node);
@@ -768,6 +787,7 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_RESULT_TARGET: {
+                if (IsInsideGraphSyntax(node_id)) break;
                 MergeChildStates(node_state, node);
 
                 auto [value_node, name_node, star_node] =
@@ -824,6 +844,9 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             }
 
             case buffers::parser::NodeType::OBJECT_SQL_SELECT: {
+                if (IsInsideGraphSyntax(node_id)) {
+                    break;
+                }
                 MergeChildStates(node_state, node);
                 auto result_targets = std::move(node_state.result_targets);
                 auto cte_defs = std::move(node_state.ctes);
@@ -1028,6 +1051,15 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
 
             case buffers::parser::NodeType::OBJECT_EXT_EXPLAIN: {
                 MergeChildStates(node_state, node);
+                break;
+            }
+
+            case buffers::parser::NodeType::OBJECT_SQL_PROPERTY_GRAPH:
+            case buffers::parser::NodeType::OBJECT_SQL_GRAPH_TABLE: {
+                // Property graph analysis is syntax-only. Keep graph-local references in the
+                // analyzed buffers, but prevent them from entering or affecting an SQL scope.
+                MergeChildStates(node_state, node);
+                node_state.Clear();
                 break;
             }
 

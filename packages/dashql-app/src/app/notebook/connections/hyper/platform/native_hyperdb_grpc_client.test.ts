@@ -17,9 +17,9 @@ describe('Native Hyper client', () => {
         bridge = new NativeAPIRustBridge();
         vi.spyOn(globalThis, 'fetch').mockImplementation((req) => bridge.process(req as Request));
     });
-    afterEach(() => {
+    afterEach(async () => {
         vi.restoreAllMocks();
-        bridge.close();
+        await bridge.close();
     });
     const fakeConnection: HyperDatabaseConnectionContext = {
         getAttachedDatabases(): AttachedDatabase[] {

@@ -212,16 +212,24 @@ sql_with_clause:
     ;
 
 sql_cte_list:
-    sql_common_table_expr                       { $$ = ctx.List({ $1 }); }
-  | sql_cte_list COMMA sql_common_table_expr    { $1->push_back($3); $$ = std::move($1); }
+    sql_common_element_expr                     { $$ = ctx.List({ $1 }); }
+  | sql_cte_list COMMA sql_common_element_expr  { $1->push_back($3); $$ = std::move($1); }
     ;
 
 sql_common_table_expr:
-    sql_name sql_opt_name_list AS LRB sql_preparable_stmt RRB {
+    sql_name AS LRB sql_preparable_stmt RRB sql_create_generic_options {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_CTE, {
             Attr(Key::SQL_CTE_NAME, $1),
-            Attr(Key::SQL_CTE_COLUMNS, ctx.Array(@2, std::move($2))),
-            Attr(Key::SQL_CTE_STATEMENT, std::move($5)),
+            Attr(Key::SQL_CTE_STATEMENT, std::move($4)),
+            Attr(Key::SQL_CTE_OPTIONS, $6),
+        });
+    }
+  | sql_name LRB sql_name_list RRB AS LRB sql_preparable_stmt RRB sql_create_generic_options {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_CTE, {
+            Attr(Key::SQL_CTE_NAME, $1),
+            Attr(Key::SQL_CTE_COLUMNS, ctx.Array(@3, std::move($3))),
+            Attr(Key::SQL_CTE_STATEMENT, std::move($7)),
+            Attr(Key::SQL_CTE_OPTIONS, $9),
         });
     }
     ;
@@ -615,6 +623,12 @@ sql_table_ref:
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_TABLEREF, {
             Attr(Key::SQL_TABLEREF_ALIAS, $4),
             Attr(Key::SQL_TABLEREF_TABLE, std::move(t)),
+        });
+    }
+  | sql_graph_table_ref sql_opt_alias_clause {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_TABLEREF, {
+            Attr(Key::SQL_TABLEREF_ALIAS, $2),
+            Attr(Key::SQL_TABLEREF_TABLE, $1),
         });
     }
     ;
@@ -1819,6 +1833,9 @@ sql_subquery_quantifier:
 
 sql_all_op:
     Op              { $$ = Operator(@1); }
+  | AMPERSAND       { $$ = Operator(@1); }
+  | PIPE            { $$ = Operator(@1); }
+  | EXCLAMATION_MARK { $$ = Operator(@1); }
   | sql_math_op     { $$ = $1; }
     ;
 
@@ -1839,6 +1856,9 @@ sql_math_op:
 
 sql_qual_op:
     Op                                  { $$ = Operator(@1); }
+  | AMPERSAND                           { $$ = Operator(@1); }
+  | PIPE                                { $$ = Operator(@1); }
+  | EXCLAMATION_MARK                    { $$ = Operator(@1); }
   | OPERATOR LRB sql_any_operator RRB   { $$ = ctx.Array(@$, std::move($3)); } // XXX Make object
     ;
 
@@ -2362,11 +2382,6 @@ sql_attrs:
   | DOT sql_attr_name               { $$ = ctx.List({ $2 }); }
   | sql_attrs DOT sql_attr_name     { $1->push_back($3); $$ = std::move($1); }
   | sql_attrs ext_dot_trailing      { $1->push_back(ctx.TrailingDot(@$)); $$ = std::move($1); }
-    ;
-
-sql_opt_name_list:
-    LRB sql_name_list RRB       { $$ = std::move($2); }
-  | %empty                      { $$ = ctx.List(); }
     ;
 
 sql_param_name:

@@ -35,6 +35,28 @@ describe('DashQL formatting', () => {
         catalog.destroy();
     });
 
+    it('formats SQL/PGQ through WebAssembly', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `WITH pg AS PROPERTY GRAPH (VERTEX TABLES (people KEY (id))) SELECT * FROM GRAPH_TABLE(pg MATCH (p:Person) COLUMNS (p.name AS name))`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            160,
+            4,
+        );
+        script.parse();
+        expect(script.isFullyFormattable(config)).toBe(true);
+        const formatted = script.format(config, catalog);
+
+        expect(formatted.toString()).toContain('with pg as property graph');
+        expect(formatted.toString()).toContain('graph_table');
+
+        formatted.destroy();
+        script.destroy();
+        catalog.destroy();
+    });
+
     it('instantiates WebAssembly module', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

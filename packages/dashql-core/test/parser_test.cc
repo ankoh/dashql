@@ -414,6 +414,23 @@ TEST(ParserTest, DetectsParsedScriptFeatures) {
 
 }
 
+TEST(ParserTest, ParsesGraphPatternQuantifiers) {
+    auto script = ParseString(R"SQL(
+WITH pg AS PROPERTY GRAPH ()
+SELECT * FROM GRAPH_TABLE(
+    pg MATCH -[]->{2}, -[]->{1,2}, -[]->{,2}, -[]->{2,}, -[]->{,}
+)
+)SQL");
+    EXPECT_TRUE(script->errors.empty()) << (script->errors.empty() ? "" : script->errors.front().message);
+}
+
+TEST(ParserTest, RejectsWhitespaceInsideGraphEdgeOperators) {
+    auto script = ParseString(
+        "WITH pg AS PROPERTY GRAPH () SELECT * FROM GRAPH_TABLE(pg MATCH - [e:Edge]->)");
+    ASSERT_FALSE(script->errors.empty());
+    EXPECT_NE(script->errors.front().message.find("-["), std::string::npos);
+}
+
 TEST(ParserTest, ParsesTrailingVisualization) {
     constexpr std::string_view input = R"SQL(
 SELECT * FROM sales WHERE revenue > 0

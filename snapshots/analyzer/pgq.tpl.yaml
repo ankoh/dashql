@@ -1,0 +1,26 @@
+analyzer-snapshots:
+  - name: syntax_only_graph_isolation
+    script:
+      input: |-
+        WITH pg AS PROPERTY GRAPH (
+          VERTEX TABLES (
+            graph_vertices KEY (vertex_key)
+              LABEL Person PROPERTIES (vertex_property)
+          )
+        )
+        SELECT o.outer_column
+        FROM outer_source o,
+             GRAPH_TABLE(
+               pg MATCH (p:Person WHERE p.path_property = 1)
+               COLUMNS (p.vertex_property AS matched_property)
+             ) gt
+
+  - name: syntax_only_graph_subquery
+    script:
+      input: |-
+        WITH pg AS PROPERTY GRAPH (
+          VERTEX TABLES (
+            (SELECT inner_column FROM inner_source) AS vertices KEY (inner_column)
+          )
+        )
+        SELECT outer_column FROM outer_source

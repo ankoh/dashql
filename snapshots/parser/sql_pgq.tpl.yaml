@@ -1,0 +1,38 @@
+parser-snapshots:
+  - name: pgq_empty_graph
+    input: WITH pg AS PROPERTY GRAPH () SELECT 1
+
+  - name: pgq_full_definition
+    input: |-
+      WITH pg AS PROPERTY GRAPH (
+        VERTEX TABLES (
+          people AS person KEY (id) LABEL Person PROPERTIES (id, name AS display_name),
+          (SELECT id, name FROM companies) AS company KEY (id) DEFAULT LABEL
+        )
+        EDGE TABLES (
+          works_at KEY (person_id, company_id)
+            SOURCE KEY (person_id) REFERENCES person (id)
+            DESTINATION KEY (company_id) REFERENCES company (id)
+            LABEL WorksAt PROPERTIES ARE ALL COLUMNS EXCEPT (internal_id)
+        )
+      )
+      SELECT 1
+
+  - name: pgq_synonyms_and_properties
+    input: |-
+      WITH pg AS PROPERTY GRAPH (
+        NODE TABLES (people KEY (id) NO PROPERTIES)
+        RELATIONSHIP TABLES (
+          knows KEY (src, dst) SOURCE people DESTINATION people LABEL Knows
+        )
+      )
+      SELECT 1
+
+  - name: pgq_graph_table
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a:Person)-[e:Knows]->{1,3}(b:Person)
+        ONE ROW PER MATCH
+        COLUMNS (a.name AS source_name)
+      ) gt

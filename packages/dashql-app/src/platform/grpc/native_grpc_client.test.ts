@@ -23,9 +23,9 @@ describe('Native gRPC client', () => {
         bridge = new NativeAPIRustBridge();
         vi.spyOn(globalThis, 'fetch').mockImplementation((req) => bridge.process(req as Request));
     });
-    afterEach(() => {
+    afterEach(async () => {
         vi.restoreAllMocks();
-        bridge.close();
+        await bridge.close();
     });
     const fakeMetadataProvider: ChannelMetadataProvider = {
         getRequestMetadata(): Promise<Record<string, string>> {

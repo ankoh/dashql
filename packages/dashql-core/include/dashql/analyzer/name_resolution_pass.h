@@ -57,6 +57,8 @@ struct NameResolutionPass : public PassManager::LTRPass {
         std::vector<std::reference_wrapper<RegisteredName>> column_aliases;
     };
     std::vector<PendingDerivedTable> pending_derived_tables;
+    /// Is the node nested inside syntax-only property graph syntax?
+    bool IsInsideGraphSyntax(uint32_t ast_node_id) const;
     /// Return the statement that contains an AST node.
     uint32_t FindStatementId(uint32_t ast_node_id) const;
 

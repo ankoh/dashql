@@ -21,6 +21,7 @@ LIB_SRCS = [
     "src/formatter/formatter_create.cc",
     "src/formatter/formatter_explain.cc",
     "src/formatter/formatter_insert.cc",
+    "src/formatter/formatter_pgq.cc",
     "src/formatter/formatter_select.cc",
     "src/formatter/formatter_vis.cc",
     "src/formatter/formatting_program.cc",
@@ -115,7 +116,7 @@ WASM_COPTS = [
     "-fconstexpr-steps=100000000",
     "-mbulk-memory",
 ]
-WASM_LINKOPTS = dashql_wasm_linkopts(CORE_WASM_EXPORTS, 16777216, "web,node")
+WASM_LINKOPTS = dashql_wasm_linkopts(CORE_WASM_EXPORTS, 16777216, "web,node") + ["-sSTACK_SIZE=1048576"]
 
 # Parser generated .cc compiled with -O1 only (bison output has huge local count at -O0).
 cc_library(

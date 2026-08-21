@@ -177,6 +177,22 @@ buffers::parser::NumericType ParseContext::ReadFloatType(buffers::parser::Symbol
     return buffers::parser::NumericType::FLOAT4;
 }
 
+void ParseContext::RequireAdjacent(buffers::parser::SymbolSpan left, buffers::parser::SymbolSpan right,
+                                   std::string_view spelling) {
+    auto left_text = program.ResolveTextSpan(left);
+    auto right_text = program.ResolveTextSpan(right);
+    if (left_text.offset() + left_text.length() != right_text.offset()) {
+        AddError(Loc({left, right}), std::string{"expected adjacent punctuation \""} +
+                                         std::string{spelling} + "\"");
+    }
+}
+
+void ParseContext::RequireOperator(buffers::parser::SymbolSpan loc, std::string_view spelling) {
+    if (program.ReadTextAtSymbolSpan(loc) != spelling) {
+        AddError(loc, std::string{"expected operator \""} + std::string{spelling} + "\"");
+    }
+}
+
 /// Add an object
 buffers::parser::Node ParseContext::Object(buffers::parser::SymbolSpan loc, buffers::parser::NodeType type,
                                            BackedUniquePtr<NodeList>&& attr_list, bool null_if_empty,

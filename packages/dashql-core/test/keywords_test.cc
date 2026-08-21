@@ -17,4 +17,11 @@ TEST(KeywordsTest, KeywordsAreSorted) {
     EXPECT_TRUE(keywords_are_sorted);
 }
 
+TEST(KeywordsTest, ScannerTokenIdsMatchGeneratedParser) {
+    ASSERT_NE(Keyword::Find("select"), nullptr);
+    EXPECT_EQ(Keyword::Find("select")->scanner_token, Parser::token::FQL_SELECT);
+    ASSERT_NE(Keyword::Find("graph_table"), nullptr);
+    EXPECT_EQ(Keyword::Find("graph_table")->scanner_token, Parser::token::FQL_GRAPH_TABLE);
+}
+
 }  // namespace

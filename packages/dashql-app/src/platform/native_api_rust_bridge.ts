@@ -147,10 +147,15 @@ export class NativeAPIRustBridge {
         return await this.processRequest(req);
     }
 
-    close(): void {
-        if (this.childProcess != null) {
-            this.childProcess.kill();
-            this.childProcess = null;
+    async close(): Promise<void> {
+        const child = this.childProcess;
+        if (child != null) {
+            const closed = new Promise<void>(resolve => child.once('close', () => resolve()));
+            child.kill();
+            await closed;
+            if (this.childProcess === child) {
+                this.childProcess = null;
+            }
         }
         this.pending.clear();
         this.stdoutBuffer = '';

@@ -120,6 +120,18 @@ struct Formatter {
     FmtReg FormatCaseClause(const buffers::parser::Node& node);
     FmtReg FormatExistsExpression(const buffers::parser::Node& node);
     FmtReg FormatCTE(const buffers::parser::Node& node);
+    FmtReg FormatPropertyGraph(const buffers::parser::Node& node);
+    FmtReg FormatGraphElementTable(const buffers::parser::Node& node);
+    FmtReg FormatGraphVertexReference(const buffers::parser::Node& node);
+    FmtReg FormatGraphLabel(const buffers::parser::Node& node);
+    FmtReg FormatGraphProperties(const buffers::parser::Node& node);
+    FmtReg FormatGraphProperty(const buffers::parser::Node& node);
+    FmtReg FormatGraphTable(const buffers::parser::Node& node);
+    FmtReg FormatGraphMatch(const buffers::parser::Node& node);
+    FmtReg FormatGraphPathElement(const buffers::parser::Node& node);
+    FmtReg FormatGraphQuantifier(const buffers::parser::Node& node);
+    FmtReg FormatGraphLabelExpression(const buffers::parser::Node& node);
+    FmtReg FormatGraphRows(const buffers::parser::Node& node);
     FmtReg FormatExtractTarget(const buffers::parser::Node& node);
     FmtReg FormatTrimDirection(const buffers::parser::Node& node);
     FmtReg FormatGenericOption(const buffers::parser::Node& node);

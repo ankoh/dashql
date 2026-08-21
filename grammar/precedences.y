@@ -39,7 +39,7 @@
  */
 %nonassoc   UNBOUNDED        /* ideally should have same precedence as IDENT */
 %nonassoc   IDENT GENERATED NULL_P PARTITION RANGE ROWS PRECEDING FOLLOWING CUBE ROLLUP
-%left       Op OPERATOR        /* multi-character ops and user-defined operators */
+%left       Op OPERATOR AMPERSAND PIPE EXCLAMATION_MARK /* multi-character ops and user-defined operators */
 %left       PLUS MINUS
 %left       STAR DIVIDE MODULO
 %left       CIRCUMFLEX

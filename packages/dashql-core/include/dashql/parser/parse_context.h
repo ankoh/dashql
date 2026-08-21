@@ -127,6 +127,11 @@ class ParseContext {
 
     /// Read a float type
     buffers::parser::NumericType ReadFloatType(buffers::parser::SymbolSpan bitsLoc);
+    /// Require punctuation tokens to be adjacent in the source text.
+    void RequireAdjacent(buffers::parser::SymbolSpan left, buffers::parser::SymbolSpan right,
+                         std::string_view spelling);
+    /// Require a generic operator token to use an exact spelling.
+    void RequireOperator(buffers::parser::SymbolSpan loc, std::string_view spelling);
 
     /// Add a node
     NodeID AddNode(buffers::parser::Node node);

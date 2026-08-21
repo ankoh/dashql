@@ -1,0 +1,69 @@
+analyzer-snapshots:
+
+  - name: syntax_only_graph_isolation
+    script:
+      input: |-
+        WITH pg AS PROPERTY GRAPH (
+          VERTEX TABLES (
+            graph_vertices KEY (vertex_key)
+              LABEL Person PROPERTIES (vertex_property)
+          )
+        )
+        SELECT o.outer_column
+        FROM outer_source o,
+             GRAPH_TABLE(
+               pg MATCH (p:Person WHERE p.path_property = 1)
+               COLUMNS (p.vertex_property AS matched_property)
+             ) gt
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "outer_source o"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "o.outer_column"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 1
+          text: "1"
+      inferred-tables:
+        - name: outer_source
+          confidence: confident
+          columns:
+            - name: outer_column
+              confidence: confident
+
+  - name: syntax_only_graph_subquery
+    script:
+      input: |-
+        WITH pg AS PROPERTY GRAPH (
+          VERTEX TABLES (
+            (SELECT inner_column FROM inner_source) AS vertices KEY (inner_column)
+          )
+        )
+        SELECT outer_column FROM outer_source
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "outer_source"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "outer_column"
+      inferred-tables:
+        - name: outer_source
+          confidence: confident
+          columns:
+            - name: outer_column
+              confidence: confident

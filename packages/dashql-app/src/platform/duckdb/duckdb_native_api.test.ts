@@ -26,9 +26,9 @@ describe('NativeDuckDB API', () => {
         });
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         vi.restoreAllMocks();
-        bridge?.close();
+        await bridge?.close();
         bridge = null;
     });
 

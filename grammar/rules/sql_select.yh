@@ -32,7 +32,6 @@
 %type <BackedUniquePtr<NodeList>> sql_opt_for_locking_clause;
 %type <BackedUniquePtr<NodeList>> sql_opt_frame_clause;
 %type <BackedUniquePtr<NodeList>> sql_opt_indirection;
-%type <BackedUniquePtr<NodeList>> sql_opt_name_list;
 %type <BackedUniquePtr<NodeList>> sql_opt_partition_clause;
 %type <BackedUniquePtr<NodeList>> sql_opt_select_limit;
 %type <BackedUniquePtr<NodeList>> sql_opt_target_list;

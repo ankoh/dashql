@@ -173,6 +173,7 @@ INSTANTIATE_TEST_SUITE_P(OrderBy, FormatterValidationHyperTestSuite, ::testing::
 INSTANTIATE_TEST_SUITE_P(Functions, FormatterValidationHyperTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("functions.yaml", "hyper")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Comments, FormatterValidationHyperTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("comments.yaml", "hyper")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Statements, FormatterValidationHyperTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("statements.yaml", "hyper")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(PGQ, FormatterValidationHyperTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("pgq.yaml", "hyper")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Insert, FormatterValidationHyperTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("insert.yaml", "hyper")), FormatterSnapshotTest::TestPrinter());
 
 }  // namespace
