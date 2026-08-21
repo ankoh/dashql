@@ -44,6 +44,8 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     const [status, setStatus] = React.useState('Instantiating Shell');
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
     const resultQuery = useQueryState(connection?.notebookId ?? null, resultQueryId);
+    const connectorName = connection?.connectorInfo.names.displayShort ?? '';
+    const shellName = `${connectorName} Shell`;
     const relationsSql = connection?.catalogRelationScript.toString() ?? '';
     const functionsSql = connection?.catalogFunctionScript.toString() ?? '';
 
@@ -84,8 +86,8 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
                 controllerRef.current = await embedDashQLShell({
                     container: containerRef.current,
                     shell: nextShell,
-                    greeter: ['DashQL Shell', 'Enter .help for usage hints.'],
-                    prompt: `${connection.connectorInfo.names.displayShort.toLowerCase()}> `,
+                    greeter: [shellName, 'Enter .help for usage hints.'],
+                    prompt: `${connectorName.toLowerCase()}> `,
                     onExit: () => setMode(NotebookViewMode.Notebook),
                     onQueryResult: setResultQueryId,
                     onTerminalResize: columns => { terminalColumnsRef.current = columns; },
@@ -109,7 +111,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         return () => {
             cancelled = true;
         };
-    }, [connection?.notebookId, relationsSql, functionsSql, executeQuery, cancelQuery, setMode]);
+    }, [connection?.notebookId, connectorName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();
@@ -128,7 +130,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     }, []);
 
     return (
-        <main className={styles.page} aria-label="DashQL shell">
+        <main className={styles.page} aria-label={shellName}>
             <div className={styles.terminal}>
                 <div ref={containerRef} className={styles.terminalHost} />
             </div>
