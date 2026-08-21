@@ -86,6 +86,12 @@ function getToNumericFn(typeId: arrow.Type): string | undefined {
 ///     with the new set of cross-filters and update the UI.
 ///
 export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, database: EmbeddedComputeDatabase, logger: LoggerLike, projection?: UmapRequest): Promise<void> {
+    // Statements such as DDL can legitimately produce an Arrow table without columns. There is
+    // nothing to summarize, and embedded databases reject importing a zero-column table.
+    if (table.numCols === 0) {
+        return;
+    }
+
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({
