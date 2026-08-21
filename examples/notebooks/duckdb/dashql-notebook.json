@@ -1,0 +1,12 @@
+{
+  "notebookId": "b0c6bf33-0f74-4384-ac74-0e2484f241b2",
+  "name": "DuckDB",
+  "connectionParams": {
+    "duckdb": {}
+  },
+  "metadata": {
+    "createdAt": "2026-08-17T18:45:17.113Z"
+  },
+  "storageType": "native",
+  "nativePath": "/Users/andre.kohn/Repositories/dashql/examples/notebooks/duckdb"
+}
