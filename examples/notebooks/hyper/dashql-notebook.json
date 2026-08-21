@@ -11,10 +11,7 @@
         "caCertsPath": ""
       },
       "attachedDatabases": [],
-      "metadata": {
-        "message": "",
-        "details": {}
-      },
+      "metadata": {},
       "queryParameters": {
         "user": "tableau_internal_user"
       }
