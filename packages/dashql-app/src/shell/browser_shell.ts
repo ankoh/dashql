@@ -81,6 +81,10 @@ export function sanitizeTerminalText(data: string): string {
         .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
 }
 
+export function isTerminalCancelData(data: string): boolean {
+    return data === '\x03';
+}
+
 export function terminalPromptInputForKey(key: string, primaryModifier = false): DashQLShellPromptInput | null {
     if (primaryModifier) {
         switch (key.toLowerCase()) {
@@ -252,6 +256,10 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
 
     const dataSubscription: IDisposable = terminal.onData(data => {
         if (disposed || activeQuery != null) return;
+        if (isTerminalCancelData(data)) {
+            consume(DashQLShellPromptInput.CANCEL);
+            return;
+        }
         const text = sanitizeTerminalText(data);
         if (text.length > 0) consume(DashQLShellPromptInput.TEXT, text);
     });

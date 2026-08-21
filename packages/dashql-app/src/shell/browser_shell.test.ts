@@ -5,6 +5,7 @@ import { DashQLShellPromptInput } from './api.js';
 import {
     formatQueryCompletion,
     formatTerminalGreeter,
+    isTerminalCancelData,
     loadWebglRenderer,
     sanitizeTerminalText,
     TerminalQueryProgress,
@@ -28,6 +29,11 @@ describe('browser shell input', () => {
         expect(sanitizeTerminalText('SELECT 界')).toBe('SELECT 界');
         expect(sanitizeTerminalText('SELECT 1;\r\nSELECT 2;')).toBe('SELECT 1;\nSELECT 2;');
         expect(sanitizeTerminalText('SELECT\tvalue')).toBe('SELECT\tvalue');
+    });
+
+    it('recognizes Ctrl+C from the terminal data channel', () => {
+        expect(isTerminalCancelData('\x03')).toBe(true);
+        expect(isTerminalCancelData('c')).toBe(false);
     });
 
     it('maps vertical arrows to prompt navigation', () => {
