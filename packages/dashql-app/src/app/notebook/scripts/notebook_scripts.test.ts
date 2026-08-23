@@ -20,8 +20,6 @@ import {
     SET_SCRIPT_TEXT,
     destroyNotebookScripts,
     compileQuery,
-    getScriptKeysInFeedOrder,
-    analyzeAllScripts,
     SELECT_NEXT_SCRIPT,
     SELECT_NEXT_SCRIPT_FOLDER,
     SELECT_SCRIPT_FOLDER,
@@ -190,6 +188,10 @@ describe('external storage replacement', () => {
         expect(retainedAfter.script.toString()).toBe('SELECT 2');
         expect(next.scripts[next.scriptFolders[MAIN_FOLDER].scripts['2_added.sql'].scriptId].script.toString()).toBe('SELECT 3');
         expect(next.scripts[next.uncommittedScriptId].script.toString()).toBe('SELECT 4');
+        for (const scriptData of Object.values(next.scripts)) {
+            expect(scriptData.scriptAnalysis.outdated).toBe(true);
+            expect(scriptData.scriptAnalysis.buffers.analyzed).toBeNull();
+        }
         expect(notebookScriptsMatchStorageSnapshot(next, {
             folders: [{
                 name: MAIN_FOLDER,
@@ -200,6 +202,28 @@ describe('external storage replacement', () => {
             }],
             draft: 'SELECT 4',
         })).toBe(true);
+
+        destroyNotebookScripts(next);
+        next.connectionCatalog.destroy();
+    });
+
+    it('invalidates analyzed scripts after a catalog reload without reanalyzing them', () => {
+        let state = buildState();
+        const scriptKey = state.scriptFolders[MAIN_FOLDER].scripts[state.scriptFocus.fileName].scriptId;
+        state.scripts[scriptKey].script.replaceText('SELECT 1');
+        state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
+        expect(state.scripts[scriptKey].scriptAnalysis.outdated).toBe(false);
+
+        const next = replaceNotebookScriptsFromStorage(state, {
+            folders: [{
+                name: MAIN_FOLDER,
+                scripts: [{ name: state.scriptFocus.fileName, sql: 'SELECT 1' }],
+            }],
+            draft: null,
+        }, logger, true);
+
+        expect(next.scripts[scriptKey].scriptAnalysis.outdated).toBe(true);
+        expect(next.scripts[scriptKey].scriptAnalysis.buffers.analyzed).not.toBeNull();
 
         destroyNotebookScripts(next);
         next.connectionCatalog.destroy();
@@ -1318,79 +1342,6 @@ describe('compileQuery', () => {
         expect(compileQuery(next.scripts[scriptKey])).toBe(script);
     });
 
-
-});
-
-// ---------------------------------------------------------------------------
-// analyzeAllScripts / getScriptKeysInFeedOrder
-// ---------------------------------------------------------------------------
-
-describe('getScriptKeysInFeedOrder', () => {
-    it('orders pages top-down (sorted folders, sorted files) then the uncommitted script', () => {
-        // buildState gives one Main page with one entry + an uncommitted script.
-        // Add a second page and a second entry on Main to exercise the ordering.
-        let state = buildState();
-        const mainFile = state.scriptFocus.fileName;
-        state = reduce(state, { type: CREATE_SCRIPT, value: null }); // 2nd entry on Main
-        state = reduce(state, { type: CREATE_SCRIPT_FOLDER, value: null }); // 'Untitled' page + auto script
-
-        const order = getScriptKeysInFeedOrder(state);
-
-        // Build the expected order independently from the page maps.
-        const expected: number[] = [];
-        for (const folder of getSortedScriptFolderNames(state.scriptFolders)) {
-            const page = state.scriptFolders[folder];
-            for (const file of getSortedScriptFileNames(page)) {
-                expected.push(page.scripts[file].scriptId);
-            }
-        }
-        expected.push(state.uncommittedScriptId);
-
-        expect(order).toEqual(expected);
-        // 'Main' sorts before 'Untitled', so the original Main entry comes first. CREATE_SCRIPT_FOLDER
-        // re-prefixed the page ('Main' -> '1_Main'), so resolve it under its current name.
-        const mainFolder = getSortedScriptFolderNames(state.scriptFolders)[0];
-        const mainFirstScriptId = state.scriptFolders[mainFolder].scripts[mainFile].scriptId;
-        expect(order[0]).toBe(mainFirstScriptId);
-        // The uncommitted composer script is always last.
-        expect(order[order.length - 1]).toBe(state.uncommittedScriptId);
-    });
-
-    it('has no duplicates and covers every script', () => {
-        let state = buildState();
-        state = reduce(state, { type: CREATE_SCRIPT, value: null });
-        const order = getScriptKeysInFeedOrder(state);
-        expect(new Set(order).size).toBe(order.length);
-        expect(new Set(order)).toEqual(new Set(Object.keys(state.scripts).map(Number)));
-    });
-});
-
-describe('analyzeAllScripts', () => {
-    it('analyzes every script in a single pass and reports per-script progress', () => {
-        let state = buildState();
-        state = reduce(state, { type: CREATE_SCRIPT, value: null });
-        // Seed real SQL so analysis produces non-null buffers.
-        for (const key of Object.keys(state.scripts)) {
-            state.scripts[+key].script.replaceText('SELECT 1 as x');
-        }
-
-        const counts: boolean[] = [];
-        let reportedTotal = -1;
-        const next = analyzeAllScripts(state, logger, {
-            onScriptCount: (n) => { reportedTotal = n; },
-            onScriptDone: (ok) => { counts.push(ok); },
-        });
-
-        const scriptCount = Object.keys(state.scripts).length;
-        expect(reportedTotal).toBe(scriptCount);
-        expect(counts.length).toBe(scriptCount);
-        expect(counts.every(Boolean)).toBe(true);
-        // Every script now has an analyzed copy and is no longer outdated.
-        for (const key of Object.keys(next.scripts)) {
-            expect(next.scripts[+key].scriptAnalysis.outdated).toBe(false);
-            expect(next.scripts[+key].scriptAnalysis.buffers.analyzed).not.toBeNull();
-        }
-    });
 
 });
 

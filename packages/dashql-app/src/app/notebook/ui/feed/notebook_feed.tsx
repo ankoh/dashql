@@ -17,7 +17,7 @@ import { OutputColumn } from '../../scripts/script_agent_context.js';
 import { createNotebookScriptsAgentHost } from '../../scripts/script_agent_host.js';
 import { QueryType } from '../../connections/query_execution_state.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
-import type { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
+import { ensureNotebookScriptAnalyzed, type ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
 import { normalizeScriptFolderName, projectionForVisualizeQuery, scriptDisplayName } from '../../scripts/script_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../../../utils/key_events.js';
 import { TabKey as DetailsTabKey } from '../script_details.js';
@@ -300,33 +300,50 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         const prompt = composeEditorView?.state.doc.toString().trim() ?? '';
         if (prompt.length === 0) return;
         const contextScriptKey = aiContextScript?.scriptKey ?? null;
-
-        // Build the notebook adapter the run acts on. It closes over the focused script and the
-        // NotebookScripts dispatch; for visualize runs it also exposes each script's last-execution output
-        // schema (from the connection state) so the agent context can describe the chart's columns.
-        const host = createNotebookScriptsAgentHost({
-            notebookScripts: props.notebookScripts,
-            contextScriptKey,
-            modifyNotebookScripts: props.modifyNotebookScripts,
-            resolveOutputColumns: (scriptKey) => outputColumnsForScript(props.notebookScripts, props.conn, scriptKey),
-            logger,
-        });
-        startAgentRun({
-            notebookId: props.notebookScripts.notebookId,
-            prompt,
-            contextScriptKey,
-            // Intent is always classified by the model (no manual Query/Chart override).
-            intentOverride: null,
-            host,
-        });
-
-        // Clear the prompt so the next instruction starts fresh (the editor's docChanged also
-        // resets the persisted draft via onChange, but clear the ref explicitly to be safe).
-        aiPromptTextRef.current = '';
-        if (composeEditorView) {
-            composeEditorView.dispatch({
-                changes: { from: 0, to: composeEditorView.state.doc.length, insert: '' },
+        const start = (notebookScripts: NotebookScripts) => {
+            // Build the notebook adapter the run acts on. It closes over the focused script and the
+            // NotebookScripts dispatch; for visualize runs it also exposes each script's last-execution output
+            // schema (from the connection state) so the agent context can describe the chart's columns.
+            const host = createNotebookScriptsAgentHost({
+                notebookScripts,
+                contextScriptKey,
+                modifyNotebookScripts: props.modifyNotebookScripts,
+                resolveOutputColumns: (scriptKey) => outputColumnsForScript(notebookScripts, props.conn, scriptKey),
+                logger,
             });
+            startAgentRun({
+                notebookId: notebookScripts.notebookId,
+                prompt,
+                contextScriptKey,
+                // Intent is always classified by the model (no manual Query/Chart override).
+                intentOverride: null,
+                host,
+            });
+
+            // Clear the prompt so the next instruction starts fresh (the editor's docChanged also
+            // resets the persisted draft via onChange, but clear the ref explicitly to be safe).
+            aiPromptTextRef.current = '';
+            if (composeEditorView) {
+                composeEditorView.dispatch({
+                    changes: { from: 0, to: composeEditorView.state.doc.length, insert: '' },
+                });
+            }
+        };
+
+        if (contextScriptKey != null && aiContextScript?.scriptAnalysis.outdated) {
+            void ensureNotebookScriptAnalyzed(
+                props.notebookScripts,
+                contextScriptKey,
+                props.modifyNotebookScripts,
+            ).then((context) => {
+                if (context == null) return;
+                start({
+                    ...props.notebookScripts,
+                    scripts: { ...props.notebookScripts.scripts, [contextScriptKey]: context },
+                });
+            });
+        } else {
+            start(props.notebookScripts);
         }
     }, [aiAvailable, aiContextScript, composeEditorView, props.notebookScripts, props.conn, props.modifyNotebookScripts, startAgentRun]);
 

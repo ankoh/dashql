@@ -187,18 +187,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             status={getStatusFromProgressCounter(props.progress.restoreNotebookScripts)}
                                         />
                                     </div>
-                                    <div className={pageStyles.detail_entry_key}>
-                                        Analyze Scripts
-                                    </div>
-                                    <div className={pageStyles.detail_entry_value}>
-                                        <StatusIndicator
-                                            className={pageStyles.loading_status_indicator}
-                                            fill="black"
-                                            width={"14px"}
-                                            height={"14px"}
-                                            status={getStatusFromProgressCounter(props.progress.analyzeScripts)}
-                                        />
-                                    </div>
                                 </div>
                             </div>
                             {props.pauseAfterSetup && (

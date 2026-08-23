@@ -1617,8 +1617,8 @@ export function destroyNotebookScripts(state: NotebookScripts): NotebookScripts 
 export function replaceNotebookScriptsFromStorage(
     state: NotebookScripts,
     snapshot: NotebookScriptsStorageSnapshot,
-    logger: Logger,
-    forceAnalyze: boolean = false,
+    _logger: Logger,
+    catalogChanged: boolean = false,
 ): NotebookScripts {
     const existingByPath = new Map<string, ScriptData>();
     for (const script of Object.values(state.scripts)) {
@@ -1719,16 +1719,15 @@ export function replaceNotebookScriptsFromStorage(
         },
     };
 
-    if (contentChanged || forceAnalyze) {
-        // Cross-script references can be affected by any add/remove/content change. Re-analyzing the
-        // complete notebook produces the same coherent catalog state as startup restoration.
+    if (contentChanged || catalogChanged) {
+        // Cross-script references can be affected by any add/remove/content or catalog change.
+        // Invalidate the notebook and let each script reanalyze at its next explicit use.
         for (const key in next.scripts) {
             next.scripts[key] = {
                 ...next.scripts[key],
                 scriptAnalysis: { ...next.scripts[key].scriptAnalysis, outdated: true },
             };
         }
-        next = analyzeAllScripts(next, logger);
     }
     return next;
 }
@@ -1980,82 +1979,4 @@ export function analyzeOutdatedScript<V extends NotebookScriptsInput>(state: V, 
         next.semanticUserFocus = deriveFocusFromScriptCursor(scriptKey, nextScriptData);
     }
     return next;
-}
-
-/// Progress hooks for analyzeAllScripts.
-///
-/// The work is synchronous, so these fire while the caller is blocked — they are
-/// for driving a ProgressCounter (accurate per-script accounting), not for
-/// repainting mid-loop.
-export interface AnalyzeAllScriptsProgress {
-    /// Reports how many scripts will be analyzed, before any work starts.
-    onScriptCount?: (count: number) => void;
-    /// Reports the outcome of a single script once both passes are done.
-    onScriptDone?: (ok: boolean) => void;
-}
-
-/// Returns notebook script keys in script-feed order: pages top-down (sorted
-/// folders, then sorted files within each), followed by the uncommitted composer
-/// script. Any scripts not reachable through the pages/composer are appended so
-/// none are silently dropped.
-export function getScriptKeysInFeedOrder<V extends NotebookScriptsInput>(state: V): number[] {
-    const ordered: number[] = [];
-    const seen = new Set<number>();
-    const push = (scriptKey: number) => {
-        if (state.scripts[scriptKey] != null && !seen.has(scriptKey)) {
-            seen.add(scriptKey);
-            ordered.push(scriptKey);
-        }
-    };
-    for (const folder of getSortedScriptFolderNames(state.scriptFolders)) {
-        const page = state.scriptFolders[folder];
-        for (const fileName of getSortedScriptFileNames(page)) {
-            push(page.scripts[fileName].scriptId);
-        }
-    }
-    if (state.uncommittedScriptId !== 0) {
-        push(state.uncommittedScriptId);
-    }
-    // Backstop: include any remaining scripts (e.g. orphaned) so analysis covers them.
-    for (const key in state.scripts) {
-        push(+key);
-    }
-    return ordered;
-}
-
-/// Analyze every script in a notebook eagerly, in a single top-down pass.
-///
-/// This is meant to be run once at load time so that every script has at least
-/// one analyzed copy (and derived annotations, incl. the resolved VISUALIZE
-/// query) before the user can interact with it. Without this, scripts start out
-/// `outdated` with `analyzed: null` and only get analyzed lazily (when rendered
-/// in an editor, edited, or executed) — which is what caused the first-run
-/// VISUALIZE bug where the raw `visualize (...)` text was sent to the backend.
-///
-/// Scripts are analyzed in script-feed order (top-down). Notebook references
-/// point upward — a script references entries declared above it in the feed — so
-/// by the time we analyze a script, every script it depends on has already been
-/// analyzed and loaded into the catalog. A single pass therefore resolves
-/// catalog references without a second reconciliation pass. The catalog must
-/// already be populated when this is called.
-///
-/// Failures are isolated per script: one un-analyzable script is logged and
-/// reported via `progress.onScriptDone(false)` but does not abort analysis of
-/// the rest of the notebook.
-export function analyzeAllScripts<V extends NotebookScriptsInput>(state: V, logger: Logger, progress?: AnalyzeAllScriptsProgress): V {
-    const scripts = { ...state.scripts };
-    const orderedKeys = getScriptKeysInFeedOrder(state);
-    progress?.onScriptCount?.(orderedKeys.length);
-
-    for (const scriptKey of orderedKeys) {
-        let ok = false;
-        try {
-            scripts[scriptKey] = analyzeScriptData(scripts[scriptKey], state.connectionCatalog, logger);
-            ok = true;
-        } catch (e) {
-            logger.warn("Failed to analyze notebook script", { scriptKey: scriptKey.toString(), error: stringifyError(e) }, LOG_CTX);
-        }
-        progress?.onScriptDone?.(ok);
-    }
-    return { ...state, scripts };
 }

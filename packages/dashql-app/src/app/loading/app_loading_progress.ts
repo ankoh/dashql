@@ -10,6 +10,4 @@ export interface AppLoadingProgress {
     restoreCatalogs: ProgressCounter;
     /// Restore the notebook scripts
     restoreNotebookScripts: ProgressCounter;
-    /// Analyze the restored scripts
-    analyzeScripts: ProgressCounter;
 }

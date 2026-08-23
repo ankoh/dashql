@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { NotebookScripts, NotebookScriptsAction, destroyNotebookScripts, reduceNotebookScripts } from './notebook_scripts.js';
+import { ANALYZE_OUTDATED_SCRIPT, NotebookScripts, NotebookScriptsAction, ScriptData, destroyNotebookScripts, reduceNotebookScripts } from './notebook_scripts.js';
 import { Dispatch } from '../../../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connections/connector_info.js';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
@@ -25,7 +25,7 @@ export interface NotebookScriptsRegistry {
 export type NotebookScriptsInput = NotebookScripts;
 export type SetNotebookScriptsRegistryAction = React.SetStateAction<NotebookScriptsRegistry>;
 export type NotebookScriptsAllocator = (scripts: NotebookScriptsInput) => [string, NotebookScripts];
-export type ModifyNotebookScripts = (action: NotebookScriptsAction) => void;
+export type ModifyNotebookScripts = (action: NotebookScriptsAction) => Promise<NotebookScripts | null> | void;
 export type ModifyConnectionNotebookScripts = (conn: string, action: NotebookScriptsAction) => void;
 
 const NOTEBOOK_SCRIPTS_REGISTRY_CTX = React.createContext<[NotebookScriptsRegistry, Dispatch<SetNotebookScriptsRegistryAction>] | null>(null);
@@ -123,28 +123,33 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
     const logger = useLogger();
 
     // Queue for batching rapid dispatch calls to avoid concurrent rendering issues
-    const pendingActionsRef = React.useRef<NotebookScriptsAction[]>([]);
+    const pendingActionsRef = React.useRef<Array<{
+        action: NotebookScriptsAction;
+        resolve: (state: NotebookScripts | null) => void;
+    }>>([]);
     const flushScheduledRef = React.useRef(false);
 
     // Flush all pending actions in a single state update
     const flushPendingActions = React.useCallback(() => {
         flushScheduledRef.current = false;
-        const actions = pendingActionsRef.current;
-        if (actions.length === 0 || id == null) return;
+        const pending = pendingActionsRef.current;
+        if (pending.length === 0 || id == null) return;
         pendingActionsRef.current = [];
 
         setRegistry((reg: NotebookScriptsRegistry) => {
             // Check if the connection is active to gate storage writes
             const connectionId = connReg.connectionByNotebook.get(id);
             const active = connectionId == null ? false : connReg.connectionMap.get(connectionId)?.active ?? false;
-            for (const action of actions) {
+            for (const { action, resolve } of pending) {
                 const prev = reg.notebookScriptsMap.get(id);
                 if (!prev) {
                     console.warn(`no notebook scripts registered with notebook id ${id}`);
+                    resolve(null);
                     continue;
                 }
                 const next = reduceNotebookScripts(prev, action, storageWriter, logger, active);
                 reg.notebookScriptsMap.set(id, next);
+                resolve(next);
             }
             return { ...reg };
         });
@@ -152,19 +157,36 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
 
     /// Wrapper to modify an individual notebook scripts collection
     const dispatch = React.useCallback((action: NotebookScriptsAction) => {
-        if (id == null) return;
-        // Queue the action
-        pendingActionsRef.current.push(action);
+        if (id == null) return Promise.resolve(null);
+        return new Promise<NotebookScripts | null>((resolve) => {
+            // Queue the action
+            pendingActionsRef.current.push({ action, resolve });
 
-        // Schedule a flush if not already scheduled
-        if (!flushScheduledRef.current) {
-            flushScheduledRef.current = true;
-            queueMicrotask(flushPendingActions);
-        }
+            // Schedule a flush if not already scheduled
+            if (!flushScheduledRef.current) {
+                flushScheduledRef.current = true;
+                queueMicrotask(flushPendingActions);
+            }
+        });
     }, [id, flushPendingActions]);
 
     return [id == null ? null : registry.notebookScriptsMap.get(id) ?? null, dispatch];
 };
+
+/// Return a script with current analysis, synchronizing notebook state first when necessary.
+export async function ensureNotebookScriptAnalyzed(
+    notebookScripts: NotebookScripts,
+    scriptKey: number,
+    modifyNotebookScripts: ModifyNotebookScripts,
+): Promise<ScriptData | null> {
+    const scriptData = notebookScripts.scripts[scriptKey];
+    if (!scriptData) return null;
+    if (!scriptData.scriptAnalysis.outdated) return scriptData;
+    const result = modifyNotebookScripts({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
+    if (!result) return null;
+    const next = await result;
+    return next ? next.scripts[scriptKey] ?? null : null;
+}
 
 export function useConnectionScriptsDispatch(): ModifyConnectionNotebookScripts {
     const [_registry, setRegistry] = React.useContext(NOTEBOOK_SCRIPTS_REGISTRY_CTX)!;

@@ -124,8 +124,8 @@ Notebook scripts reconciliation stays in
 - Changed script text clears stale completion and pending-diff buffers.
 - Existing page/script focus is retained when that path still exists; otherwise focus falls back to
   the first sorted entry.
-- Any notebook or catalog change causes the notebook to be reanalyzed so catalog-dependent analysis
-  and derived annotations remain coherent.
+- Any notebook or catalog change invalidates affected notebook analysis. Scripts are reanalyzed on
+  demand when an editor, execution, agent, or diagnostics flow needs current analysis.
 
 ## Reload Protocol
 
@@ -164,7 +164,8 @@ The coordinator follows these steps for one notebook at a time:
    native dialog is open; if another local edit was scheduled, the old decision is stale and the
    notebook is requeued for a fresh snapshot and decision.
 8. Cancel only conflicting pending notebook/catalog writes when the user accepted that consequence.
-9. Apply catalog state first, then reconcile and reanalyze the notebook against that catalog.
+9. Apply catalog state first, then reconcile the notebook and invalidate analysis that may depend on
+   the changed catalog or notebook contents. Reanalysis happens on demand.
 10. Resume the notebook writer in a `finally` block.
 
 Repeated events for a notebook collapse in a `Set`. The processing loop serializes notebooks, avoiding

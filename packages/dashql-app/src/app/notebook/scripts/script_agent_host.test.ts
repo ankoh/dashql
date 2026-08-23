@@ -16,7 +16,7 @@ import {
     REGISTER_AGENT_RUN,
     createEmptyScriptData,
     reduceNotebookScripts,
-    analyzeAllScripts,
+    analyzeOutdatedScript,
 } from './notebook_scripts.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from '../persistence/storage_writer.js';
@@ -137,7 +137,7 @@ function buildNotebookScripts(focusedSql: string): { state: NotebookScripts; foc
         semanticUserFocus: null,
     };
     // Analyze so annotations (incl. visualizeQuery) and references are populated.
-    state = analyzeAllScripts(state, logger);
+    state = analyzeOutdatedScript(state, committedKey, logger);
     return { state, focusedKey: committedKey };
 }
 

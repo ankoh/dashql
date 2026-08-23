@@ -3,9 +3,7 @@ import * as React from 'react';
 import { ConnectionHealth, printConnectionHealth } from '../connections/connection_state.js';
 import { ConnectorInfo } from '../connections/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
-import { QueryType } from '../connections/query_execution_state.js';
-import { compileQuery, getSelectedScriptRef, SELECT_NEXT_SCRIPT, SELECT_NEXT_SCRIPT_FOLDER, SELECT_PREV_SCRIPT, SELECT_PREV_SCRIPT_FOLDER } from './notebook_scripts.js';
-import { projectionForVisualizeQuery } from './script_types.js';
+import { getSelectedScriptRef, SELECT_NEXT_SCRIPT, SELECT_NEXT_SCRIPT_FOLDER, SELECT_PREV_SCRIPT, SELECT_PREV_SCRIPT_FOLDER } from './notebook_scripts.js';
 import { useCatalogLoaderQueue } from '../connections/catalog_loader.js';
 import { useConnectionState } from '../connections/connection_registry.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
@@ -14,7 +12,7 @@ import { useRouteContext, useRouterNavigate, CHANGE_NOTEBOOK } from '../../route
 import { useNotebookScriptsRegistry, useNotebookScripts } from './notebook_scripts_registry.js';
 import { useAIClient } from '../agent/ai/ai_client_provider.js';
 import { isCatalogRefreshRunning } from '../connections/catalog_update_state.js';
-import { registerNotebookScriptQuery } from '../ui/rerun_query.js';
+import { runNotebookScript } from '../ui/rerun_query.js';
 
 const LOG_CTX = "notebook_commands";
 
@@ -126,25 +124,14 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         const entry = getSelectedScriptRef(notebookScripts);
                         if (!entry) break;
                         const scriptData = notebookScripts.scripts[entry.scriptId];
-                        // Scripts are analyzed eagerly at load and kept analyzed as
-                        // they are edited, so the resolved VISUALIZE query / derived
-                        // annotations are already present here.
-                        const queryText = compileQuery(scriptData, logger);
-                        const [queryId, execution] = executeQuery(connection!.connectionId, {
-                            query: queryText,
-                            analyzeResults: true,
-                            replaceComputationId: scriptData.latestQueryId,
-                            cacheable: true,
-                            projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
-                            metadata: {
-                                queryType: QueryType.USER_PROVIDED,
-                                title: "Notebook Query",
-                                description: null,
-                                issuer: "Query Execution Command",
-                                userProvided: true
-                            }
-                        });
-                        registerNotebookScriptQuery(scriptData, queryId, queryText, execution, modifyNotebookScripts);
+                        await runNotebookScript(
+                            connection!.connectionId,
+                            notebookScripts,
+                            scriptData,
+                            executeQuery,
+                            modifyNotebookScripts,
+                            logger,
+                        );
                     }
                     break;
                 case NotebookCommandType.RefreshCatalog:

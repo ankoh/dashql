@@ -61,7 +61,6 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
         restoreNotebookScripts: new ProgressCounter(),
-        analyzeScripts: new ProgressCounter(),
     }));
     const [setupDone, resolveSetupDone, _rejectSetupDone] = React.useMemo(() => {
         let resolve: () => void;

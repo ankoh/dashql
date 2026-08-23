@@ -36,11 +36,9 @@ describe('restoreAppState', () => {
     let mockCore: DashQL;
     let logger: Logger;
     let progressUpdates: any[];
-    let scriptAnalysisError: Error | null;
 
     beforeEach(() => {
         progressUpdates = [];
-        scriptAnalysisError = null;
 
         mockBackend = {
             getBackendType: vi.fn(() => StorageBackendType.OPFS),
@@ -84,11 +82,9 @@ describe('restoreAppState', () => {
                 const script = {
                     getCatalogEntryId: vi.fn(() => ++scriptIdCounter),
                     replaceText: vi.fn(),
-                    analyze: vi.fn(() => {
-                        if (scriptAnalysisError) throw scriptAnalysisError;
-                    }),
+                    analyze: vi.fn(),
                     toString: vi.fn(() => ''),
-                    // Methods exercised by Phase 4 eager analysis (analyzeNotebookScript):
+                    // Analysis methods used when an ordinary script is requested lazily:
                     getParsed: vi.fn(() => null),
                     getAnalyzed: vi.fn(() => null),
                     getStatistics: vi.fn(() => null),
@@ -554,6 +550,35 @@ describe('restoreAppState', () => {
         expect(connection.catalog.loadScript).toHaveBeenCalled();
     });
 
+    it('restores catalog functions eagerly', async () => {
+        const notebookEntry = { path: SCHEMA_ID };
+        const notebookData: NotebookData = {
+            notebookId: SCHEMA_ID,
+            notebookPath: SCHEMA_ID,
+            name: 'Functions Test',
+            connectionParams: { duckdb: {} },
+            metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' },
+        };
+        const functionsSQL = 'CREATE FUNCTION answer() AS 42;';
+
+        vi.mocked(mockBackend.listNotebooks).mockResolvedValue([notebookEntry]);
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookFunctions).mockResolvedValue(functionsSQL);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
+
+        const result = await restoreAppState(mockCore, mockBackend, logger, () => { });
+        const connection = result.connectionStates.get(result.connectionByNotebook.get(SCHEMA_ID)!)!;
+
+        expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledWith(functionsSQL);
+        expect(connection.catalogFunctionScript.analyze).toHaveBeenCalled();
+        expect(connection.catalog.loadScript).toHaveBeenCalledWith(
+            connection.catalogFunctionScript,
+            expect.any(Number),
+        );
+    });
+
     it('handles catalog restoration failure gracefully', async () => {
         const notebookEntry = { path: CATALOG_FAIL_ID };
         const notebookData: NotebookData = {
@@ -654,9 +679,14 @@ describe('restoreAppState', () => {
 
         // Verify draft script was loaded
         expect(notebookScripts.scripts[notebookScripts.uncommittedScriptId].script.replaceText).toHaveBeenCalledWith('-- my draft');
+        for (const scriptData of Object.values(notebookScripts.scripts)) {
+            expect(scriptData.scriptAnalysis.outdated).toBe(true);
+            expect(scriptData.scriptAnalysis.buffers.analyzed).toBeNull();
+            expect(scriptData.script.analyze).not.toHaveBeenCalled();
+        }
     });
 
-    it('keeps a notebook when a persisted script cannot be analyzed', async () => {
+    it('does not analyze ordinary persisted scripts while restoring a notebook', async () => {
         const notebookEntry = { path: MULTI_PAGE_ID };
         const notebookData: NotebookData = {
             notebookId: MULTI_PAGE_ID,
@@ -673,7 +703,6 @@ describe('restoreAppState', () => {
             { name: 'page-1', scripts: [{ name: '01-script.sql', sql: 'invalid sql' }] }
         ]);
         vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
-        scriptAnalysisError = new Error('Aborted');
 
         const result = await restoreAppState(
             mockCore,
@@ -685,7 +714,11 @@ describe('restoreAppState', () => {
         expect(result.notebookScripts.has(MULTI_PAGE_ID)).toBe(true);
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreNotebookScripts.succeeded).toBe(1);
-        expect(finalProgress.analyzeScripts.failed).toBe(2);
+        const scripts = result.notebookScripts.get(MULTI_PAGE_ID)!;
+        for (const scriptData of Object.values(scripts.scripts)) {
+            expect(scriptData.scriptAnalysis.outdated).toBe(true);
+            expect(scriptData.script.analyze).not.toHaveBeenCalled();
+        }
     });
 
     it('creates at least one empty page for notebooks with no pages', async () => {
@@ -780,6 +813,10 @@ describe('restoreAppState', () => {
         const first = await restoreSingleNotebook(mockCore, mockBackend, logger, DATALESS_ID, liveSignatures);
         const second = await restoreSingleNotebook(mockCore, mockBackend, logger, secondId, liveSignatures);
 
+        for (const scriptData of Object.values(first.notebookScripts.scripts)) {
+            expect(scriptData.scriptAnalysis.outdated).toBe(true);
+            expect(scriptData.scriptAnalysis.buffers.analyzed).toBeNull();
+        }
         expect(first.connection.connectionSignature.signatures).toBe(liveSignatures);
         expect(second.connection.connectionSignature.signatures).toBe(liveSignatures);
         expect(second.connection.connectionSignature.signatureString)

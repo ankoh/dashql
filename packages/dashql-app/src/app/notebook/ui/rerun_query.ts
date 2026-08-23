@@ -1,7 +1,7 @@
 import type { QueryExecutor } from '../connections/query_executor.js';
 import { QueryType } from '../connections/query_execution_state.js';
 import { NotebookScripts, ScriptData, REGISTER_QUERY, compileQuery } from '../scripts/notebook_scripts.js';
-import { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
+import { ensureNotebookScriptAnalyzed, ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { projectionForVisualizeQuery } from '../scripts/script_types.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';
 
@@ -19,6 +19,24 @@ export function registerNotebookScriptQuery(
 export function runNotebookScript(
     connectionId: string,
     notebookScripts: NotebookScripts,
+    scriptData: ScriptData,
+    executeQuery: QueryExecutor,
+    modifyNotebookScripts: ModifyNotebookScripts,
+    logger: LoggerLike,
+): Promise<void> | void {
+    if (scriptData.scriptAnalysis.outdated) {
+        return ensureNotebookScriptAnalyzed(notebookScripts, scriptData.scriptKey, modifyNotebookScripts)
+            .then((analyzed) => {
+                if (analyzed != null) {
+                    executeNotebookScript(connectionId, analyzed, executeQuery, modifyNotebookScripts, logger);
+                }
+            });
+    }
+    executeNotebookScript(connectionId, scriptData, executeQuery, modifyNotebookScripts, logger);
+}
+
+function executeNotebookScript(
+    connectionId: string,
     scriptData: ScriptData,
     executeQuery: QueryExecutor,
     modifyNotebookScripts: ModifyNotebookScripts,

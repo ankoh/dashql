@@ -24,7 +24,6 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
         restoreNotebookScripts: new ProgressCounter(),
-        analyzeScripts: new ProgressCounter(),
     };
     const partialProgressConsumer = (update: Partial<AppLoadingProgress>) => {
         progress = {

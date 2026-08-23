@@ -143,6 +143,7 @@ vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 import {
     ACCEPT_PENDING_DIFF,
+    ANALYZE_OUTDATED_SCRIPT,
     DELETE_SCRIPT,
     PROMOTE_UNCOMMITTED_SCRIPT,
     REJECT_PENDING_DIFF,
@@ -504,6 +505,39 @@ describe('NotebookFeed', () => {
         });
         act(() => (container.querySelector('[aria-label="Send to AI"]') as HTMLButtonElement).click());
 
+        expect(mockState.startAgentRun).toHaveBeenCalledWith(expect.objectContaining({
+            prompt: 'Improve this query',
+            contextScriptKey: 102,
+        }));
+    });
+
+    it('analyzes an outdated explicit context before starting an AI run', async () => {
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[102] = {
+            ...notebookScripts.scripts[102],
+            scriptAnalysis: { ...notebookScripts.scripts[102].scriptAnalysis, outdated: true },
+        };
+        const analyzed = {
+            ...notebookScripts,
+            scripts: {
+                ...notebookScripts.scripts,
+                102: {
+                    ...notebookScripts.scripts[102],
+                    scriptAnalysis: { ...notebookScripts.scripts[102].scriptAnalysis, outdated: false },
+                },
+            },
+        };
+        mockState.promptText = 'Improve this query';
+        const modifyNotebookScripts = vi.fn(() => Promise.resolve(analyzed));
+        renderFeed({ notebookScripts, modifyNotebookScripts, showDetails: vi.fn() });
+
+        act(() => (container.querySelectorAll('[aria-label="Use script as AI context"]')[1] as HTMLButtonElement).click());
+        await act(async () => {
+            (container.querySelector('[aria-label="Send to AI"]') as HTMLButtonElement).click();
+            await Promise.resolve();
+        });
+
+        expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: ANALYZE_OUTDATED_SCRIPT, value: 102 });
         expect(mockState.startAgentRun).toHaveBeenCalledWith(expect.objectContaining({
             prompt: 'Improve this query',
             contextScriptKey: 102,
