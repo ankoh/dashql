@@ -1,0 +1,207 @@
+# Lazy Notebook Script Analysis
+
+## Context
+
+Notebook loading currently analyzes every restored notebook script eagerly. This behavior was added
+when analyzed scripts were registered in the core script registry so completion could use collected
+restrictions and constant expressions. The script registry has since been removed, so eagerly
+analyzing every notebook script during startup is no longer necessary.
+
+Ordinary notebook scripts should instead remain unanalyzed after restoration and be analyzed lazily
+when an operation needs analysis. The exception is the connection-owned catalog scripts:
+
+- `dashql-relations.sql`
+- `dashql-functions.sql`
+
+These schema scripts define the catalog used by notebook scripts and must still be analyzed and
+loaded when the notebook opens. Ordinary notebook entries containing DDL are not schema scripts for
+the purpose of this change and should remain lazy.
+
+## Current Behavior
+
+Opening a notebook currently performs these phases:
+
+1. Restore the connection.
+2. Restore, analyze, and load the catalog relation and function scripts.
+3. Restore ordinary notebook scripts and the draft as outdated scripts.
+4. Run `analyzeAllScripts` across every restored notebook script.
+
+The fourth phase populates analysis buffers and derived annotations before the user interacts with a
+script. It also adds an `Analyze Scripts` phase to application loading progress.
+
+Native file reconciliation has similar eager behavior. Any notebook-content or catalog change marks
+all scripts outdated and immediately calls `analyzeAllScripts`.
+
+## Desired Behavior
+
+When a notebook opens:
+
+- Analyze and load `dashql-relations.sql` and `dashql-functions.sql` eagerly.
+- Restore ordinary notebook scripts and the draft with `outdated: true` and null analysis buffers.
+- Do not analyze ordinary scripts until an explicit operation needs their analysis.
+- Do not trigger hidden analysis from passive rendering or cache-status checks.
+
+The same policy applies to notebooks restored incrementally through `restoreSingleNotebook` and to
+scripts changed through native file synchronization.
+
+## Implementation Plan
+
+### 1. Remove Eager Notebook Analysis During Restoration
+
+Update `packages/dashql-app/src/app/notebook/persistence/app_state_loader.ts`:
+
+- Remove Phase 4 and its call to `analyzeAllScripts`.
+- Register restored notebook scripts immediately after reconstruction.
+- Keep restored ordinary scripts and the draft outdated with null analysis buffers.
+- Preserve the existing eager analysis and catalog loading of `catalogRelationScript` and
+  `catalogFunctionScript`.
+- Apply the same behavior to `restoreSingleNotebook`, which uses the shared restoration path.
+- Update comments that currently state restored scripts are analyzed and registered during Phase 4.
+
+### 2. Define Explicit Lazy Analysis Boundaries
+
+Keep `ANALYZE_OUTDATED_SCRIPT` as the state transition that synchronizes a script's core analysis,
+application analysis buffers, derived annotations, and catalog entry.
+
+Ensure an outdated script is analyzed before operations that require those results:
+
+- Mounting the editable script editor. This boundary already exists in `script_editor.tsx`.
+- Executing or rerunning a script.
+- Building agent context or deciding whether the focused script is a visualization.
+- Opening diagnostics or details that consume parsed or analyzed buffers.
+- Any explicit request for visualization metadata.
+
+Execution must not rely only on `compileQuery`. The core compiler can parse lazily and analyze a
+`VISUALIZE` statement internally, but that does not update the React notebook state, derived
+annotations, visualization projection, or catalog invalidation state.
+
+Use one shared analysis-before-use path where possible so execute, rerun, agent, and details flows do
+not implement subtly different behavior.
+
+### 3. Avoid Analysis From Passive Rendering
+
+`NotebookFeedRow` currently compiles every visible script to compute its query cache key. Core
+compilation can analyze a `VISUALIZE` script internally, which would make merely rendering the feed
+perform hidden analysis outside notebook state management.
+
+Change the cache-status effect to avoid compiling an outdated script. An unanalyzed row can render
+without a cache indicator or visualization classification until an explicit action analyzes it.
+
+Other passive consumers, such as file-tree visualization icons, should tolerate absent annotations
+without forcing analysis.
+
+### 4. Make Native Reload Invalidate Lazily
+
+Update `replaceNotebookScriptsFromStorage` in
+`packages/dashql-app/src/app/notebook/scripts/notebook_scripts.ts`:
+
+- Preserve valid analysis for unchanged scripts when neither their content nor the catalog changed.
+- Mark changed and newly added scripts outdated.
+- When a catalog change can affect cross-script resolution, mark ordinary scripts outdated but do not
+  analyze them immediately.
+- Remove the full-notebook `analyzeAllScripts` call.
+- Continue detaching and destroying removed scripts safely.
+
+Update `docs/design/native_file_sync.md` to state that notebook or catalog changes invalidate
+affected analysis and that scripts are reanalyzed on demand.
+
+### 5. Remove Obsolete Bulk-Analysis Infrastructure
+
+After all call sites have migrated:
+
+- Remove `analyzeAllScripts`.
+- Remove `AnalyzeAllScriptsProgress`.
+- Remove `getScriptKeysInFeedOrder` if it has no remaining purpose.
+- Remove the `analyzeScripts` application-loading progress counter.
+- Remove the `Analyze Scripts` row from the loading page.
+- Update stale comments describing eager startup analysis.
+
+Analysis performed in response to direct edits, renames, accepted agent rewrites, or newly created
+scripts should remain eager where it is required to keep the edited script and its catalog entry
+coherent. This change targets bulk analysis during restoration and reconciliation, not all analysis
+following user mutations.
+
+## Correctness Considerations
+
+### Visualization Execution
+
+The first execution of a restored `VISUALIZE` script must still:
+
+- Send the resolved source SQL rather than raw `VISUALIZE` syntax to the backend.
+- Populate `annotations.visualizeQuery` in notebook state.
+- Apply the correct visualization projection, including UMAP projection.
+- Leave the script marked up to date after analysis.
+
+The core compiler's lazy `VISUALIZE` analysis remains a safety net, but application execution should
+first synchronize analysis through notebook state.
+
+### Catalog Dependencies
+
+The relation and function catalog scripts must be analyzed before ordinary scripts are available for
+lazy analysis. A catalog update must invalidate ordinary scripts so their next analysis resolves
+against the new catalog.
+
+### Agent Context
+
+Agent context reads analyzed table references and visualization annotations. Starting an agent run is
+an explicit request for those results, so the context script must be analyzed first. Otherwise an
+outdated visualization can be mistaken for plain SQL and referenced-table schema context can be
+omitted.
+
+### Analysis Failures
+
+An ordinary script analysis failure must not prevent notebook restoration. The notebook should open
+with that script outdated, and the failure should surface when an operation requests its analysis.
+Catalog-script restoration remains non-critical and should retain the existing failure handling.
+
+## Test Plan
+
+### Restoration
+
+Update `app_state_loader.test.ts` to verify:
+
+- Catalog relation and function scripts are analyzed during restoration.
+- Ordinary restored scripts remain outdated with null analyzed buffers.
+- The restored draft remains outdated and unanalyzed.
+- A script that would fail analysis does not fail notebook restoration because no ordinary script is
+  analyzed at load time.
+- `restoreSingleNotebook` follows the same policy.
+- Loading progress no longer reports an ordinary-script analysis phase.
+
+### Lazy Analysis
+
+Update `notebook_scripts.test.ts` and relevant UI tests to verify:
+
+- Opening an editor analyzes only the displayed outdated script.
+- Executing an outdated plain SQL script analyzes it before execution.
+- Executing an outdated `VISUALIZE` script derives visualization metadata and projection before
+  execution.
+- Rerun paths use the same behavior.
+- Starting an agent run analyzes its context script before chart detection and context generation.
+- Passive feed rendering and cache checks do not analyze outdated scripts.
+
+### Native Synchronization
+
+Verify that:
+
+- Unchanged scripts retain valid analysis when possible.
+- Changed and added scripts become outdated without immediate analysis.
+- Catalog changes invalidate ordinary scripts without bulk analysis.
+- Removed scripts are still detached and destroyed correctly.
+
+## Verification
+
+All build and test verification must run through Bazel:
+
+```bash
+bazel test //packages/dashql-app:test
+bazel test //packages/dashql-app:tsc_typecheck_test
+bazel test //packages/dashql-app:tsc_transitive_typecheck_test
+```
+
+## Completion Criteria
+
+The change is complete when opening a notebook analyzes only its relation and function catalog
+scripts, ordinary scripts remain lazy until an analysis-dependent operation requests them, native
+reload no longer bulk-analyzes notebook scripts, and all lazy execution and visualization regression
+tests pass.
