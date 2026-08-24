@@ -18,7 +18,7 @@ gpu = ["wgpu", "bytemuck"]
 [dependencies]
 ndarray = { workspace = true, features = ["rayon"] }
 rayon = { workspace = true }
-ordered-float = "5.2"
+ordered-float = "5.3.0"
 getrandom = { workspace = true }
 wide = "1.2.0"
 pollster = { workspace = true }
