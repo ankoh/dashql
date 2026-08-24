@@ -306,7 +306,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         void setup().catch(error => {
             if (cancelled) return;
             const message = `Failed to load shell: ${stringifyError(error)}`;
-            logger.error(message, {}, LOG_CTX);
+            logger.warn(message, {}, LOG_CTX);
             setStatus(message);
         });
 

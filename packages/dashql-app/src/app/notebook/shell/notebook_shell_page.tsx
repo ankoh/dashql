@@ -104,7 +104,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         }).catch(error => {
             if (cancelled || generation !== generationRef.current) return;
             const message = `Failed to load shell: ${stringifyError(error)}`;
-            logger.error(message, {}, LOG_CTX);
+            logger.warn(message, {}, LOG_CTX);
             controllerRef.current?.writeStatus(message);
             setStatus(message);
         });
