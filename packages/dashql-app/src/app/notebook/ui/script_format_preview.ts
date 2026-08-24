@@ -51,7 +51,7 @@ export function useScriptFormatPreview(
                 4,
                 false,
             );
-            formattedScript = scriptData.script.format(config, null);
+            formattedScript = scriptData.editorSession.format(config, null);
             if (editorView == null) return;
 
             const formattedText = formattedScript.toString();
@@ -76,9 +76,9 @@ export function useScriptFormatPreview(
             editorView.dispatch({
                 effects: DashQLUpdateEffect.of({
                     scriptKey: resources.script.getCatalogEntryId(),
-                    script: resources.script,
+                    editorSession: null,
+                    editorUpdate: null,
                     scriptBuffers: buffers,
-                    scriptCursor: null,
                     scriptCompletion: null,
                     scriptPendingDiff: null,
                     derivedFocus: null,

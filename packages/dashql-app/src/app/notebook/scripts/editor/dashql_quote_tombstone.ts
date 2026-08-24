@@ -90,39 +90,21 @@ export interface QuotedTokenSpan {
 /// Default lookup uses the DashQL processor's scanner tokens; tests can inject a fake.
 export type QuotedTokenFinder = (state: EditorState, quotePos: number) => QuotedTokenSpan | null;
 
-function findContainingTokenIdx(
-    tokens: dashql.buffers.parser.ScannerTokens,
-    pos: number,
-): number | null {
-    const offsets = tokens.tokenOffsetsArray();
-    const lengths = tokens.tokenLengthsArray();
-    if (!offsets || !lengths || offsets.length === 0) return null;
-    // Find largest offset[i] <= pos via binary search
-    let lo = 0;
-    let hi = offsets.length;
-    while (lo < hi) {
-        const mid = (lo + hi) >>> 1;
-        if (offsets[mid] <= pos) lo = mid + 1;
-        else hi = mid;
-    }
-    const idx = lo - 1;
-    if (idx < 0) return null;
-    if (pos >= offsets[idx] + lengths[idx]) return null;
-    return idx;
-}
-
 export const defaultQuotedTokenFinder: QuotedTokenFinder = (state, quotePos) => {
     const processor = state.field(DashQLProcessorPlugin, false);
     if (!processor) return null;
-    const parsed = processor.scriptBuffers.parsed?.read();
-    const tokens = parsed?.tokens();
-    if (!tokens || tokens.tokenOffsetsLength() === 0) return null;
-    const idx = findContainingTokenIdx(tokens, quotePos);
-    if (idx == null) return null;
-    const offset = tokens.tokenOffsets(idx) ?? 0;
-    const length = tokens.tokenLengths(idx) ?? 0;
+    const token = processor.editorUpdate?.syntaxSpans.find(({ textSpan }) => {
+        if (textSpan == null) return false;
+        const from = Number(textSpan.offset);
+        return from <= quotePos && quotePos < from + Number(textSpan.length);
+    });
+    const offset = Number(token?.textSpan?.offset ?? 0n);
+    const length = Number(token?.textSpan?.length ?? 0n);
     if (length < 2) return null;
-    return { leading: offset, trailing: offset + length - 1 };
+    return {
+        leading: offset,
+        trailing: offset + length - 1,
+    };
 };
 
 interface QuoteTokenInfo {

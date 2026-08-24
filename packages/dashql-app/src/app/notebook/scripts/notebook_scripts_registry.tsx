@@ -96,7 +96,7 @@ export function removeNotebookScriptsFromRegistry(reg: NotebookScriptsRegistry, 
 /// Delete a notebook's scripts and free their Wasm.
 ///
 /// Notebook scripts share the connection's catalog by reference (see notebook_scripts_setup) and own every
-/// script they create. destroyNotebookScripts() drops those scripts from the shared catalog and then frees
+/// editor session they create. destroyNotebookScripts() drops those sessions from the shared catalog and then frees
 /// them, so it MUST run while that catalog is still alive, i.e.
 /// *before* the connection is deleted (DELETE_CONNECTION destroys the catalog). We therefore tear
 /// the Wasm down synchronously here, in the event handler, and keep the registry-map removal a
@@ -181,7 +181,7 @@ export async function ensureNotebookScriptAnalyzed(
 ): Promise<ScriptData | null> {
     const scriptData = notebookScripts.scripts[scriptKey];
     if (!scriptData) return null;
-    if (!scriptData.scriptAnalysis.outdated) return scriptData;
+    if (!scriptData.analysisOutdated) return scriptData;
     const result = modifyNotebookScripts({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
     if (!result) return null;
     const next = await result;

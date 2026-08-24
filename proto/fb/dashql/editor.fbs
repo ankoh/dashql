@@ -1,0 +1,213 @@
+include "dashql/status.fbs";
+include "dashql/parsed_script.fbs";
+include "dashql/script_cursor.fbs";
+
+namespace dashql.buffers.editor;
+
+/// The coordinate space selected when an editor session is created.
+enum EditorOffsetUnit: uint8 {
+    UTF8_BYTES,
+    UTF16_CODE_UNITS,
+}
+
+enum EditorEventOrigin: uint8 {
+    UNSPECIFIED,
+    USER,
+    SYSTEM,
+    AGENT,
+    REMOTE,
+}
+
+enum EditorEventIntent: uint8 {
+    UNSPECIFIED,
+    EDIT,
+    SELECTION,
+    REPLACE,
+    ANALYZE,
+}
+
+enum EditorEventAction: uint8 {
+    UNSPECIFIED,
+    TYPE,
+    DELETE,
+    PASTE,
+    UNDO,
+    REDO,
+    FORMAT,
+    APPLY,
+}
+
+enum EditorUpdateStatus: uint8 {
+    OK,
+    STALE_DOCUMENT_REVISION,
+    INVALID_UTF8,
+    INVALID_RANGE,
+    OVERLAPPING_CHANGES,
+    INVALID_EVENT,
+    ANALYSIS_FAILED,
+}
+
+/// A replacement range in the document before any changes in the event are applied.
+table EditorTextChange {
+    from: uint64;
+    to: uint64;
+    insert: string;
+}
+
+/// The primary selection. A cursor is represented by equal anchor and head offsets.
+table EditorSelection {
+    anchor: uint64;
+    head: uint64;
+}
+
+/// A half-open range in the editor session's selected offset unit.
+struct EditorTextSpan {
+    offset: uint64;
+    length: uint64;
+}
+
+enum EditorDiagnosticSource: uint8 {
+    SCANNER,
+    PARSER,
+    ANALYZER,
+}
+
+enum EditorDiagnosticSeverity: uint8 {
+    ERROR,
+    WARNING,
+}
+
+table EditorDiagnostic {
+    source: EditorDiagnosticSource;
+    severity: EditorDiagnosticSeverity;
+    message: string;
+    text_span: EditorTextSpan;
+}
+
+/// A scanner token class and its source span. Comments are emitted as COMMENT spans.
+table EditorSyntaxSpan {
+    token_type: dashql.buffers.parser.ScannerTokenType;
+    text_span: EditorTextSpan;
+}
+
+enum EditorSemanticReferenceKind: uint8 {
+    TABLE,
+    COLUMN,
+}
+
+enum EditorSemanticResolution: uint8 {
+    UNRESOLVED,
+    RESOLVED,
+}
+
+/// A table or column reference projected from the analyzer.
+table EditorSemanticSpan {
+    kind: EditorSemanticReferenceKind;
+    resolution: EditorSemanticResolution;
+    text_span: EditorTextSpan;
+    reference_id: uint32;
+    catalog_database_id: uint32;
+    catalog_schema_id: uint32;
+    catalog_table_id: uint64;
+    catalog_column_id: uint32;
+    referenced_catalog_version: uint32;
+}
+
+enum EditorCursorSemanticKind: uint8 {
+    NONE,
+    TABLE_REFERENCE,
+    COLUMN_REFERENCE,
+}
+
+/// Semantic context for the collapsed primary cursor and refs related to its resolved target.
+table EditorCursorSemanticContext {
+    kind: EditorCursorSemanticKind;
+    reference_id: uint32;
+    resolved: bool;
+    catalog_database_id: uint32;
+    catalog_schema_id: uint32;
+    catalog_table_id: uint64;
+    catalog_column_id: uint32;
+    referenced_catalog_version: uint32;
+    related_table_reference_ids: [uint32];
+    related_column_reference_ids: [uint32];
+}
+
+/// Portable cursor facts used by editor interaction logic.
+table EditorCursorState {
+    text_offset: uint64;
+    scanner_relative_position: dashql.buffers.cursor.RelativeSymbolPosition;
+    scanner_symbol_completable: bool;
+}
+
+table EditorTableDefinition {
+    name: string;
+    statement_id: uint32;
+}
+
+table EditorStatementDescription {
+    statement_id: uint32;
+    statement_type: dashql.buffers.parser.StatementType;
+    text_span: EditorTextSpan;
+}
+
+table EditorScriptAnnotations {
+    table_definitions: [EditorTableDefinition];
+    has_visualization_compilation: bool;
+    statement_descriptions: [EditorStatementDescription];
+    referenced_table_names: [string];
+}
+
+/// Plain processing values copied from ScriptStatistics.
+table EditorProcessingStatistics {
+    scanner_last_elapsed_ns: double;
+    parser_last_elapsed_ns: double;
+    analyzer_last_elapsed_ns: double;
+    rope_bytes: uint64;
+    scanner_input_bytes: uint64;
+    scanner_symbol_bytes: uint64;
+    scanner_name_dictionary_bytes: uint64;
+    parser_ast_bytes: uint64;
+    analyzer_description_bytes: uint64;
+    analyzer_name_index_size: uint64;
+    analyzer_name_index_bytes: uint64;
+}
+
+/// One portable editor transaction. Changes use pre-change offsets; the selection uses post-change offsets.
+table EditorEvent {
+    expected_document_revision: uint64;
+    changes: [EditorTextChange];
+    primary_selection: EditorSelection;
+    origin: EditorEventOrigin;
+    intent: EditorEventIntent;
+    action: EditorEventAction;
+    ensure_analysis: bool;
+}
+
+/// The state observed after applying an EditorEvent or another EditorSession operation.
+table EditorUpdate {
+    status: EditorUpdateStatus;
+    status_message: string;
+    core_status: dashql.buffers.status.StatusCode = OK;
+    offset_unit: EditorOffsetUnit = UTF8_BYTES;
+    catalog_entry_id: uint32;
+    document_revision: uint64;
+    state_revision: uint64;
+    catalog_revision: uint64;
+    text_changed: bool;
+    selection_changed: bool;
+    analysis_updated: bool;
+    analysis_available: bool;
+    primary_selection: EditorSelection;
+    origin: EditorEventOrigin;
+    intent: EditorEventIntent;
+    action: EditorEventAction;
+    /// Full portable projection of the current analysis. Empty when analysis_available is false.
+    diagnostics: [EditorDiagnostic];
+    syntax_spans: [EditorSyntaxSpan];
+    semantic_spans: [EditorSemanticSpan];
+    primary_cursor_context: EditorCursorSemanticContext;
+    script_annotations: EditorScriptAnnotations;
+    processing_statistics: EditorProcessingStatistics;
+    primary_cursor_state: EditorCursorState;
+}

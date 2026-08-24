@@ -25,7 +25,9 @@ struct TextStats {
     /// The text bytes
     size_t text_bytes = 0;
     /// The UTF-8 codepoints
-    size_t utf8_codepoints = 0;
+    uint32_t utf8_codepoints = 0;
+    /// The UTF-16 code units
+    uint32_t utf16_code_units = 0;
     /// The line breaks
     uint32_t line_breaks = 0;
     /// The extended grapheme clusters
@@ -46,6 +48,7 @@ struct TextStats {
     /// Subtraction
     TextStats& operator-=(const TextStats& other);
 };
+static_assert(sizeof(TextStats) == sizeof(size_t) + 4 * sizeof(uint32_t));
 
 struct NodePage {
    protected:
@@ -235,6 +238,8 @@ struct InnerNode {
     Boundary FindByte(size_t byte_idx);
     /// Find the child that contains a character
     Boundary FindCodepoint(size_t char_idx);
+    /// Find the child that contains a UTF-16 code unit
+    Boundary FindUtf16(size_t utf16_idx);
     /// Find the child that contains an extended grapheme cluster
     Boundary FindGrapheme(size_t grapheme_idx);
     /// Find the child that contains a line break
@@ -281,6 +286,7 @@ struct Rope {
     struct TextPosition {
         size_t text_bytes = 0;
         size_t utf8_codepoints = 0;
+        size_t utf16_code_units = 0;
         size_t grapheme_clusters = 0;
     };
 
@@ -371,6 +377,10 @@ struct Rope {
     TextPosition ResolveGrapheme(size_t grapheme_idx) const;
     /// Resolve an exact UTF-8 byte offset to a grapheme boundary.
     std::optional<TextPosition> ResolveGraphemeBoundary(size_t byte_idx) const;
+    /// Resolve an exact UTF-8 byte offset to a Unicode codepoint boundary.
+    std::optional<TextPosition> ResolveByteBoundary(size_t byte_idx) const;
+    /// Resolve an exact UTF-16 code-unit offset to a Unicode codepoint boundary.
+    std::optional<TextPosition> ResolveUtf16Boundary(size_t utf16_idx) const;
     /// Resolve the first grapheme boundary at or after a UTF-8 byte offset.
     TextPosition ResolveGraphemeBoundaryAtOrAfter(size_t byte_idx) const;
 

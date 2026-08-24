@@ -16,8 +16,7 @@ const PREVIEW_INDENTATION_WIDTH = 2;
 
 export interface PreviewSnapshot {
     scriptText: string;
-    parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
-    ownsParsed: boolean;
+    editorUpdate: core.buffers.editor.EditorUpdateT | null;
     /// The compact-formatted diff overlay for a staged agent rewrite, or null when none is pending.
     /// Owned by the snapshot: its `diffBuffer` is freed when the snapshot is replaced or unmounts.
     /// This is a *separate* buffer from `scriptData.pendingDiff` (whose offsets index the normal,
@@ -43,7 +42,6 @@ export function releasePreviewSnapshot(snapshot: PreviewSnapshot, view: PreviewV
             ],
         });
     }
-    if (snapshot.ownsParsed) snapshot.parsed?.destroy();
     snapshot.diff?.diffBuffer.destroy();
 }
 
@@ -61,40 +59,18 @@ export function releaseAppliedPreviewSnapshot(
 
 /// Description previews retain raw source text because their parser spans index the source directly.
 function buildDescriptionPreview(scriptData: ScriptData): PreviewSnapshot | null {
-    const text = scriptData.script.toString();
-    if (scriptData.scriptAnalysis.buffers.parsed == null) return null;
-    // getParsed returns an independently owned serialized buffer. The notebook scripts analysis
-    // buffer can be destroyed as soon as the next editor update arrives, so it is unsafe to hand
-    // directly to a long-lived CodeMirror scanner extension.
-    const parsed = scriptData.script.getParsed();
-    if (!hasStatementDescriptions(parsed)) {
-        parsed.destroy();
-        return null;
-    }
+    const text = scriptData.editorSession.getText();
+    if (!hasStatementDescriptions(scriptData.editorUpdate)) return null;
     return {
         scriptText: text,
-        parsed,
-        ownsParsed: true,
+        editorUpdate: scriptData.editorUpdate ?? null,
         diff: null,
     };
 }
 
 function buildUnformattedPreview(scriptData: ScriptData, logger: Logger): PreviewSnapshot {
-    const scriptText = readScriptText(scriptData.script, logger, scriptData.scriptKey, LOG_CTX) ?? '';
-    try {
-        return {
-            scriptText,
-            parsed: scriptData.script.getParsed(),
-            ownsParsed: true,
-            diff: null,
-        };
-    } catch (e: any) {
-        logger.warn('Failed to read parsed script for unformatted preview', {
-            scriptKey: scriptData.scriptKey.toString(),
-            error: stringifyError(e),
-        }, LOG_CTX);
-        return { scriptText, parsed: null, ownsParsed: false, diff: null };
-    }
+    const scriptText = readSessionText(scriptData.editorSession, logger, scriptData.scriptKey, LOG_CTX) ?? '';
+    return { scriptText, editorUpdate: scriptData.editorUpdate ?? null, diff: null };
 }
 
 /// Build the compact formatting config used for both the preview text and the compact diff, so the
@@ -109,39 +85,18 @@ function compactFormattingConfig(maxWidth: number, debugMode: boolean): core.buf
     );
 }
 
-function logUnformattableNode(
-    script: core.DashQLScript,
-    nodeId: number,
+function logUnformattableScript(
     scriptKey: number,
     logger: Logger,
 ): void {
-    let nodeType: string | undefined;
-    let attributeKey: string | undefined;
-    let parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null = null;
-    try {
-        parsed = script.getParsed();
-        const node = parsed.read().nodes(nodeId);
-        if (node != null) {
-            nodeType = core.buffers.parser.NodeType[node.nodeType()];
-            attributeKey = core.buffers.parser.AttributeKey[node.attributeKey()];
-        }
-    } catch {
-        // The node id remains useful if the parsed buffer cannot be read.
-    } finally {
-        parsed?.destroy();
-    }
     logger.warn('Script preview is not formattable', {
         scriptKey: scriptKey.toString(),
-        nodeId: nodeId.toString(),
-        nodeType,
-        attributeKey,
     }, LOG_CTX);
 }
 
-/// Helper to read a script text
-function readScriptText(script: core.DashQLScript, logger: Logger, scriptKey: number, logCtx: string): string | null {
+function readSessionText(session: core.DashQLEditorSession, logger: Logger, scriptKey: number, logCtx: string): string | null {
     try {
-        return script.toString();
+        return session.getText();
     } catch (e: any) {
         logger.warn('Failed to read script preview text', {
             scriptKey: scriptKey.toString(),
@@ -176,16 +131,17 @@ function computeCompactDiff(
     let priorCatalog: core.DashQLCatalog | null = null;
     let priorRaw: core.DashQLScript | null = null;
     let priorFormatted: core.DashQLScript | null = null;
+    let priorSession: core.DashQLEditorSession | null = null;
     try {
         priorCatalog = instance.createCatalog();
         priorRaw = instance.createScript(priorCatalog);
         priorRaw.insertTextAt(0, priorText);
         if (priorRaw.getUnformattableNodes(compactFormattingConfig(maxWidth, debugMode), true).length > 0) return null;
         priorFormatted = priorRaw.format(compactFormattingConfig(maxWidth, debugMode), null, true);
-        // computeDiff walks the parsed AST of both scripts. `newFormatted` was already parsed by the
-        // caller's `analyze()`, so only the freshly formatted prior script needs parsing here.
-        priorFormatted.parse();
-        const diffBuffer = priorFormatted.computeDiff(newFormatted);
+        priorSession = instance.createEditorSession(priorCatalog);
+        priorSession.replaceText(0n, priorFormatted.toString());
+        priorSession.ensureAnalysis();
+        const diffBuffer = priorSession.computeDiff(newFormatted);
         return { priorText, diffBuffer };
     } catch (e: any) {
         logger.warn('Failed to compute compact script preview diff', {
@@ -195,6 +151,7 @@ function computeCompactDiff(
         }, LOG_CTX);
         return null;
     } finally {
+        priorSession?.destroy();
         priorFormatted?.destroy();
         priorRaw?.destroy();
         priorCatalog?.destroy();
@@ -204,7 +161,7 @@ function computeCompactDiff(
 /// Helper to format a preview script (and, when a rewrite is staged, its compact diff overlay).
 function formatPreviewScript(
     instance: core.DashQL,
-    sourceScript: core.DashQLScript,
+    sourceSession: core.DashQLEditorSession,
     pendingDiff: DashQLPendingDiff | null,
     scriptKey: number,
     maxWidth: number,
@@ -214,12 +171,11 @@ function formatPreviewScript(
     const formattingConfig = compactFormattingConfig(maxWidth, debugMode);
     let formattedScript: core.DashQLScript;
     try {
-        const unformattableNodes = sourceScript.getUnformattableNodes(formattingConfig, true);
-        if (unformattableNodes.length > 0) {
-            logUnformattableNode(sourceScript, unformattableNodes[0], scriptKey, logger);
+        if (!sourceSession.isFullyFormattable(formattingConfig, true)) {
+            logUnformattableScript(scriptKey, logger);
             return null;
         }
-        formattedScript = sourceScript.format(formattingConfig, null, false);
+        formattedScript = sourceSession.format(formattingConfig, null, false);
     } catch (e: any) {
         logger.warn('Failed to format script preview, using raw script text', {
             scriptKey: scriptKey.toString(),
@@ -231,18 +187,19 @@ function formatPreviewScript(
 
     try {
         formattedScript.analyze();
-        const parsed = formattedScript.getParsed();
-        const scriptText = readScriptText(formattedScript, logger, scriptKey, LOG_CTX);
-        if (scriptText == null) {
-            parsed.destroy();
-            return null;
-        }
+        const scriptText = formattedScript.toString();
+        const projectionCatalog = instance.createCatalog();
+        const projectionSession = instance.createEditorSession(projectionCatalog);
+        projectionSession.replaceText(0n, scriptText);
+        const editorUpdate = projectionSession.ensureAnalysis();
+        projectionSession.destroy();
+        projectionCatalog.destroy();
         // Compute the compact diff against the SAME formatted script that produces `scriptText`,
         // so the diff's target offsets align with the rendered preview text.
         const diff = pendingDiff != null
             ? computeCompactDiff(instance, pendingDiff.priorText, formattedScript, maxWidth, debugMode, scriptKey, logger)
             : null;
-        return { scriptText, parsed, ownsParsed: true, diff };
+        return { scriptText, editorUpdate, diff };
     } catch (e: any) {
         logger.warn('Failed to analyze formatted script preview', {
             scriptKey: scriptKey.toString(),
@@ -285,14 +242,13 @@ export function usePreviewSnapshot({
 } {
     const [previewSnapshot, setPreviewSnapshot] = React.useState<PreviewSnapshot>(() => ({
         scriptText: initialTextHint,
-        parsed: null,
-        ownsParsed: false,
+        editorUpdate: null,
         diff: null,
     }));
     const pendingDiff = scriptData.pendingDiff;
     const descriptionPreview = React.useMemo(
         () => showStoryControls && pendingDiff == null ? buildDescriptionPreview(scriptData) : null,
-        [pendingDiff, scriptData, scriptData.scriptAnalysis.buffers, showStoryControls],
+        [pendingDiff, scriptData, scriptData.editorUpdate, showStoryControls],
     );
 
     React.useEffect(() => {
@@ -309,7 +265,7 @@ export function usePreviewSnapshot({
         }
         const nextFormatted = formatPreviewScript(
             instance,
-            scriptData.script,
+            scriptData.editorSession,
             pendingDiff,
             scriptData.scriptKey,
             maxWidthChars,
@@ -334,12 +290,9 @@ export function usePreviewSnapshot({
         formattingDebugMode,
         logger,
         maxWidthChars,
-        scriptData.script,
+        scriptData.editorSession,
         scriptData.scriptKey,
-        // Re-analysis produces a fresh `buffers` object even when `script` is mutated in place
-        // (e.g. the agent's SET_SCRIPT_TEXT calls `script.replaceText()`, keeping the same JS
-        // reference). Depend on it so the preview reformats when the underlying text changes.
-        scriptData.scriptAnalysis.buffers,
+        scriptData.editorUpdate,
         // A staged rewrite appearing/clearing must recompute the compact diff overlay. Width
         // changes recompute too (via maxWidthChars) since compact offsets shift with the layout.
         pendingDiff,
@@ -361,11 +314,11 @@ export function useApplyPreviewSnapshot(
     const appliedPreviewRef = React.useRef<AppliedPreview | null>(null);
     const appliedDescriptionRef = React.useRef<{
         view: EditorView;
-        parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
+        update: core.buffers.editor.EditorUpdateT | null;
     } | null>(null);
 
-    // Clean up the parsed script and the compact diff buffer when the snapshot is replaced or the
-    // component unmounts. The compact diff buffer is owned here (distinct from scriptData.pendingDiff,
+    // Clean up the compact diff buffer when the snapshot is replaced or the component unmounts.
+    // The compact diff buffer is owned here (distinct from scriptData.pendingDiff,
     // which the notebook scripts state owns and frees on accept/reject).
     React.useLayoutEffect(() => {
         return () => {
@@ -378,16 +331,16 @@ export function useApplyPreviewSnapshot(
             return;
         }
         const effects: StateEffect<any>[] = [
-            DashQLScannerDecorationUpdateEffect.of(previewSnapshot.parsed),
+            DashQLScannerDecorationUpdateEffect.of(previewSnapshot.editorUpdate),
             DashQLDiffDecorationUpdateEffect.of(previewSnapshot.diff),
         ];
         // Width changes refresh the preview snapshot, but they must not reset a statement the user
-        // already expanded. Only replace story decorations when the parsed source model changes.
-        const descriptionParsed = descriptionPreview?.parsed ?? null;
+        // already expanded. Only replace story decorations when the source projection changes.
+        const descriptionUpdate = descriptionPreview?.editorUpdate ?? null;
         const appliedDescription = appliedDescriptionRef.current;
-        if (appliedDescription?.view !== view || appliedDescription.parsed !== descriptionParsed) {
-            effects.push(DashQLStoryUpdateEffect.of(descriptionParsed));
-            appliedDescriptionRef.current = { view, parsed: descriptionParsed };
+        if (appliedDescription?.view !== view || appliedDescription.update !== descriptionUpdate) {
+            effects.push(DashQLStoryUpdateEffect.of(descriptionUpdate));
+            appliedDescriptionRef.current = { view, update: descriptionUpdate };
         }
         view.dispatch({
             changes: {

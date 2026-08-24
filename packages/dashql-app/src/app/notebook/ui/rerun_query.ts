@@ -24,7 +24,7 @@ export function runNotebookScript(
     modifyNotebookScripts: ModifyNotebookScripts,
     logger: LoggerLike,
 ): Promise<void> | void {
-    if (scriptData.scriptAnalysis.outdated) {
+    if (scriptData.analysisOutdated) {
         return ensureNotebookScriptAnalyzed(notebookScripts, scriptData.scriptKey, modifyNotebookScripts)
             .then((analyzed) => {
                 if (analyzed != null) {

@@ -69,9 +69,8 @@ import { ScriptDetails } from './script_details.js';
 function makeScriptData(scriptKey: number, text: string, fileName: string) {
     return {
         scriptKey,
-        script: {
-            toString: () => text,
-            getStatementText: () => text,
+        editorSession: {
+            getText: () => text,
             compileQuery: () => ({
                 ...mockState.compileQuery(),
                 read: () => ({
@@ -80,19 +79,15 @@ function makeScriptData(scriptKey: number, text: string, fileName: string) {
                 }),
                 destroy: () => { },
             }),
-            analyze: () => { },
+            ensureAnalysis: () => { },
             format: mockState.formatScript,
             isFullyFormattable: () => mockState.isFormattable,
             getParsed: () => null,
             getAnalyzed: () => null,
         } as any,
-        scriptAnalysis: {
-            buffers: { parsed: null, analyzed: null, destroy: () => { } },
-            outdated: false,
-        },
+        analysisOutdated: false,
         annotations: {} as any,
         statistics: [] as any,
-        cursor: null,
         completion: null,
         pendingDiff: null,
         latestQueryId: null,
@@ -290,18 +285,21 @@ describe('ScriptDetails', () => {
 
     it('uses the error icon when script diagnostics include errors', () => {
         const notebookScripts = createNotebookScripts();
-        notebookScripts.scripts[102].scriptAnalysis.buffers.analyzed = {
-            read: () => ({
-                errorsLength: () => 2,
-                errors: (index: number) => ({
-                    message: () => index === 0 ? 'Unknown column' : 'Unsupported visualization key',
-                    severity: () => index === 0 ? 0 : 1,
-                    errorType: () => index === 0 ? 0 : 2,
-                    astNodeId: () => 7,
-                    textSpan: () => null,
-                    symbolSpan: () => null,
-                }),
-            }),
+        notebookScripts.scripts[102].editorUpdate = {
+            diagnostics: [
+                {
+                    source: dashql.buffers.editor.EditorDiagnosticSource.ANALYZER,
+                    severity: dashql.buffers.editor.EditorDiagnosticSeverity.ERROR,
+                    message: 'Unknown column',
+                    textSpan: null,
+                },
+                {
+                    source: dashql.buffers.editor.EditorDiagnosticSource.ANALYZER,
+                    severity: dashql.buffers.editor.EditorDiagnosticSeverity.WARNING,
+                    message: 'Unsupported visualization key',
+                    textSpan: null,
+                },
+            ],
         } as any;
 
         act(() => {

@@ -33,7 +33,7 @@ const History: React.FC<HistoryProps> = (props: HistoryProps) => {
 
 interface Props {
     className?: string;
-    stats: Immutable.List<dashql.FlatBufferPtr<dashql.buffers.statistics.ScriptStatistics>> | null;
+    stats: Immutable.List<dashql.buffers.editor.EditorProcessingStatisticsT> | null;
 }
 
 export const ScriptStatisticsBar: React.FC<Props> = (props: Props) => {
@@ -51,31 +51,19 @@ export const ScriptStatisticsBar: React.FC<Props> = (props: Props) => {
         );
     }
 
-    const protoStats = new dashql.buffers.statistics.ScriptStatistics();
-    const protoTimings = new dashql.buffers.statistics.ScriptProcessingTimings();
-    const protoMemory = new dashql.buffers.statistics.ScriptMemoryStatistics();
-    const protoProcessingMemory = new dashql.buffers.statistics.ScriptProcessingMemoryStatistics();
+    const computeTotalMemory = (reading: dashql.buffers.editor.EditorProcessingStatisticsT) =>
+        Number(reading.ropeBytes
+            + reading.scannerInputBytes
+            + reading.scannerNameDictionaryBytes
+            + reading.parserAstBytes
+            + reading.analyzerDescriptionBytes
+            + reading.analyzerNameIndexBytes);
 
-    const computeTotalElapsed = (timings: dashql.buffers.statistics.ScriptProcessingTimings) =>
-        timings.scannerLastElapsed() + timings.parserLastElapsed() + timings.analyzerLastElapsed();
-    const sumProcessingMemory = (mem: dashql.buffers.statistics.ScriptProcessingMemoryStatistics) =>
-        mem.scannerInputBytes() +
-        mem.scannerNameDictionaryBytes() +
-        mem.parserAstBytes() +
-        mem.analyzerDescriptionBytes() +
-        mem.analyzerNameIndexBytes();
-    const computeTotalMemory = (mem: dashql.buffers.statistics.ScriptMemoryStatistics) => {
-        let total = mem.ropeBytes();
-        total += sumProcessingMemory(mem.latestScript(protoProcessingMemory)!);
-        return total;
-    };
-
-    const last = stats.last()!.read(protoStats)!;
-    const lastTimings = last.timings(protoTimings)!;
-    const lastElapsedScanner = lastTimings.scannerLastElapsed();
-    const lastElapsedParser = lastTimings.parserLastElapsed();
-    const lastElapsedAnalyzer = lastTimings.analyzerLastElapsed();
-    const lastTotalMemory = computeTotalMemory(last.memory(protoMemory)!);
+    const last = stats.last()!;
+    const lastElapsedScanner = last.scannerLastElapsedNs;
+    const lastElapsedParser = last.parserLastElapsedNs;
+    const lastElapsedAnalyzer = last.analyzerLastElapsedNs;
+    const lastTotalMemory = computeTotalMemory(last);
 
     const n = Math.min(stats.size, 20);
     const bufferSize = Math.max(n, 20);
@@ -89,12 +77,10 @@ export const ScriptStatisticsBar: React.FC<Props> = (props: Props) => {
     let maxTotalMemory = 0;
     let writer = 0;
     for (const reading of stats.toSeq().take(n)) {
-        const stats = reading.read(protoStats)!;
-        const timings = stats.timings(protoTimings)!;
-        const totalMemory = computeTotalMemory(stats.memory(protoMemory)!);
-        const elapsedScanner = timings.scannerLastElapsed();
-        const elapsedParser = timings.parserLastElapsed();
-        const elapsedAnalyzer = timings.analyzerLastElapsed();
+        const totalMemory = computeTotalMemory(reading);
+        const elapsedScanner = reading.scannerLastElapsedNs;
+        const elapsedParser = reading.parserLastElapsedNs;
+        const elapsedAnalyzer = reading.analyzerLastElapsedNs;
         elapsedScannerHistory[writer] = elapsedScanner;
         elapsedParserHistory[writer] = elapsedParser;
         elapsedAnalyzerHistory[writer] = elapsedAnalyzer;

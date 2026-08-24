@@ -164,7 +164,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     const processor = viewUpdate.state.field(DashQLProcessorPlugin);
 
     // Find the selected completion
-    if (processor.scriptCompletion == null || processor.scriptCursor == null) {
+    if (processor.scriptCompletion == null || processor.editorUpdate?.primaryCursorState == null) {
         return Decoration.none;
     }
     const isPassive = processor.scriptCompletion.passiveHint;

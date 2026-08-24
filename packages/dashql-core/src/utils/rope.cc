@@ -22,6 +22,15 @@ TextStats::TextStats(std::span<const std::byte> data) {
     }
     const std::string_view text{reinterpret_cast<const char*>(data.data()), data.size()};
     for (size_t offset = 0; offset < text.size();) {
+        int codepoint_size = 0;
+        const auto codepoint = utf8::Utf8Proc::UTF8ToCodepoint(text.data() + offset, codepoint_size);
+        if (codepoint_size <= 0 || offset + static_cast<size_t>(codepoint_size) > text.size()) {
+            throw std::invalid_argument{"invalid UTF-8 while computing rope text statistics"};
+        }
+        utf16_code_units += codepoint > 0xffff ? 2 : 1;
+        offset += static_cast<size_t>(codepoint_size);
+    }
+    for (size_t offset = 0; offset < text.size();) {
         const auto next = utf8::Utf8Proc::NextGraphemeCluster(text, offset);
         if (next <= offset || next > text.size()) {
             throw std::invalid_argument{"invalid UTF-8 while computing rope grapheme statistics"};
@@ -34,6 +43,7 @@ TextStats TextStats::operator+(const TextStats& other) {
     TextStats result = *this;
     result.text_bytes += other.text_bytes;
     result.utf8_codepoints += other.utf8_codepoints;
+    result.utf16_code_units += other.utf16_code_units;
     result.grapheme_clusters += other.grapheme_clusters;
     result.line_breaks += other.line_breaks;
     return result;
@@ -46,10 +56,12 @@ TextStats TextStats::operator-(const TextStats& other) {
     TextStats result = *this;
     assert(result.text_bytes >= other.text_bytes);
     assert(result.utf8_codepoints >= other.utf8_codepoints);
+    assert(result.utf16_code_units >= other.utf16_code_units);
     assert(result.grapheme_clusters >= other.grapheme_clusters);
     assert(result.line_breaks >= other.line_breaks);
     result.text_bytes -= other.text_bytes;
     result.utf8_codepoints -= other.utf8_codepoints;
+    result.utf16_code_units -= other.utf16_code_units;
     result.grapheme_clusters -= other.grapheme_clusters;
     result.line_breaks -= other.line_breaks;
     return result;
@@ -482,6 +494,10 @@ static bool ChildContainsByte(size_t byte_idx, TextStats prev, TextStats next) {
 static bool ChildContainsCodepoint(size_t char_idx, TextStats prev, TextStats next) {
     return next.utf8_codepoints > char_idx;
 }
+/// Helper to find a child that contains a UTF-16 code unit
+static bool ChildContainsUtf16(size_t utf16_idx, TextStats prev, TextStats next) {
+    return next.utf16_code_units > utf16_idx;
+}
 /// Helper to find a child that contains a grapheme cluster
 static bool ChildContainsGrapheme(size_t grapheme_idx, TextStats prev, TextStats next) {
     return next.grapheme_clusters > grapheme_idx;
@@ -498,6 +514,11 @@ InnerNode::Boundary InnerNode::FindByte(size_t byte_idx) {
 /// Find the child that contains a character
 InnerNode::Boundary InnerNode::FindCodepoint(size_t char_idx) {
     auto [child, stats] = Find(*this, char_idx, ChildContainsCodepoint);
+    return {child, stats};
+}
+/// Find the child that contains a UTF-16 code unit
+InnerNode::Boundary InnerNode::FindUtf16(size_t utf16_idx) {
+    auto [child, stats] = Find(*this, utf16_idx, ChildContainsUtf16);
     return {child, stats};
 }
 /// Find the child that contains an extended grapheme cluster
@@ -775,26 +796,30 @@ Rope::TextPosition Rope::ResolveGrapheme(size_t grapheme_idx) const {
     }
 
     if (grapheme_idx == root_info.grapheme_clusters) {
-        return {root_info.text_bytes, root_info.utf8_codepoints, root_info.grapheme_clusters};
+        return {root_info.text_bytes, root_info.utf8_codepoints, root_info.utf16_code_units,
+                root_info.grapheme_clusters};
     }
     auto* leaf = node.Get<LeafNode>();
     const auto text = leaf->GetStringView();
     size_t local_grapheme = grapheme_idx - prefix.grapheme_clusters;
     size_t byte_offset = 0;
     size_t codepoint_offset = 0;
+    size_t utf16_offset = 0;
     for (size_t i = 0; i < local_grapheme; ++i) {
         const auto next = utf8::Utf8Proc::NextGraphemeCluster(text, byte_offset);
         for (size_t codepoint_byte = byte_offset; codepoint_byte < next;) {
             int codepoint_size = 0;
-            utf8::Utf8Proc::UTF8ToCodepoint(text.data() + codepoint_byte, codepoint_size);
+            const auto codepoint = utf8::Utf8Proc::UTF8ToCodepoint(text.data() + codepoint_byte, codepoint_size);
             codepoint_byte += static_cast<size_t>(codepoint_size);
             ++codepoint_offset;
+            utf16_offset += codepoint > 0xffff ? 2 : 1;
         }
         byte_offset = next;
     }
     return {
         prefix.text_bytes + byte_offset,
         prefix.utf8_codepoints + codepoint_offset,
+        prefix.utf16_code_units + utf16_offset,
         grapheme_idx,
     };
 }
@@ -804,7 +829,8 @@ std::optional<Rope::TextPosition> Rope::ResolveGraphemeBoundary(size_t byte_idx)
         return std::nullopt;
     }
     if (byte_idx == root_info.text_bytes) {
-        return TextPosition{root_info.text_bytes, root_info.utf8_codepoints, root_info.grapheme_clusters};
+        return TextPosition{root_info.text_bytes, root_info.utf8_codepoints, root_info.utf16_code_units,
+                            root_info.grapheme_clusters};
     }
 
     TextStats prefix;
@@ -820,6 +846,7 @@ std::optional<Rope::TextPosition> Rope::ResolveGraphemeBoundary(size_t byte_idx)
     const auto local_target = byte_idx - prefix.text_bytes;
     size_t byte_offset = 0;
     size_t codepoint_offset = 0;
+    size_t utf16_offset = 0;
     size_t grapheme_offset = 0;
     while (byte_offset < local_target) {
         const auto next = utf8::Utf8Proc::NextGraphemeCluster(text, byte_offset);
@@ -828,9 +855,10 @@ std::optional<Rope::TextPosition> Rope::ResolveGraphemeBoundary(size_t byte_idx)
         }
         for (size_t codepoint_byte = byte_offset; codepoint_byte < next;) {
             int codepoint_size = 0;
-            utf8::Utf8Proc::UTF8ToCodepoint(text.data() + codepoint_byte, codepoint_size);
+            const auto codepoint = utf8::Utf8Proc::UTF8ToCodepoint(text.data() + codepoint_byte, codepoint_size);
             codepoint_byte += static_cast<size_t>(codepoint_size);
             ++codepoint_offset;
+            utf16_offset += codepoint > 0xffff ? 2 : 1;
         }
         byte_offset = next;
         ++grapheme_offset;
@@ -838,8 +866,72 @@ std::optional<Rope::TextPosition> Rope::ResolveGraphemeBoundary(size_t byte_idx)
     return TextPosition{
         prefix.text_bytes + byte_offset,
         prefix.utf8_codepoints + codepoint_offset,
+        prefix.utf16_code_units + utf16_offset,
         prefix.grapheme_clusters + grapheme_offset,
     };
+}
+
+std::optional<Rope::TextPosition> Rope::ResolveByteBoundary(size_t byte_idx) const {
+    if (byte_idx > root_info.text_bytes) return std::nullopt;
+    if (byte_idx == root_info.text_bytes) {
+        return TextPosition{root_info.text_bytes, root_info.utf8_codepoints, root_info.utf16_code_units,
+                            root_info.grapheme_clusters};
+    }
+    TextStats prefix;
+    auto node = root_node;
+    while (node.Is<InnerNode>()) {
+        auto* inner = node.Get<InnerNode>();
+        auto [child_idx, child_prefix] = inner->FindByte(byte_idx - prefix.text_bytes);
+        prefix += child_prefix;
+        node = inner->GetChildNodes()[child_idx];
+    }
+    auto text = node.Get<LeafNode>()->GetStringView();
+    const auto target = byte_idx - prefix.text_bytes;
+    size_t bytes = 0;
+    size_t codepoints = 0;
+    size_t utf16 = 0;
+    while (bytes < target) {
+        int size = 0;
+        const auto codepoint = utf8::Utf8Proc::UTF8ToCodepoint(text.data() + bytes, size);
+        if (size <= 0 || bytes + static_cast<size_t>(size) > target) return std::nullopt;
+        bytes += static_cast<size_t>(size);
+        ++codepoints;
+        utf16 += codepoint > 0xffff ? 2 : 1;
+    }
+    return TextPosition{prefix.text_bytes + bytes, prefix.utf8_codepoints + codepoints,
+                        prefix.utf16_code_units + utf16, prefix.grapheme_clusters};
+}
+
+std::optional<Rope::TextPosition> Rope::ResolveUtf16Boundary(size_t utf16_idx) const {
+    if (utf16_idx > root_info.utf16_code_units) return std::nullopt;
+    if (utf16_idx == root_info.utf16_code_units) {
+        return TextPosition{root_info.text_bytes, root_info.utf8_codepoints, root_info.utf16_code_units,
+                            root_info.grapheme_clusters};
+    }
+    TextStats prefix;
+    auto node = root_node;
+    while (node.Is<InnerNode>()) {
+        auto* inner = node.Get<InnerNode>();
+        auto [child_idx, child_prefix] = inner->FindUtf16(utf16_idx - prefix.utf16_code_units);
+        prefix += child_prefix;
+        node = inner->GetChildNodes()[child_idx];
+    }
+    auto text = node.Get<LeafNode>()->GetStringView();
+    const auto target = utf16_idx - prefix.utf16_code_units;
+    size_t bytes = 0;
+    size_t codepoints = 0;
+    size_t utf16 = 0;
+    while (utf16 < target) {
+        int size = 0;
+        const auto codepoint = utf8::Utf8Proc::UTF8ToCodepoint(text.data() + bytes, size);
+        const size_t width = codepoint > 0xffff ? 2 : 1;
+        if (size <= 0 || utf16 + width > target) return std::nullopt;
+        bytes += static_cast<size_t>(size);
+        ++codepoints;
+        utf16 += width;
+    }
+    return TextPosition{prefix.text_bytes + bytes, prefix.utf8_codepoints + codepoints,
+                        prefix.utf16_code_units + utf16, prefix.grapheme_clusters};
 }
 
 Rope::TextPosition Rope::ResolveGraphemeBoundaryAtOrAfter(size_t byte_idx) const {
@@ -1582,7 +1674,7 @@ static void ValidateGraphemeSizes(std::string_view text, size_t capacity) {
 void Rope::Insert(size_t char_idx, std::string_view text, bool force_bulk) {
     ValidateGraphemeSizes(text, LeafNode::Capacity(page_size));
     // Make sure the char idx is not out of bounds
-    char_idx = std::min(char_idx, root_info.utf8_codepoints);
+    char_idx = std::min(char_idx, static_cast<size_t>(root_info.utf8_codepoints));
 
     // Grapheme segmentation is not additive across an edit boundary. Rebuild Unicode text so joined or split
     // clusters are reflected in both leaf boundaries and aggregate metadata.
@@ -2094,6 +2186,7 @@ void Rope::CheckIntegrity() {
             validate(top.expected.text_bytes == have.text_bytes, "leaf text bytes mismatch");
             validate(top.expected.line_breaks == have.line_breaks, "leaf line breaks mismatch");
             validate(top.expected.utf8_codepoints == have.utf8_codepoints, "leaf utf8 codepoint mismatch");
+            validate(top.expected.utf16_code_units == have.utf16_code_units, "leaf utf16 code unit mismatch");
             validate(top.expected.grapheme_clusters == have.grapheme_clusters, "leaf grapheme cluster mismatch");
         } else {
             // Is an inner node
@@ -2103,6 +2196,7 @@ void Rope::CheckIntegrity() {
             validate(top.expected.text_bytes == have.text_bytes, "inner text bytes mismatch");
             validate(top.expected.line_breaks == have.line_breaks, "inner line breaks mismatch");
             validate(top.expected.utf8_codepoints == have.utf8_codepoints, "inner utf8 codepoint mismatch");
+            validate(top.expected.utf16_code_units == have.utf16_code_units, "inner utf16 code unit mismatch");
             validate(top.expected.grapheme_clusters == have.grapheme_clusters, "inner grapheme cluster mismatch");
             for (size_t i = 0; i < inner->child_count; ++i) {
                 auto nodes = inner->GetChildNodes();

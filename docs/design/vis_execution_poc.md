@@ -63,7 +63,7 @@ Key decisions:
   rendering errors; callers disable visualization tabs until the result is available.
 - `packages/dashql-app/src/view/notebook/script_details.tsx`:
   - Add `TabKey.Visualization = 3` to the enum (line 38).
-  - Compute `hasVisualizeStmt` from `scriptData.scriptAnalysis.buffers.analyzed` (visualization-specs length > 0).
+  - Compute `hasVisualizeStmt` from the editor session's portable script annotations.
   - Update the `enabledTabs` counter (lines 233–236) to include the visualization tab only when `activeQueryState.status === SUCCEEDED && hasVisualizeStmt`.
   - Add the tab in `tabProps` (chart icon — pick an appropriate symbol from `@ankoh/dashql-svg-symbols`; reuse `#table_24` style as a placeholder if no chart icon exists yet) and the renderer in `tabRenderers`.
   - Update the keyboard cycle list (line 288) and split-tab fallback logic (lines 392–410) to include the new tab.

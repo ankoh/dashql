@@ -4,6 +4,7 @@ export * as catalog from '@ankoh/dashql-flatbuf/dashql/buffers/catalog.js';
 export * as completion from '@ankoh/dashql-flatbuf/dashql/buffers/completion.js';
 export * as cursor from '@ankoh/dashql-flatbuf/dashql/buffers/cursor.js';
 export * as diff from '@ankoh/dashql-flatbuf/dashql/buffers/diff.js';
+export * as editor from '@ankoh/dashql-flatbuf/dashql/buffers/editor.js';
 export * as execution from '@ankoh/dashql-flatbuf/dashql/buffers/execution.js';
 export * as parser from '@ankoh/dashql-flatbuf/dashql/buffers/parser.js';
 export * as statistics from '@ankoh/dashql-flatbuf/dashql/buffers/statistics.js';

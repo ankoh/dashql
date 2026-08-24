@@ -68,12 +68,12 @@ export interface DashQLCompletionState {
 export interface DashQLProcessorUpdateOut {
     /// The key of the currently active script
     scriptKey: DashQLScriptKey;
-    /// The currently active script in the editor
-    script: dashql.DashQLScript | null;
+    /// The currently active editor session
+    editorSession?: dashql.DashQLEditorSession | null;
+    /// The latest plain editor-session snapshot.
+    editorUpdate?: dashql.buffers.editor.EditorUpdateT | null;
     /// The previous processed script buffers (if any)
-    scriptBuffers: DashQLScriptBuffers;
-    /// The script cursor
-    scriptCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null;
+    scriptBuffers: DashQLScriptBuffers | null;
     /// The completion candidate state (if any)
     scriptCompletion: DashQLCompletionState | null;
     /// The pending staged rewrite shown as an in-place diff (if any)
@@ -84,8 +84,8 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     /// The derive focus info
     derivedFocus: SemanticUserFocus | null;
 
-    /// Resolve a notebook script by its catalog entry id for code actions.
-    lookupScript?: (scriptKey: DashQLScriptKey) => dashql.DashQLScript | null;
+    /// Resolve a notebook editor session by its catalog entry id for code actions.
+    lookupEditorSession?: (scriptKey: DashQLScriptKey) => dashql.DashQLEditorSession | null;
     /// Navigate to a notebook script definition.
     onNavigateToScript?: (scriptKey: DashQLScriptKey) => void;
 
@@ -96,19 +96,27 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
 /// The state of a DashQL processor
 export type DashQLProcessorState = DashQLProcessorUpdateIn;
 
-/// Analyze a new script
-export function analyzeScript(script: dashql.DashQLScript, reportError: (error: unknown) => void = console.error): DashQLScriptBuffers {
+export function analyzeScript(
+    script: dashql.DashQLScript,
+    reportError: (error: unknown) => void = console.error,
+): DashQLScriptBuffers {
     try {
         script.analyze();
-
-        const parsed = script.getParsed();
-        const analyzed = script.getAnalyzed();
-        return { parsed, analyzed, destroy: destroyBuffers };
-
+        return {
+            parsed: script.getParsed(),
+            analyzed: script.getAnalyzed(),
+            destroy: destroyBuffers,
+        };
     } catch (e: unknown) {
         reportError(e);
     }
     return { parsed: null, analyzed: null, destroy: destroyBuffers };
+}
+
+function editorUpdateMessage(update: dashql.buffers.editor.EditorUpdateT): string {
+    return typeof update.statusMessage === 'string' && update.statusMessage.length > 0
+        ? update.statusMessage
+        : `editor update failed with status ${update.status}`;
 }
 
 /// Destory the buffers
@@ -123,6 +131,49 @@ const destroyBuffers = (state: DashQLScriptBuffers) => {
     }
     return state;
 };
+
+function eventAction(transaction: Transaction): dashql.buffers.editor.EditorEventAction {
+    const userEvent = transaction.annotation(Transaction.userEvent);
+    if (userEvent?.startsWith('input.type')) return dashql.buffers.editor.EditorEventAction.TYPE;
+    if (userEvent?.startsWith('input.paste')) return dashql.buffers.editor.EditorEventAction.PASTE;
+    if (userEvent?.startsWith('delete.')) return dashql.buffers.editor.EditorEventAction.DELETE;
+    if (userEvent === 'undo') return dashql.buffers.editor.EditorEventAction.UNDO;
+    if (userEvent === 'redo') return dashql.buffers.editor.EditorEventAction.REDO;
+    return dashql.buffers.editor.EditorEventAction.APPLY;
+}
+
+/// Build one portable event from CodeMirror's pre-change ranges and post-change selection.
+export function transactionToEditorEvent(
+    transaction: Transaction,
+    expectedDocumentRevision: bigint,
+): dashql.buffers.editor.EditorEventT {
+    const changes: dashql.buffers.editor.EditorTextChangeT[] = [];
+    transaction.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
+        changes.push(new dashql.buffers.editor.EditorTextChangeT(
+            BigInt(fromA),
+            BigInt(toA),
+            inserted.sliceString(0),
+        ));
+    });
+    const selection = transaction.newSelection.main;
+    const userEvent = transaction.annotation(Transaction.userEvent);
+    return new dashql.buffers.editor.EditorEventT(
+        expectedDocumentRevision,
+        changes,
+        new dashql.buffers.editor.EditorSelectionT(
+            BigInt(selection.anchor),
+            BigInt(selection.head),
+        ),
+        userEvent == null
+            ? dashql.buffers.editor.EditorEventOrigin.SYSTEM
+            : dashql.buffers.editor.EditorEventOrigin.USER,
+        transaction.docChanged
+            ? dashql.buffers.editor.EditorEventIntent.EDIT
+            : dashql.buffers.editor.EditorEventIntent.SELECTION,
+        eventAction(transaction),
+        transaction.docChanged,
+    );
+}
 
 /// Effect to update the state attached to a CodeMirror editor
 export const DashQLUpdateEffect: StateEffectType<DashQLProcessorUpdateIn> = StateEffect.define<DashQLProcessorUpdateIn>();
@@ -164,18 +215,14 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         // By default, the DashQL script is not configured
         const config: DashQLProcessorState = {
             scriptKey: 0,
-            script: null,
-            scriptBuffers: {
-                parsed: null,
-                analyzed: null,
-                destroy: destroyBuffers,
-            },
-            scriptCursor: null,
+            editorSession: null,
+            editorUpdate: null,
+            scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
 
             derivedFocus: null as SemanticUserFocus | null,
-            lookupScript: undefined,
+            lookupEditorSession: undefined,
             onNavigateToScript: undefined,
 
             onUpdate: () => { },
@@ -197,8 +244,8 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         for (const effect of transaction.effects) {
             // DashQL update effect?
             if (effect.is(DashQLUpdateEffect)) {
-                const keepLocalCompletion = state.script === effect.value.script
-                    && state.scriptBuffers === effect.value.scriptBuffers;
+                const keepLocalCompletion = state.editorSession === effect.value.editorSession
+                    && state.editorUpdate?.stateRevision === effect.value.editorUpdate?.stateRevision;
                 state = {
                     ...state,
                     ...effect.value,
@@ -212,16 +259,15 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 // Script changed?
                 // Signaled either through a completely new script or through a new script buffer
                 if (
-                    prevState.script !== state.script ||
-                    prevState.scriptBuffers !== state.scriptBuffers
+                    prevState.editorSession !== state.editorSession ||
+                    prevState.editorUpdate?.stateRevision !== state.editorUpdate?.stateRevision
                 ) {
                     return state;
                 }
 
                 // Is a redundant update?
-                const redundantUpdate = prevState.script == effect.value.script
-                    && prevState.scriptBuffers == effect.value.scriptBuffers
-                    && prevState.scriptCursor == effect.value.scriptCursor
+                const redundantUpdate = prevState.editorSession == effect.value.editorSession
+                    && prevState.editorUpdate?.stateRevision == effect.value.editorUpdate?.stateRevision
                     && prevState.scriptPendingDiff == effect.value.scriptPendingDiff
                     && prevState.derivedFocus == effect.value.derivedFocus
                     && !transaction.docChanged
@@ -234,37 +280,26 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             }
         }
 
-        // No script at all?
+        // No editor session at all?
         // Then abort early, nothing to do here
-        if (state.script == null) {
+        if (state.editorSession == null) {
             return state;
         }
 
-        // Did the doc change?
-        if (transaction.docChanged) {
-            // Apply all text changes to the the script.
-            // This is the crucial place where we mirror all text changes to the Webassembly B-tree Rope!
+        // Mirror the entire CodeMirror transaction through one portable editor event. Change ranges
+        // are measured in the pre-change document; the selection is measured in the new document.
+        if (transaction.docChanged || selectionChanged || state.editorUpdate?.primaryCursorState == null) {
             state = copyLazily(state, prevState);
-            transaction.changes.iterChanges(
-                (fromA: number, toA: number, fromB: number, _toB: number, inserted: Text) => {
-                    if (toA - fromA > 0) {
-                        state.script!.eraseTextRange(fromA, toA - fromA);
-                    }
-                    if (inserted.length > 0) {
-                        let writer = fromB;
-                        for (const text of inserted.iter()) {
-                            state.script!.insertTextAt(writer, text);
-                            writer += text.length;
-                        }
-                    }
-                },
-            );
-            state.scriptBuffers = analyzeScript(state.script!);
-            state.scriptCursor = state.script!.moveCursor(selection ?? 0);
-
-        } else if (selectionChanged || state.scriptCursor == null) {
-            state = copyLazily(state, prevState);
-            state.scriptCursor = state.script!.moveCursor(selection ?? 0);
+            const editorSession = state.editorSession!;
+            const update = editorSession.apply(transactionToEditorEvent(
+                transaction,
+                editorSession.getDocumentRevision(),
+            ));
+            if (update.status !== dashql.buffers.editor.EditorUpdateStatus.OK) {
+                throw new Error(editorUpdateMessage(update));
+            }
+            state.editorUpdate = update;
+            if (transaction.docChanged) state.scriptBuffers = null;
         }
 
         // Check additional completion effects
@@ -324,56 +359,61 @@ function isPassiveHint(buffer: dashql.buffers.completion.Completion): boolean {
 
 // Helper to determine if a user event triggers completions.
 // For events, refer to https://codemirror.net/docs/ref/
-function typingAtTokenStart(transaction: Transaction, prevCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null) {
-    const prevCursorReader = prevCursor?.read();
-    return transaction.isUserEvent("input.type")
-        && transaction.startState.selection.main.empty
-        && prevCursorReader?.scannerRelativePosition() === dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL
-        && prevCursorReader.scannerSymbolCompletable();
+function cursorUtf16Offset(state: DashQLProcessorState): number {
+    return Number(state.editorUpdate?.primaryCursorState?.textOffset ?? 0);
 }
 
-function backwardDeleteInsideCompletableToken(prevCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null) {
-    const cursor = prevCursor?.read();
-    switch (cursor?.scannerRelativePosition()) {
+function typingAtTokenStart(transaction: Transaction, prevState: DashQLProcessorState) {
+    const cursor = prevState.editorUpdate?.primaryCursorState;
+    return transaction.isUserEvent("input.type")
+        && transaction.startState.selection.main.empty
+        && cursor?.scannerRelativePosition === dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL
+        && cursor.scannerSymbolCompletable;
+}
+
+function backwardDeleteInsideCompletableToken(state: DashQLProcessorState) {
+    const portable = state.editorUpdate?.primaryCursorState;
+    switch (portable?.scannerRelativePosition) {
         case dashql.buffers.cursor.RelativeSymbolPosition.MID_OF_SYMBOL:
         case dashql.buffers.cursor.RelativeSymbolPosition.END_OF_SYMBOL:
-            return cursor.scannerSymbolCompletable();
+            return portable.scannerSymbolCompletable;
         default:
             return false;
     }
 }
 
-function userEventCanStartCompletion(transaction: Transaction, prevCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null) {
+function userEventCanStartCompletion(transaction: Transaction, prevState: DashQLProcessorState) {
     switch (transaction.annotation(Transaction.userEvent)) {
         case "delete.selection":
             // Deleting a selection before the cursor can leave the same token under the caret.
-            return transaction.changes.mapPos(prevCursor?.read().textOffset() ?? 0) !== transaction.newSelection.main.head
-                || backwardDeleteInsideCompletableToken(prevCursor);
+            return transaction.changes.mapPos(cursorUtf16Offset(prevState)) !== transaction.newSelection.main.head
+                || backwardDeleteInsideCompletableToken(prevState);
         case "delete.forward":
             return true;
         case "delete.backward":
-            return backwardDeleteInsideCompletableToken(prevCursor);
+            return backwardDeleteInsideCompletableToken(prevState);
         case "input.paste":
         case "delete.cut":
         case "input.drop":
             return false;
     }
-    return transaction.isUserEvent("input.type") && !typingAtTokenStart(transaction, prevCursor);
+    return transaction.isUserEvent("input.type") && !typingAtTokenStart(transaction, prevState);
 }
 
 
 // Helper to update a completion based on a transaction
 function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcessorState, transaction: Transaction): DashQLProcessorState {
     // We need a script and script cursor to complete.
-    if (!state.script || !state.scriptCursor) {
+    if (!state.editorSession || !state.editorUpdate?.primaryCursorState) {
         return state;
     }
-    const cursorOffset = state.scriptCursor.read().textOffset();
+    const editorSession = state.editorSession;
+    const cursorOffset = cursorUtf16Offset(state);
 
     // Check additional completion effects
     for (const effect of transaction.effects) {
         if (effect.is(DashQLCompletionStartEffect)) {
-            const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT);
+            const buffer = editorSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
             state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
             continue;
 
@@ -506,12 +546,12 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
     }
 
     if (transaction.docChanged && state.scriptCompletion == prevState.scriptCompletion) {
-        if (typingAtTokenStart(transaction, prevState.scriptCursor)) {
+        if (typingAtTokenStart(transaction, prevState)) {
             state = copyLazily(state, prevState);
             state.scriptCompletion = null;
             return state;
         }
-        if (transaction.isUserEvent("delete.backward") && !backwardDeleteInsideCompletableToken(prevState.scriptCursor)) {
+        if (transaction.isUserEvent("delete.backward") && !backwardDeleteInsideCompletableToken(prevState)) {
             state = copyLazily(state, prevState);
             state.scriptCompletion = null;
             return state;
@@ -520,8 +560,8 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
         // We don't have an ongoing completion and there is a new user-input?
         // Get a completion going.
         const noActiveCompletion = !state.scriptCompletion || state.scriptCompletion.status != DashQLCompletionStatus.AVAILABLE;
-        if (noActiveCompletion && userEventCanStartCompletion(transaction, prevState.scriptCursor)) {
-            const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT);
+        if (noActiveCompletion && userEventCanStartCompletion(transaction, prevState)) {
+            const buffer = editorSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
             state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
         }
 
@@ -532,7 +572,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                 case DashQLCompletionStatus.AVAILABLE:
                     // If a delete left the cursor between tokens, the word the hint was
                     // anchored on is gone. Clear the completion instead of regenerating it.
-                    const newRelPos = state.scriptCursor!.read().scannerRelativePosition();
+                    const newRelPos = state.editorUpdate?.primaryCursorState?.scannerRelativePosition;
                     const isDelete = transaction.annotation(Transaction.userEvent)?.startsWith("delete.") ?? false;
                     const cursorBetweenTokens =
                         newRelPos === dashql.buffers.cursor.RelativeSymbolPosition.AFTER_SYMBOL ||
@@ -542,7 +582,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                         state.scriptCompletion = null;
                         break;
                     }
-                    const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT);
+                    const buffer = editorSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
                     state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
                     break;
                 default:
@@ -559,7 +599,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
 //
 // Handles the explicit accept/reject effects and auto-accepts as soon as the user genuinely edits
 // the document. The transaction that *starts* a diff carries new script buffers via
-// `DashQLUpdateEffect` and returns early (the `scriptBuffers` guard in `update`) before this runs,
+// `DashQLUpdateEffect` and returns early (the projection-revision guard in `update`) before this runs,
 // so here we only ever see later user edits or accept/reject effects.
 function updateDiff(state: DashQLProcessorState, prevState: DashQLProcessorState, transaction: Transaction, externalUpdate: boolean): DashQLProcessorState {
     // Handle the explicit accept / reject effects.

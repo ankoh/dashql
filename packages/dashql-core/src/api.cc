@@ -3,6 +3,7 @@
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/detached_buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
+#include <flatbuffers/verifier.h>
 
 #include <stdexcept>
 
@@ -11,6 +12,7 @@
 #include "dashql/catalog.h"
 #include "dashql/catalog_object.h"
 #include "dashql/exception.h"
+#include "dashql/editor/editor_session.h"
 #include "dashql/script_diff.h"
 #include "dashql/script.h"
 #include "dashql/script_compiler.h"
@@ -48,6 +50,41 @@ static void packBuffer(FFIResult* result, std::unique_ptr<flatbuffers::DetachedB
     result->data_length = detached->size();
     result->owner_ptr = detached.release();
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<flatbuffers::DetachedBuffer*>(buffer); };
+}
+
+static buffers::formatting::FormattingConfigT makeFormattingConfig(size_t dialect, size_t mode, size_t max_width,
+                                                                   size_t indentation_width, bool debug_mode = false) {
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = static_cast<buffers::formatting::FormattingDialect>(dialect);
+    config.mode = static_cast<buffers::formatting::FormattingMode>(mode);
+    config.max_width = max_width;
+    config.indentation_width = indentation_width;
+    config.debug_mode = debug_mode;
+    return config;
+}
+
+template <typename Pack> static void packFlatBuffer(FFIResult* result, Pack&& pack) {
+    flatbuffers::FlatBufferBuilder builder;
+    pack(builder);
+    packBuffer(result, std::make_unique<flatbuffers::DetachedBuffer>(builder.Release()));
+}
+
+static void packEditorUpdate(FFIResult* result, const buffers::editor::EditorUpdateT& update) {
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(buffers::editor::EditorUpdate::Pack(fb, &update));
+    packBuffer(result, std::make_unique<flatbuffers::DetachedBuffer>(fb.Release()));
+}
+
+static void packInvalidEditorEvent(FFIResult* result, const editor::EditorSession& session) {
+    auto update = buffers::editor::EditorUpdateT{};
+    update.status = buffers::editor::EditorUpdateStatus::INVALID_EVENT;
+    update.status_message = "invalid EditorEvent FlatBuffer";
+    update.offset_unit = session.GetOffsetUnit();
+    update.catalog_entry_id = session.GetCatalogEntryId();
+    update.document_revision = session.GetDocumentRevision();
+    update.state_revision = session.GetStateRevision();
+    update.catalog_revision = session.GetCatalogRevision();
+    packEditorUpdate(result, update);
 }
 
 static void packUInt32Vector(FFIResult* result, std::unique_ptr<std::vector<uint32_t>> values) {
@@ -284,6 +321,119 @@ extern "C" void dashql_script_get_statistics(FFIResult* result, dashql::Script* 
     // Return the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     packBuffer(result, std::move(detached));
+}
+
+extern "C" void dashql_editor_session_new(FFIResult* result, Catalog* catalog, size_t offset_unit) {
+    if (!catalog) {
+        throw Exception(buffers::status::StatusCode::CATALOG_NULL);
+    }
+    if (offset_unit > static_cast<size_t>(buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS)) {
+        throw std::invalid_argument("invalid editor offset unit");
+    }
+    packPtr(result, std::make_unique<editor::EditorSession>(
+                        *catalog, static_cast<buffers::editor::EditorOffsetUnit>(offset_unit)));
+}
+
+extern "C" void dashql_editor_session_destroy(editor::EditorSession* session) { delete session; }
+
+extern "C" uint32_t dashql_editor_session_get_catalog_entry_id(editor::EditorSession* session) {
+    return session->GetCatalogEntryId();
+}
+
+extern "C" void dashql_editor_session_get_text(FFIResult* result, editor::EditorSession* session) {
+    auto text = std::make_unique<std::string>(session->GetText());
+    result->data_ptr = text->data();
+    result->data_length = text->length();
+    result->owner_ptr = text.release();
+    result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
+}
+
+extern "C" uint64_t dashql_editor_session_get_document_revision(editor::EditorSession* session) {
+    return session->GetDocumentRevision();
+}
+
+extern "C" uint64_t dashql_editor_session_get_state_revision(editor::EditorSession* session) {
+    return session->GetStateRevision();
+}
+
+extern "C" uint64_t dashql_editor_session_get_catalog_revision(editor::EditorSession* session) {
+    return session->GetCatalogRevision();
+}
+
+extern "C" void dashql_editor_session_replace_text(FFIResult* result, editor::EditorSession* session,
+                                                     uint64_t expected_document_revision, const char* text_ptr,
+                                                     size_t text_length) {
+    std::unique_ptr<const std::byte[]> text_buffer{reinterpret_cast<const std::byte*>(text_ptr)};
+    std::string_view text{text_ptr ? text_ptr : "", text_ptr ? text_length : 0};
+    packEditorUpdate(result, session->ReplaceText(expected_document_revision, text));
+}
+
+extern "C" void dashql_editor_session_apply(FFIResult* result, editor::EditorSession* session,
+                                              const uint8_t* event_ptr, size_t event_length) {
+    if (!event_ptr) {
+        packInvalidEditorEvent(result, *session);
+        return;
+    }
+    flatbuffers::Verifier verifier{event_ptr, event_length};
+    if (!verifier.VerifyBuffer<buffers::editor::EditorEvent>(nullptr)) {
+        packInvalidEditorEvent(result, *session);
+        return;
+    }
+    std::unique_ptr<buffers::editor::EditorEventT> event{
+        flatbuffers::GetRoot<buffers::editor::EditorEvent>(event_ptr)->UnPack()};
+    packEditorUpdate(result, session->Apply(*event));
+}
+
+extern "C" void dashql_editor_session_set_primary_cursor(FFIResult* result, editor::EditorSession* session,
+                                                           uint64_t expected_document_revision, uint64_t offset) {
+    packEditorUpdate(result, session->SetPrimaryCursor(expected_document_revision, offset));
+}
+
+extern "C" void dashql_editor_session_ensure_analysis(FFIResult* result, editor::EditorSession* session) {
+    packEditorUpdate(result, session->EnsureSynchronousAnalysis());
+}
+
+extern "C" void dashql_editor_session_complete_at_cursor(FFIResult* result, editor::EditorSession* session,
+                                                            size_t limit) {
+    packFlatBuffer(result, [&](auto& builder) { session->PackCompletion(builder, limit); });
+}
+
+extern "C" void dashql_editor_session_compile_query(FFIResult* result, editor::EditorSession* session,
+                                                      size_t dialect, size_t mode, size_t max_width,
+                                                      size_t indentation_width, bool allow_extensions,
+                                                      bool parse_if_outdated) {
+    auto config = makeFormattingConfig(dialect, mode, max_width, indentation_width);
+    packFlatBuffer(result, [&](auto& builder) {
+        session->CompileQuery(builder, config, allow_extensions, parse_if_outdated);
+    });
+}
+
+extern "C" void dashql_editor_session_format(FFIResult* result, editor::EditorSession* session, size_t dialect,
+                                               size_t mode, size_t max_width, size_t indentation_width,
+                                               bool debug_mode, bool parse_if_outdated, Catalog* catalog) {
+    auto config = makeFormattingConfig(dialect, mode, max_width, indentation_width, debug_mode);
+    packPtr(result, session->Format(config, parse_if_outdated, catalog));
+}
+
+extern "C" uint32_t dashql_editor_session_is_fully_formattable(editor::EditorSession* session, size_t dialect,
+                                                                 size_t mode, size_t max_width,
+                                                                 size_t indentation_width, bool debug_mode,
+                                                                 bool parse_if_outdated) {
+    auto config = makeFormattingConfig(dialect, mode, max_width, indentation_width, debug_mode);
+    return session->IsFullyFormattable(config, parse_if_outdated) ? 1 : 0;
+}
+
+extern "C" void dashql_editor_session_compute_diff(FFIResult* result, editor::EditorSession* session,
+                                                     Script* target) {
+    packFlatBuffer(result, [&](auto& builder) { session->ComputeDiff(builder, *target); });
+}
+
+extern "C" void dashql_editor_session_load_into_catalog(editor::EditorSession* session, size_t rank) {
+    session->LoadIntoCatalog(static_cast<CatalogEntry::Rank>(rank));
+}
+
+extern "C" void dashql_editor_session_drop_from_catalog(editor::EditorSession* session) {
+    session->DropFromCatalog();
 }
 
 /// Create a catalog

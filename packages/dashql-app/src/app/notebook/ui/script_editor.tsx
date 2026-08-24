@@ -13,6 +13,20 @@ import { ModifyNotebookScripts, useNotebookScripts } from '../scripts/notebook_s
 import { Logger } from '../../../platform/logger/logger.js';
 
 const LOG_CTX = "notebook_editor";
+const WRITABLE_SESSION_VIEWS = new WeakMap<object, EditorView>();
+
+function leaseWritableSession(editorSession: object, view: EditorView): () => void {
+    const current = WRITABLE_SESSION_VIEWS.get(editorSession);
+    if (current != null && current !== view) {
+        throw new Error('A DashQLEditorSession can only be bound to one writable editor view');
+    }
+    WRITABLE_SESSION_VIEWS.set(editorSession, view);
+    return () => {
+        if (WRITABLE_SESSION_VIEWS.get(editorSession) === view) {
+            WRITABLE_SESSION_VIEWS.delete(editorSession);
+        }
+    };
+}
 
 export interface ScriptEditorProps {
     notebookId: string;
@@ -32,13 +46,17 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
 
     // Update outdated scripts that are displayed in the editor
     React.useEffect(() => {
-        if (scriptData?.scriptAnalysis.outdated) {
+        if (scriptData?.analysisOutdated) {
             modifyScripts({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptData.scriptKey });
         }
     }, [scriptData]);
 
     // Track the current CodeMirror view
     const [view, setViewState] = React.useState<EditorView | null>(null);
+    React.useEffect(() => {
+        if (view == null || scriptData == null) return;
+        return leaseWritableSession(scriptData.editorSession, view);
+    }, [view, scriptData?.editorSession]);
     // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
         if (config == null || view == null || scriptData == null || scripts == null) return;
@@ -46,8 +64,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     }, [
         config,
         view,
-        scriptData?.script,
-        scriptData?.scriptAnalysis.buffers,
+        scriptData?.editorSession,
+        scriptData?.editorUpdate,
         scriptData?.pendingDiff,
         scripts?.semanticUserFocus,
         scripts?.connectionCatalog,
@@ -80,7 +98,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Script does not belong here?
     // Create a new editor state and update the view.
     // XXX Here's the place where we would restore a previous state, if one exists.
-    if (state.script != scriptData.script) {
+    if (state.editorSession !== scriptData.editorSession) {
         // When that happens we have to reset the editor state.
         // It means that someone gave us a new notebook script that requires a state update
         const extensions = createCodeMirrorExtensions();
@@ -92,8 +110,8 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Then we reset everything to make sure the script is ok.
     // Only replace if the doc content actually differs — the editor may already have the
     // correct text from its own transaction (e.g. autoclose inserting brackets).
-    if (state.scriptBuffers !== scriptData.scriptAnalysis.buffers) {
-        const scriptText = scriptData.script.toString();
+    if (state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision) {
+        const scriptText = scriptData.editorSession.getText();
         const editorText = view.state.doc.toString();
         if (scriptText !== editorText) {
             logger.debug("Replacing editor script", {}, LOG_CTX);
@@ -110,10 +128,12 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Never override when the cursor update originated from the editor's own selection changes,
     // as that would collapse an in-progress text selection.
     let selection: EditorSelection | null = null;
-    if (state.scriptCursor !== scriptData.cursor && state.script === scriptData.script) {
+    if (state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision && state.editorSession === scriptData.editorSession) {
         const mainSel = view.state.selection.main;
         if (mainSel.empty) {
-            const nextCursorOffset = scriptData.cursor?.read().textOffset();
+            const nextCursorOffset = scriptData.editorUpdate?.primaryCursorState?.textOffset == null
+                ? null
+                : Number(scriptData.editorUpdate.primaryCursorState.textOffset);
             if (nextCursorOffset != null && nextCursorOffset !== mainSel.head) {
                 const clampedOffset = Math.max(0, Math.min(nextCursorOffset, view.state.doc.length));
                 selection = EditorSelection.create([EditorSelection.cursor(clampedOffset)]);
@@ -138,15 +158,15 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     effects.push(
         DashQLUpdateEffect.of({
             scriptKey: scriptData.scriptKey,
-            script: scriptData.script,
-            scriptBuffers: scriptData.scriptAnalysis.buffers,
-            scriptCursor: scriptData.cursor,
+            editorSession: scriptData.editorSession,
+            editorUpdate: scriptData.editorUpdate,
+            scriptBuffers: null,
             scriptCompletion: scriptData.completion,
             scriptPendingDiff: scriptData.pendingDiff,
 
             derivedFocus: scripts.semanticUserFocus,
 
-            lookupScript: (scriptKey) => scripts.scripts[scriptKey]?.script ?? null,
+            lookupEditorSession: (scriptKey) => scripts.scripts[scriptKey]?.editorSession ?? null,
             onNavigateToScript,
 
             onUpdate: updateScript,

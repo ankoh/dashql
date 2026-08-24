@@ -167,9 +167,8 @@ function createOnlineConnection(activeQueryIds: number[] = []): ConnectionState 
 function makeScriptData(scriptKey: number, text: string, fileName: string = '', folderName: string = '') {
     return {
         scriptKey,
-        script: {
-            toString: () => text,
-            getStatementText: () => text,
+        editorSession: {
+            getText: () => text,
             compileQuery: () => ({
                 read: () => ({
                     errorsLength: () => 0,
@@ -177,21 +176,13 @@ function makeScriptData(scriptKey: number, text: string, fileName: string = '', 
                 }),
                 destroy: () => { },
             }),
-            analyze: () => { },
+            ensureAnalysis: () => { },
             getParsed: () => null,
             getAnalyzed: () => null,
         } as any,
-        scriptAnalysis: {
-            buffers: {
-                parsed: null,
-                analyzed: null,
-                destroy: () => { },
-            },
-            outdated: false,
-        },
+        analysisOutdated: false,
         annotations: {} as any,
         statistics: [] as any,
-        cursor: null,
         completion: null,
         pendingDiff: null,
         latestQueryId: null,
@@ -515,7 +506,7 @@ describe('NotebookFeed', () => {
         const notebookScripts = createNotebookScripts();
         notebookScripts.scripts[102] = {
             ...notebookScripts.scripts[102],
-            scriptAnalysis: { ...notebookScripts.scripts[102].scriptAnalysis, outdated: true },
+            analysisOutdated: true,
         };
         const analyzed = {
             ...notebookScripts,
@@ -523,7 +514,7 @@ describe('NotebookFeed', () => {
                 ...notebookScripts.scripts,
                 102: {
                     ...notebookScripts.scripts[102],
-                    scriptAnalysis: { ...notebookScripts.scripts[102].scriptAnalysis, outdated: false },
+                    analysisOutdated: false,
                 },
             },
         };

@@ -1,8 +1,8 @@
 import * as core from '../../../core/index.js';
 import * as Immutable from 'immutable';
 
-import { analyzeScript, DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut, DashQLScriptBuffers } from './editor/dashql_processor.js';
-import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
+import { DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut } from './editor/dashql_processor.js';
+import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo } from '../connections/connector_info.js';
 import { VariantKind } from '../../../utils/index.js';
 import {
@@ -107,36 +107,28 @@ export function notebookScriptsMatchStorageSnapshot(state: NotebookScripts, snap
         return false;
     }
     for (const script of memoryScripts) {
-        if (diskScripts.get(`${script.folderName}/${script.fileName}`) !== script.script.toString()) {
+        if (diskScripts.get(`${script.folderName}/${script.fileName}`) !== script.editorSession.getText()) {
             return false;
         }
     }
-    const draft = state.scripts[state.uncommittedScriptId]?.script.toString() ?? '';
+    const draft = state.scripts[state.uncommittedScriptId]?.editorSession.getText() ?? '';
     return draft === (snapshot.draft ?? '');
-}
-
-/// A script analysis
-export interface ScriptAnalysis {
-    /// The processed script buffers
-    buffers: DashQLScriptBuffers;
-    /// Is outdated?
-    outdated: boolean;
 }
 
 /// A script data
 export interface ScriptData {
     /// The script key
     scriptKey: number;
-    /// The script
-    script: core.DashQLScript;
-    /// The script analysis
-    scriptAnalysis: ScriptAnalysis;
+    /// The durable editor session that owns the native script
+    editorSession: core.DashQLEditorSession;
+    /// The latest plain editor-session snapshot.
+    editorUpdate?: core.buffers.editor.EditorUpdateT | null;
+    /// Whether the editor session must be reanalyzed against its text or catalog.
+    analysisOutdated: boolean;
     /// The derived annotations for the ui
     annotations: ScriptAnnotations;
     /// The statistics
-    statistics: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>;
-    /// The cursor
-    cursor: core.FlatBufferPtr<core.buffers.cursor.ScriptCursor> | null;
+    statistics: Immutable.List<core.buffers.editor.EditorProcessingStatisticsT>;
     /// The completion state.
     completion: DashQLCompletionState | null;
     /// A pending, staged rewrite (agent suggestion) shown as an in-place diff.
@@ -210,22 +202,15 @@ export type NotebookScriptsAction =
 const STATS_HISTORY_LIMIT = 20;
 
 export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQLCatalog, fileName: string = '', folderName: string = ''): [number, ScriptData] {
-    const script = instance.createScript(catalog);
-    const scriptKey = script.getCatalogEntryId();
+    const editorSession = instance.createEditorSession(catalog);
+    const scriptKey = editorSession.getCatalogEntryId();
     const scriptData: ScriptData = {
         scriptKey,
-        script,
-        scriptAnalysis: {
-            buffers: {
-                parsed: null,
-                analyzed: null,
-                destroy: () => { },
-            },
-            outdated: true,
-        },
+        editorSession,
+        editorUpdate: null,
+        analysisOutdated: true,
         statistics: Immutable.List(),
         annotations: createEmptyAnnotations(),
-        cursor: null,
         completion: null,
         pendingDiff: null,
         latestQueryId: null,
@@ -376,7 +361,7 @@ function applyScriptRepad(
                 DEBOUNCE_DURATION_SCRIPT_WRITE
             );
         }
-        const sql = nextScripts[entry.scriptId]?.script.toString() ?? '';
+        const sql = nextScripts[entry.scriptId]?.editorSession.getText() ?? '';
         storage?.write(
             groupScriptWrites(notebookId, folderName, newFileName),
             { type: WRITE_SCRIPT, value: [notebookId, folderName, newFileName, sql] },
@@ -455,7 +440,7 @@ function reprefixPages(
             const page = newPages[newFolder];
             const scriptEntries = Object.values(page.scripts).map(entry => {
                 const sd = newScripts[entry.scriptId];
-                return { scriptId: entry.scriptId, fileName: entry.fileName, sql: sd ? sd.script.toString() : '' };
+                return { scriptId: entry.scriptId, fileName: entry.fileName, sql: sd ? sd.editorSession.getText() : '' };
             });
             storage?.write(
                 groupScriptFolderWrites(next.notebookId, newFolder),
@@ -493,22 +478,14 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const fileName = generateScriptFileName({});
 
             // Create a new script for the new page
-            const script = state.instance.createScript(state.connectionCatalog);
-            const scriptKey = script.getCatalogEntryId();
+            const editorSession = state.instance.createEditorSession(state.connectionCatalog);
+            const scriptKey = editorSession.getCatalogEntryId();
             const scriptData: ScriptData = {
                 scriptKey,
-                script,
-                scriptAnalysis: {
-                    buffers: {
-                        parsed: null,
-                        analyzed: null,
-                        destroy: () => { },
-                    },
-                    outdated: true,
-                },
+                editorSession,
+                analysisOutdated: true,
                 statistics: Immutable.List(),
                 annotations: createEmptyAnnotations(),
-                cursor: null,
                 completion: null,
                 pendingDiff: null,
                 latestQueryId: null,
@@ -665,10 +642,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 const prev = scripts[scriptKey];
                 scripts[scriptKey] = {
                     ...prev,
-                    scriptAnalysis: {
-                        ...prev.scriptAnalysis,
-                        outdated: true,
-                    }
+                    analysisOutdated: true,
                 };
             }
             return {
@@ -681,51 +655,35 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             return analyzeOutdatedScript(state, action.value, logger);
 
         case UPDATE_FROM_PROCESSOR: {
-            // Destroy the previous buffers
             const update = action.value;
             const prevScript = state.scripts[update.scriptKey];
             const prevFocus = state.semanticUserFocus;
+            const updateSession = update.editorSession;
             // If the script key does not refer to a value we know, we cannot keep the new script alive.
             // Drop the update.
             if (!prevScript) {
-                update.scriptBuffers.destroy(update.scriptBuffers);
-                update.scriptCursor?.destroy();
+                update.scriptBuffers?.destroy(update.scriptBuffers);
                 update.scriptCompletion?.buffer.destroy();
                 return clearSemanticUserFocus(state);
             }
-            // Different script? This is also very disturbing
-            if (prevScript.script.ptr !== update.script?.ptr) {
-                update.scriptBuffers.destroy(update.scriptBuffers);
-                update.scriptCursor?.destroy();
+            if (updateSession !== prevScript.editorSession) {
+                update.scriptBuffers?.destroy(update.scriptBuffers);
                 update.scriptCompletion?.buffer.destroy();
                 return clearSemanticUserFocus(state);
             }
-            // Did the buffers change?
+            const analysisChanged = prevScript.editorUpdate?.stateRevision !== update.editorUpdate?.stateRevision;
             let focusUpdate: FocusUpdate | null = null;
-            if (prevScript.scriptAnalysis.buffers !== update.scriptBuffers) {
-                prevScript.scriptAnalysis.buffers.destroy(prevScript.scriptAnalysis.buffers);
+            if (analysisChanged) {
                 focusUpdate = FocusUpdate.Clear;
-            }
-            // Did the cursor change?
-            if (prevScript.cursor !== update.scriptCursor) {
-                prevScript.cursor?.destroy();
-                if (update.scriptCursor) {
-                    focusUpdate = FocusUpdate.UpdateFromCursor;
-                }
             }
             // Did the completion change?
             if (update.scriptCompletion) {
                 if (update.scriptCompletion.buffer !== prevScript.completion?.buffer) {
-                    prevScript.completion?.buffer.destroy();
-                    if (update.scriptCursor) {
-                        focusUpdate = FocusUpdate.UpdateFromCompletion;
-                    }
+                    focusUpdate = FocusUpdate.UpdateFromCompletion;
                 } else {
                     // Did the completion index change?
                     if (update.scriptCompletion.candidateId !== prevScript.completion?.candidateId) {
-                        if (update.scriptCursor) {
-                            focusUpdate = FocusUpdate.UpdateFromCompletion;
-                        }
+                        focusUpdate = FocusUpdate.UpdateFromCompletion;
                     }
                 }
             }
@@ -734,24 +692,30 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             if (update.scriptPendingDiff !== prevScript.pendingDiff) {
                 prevScript.pendingDiff?.diffBuffer.destroy();
             }
-            // Construct the new script data
-            const nextScriptAnalysis: ScriptAnalysis = {
-                buffers: update.scriptBuffers,
-                outdated: false,
-            };
-            let nextScript: ScriptData = {
+
+            if (prevScript.completion?.buffer !== update.scriptCompletion?.buffer) {
+                prevScript.completion?.buffer.destroy();
+            }
+            if (analysisChanged && update.editorUpdate?.primaryCursorContext != null) {
+                focusUpdate = update.scriptCompletion != null
+                    ? FocusUpdate.UpdateFromCompletion
+                    : FocusUpdate.UpdateFromCursor;
+            }
+            update.scriptBuffers?.destroy(update.scriptBuffers);
+            const nextScript: ScriptData = {
                 ...prevScript,
-                scriptAnalysis: nextScriptAnalysis,
-                cursor: update.scriptCursor,
+                analysisOutdated: false,
                 completion: update.scriptCompletion,
                 pendingDiff: update.scriptPendingDiff,
-                statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script.getStatistics() ?? null),
-                annotations: deriveScriptAnnotations(
-                    update.scriptBuffers,
-                    prevScript.script,
-                    logger,
-                ),
+                editorUpdate: update.editorUpdate ?? prevScript.editorUpdate,
+                statistics: update.editorUpdate?.analysisUpdated
+                    ? rotateScriptStatistics(prevScript.statistics, update.editorUpdate.processingStatistics)
+                    : prevScript.statistics,
             };
+            if (analysisChanged) {
+                nextScript.annotations = deriveScriptAnnotations(update.editorUpdate, updateSession, logger);
+                updateSession.loadIntoCatalog(nextScript.scriptKey);
+            }
             // Update semantic user focus
             let semanticUserFocus: SemanticUserFocus | null = prevFocus;
             switch (focusUpdate) {
@@ -759,7 +723,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     semanticUserFocus = null;
                     break;
                 case FocusUpdate.UpdateFromCursor:
-                    semanticUserFocus = deriveFocusFromScriptCursor(update.scriptKey, nextScript);
+                    semanticUserFocus = deriveFocusFromEditorUpdate(update.scriptKey, nextScript.editorUpdate);
                     break;
                 case FocusUpdate.UpdateFromCompletion:
                     semanticUserFocus = deriveFocusFromCompletionCandidates(update.scriptKey, nextScript);
@@ -775,20 +739,15 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             };
 
             // Re-load the catalog and mark scripts outdated when the analysis actually changed.
-            const buffersChanged = prevScript.scriptAnalysis.buffers !== update.scriptBuffers;
-            if (buffersChanged) {
-                // Always load into catalog so scripts can be referenced by qualified name
-                nextState.connectionCatalog!.loadScript(nextScript.script, nextScript.scriptKey);
+            if (analysisChanged) {
                 // Mark all other scripts as outdated.
                 // Eventually, we could restrict to those that are depending?
                 for (const key in nextState.scripts) {
+                    if (+key === update.scriptKey) continue;
                     const script = nextState.scripts[key];
                     nextState.scripts[key] = {
                         ...script,
-                        scriptAnalysis: {
-                            ...script.scriptAnalysis,
-                            outdated: true,
-                        }
+                        analysisOutdated: true,
                     };
                 }
             }
@@ -796,7 +755,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const scriptKey = update.scriptKey;
             const scriptData = nextState.scripts[scriptKey];
             if (scriptData) {
-                const sql = scriptData.script.toString();
+                const sql = scriptData.editorSession.getText();
                 if (scriptData.folderName === '' || scriptData.fileName === '') {
                     storage?.write(
                         groupDraftWrites(nextState.notebookId),
@@ -939,23 +898,15 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const repadded = applyScriptRepad(plan.repad, folderName, page.scripts, state.scripts, state.scriptFocus.fileName, state.notebookId, storage);
 
             // Create a new script
-            const script = state.instance.createScript(state.connectionCatalog);
-            const scriptKey = script.getCatalogEntryId();
+            const editorSession = state.instance.createEditorSession(state.connectionCatalog);
+            const scriptKey = editorSession.getCatalogEntryId();
             // Create script data
             const scriptData: ScriptData = {
                 scriptKey,
-                script,
-                scriptAnalysis: {
-                    buffers: {
-                        parsed: null,
-                        analyzed: null,
-                        destroy: () => { },
-                    },
-                    outdated: true,
-                },
+                editorSession,
+                analysisOutdated: true,
                 statistics: Immutable.List(),
                 annotations: createEmptyAnnotations(),
-                cursor: null,
                 completion: null,
                 pendingDiff: null,
                 latestQueryId: null,
@@ -1048,7 +999,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                         const other = newScripts[key];
                         newScripts[key] = {
                             ...other,
-                            scriptAnalysis: { ...other.scriptAnalysis, outdated: true },
+                            analysisOutdated: true,
                         };
                     }
                 } else {
@@ -1078,7 +1029,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 );
             } else {
                 // No rename: just persist the current contents under the unchanged name.
-                const sql = updatedScriptData ? updatedScriptData.script.toString() : '';
+                const sql = updatedScriptData ? updatedScriptData.editorSession.getText() : '';
                 storage?.write(
                     groupScriptWrites(next.notebookId, page.folderName, newFileName),
                     { type: WRITE_SCRIPT, value: [next.notebookId, page.folderName, newFileName, sql] },
@@ -1140,7 +1091,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 const scriptData = newScripts[key];
                 newScripts[key] = {
                     ...scriptData,
-                    scriptAnalysis: { ...scriptData.scriptAnalysis, outdated: true },
+                    analysisOutdated: true,
                 };
             }
 
@@ -1307,7 +1258,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             for (const { newFile } of renames) {
                 const entry = newPageScripts[newFile];
                 const sd = newScripts[entry.scriptId];
-                const sql = sd ? sd.script.toString() : '';
+                const sql = sd ? sd.editorSession.getText() : '';
                 storage?.write(
                     groupScriptWrites(next.notebookId, folderName, newFile),
                     { type: WRITE_SCRIPT, value: [next.notebookId, folderName, newFile, sql] },
@@ -1358,7 +1309,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 uncommittedScriptId: newUncommittedKey,
                 scriptFocus: { ...state.scriptFocus, fileName },
             };
-            const sql = updatedPromotedScript ? updatedPromotedScript.script.toString() : '';
+            const sql = updatedPromotedScript ? updatedPromotedScript.editorSession.getText() : '';
             storage?.write(
                 groupScriptWrites(next.notebookId, folderName, fileName),
                 { type: WRITE_SCRIPT, value: [next.notebookId, folderName, fileName, sql] },
@@ -1382,17 +1333,17 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             // Compute a staged diff against the prior text *before* we overwrite it (a genuine text
             // change is required — an unchanged rewrite produces no overlay). The prior script still
             // holds the old text here; diff it against a throwaway target seeded with the new text.
-            const priorText = scriptData.script.toString();
+            const priorText = scriptData.editorSession.getText();
             let pendingDiff: DashQLPendingDiff | null = null;
             if (withDiff && text !== priorText) {
-                pendingDiff = computePendingDiff(state.instance, state.connectionCatalog, scriptData.script, text, priorText, logger);
+                pendingDiff = computePendingDiff(state.instance, scriptData.editorSession, text, priorText, logger);
             }
             // A staged diff on this script replaces any earlier one — free the superseded buffer.
             if (scriptData.pendingDiff != null) {
                 scriptData.pendingDiff.diffBuffer.destroy();
             }
             // Rewrite the script text in-place
-            scriptData.script.replaceText(text);
+            replaceEditorSessionText(scriptData.editorSession, text);
             // Re-analyze through the path-aware helper (destroys the stale buffers, refreshes
             // buffers + annotations incl. visualizeQuery, reloads the script into the catalog)
             const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
@@ -1412,12 +1363,12 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 const other = nextState.scripts[key];
                 nextState.scripts[key] = {
                     ...other,
-                    scriptAnalysis: { ...other.scriptAnalysis, outdated: true },
+                    analysisOutdated: true,
                 };
             }
 
             // Persist only the updated script (same tail as UPDATE_FROM_PROCESSOR)
-            const sql = nextScriptData.script.toString();
+            const sql = nextScriptData.editorSession.getText();
             if (nextScriptData.folderName === '' || nextScriptData.fileName === '') {
                 storage?.write(
                     groupDraftWrites(nextState.notebookId),
@@ -1466,7 +1417,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const priorText = scriptData.pendingDiff.priorText;
             scriptData.pendingDiff.diffBuffer.destroy();
             // Rewrite the script text in-place and re-analyze through the path-aware helper.
-            scriptData.script.replaceText(priorText);
+            replaceEditorSessionText(scriptData.editorSession, priorText);
             const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
             nextScriptData.pendingDiff = null;
 
@@ -1484,12 +1435,12 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 const other = nextState.scripts[key];
                 nextState.scripts[key] = {
                     ...other,
-                    scriptAnalysis: { ...other.scriptAnalysis, outdated: true },
+                    analysisOutdated: true,
                 };
             }
 
             // Persist only the updated script (same tail as SET_SCRIPT_TEXT)
-            const sql = nextScriptData.script.toString();
+            const sql = nextScriptData.editorSession.getText();
             if (nextScriptData.folderName === '' || nextScriptData.fileName === '') {
                 storage?.write(
                     groupDraftWrites(nextState.notebookId),
@@ -1518,24 +1469,16 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const repadded = applyScriptRepad(plan.repad, folderName, page.scripts, state.scripts, state.scriptFocus.fileName, state.notebookId, storage);
 
             // Create a new script seeded with the provided text
-            const script = state.instance.createScript(state.connectionCatalog);
-            const scriptKey = script.getCatalogEntryId();
-            script.replaceText(text);
+            const editorSession = state.instance.createEditorSession(state.connectionCatalog);
+            const scriptKey = editorSession.getCatalogEntryId();
+            replaceEditorSessionText(editorSession, text);
 
             let scriptData: ScriptData = {
                 scriptKey,
-                script,
-                scriptAnalysis: {
-                    buffers: {
-                        parsed: null,
-                        analyzed: null,
-                        destroy: () => { },
-                    },
-                    outdated: true,
-                },
+                editorSession,
+                analysisOutdated: true,
                 statistics: Immutable.List(),
                 annotations: createEmptyAnnotations(),
-                cursor: null,
                 completion: null,
                 pendingDiff: null,
                 latestQueryId: null,
@@ -1562,7 +1505,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 scriptFolders: newPages,
                 scriptFocus: { ...state.scriptFocus, fileName },
             };
-            const sql = scriptData.script.toString();
+            const sql = scriptData.editorSession.getText();
             storage?.write(
                 groupScriptWrites(next.notebookId, folderName, fileName),
                 { type: WRITE_SCRIPT, value: [next.notebookId, folderName, fileName, sql] },
@@ -1576,30 +1519,16 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
 export function clearSemanticUserFocus<V extends NotebookScriptsInput>(state: V): V {
     return { ...state, semanticUserFocus: null };
 }
-export function replaceCursorIfChanged(state: ScriptData, cursor: core.FlatBufferPtr<core.buffers.cursor.ScriptCursor>): ScriptData {
-    if (state.cursor && !state.cursor.equals(cursor)) {
-        state.cursor.destroy();
-    }
-    return { ...state, cursor };
-}
-
 function destroyScriptData(data: ScriptData) {
-    data.scriptAnalysis.buffers.destroy(data.scriptAnalysis.buffers);
-    data.script.destroy();
+    data.editorSession.destroy();
     data.completion?.buffer.destroy();
     data.pendingDiff?.diffBuffer.destroy();
-    data.cursor?.destroy();
-    for (const stats of data.statistics) {
-        stats.destroy();
-    }
 }
 
 export function destroyNotebookScripts(state: NotebookScripts): NotebookScripts {
-    // Drop the script from the connection catalog
+    // Drop the session-owned scripts from the connection catalog.
     for (const scriptData of Object.values(state.scripts)) {
-        if (scriptData.script) {
-            state.connectionCatalog.dropScript(scriptData.script);
-        }
+        scriptData.editorSession.dropFromCatalog();
     }
     // Destroy all the script data
     for (const key in state.scripts) {
@@ -1638,21 +1567,21 @@ export function replaceNotebookScriptsFromStorage(
             let scriptData = existingByPath.get(path);
             if (scriptData) {
                 existingByPath.delete(path);
-                if (scriptData.script.toString() !== stored.sql) {
+                if (scriptData.editorSession.getText() !== stored.sql) {
                     scriptData.pendingDiff?.diffBuffer.destroy();
                     scriptData.completion?.buffer.destroy();
-                    scriptData.script.replaceText(stored.sql);
+                    replaceEditorSessionText(scriptData.editorSession, stored.sql);
                     scriptData = {
                         ...scriptData,
                         pendingDiff: null,
                         completion: null,
-                        scriptAnalysis: { ...scriptData.scriptAnalysis, outdated: true },
+                        analysisOutdated: true,
                     };
                     contentChanged = true;
                 }
             } else {
                 const [scriptKey, created] = createEmptyScriptData(state.instance, state.connectionCatalog, stored.name, page.name);
-                created.script.replaceText(stored.sql);
+                replaceEditorSessionText(created.editorSession, stored.sql);
                 scriptData = created;
                 contentChanged = true;
             }
@@ -1665,7 +1594,7 @@ export function replaceNotebookScriptsFromStorage(
     // Files no longer present on disk own WASM objects that must be detached before destruction.
     for (const removed of existingByPath.values()) {
         try {
-            state.connectionCatalog.dropScript(removed.script);
+            removed.editorSession.dropFromCatalog();
         } catch {
             // The script may not have completed analysis and therefore may not be in the catalog.
         }
@@ -1682,15 +1611,15 @@ export function replaceNotebookScriptsFromStorage(
         contentChanged = true;
     }
     const draftSql = snapshot.draft ?? '';
-    if (draft.script.toString() !== draftSql) {
+    if (draft.editorSession.getText() !== draftSql) {
         draft.pendingDiff?.diffBuffer.destroy();
         draft.completion?.buffer.destroy();
-        draft.script.replaceText(draftSql);
+        replaceEditorSessionText(draft.editorSession, draftSql);
         draft = {
             ...draft,
             pendingDiff: null,
             completion: null,
-            scriptAnalysis: { ...draft.scriptAnalysis, outdated: true },
+            analysisOutdated: true,
         };
         contentChanged = true;
     }
@@ -1725,7 +1654,7 @@ export function replaceNotebookScriptsFromStorage(
         for (const key in next.scripts) {
             next.scripts[key] = {
                 ...next.scripts[key],
-                scriptAnalysis: { ...next.scripts[key].scriptAnalysis, outdated: true },
+                analysisOutdated: true,
             };
         }
     }
@@ -1753,9 +1682,7 @@ function destroyDeadScripts(state: NotebookScripts): NotebookScripts {
     const cleanedScripts: ScriptDataMap = { ...state.scripts };
     // Delete scripts
     for (const [k, v] of deadScripts) {
-        if (v.script) {
-            state.connectionCatalog.dropScript(v.script);
-        }
+        v.editorSession.dropFromCatalog();
         destroyScriptData(v);
         delete cleanedScripts[k];
     }
@@ -1763,8 +1690,8 @@ function destroyDeadScripts(state: NotebookScripts): NotebookScripts {
 }
 
 export function rotateScriptStatistics(
-    log: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>,
-    stats: core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics> | null,
+    log: Immutable.List<core.buffers.editor.EditorProcessingStatisticsT>,
+    stats: core.buffers.editor.EditorProcessingStatisticsT | null,
 ) {
     if (stats == null) {
         return log;
@@ -1772,7 +1699,6 @@ export function rotateScriptStatistics(
         return log.withMutations(m => {
             m.push(stats);
             if (m.size > STATS_HISTORY_LIMIT) {
-                m.first()!.destroy();
                 m.shift();
             }
         });
@@ -1780,31 +1706,19 @@ export function rotateScriptStatistics(
 }
 
 function deriveScriptAnnotations(
-    data: DashQLScriptBuffers,
-    script: core.DashQLScript,
+    update: core.buffers.editor.EditorUpdateT | null | undefined,
+    editorSession: core.DashQLEditorSession,
     logger?: LoggerLike,
 ): ScriptAnnotations {
-    if (!data.analyzed) {
+    if (!update?.analysisAvailable) {
         return createEmptyAnnotations();
     }
-    const reader = data.analyzed.read();
+    const tableDefsFlat = update.scriptAnnotations?.tableDefinitions
+        .map(table => typeof table.name === 'string' ? table.name : null)
+        .filter((name): name is string => name != null)
+        .sort() ?? [];
 
-    // Collect the table definitions
-    const tableDefs: Set<string> = new Set();
-    const tmpTable = new core.buffers.analyzer.Table();
-    const tmpQualified = new core.buffers.analyzer.QualifiedTableName();
-    for (let i = 0; i < reader.tablesLength(); ++i) {
-        const table = reader.tables(i, tmpTable)!;
-        const qualified = table.tableName(tmpQualified)!;
-        const tableName = qualified.tableName();
-        if (tableName) {
-            tableDefs.add(tableName);
-        }
-    }
-    let tableDefsFlat: string[] = [...tableDefs.values()];
-    tableDefsFlat = tableDefsFlat.sort();
-
-    const visualizeQuery = compileVisualizeQuery(script, logger);
+    const visualizeQuery = compileVisualizeQuery(editorSession, logger);
 
     return {
         tableRefs: [],
@@ -1822,7 +1736,7 @@ export function compileQuery(
     scriptData: ScriptData,
     logger?: LoggerLike,
 ): string {
-    const compiled = scriptData.script.compileQuery(executionFormattingConfig());
+    const compiled = scriptData.editorSession.compileQuery(executionFormattingConfig());
     try {
         const reader = compiled.read();
         if (reader.errorsLength() > 0) {
@@ -1840,7 +1754,7 @@ export function compileQuery(
                 scriptKey: scriptData.scriptKey.toString(),
                 folderName: scriptData.folderName,
                 fileName: scriptData.fileName,
-                scritp: scriptData.script.toString(),
+                script: scriptData.editorSession.getText(),
             }, LOG_CTX);
         }
         logger?.debug('Compiled script for query execution', { sql }, LOG_CTX);
@@ -1860,8 +1774,8 @@ function executionFormattingConfig(): core.buffers.formatting.FormattingConfigT 
     );
 }
 
-function compileVisualizeQuery(script: core.DashQLScript, logger?: LoggerLike): ResolvedVisualizeQuery | null {
-    const compiled = script.compileQuery(executionFormattingConfig());
+function compileVisualizeQuery(editorSession: core.DashQLEditorSession, logger?: LoggerLike): ResolvedVisualizeQuery | null {
+    const compiled = editorSession.compileQuery(executionFormattingConfig());
     try {
         const reader = compiled.read();
         if (reader.errorsLength() > 0 ||
@@ -1891,16 +1805,15 @@ function compileVisualizeQuery(script: core.DashQLScript, logger?: LoggerLike): 
 
 /// Compute a staged, statement-level semantic diff from a script's prior text to a new text.
 ///
-/// `priorScript` still holds the old text; it is parsed here (parsing suffices for the AST the diff
-/// needs). The new text is loaded into a throwaway target script created in a fresh catalog so it
+/// `sourceSession` still holds the old text and analysis. The new text is loaded into a throwaway
+/// target script created in a fresh catalog so it
 /// never touches the notebook's catalog. Returns null (and logs) on any failure, so a diff problem
 /// never blocks applying the rewrite. The returned FlatBufferPtr is owned by the caller (stored on
 /// ScriptData.pendingDiff, freed when the diff is superseded, accepted/rejected, or the script is
 /// destroyed).
 function computePendingDiff(
     instance: core.DashQL,
-    _catalog: core.DashQLCatalog,
-    priorScript: core.DashQLScript,
+    sourceSession: core.DashQLEditorSession,
     newText: string,
     priorText: string,
     logger: Logger,
@@ -1908,14 +1821,17 @@ function computePendingDiff(
     let targetCatalog: core.DashQLCatalog | null = null;
     let targetScript: core.DashQLScript | null = null;
     try {
-        // Ensure the prior script is parsed (the diff walks the parsed AST).
-        priorScript.parse();
+        // Ensure the source session is parsed (the diff walks the parsed AST).
+        const analysis = sourceSession.ensureAnalysis();
+        if (analysis.status !== core.buffers.editor.EditorUpdateStatus.OK || !analysis.analysisAvailable) {
+            throw new Error('Failed to analyze source script for diff');
+        }
         // Seed a throwaway target with the new text in its own catalog (kept out of the notebook's).
         targetCatalog = instance.createCatalog();
         targetScript = instance.createScript(targetCatalog);
         targetScript.insertTextAt(0, newText);
         targetScript.parse();
-        const diffBuffer = priorScript.computeDiff(targetScript);
+        const diffBuffer = sourceSession.computeDiff(targetScript);
         return { priorText, diffBuffer };
     } catch (e: any) {
         logger.warn("Failed to compute script diff", { error: stringifyError(e) }, LOG_CTX);
@@ -1928,40 +1844,44 @@ function computePendingDiff(
 
 export function analyzeScriptData(scriptData: ScriptData, _catalog: core.DashQLCatalog, logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
-    next.scriptAnalysis.buffers.destroy(next.scriptAnalysis.buffers);
 
     // Analyze the script
     // Capture the underlying failure so callers can log it with notebook/script context
     // instead of writing it directly to the console.
-    let analyzeError: unknown = null;
-    const buffers = analyzeScript(next.script, (error) => { analyzeError = error; });
-    if (buffers.analyzed == null) {
-        buffers.destroy(buffers);
-        throw analyzeError ?? new Error("Failed to analyze script");
+    const update = next.editorSession.ensureAnalysis();
+    if (update.status !== core.buffers.editor.EditorUpdateStatus.OK || !update.analysisAvailable) {
+        throw new Error(typeof update.statusMessage === 'string' && update.statusMessage.length > 0
+            ? update.statusMessage
+            : "Failed to analyze script");
     }
-    next.scriptAnalysis = { buffers, outdated: false };
+    next.analysisOutdated = false;
+    next.editorUpdate = update;
     // Rotate the script statistics
-    next.statistics = rotateScriptStatistics(next.statistics, next.script.getStatistics() ?? null);
+    if (update.analysisUpdated) {
+        next.statistics = rotateScriptStatistics(next.statistics, update.processingStatistics);
+    }
     // Derive script annotations (incl. resolved VISUALIZE query)
     next.annotations = deriveScriptAnnotations(
-        next.scriptAnalysis.buffers,
-        next.script,
+        update,
+        next.editorSession,
         logger,
     );
 
-    // Update the cursor?
-    if (next.cursor != null) {
-        const cursor = next.cursor.read();
-        const textOffset = cursor.textOffset();
-        next.cursor.destroy();
-        next.cursor = next.script.moveCursor(textOffset);
-    }
+    next.editorSession.loadIntoCatalog(next.scriptKey);
     return next;
+}
+
+export function replaceEditorSessionText(editorSession: core.DashQLEditorSession, text: string): void {
+    const update = editorSession.replaceText(editorSession.getDocumentRevision(), text);
+    if (update.status !== core.buffers.editor.EditorUpdateStatus.OK) {
+        const status = core.buffers.editor.EditorUpdateStatus[update.status] ?? update.status.toString();
+        throw new Error(`Failed to replace editor session text: ${status}`);
+    }
 }
 
 export function analyzeOutdatedScript<V extends NotebookScriptsInput>(state: V, scriptKey: number, logger: Logger): V {
     const scriptData = state.scripts[scriptKey];
-    if (!scriptData || !scriptData.scriptAnalysis.outdated) {
+    if (!scriptData || !scriptData.analysisOutdated) {
         return state;
     }
     // Create the next notebook scripts state
@@ -1974,9 +1894,6 @@ export function analyzeOutdatedScript<V extends NotebookScriptsInput>(state: V, 
         }
     };
 
-    // Re-derive the semantic user focus if there is still a cursor
-    if (nextScriptData.cursor != null) {
-        next.semanticUserFocus = deriveFocusFromScriptCursor(scriptKey, nextScriptData);
-    }
+    next.semanticUserFocus = deriveFocusFromEditorUpdate(scriptKey, nextScriptData.editorUpdate);
     return next;
 }

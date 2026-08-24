@@ -30,63 +30,32 @@ export interface StoryState {
     gutterMarkers: RangeSet<GutterMarker>;
 }
 
-export const DashQLStoryUpdateEffect: StateEffectType<core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null> =
-    StateEffect.define<core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null>();
+export const DashQLStoryUpdateEffect: StateEffectType<core.buffers.editor.EditorUpdateT | null> =
+    StateEffect.define<core.buffers.editor.EditorUpdateT | null>();
 export const DashQLStoryToggleStatementEffect: StateEffectType<number> = StateEffect.define<number>();
-
-/// Convert core's UTF-8 byte offsets to the UTF-16 offsets CodeMirror uses.
-function utf8Offsets(text: string): number[] {
-    const offsets: number[] = [];
-    let bytes = 0;
-    let utf16 = 0;
-    for (const codePoint of text) {
-        offsets[bytes] = utf16;
-        const byteLength = new TextEncoder().encode(codePoint).length;
-        for (let i = 1; i < byteLength; ++i) offsets[bytes + i] = utf16;
-        bytes += byteLength;
-        utf16 += codePoint.length;
-    }
-    offsets[bytes] = utf16;
-    return offsets;
-}
 
 /// Return whether any statement has description comments. This lets the preview preserve its compact
 /// rendering for ordinary SQL while using raw source offsets only when descriptions are present.
-export function hasStatementDescriptions(parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript>): boolean {
-    const reader = parsed.read();
-    const statement = new core.buffers.parser.Statement();
-    for (let i = 0; i < reader.statementsLength(); ++i) {
-        const current = reader.statements(i, statement);
-        if (current != null && current.descriptionCount() > 0) return true;
-    }
-    return false;
+export function hasStatementDescriptions(update: core.buffers.editor.EditorUpdateT | null | undefined): boolean {
+    return (update?.scriptAnnotations?.statementDescriptions.length ?? 0) > 0;
 }
 
-/// Project parser description spans into the current CodeMirror document. Keep this conversion beside
-/// the decorations that consume it: FlatBuffers use UTF-8 bytes while CodeMirror uses UTF-16 offsets.
-function buildStoryModel(state: EditorState, parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null): StoryModel | null {
-    if (parsed == null) return null;
-    const text = state.doc.toString();
-    const offsets = utf8Offsets(text);
-    const reader = parsed.read();
-    if (reader.scannerErrorsLength() > 0 || reader.parserErrorsLength() > 0) return null;
-    const statement = new core.buffers.parser.Statement();
-    const span = new core.buffers.parser.TextSpan();
+function buildStoryModel(update: core.buffers.editor.EditorUpdateT | null): StoryModel | null {
+    if (update == null || update.diagnostics.some(d => d.source !== core.buffers.editor.EditorDiagnosticSource.ANALYZER)) {
+        return null;
+    }
     const statements: StoryStatement[] = [];
-    for (let i = 0; i < reader.statementsLength(); ++i) {
-        const current = reader.statements(i, statement);
-        const currentSpan = current?.statementSpan(span);
-        if (current == null || currentSpan == null || current.descriptionCount() === 0) continue;
-        const from = offsets[currentSpan.offset()];
-        const to = offsets[currentSpan.offset() + currentSpan.length()];
-        if (from == null || to == null || from >= to || current.descriptionBegin() + current.descriptionCount() > reader.commentsLength()) {
-            return null;
-        }
+    for (const current of update.scriptAnnotations?.statementDescriptions ?? []) {
+        const span = current.textSpan;
+        if (span == null) continue;
+        const from = Number(span.offset);
+        const to = Number(span.offset + span.length);
+        if (from >= to) return null;
         statements.push({
-            id: i,
+            id: current.statementId,
             from,
             to,
-            label: current.statementType() === core.buffers.parser.StatementType.VIS_VISUALISE
+            label: current.statementType === core.buffers.parser.StatementType.VIS_VISUALISE
                 ? 'visualize statement'
                 : 'select statement',
         });
@@ -201,7 +170,7 @@ export function createStoryDecorations(config: StoryConfig): { extensions: Exten
             let expanded = value.expanded;
             for (const effect of transaction.effects) {
                 if (effect.is(DashQLStoryUpdateEffect)) {
-                    model = buildStoryModel(transaction.state, effect.value);
+                    model = buildStoryModel(effect.value);
                     expanded = new Set();
                 } else if (effect.is(DashQLStoryToggleStatementEffect) && model?.statements.some(s => s.id === effect.value)) {
                     const nextExpanded = new Set(expanded);

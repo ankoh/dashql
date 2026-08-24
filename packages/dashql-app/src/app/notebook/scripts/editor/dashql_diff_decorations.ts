@@ -91,7 +91,10 @@ function buildDiffDecorations(pending: DashQLPendingDiff | null, doc: Text): Dif
         if (targetSpan == null) {
             continue;
         }
-        const range = clamp(targetSpan.offset(), targetSpan.offset() + targetSpan.length());
+        const range = clamp(
+            targetSpan.offset(),
+            targetSpan.offset() + targetSpan.length(),
+        );
         if (range == null) {
             continue;
         }
@@ -109,7 +112,10 @@ function buildDiffDecorations(pending: DashQLPendingDiff | null, doc: Text): Dif
                 for (let j = 0; j < op.targetChangesLength(); ++j) {
                     const change = op.targetChanges(j, tmpChange);
                     if (change == null) continue;
-                    const cr = clamp(change.offset(), change.offset() + change.length());
+                    const cr = clamp(
+                        change.offset(),
+                        change.offset() + change.length(),
+                    );
                     if (cr == null) continue;
                     ranges.push(ChangeDecoration.range(cr[0], cr[1]));
                 }
