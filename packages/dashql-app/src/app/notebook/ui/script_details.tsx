@@ -177,11 +177,11 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             4,
         );
         try {
-            setIsFormattable(scriptData.script.isFullyFormattable(formattingConfig, true));
+            setIsFormattable(scriptData.editorSession.isFullyFormattable(formattingConfig, true));
         } catch {
             setIsFormattable(false);
         }
-    }, [scriptData?.script, scriptData?.scriptAnalysis.buffers]);
+    }, [scriptData?.editorSession, scriptData?.editorUpdate?.stateRevision]);
 
     const {
         formatPending,

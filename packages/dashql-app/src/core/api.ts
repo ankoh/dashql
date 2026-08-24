@@ -26,6 +26,24 @@ export interface EmscriptenModule {
     _dashql_malloc: (length: number) => number;
     _dashql_free: (ptr: number) => void;
     _dashql_delete_owner: (owner_ptr: number, owner_deleter: number) => void;
+    _dashql_editor_session_new: (result: number, catalog: number, offsetUnit: number) => void;
+    _dashql_editor_session_destroy: (ptr: number) => void;
+    _dashql_editor_session_get_catalog_entry_id: (ptr: number) => number;
+    _dashql_editor_session_get_text: (result: number, ptr: number) => void;
+    _dashql_editor_session_get_document_revision: (ptr: number) => bigint;
+    _dashql_editor_session_get_state_revision: (ptr: number) => bigint;
+    _dashql_editor_session_get_catalog_revision: (ptr: number) => bigint;
+    _dashql_editor_session_replace_text: (result: number, ptr: number, expectedDocumentRevision: bigint, text: number, textLength: number) => void;
+    _dashql_editor_session_apply: (result: number, ptr: number, event: number, eventLength: number) => void;
+    _dashql_editor_session_set_primary_cursor: (result: number, ptr: number, expectedDocumentRevision: bigint, offset: bigint) => void;
+    _dashql_editor_session_ensure_analysis: (result: number, ptr: number) => void;
+    _dashql_editor_session_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
+    _dashql_editor_session_compile_query: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, allowExtensions: boolean, parseIfOutdated: boolean) => void;
+    _dashql_editor_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean, catalog: number) => void;
+    _dashql_editor_session_is_fully_formattable: (ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean) => number;
+    _dashql_editor_session_compute_diff: (result: number, ptr: number, target: number) => void;
+    _dashql_editor_session_load_into_catalog: (ptr: number, rank: number) => void;
+    _dashql_editor_session_drop_from_catalog: (ptr: number) => void;
     _dashql_script_new: (result: number, catalog: number) => void;
     _dashql_script_insert_text_at: (ptr: number, offset: number, text: number, textLength: number) => void;
     _dashql_script_insert_char_at: (ptr: number, offset: number, unicode: number) => void;
@@ -78,6 +96,25 @@ interface DashQLModuleExports {
     dashql_malloc: (length: number) => number;
     dashql_free: (ptr: number) => void;
     dashql_delete_owner: (owner_ptr: number, owner_deleter: number) => void;
+
+    dashql_editor_session_new: (result: number, catalog: number, offsetUnit: number) => void;
+    dashql_editor_session_destroy: (ptr: number) => void;
+    dashql_editor_session_get_catalog_entry_id: (ptr: number) => number;
+    dashql_editor_session_get_text: (result: number, ptr: number) => void;
+    dashql_editor_session_get_document_revision: (ptr: number) => bigint;
+    dashql_editor_session_get_state_revision: (ptr: number) => bigint;
+    dashql_editor_session_get_catalog_revision: (ptr: number) => bigint;
+    dashql_editor_session_replace_text: (result: number, ptr: number, expectedDocumentRevision: bigint, text: number, textLength: number) => void;
+    dashql_editor_session_apply: (result: number, ptr: number, event: number, eventLength: number) => void;
+    dashql_editor_session_set_primary_cursor: (result: number, ptr: number, expectedDocumentRevision: bigint, offset: bigint) => void;
+    dashql_editor_session_ensure_analysis: (result: number, ptr: number) => void;
+    dashql_editor_session_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
+    dashql_editor_session_compile_query: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, allowExtensions: boolean, parseIfOutdated: boolean) => void;
+    dashql_editor_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean, catalog: number) => void;
+    dashql_editor_session_is_fully_formattable: (ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean) => number;
+    dashql_editor_session_compute_diff: (result: number, ptr: number, target: number) => void;
+    dashql_editor_session_load_into_catalog: (ptr: number, rank: number) => void;
+    dashql_editor_session_drop_from_catalog: (ptr: number) => void;
 
     dashql_script_new: (result: number, catalog: number) => void;
     dashql_script_insert_text_at: (ptr: number, offset: number, text: number, textLength: number) => void;
@@ -145,6 +182,8 @@ const CATALOG_STATISTICS_TYPE = Symbol('CATALOG_STATISTICS_TYPE');
 const CATALOG_TYPE = Symbol('CATALOG_TYPE');
 const COMPLETION_TYPE = Symbol('COMPLETION_TYPE');
 const CURSOR_TYPE = Symbol('CURSOR_TYPE');
+const EDITOR_SESSION_TYPE = Symbol('EDITOR_SESSION_TYPE');
+const EDITOR_UPDATE_TYPE = Symbol('EDITOR_UPDATE_TYPE');
 const SCRIPT_DIFF_TYPE = Symbol('SCRIPT_DIFF_TYPE');
 const SCRIPT_COMPILATION_TYPE = Symbol('SCRIPT_COMPILATION_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
@@ -162,6 +201,8 @@ export type DashQLRegisteredMemory =
     | VariantKind<typeof CATALOG_TYPE, Ptr<typeof CATALOG_TYPE>>
     | VariantKind<typeof COMPLETION_TYPE, FlatBufferPtr<buffers.completion.Completion>>
     | VariantKind<typeof CURSOR_TYPE, FlatBufferPtr<buffers.cursor.ScriptCursor>>
+    | VariantKind<typeof EDITOR_SESSION_TYPE, Ptr<typeof EDITOR_SESSION_TYPE>>
+    | VariantKind<typeof EDITOR_UPDATE_TYPE, FlatBufferPtr<buffers.editor.EditorUpdate>>
     | VariantKind<typeof SCRIPT_DIFF_TYPE, FlatBufferPtr<buffers.diff.ScriptDiff>>
     | VariantKind<typeof SCRIPT_COMPILATION_TYPE, FlatBufferPtr<buffers.execution.ScriptCompilationResult>>
     | VariantKind<typeof FLAT_CATALOG_TYPE, FlatBufferPtr<buffers.catalog.FlatCatalog>>
@@ -199,6 +240,24 @@ export class DashQL {
             dashql_malloc: module._dashql_malloc,
             dashql_free: module._dashql_free,
             dashql_delete_owner: module._dashql_delete_owner,
+            dashql_editor_session_new: module._dashql_editor_session_new,
+            dashql_editor_session_destroy: module._dashql_editor_session_destroy,
+            dashql_editor_session_get_catalog_entry_id: module._dashql_editor_session_get_catalog_entry_id,
+            dashql_editor_session_get_text: module._dashql_editor_session_get_text,
+            dashql_editor_session_get_document_revision: module._dashql_editor_session_get_document_revision,
+            dashql_editor_session_get_state_revision: module._dashql_editor_session_get_state_revision,
+            dashql_editor_session_get_catalog_revision: module._dashql_editor_session_get_catalog_revision,
+            dashql_editor_session_replace_text: module._dashql_editor_session_replace_text,
+            dashql_editor_session_apply: module._dashql_editor_session_apply,
+            dashql_editor_session_set_primary_cursor: module._dashql_editor_session_set_primary_cursor,
+            dashql_editor_session_ensure_analysis: module._dashql_editor_session_ensure_analysis,
+            dashql_editor_session_complete_at_cursor: module._dashql_editor_session_complete_at_cursor,
+            dashql_editor_session_compile_query: module._dashql_editor_session_compile_query,
+            dashql_editor_session_format: module._dashql_editor_session_format,
+            dashql_editor_session_is_fully_formattable: module._dashql_editor_session_is_fully_formattable,
+            dashql_editor_session_compute_diff: module._dashql_editor_session_compute_diff,
+            dashql_editor_session_load_into_catalog: module._dashql_editor_session_load_into_catalog,
+            dashql_editor_session_drop_from_catalog: module._dashql_editor_session_drop_from_catalog,
             dashql_script_new: module._dashql_script_new,
             dashql_catalog_clear: module._dashql_catalog_clear,
             dashql_script_insert_text_at: module._dashql_script_insert_text_at,
@@ -401,6 +460,19 @@ export class DashQL {
         const catalog = new DashQLCatalog(ptr);
         this.registerMemory({ type: CATALOG_TYPE, value: catalog.ptr! });
         return catalog;
+    }
+
+    public createEditorSession(
+        catalog: DashQLCatalog,
+        offsetUnit = buffers.editor.EditorOffsetUnit.UTF16_CODE_UNITS,
+    ): DashQLEditorSession {
+        const catalogPtr = catalog.ptr.assertNotNull();
+        const ptr = this.callSRetPtr(EDITOR_SESSION_TYPE, (resultPtr) =>
+            this.instanceExports.dashql_editor_session_new(resultPtr, catalogPtr, offsetUnit)
+        );
+        const session = new DashQLEditorSession(ptr);
+        this.registerMemory({ type: EDITOR_SESSION_TYPE, value: session.ptr });
+        return session;
     }
 
     public createPlanViewModel(layoutConfig: buffers.view.PlanLayoutConfigT): DashQLPlanViewModel {
@@ -615,6 +687,210 @@ export class ParserError extends Error {
     constructor(parsed: FlatBufferPtr<buffers.parser.ParsedScript>, firstError: buffers.parser.Error) {
         super(firstError.message()!);
         this.parsed = parsed;
+    }
+}
+
+export class DashQLEditorSession {
+    public readonly ptr: Ptr<typeof EDITOR_SESSION_TYPE>;
+    public readonly catalog_entry_id: number;
+
+    public constructor(ptr: Ptr<typeof EDITOR_SESSION_TYPE>) {
+        this.ptr = ptr;
+        this.catalog_entry_id = this.ptr.api.instanceExports.dashql_editor_session_get_catalog_entry_id(
+            ptr.assertNotNull(),
+        );
+    }
+
+    public destroy(): void {
+        this.ptr.destroy();
+    }
+
+    public getCatalogEntryId(): number {
+        return this.ptr.api.instanceExports.dashql_editor_session_get_catalog_entry_id(this.ptr.assertNotNull());
+    }
+
+    public getText(): string {
+        const sessionPtr = this.ptr.assertNotNull();
+        return this.ptr.api.readStringResult((resultPtr) =>
+            this.ptr.api.instanceExports.dashql_editor_session_get_text(resultPtr, sessionPtr)
+        );
+    }
+
+    public getDocumentRevision(): bigint {
+        return this.ptr.api.instanceExports.dashql_editor_session_get_document_revision(this.ptr.assertNotNull());
+    }
+
+    public getStateRevision(): bigint {
+        return this.ptr.api.instanceExports.dashql_editor_session_get_state_revision(this.ptr.assertNotNull());
+    }
+
+    public getCatalogRevision(): bigint {
+        return this.ptr.api.instanceExports.dashql_editor_session_get_catalog_revision(this.ptr.assertNotNull());
+    }
+
+    public replaceText(expectedDocumentRevision: bigint, text: string): buffers.editor.EditorUpdateT {
+        const sessionPtr = this.ptr.assertNotNull();
+        const [textBegin, textLength] = this.ptr.api.copyString(text);
+        return this.readUpdate((resultPtr) =>
+            this.ptr.api.instanceExports.dashql_editor_session_replace_text(
+                resultPtr,
+                sessionPtr,
+                expectedDocumentRevision,
+                textBegin,
+                textLength,
+            )
+        );
+    }
+
+    public apply(event: buffers.editor.EditorEventT): buffers.editor.EditorUpdateT {
+        const sessionPtr = this.ptr.assertNotNull();
+        const builder = new flatbuffers.Builder();
+        builder.finish(event.pack(builder));
+        const [eventBegin, eventLength] = this.ptr.api.copyBuffer(builder.asUint8Array());
+        try {
+            return this.readUpdate((resultPtr) =>
+                this.ptr.api.instanceExports.dashql_editor_session_apply(
+                    resultPtr,
+                    sessionPtr,
+                    eventBegin,
+                    eventLength,
+                )
+            );
+        } finally {
+            this.ptr.api.instanceExports.dashql_free(eventBegin);
+        }
+    }
+
+    public setCursor(expectedDocumentRevision: bigint, offset: bigint): buffers.editor.EditorUpdateT {
+        const sessionPtr = this.ptr.assertNotNull();
+        return this.readUpdate((resultPtr) =>
+            this.ptr.api.instanceExports.dashql_editor_session_set_primary_cursor(
+                resultPtr,
+                sessionPtr,
+                expectedDocumentRevision,
+                offset,
+            )
+        );
+    }
+
+    public ensureAnalysis(): buffers.editor.EditorUpdateT {
+        const sessionPtr = this.ptr.assertNotNull();
+        return this.readUpdate((resultPtr) =>
+            this.ptr.api.instanceExports.dashql_editor_session_ensure_analysis(resultPtr, sessionPtr)
+        );
+    }
+
+    public completeAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> {
+        const sessionPtr = this.ptr.assertNotNull();
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.completion.Completion, buffers.completion.CompletionT>(
+            COMPLETION_TYPE,
+            (resultPtr) => this.ptr.api.instanceExports.dashql_editor_session_complete_at_cursor(
+                resultPtr,
+                sessionPtr,
+                limit,
+            ),
+            () => new buffers.completion.Completion(),
+        );
+        this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
+        return resultBuffer;
+    }
+
+    public compileQuery(
+        config: buffers.formatting.FormattingConfigT,
+        allowExtensions: boolean = true,
+        parseIfOutdated: boolean = true,
+    ): FlatBufferPtr<buffers.execution.ScriptCompilationResult> {
+        const sessionPtr = this.ptr.assertNotNull();
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.execution.ScriptCompilationResult, buffers.execution.ScriptCompilationResultT>(
+            SCRIPT_COMPILATION_TYPE,
+            (resultPtr) => this.ptr.api.instanceExports.dashql_editor_session_compile_query(
+                resultPtr,
+                sessionPtr,
+                config.dialect,
+                config.mode,
+                config.maxWidth,
+                config.indentationWidth,
+                allowExtensions,
+                parseIfOutdated,
+            ),
+            () => new buffers.execution.ScriptCompilationResult(),
+        );
+        this.ptr.api.registerMemory({ type: SCRIPT_COMPILATION_TYPE, value: resultBuffer });
+        return resultBuffer;
+    }
+
+    public format(
+        config: buffers.formatting.FormattingConfigT,
+        catalog: DashQLCatalog | null = null,
+        parseIfOutdated: boolean = true,
+    ): DashQLScript {
+        const sessionPtr = this.ptr.assertNotNull();
+        const catalogPtr = catalog?.ptr.assertNotNull() ?? 0;
+        const scriptPtr = this.ptr.api.callSRetPtr(SCRIPT_TYPE, (resultPtr) =>
+            this.ptr.api.instanceExports.dashql_editor_session_format(
+                resultPtr,
+                sessionPtr,
+                config.dialect,
+                config.mode,
+                config.maxWidth,
+                config.indentationWidth,
+                config.debugMode,
+                parseIfOutdated,
+                catalogPtr,
+            )
+        );
+        const script = new DashQLScript(scriptPtr);
+        this.ptr.api.registerMemory({ type: SCRIPT_TYPE, value: script.ptr });
+        return script;
+    }
+
+    public isFullyFormattable(
+        config: buffers.formatting.FormattingConfigT,
+        parseIfOutdated: boolean = true,
+    ): boolean {
+        return this.ptr.api.instanceExports.dashql_editor_session_is_fully_formattable(
+            this.ptr.assertNotNull(),
+            config.dialect,
+            config.mode,
+            config.maxWidth,
+            config.indentationWidth,
+            config.debugMode,
+            parseIfOutdated,
+        ) !== 0;
+    }
+
+    public computeDiff(target: DashQLScript): FlatBufferPtr<buffers.diff.ScriptDiff> {
+        const sessionPtr = this.ptr.assertNotNull();
+        const targetPtr = target.ptr.assertNotNull();
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.diff.ScriptDiff, buffers.diff.ScriptDiffT>(
+            SCRIPT_DIFF_TYPE,
+            (resultPtr) => this.ptr.api.instanceExports.dashql_editor_session_compute_diff(
+                resultPtr,
+                sessionPtr,
+                targetPtr,
+            ),
+            () => new buffers.diff.ScriptDiff(),
+        );
+        this.ptr.api.registerMemory({ type: SCRIPT_DIFF_TYPE, value: resultBuffer });
+        return resultBuffer;
+    }
+
+    public loadIntoCatalog(rank: number): void {
+        this.ptr.api.instanceExports.dashql_editor_session_load_into_catalog(this.ptr.assertNotNull(), rank);
+    }
+
+    public dropFromCatalog(): void {
+        this.ptr.api.instanceExports.dashql_editor_session_drop_from_catalog(this.ptr.assertNotNull());
+    }
+
+    private readUpdate(fn: (resultPtr: number) => void): buffers.editor.EditorUpdateT {
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.editor.EditorUpdate, buffers.editor.EditorUpdateT>(
+            EDITOR_UPDATE_TYPE,
+            fn,
+            () => new buffers.editor.EditorUpdate(),
+        );
+        this.ptr.api.registerMemory({ type: EDITOR_UPDATE_TYPE, value: resultBuffer });
+        return resultBuffer.unpackAndDestroy();
     }
 }
 

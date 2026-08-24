@@ -533,7 +533,7 @@ export class StorageWriter {
                         const pageScript = page.scripts[fileName];
                         const scriptData = notebookScripts.scripts[pageScript.scriptId];
                         if (scriptData) {
-                            const sql = scriptData.script.toString();
+                            const sql = scriptData.editorSession.getText();
                             const t0 = new Date();
                             await this.backend.saveScript(notebookId, folderName, pageScript.fileName, sql);
                             const t1 = new Date();
@@ -546,7 +546,7 @@ export class StorageWriter {
                 // Write composer script if it exists
                 const composerScriptData = notebookScripts.scripts[notebookScripts.uncommittedScriptId];
                 if (composerScriptData) {
-                    const composerSql = composerScriptData.script.toString();
+                    const composerSql = composerScriptData.editorSession.getText();
                     const t0 = new Date();
                     await this.backend.saveScriptDraft(notebookId, composerSql);
                     const t1 = new Date();

@@ -124,14 +124,16 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         return nextState;
     }
     const targetFrom = targetLoc.offset();
+    const originalTargetTo = targetLoc.offset() + targetLoc.length();
+    const originalQualifiedTo = qualifiedLoc.offset() + qualifiedLoc.length();
     const candidateText = candidate.completionText()!;
     const targetTo = updateFrom <= UpdatePatchStartingFrom.Candidate
-        ? targetFrom + targetLoc.length()
+        ? originalTargetTo
         : targetFrom + candidateText.length;
     const qualifiedFrom = qualifiedLoc.offset();
     const qualifiedTo = updateFrom <= UpdatePatchStartingFrom.Candidate
-        ? qualifiedFrom + qualifiedLoc.length()
-        : qualifiedFrom + qualifiedLoc.length() + candidateText.length - targetLoc.length();
+        ? originalQualifiedTo
+        : originalQualifiedTo + candidateText.length - (originalTargetTo - targetFrom);
 
     // Update candidate patch?
     if (updateFrom <= UpdatePatchStartingFrom.Candidate) {

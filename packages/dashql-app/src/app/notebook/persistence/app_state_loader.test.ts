@@ -70,7 +70,8 @@ describe('restoreAppState', () => {
             saveAppSettings: vi.fn(),
         };
 
-        // Mock DashQL WASM instance
+        // Mock DashQL WASM instance. Connection-owned catalog scripts still use DashQLScript;
+        // notebook-owned documents use DashQLEditorSession.
         let scriptIdCounter = 0;
         mockCore = {
             createCatalog: vi.fn(() => ({
@@ -78,21 +79,37 @@ describe('restoreAppState', () => {
                 loadScript: vi.fn(),
                 destroy: vi.fn(),
             })),
-            createScript: vi.fn(() => {
-                const script = {
+            createEditorSession: vi.fn(() => {
+                let text = '';
+                let documentRevision = 0n;
+                const editorSession = {
                     getCatalogEntryId: vi.fn(() => ++scriptIdCounter),
-                    replaceText: vi.fn(),
-                    analyze: vi.fn(),
-                    toString: vi.fn(() => ''),
-                    // Analysis methods used when an ordinary script is requested lazily:
+                    getDocumentRevision: vi.fn(() => documentRevision),
+                    replaceText: vi.fn((_revision: bigint, nextText: string) => {
+                        text = nextText;
+                        documentRevision += 1n;
+                        return { status: 0 };
+                    }),
+                    getText: vi.fn(() => text),
+                    ensureAnalysis: vi.fn(),
                     getParsed: vi.fn(() => null),
                     getAnalyzed: vi.fn(() => null),
                     getStatistics: vi.fn(() => null),
-                    moveCursor: vi.fn(() => null),
+                    setCursor: vi.fn(),
+                    getCursor: vi.fn(() => null),
+                    loadIntoCatalog: vi.fn(),
+                    dropFromCatalog: vi.fn(),
                     destroy: vi.fn(),
                 };
-                return script;
+                return editorSession;
             }),
+            createScript: vi.fn(() => ({
+                replaceText: vi.fn(),
+                analyze: vi.fn(),
+                toString: vi.fn(() => ''),
+                getParsed: vi.fn(() => null),
+                destroy: vi.fn(),
+            })),
         } as any;
 
         logger = new NullLogger();
@@ -678,11 +695,11 @@ describe('restoreAppState', () => {
         expect(Object.keys(notebookScripts.scriptFolders['page-3'].scripts).length).toBe(0);
 
         // Verify draft script was loaded
-        expect(notebookScripts.scripts[notebookScripts.uncommittedScriptId].script.replaceText).toHaveBeenCalledWith('-- my draft');
+        expect(notebookScripts.scripts[notebookScripts.uncommittedScriptId].editorSession.replaceText).toHaveBeenCalledWith(0n, '-- my draft');
         for (const scriptData of Object.values(notebookScripts.scripts)) {
-            expect(scriptData.scriptAnalysis.outdated).toBe(true);
-            expect(scriptData.scriptAnalysis.buffers.analyzed).toBeNull();
-            expect(scriptData.script.analyze).not.toHaveBeenCalled();
+            expect(scriptData.analysisOutdated).toBe(true);
+            expect(scriptData.editorUpdate).toBeNull();
+            expect(scriptData.editorSession.ensureAnalysis).not.toHaveBeenCalled();
         }
     });
 
@@ -716,8 +733,8 @@ describe('restoreAppState', () => {
         expect(finalProgress.restoreNotebookScripts.succeeded).toBe(1);
         const scripts = result.notebookScripts.get(MULTI_PAGE_ID)!;
         for (const scriptData of Object.values(scripts.scripts)) {
-            expect(scriptData.scriptAnalysis.outdated).toBe(true);
-            expect(scriptData.script.analyze).not.toHaveBeenCalled();
+            expect(scriptData.analysisOutdated).toBe(true);
+            expect(scriptData.editorSession.ensureAnalysis).not.toHaveBeenCalled();
         }
     });
 
@@ -814,8 +831,8 @@ describe('restoreAppState', () => {
         const second = await restoreSingleNotebook(mockCore, mockBackend, logger, secondId, liveSignatures);
 
         for (const scriptData of Object.values(first.notebookScripts.scripts)) {
-            expect(scriptData.scriptAnalysis.outdated).toBe(true);
-            expect(scriptData.scriptAnalysis.buffers.analyzed).toBeNull();
+            expect(scriptData.analysisOutdated).toBe(true);
+            expect(scriptData.editorUpdate).toBeNull();
         }
         expect(first.connection.connectionSignature.signatures).toBe(liveSignatures);
         expect(second.connection.connectionSignature.signatures).toBe(liveSignatures);

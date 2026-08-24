@@ -46,101 +46,65 @@ function buildTagDecorations(state: EditorState): Map<Tag, Decoration> {
 ///
 /// This only touches the tokens overlapping `ranges` (the editor viewport), not the whole
 /// document. On a large script decorating every token synchronously blocks the main thread;
-/// slicing to the viewport via the binary-searched `findTokensInRange` keeps it O(visible).
+/// slicing the sorted portable syntax spans to the viewport keeps it O(visible).
 export function buildDecorationsForRanges(
     state: EditorState,
-    parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript>,
+    update: dashql.buffers.editor.EditorUpdateT,
     ranges: readonly { from: number; to: number }[],
-    tmp: dashql.buffers.parser.ParsedScript = new dashql.buffers.parser.ParsedScript(),
 ): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>();
-    const script = parsed.read(tmp);
-    const tokens = script.tokens();
-    if (!tokens || !tokens.tokenOffsetsArray()) {
-        return builder.finish();
-    }
     const decorations = buildTagDecorations(state);
-    const tokenOffsets = tokens.tokenOffsetsArray()!;
-    const tokenLengths = tokens.tokenLengthsArray()!;
-    const tokenTypes = tokens.tokenTypesArray()!;
-    const commentDecoration = decorations.get(commentTag)!;
-    const tmpComment = new dashql.buffers.parser.TextSpan();
-
-    const firstCommentEndingAfter = (offset: number): number => {
-        let begin = 0;
-        let end = script.commentsLength();
-        while (begin < end) {
-            const mid = (begin + end) >>> 1;
-            const comment = script.comments(mid, tmpComment)!;
-            if (comment.offset() + comment.length() <= offset) begin = mid + 1;
-            else end = mid;
-        }
-        return begin;
-    };
-
-    // RangeSetBuilder requires strictly ascending `from`. Ranges are sorted ascending and tokens
-    // are sorted by offset, but `findTokensInRange` backs up to include a token straddling the
-    // range start, so adjacent ranges can revisit the same token. `cursor` guards against emitting
-    // a token index twice (only relevant with folded gaps; the plain editor has a single range).
-    let tokenCursor = 0;
-    let commentCursor = 0;
+    let spanCursor = 0;
     for (const { from, to } of ranges) {
-        let [lb, ub] = dashql.findTokensInRange(tokens, from, to);
-        lb = Math.max(lb, tokenCursor);
-        let commentIdx = Math.max(firstCommentEndingAfter(from), commentCursor);
-        let tokenIdx = lb;
-        while (tokenIdx < ub || commentIdx < script.commentsLength()) {
-            const tokenOffset = tokenIdx < ub ? tokenOffsets[tokenIdx] : Number.POSITIVE_INFINITY;
-            const comment = commentIdx < script.commentsLength()
-                ? script.comments(commentIdx, tmpComment)
-                : null;
-            const commentOffset = comment?.offset() ?? Number.POSITIVE_INFINITY;
-            if (commentOffset >= to && tokenOffset === Number.POSITIVE_INFINITY) break;
-
-            if (commentOffset < tokenOffset) {
-                if (commentOffset < to) {
-                    builder.add(commentOffset, commentOffset + comment!.length(), commentDecoration);
-                }
-                ++commentIdx;
-            } else {
-                const tag = PROTO_TAG_MAPPING.get(tokenTypes[tokenIdx]);
-                if (tag) {
-                    builder.add(tokenOffset, tokenOffset + tokenLengths[tokenIdx], decorations.get(tag)!);
-                }
-                ++tokenIdx;
+        while (spanCursor < update.syntaxSpans.length) {
+            const syntax = update.syntaxSpans[spanCursor];
+            const span = syntax.textSpan;
+            if (span == null) {
+                ++spanCursor;
+                continue;
             }
+            const spanFrom = Number(span.offset);
+            const spanTo = Number(span.offset + span.length);
+            if (spanTo <= from) {
+                ++spanCursor;
+                continue;
+            }
+            if (spanFrom >= to) break;
+            const tag = syntax.tokenType === dashql.buffers.parser.ScannerTokenType.COMMENT
+                ? commentTag
+                : PROTO_TAG_MAPPING.get(syntax.tokenType);
+            if (tag) builder.add(spanFrom, spanTo, decorations.get(tag)!);
+            ++spanCursor;
         }
-        tokenCursor = Math.max(tokenCursor, ub);
-        commentCursor = Math.max(commentCursor, commentIdx);
     }
     return builder.finish();
 }
 
 /// A ViewPlugin that highlights only the visible tokens.
 ///
-/// `getParsed` resolves the parsed script for the current view: the integrated editor reads it
+/// `getUpdate` resolves the portable editor projection for the current view: the integrated editor reads it
 /// from the processor state field, the standalone preview from an effect-backed field. Decorations
-/// are recomputed when the viewport scrolls, the document changes, or the parsed buffer is swapped.
+/// are recomputed when the viewport scrolls, the document changes, or the projection is swapped.
 export function createScannerHighlightPlugin(
-    getParsed: (view: EditorView) => dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null,
+    getUpdate: (view: EditorView) => dashql.buffers.editor.EditorUpdateT | null,
 ): Extension {
     return ViewPlugin.fromClass(
         class {
             decorations: DecorationSet;
-            lastParsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null;
+            lastUpdate: dashql.buffers.editor.EditorUpdateT | null;
 
             constructor(view: EditorView) {
-                this.lastParsed = getParsed(view);
-                this.decorations = this.lastParsed
-                    ? buildDecorationsForRanges(view.state, this.lastParsed, view.visibleRanges)
+                this.lastUpdate = getUpdate(view);
+                this.decorations = this.lastUpdate
+                    ? buildDecorationsForRanges(view.state, this.lastUpdate, view.visibleRanges)
                     : Decoration.none;
             }
             update(u: ViewUpdate) {
-                const parsed = getParsed(u.view);
-                if (u.viewportChanged || u.docChanged || parsed !== this.lastParsed) {
-                    this.lastParsed = parsed;
-                    this.decorations = parsed
-                        ? buildDecorationsForRanges(u.view.state, parsed, u.view.visibleRanges)
+                const update = getUpdate(u.view);
+                if (u.viewportChanged || u.docChanged || update !== this.lastUpdate) {
+                    this.lastUpdate = update;
+                    this.decorations = update
+                        ? buildDecorationsForRanges(u.view.state, update, u.view.visibleRanges)
                         : Decoration.none;
                 }
             }
@@ -149,25 +113,25 @@ export function createScannerHighlightPlugin(
     );
 }
 
-export const DashQLScannerDecorationUpdateEffect: StateEffectType<dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null> =
-    StateEffect.define<dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null>();
+export const DashQLScannerDecorationUpdateEffect: StateEffectType<dashql.buffers.editor.EditorUpdateT | null> =
+    StateEffect.define<dashql.buffers.editor.EditorUpdateT | null>();
 
-/// Holds the parsed script pushed in from outside via DashQLScannerDecorationUpdateEffect.
+/// Holds the editor projection pushed in from outside via DashQLScannerDecorationUpdateEffect.
 /// The highlight ViewPlugin reads it back out to decorate the viewport.
-const StandaloneParsedField: StateField<dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null> =
-    StateField.define<dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null>({
+const StandaloneUpdateField: StateField<dashql.buffers.editor.EditorUpdateT | null> =
+    StateField.define<dashql.buffers.editor.EditorUpdateT | null>({
         create: () => null,
-        update: (parsed, transaction: Transaction) => {
+        update: (update, transaction: Transaction) => {
             for (const effect of transaction.effects) {
                 if (effect.is(DashQLScannerDecorationUpdateEffect)) {
-                    parsed = effect.value;
+                    update = effect.value;
                 }
             }
-            return parsed;
+            return update;
         },
     });
 
 export const DashQLStandaloneScannerDecorationPlugin = [
-    StandaloneParsedField,
-    createScannerHighlightPlugin(view => view.state.field(StandaloneParsedField)),
+    StandaloneUpdateField,
+    createScannerHighlightPlugin(view => view.state.field(StandaloneUpdateField)),
 ];

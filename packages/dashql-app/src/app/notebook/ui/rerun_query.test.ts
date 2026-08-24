@@ -24,14 +24,14 @@ describe('runNotebookScript', () => {
         }));
         const outdated = {
             scriptKey: 7,
-            script: { compileQuery },
-            scriptAnalysis: { outdated: true },
+            editorSession: { compileQuery },
+            analysisOutdated: true,
             annotations: { visualizeQuery: null },
             latestQueryId: null,
         } as unknown as ScriptData;
         const analyzed = {
             ...outdated,
-            scriptAnalysis: { ...outdated.scriptAnalysis, outdated: false },
+            analysisOutdated: false,
         };
         const notebookScripts = { scripts: { 7: outdated } } as unknown as NotebookScripts;
         const modifyNotebookScripts = vi.fn((action) => {

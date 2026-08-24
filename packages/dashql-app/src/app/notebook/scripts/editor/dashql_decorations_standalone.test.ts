@@ -20,14 +20,16 @@ describe('scanner decorations', () => {
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, text);
         script.analyze();
-        const parsed = script.getParsed();
+        const session = dql!.createEditorSession(catalog);
+        session.replaceText(0n, text);
+        const update = session.ensureAnalysis();
         const state = EditorState.create({
             doc: text,
             extensions: syntaxHighlighting(HighlightStyle.define([{ tag: commentTag, class: 'comment' }])),
         });
 
         const ranges: Array<{ from: number; to: number }> = [];
-        buildDecorationsForRanges(state, parsed, [{ from: 0, to: text.length }]).between(
+        buildDecorationsForRanges(state, update, [{ from: 0, to: text.length }]).between(
             0,
             text.length,
             (from, to, value) => {
@@ -39,7 +41,7 @@ describe('scanner decorations', () => {
             { from: 0, to: '-- leading comment'.length },
             { from: text.indexOf('/*'), to: text.indexOf('*/') + 2 },
         ]);
-        parsed.destroy();
+        session.destroy();
         script.destroy();
         catalog.destroy();
     });

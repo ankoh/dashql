@@ -50,7 +50,7 @@ describe('Completion Hint', () => {
             catalogObjectPatch: [],
             catalogObjectCursorOffset: null,
         };
-        completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
+        completionState = computePatches(completionState, textBuffer, text.length);
         const hints = deriveCompletionHints(completionState);
 
         // Check candidate hint
@@ -109,7 +109,7 @@ describe('Completion Hint', () => {
             catalogObjectPatch: [],
             catalogObjectCursorOffset: null,
         };
-        completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
+        completionState = computePatches(completionState, textBuffer, text.length);
         const hints = deriveCompletionHints(completionState);
 
         // Check candidate hint
@@ -182,7 +182,7 @@ describe('Completion Hint', () => {
             catalogObjectPatch: [],
             catalogObjectCursorOffset: null,
         };
-        completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
+        completionState = computePatches(completionState, textBuffer, text.search("\"tableA\"") + 4);
         const hints = deriveCompletionHints(completionState);
 
         // Check candidate hint.

@@ -19,42 +19,6 @@ export interface ScriptDiagnostic {
     details: Record<string, unknown>;
 }
 
-function spanDetails(span: { offset(): number; length(): number } | null): Record<string, number> | null {
-    if (span == null) return null;
-    const offset = span.offset();
-    const length = span.length();
-    return { offset, length, end: offset + length };
-}
-
-function pushParserDiagnostics(
-    diagnostics: ScriptDiagnostic[],
-    source: 'scanner' | 'parser',
-    scriptKey: number,
-    length: number,
-    read: (index: number, target: dashql.buffers.parser.Error) => dashql.buffers.parser.Error | null,
-): void {
-    const target = new dashql.buffers.parser.Error();
-    for (let i = 0; i < length; ++i) {
-        const error = read(i, target);
-        if (error == null) continue;
-        const message = error.message();
-        if (!message) continue;
-        diagnostics.push({
-            severity: 'error',
-            message,
-            details: {
-                source,
-                severity: 'error',
-                message,
-                hint: error.hint(),
-                scriptKey,
-                textSpan: spanDetails(error.textSpan()),
-                symbolSpan: spanDetails(error.symbolSpan()),
-            },
-        });
-    }
-}
-
 function formattingDetails(scriptData: ScriptData): Record<string, unknown> {
     const details: Record<string, unknown> = {
         source: 'formatter',
@@ -75,21 +39,7 @@ function formattingDetails(scriptData: ScriptData): Record<string, unknown> {
             maxWidth: 80,
             indentationWidth: 4,
         };
-        const nodeIds = scriptData.script.getUnformattableNodes(config, true);
-        const parsed = scriptData.script.getParsed();
-        try {
-            details.unformattableNodes = nodeIds.map(nodeId => {
-                const node = parsed.read().nodes(nodeId);
-                return {
-                    nodeId,
-                    nodeType: node == null ? null : dashql.buffers.parser.NodeType[node.nodeType()],
-                    attributeKey: node == null ? null : dashql.buffers.parser.AttributeKey[node.attributeKey()],
-                    symbolSpan: node == null ? null : spanDetails(node.symbolSpan()),
-                };
-            });
-        } finally {
-            parsed.destroy();
-        }
+        details.fullyFormattable = scriptData.editorSession.isFullyFormattable(config, true);
     } catch (error) {
         details.inspectionError = error instanceof Error ? error.message : String(error);
     }
@@ -97,54 +47,24 @@ function formattingDetails(scriptData: ScriptData): Record<string, unknown> {
 }
 
 export function collectScriptDiagnostics(scriptData: ScriptData, isFormattable: boolean): ScriptDiagnostic[] {
-    const diagnostics: ScriptDiagnostic[] = [];
-    const parsed = scriptData.scriptAnalysis.buffers.parsed?.read() ?? null;
-    if (parsed != null) {
-        pushParserDiagnostics(
-            diagnostics,
-            'scanner',
-            scriptData.scriptKey,
-            parsed.scannerErrorsLength(),
-            (index, target) => parsed.scannerErrors(index, target),
-        );
-        pushParserDiagnostics(
-            diagnostics,
-            'parser',
-            scriptData.scriptKey,
-            parsed.parserErrorsLength(),
-            (index, target) => parsed.parserErrors(index, target),
-        );
-    }
-
-    const analyzed = scriptData.scriptAnalysis.buffers.analyzed?.read() ?? null;
-    if (analyzed != null) {
-        const target = new dashql.buffers.analyzer.AnalyzerError();
-        for (let i = 0; i < analyzed.errorsLength(); ++i) {
-            const error = analyzed.errors(i, target);
-            if (error == null) continue;
-            const message = error.message();
-            if (!message) continue;
-            const severity = error.severity() === dashql.buffers.analyzer.AnalyzerErrorSeverity.WARNING
-                ? 'warning'
-                : 'error';
-            const errorType = error.errorType();
-            diagnostics.push({
-                severity,
-                message,
-                details: {
-                    source: 'analyzer',
-                    severity,
-                    message,
-                    code: dashql.buffers.analyzer.AnalyzerErrorType[errorType],
-                    codeValue: errorType,
-                    astNodeId: error.astNodeId(),
-                    scriptKey: scriptData.scriptKey,
-                    textSpan: spanDetails(error.textSpan()),
-                    symbolSpan: spanDetails(error.symbolSpan()),
-                },
-            });
-        }
-    }
+    const diagnostics: ScriptDiagnostic[] = (scriptData.editorUpdate?.diagnostics ?? []).map(diagnostic => {
+        const severity = diagnostic.severity === dashql.buffers.editor.EditorDiagnosticSeverity.WARNING
+            ? 'warning'
+            : 'error';
+        const source = dashql.buffers.editor.EditorDiagnosticSource[diagnostic.source].toLowerCase();
+        const span = diagnostic.textSpan;
+        const textSpan = span == null ? null : {
+            offset: Number(span.offset),
+            length: Number(span.length),
+            end: Number(span.offset + span.length),
+        };
+        const message = typeof diagnostic.message === 'string' ? diagnostic.message : '';
+        return {
+            severity,
+            message,
+            details: { source, severity, message, scriptKey: scriptData.scriptKey, textSpan },
+        };
+    });
 
     if (!isFormattable) {
         diagnostics.push({

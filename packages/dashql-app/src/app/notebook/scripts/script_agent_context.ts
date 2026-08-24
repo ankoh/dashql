@@ -49,24 +49,23 @@ export const focusedScriptContributor: AgentContextContributor = (input) => {
     if (input.intent !== 'sql') return null;
     const data = input.contextScriptData;
     if (data == null) return null;
-    const text = data.script.toString().trim();
+    const text = data.editorSession.getText().trim();
     if (text.length === 0) return null;
     return `Current script:\n${text}`;
 };
 
 /// SQL only: the schema (table + column names) of the tables *referenced* by the focused script.
 /// Deliberately scoped to referenced tables only — not the whole catalog — so the prompt
-/// stays small and on-topic. Resolves references from the focused script's analyzed buffer
-/// and looks up column detail from the connection catalog.
+/// stays small and on-topic. Resolves reference names from the editor projection and looks up
+/// column detail from the connection catalog.
 export const referencedTablesSchemaContributor: AgentContextContributor = (input) => {
     if (input.intent !== 'sql') return null;
     const data = input.contextScriptData;
     if (data == null) return null;
-    const analyzed = data.scriptAnalysis.buffers.analyzed;
-    if (analyzed == null) return null;
-
-    // Collect the names of resolved tables referenced by the focused script.
-    const referenced = collectReferencedTableNames(analyzed.read());
+    if (!data.editorUpdate?.analysisAvailable) return null;
+    const referenced = new Set(
+        (data.editorUpdate.scriptAnnotations?.referencedTableNames ?? []).map(name => name.toLowerCase()),
+    );
     if (referenced.size === 0) return null;
 
     // Look up the columns for those tables from the catalog.
@@ -174,23 +173,6 @@ export function buildAgentContext(
         }
     }
     return fragments.join('\n\n');
-}
-
-/// Collect the lower-cased names of the resolved tables referenced by an analyzed script.
-function collectReferencedTableNames(analyzed: core.buffers.analyzer.AnalyzedScript): Set<string> {
-    const names = new Set<string>();
-    const tmpRef = new core.buffers.analyzer.TableReference();
-    const tmpResolved = new core.buffers.analyzer.ResolvedTable();
-    const tmpQualified = new core.buffers.analyzer.QualifiedTableName();
-    for (let i = 0; i < analyzed.tableReferencesLength(); ++i) {
-        const ref = analyzed.tableReferences(i, tmpRef)!;
-        const resolved = ref.resolvedTable(tmpResolved);
-        // Only include tables that actually resolved against the catalog.
-        const qualified = (resolved ?? ref).tableName(tmpQualified);
-        const tableName = qualified?.tableName();
-        if (tableName) names.add(tableName.toLowerCase());
-    }
-    return names;
 }
 
 interface TableSchema {

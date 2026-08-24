@@ -126,9 +126,9 @@ function onTab(view: EditorView) {
                     ? [...processor.scriptCompletion.candidatePatch, ...processor.scriptCompletion.catalogObjectPatch]
                     : processor.scriptCompletion.candidatePatch;
                 const target = candidate?.targetLocation();
-                const cursorOverride = target == null
+                const cursorOverride = target == null || candidate == null
                     ? null
-                    : target.offset() + (candidate?.completionCursorOffset() ?? target.length());
+                    : target.offset() + (candidate.completionCursorOffset() ?? candidate.completionText()!.length);
                 view.dispatch({
                     changes: applyCompletion(patches),
                     effects: applyQualification

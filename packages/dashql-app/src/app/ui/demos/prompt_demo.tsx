@@ -11,7 +11,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { useDashQLCoreSetup } from '../../providers/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { DashQLExtensions } from '../../notebook/scripts/editor/dashql_extension.js';
-import { DashQLUpdateEffect, DashQLProcessorUpdateOut, analyzeScript } from '../../notebook/scripts/editor/dashql_processor.js';
+import { DashQLUpdateEffect, DashQLProcessorUpdateOut } from '../../notebook/scripts/editor/dashql_processor.js';
 import * as themes from '../../notebook/scripts/editor/themes/index.js';
 
 const LOG_CTX = "prompt_demo";
@@ -60,9 +60,13 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     const logger = useLogger();
     const setupCore = useDashQLCoreSetup();
 
-    // Core instance and script
+    // Core instance and editor session
     const [catalog, setCatalog] = React.useState<dashql.DashQLCatalog | null>(null);
-    const [script, setScript] = React.useState<dashql.DashQLScript | null>(null);
+    const [editorSession, setEditorSession] = React.useState<dashql.DashQLEditorSession | null>(null);
+    const runtimeRef = React.useRef<{
+        catalog: dashql.DashQLCatalog;
+        editorSession: dashql.DashQLEditorSession;
+    } | null>(null);
 
     // Editor DOM node and view
     const [editorNode, setEditorNode] = React.useState<HTMLDivElement | null>(null);
@@ -70,13 +74,20 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
 
     // Initialize dashql-core
     React.useEffect(() => {
+        let disposed = false;
         const init = async () => {
             try {
                 const instance = await setupCore(LOG_CTX);
                 const cat = instance.createCatalog();
-                const scr = instance.createScript(cat);
+                const session = instance.createEditorSession(cat);
+                if (disposed) {
+                    session.destroy();
+                    cat.destroy();
+                    return;
+                }
+                runtimeRef.current = { catalog: cat, editorSession: session };
                 setCatalog(cat);
-                setScript(scr);
+                setEditorSession(session);
                 logger.info("prompt editor initialized", {}, LOG_CTX);
             } catch (e) {
                 logger.error("failed to initialize prompt editor", { error: String(e) }, LOG_CTX);
@@ -85,8 +96,10 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         init();
         // Cleanup on unmount
         return () => {
-            if (script) script.destroy();
-            if (catalog) catalog.destroy();
+            disposed = true;
+            runtimeRef.current?.editorSession.destroy();
+            runtimeRef.current?.catalog.destroy();
+            runtimeRef.current = null;
         };
     }, []);
 
@@ -112,27 +125,31 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
 
     // Wire CodeMirror with dashql-core when both are ready
     React.useEffect(() => {
-        if (editorView == null || script == null) {
+        if (editorView == null || editorSession == null) {
             return;
         }
 
+        let currentUpdate = editorSession.ensureAnalysis();
+        let currentCompletion: DashQLProcessorUpdateOut['scriptCompletion'] = null;
         // Helper to handle processor updates
         const onUpdate = (update: DashQLProcessorUpdateOut) => {
+            if (currentCompletion?.buffer !== update.scriptCompletion?.buffer) currentCompletion?.buffer.destroy();
+            currentUpdate = update.editorUpdate ?? currentUpdate;
+            currentCompletion = update.scriptCompletion;
             // Here you could track the processed state
             logger.debug("processor update", {
                 scriptKey: String(update.scriptKey),
-                hasBuffers: String(update.scriptBuffers != null),
+                analysisAvailable: String(currentUpdate.analysisAvailable),
             }, LOG_CTX);
         };
 
-        // Initial setup: push the script into the processor
-        const initialBuffers = analyzeScript(script);
+        // Initial setup: push the session into the processor
         const effects: StateEffect<any>[] = [
             DashQLUpdateEffect.of({
-                scriptKey: 0,
-                script: script,
-                scriptBuffers: initialBuffers,
-                scriptCursor: null,
+                scriptKey: editorSession.getCatalogEntryId(),
+                editorSession,
+                editorUpdate: currentUpdate,
+                scriptBuffers: null,
                 scriptCompletion: null,
                 scriptPendingDiff: null,
                 derivedFocus: null,
@@ -141,7 +158,11 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         ];
         editorView.dispatch({ effects });
 
-    }, [editorView, script]);
+        return () => {
+            currentCompletion?.buffer.destroy();
+        };
+
+    }, [editorView, editorSession]);
 
     // Handle Cmd/Ctrl+Enter to submit
     React.useEffect(() => {

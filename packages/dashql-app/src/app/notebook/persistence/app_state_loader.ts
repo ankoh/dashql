@@ -1,19 +1,16 @@
-import * as Immutable from 'immutable';
-
 import type { DashQL } from '../../../core/api.js';
 import type { Logger } from '../../../platform/logger/logger.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { ProgressCounter } from '../../../utils/progress.js';
 import type { ConnectionState } from '../connections/connection_state.js';
 import type { NotebookScripts, ScriptData } from '../scripts/notebook_scripts.js';
-import { createEmptyScriptData, destroyNotebookScripts, sortScriptFolderNamesNumerically } from '../scripts/notebook_scripts.js';
+import { createEmptyScriptData, destroyNotebookScripts, replaceEditorSessionText, sortScriptFolderNamesNumerically } from '../scripts/notebook_scripts.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../connections/connection_import.js';
 import { CONNECTOR_TYPES, ConnectorType, type ConnectorInfo } from '../connections/connector_info.js';
 import type { StorageBackend, NotebookEntry, NotebookData, ScriptFolderData } from './storage_backend.js';
 import { StorageBackendType } from './storage_backend.js';
 import { validateNotebookData, describeInvalidNotebook, isValidUuid, NotebookValidationError, type InvalidNotebook } from './notebook_validation.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../connections/catalog_update_state.js';
-import { createEmptyAnnotations } from '../scripts/script_types.js';
 
 const LOG_CTX = "app_state_loader";
 
@@ -89,36 +86,16 @@ async function restoreNotebookScripts(
             }, LOG_CTX);
 
             for (const scriptFile of page.scripts) {
-                // Create WASM script
-                const script = core.createScript(connectionCatalog);
-                const scriptKey = script.getCatalogEntryId();
-
-                // Register ownership before hydrating text so the outer rollback also frees a script
-                // whose replaceText call fails.
-                scripts[scriptKey] = {
-                    scriptKey,
-                    script,
-                    scriptAnalysis: {
-                        buffers: {
-                            parsed: null,
-                            analyzed: null,
-                            destroy: () => { },
-                        },
-                        outdated: true,
-                    },
-                    annotations: createEmptyAnnotations(),
-                    statistics: Immutable.List(),
-                    cursor: null,
-                    completion: null,
-                    pendingDiff: null,
-                    latestQueryId: null,
-                    latestAgentRunId: null,
-                    fileName: scriptFile.name,
-                    folderName: page.name,
-                };
+                const [scriptKey, scriptData] = createEmptyScriptData(
+                    core,
+                    connectionCatalog,
+                    scriptFile.name,
+                    page.name,
+                );
+                scripts[scriptKey] = scriptData;
 
                 // Set SQL content. Ordinary notebook scripts remain outdated until first use.
-                script.replaceText(scriptFile.sql);
+                replaceEditorSessionText(scriptData.editorSession, scriptFile.sql);
 
                 // Create page script reference
                 pageScripts[scriptFile.name] = {
@@ -152,8 +129,8 @@ async function restoreNotebookScripts(
                 notebookId,
                 draftLength: draftSql.length.toString()
             }, LOG_CTX);
-            uncommittedData.script.replaceText(draftSql);
-            uncommittedData.scriptAnalysis.outdated = true;
+            replaceEditorSessionText(uncommittedData.editorSession, draftSql);
+            uncommittedData.analysisOutdated = true;
         } else {
             logger.info("No draft script found", { notebookId }, LOG_CTX);
         }
@@ -184,8 +161,9 @@ async function restoreNotebookScripts(
         return notebookScripts;
     } catch (error) {
         for (const scriptData of Object.values(scripts)) {
-            scriptData.scriptAnalysis.buffers.destroy(scriptData.scriptAnalysis.buffers);
-            scriptData.script.destroy();
+            scriptData.completion?.buffer.destroy();
+            scriptData.pendingDiff?.diffBuffer.destroy();
+            scriptData.editorSession.destroy();
         }
         throw error;
     }

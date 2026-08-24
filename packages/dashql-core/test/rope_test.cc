@@ -174,6 +174,7 @@ TEST_F(RopeTest, FromText) {
 TEST_F(RopeTest, TracksGraphemeClustersAndPositions) {
     rope::Rope rope{128, "a👩‍💻é界"};
     EXPECT_EQ(rope.GetStats().utf8_codepoints, 7);
+    EXPECT_EQ(rope.GetStats().utf16_code_units, 9);
     EXPECT_EQ(rope.GetStats().grapheme_clusters, 4);
 
     EXPECT_EQ(rope.ResolveGrapheme(0).text_bytes, 0);
@@ -183,6 +184,23 @@ TEST_F(RopeTest, TracksGraphemeClustersAndPositions) {
     EXPECT_EQ(rope.ResolveGrapheme(4).text_bytes, rope.ToString().size());
     EXPECT_FALSE(rope.ResolveGraphemeBoundary(2).has_value());
     EXPECT_EQ(rope.ResolveGraphemeBoundaryAtOrAfter(2).grapheme_clusters, 2);
+}
+
+TEST_F(RopeTest, ResolvesUtf8AndUtf16CodepointBoundaries) {
+    rope::Rope rope{64, "aé😀z", 8, 2};
+    EXPECT_EQ(rope.GetStats().text_bytes, 8);
+    EXPECT_EQ(rope.GetStats().utf8_codepoints, 4);
+    EXPECT_EQ(rope.GetStats().utf16_code_units, 5);
+
+    auto emoji_from_bytes = rope.ResolveByteBoundary(3);
+    ASSERT_TRUE(emoji_from_bytes.has_value());
+    EXPECT_EQ(emoji_from_bytes->utf16_code_units, 2);
+    auto emoji_end = rope.ResolveUtf16Boundary(4);
+    ASSERT_TRUE(emoji_end.has_value());
+    EXPECT_EQ(emoji_end->text_bytes, 7);
+    EXPECT_EQ(emoji_end->utf8_codepoints, 3);
+    EXPECT_FALSE(rope.ResolveByteBoundary(4).has_value());
+    EXPECT_FALSE(rope.ResolveUtf16Boundary(3).has_value());
 }
 
 TEST_F(RopeTest, KeepsLeafSplitsOnGraphemeBoundaries) {

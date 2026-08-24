@@ -94,7 +94,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
         const wasCached = isCached;
         const run = async () => {
             // Not script data? Clear cache indicator.
-            if (props.scriptData == null || props.scriptData.scriptAnalysis.outdated || !props.connection?.details) {
+            if (props.scriptData == null || props.scriptData.analysisOutdated || !props.connection?.details) {
                 if ((wasCached == null || wasCached) && !cancel.signal.aborted) {
                     setIsCached(null);
                 }
@@ -418,7 +418,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
     React.useLayoutEffect(() => {
         setPreviewReady(false);
-    }, [entry?.scriptId, scriptData?.scriptAnalysis.buffers, scriptData?.pendingDiff]);
+    }, [entry?.scriptId, scriptData?.editorUpdate?.stateRevision, scriptData?.pendingDiff]);
     const handlePreviewReady = React.useCallback(() => setPreviewReady(true), []);
     const handleFormattedText = React.useCallback((scriptText: string) => {
         if (entry != null) props.onFormattedText(entry.scriptId, scriptText);

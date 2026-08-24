@@ -17,6 +17,7 @@ import {
     createEmptyScriptData,
     reduceNotebookScripts,
     analyzeOutdatedScript,
+    replaceEditorSessionText,
 } from './notebook_scripts.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from '../persistence/storage_writer.js';
@@ -113,7 +114,7 @@ function buildNotebookScripts(focusedSql: string): { state: NotebookScripts; foc
 
     const [committedKey, committedData] = createEmptyScriptData(dql!, catalog);
     const file = generateScriptFileName({});
-    committedData.script.replaceText(focusedSql);
+    replaceEditorSessionText(committedData.editorSession, focusedSql);
 
     const notebookId = 'test-notebookScripts';
     let state: NotebookScripts = {
@@ -224,7 +225,7 @@ describe('startAgentRun — SQL path', () => {
         expect(ai.prompts.some(p => /exactly one lowercase word/.test(p))).toBe(false);
         expect(applied).toHaveLength(1);
         expect(applied[0].type).toBe(SET_SCRIPT_TEXT);
-        expect(notebookScripts.scripts[focusedKey].script.toString()).toBe('select category from sales');
+        expect(notebookScripts.scripts[focusedKey].editorSession.getText()).toBe('select category from sales');
     });
 
     it('repairs a broken first attempt and converges within 3 attempts', async () => {

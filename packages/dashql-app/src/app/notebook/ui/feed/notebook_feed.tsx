@@ -330,7 +330,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             }
         };
 
-        if (contextScriptKey != null && aiContextScript?.scriptAnalysis.outdated) {
+        if (contextScriptKey != null && aiContextScript?.analysisOutdated) {
             void ensureNotebookScriptAnalyzed(
                 props.notebookScripts,
                 contextScriptKey,
