@@ -72,7 +72,7 @@
     "vega-interpreter": "^1.2.1",
     "vega-lite": "^5.23.0",
     "vite": "^8.0.14",
-    "vite-plugin-checker": "^0.14.4",
+    "vite-plugin-checker": "^0.14.5",
     "vitest": "^4.1.7"
   },
   "pnpm": {
