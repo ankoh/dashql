@@ -20,7 +20,7 @@ repository = "https://github.com/apple/embedding-atlas"
 authors = ["Apple Inc."]
 
 [workspace.dependencies]
-ndarray = "0.17"
+ndarray = "0.17.2"
 rayon = "1.11"
 pollster = "0.4"
 wasm-bindgen = "=0.2.105"
