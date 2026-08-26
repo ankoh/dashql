@@ -397,6 +397,22 @@ TEST(EditorSessionTest, ProjectsAnalyzerErrorsAndResolvedAndUnresolvedReferences
     EXPECT_EQ(missing->resolution, EditorSemanticResolution::UNRESOLVED);
 }
 
+TEST(EditorSessionTest, ProjectsFunctionReferenceSpans) {
+    Catalog catalog;
+    Script schema{catalog};
+    schema.ReplaceText("create table items (id int)");
+    schema.Analyze();
+    catalog.LoadScript(schema, 0);
+
+    EditorSession session{catalog};
+    constexpr std::string_view text = "select count(id) from items";
+    auto update = Analyze(session, text);
+    auto* function = FindSemanticSpan(update, text, EditorSemanticReferenceKind::FUNCTION, "count");
+    auto* table = FindSemanticSpan(update, text, EditorSemanticReferenceKind::TABLE, "items");
+    ASSERT_NE(function, nullptr);
+    ASSERT_NE(table, nullptr);
+}
+
 TEST(EditorSessionTest, ProjectsPrimaryCursorSemanticContextAndRelatedReferences) {
     Catalog catalog;
     Script schema{catalog};

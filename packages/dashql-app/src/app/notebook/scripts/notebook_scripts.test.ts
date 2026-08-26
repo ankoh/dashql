@@ -29,6 +29,7 @@ import {
     RENAME_SCRIPT_FOLDER,
     REORDER_SCRIPT_FOLDERS,
     REORDER_SCRIPTS,
+    UPDATE_FROM_PROCESSOR,
     getSelectedScriptFolder,
     getSelectedScriptRefs,
     getSortedScriptFileNames,
@@ -1209,6 +1210,106 @@ describe('ANALYZE_OUTDATED_SCRIPT', () => {
         const scriptKey = +Object.keys(state.scripts)[0];
         const next = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
         expect(next.scripts[scriptKey].analysisOutdated).toBe(false);
+    });
+});
+
+describe('UPDATE_FROM_PROCESSOR semantic focus', () => {
+    it('updates related-reference focus when only the cursor context changes', () => {
+        let state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const scriptData = state.scripts[scriptKey];
+        const schemaSession = dql!.createEditorSession(state.connectionCatalog);
+        schemaSession.replaceText(0n, 'create table items (id int)');
+        schemaSession.ensureAnalysis();
+        schemaSession.loadIntoCatalog(0);
+        replaceEditorSessionText(scriptData.editorSession, 'select id from items where id = 1 and items.id > 0');
+        state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
+        const analyzed = state.scripts[scriptKey];
+
+        const columnUpdate = analyzed.editorSession.setCursor(analyzed.editorSession.getDocumentRevision(), 8n);
+        const next = reduce(state, {
+            type: UPDATE_FROM_PROCESSOR,
+            value: {
+                scriptKey,
+                editorSession: analyzed.editorSession,
+                editorUpdate: columnUpdate,
+                scriptBuffers: null,
+                scriptCompletion: null,
+                scriptPendingDiff: null,
+            },
+        });
+
+        expect(next.semanticUserFocus?.scriptTableRefs.size).toBe(1);
+        expect(next.semanticUserFocus?.scriptColumnRefs.size).toBe(3);
+        schemaSession.destroy();
+    });
+
+    it('retains related-reference focus when the cursor moves within the same reference', () => {
+        let state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const scriptData = state.scripts[scriptKey];
+        const schemaSession = dql!.createEditorSession(state.connectionCatalog);
+        schemaSession.replaceText(0n, 'create table items (identifier int)');
+        schemaSession.ensureAnalysis();
+        schemaSession.loadIntoCatalog(0);
+        replaceEditorSessionText(scriptData.editorSession, 'select identifier from items where identifier > 0');
+        state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
+        const analyzed = state.scripts[scriptKey];
+
+        const firstCursorUpdate = analyzed.editorSession.setCursor(analyzed.editorSession.getDocumentRevision(), 8n);
+        state = reduce(state, {
+            type: UPDATE_FROM_PROCESSOR,
+            value: {
+                scriptKey,
+                editorSession: analyzed.editorSession,
+                editorUpdate: firstCursorUpdate,
+                scriptBuffers: null,
+                scriptCompletion: null,
+                scriptPendingDiff: null,
+            },
+        });
+        expect(state.semanticUserFocus?.scriptColumnRefs.size).toBe(2);
+
+        const secondCursorUpdate = analyzed.editorSession.setCursor(analyzed.editorSession.getDocumentRevision(), 9n);
+        const next = reduce(state, {
+            type: UPDATE_FROM_PROCESSOR,
+            value: {
+                scriptKey,
+                editorSession: analyzed.editorSession,
+                editorUpdate: secondCursorUpdate,
+                scriptBuffers: null,
+                scriptCompletion: null,
+                scriptPendingDiff: null,
+            },
+        });
+
+        expect(secondCursorUpdate.primaryCursorContext?.referenceId).toBe(firstCursorUpdate.primaryCursorContext?.referenceId);
+        expect(next.semanticUserFocus?.scriptColumnRefs.size).toBe(2);
+        schemaSession.destroy();
+    });
+
+    it('does not persist on a cursor-only processor update', () => {
+        let state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        replaceEditorSessionText(state.scripts[scriptKey].editorSession, 'select 1');
+        state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
+        const analyzed = state.scripts[scriptKey];
+        const cursorUpdate = analyzed.editorSession.setCursor(analyzed.editorSession.getDocumentRevision(), 1n);
+
+        const recorder = new RecordingStorageWriter(logger, backend);
+        reduceNotebookScripts(state, {
+            type: UPDATE_FROM_PROCESSOR,
+            value: {
+                scriptKey,
+                editorSession: analyzed.editorSession,
+                editorUpdate: cursorUpdate,
+                scriptBuffers: null,
+                scriptCompletion: null,
+                scriptPendingDiff: null,
+            },
+        }, recorder, logger, true);
+
+        expect(recorder.records.some(r => r.task.type === WRITE_SCRIPT)).toBe(false);
     });
 });
 

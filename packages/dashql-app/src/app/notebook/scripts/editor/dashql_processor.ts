@@ -2,7 +2,7 @@ import * as dashql from '../../../../core/index.js';
 
 import { StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
-import { SemanticUserFocus } from '../focus.js';
+import { deriveFocusFromEditorUpdate, SemanticUserFocus } from '../focus.js';
 import { CompletionPatch, computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
@@ -299,6 +299,9 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 throw new Error(editorUpdateMessage(update));
             }
             state.editorUpdate = update;
+            state.derivedFocus = state.scriptCompletion == null
+                ? deriveFocusFromEditorUpdate(state.scriptKey, update)
+                : state.derivedFocus;
             if (transaction.docChanged) state.scriptBuffers = null;
         }
 

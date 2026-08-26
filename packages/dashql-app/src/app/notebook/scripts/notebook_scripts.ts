@@ -671,9 +671,12 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 update.scriptCompletion?.buffer.destroy();
                 return clearSemanticUserFocus(state);
             }
-            const analysisChanged = prevScript.editorUpdate?.stateRevision !== update.editorUpdate?.stateRevision;
+            const nextCursorContext = update.editorUpdate?.primaryCursorContext;
+            const documentChanged = prevScript.editorUpdate?.documentRevision !== update.editorUpdate?.documentRevision;
+            const analysisRefreshed = update.editorUpdate?.analysisUpdated === true;
+            const projectionChanged = prevScript.editorUpdate?.stateRevision !== update.editorUpdate?.stateRevision;
             let focusUpdate: FocusUpdate | null = null;
-            if (analysisChanged) {
+            if (projectionChanged) {
                 focusUpdate = FocusUpdate.Clear;
             }
             // Did the completion change?
@@ -696,10 +699,12 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             if (prevScript.completion?.buffer !== update.scriptCompletion?.buffer) {
                 prevScript.completion?.buffer.destroy();
             }
-            if (analysisChanged && update.editorUpdate?.primaryCursorContext != null) {
+            if (projectionChanged) {
                 focusUpdate = update.scriptCompletion != null
                     ? FocusUpdate.UpdateFromCompletion
-                    : FocusUpdate.UpdateFromCursor;
+                    : nextCursorContext != null
+                        ? FocusUpdate.UpdateFromCursor
+                        : FocusUpdate.Clear;
             }
             update.scriptBuffers?.destroy(update.scriptBuffers);
             const nextScript: ScriptData = {
@@ -712,7 +717,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     ? rotateScriptStatistics(prevScript.statistics, update.editorUpdate.processingStatistics)
                     : prevScript.statistics,
             };
-            if (analysisChanged) {
+            if (documentChanged || analysisRefreshed) {
                 nextScript.annotations = deriveScriptAnnotations(update.editorUpdate, updateSession, logger);
                 updateSession.loadIntoCatalog(nextScript.scriptKey);
             }
@@ -739,7 +744,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             };
 
             // Re-load the catalog and mark scripts outdated when the analysis actually changed.
-            if (analysisChanged) {
+            if (documentChanged || analysisRefreshed) {
                 // Mark all other scripts as outdated.
                 // Eventually, we could restrict to those that are depending?
                 for (const key in nextState.scripts) {
@@ -751,23 +756,26 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     };
                 }
             }
-            // Persist only the updated script, not the entire notebook
-            const scriptKey = update.scriptKey;
-            const scriptData = nextState.scripts[scriptKey];
-            if (scriptData) {
-                const sql = scriptData.editorSession.getText();
-                if (scriptData.folderName === '' || scriptData.fileName === '') {
-                    storage?.write(
-                        groupDraftWrites(nextState.notebookId),
-                        { type: WRITE_SCRIPT_DRAFT, value: [nextState.notebookId, sql] },
-                        DEBOUNCE_DURATION_SCRIPT_WRITE
-                    );
-                } else {
-                    storage?.write(
-                        groupScriptWrites(nextState.notebookId, scriptData.folderName, scriptData.fileName),
-                        { type: WRITE_SCRIPT, value: [nextState.notebookId, scriptData.folderName, scriptData.fileName, sql] },
-                        DEBOUNCE_DURATION_SCRIPT_WRITE
-                    );
+            // Persist only when the document text changed. Cursor/completion updates
+            // still flow through this action but must not rewrite identical SQL.
+            if (documentChanged) {
+                const scriptKey = update.scriptKey;
+                const scriptData = nextState.scripts[scriptKey];
+                if (scriptData) {
+                    const sql = scriptData.editorSession.getText();
+                    if (scriptData.folderName === '' || scriptData.fileName === '') {
+                        storage?.write(
+                            groupDraftWrites(nextState.notebookId),
+                            { type: WRITE_SCRIPT_DRAFT, value: [nextState.notebookId, sql] },
+                            DEBOUNCE_DURATION_SCRIPT_WRITE
+                        );
+                    } else {
+                        storage?.write(
+                            groupScriptWrites(nextState.notebookId, scriptData.folderName, scriptData.fileName),
+                            { type: WRITE_SCRIPT, value: [nextState.notebookId, scriptData.folderName, scriptData.fileName, sql] },
+                            DEBOUNCE_DURATION_SCRIPT_WRITE
+                        );
+                    }
                 }
             }
             return nextState;

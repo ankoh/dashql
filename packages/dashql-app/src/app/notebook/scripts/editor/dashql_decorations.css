@@ -18,6 +18,8 @@
 .dashql-colref-resolved { }
 .dashql-colref-unresolved { }
 
+.dashql-function-ref { }
+
 .dashql-error {
     position: relative;
     text-decoration: underline 1px red;
