@@ -157,10 +157,17 @@ def update_tableauhyperapi_hashes(filepath: Path, workspace: Path, force: bool =
     for platform_key, archive_platform in _HYPER_CXX_PLATFORMS.items():
         pattern = rf'https://downloads\.tableau\.com/tssoftware/+tableauhyperapi-cxx-{archive_platform}-release-[^"<]+?\.zip'
         urls = [url for url in re.findall(pattern, releases) if f".{version}." in url]
-        if not urls:
-            raise ValueError(f"No C++ archive found for {platform_key} and tableauhyperapi {version}")
-
-        url = urls[0].replace("/tssoftware//", "/tssoftware/")
+        if urls:
+            url = urls[0].replace("/tssoftware//", "/tssoftware/")
+        else:
+            existing = re.search(
+                rf'"{platform_key}":\s*\{{.*?"url":\s*"([^"]+)"',
+                content,
+                flags=re.DOTALL,
+            )
+            if not existing or f".{version}." not in existing.group(1):
+                raise ValueError(f"No C++ archive found for {platform_key} and tableauhyperapi {version}")
+            url = existing.group(1)
         sha = compute_sha256(url)
         print(f"  [{platform_key}] sha256={sha}")
         block_pattern = rf'("{platform_key}":\s*\{{.*?"url":\s*")[^"]+(".*?"sha256":\s*")[^"]+(".*?"strip_prefix":\s*")[^"]+(".*?\}})'
