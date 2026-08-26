@@ -46,6 +46,7 @@
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+    padding: 0 4px 0 4px;
 }
 
 .status_bar_spinner {
