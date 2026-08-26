@@ -68,9 +68,32 @@ function buildDescriptionPreview(scriptData: ScriptData): PreviewSnapshot | null
     };
 }
 
-function buildUnformattedPreview(scriptData: ScriptData, logger: Logger): PreviewSnapshot {
+function projectPreviewText(instance: core.DashQL, scriptText: string): core.buffers.editor.EditorUpdateT | null {
+    const projectionCatalog = instance.createCatalog();
+    const projectionSession = instance.createEditorSession(projectionCatalog);
+    try {
+        projectionSession.replaceText(0n, scriptText);
+        return projectionSession.ensureAnalysis();
+    } finally {
+        projectionSession.destroy();
+        projectionCatalog.destroy();
+    }
+}
+
+export function buildUnformattedPreview(instance: core.DashQL, scriptData: ScriptData, logger: Logger): PreviewSnapshot {
     const scriptText = readSessionText(scriptData.editorSession, logger, scriptData.scriptKey, LOG_CTX) ?? '';
-    return { scriptText, editorUpdate: scriptData.editorUpdate ?? null, diff: null };
+    let editorUpdate = scriptData.editorUpdate ?? null;
+    if (editorUpdate == null || editorUpdate.documentRevision !== scriptData.editorSession.getDocumentRevision()) {
+        try {
+            editorUpdate = projectPreviewText(instance, scriptText);
+        } catch (e: any) {
+            logger.warn('Failed to analyze unformatted script preview', {
+                scriptKey: scriptData.scriptKey.toString(),
+                error: stringifyError(e),
+            }, LOG_CTX);
+        }
+    }
+    return { scriptText, editorUpdate, diff: null };
 }
 
 /// Build the compact formatting config used for both the preview text and the compact diff, so the
@@ -188,12 +211,7 @@ function formatPreviewScript(
     try {
         formattedScript.analyze();
         const scriptText = formattedScript.toString();
-        const projectionCatalog = instance.createCatalog();
-        const projectionSession = instance.createEditorSession(projectionCatalog);
-        projectionSession.replaceText(0n, scriptText);
-        const editorUpdate = projectionSession.ensureAnalysis();
-        projectionSession.destroy();
-        projectionCatalog.destroy();
+        const editorUpdate = projectPreviewText(instance, scriptText);
         // Compute the compact diff against the SAME formatted script that produces `scriptText`,
         // so the diff's target offsets align with the rendered preview text.
         const diff = pendingDiff != null
@@ -281,7 +299,7 @@ export function usePreviewSnapshot({
             return;
         }
 
-        const unformattedPreview = buildUnformattedPreview(scriptData, logger);
+        const unformattedPreview = buildUnformattedPreview(instance, scriptData, logger);
         setPreviewSnapshot(unformattedPreview);
         onFormattedText?.(unformattedPreview.scriptText);
         onFormattingStatus?.(false);
