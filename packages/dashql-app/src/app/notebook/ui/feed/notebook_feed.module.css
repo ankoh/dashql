@@ -252,30 +252,20 @@
 
 .feed_entry_card_server {
     position: relative;
-    --notebook_feed_entry_headerbar_background: white;
+    --notebook_feed_entry_headerbar_background: hsl(0, 0, 10%);
     grid-template-rows: auto;
+}
+
+.feed_entry_card_server_idle {
+    width: fit-content;
+    max-width: 100%;
+    background-color: hsl(210, 29%, 98%);
 }
 
 /* When the entry has never run, the status bar is the complete server card. Its normal divider
    would sit directly above the card's own bottom border and read as a double rule. */
 .feed_entry_card_server > :only-child {
     border-bottom: none;
-}
-
-.feed_entry_card_server::before {
-    content: "";
-    position: absolute;
-    top: 12px;
-    width: 8px;
-    height: 8px;
-    background-color: white;
-    transform: rotate(45deg);
-}
-
-.feed_entry_card_server::before {
-    left: -5px;
-    border-bottom: 1px solid var(--log_border_color);
-    border-left: 1px solid var(--log_border_color);
 }
 
 .feed_entry_avatar_script,

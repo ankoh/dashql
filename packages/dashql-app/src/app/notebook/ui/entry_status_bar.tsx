@@ -108,15 +108,15 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick,
     return (
         <div className={styles.status_bar}>
             {onClick != null ? (
-            <button
-                type="button"
-                className={styles.status_bar_log_button}
-                onClick={onClick}
-                aria-label={`Show log: ${status.message}`}
-            >
-                {indicator}
-                {message}
-            </button>
+                <button
+                    type="button"
+                    className={styles.status_bar_log_button}
+                    onClick={onClick}
+                    aria-label={`Show log: ${status.message}`}
+                >
+                    {indicator}
+                    {message}
+                </button>
             ) : (
                 <div className={styles.status_bar_content}>
                     {indicator}
