@@ -332,7 +332,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                         <use xlinkHref={`${symbols}#${connectorIcon}`} />
                     </svg>
                 </div>
-                <div className={styles.feed_entry_card_server}>
+                <div className={`${styles.feed_entry_card_server} ${entryStatus.kind === EntryStatusKind.Idle ? styles.feed_entry_card_server_idle : ''}`}>
                     <EntryStatusBar
                         status={entryStatus}
                         onClick={entryStatus.traceId != null ? () => showLog(entryStatus.traceId) : undefined}

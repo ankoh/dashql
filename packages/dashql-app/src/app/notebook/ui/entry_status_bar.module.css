@@ -6,12 +6,10 @@
 .status_bar {
     display: flex;
     align-items: center;
-    padding: 0px 4px 0 12px;
     height: 40px;
     font-size: 0.85rem;
     border-bottom: 1px solid var(--log_border_color);
     color: hsl(210, 12%, 36%);
-    background-color: var(--notebook_feed_entry_headerbar_background);
 }
 
 /* The clickable strip is a full-width button — reset the default button chrome so it reads as a bar.
@@ -19,6 +17,7 @@
    label exactly rather than picking up the button user-agent size. */
 .status_bar_log_button,
 .status_bar_content {
+    padding: 0px 16px 0 12px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -28,7 +27,6 @@
 
 .status_bar_log_button {
     align-self: stretch;
-    padding: 0;
     border: none;
     color: inherit;
     background: transparent;
