@@ -93,6 +93,7 @@ table EditorSyntaxSpan {
 enum EditorSemanticReferenceKind: uint8 {
     TABLE,
     COLUMN,
+    FUNCTION,
 }
 
 enum EditorSemanticResolution: uint8 {

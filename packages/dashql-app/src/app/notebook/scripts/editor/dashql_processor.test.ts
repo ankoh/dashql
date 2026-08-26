@@ -1,6 +1,7 @@
 import * as dashql from '../../../../core/index.js';
 
 import { EditorSelection, EditorState, Transaction } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import {
     analyzeScript,
     DashQLCompletionAbortEffect,
@@ -8,10 +9,14 @@ import {
     DashQLCompletionStatus,
     DashQLProcessorPlugin,
     DashQLProcessorUpdateIn,
+    DashQLProcessorUpdateOut,
     DashQLUpdateEffect,
     transactionToEditorEvent,
 } from './dashql_processor.js';
 import { applyCompletion, computePatches } from './dashql_completion_patches.js';
+import { DashQLDecorationPlugin } from './dashql_decorations.js';
+import { deriveFocusFromEditorUpdate } from '../focus.js';
+import { xcodeLight } from './themes/xcode.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -102,6 +107,151 @@ describe('CodeMirror portable editor events', () => {
         expect(moved?.syntaxSpans.length).toBeGreaterThan(0);
 
         schemaSession.destroy();
+    });
+
+    it('renders focused and related semantic references after a cursor update', () => {
+        const catalog = dql!.createCatalog();
+        const schemaSession = dql!.createEditorSession(catalog);
+        schemaSession.replaceText(0n, 'create table items (identifier int)');
+        schemaSession.ensureAnalysis();
+        schemaSession.loadIntoCatalog(0);
+
+        const text = 'select identifier from items where identifier > 0';
+        const { editorSession, editorUpdate } = createEditorSession(catalog, text, 0);
+        const scriptKey = editorSession.getCatalogEntryId();
+        let emitted: DashQLProcessorUpdateOut | null = null;
+        const processorState: DashQLProcessorUpdateIn = {
+            scriptKey,
+            editorSession,
+            editorUpdate,
+            scriptBuffers: null,
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: update => { emitted = update; },
+        };
+        const view = new EditorView({
+            state: EditorState.create({
+                doc: text,
+                selection: EditorSelection.cursor(0),
+                extensions: [DashQLProcessorPlugin, DashQLDecorationPlugin],
+            }),
+            parent: document.body,
+        });
+        view.dispatch({ effects: DashQLUpdateEffect.of(processorState) });
+        view.dispatch({ selection: EditorSelection.cursor(8) });
+
+        expect(emitted).not.toBeNull();
+        const focusedUpdate = emitted!.editorUpdate!;
+        view.dispatch({
+            effects: DashQLUpdateEffect.of({
+                ...view.state.field(DashQLProcessorPlugin),
+                editorUpdate: focusedUpdate,
+                derivedFocus: deriveFocusFromEditorUpdate(scriptKey, focusedUpdate),
+            }),
+        });
+
+        expect(view.dom.querySelectorAll('.dashql-colref-cursor')).toHaveLength(1);
+        expect(view.dom.querySelectorAll('.dashql-colref-focus')).toHaveLength(1);
+        expect(view.dom.querySelectorAll('.dashql-tableref-focus')).toHaveLength(1);
+        view.destroy();
+        editorSession.destroy();
+        schemaSession.destroy();
+        catalog.destroy();
+    });
+
+    it('renders semantic focus immediately on a local cursor transaction', () => {
+        const catalog = dql!.createCatalog();
+        const schemaSession = dql!.createEditorSession(catalog);
+        schemaSession.replaceText(0n, 'create table items (identifier int)');
+        schemaSession.ensureAnalysis();
+        schemaSession.loadIntoCatalog(0);
+
+        const text = 'select identifier from items where identifier > 0';
+        const { editorSession, editorUpdate } = createEditorSession(catalog, text, 0);
+        const scriptKey = editorSession.getCatalogEntryId();
+        const processorState: DashQLProcessorUpdateIn = {
+            scriptKey,
+            editorSession,
+            editorUpdate,
+            scriptBuffers: null,
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: () => {},
+        };
+        const view = new EditorView({
+            state: EditorState.create({
+                doc: text,
+                selection: EditorSelection.cursor(0),
+                extensions: [DashQLProcessorPlugin, DashQLDecorationPlugin],
+            }),
+            parent: document.body,
+        });
+        view.dispatch({ effects: DashQLUpdateEffect.of(processorState) });
+        view.dispatch({ selection: EditorSelection.cursor(8) });
+
+        expect(view.dom.querySelectorAll('.dashql-colref-cursor')).toHaveLength(1);
+        expect(view.dom.querySelectorAll('.dashql-colref-focus')).toHaveLength(1);
+        expect(view.dom.querySelectorAll('.dashql-tableref-focus')).toHaveLength(1);
+        view.destroy();
+        editorSession.destroy();
+        schemaSession.destroy();
+        catalog.destroy();
+    });
+
+    it('keeps relation and function syntax highlighting through the notebook round-trip', () => {
+        const catalog = dql!.createCatalog();
+        const schemaSession = dql!.createEditorSession(catalog);
+        schemaSession.replaceText(0n, 'create table items (identifier int)');
+        schemaSession.ensureAnalysis();
+        schemaSession.loadIntoCatalog(0);
+
+        const text = 'select count(identifier) from items';
+        const { editorSession, editorUpdate } = createEditorSession(catalog, text, 0);
+        const scriptKey = editorSession.getCatalogEntryId();
+        let emitted: DashQLProcessorUpdateOut | null = null;
+        const processorState: DashQLProcessorUpdateIn = {
+            scriptKey,
+            editorSession,
+            editorUpdate,
+            scriptBuffers: null,
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: update => { emitted = update; },
+        };
+        const view = new EditorView({
+            state: EditorState.create({
+                doc: text,
+                selection: EditorSelection.cursor(0),
+                extensions: [xcodeLight, DashQLProcessorPlugin, DashQLDecorationPlugin],
+            }),
+            parent: document.body,
+        });
+        view.dispatch({ effects: DashQLUpdateEffect.of(processorState) });
+        view.dispatch({ selection: EditorSelection.cursor(text.indexOf('identifier') + 1) });
+        const focusedUpdate = emitted!.editorUpdate!;
+        view.dispatch({
+            effects: DashQLUpdateEffect.of({
+                ...view.state.field(DashQLProcessorPlugin),
+                editorUpdate: focusedUpdate,
+                derivedFocus: deriveFocusFromEditorUpdate(scriptKey, focusedUpdate),
+            }),
+        });
+
+        const functionNode = Array.from(view.dom.querySelectorAll('.dashql-function-ref'))
+            .find(node => node.textContent === 'count');
+        const relationNode = Array.from(view.dom.querySelectorAll('.dashql-tableref-resolved'))
+            .find(node => node.textContent === 'items');
+        expect(functionNode?.classList.contains('dashql-function-ref')).toBe(true);
+        expect(relationNode?.classList.contains('dashql-tableref-resolved')).toBe(true);
+        expect(getComputedStyle(functionNode!.querySelector('span')!).color).toBe('rgb(35, 87, 92)');
+        expect(getComputedStyle(relationNode!.querySelector('span')!).color).toBe('rgb(82, 43, 178)');
+        view.destroy();
+        editorSession.destroy();
+        schemaSession.destroy();
+        catalog.destroy();
     });
 
     it('does not materialize compatibility analysis buffers', () => {

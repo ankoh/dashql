@@ -9,6 +9,8 @@ import './dashql_decorations.css';
 
 export const visKeywordTag = Tag.define(CODEMIRROR_TAGS.keyword);
 export const commentTag = CODEMIRROR_TAGS.comment;
+const relationNameTag = CODEMIRROR_TAGS.typeName;
+const functionNameTag = CODEMIRROR_TAGS.function(CODEMIRROR_TAGS.variableName);
 
 const PROTO_TAG_MAPPING: Map<dashql.buffers.parser.ScannerTokenType, Tag> = new Map([
     [dashql.buffers.parser.ScannerTokenType.KEYWORD, CODEMIRROR_TAGS.keyword],
@@ -23,7 +25,7 @@ const PROTO_TAG_MAPPING: Map<dashql.buffers.parser.ScannerTokenType, Tag> = new 
     [dashql.buffers.parser.ScannerTokenType.IDENTIFIER, CODEMIRROR_TAGS.name],
 ]);
 
-const CODEMIRROR_TAGS_USED: Set<Tag> = new Set([commentTag]);
+const CODEMIRROR_TAGS_USED: Set<Tag> = new Set([commentTag, relationNameTag, functionNameTag]);
 for (const [_token, tag] of PROTO_TAG_MAPPING) {
     CODEMIRROR_TAGS_USED.add(tag);
 }
@@ -54,6 +56,13 @@ export function buildDecorationsForRanges(
 ): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>();
     const decorations = buildTagDecorations(state);
+    const semanticNames = update.semanticSpans.filter(semantic =>
+        semantic.textSpan != null && (
+            semantic.kind === dashql.buffers.editor.EditorSemanticReferenceKind.TABLE ||
+            semantic.kind === dashql.buffers.editor.EditorSemanticReferenceKind.FUNCTION
+        ),
+    );
+    let semanticCursor = 0;
     let spanCursor = 0;
     for (const { from, to } of ranges) {
         while (spanCursor < update.syntaxSpans.length) {
@@ -70,9 +79,30 @@ export function buildDecorationsForRanges(
                 continue;
             }
             if (spanFrom >= to) break;
-            const tag = syntax.tokenType === dashql.buffers.parser.ScannerTokenType.COMMENT
+            let tag = syntax.tokenType === dashql.buffers.parser.ScannerTokenType.COMMENT
                 ? commentTag
                 : PROTO_TAG_MAPPING.get(syntax.tokenType);
+            if (syntax.tokenType === dashql.buffers.parser.ScannerTokenType.IDENTIFIER) {
+                while (semanticCursor < semanticNames.length) {
+                    const semanticSpan = semanticNames[semanticCursor].textSpan!;
+                    if (Number(semanticSpan.offset + semanticSpan.length) > spanFrom) break;
+                    ++semanticCursor;
+                }
+                const semantic = semanticNames[semanticCursor];
+                const semanticSpan = semantic?.textSpan;
+                const semanticKind = semanticSpan != null && Number(semanticSpan.offset) <= spanFrom &&
+                        Number(semanticSpan.offset + semanticSpan.length) >= spanTo
+                    ? semantic.kind
+                    : null;
+                switch (semanticKind) {
+                    case dashql.buffers.editor.EditorSemanticReferenceKind.TABLE:
+                        tag = relationNameTag;
+                        break;
+                    case dashql.buffers.editor.EditorSemanticReferenceKind.FUNCTION:
+                        tag = functionNameTag;
+                        break;
+                }
+            }
             if (tag) builder.add(spanFrom, spanTo, decorations.get(tag)!);
             ++spanCursor;
         }

@@ -32,6 +32,9 @@ const ResolvedColumnReferenceDecoration = Decoration.mark({
 const UnresolvedColumnReferenceDecoration = Decoration.mark({
     class: 'dashql-colref-unresolved',
 });
+const FunctionReferenceDecoration = Decoration.mark({
+    class: 'dashql-function-ref',
+});
 const ErrorDecoration = Decoration.mark({
     class: 'dashql-error',
 });
@@ -74,9 +77,18 @@ function buildDecorationsFromAnalysis(
         const span = semantic.textSpan;
         if (span == null) continue;
         const resolved = semantic.resolution === dashql.buffers.editor.EditorSemanticResolution.RESOLVED;
-        const decoration = semantic.kind === dashql.buffers.editor.EditorSemanticReferenceKind.TABLE
-            ? resolved ? ResolvedTableReferenceDecoration : UnresolvedTableReferenceDecoration
-            : resolved ? ResolvedColumnReferenceDecoration : UnresolvedColumnReferenceDecoration;
+        let decoration: Decoration;
+        switch (semantic.kind) {
+            case dashql.buffers.editor.EditorSemanticReferenceKind.TABLE:
+                decoration = resolved ? ResolvedTableReferenceDecoration : UnresolvedTableReferenceDecoration;
+                break;
+            case dashql.buffers.editor.EditorSemanticReferenceKind.COLUMN:
+                decoration = resolved ? ResolvedColumnReferenceDecoration : UnresolvedColumnReferenceDecoration;
+                break;
+            case dashql.buffers.editor.EditorSemanticReferenceKind.FUNCTION:
+                decoration = FunctionReferenceDecoration;
+                break;
+        }
         decorations.push({
             from: Number(span.offset),
             to: Number(span.offset + span.length),

@@ -11,6 +11,7 @@
 #include "dashql/script_compiler.h"
 #include "dashql/script_diff.h"
 #include "dashql/text/rope.h"
+#include "dashql/utils/ast_attributes.h"
 #include "utf8proc/utf8proc_wrapper.hpp"
 
 namespace dashql::editor {
@@ -222,22 +223,36 @@ void EditorSession::ProjectEditorState(EditorUpdate& update) {
     });
     analyzed->expressions.ForEach([&](size_t expression_id, const Expression& expression) {
         auto* column = std::get_if<Expression::ColumnRef>(&expression.inner);
-        if (column == nullptr || !expression.location) return;
+        auto* function = std::get_if<Expression::FunctionCallExpression>(&expression.inner);
+        if ((column == nullptr && function == nullptr) || !expression.location) return;
         auto span = std::make_unique<EditorSemanticSpan>();
-        auto projected_span = ProjectTextSpan(scanned->ResolveTextSpan(*expression.location));
+        auto semantic_location = *expression.location;
+        if (function != nullptr && expression.ast_node_id < parsed->nodes.size()) {
+            auto& function_node = parsed->nodes[expression.ast_node_id];
+            if (function_node.children_count() > 0) {
+                auto [name_node] = LookupAttributes<buffers::parser::AttributeKey::SQL_FUNCTION_NAME>(
+                    std::span<const buffers::parser::Node>{parsed->nodes}.subspan(
+                        function_node.children_begin_or_value(), function_node.children_count()));
+                if (name_node != nullptr) semantic_location = name_node->symbol_span();
+            }
+        }
+        auto projected_span = ProjectTextSpan(scanned->ResolveTextSpan(semantic_location));
         if (!projected_span) return;
-        span->kind = buffers::editor::EditorSemanticReferenceKind::COLUMN;
+        span->kind = column != nullptr ? buffers::editor::EditorSemanticReferenceKind::COLUMN
+                                       : buffers::editor::EditorSemanticReferenceKind::FUNCTION;
         span->reference_id = static_cast<uint32_t>(expression_id);
         span->text_span = std::move(projected_span);
-        if (auto resolved = column->GetResolvedColumnIDs()) {
-            auto [database_id, schema_id] = resolved->catalog_schema_id.UnpackSchemaID();
-            auto [table_id, column_id] = resolved->catalog_table_column_id.UnpackTableColumnID();
-            span->resolution = buffers::editor::EditorSemanticResolution::RESOLVED;
-            span->catalog_database_id = database_id;
-            span->catalog_schema_id = schema_id;
-            span->catalog_table_id = table_id.Pack();
-            span->catalog_column_id = column_id;
-            span->referenced_catalog_version = resolved->referenced_catalog_version;
+        if (column != nullptr) {
+            if (auto resolved = column->GetResolvedColumnIDs()) {
+                auto [database_id, schema_id] = resolved->catalog_schema_id.UnpackSchemaID();
+                auto [table_id, column_id] = resolved->catalog_table_column_id.UnpackTableColumnID();
+                span->resolution = buffers::editor::EditorSemanticResolution::RESOLVED;
+                span->catalog_database_id = database_id;
+                span->catalog_schema_id = schema_id;
+                span->catalog_table_id = table_id.Pack();
+                span->catalog_column_id = column_id;
+                span->referenced_catalog_version = resolved->referenced_catalog_version;
+            }
         }
         update.semantic_spans.push_back(std::move(span));
     });
