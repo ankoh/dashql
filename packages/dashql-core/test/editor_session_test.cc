@@ -255,6 +255,24 @@ TEST(EditorSessionTest, EnsuresSynchronousAnalysisAtCatalogRevision) {
     EXPECT_NE(session.GetScript().GetAnalyzedScript(), nullptr);
 }
 
+TEST(EditorSessionTest, CursorMoveRefreshesAnalysisAfterCatalogRevision) {
+    Catalog catalog;
+    EditorSession source{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    auto initial = Analyze(source, "select value from items");
+    ASSERT_TRUE(initial.analysis_available);
+    ASSERT_FALSE(initial.syntax_spans.empty());
+
+    EditorSession schema{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ASSERT_TRUE(Analyze(schema, "create table items (value int)").analysis_available);
+    schema.LoadIntoCatalog(0);
+
+    auto moved = source.SetPrimaryCursor(source.GetDocumentRevision(), 7);
+    EXPECT_EQ(moved.status, EditorUpdateStatus::OK);
+    EXPECT_TRUE(moved.analysis_available);
+    EXPECT_TRUE(moved.analysis_updated);
+    EXPECT_FALSE(moved.syntax_spans.empty());
+}
+
 TEST(EditorSessionTest, EditingPublishedScriptDropsStaleCatalogEntry) {
     Catalog catalog;
     EditorSession session{catalog};

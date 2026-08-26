@@ -126,13 +126,14 @@ describe('DashQL editor sessions', () => {
         const session = dql!.createEditorSession(catalog);
         const text = 'create table items (id int); select * from items;';
         session.replaceText(0n, text);
-        session.setCursor(1n, BigInt(text.length));
+        const cursorUpdate = session.setCursor(1n, BigInt(text.length));
 
         const update = session.ensureAnalysis();
         expect(update.status).toBe(dashql.buffers.editor.EditorUpdateStatus.OK);
-        expect(update.analysisUpdated).toBe(true);
+        expect(cursorUpdate.analysisUpdated).toBe(true);
+        expect(update.analysisUpdated).toBe(false);
         expect(update.analysisAvailable).toBe(true);
-        expect(session.getStateRevision()).toBe(3n);
+        expect(session.getStateRevision()).toBe(2n);
         expect(session.getCatalogRevision()).toBe(update.catalogRevision);
 
         expect(update.scriptAnnotations?.tableDefinitions).toHaveLength(1);
