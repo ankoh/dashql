@@ -87,6 +87,11 @@
     color: hsl(0, 80%, 45%);
 }
 
+.copy_button_suffix {
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
 .notebook_item {
     flex: 1;
 }

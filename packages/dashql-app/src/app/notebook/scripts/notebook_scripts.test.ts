@@ -410,7 +410,7 @@ describe('CREATE_SCRIPT_FOLDER', () => {
     it('moves focus to the new (prefixed) page', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_SCRIPT_FOLDER, value: null });
-        expect(normalizeScriptFolderName(next.scriptFocus.folderName)).toBe('Untitled');
+        expect(normalizeScriptFolderName(next.scriptFocus.folderName)).toBe('untitled');
     });
 
     it('new page has an auto-created script', () => {
@@ -424,9 +424,9 @@ describe('CREATE_SCRIPT_FOLDER', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_SCRIPT_FOLDER, value: null });
         const sorted = getSortedScriptFolderNames(next.scriptFolders);
-        // Both pages now carry a dense numeric prefix; the new "Untitled" sorts last.
-        expect(sorted).toEqual(['1_Main', '2_Untitled']);
-        expect(normalizeScriptFolderName(sorted[sorted.length - 1])).toBe('Untitled');
+        // Both pages now carry a dense numeric prefix; the new "untitled" sorts last.
+        expect(sorted).toEqual(['1_Main', '2_untitled']);
+        expect(normalizeScriptFolderName(sorted[sorted.length - 1])).toBe('untitled');
     });
 
     it('normalises still-unprefixed sibling pages on create', () => {
@@ -435,8 +435,8 @@ describe('CREATE_SCRIPT_FOLDER', () => {
         const next = reduce(state, { type: CREATE_SCRIPT_FOLDER, value: null });
         const sorted = getSortedScriptFolderNames(next.scriptFolders);
         // Every page ends up prefixed, original order preserved, new page last.
-        expect(sorted.map(normalizeScriptFolderName)).toEqual(['main', 'explain', 'vis_data', 'vis_spec', 'Untitled']);
-        expect(sorted).toEqual(['1_main', '2_explain', '3_vis_data', '4_vis_spec', '5_Untitled']);
+        expect(sorted.map(normalizeScriptFolderName)).toEqual(['main', 'explain', 'vis_data', 'vis_spec', 'untitled']);
+        expect(sorted).toEqual(['1_main', '2_explain', '3_vis_data', '4_vis_spec', '5_untitled']);
     });
 
     it('keeps adding new pages to the right across repeated creates', () => {
@@ -444,8 +444,8 @@ describe('CREATE_SCRIPT_FOLDER', () => {
         s = reduce(s, { type: CREATE_SCRIPT_FOLDER, value: null });
         s = reduce(s, { type: CREATE_SCRIPT_FOLDER, value: null });
         const sorted = getSortedScriptFolderNames(s.scriptFolders);
-        expect(sorted.map(normalizeScriptFolderName)).toEqual(['Main', 'Untitled', 'Untitled 2']);
-        expect(sorted).toEqual(['1_Main', '2_Untitled', '3_Untitled 2']);
+        expect(sorted.map(normalizeScriptFolderName)).toEqual(['Main', 'untitled', 'untitled 2']);
+        expect(sorted).toEqual(['1_Main', '2_untitled', '3_untitled 2']);
     });
 });
 
@@ -657,7 +657,7 @@ describe('page order prefix helpers', () => {
         expect(normalizeScriptFolderName('03_main')).toBe('main');
         expect(normalizeScriptFolderName('1_vis_data')).toBe('vis_data');
         expect(normalizeScriptFolderName('main')).toBe('main');
-        expect(normalizeScriptFolderName('Untitled 2')).toBe('Untitled 2');
+        expect(normalizeScriptFolderName('untitled 2')).toBe('untitled 2');
     });
 
     it('scriptFolderOrderPrefixString returns the prefix including the underscore, else empty', () => {
@@ -822,7 +822,7 @@ describe('rename persistence plan', () => {
         const created = records.filter(r => r.task.type === STORAGE_CREATE_SCRIPT_FOLDER).map(r => (r.task.value as any[])[1]);
         const renamed = records.filter(r => r.task.type === STORAGE_RENAME_SCRIPT_FOLDER).map(r => r.task.value);
         // The freshly created (never-flushed) page is written via CREATE, landing last (slot 3).
-        expect(created).toEqual(['3_Untitled']);
+        expect(created).toEqual(['3_untitled']);
         // The two persisted siblings are moved in place to gain their prefixes.
         expect(renamed).toEqual([
             [state.notebookId, 'alpha', '1_alpha'],

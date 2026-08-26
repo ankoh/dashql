@@ -65,6 +65,74 @@ export async function copyNotebook(
     return { notebookCount: 1, fileCount };
 }
 
+/// Clone a notebook into `target` under a new UUID (always used for OPFS duplicates).
+///
+/// Rewrites `notebookId`, drops the display-only `notebookPath`, and suffixes a named notebook
+/// with " (copy)". Query result cache is not copied. On any write failure the new notebook is
+/// deleted so a half-written clone cannot linger in the registry.
+export async function cloneNotebook(
+    sourceNotebookId: string,
+    source: StorageBackend,
+    target: StorageBackend,
+    newNotebookId: string,
+    logger: Logger,
+): Promise<MigrationResult> {
+    let fileCount = 0;
+    try {
+        const notebookData = { ...(await source.loadNotebook(sourceNotebookId)) };
+        notebookData.notebookId = newNotebookId;
+        delete notebookData.notebookPath;
+        const trimmedName = notebookData.name?.trim();
+        if (trimmedName) {
+            notebookData.name = `${trimmedName} (copy)`;
+        }
+
+        await target.saveNotebookManifest(newNotebookId, notebookData);
+        fileCount++;
+
+        const schema = await source.loadNotebookSchema(sourceNotebookId);
+        if (schema != null) {
+            await target.saveNotebookSchema(newNotebookId, schema);
+            fileCount++;
+        }
+
+        const functions = await source.loadNotebookFunctions(sourceNotebookId);
+        if (functions != null) {
+            await target.saveNotebookFunctions(newNotebookId, functions);
+            fileCount++;
+        }
+
+        const folders = await source.loadScriptFolders(sourceNotebookId);
+        for (const folder of folders) {
+            await target.createScriptFolder(newNotebookId, folder.name);
+            for (const script of folder.scripts) {
+                await target.saveScript(newNotebookId, folder.name, script.name, script.sql);
+                fileCount++;
+            }
+        }
+
+        const draft = await source.loadScriptDraft(sourceNotebookId);
+        if (draft != null) {
+            await target.saveScriptDraft(newNotebookId, draft);
+            fileCount++;
+        }
+
+        logger.info('cloned notebook', {
+            sourceNotebookId,
+            notebookId: newNotebookId,
+            files: String(fileCount),
+        }, LOG_CTX);
+        return { notebookCount: 1, fileCount };
+    } catch (error) {
+        try {
+            await target.deleteNotebook(newNotebookId);
+        } catch {
+            // Preserve the clone error if rollback fails.
+        }
+        throw error;
+    }
+}
+
 /// Verify a single notebook was copied completely by re-reading `target`.
 ///
 /// Checks that the target notebook parses with a notebookId and that its per-notebook script count

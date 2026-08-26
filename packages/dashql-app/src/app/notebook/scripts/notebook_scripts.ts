@@ -90,7 +90,7 @@ export function notebookScriptsMatchStorageSnapshot(state: NotebookScripts, snap
     const diskPages = new Set(snapshot.folders.map(folder => folder.name));
     const memoryPages = new Set(Object.keys(state.scriptFolders));
     // "Untitled" is virtual when the disk has no pages, matching startup restoration.
-    if (diskPages.size === 0 && memoryPages.size === 1 && memoryPages.has('Untitled')) {
+    if (diskPages.size === 0 && memoryPages.size === 1 && memoryPages.has('untitled')) {
         memoryPages.clear();
     }
     if (diskPages.size !== memoryPages.size || [...diskPages].some(page => !memoryPages.has(page))) {
@@ -474,7 +474,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             };
         }
         case CREATE_SCRIPT_FOLDER: {
-            const folderName = uniqueScriptFolderName('Untitled', state.scriptFolders);
+            const folderName = uniqueScriptFolderName('untitled', state.scriptFolders);
             const fileName = generateScriptFileName({});
 
             // Create a new script for the new page
