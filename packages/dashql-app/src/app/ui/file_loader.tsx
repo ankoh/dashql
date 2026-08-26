@@ -10,7 +10,7 @@ import { formatBytes } from '../../utils/format.js';
 import { useRouterNavigate, NOTEBOOK_PATH } from '../router/router.js';
 import { useStorageReader } from '../notebook/persistence/storage_provider.js';
 import { importAndRestoreNotebook } from '../loading/app_setup_events.js';
-import { destroyRestoredNotebook, type RestoredNotebook } from '../notebook/persistence/app_state_loader.js';
+import { destroyRestoredNotebook, mergeRestoredNotebookIntoConnections, mergeRestoredNotebookIntoScripts, type RestoredNotebook } from '../notebook/persistence/app_state_loader.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useConnectionRegistry } from '../notebook/connections/connection_registry.js';
@@ -141,22 +141,8 @@ export function FileLoader(props: Props) {
                 restoredNotebook = restored;
                 const notebookId = restored.notebookId;
                 abortController.signal.throwIfAborted();
-                setConnectionRegistry(registry => {
-                    registry.connectionMap.set(restored.connection.connectionId, restored.connection);
-                    registry.connectionByNotebook.set(notebookId, restored.connection.connectionId);
-                    registry.connectionsByType[restored.connectorType].push(restored.connection.connectionId);
-                    registry.connectionsBySignature.set(
-                        restored.connection.connectionSignature.signatureString,
-                        restored.connection.connectionId,
-                    );
-                    return { ...registry };
-                });
-                setNotebookScriptsRegistry(registry => {
-                    registry.notebookScriptsMap.set(notebookId, restored.notebookScripts);
-                    registry.notebookScriptsByConnection.set(restored.connection.connectionId, notebookId);
-                    registry.notebookScriptsByConnectionType[restored.connectorType].push(notebookId);
-                    return { ...registry };
-                });
+                setConnectionRegistry(registry => mergeRestoredNotebookIntoConnections(registry, restored));
+                setNotebookScriptsRegistry(registry => mergeRestoredNotebookIntoScripts(registry, restored));
                 registered = true;
                 setProgress(current => ({ ...current, importFinishedAt: new Date(), notebookId }));
                 // Navigate to the imported notebook

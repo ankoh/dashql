@@ -23,6 +23,7 @@ import { useStorage } from '../notebook/persistence/storage_provider.js';
 import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts_registry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { InvalidNotebook } from '../notebook/persistence/notebook_validation.js';
+import { mergeRestoredNotebookIntoConnections, mergeRestoredNotebookIntoScripts } from '../notebook/persistence/app_state_loader.js';
 
 async function loadFonts(): Promise<void> {
     await Promise.all([
@@ -110,19 +111,8 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 // The initial app load already populated the registries, so merge the restored
                 // notebook's connection + notebook into them here. Without this the notebook exists
                 // only in storage and the connection setup screen would have nothing to render.
-                setConnReg(reg => {
-                    reg.connectionMap.set(restoredNotebook.connection.connectionId, restoredNotebook.connection);
-                    reg.connectionByNotebook.set(restoredNotebook.notebookId, restoredNotebook.connection.connectionId);
-                    reg.connectionsByType[restoredNotebook.connectorType].push(restoredNotebook.connection.connectionId);
-                    reg.connectionsBySignature.set(restoredNotebook.connection.connectionSignature.signatureString, restoredNotebook.connection.connectionId);
-                    return { ...reg };
-                });
-                setNotebookScriptsRegistry(reg => {
-                    reg.notebookScriptsMap.set(restoredNotebook.notebookId, restoredNotebook.notebookScripts);
-                    reg.notebookScriptsByConnection.set(restoredNotebook.connection.connectionId, restoredNotebook.notebookId);
-                    reg.notebookScriptsByConnectionType[restoredNotebook.connectorType].push(restoredNotebook.notebookId);
-                    return { ...reg };
-                });
+                setConnReg(reg => mergeRestoredNotebookIntoConnections(reg, restoredNotebook));
+                setNotebookScriptsRegistry(reg => mergeRestoredNotebookIntoScripts(reg, restoredNotebook));
 
                 // Land directly on this notebook's connection setup screen. OPEN_LINK_NOTEBOOK sets the
                 // full route state atomically (setup done + notebook selected + CONFIGURING), so the

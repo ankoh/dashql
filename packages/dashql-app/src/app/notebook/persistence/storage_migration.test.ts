@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { copyNotebook, verifyNotebook } from './storage_migration.js';
+import { cloneNotebook, copyNotebook, verifyNotebook } from './storage_migration.js';
 import {
     type StorageBackend,
     type NotebookData,
@@ -201,5 +201,65 @@ describe('storage_migration', () => {
         await copyNotebook(UUID, source, target, logger);
         await target.deleteScript(UUID, 'page-1', '02-script.sql');
         expect(await verifyNotebook(UUID, source, target)).toBe(false);
+    });
+});
+
+describe('cloneNotebook', () => {
+    let source: MemoryBackend;
+    let target: MemoryBackend;
+    let logger: TestLogger;
+    const SOURCE_ID = 'aaa';
+    const CLONE_ID = 'bbb';
+
+    beforeEach(async () => {
+        source = new MemoryBackend(StorageBackendType.Native);
+        target = new MemoryBackend(StorageBackendType.OPFS);
+        logger = new TestLogger();
+        await seedNotebook(source, SOURCE_ID);
+        await source.saveQueryResultCache(SOURCE_ID, 'hash1', new Uint8Array([1, 2, 3]));
+    });
+
+    it('writes a new notebook id and suffixes the name', async () => {
+        await cloneNotebook(SOURCE_ID, source, target, CLONE_ID, logger);
+        const cloned = await target.loadNotebook(CLONE_ID);
+        expect(cloned.notebookId).toBe(CLONE_ID);
+        expect(cloned.name).toBe('Notebook aaa (copy)');
+        expect(cloned.notebookPath).toBeUndefined();
+        expect((await source.loadNotebook(SOURCE_ID)).notebookId).toBe(SOURCE_ID);
+    });
+
+    it('copies schema, functions, scripts and draft under the new id', async () => {
+        const result = await cloneNotebook(SOURCE_ID, source, target, CLONE_ID, logger);
+        expect(result.notebookCount).toBe(1);
+        expect(result.fileCount).toBe(7);
+        expect(await target.loadNotebookSchema(CLONE_ID)).toBe('-- schema aaa');
+        expect(await target.loadNotebookFunctions(CLONE_ID)).toBe('-- functions aaa');
+        expect(await target.loadScriptDraft(CLONE_ID)).toBe('-- draft aaa');
+        const script = await target.loadScript(CLONE_ID, 'page-1', '01-script.sql');
+        expect(script.sql).toBe("SELECT 'aaa-1';");
+    });
+
+    it('does not copy the query result cache', async () => {
+        await cloneNotebook(SOURCE_ID, source, target, CLONE_ID, logger);
+        expect(await target.hasCachedQueryResult(CLONE_ID, 'hash1')).toBe(false);
+        expect(await source.hasCachedQueryResult(SOURCE_ID, 'hash1')).toBe(true);
+    });
+
+    it('leaves an unnamed notebook unnamed', async () => {
+        await source.saveNotebookManifest(SOURCE_ID, {
+            notebookId: SOURCE_ID,
+            name: '   ',
+            connectionParams: { duckdb: {} },
+            metadata: {},
+        });
+        await cloneNotebook(SOURCE_ID, source, target, CLONE_ID, logger);
+        expect((await target.loadNotebook(CLONE_ID)).name).toBe('   ');
+    });
+
+    it('rolls back the clone when a later write fails', async () => {
+        const failing = Object.create(target) as MemoryBackend;
+        failing.saveScriptDraft = async () => { throw new Error('draft write failed'); };
+        await expect(cloneNotebook(SOURCE_ID, source, failing, CLONE_ID, logger)).rejects.toThrow('draft write failed');
+        await expect(target.loadNotebook(CLONE_ID)).rejects.toThrow(`No notebook ${CLONE_ID}`);
     });
 });

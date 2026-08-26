@@ -40,6 +40,10 @@ import { ConnectionConfigCard } from '../notebook/connections/ui/connection_conf
 import { NotebookScriptsSetup } from '../notebook/scripts/notebook_scripts_setup.js';
 import type { DashQL } from '../../core/index.js';
 import { useStorageReader, useStorageWriter } from '../notebook/persistence/storage_provider.js';
+import { cloneNotebook } from '../notebook/persistence/storage_migration.js';
+import { mergeRestoredNotebookIntoConnections, mergeRestoredNotebookIntoScripts, restoreSingleNotebook } from '../notebook/persistence/app_state_loader.js';
+import { useConnectionRegistry } from '../notebook/connections/connection_registry.js';
+import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts_registry.js';
 import { displayPath as notebookDisplayPath } from '../notebook/persistence/notebook_locator.js';
 import { StorageBackendType } from '../notebook/persistence/storage_backend.js';
 import { CompositeStorageBackend } from '../notebook/persistence/composite_storage_backend.js';
@@ -87,14 +91,18 @@ interface NotebookItemData {
 
 const LIST_MAX_HEIGHT = 400; // Max height of the scrollable list before it scrolls
 const LIST_WIDTH = 400; // Width of the list to accommodate long paths
+const DuplicateIcon = SymbolIcon('duplicate_16');
 
 export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
     const configNotebookId = routeContext.notebookSetupStatus === NotebookSetupStatus.CONFIGURING ? routeContext.notebookId : null;
     const [isEditMode, setIsEditMode] = React.useState(false);
+    const [isCopyMode, setIsCopyMode] = React.useState(false);
     const [showInternals, setShowInternals] = React.useState<boolean>(false);
     const [_registry, connectionDispatch] = useDynamicConnectionDispatch();
+    const [, setConnReg] = useConnectionRegistry();
+    const [, setNotebookScriptsRegistry] = useNotebookScriptsRegistry();
     const [_computationState, computationDispatch] = useComputationRegistry();
     const deleteNotebookScripts = useNotebookScriptsDeletion();
     const storageWriter = useStorageWriter();
@@ -211,6 +219,13 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         () => notebooks.filter(n => n.invalidReason == null).map(n => n.notebookId),
         [notebooks],
     );
+    const canRemoveNotebooks = notebooks.length > 0;
+    const canCloneNotebooks = sortableIds.length > 0;
+
+    React.useEffect(() => {
+        if (!canRemoveNotebooks) setIsEditMode(false);
+        if (!canCloneNotebooks) setIsCopyMode(false);
+    }, [canRemoveNotebooks, canCloneNotebooks]);
 
     // Notebook-row drag-and-drop, mirroring the notebook page tabs: the PointerSensor only arms a
     // drag after a few pixels of movement, so a plain click still opens the notebook.
@@ -323,6 +338,8 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                 if (!configNotebookId) {
                     if (isEditMode) {
                         setIsEditMode(false);
+                    } else if (isCopyMode) {
+                        setIsCopyMode(false);
                     }
                     return;
                 }
@@ -334,7 +351,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                 handleBack();
             },
         },
-    ], [configNotebookId, isEditMode, handleBack]);
+    ], [configNotebookId, isEditMode, isCopyMode, handleBack]);
     useKeyEvents(keyHandlers);
 
     const handleConnected = React.useCallback((notebookId: string) => {
@@ -380,6 +397,44 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         }
         connectionDispatch(item.connection!.connectionId, { type: DELETE_CONNECTION, value: null });
     }, [storageWriter, connectionDispatch, computationDispatch, deleteNotebookScripts, props.onDeleteInvalidNotebook]);
+
+    const handleCloneNotebook = React.useCallback(async (item: NotebookItemData) => {
+        if (item.invalidReason != null || !props.core) {
+            return;
+        }
+        const newNotebookId = crypto.randomUUID();
+        try {
+            await cloneNotebook(
+                item.notebookId,
+                storageReader.backend,
+                storageWriter.backend,
+                newNotebookId,
+                logger,
+            );
+            const restored = await restoreSingleNotebook(
+                props.core,
+                storageWriter.backend,
+                logger,
+                newNotebookId,
+                props.connectionRegistry.connectionsBySignature,
+            );
+            setConnReg(reg => mergeRestoredNotebookIntoConnections(reg, restored));
+            setNotebookScriptsRegistry(reg => mergeRestoredNotebookIntoScripts(reg, restored));
+        } catch (e) {
+            logger.warn('failed to clone notebook', {
+                notebookId: item.notebookId,
+                error: String(e),
+            }, 'notebook_selector');
+        }
+    }, [
+        props.core,
+        props.connectionRegistry.connectionsBySignature,
+        storageReader.backend,
+        storageWriter.backend,
+        logger,
+        setConnReg,
+        setNotebookScriptsRegistry,
+    ]);
 
     return (
         <div className={baseStyles.page} data-tauri-drag-region>
@@ -443,7 +498,9 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                                         notebook={notebook}
                                                         onClick={onNotebookClick}
                                                         onDelete={handleDeleteNotebook}
+                                                        onClone={handleCloneNotebook}
                                                         isEditMode={isEditMode}
+                                                        isCopyMode={isCopyMode}
                                                     />
                                                 ))}
                                             </SortableContext>
@@ -455,12 +512,33 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                     </div>
                                 )}
                                 <div className={baseStyles.card_actions}>
+                                    <div className={baseStyles.card_actions_left}>
+                                        <IconButton
+                                            variant={isCopyMode ? ButtonVariant.Default : ButtonVariant.Invisible}
+                                            aria-label={isCopyMode ? 'Done duplicating' : 'Duplicate notebooks'}
+                                            aria-pressed={isCopyMode}
+                                            disabled={!canCloneNotebooks}
+                                            onClick={() => {
+                                                setIsCopyMode(!isCopyMode);
+                                                setIsEditMode(false);
+                                            }}
+                                        >
+                                            {isCopyMode
+                                                ? <CircleSlashIcon size={16} />
+                                                : <DuplicateIcon size={16} />
+                                            }
+                                        </IconButton>
+                                    </div>
                                     <div className={baseStyles.card_actions_right}>
                                         <IconButton
                                             variant={isEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
                                             aria-label={isEditMode ? 'Done removing' : 'Remove notebooks'}
                                             aria-pressed={isEditMode}
-                                            onClick={() => setIsEditMode(!isEditMode)}
+                                            disabled={!canRemoveNotebooks}
+                                            onClick={() => {
+                                                setIsEditMode(!isEditMode);
+                                                setIsCopyMode(false);
+                                            }}
                                         >
                                             {isEditMode
                                                 ? <CircleSlashIcon size={16} />
@@ -498,10 +576,12 @@ interface NotebookItemProps {
     notebook: NotebookItemData;
     onClick: (notebookId: string) => void;
     onDelete: (item: NotebookItemData) => void;
+    onClone: (item: NotebookItemData) => void;
     isEditMode: boolean;
+    isCopyMode: boolean;
 }
 
-const NotebookItem: React.FC<NotebookItemProps> = ({ notebook, onClick, onDelete, isEditMode }) => {
+const NotebookItem: React.FC<NotebookItemProps> = ({ notebook, onClick, onDelete, onClone, isEditMode, isCopyMode }) => {
     const connectorInfo = CONNECTOR_INFOS.find(c => c.connectorType === notebook.connectorType);
     const isInvalid = notebook.invalidReason != null;
 
@@ -520,15 +600,20 @@ const NotebookItem: React.FC<NotebookItemProps> = ({ notebook, onClick, onDelete
     };
 
     const handleClick = React.useCallback(() => {
-        if (!isEditMode && !isInvalid) {
+        if (!isEditMode && !isCopyMode && !isInvalid) {
             onClick(notebook.notebookId);
         }
-    }, [notebook.notebookId, onClick, isEditMode, isInvalid]);
+    }, [notebook.notebookId, onClick, isEditMode, isCopyMode, isInvalid]);
 
     const handleDelete = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation(); // Don't trigger notebook selection
         onDelete(notebook);
     }, [notebook, onDelete]);
+
+    const handleClone = React.useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        onClone(notebook);
+    }, [notebook, onClone]);
 
     return (
         <div ref={setNodeRef} style={style} className={styles.notebook_item_wrapper} {...attributes} {...listeners}>
@@ -578,6 +663,17 @@ const NotebookItem: React.FC<NotebookItemProps> = ({ notebook, onClick, onDelete
                         ? <UnlinkIcon size={16} />
                         : <TrashIcon size={16} />
                     }
+                </IconButton>
+            )}
+            {isCopyMode && !isInvalid && (
+                <IconButton
+                    className={styles.copy_button_suffix}
+                    variant={ButtonVariant.Invisible}
+                    aria-label="Duplicate notebook"
+                    onClick={handleClone}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <DuplicateIcon size={16} />
                 </IconButton>
             )}
         </div>

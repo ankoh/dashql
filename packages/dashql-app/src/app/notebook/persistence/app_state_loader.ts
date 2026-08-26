@@ -3,7 +3,9 @@ import type { Logger } from '../../../platform/logger/logger.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { ProgressCounter } from '../../../utils/progress.js';
 import type { ConnectionState } from '../connections/connection_state.js';
+import type { ConnectionRegistry } from '../connections/connection_registry.js';
 import type { NotebookScripts, ScriptData } from '../scripts/notebook_scripts.js';
+import type { NotebookScriptsRegistry } from '../scripts/notebook_scripts_registry.js';
 import { createEmptyScriptData, destroyNotebookScripts, replaceEditorSessionText, sortScriptFolderNamesNumerically } from '../scripts/notebook_scripts.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../connections/connection_import.js';
 import { CONNECTOR_TYPES, ConnectorType, type ConnectorInfo } from '../connections/connector_info.js';
@@ -430,6 +432,30 @@ export interface RestoredNotebook {
     connectorType: ConnectorType;
     connection: ConnectionState;
     notebookScripts: NotebookScripts;
+}
+
+export function mergeRestoredNotebookIntoConnections(
+    reg: ConnectionRegistry,
+    restored: RestoredNotebook,
+): ConnectionRegistry {
+    reg.connectionMap.set(restored.connection.connectionId, restored.connection);
+    reg.connectionByNotebook.set(restored.notebookId, restored.connection.connectionId);
+    reg.connectionsByType[restored.connectorType].push(restored.connection.connectionId);
+    reg.connectionsBySignature.set(
+        restored.connection.connectionSignature.signatureString,
+        restored.connection.connectionId,
+    );
+    return { ...reg };
+}
+
+export function mergeRestoredNotebookIntoScripts(
+    reg: NotebookScriptsRegistry,
+    restored: RestoredNotebook,
+): NotebookScriptsRegistry {
+    reg.notebookScriptsMap.set(restored.notebookId, restored.notebookScripts);
+    reg.notebookScriptsByConnection.set(restored.connection.connectionId, restored.notebookId);
+    reg.notebookScriptsByConnectionType[restored.connectorType].push(restored.notebookId);
+    return { ...reg };
 }
 
 export function destroyRestoredNotebook(restored: RestoredNotebook): void {
