@@ -69,6 +69,41 @@ describe('CodeMirror portable editor events', () => {
         expect(editorState.field(DashQLProcessorPlugin).editorUpdate?.analysisAvailable).toBe(true);
     });
 
+    it('keeps highlighting when the catalog changes before a cursor move', () => {
+        const catalog = dql!.createCatalog();
+        const text = 'select value from items';
+        const { editorSession, editorUpdate } = createEditorSession(catalog, text, 0);
+        const processorState: DashQLProcessorUpdateIn = {
+            scriptKey: editorSession.getCatalogEntryId(),
+            editorSession,
+            editorUpdate,
+            scriptBuffers: null,
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: () => {},
+        };
+        let editorState = EditorState.create({
+            doc: text,
+            selection: EditorSelection.cursor(0),
+            extensions: [DashQLProcessorPlugin],
+        });
+        editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+
+        const schemaSession = dql!.createEditorSession(catalog);
+        schemaSession.replaceText(0n, 'create table items (value int)');
+        schemaSession.ensureAnalysis();
+        schemaSession.loadIntoCatalog(0);
+
+        editorState = editorState.update({ selection: EditorSelection.cursor(7) }).state;
+        const moved = editorState.field(DashQLProcessorPlugin).editorUpdate;
+        expect(moved?.analysisAvailable).toBe(true);
+        expect(moved?.analysisUpdated).toBe(true);
+        expect(moved?.syntaxSpans.length).toBeGreaterThan(0);
+
+        schemaSession.destroy();
+    });
+
     it('does not materialize compatibility analysis buffers', () => {
         const catalog = dql!.createCatalog();
         const editorSession = dql!.createEditorSession(catalog);

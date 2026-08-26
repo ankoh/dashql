@@ -656,7 +656,13 @@ EditorSession::EditorUpdate EditorSession::Apply(const EditorEvent& event) {
     }
     primary_selection_ = std::move(next_selection);
 
-    const bool analysis_succeeded = !event.ensure_analysis || EnsureAnalysis(update);
+    const bool analysis_stale = analyzed_document_revision_ != document_revision_ ||
+                                analyzed_catalog_revision_ != catalog_.GetVersion() ||
+                                script_.GetAnalyzedScript() == nullptr;
+    // Selection updates also publish a complete EditorUpdate projection. Refresh stale analysis first;
+    // otherwise a catalog revision change would turn a cursor move into an empty projection.
+    const bool analysis_succeeded = !(event.ensure_analysis || (event.primary_selection && analysis_stale)) ||
+                                    EnsureAnalysis(update);
     const bool analysis_current = analyzed_document_revision_ == document_revision_ &&
                                   analyzed_catalog_revision_ == catalog_.GetVersion() &&
                                   script_.GetAnalyzedScript() != nullptr;
