@@ -42,7 +42,7 @@ regex-automata = "0.4.18"
 mime = "0.3.17"
 futures-util = "0.3.34"
 futures-core = "0.3.34"
-uuid = { version = "1.24.1", features = ["v4"] }
+uuid = { version = "1.25.0", features = ["v4"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
 tracing-log = "0.2"
