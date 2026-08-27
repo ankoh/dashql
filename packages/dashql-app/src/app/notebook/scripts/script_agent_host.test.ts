@@ -7,7 +7,7 @@ import {
     AgentRunState,
     reduceAgentRun,
 } from '../agent/agent_run_state.js';
-import { createNotebookScriptsAgentHost, chooseApplyAction } from './script_agent_host.js';
+import { createNotebookScriptsAgentHost } from './script_agent_host.js';
 import {
     NotebookScripts,
     NotebookScriptsAction,
@@ -191,27 +191,6 @@ async function drive(
     );
     return { agent, notebookScripts: current, applied, registered };
 }
-
-describe('chooseApplyAction', () => {
-    it('sql with a focused script edits in place', () => {
-        const action = chooseApplyAction('sql', { scriptKey: 42 } as any, 'select 1');
-        expect(action.type).toBe(SET_SCRIPT_TEXT);
-        expect((action.value as any).scriptKey).toBe(42);
-    });
-    it('sql with no focus creates a new entry', () => {
-        const action = chooseApplyAction('sql', null, 'select 1');
-        expect(action.type).toBe(CREATE_SCRIPT_WITH_TEXT);
-    });
-    it('visualize over a SQL script creates a new entry', () => {
-        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: null } } as any, 'select * from x visualize using vegalite ()');
-        expect(action.type).toBe(CREATE_SCRIPT_WITH_TEXT);
-    });
-    it('visualize over a VISUALIZE script edits in place', () => {
-        const action = chooseApplyAction('visualize', { scriptKey: 7, annotations: { visualizeQuery: { sql: 's' } } } as any, 'select * from x visualize using vegalite ()');
-        expect(action.type).toBe(SET_SCRIPT_TEXT);
-        expect((action.value as any).scriptKey).toBe(7);
-    });
-});
 
 describe('startAgentRun — SQL path', () => {
     it('honors a sql intent override and edits the focused script in place', async () => {

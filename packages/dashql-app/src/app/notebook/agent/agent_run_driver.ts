@@ -16,13 +16,11 @@ import {
     buildSqlPrompt,
     buildVisualizePrompt,
     diagnoseVegaLiteSpec,
-    extractJsonObject,
-    extractSql,
-    parseIntent,
 } from './agent_prompts.js';
 import { AgentHost } from './agent_host.js';
 import { LoggerLike } from '../../../platform/logger/logger.js';
 import { createTrace, TraceContext } from '../../../platform/logger/trace_context.js';
+import * as core from '../../../core/index.js';
 
 const LOG_CTX = 'agent_run';
 
@@ -97,12 +95,6 @@ function summarizeErrors(errors: string[]): string {
 /// as an opaque "unexpected identifier literal" — nothing the model can act on, so it repeats the
 /// same mistake every attempt. Diagnosing the raw spec turns that into "use mark 'arc' with theta …"
 /// and prepends it so the hint leads. No-op for SQL runs, a missing spec, or a clean spec.
-function withSpecDiagnosis(intent: AgentIntent, vegaLiteRaw: string | null, errors: string[]): string[] {
-    if (intent !== 'visualize' || vegaLiteRaw == null) return errors;
-    const hints = diagnoseVegaLiteSpec(vegaLiteRaw).filter((h) => !errors.includes(h));
-    return hints.length > 0 ? [...hints, ...errors] : errors;
-}
-
 /// Await a long-running promise while emitting a periodic heartbeat log, so the trace log keeps
 /// showing signs of life during an otherwise silent AI generate call. The heartbeat is cleared as
 /// soon as the promise settles (in a `finally`), so it never outlives the call or leaks a timer.
@@ -153,8 +145,7 @@ async function loggedGenerate(
 export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps): Promise<void> {
     const maxAttempts = params.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
     const abort = new AbortController();
-    const signal = abort.signal;
-    const { aiClient, host, now } = deps;
+    const { host, now } = deps;
 
     // Start a trace for this run so its progress is observable in the feed's "Agent Logs" view.
     // Each meaningful state transition is mirrored into this trace's log via the dispatch wrapper.
@@ -251,194 +242,275 @@ export async function startAgentRun(params: AgentRunParams, deps: AgentRunDeps):
         },
     });
 
-    try {
-        // The host is constructed from a live context by the caller (the feed only starts a run
-        // over a real notebook), so there is no "missing subject" guard here — a broken host is an
-        // unexpected failure and funnels through the catch below like any other thrown error.
+    await driveCoreAgentSession(params, deps, abort, tracedLog, dispatchAgent);
+}
 
-        // --- Classify -------------------------------------------------------
-        let intent: AgentIntent;
-        if (params.intentOverride != null) {
-            intent = params.intentOverride;
-            dispatchAgent({ type: AGENT_SET_INTENT, value: { intent, override: true, timestamp: now() } });
-        } else {
-            const classification = await loggedGenerate(
-                tracedLog,
-                aiClient,
-                'classify',
-                buildClassifyPrompt(params.prompt),
-                signal,
-                'the model to classify the request',
-            );
-            throwIfAborted(signal);
-            intent = parseIntent(classification);
-            dispatchAgent({ type: AGENT_SET_INTENT, value: { intent, override: false, timestamp: now() } });
+function coreIntent(intent: AgentIntent | null): core.buffers.agent.AgentIntent {
+    if (intent === 'sql') return core.buffers.agent.AgentIntent.SQL;
+    if (intent === 'visualize') return core.buffers.agent.AgentIntent.VISUALIZE;
+    return core.buffers.agent.AgentIntent.UNKNOWN;
+}
+
+function appIntent(intent: core.buffers.agent.AgentIntent): AgentIntent {
+    return intent === core.buffers.agent.AgentIntent.VISUALIZE ? 'visualize' : 'sql';
+}
+
+function coreTargetKind(kind: 'none' | 'sql' | 'visualization'): core.buffers.agent.AgentTargetKind {
+    if (kind === 'sql') return core.buffers.agent.AgentTargetKind.SQL;
+    if (kind === 'visualization') return core.buffers.agent.AgentTargetKind.VISUALIZATION;
+    return core.buffers.agent.AgentTargetKind.NONE;
+}
+
+function appDisposition(disposition: core.buffers.agent.AgentApplyDisposition): 'create' | 'replace' {
+    return disposition === core.buffers.agent.AgentApplyDisposition.REPLACE ? 'replace' : 'create';
+}
+
+function phaseMessage(phase: AgentRunPhase, intent: AgentIntent, attempt: number, maxAttempts: number): string {
+    const noun = intentNoun(intent);
+    switch (phase) {
+        case AgentRunPhase.CLASSIFYING:
+            return 'Classifying the request';
+        case AgentRunPhase.GENERATING:
+            return `Generating a ${noun} from your request (attempt ${attempt} of ${maxAttempts})`;
+        case AgentRunPhase.VERIFYING:
+            return `Verifying the generated ${noun} by parsing and analyzing it against the catalog`;
+        case AgentRunPhase.REPAIRING:
+            return `Repairing the ${noun} after verification errors (attempt ${attempt} of ${maxAttempts})`;
+        case AgentRunPhase.APPLYING:
+            return `Applying the ${noun}`;
+        default:
+            return AgentRunPhase[phase] ?? 'Agent progress';
+    }
+}
+
+function stringValue(value: string | Uint8Array | null | undefined): string {
+    if (typeof value === 'string') return value;
+    if (value instanceof Uint8Array) return new TextDecoder().decode(value);
+    return '';
+}
+
+async function driveCoreAgentSession(
+    params: AgentRunParams,
+    deps: AgentRunDeps,
+    abort: AbortController,
+    tracedLog: LoggerLike | null,
+    dispatchAgent: (action: AgentRunAction) => void,
+): Promise<void> {
+    const { host, aiClient, now } = deps;
+    const maxAttempts = params.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+    const session = host.createAgentSession();
+    let applyResult: { inPlace: boolean; targetName: string | null } | null = null;
+    let terminalEventSeen = false;
+
+    const processEvents = (operation: core.buffers.agent.AgentOperationT) => {
+        for (const event of operation.events) {
+            if (event.type === core.buffers.agent.AgentEventType.INTENT_SELECTED) {
+                dispatchAgent({
+                    type: AGENT_SET_INTENT,
+                    value: { intent: appIntent(event.intent), override: event.intentOverridden, timestamp: now() },
+                });
+            } else if (event.type === core.buffers.agent.AgentEventType.PHASE_CHANGED) {
+                const phase = event.phase as number as AgentRunPhase;
+                // Applying needs notebook-specific wording, emitted after planApply below.
+                if (phase === AgentRunPhase.APPLYING) continue;
+                dispatchAgent({
+                    type: AGENT_PHASE,
+                    value: {
+                        phase,
+                        attempt: event.attempt,
+                        message: phaseMessage(phase, appIntent(event.intent), event.attempt, maxAttempts),
+                        timestamp: now(),
+                    },
+                });
+            } else if (event.type === core.buffers.agent.AgentEventType.ATTEMPT_FINISHED && event.attemptResult != null) {
+                const attempt = event.attemptResult;
+                dispatchAgent({
+                    type: AGENT_ATTEMPT_RESULT,
+                    value: {
+                        attempt: attempt.attempt,
+                        candidateText: stringValue(attempt.candidateText),
+                        vegaLiteSpec: stringValue(attempt.vegaliteSpec) || null,
+                        errors: attempt.errors,
+                        timestamp: now(),
+                    },
+                });
+            } else if (event.type === core.buffers.agent.AgentEventType.SUCCEEDED) {
+                terminalEventSeen = true;
+                const inPlace = applyResult?.inPlace ?? false;
+                const targetName = applyResult?.targetName ?? null;
+                const intent = appIntent(event.intent);
+                const noun = intentNoun(intent);
+                dispatchAgent({
+                    type: AGENT_SUCCEEDED,
+                    value: {
+                        message: inPlace
+                            ? `Done — updated ${targetName ? `"${targetName}"` : 'the focused target'} with the new ${noun}`
+                            : `Done — created a new entry with the ${noun}`,
+                        timestamp: now(),
+                    },
+                });
+            } else if (event.type === core.buffers.agent.AgentEventType.FAILED) {
+                terminalEventSeen = true;
+                dispatchAgent({
+                    type: AGENT_FAILED,
+                    value: { error: stringValue(event.message), expected: event.expectedFailure, timestamp: now() },
+                });
+            } else if (event.type === core.buffers.agent.AgentEventType.CANCELLED) {
+                terminalEventSeen = true;
+                dispatchAgent({ type: AGENT_CANCELLED, value: { timestamp: now() } });
+            }
         }
+    };
 
-        const context = host.buildContext(intent);
+    const completeError = (effectId: bigint, error: unknown) => new core.buffers.agent.AgentEffectCompletionT(
+        effectId,
+        core.buffers.agent.AgentEffectCompletionStatus.ERROR,
+        null,
+        null,
+        null,
+        null,
+        error instanceof Error ? error.message : String(error),
+    );
 
-        // --- Generate → verify (→ repair) loop ------------------------------
-        let candidateText: string | null = null;
-        let errors: string[] = [];
-        let previousCandidate: string | null = null;
-        let succeeded = false;
-        let finalAttempt = 0;
+    try {
+        let operation = session.start(new core.buffers.agent.AgentStartRequestT(
+            params.prompt,
+            coreIntent(params.intentOverride),
+            maxAttempts,
+            true,
+        ));
 
-        const noun = intentNoun(intent);
-        for (let attempt = 1; attempt <= maxAttempts; ++attempt) {
-            finalAttempt = attempt;
-            const repairing = attempt > 1;
-            dispatchAgent({
-                type: AGENT_PHASE,
-                value: {
-                    phase: repairing ? AgentRunPhase.REPAIRING : AgentRunPhase.GENERATING,
-                    attempt,
-                    message: repairing
-                        ? `Repairing the ${noun} after verification errors (attempt ${attempt} of ${maxAttempts})`
-                        : `Generating a ${noun} from your request (attempt ${attempt} of ${maxAttempts})`,
-                    timestamp: now(),
-                },
-            });
-
-            // Build + send the generation prompt. A visualize run over a focused VISUALIZE script is
-            // an EDIT (the context carries the current chart), so the prompt reframes from generate
-            // to modify — see buildVisualizePrompt / visualizeTaskFraming.
-            const prompt: string = intent === 'visualize'
-                ? buildVisualizePrompt({
-                    context,
-                    userPrompt: params.prompt,
-                    previousCandidate,
-                    errors,
-                    editingChart: host.isEditingChart(),
-                })
-                : buildSqlPrompt({ context, userPrompt: params.prompt, previousCandidate, errors });
-            const completion: string = await loggedGenerate(
-                tracedLog,
-                aiClient,
-                repairing ? 'repair' : 'generate',
-                prompt,
-                signal,
-                `the model to ${repairing ? 'repair' : 'generate'} the ${noun}`,
-            );
-            throwIfAborted(signal);
-
-            // Turn the completion into candidate DSL/SQL. For visualize we hand the raw spec JSON
-            // to the host, which resolves + injects the data source and transcodes it into the
-            // target DSL (throwing on a malformed spec). We keep the extracted JSON (`vegaLiteRaw`)
-            // for the attempt record and as the fallback candidate when transcoding throws.
-            let vegaLiteRaw: string | null = null;
-            try {
-                if (intent === 'visualize') {
-                    vegaLiteRaw = extractJsonObject(completion);
-                    candidateText = host.transcodeVegaLite(vegaLiteRaw);
-                } else {
-                    candidateText = extractSql(completion);
+        while (true) {
+            processEvents(operation);
+            if (operation.status !== core.buffers.agent.AgentStatus.PENDING) {
+                if (operation.status !== core.buffers.agent.AgentStatus.OK || !terminalEventSeen) {
+                    dispatchAgent({
+                        type: AGENT_FAILED,
+                        value: {
+                            error: stringValue(operation.statusMessage) || 'Agent session ended without a terminal result',
+                            timestamp: now(),
+                        },
+                    });
                 }
-            } catch (e: any) {
-                // Parsing / transcoding failed — treat as a verifiable error and repair.
-                candidateText = vegaLiteRaw ?? completion;
-                errors = withSpecDiagnosis(intent, vegaLiteRaw, [e?.message ? String(e.message) : String(e)]);
-                previousCandidate = candidateText;
-                dispatchAgent({
-                    type: AGENT_ATTEMPT_RESULT,
-                    value: { attempt, candidateText, vegaLiteSpec: vegaLiteRaw, errors, timestamp: now() },
-                });
-                continue;
-            }
-
-            // Verify against the parser + analyzer.
-            dispatchAgent({
-                type: AGENT_PHASE,
-                value: {
-                    phase: AgentRunPhase.VERIFYING,
-                    attempt,
-                    message: `Verifying the generated ${noun} by parsing and analyzing it against the catalog`,
-                    timestamp: now(),
-                },
-            });
-            // An empty candidate would parse "clean" but apply nothing — reject it so the
-            // loop repairs instead of silently succeeding with no output.
-            if (candidateText.trim().length === 0) {
-                errors = ['The model returned an empty result.'];
-                previousCandidate = candidateText;
-                dispatchAgent({
-                    type: AGENT_ATTEMPT_RESULT,
-                    value: { attempt, candidateText, vegaLiteSpec: vegaLiteRaw, errors, timestamp: now() },
-                });
-                continue;
-            }
-
-            const verdict = host.verify(candidateText);
-            throwIfAborted(signal);
-
-            const verifyErrors = [...verdict.parserErrors, ...verdict.analyzerErrors];
-            // For visualize, also require that a VisualizationSpec was produced.
-            if (verdict.ok && intent === 'visualize' && verdict.visualizationSpecs === 0) {
-                verifyErrors.push('The statement did not resolve into a visualization. Check the source and channels.');
-            }
-
-            errors = withSpecDiagnosis(intent, vegaLiteRaw, verifyErrors);
-            previousCandidate = candidateText;
-            dispatchAgent({
-                type: AGENT_ATTEMPT_RESULT,
-                value: { attempt, candidateText, vegaLiteSpec: vegaLiteRaw, errors, timestamp: now() },
-            });
-
-            if (errors.length === 0) {
-                succeeded = true;
                 break;
             }
+            if (operation.effect == null) throw new Error('Agent session is pending without an effect');
+            const effect = operation.effect;
+            let completion: core.buffers.agent.AgentEffectCompletionT;
+            try {
+                if (effect.type === core.buffers.agent.AgentEffectType.RESOLVE_CONTEXT && effect.resolveContext != null) {
+                    const intent = appIntent(effect.resolveContext.intent);
+                    const target = host.describeTarget();
+                    completion = new core.buffers.agent.AgentEffectCompletionT(
+                        effect.id,
+                        core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
+                        null,
+                        new core.buffers.agent.AgentContextResultT(
+                            host.buildContext(intent),
+                            coreTargetKind(target.kind),
+                            target.name,
+                        ),
+                    );
+                } else if (effect.type === core.buffers.agent.AgentEffectType.MODEL_REQUEST && effect.modelRequest != null) {
+                    const request = effect.modelRequest;
+                    let prompt: string;
+                    if (request.kind === core.buffers.agent.AgentModelRequestKind.CLASSIFY) {
+                        prompt = buildClassifyPrompt(stringValue(request.userPrompt));
+                    } else {
+                        const intent = appIntent(request.intent);
+                        const input = {
+                            context: stringValue(request.context),
+                            userPrompt: stringValue(request.userPrompt),
+                            previousCandidate: stringValue(request.previousCandidate) || null,
+                            errors: request.errors,
+                            editingChart: request.editingChart,
+                        };
+                        prompt = intent === 'visualize' ? buildVisualizePrompt(input) : buildSqlPrompt(input);
+                    }
+                    const kind = request.kind === core.buffers.agent.AgentModelRequestKind.CLASSIFY
+                        ? 'classify'
+                        : request.kind === core.buffers.agent.AgentModelRequestKind.REPAIR ? 'repair' : 'generate';
+                    const noun = request.kind === core.buffers.agent.AgentModelRequestKind.CLASSIFY
+                        ? 'the model to classify the request'
+                        : `the model to ${kind} the ${intentNoun(appIntent(request.intent))}`;
+                    const response = await loggedGenerate(tracedLog, aiClient, kind, prompt, abort.signal, noun);
+                    throwIfAborted(abort.signal);
+                    completion = new core.buffers.agent.AgentEffectCompletionT(
+                        effect.id,
+                        core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
+                        new core.buffers.agent.AgentModelCompletionT(response),
+                    );
+                } else if (effect.type === core.buffers.agent.AgentEffectType.TRANSCODE_VEGALITE && effect.transcodeVegalite != null) {
+                    const raw = stringValue(effect.transcodeVegalite.rawSpecJson);
+                    const hints = diagnoseVegaLiteSpec(raw);
+                    try {
+                        completion = new core.buffers.agent.AgentEffectCompletionT(
+                            effect.id,
+                            core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
+                            null,
+                            null,
+                            new core.buffers.agent.AgentTranscodeVegaLiteResultT(host.transcodeVegaLite(raw), hints),
+                        );
+                    } catch (error) {
+                        const message = error instanceof Error ? error.message : String(error);
+                        completion = new core.buffers.agent.AgentEffectCompletionT(
+                            effect.id,
+                            core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
+                            null,
+                            null,
+                            new core.buffers.agent.AgentTranscodeVegaLiteResultT(raw, [...hints, message]),
+                        );
+                    }
+                } else if (effect.type === core.buffers.agent.AgentEffectType.APPLY_PROPOSAL && effect.applyProposal?.proposal != null) {
+                    const proposal = effect.applyProposal.proposal;
+                    const intent = appIntent(proposal.intent);
+                    const disposition = appDisposition(proposal.disposition);
+                    const proposalTargetName = stringValue(proposal.targetName) || null;
+                    const inPlace = disposition === 'replace';
+                    applyResult = { inPlace, targetName: proposalTargetName };
+                    dispatchAgent({
+                        type: AGENT_PHASE,
+                        value: {
+                            phase: AgentRunPhase.APPLYING,
+                            attempt: operation.snapshot?.attempt ?? 0,
+                            message: inPlace
+                                ? `Applying the ${intentNoun(intent)} to ${proposalTargetName ? `"${proposalTargetName}"` : 'the focused target'}`
+                                : `Adding a new entry with the generated ${intentNoun(intent)}`,
+                            timestamp: now(),
+                        },
+                    });
+                    host.applyProposal(disposition, stringValue(proposal.candidateText));
+                    completion = new core.buffers.agent.AgentEffectCompletionT(
+                        effect.id,
+                        core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
+                        null,
+                        null,
+                        null,
+                        new core.buffers.agent.AgentApplyResultT(true),
+                    );
+                } else {
+                    throw new Error('Unsupported agent effect');
+                }
+            } catch (error) {
+                if (abort.signal.aborted || (error as any)?.name === 'AbortError') {
+                    operation = session.cancel();
+                    processEvents(operation);
+                    return;
+                }
+                completion = completeError(effect.id, error);
+            }
+            operation = session.completeEffect(completion);
         }
-
-        if (!succeeded || candidateText == null) {
+    } catch (error) {
+        if (abort.signal.aborted || (error as any)?.name === 'AbortError') {
+            processEvents(session.cancel());
+        } else {
             dispatchAgent({
                 type: AGENT_FAILED,
-                value: {
-                    // Expected: the loop ran to completion, the model just couldn't converge on a
-                    // valid result. Logged at WARN rather than ERROR (see the dispatch wrapper).
-                    expected: true,
-                    error: errors.length > 0
-                        ? `Gave up after ${maxAttempts} attempts — the generated ${noun} still had errors: ${summarizeErrors(errors)}`
-                        : `Gave up after ${maxAttempts} attempts without producing a valid ${noun}`,
-                    timestamp: now(),
-                },
+                value: { error: error instanceof Error ? error.message : String(error), timestamp: now() },
             });
-            return;
         }
-
-        // --- Apply ----------------------------------------------------------
-        // The host decides how the candidate lands (in-place edit vs. new entry) and returns a
-        // staged plan; the driver logs what it's about to do, then commits.
-        const plan = host.planApply(intent, candidateText);
-        const { inPlace, targetName } = plan;
-        dispatchAgent({
-            type: AGENT_PHASE,
-            value: {
-                phase: AgentRunPhase.APPLYING,
-                attempt: finalAttempt,
-                message: inPlace
-                    ? `Applying the ${noun} to ${targetName ? `"${targetName}"` : 'the focused target'}`
-                    : `Adding a new entry with the generated ${noun}`,
-                timestamp: now(),
-            },
-        });
-
-        plan.commit();
-
-        dispatchAgent({
-            type: AGENT_SUCCEEDED,
-            value: {
-                message: inPlace
-                    ? `Done — updated ${targetName ? `"${targetName}"` : 'the focused target'} with the new ${noun}`
-                    : `Done — created a new entry with the ${noun}`,
-                timestamp: now(),
-            },
-        });
-    } catch (e: any) {
-        if (signal.aborted || e?.name === 'AbortError') {
-            dispatchAgent({ type: AGENT_CANCELLED, value: { timestamp: now() } });
-        } else {
-            dispatchAgent({ type: AGENT_FAILED, value: { error: e?.message ? String(e.message) : String(e), timestamp: now() } });
-        }
+    } finally {
+        session.destroy();
     }
 }

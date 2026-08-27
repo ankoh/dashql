@@ -1,6 +1,5 @@
-import { AgentHost, AgentApplyPlan } from '../agent/agent_host.js';
+import { AgentHost, AgentApplyDisposition } from '../agent/agent_host.js';
 import { AgentIntent } from '../agent/agent_prompts.js';
-import { verifyScript, VerifyResult } from '../agent/agent_verify.js';
 import {
     buildAgentContext,
     AgentContextContributor,
@@ -67,6 +66,10 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
         ? notebookScripts.scripts[contextScriptKey] ?? null
         : null;
     return {
+        createAgentSession() {
+            return notebookScripts.instance.createAgentSession(notebookScripts.connectionCatalog);
+        },
+
         buildContext(intent: AgentIntent): string {
             return buildAgentContext(
                 { notebookScripts, contextScriptData, intent, resolveOutputColumns, logger },
@@ -74,8 +77,13 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
             );
         },
 
-        isEditingChart(): boolean {
-            return focusedIsVisualize(contextScriptData);
+        describeTarget() {
+            return {
+                kind: contextScriptData == null
+                    ? 'none'
+                    : focusedIsVisualize(contextScriptData) ? 'visualization' : 'sql',
+                name: contextScriptData == null ? null : scriptDisplayName(contextScriptData.fileName),
+            };
         },
 
         transcodeVegaLite(rawSpecJson: string): string {
@@ -93,19 +101,17 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
             return notebookScripts.instance.parseVegaLiteToVisualize(JSON.stringify(spec));
         },
 
-        verify(candidateText: string): VerifyResult {
-            return verifyScript(notebookScripts.instance, notebookScripts.connectionCatalog, candidateText);
-        },
-
-        planApply(intent: AgentIntent, candidateText: string): AgentApplyPlan {
-            const action = chooseApplyAction(intent, contextScriptData, candidateText);
-            const inPlace = action.type === SET_SCRIPT_TEXT;
-            const targetName = contextScriptData != null ? scriptDisplayName(contextScriptData.fileName) : null;
-            return {
-                inPlace,
-                targetName,
-                commit: () => modifyNotebookScripts(action),
-            };
+        applyProposal(disposition: AgentApplyDisposition, candidateText: string): void {
+            if (disposition === 'replace' && contextScriptData == null) {
+                throw new Error('Cannot replace a missing focused target');
+            }
+            const action: NotebookScriptsAction = disposition === 'replace'
+                ? {
+                    type: SET_SCRIPT_TEXT,
+                    value: { scriptKey: contextScriptData!.scriptKey, text: candidateText, withDiff: true },
+                }
+                : { type: CREATE_SCRIPT_WITH_TEXT, value: { text: candidateText } };
+            modifyNotebookScripts(action);
         },
 
         registerRun(runId: number): void {
@@ -120,34 +126,6 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
 /// Is the focused script a VISUALIZE statement? Derived from the cached annotation.
 function focusedIsVisualize(contextScriptData: ScriptData | null): boolean {
     return contextScriptData?.annotations.visualizeQuery != null;
-}
-
-/// Choose the notebookScripts action that applies the verified candidate.
-///
-/// | intent    | focused                | action                          |
-/// |-----------|------------------------|---------------------------------|
-/// | sql       | any focused script     | SET_SCRIPT_TEXT in place         |
-/// | sql       | none focused           | CREATE_SCRIPT_WITH_TEXT  |
-/// | visualize | focused is VISUALIZE   | SET_SCRIPT_TEXT in place         |
-/// | visualize | focused is SQL / none  | CREATE_SCRIPT_WITH_TEXT  |
-export function chooseApplyAction(
-    intent: AgentIntent,
-    contextScriptData: ScriptData | null,
-    text: string,
-): NotebookScriptsAction {
-    if (intent === 'sql') {
-        if (contextScriptData != null) {
-            // In-place rewrite of an existing script: stage it as a diff (withDiff) so the editor
-            // shows an accept/reject overlay instead of silently replacing the text.
-            return { type: SET_SCRIPT_TEXT, value: { scriptKey: contextScriptData.scriptKey, text, withDiff: true } };
-        }
-        return { type: CREATE_SCRIPT_WITH_TEXT, value: { text } };
-    }
-    // visualize
-    if (focusedIsVisualize(contextScriptData)) {
-        return { type: SET_SCRIPT_TEXT, value: { scriptKey: contextScriptData!.scriptKey, text, withDiff: true } };
-    }
-    return { type: CREATE_SCRIPT_WITH_TEXT, value: { text } };
 }
 
 /// Determine the VISUALIZE source clause for a visualize run.

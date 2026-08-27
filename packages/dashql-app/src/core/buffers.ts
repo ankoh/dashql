@@ -1,4 +1,5 @@
 export * as algebra from '@ankoh/dashql-flatbuf/dashql/buffers/algebra.js';
+export * as agent from '@ankoh/dashql-flatbuf/dashql/buffers/agent.js';
 export * as analyzer from '@ankoh/dashql-flatbuf/dashql/buffers/analyzer.js';
 export * as catalog from '@ankoh/dashql-flatbuf/dashql/buffers/catalog.js';
 export * as completion from '@ankoh/dashql-flatbuf/dashql/buffers/completion.js';

@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 #include "dashql/analyzer/completion.h"
+#include "dashql/agent/agent_session.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/catalog_object.h"
@@ -75,6 +76,20 @@ static void packEditorUpdate(FFIResult* result, const buffers::editor::EditorUpd
     packBuffer(result, std::make_unique<flatbuffers::DetachedBuffer>(fb.Release()));
 }
 
+static void packAgentOperation(FFIResult* result, const buffers::agent::AgentOperationT& operation) {
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(buffers::agent::AgentOperation::Pack(fb, &operation));
+    packBuffer(result, std::make_unique<flatbuffers::DetachedBuffer>(fb.Release()));
+}
+
+static buffers::agent::AgentOperationT invalidAgentOperation(std::string message) {
+    buffers::agent::AgentOperationT operation;
+    operation.status = buffers::agent::AgentStatus::INVALID_ARGUMENT;
+    operation.status_message = std::move(message);
+    operation.snapshot = std::make_unique<buffers::agent::AgentSnapshotT>();
+    return operation;
+}
+
 static void packInvalidEditorEvent(FFIResult* result, const editor::EditorSession& session) {
     auto update = buffers::editor::EditorUpdateT{};
     update.status = buffers::editor::EditorUpdateStatus::INVALID_EVENT;
@@ -104,6 +119,51 @@ extern "C" void dashql_delete_owner(void* owner_ptr, void (*owner_deleter)(void*
     if (owner_deleter && owner_ptr) {
         owner_deleter(owner_ptr);
     }
+}
+
+extern "C" void dashql_agent_session_new(FFIResult* result, Catalog* catalog) {
+    if (!catalog) throw Exception(buffers::status::StatusCode::CATALOG_NULL);
+    packPtr(result, std::make_unique<agent::AgentSession>(*catalog));
+}
+
+extern "C" void dashql_agent_session_start(FFIResult* result, agent::AgentSession* session,
+                                             const uint8_t* request_ptr, size_t request_length) {
+    if (!session || !request_ptr) {
+        packAgentOperation(result, invalidAgentOperation("agent session or request is null"));
+        return;
+    }
+    flatbuffers::Verifier verifier{request_ptr, request_length};
+    if (!verifier.VerifyBuffer<buffers::agent::AgentStartRequest>(nullptr)) {
+        packAgentOperation(result, invalidAgentOperation("invalid AgentStartRequest FlatBuffer"));
+        return;
+    }
+    std::unique_ptr<buffers::agent::AgentStartRequestT> request{
+        flatbuffers::GetRoot<buffers::agent::AgentStartRequest>(request_ptr)->UnPack()};
+    packAgentOperation(result, session->Start(*request));
+}
+
+extern "C" void dashql_agent_session_complete_effect(FFIResult* result, agent::AgentSession* session,
+                                                       const uint8_t* completion_ptr, size_t completion_length) {
+    if (!session || !completion_ptr) {
+        packAgentOperation(result, invalidAgentOperation("agent session or effect completion is null"));
+        return;
+    }
+    flatbuffers::Verifier verifier{completion_ptr, completion_length};
+    if (!verifier.VerifyBuffer<buffers::agent::AgentEffectCompletion>(nullptr)) {
+        packAgentOperation(result, invalidAgentOperation("invalid AgentEffectCompletion FlatBuffer"));
+        return;
+    }
+    std::unique_ptr<buffers::agent::AgentEffectCompletionT> completion{
+        flatbuffers::GetRoot<buffers::agent::AgentEffectCompletion>(completion_ptr)->UnPack()};
+    packAgentOperation(result, session->CompleteEffect(*completion));
+}
+
+extern "C" void dashql_agent_session_cancel(FFIResult* result, agent::AgentSession* session) {
+    if (!session) {
+        packAgentOperation(result, invalidAgentOperation("agent session is null"));
+        return;
+    }
+    packAgentOperation(result, session->Cancel());
 }
 
 /// Create a script

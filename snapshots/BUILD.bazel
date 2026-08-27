@@ -9,6 +9,7 @@ exports_files(["run_snapshotter.sh"])
 snapshot_library(
     filter = "",
     files_srcs = [
+        "//snapshots/agent:files",
         "//snapshots/analyzer:files",
         "//snapshots/completion:files",
         "//snapshots/diff:files",
