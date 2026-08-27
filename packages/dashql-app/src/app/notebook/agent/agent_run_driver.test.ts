@@ -1,6 +1,6 @@
 import { startAgentRun, AgentAIClient, AgentRunParams } from './agent_run_driver.js';
-import { AgentHost, AgentApplyPlan } from './agent_host.js';
-import { VerifyResult } from './agent_verify.js';
+import { AgentApplyDisposition, AgentHost, AgentTargetKind } from './agent_host.js';
+import * as core from '../../../core/index.js';
 import {
     AGENT_ATTEMPT_RESULT,
     AGENT_CANCELLED,
@@ -13,56 +13,52 @@ import {
     reduceAgentRun,
 } from './agent_run_state.js';
 
-/// A clean verdict: parses + analyzes with a visualization spec (so the visualize branch's
-/// `visualizationSpecs === 0` guard is satisfied too).
-function clean(): VerifyResult {
-    return { ok: true, parserErrors: [], analyzerErrors: [], visualizationSpecs: 1 };
-}
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
-/// A failing verdict carrying the given parser errors.
-function failing(...errors: string[]): VerifyResult {
-    return { ok: false, parserErrors: errors, analyzerErrors: [], visualizationSpecs: 0 };
-}
+let dql: core.DashQL | null = null;
+let catalog: core.DashQLCatalog | null = null;
 
-/// A fully in-memory AgentHost. Every domain-specific step is a configurable closure so a test
-/// can script convergence, exhaustion, throws, or a transcode failure without a notebook or WASM.
+beforeAll(async () => {
+    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+});
+beforeEach(() => {
+    catalog = dql!.createCatalog();
+});
+afterEach(() => {
+    dql!.resetUnsafe();
+    catalog = null;
+});
+
+/// An AgentHost backed by the real C++ session with configurable TypeScript effects.
 class FakeHost implements AgentHost {
     /// Whether visualize runs should reframe as an edit.
-    editingChart = false;
+    createAgentSession(): core.DashQLAgentSession {
+        return dql!.createAgentSession(catalog!);
+    }
     /// The context block returned to the driver (asserted to reach the generation prompt).
     contextText = 'FAKE-CONTEXT';
-    /// Per-call verify verdict; defaults to clean.
-    verifyImpl: (candidate: string) => VerifyResult = () => clean();
     /// Vega-Lite transcode; defaults to wrapping the raw spec. May throw to trigger repair.
-    transcodeImpl: (raw: string) => string = (raw) => `SELECT * FROM source VISUALIZE USING vegalite (${raw})`;
-    /// Apply-plan shape.
-    planInPlace = true;
-    planTargetName: string | null = 'the-target';
+    transcodeImpl: (raw: string) => string = () => 'select 1 visualize using vegalite (mark => bar)';
+    targetKind: AgentTargetKind = 'sql';
+    targetName: string | null = 'the-target';
 
     /// Recorded calls, for assertions.
     registerRunCalls: number[] = [];
-    committed: Array<{ intent: AgentIntent; candidate: string }> = [];
+    committed: Array<{ disposition: AgentApplyDisposition; candidate: string }> = [];
     contextIntents: AgentIntent[] = [];
 
     buildContext(intent: AgentIntent): string {
         this.contextIntents.push(intent);
         return this.contextText;
     }
-    isEditingChart(): boolean {
-        return this.editingChart;
+    describeTarget() {
+        return { kind: this.targetKind, name: this.targetName };
     }
     transcodeVegaLite(rawSpecJson: string): string {
         return this.transcodeImpl(rawSpecJson);
     }
-    verify(candidateText: string): VerifyResult {
-        return this.verifyImpl(candidateText);
-    }
-    planApply(intent: AgentIntent, candidateText: string): AgentApplyPlan {
-        return {
-            inPlace: this.planInPlace,
-            targetName: this.planTargetName,
-            commit: () => { this.committed.push({ intent, candidate: candidateText }); },
-        };
+    applyProposal(disposition: AgentApplyDisposition, candidateText: string): void {
+        this.committed.push({ disposition, candidate: candidateText });
     }
     registerRun(runId: number): void {
         this.registerRunCalls.push(runId);
@@ -155,7 +151,7 @@ describe('startAgentRun (fake host)', () => {
 
         expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
         expect(agent!.attempt).toBe(1);
-        expect(host.committed).toEqual([{ intent: 'sql', candidate: 'select 1' }]);
+        expect(host.committed).toEqual([{ disposition: 'replace', candidate: 'select 1' }]);
         // The host's context block reaches the generation prompt.
         expect(lastGenerationPrompt(ai)).toContain('FAKE-CONTEXT');
         expect(host.contextIntents).toEqual(['sql']);
@@ -172,9 +168,7 @@ describe('startAgentRun (fake host)', () => {
 
     it('repairs a failing first attempt and converges on the second', async () => {
         const host = new FakeHost();
-        let call = 0;
-        host.verifyImpl = () => (++call === 1 ? failing('syntax boom') : clean());
-        const ai = new MockAIClient('sql', ['select bad', 'select good']);
+        const ai = new MockAIClient('sql', ['select (', 'select 1']);
         const { agent, actions } = await drive(host, ai, { intentOverride: 'sql' });
 
         expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
@@ -182,15 +176,14 @@ describe('startAgentRun (fake host)', () => {
         // The repair prompt carries the previous answer and the errors to fix.
         const repair = lastGenerationPrompt(ai);
         expect(repair).toContain('did not pass verification');
-        expect(repair).toContain('select bad');
-        expect(repair).toContain('syntax boom');
+        expect(repair).toContain('select (');
+        expect(repair).toContain('syntax error');
         // Only the converged candidate is committed.
-        expect(host.committed).toEqual([{ intent: 'sql', candidate: 'select good' }]);
+        expect(host.committed).toEqual([{ disposition: 'replace', candidate: 'select 1' }]);
     });
 
     it('fails as expected after exhausting all attempts', async () => {
         const host = new FakeHost();
-        host.verifyImpl = () => failing('still broken');
         const ai = new MockAIClient('sql', ['a', 'b', 'c']);
         const { agent, actions } = await drive(host, ai, { intentOverride: 'sql' });
 
@@ -217,7 +210,8 @@ describe('startAgentRun (fake host)', () => {
 
     it('surfaces an unexpected host failure as an unexpected AGENT_FAILED', async () => {
         const host = new FakeHost();
-        host.verifyImpl = () => { throw new Error('catalog exploded'); };
+        host.contextText = '';
+        host.describeTarget = () => { throw new Error('catalog exploded'); };
         const ai = new MockAIClient('sql', ['select 1']);
         const { agent, actions } = await drive(host, ai, { intentOverride: 'sql' });
 
@@ -238,7 +232,7 @@ describe('startAgentRun (fake host)', () => {
         expect(agent!.attempt).toBe(2);
         const first = attemptResults(actions).find(r => r.attempt === 1)!;
         expect(first.errors).toEqual(['The model returned an empty result.']);
-        expect(host.committed).toEqual([{ intent: 'sql', candidate: 'select good' }]);
+        expect(host.committed).toEqual([{ disposition: 'replace', candidate: 'select good' }]);
     });
 
     it('treats a transcode failure as a verifiable error and repairs', async () => {
@@ -246,7 +240,7 @@ describe('startAgentRun (fake host)', () => {
         let t = 0;
         host.transcodeImpl = (raw) => {
             if (++t === 1) throw new Error('bad spec');
-            return 'SELECT * FROM x VISUALIZE USING vegalite (mark => bar)';
+            return 'select 1 visualize using vegalite (mark => bar)';
         };
         const ai = new MockAIClient('visualize', ['{"mark":"bar"}', '{"mark":"line"}']);
         const { agent, actions } = await drive(host, ai, { intentOverride: 'visualize' });
@@ -260,16 +254,11 @@ describe('startAgentRun (fake host)', () => {
         // The repair prompt carries the transcode error.
         expect(lastGenerationPrompt(ai)).toContain('bad spec');
         // The committed candidate is the transcoded DSL, not the raw spec.
-        expect(host.committed).toEqual([{ intent: 'visualize', candidate: 'SELECT * FROM x VISUALIZE USING vegalite (mark => bar)' }]);
+        expect(host.committed).toEqual([{ disposition: 'create', candidate: 'select 1 visualize using vegalite (mark => bar)' }]);
     });
 
-    it('enriches an opaque parser error with a spec-level hint for an unsupported mark', async () => {
-        // The pie-chart bug: transcode SUCCEEDS (emitting `mark => pie`), then verification fails
-        // with the grammar's opaque "unexpected identifier literal". Without the diagnosis the model
-        // would repeat `pie` every attempt; the hint tells it to switch to arc + theta + color.
+    it('feeds a spec-level hint for an unsupported mark into repair', async () => {
         const host = new FakeHost();
-        let v = 0;
-        host.verifyImpl = () => (++v === 1 ? failing('syntax error, unexpected identifier literal') : clean());
         const ai = new MockAIClient('visualize', [
             '{"mark":"pie","encoding":{"x":{"field":"x"},"y":{"field":"y"}}}',
             '{"mark":"arc","encoding":{"theta":{"field":"y"},"color":{"field":"x"}}}',
@@ -278,10 +267,9 @@ describe('startAgentRun (fake host)', () => {
 
         expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
         expect(agent!.attempt).toBe(2);
-        // The failed attempt records BOTH the raw parser error and the actionable hint, hint first.
+        // The failed attempt records the actionable hint returned with the transcode effect.
         const first = attemptResults(actions).find(r => r.attempt === 1)!;
         expect(first.errors[0]).toContain('no "pie" mark');
-        expect(first.errors).toContain('syntax error, unexpected identifier literal');
         // The repair prompt carries the hint so the model can actually correct the mark.
         const repair = lastGenerationPrompt(ai);
         expect(repair).toContain('no "pie" mark');
@@ -290,7 +278,7 @@ describe('startAgentRun (fake host)', () => {
 
     it('reframes the visualize prompt as an edit when the host is editing a chart', async () => {
         const host = new FakeHost();
-        host.editingChart = true;
+        host.targetKind = 'visualization';
         const ai = new MockAIClient('visualize', ['{"mark":"line"}']);
         await drive(host, ai, { intentOverride: 'visualize' });
         expect(lastGenerationPrompt(ai)).toContain('You are EDITING the existing chart');

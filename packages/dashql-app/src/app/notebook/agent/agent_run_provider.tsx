@@ -31,7 +31,9 @@ export interface StartAgentRunArgs {
 }
 
 export type StartAgentRun = (args: StartAgentRunArgs) => void;
-export type CancelAgentRun = (notebookId: string) => void;
+/// Abort the active run and resolve after its core session has unwound. Callers that destroy the
+/// notebook catalog must await this so the C++ AgentSession cannot retain a dangling catalog ref.
+export type CancelAgentRun = (notebookId: string) => Promise<void>;
 
 interface AgentRunContextValue {
     /// All runs keyed by their global run id (active + finished), mirroring the query registry.
@@ -62,7 +64,7 @@ export function useLatestAgentRunState(notebookId: string | null): AgentRunState
 }
 
 const NOOP_RUN: StartAgentRun = () => {};
-const NOOP_CANCEL: CancelAgentRun = () => {};
+const NOOP_CANCEL: CancelAgentRun = async () => {};
 
 /// Get the agent-run launcher. Returns a no-op when rendered without a provider (e.g. in
 /// isolated component tests) so consumers don't need to know about the provider.
@@ -127,6 +129,8 @@ export const AgentRunProvider: React.FC<Props> = (props: Props) => {
 
     // A monotonically increasing run id across the provider.
     const runIdRef = React.useRef(0);
+    const runPromisesRef = React.useRef(new Map<string, Promise<void>>());
+    const queuedAbortRef = React.useRef(new Map<string, AbortController>());
 
     // Resolve the notebook's latest run state from the ref (for abort-previous / cancel).
     const latestRunForNotebook = React.useCallback((notebookId: string): AgentRunState | null => {
@@ -134,11 +138,13 @@ export const AgentRunProvider: React.FC<Props> = (props: Props) => {
         return runId != null ? registryRef.current.runs.get(runId) ?? null : null;
     }, []);
 
-    const cancel = React.useCallback<CancelAgentRun>((notebookId) => {
+    const cancel = React.useCallback<CancelAgentRun>(async (notebookId) => {
         const cur = latestRunForNotebook(notebookId);
         if (cur != null && agentRunIsActive(cur.phase)) {
             cur.abort.abort();
         }
+        queuedAbortRef.current.get(notebookId)?.abort();
+        await runPromisesRef.current.get(notebookId);
     }, [latestRunForNotebook]);
 
     const run = React.useCallback<StartAgentRun>((args) => {
@@ -153,21 +159,38 @@ export const AgentRunProvider: React.FC<Props> = (props: Props) => {
         }
 
         const runId = ++runIdRef.current;
-        void startAgentRun(
-            {
-                runId,
-                prompt: args.prompt,
-                contextScriptKey: args.contextScriptKey,
-                intentOverride: args.intentOverride,
-            },
-            {
-                aiClient,
-                host: args.host,
-                dispatchAgent: (action: AgentRunAction) => dispatchRegistry({ notebookId: args.notebookId, runId, action }),
-                logger,
-                now: () => Date.now(),
-            },
-        );
+        const previousTask = runPromisesRef.current.get(args.notebookId);
+        const queuedAbort = new AbortController();
+        queuedAbortRef.current.set(args.notebookId, queuedAbort);
+        let task: Promise<void>;
+        task = (async () => {
+            await previousTask;
+            if (queuedAbort.signal.aborted) return;
+            queuedAbortRef.current.delete(args.notebookId);
+            return startAgentRun(
+                {
+                    runId,
+                    prompt: args.prompt,
+                    contextScriptKey: args.contextScriptKey,
+                    intentOverride: args.intentOverride,
+                },
+                {
+                    aiClient,
+                    host: args.host,
+                    dispatchAgent: (action: AgentRunAction) => dispatchRegistry({ notebookId: args.notebookId, runId, action }),
+                    logger,
+                    now: () => Date.now(),
+                },
+            );
+        })().finally(() => {
+            if (runPromisesRef.current.get(args.notebookId) === task) {
+                runPromisesRef.current.delete(args.notebookId);
+            }
+            if (queuedAbortRef.current.get(args.notebookId) === queuedAbort) {
+                queuedAbortRef.current.delete(args.notebookId);
+            }
+        });
+        runPromisesRef.current.set(args.notebookId, task);
     }, [aiClient, logger, latestRunForNotebook]);
 
     const value = React.useMemo<AgentRunContextValue>(

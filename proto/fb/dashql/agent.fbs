@@ -1,0 +1,186 @@
+namespace dashql.buffers.agent;
+
+enum AgentStatus: uint8 {
+    OK,
+    PENDING,
+    INVALID_ARGUMENT,
+    STALE_EFFECT,
+    BUSY,
+    INTERNAL_ERROR,
+}
+
+enum AgentIntent: uint8 {
+    UNKNOWN,
+    SQL,
+    VISUALIZE,
+}
+
+enum AgentTargetKind: uint8 {
+    NONE,
+    SQL,
+    VISUALIZATION,
+}
+
+enum AgentApplyDisposition: uint8 {
+    CREATE,
+    REPLACE,
+}
+
+enum AgentPhase: uint8 {
+    IDLE,
+    CLASSIFYING,
+    GENERATING,
+    VERIFYING,
+    REPAIRING,
+    APPLYING,
+    SUCCEEDED,
+    FAILED,
+    CANCELLED,
+}
+
+enum AgentEffectType: uint8 {
+    NONE,
+    MODEL_REQUEST,
+    RESOLVE_CONTEXT,
+    TRANSCODE_VEGALITE,
+    APPLY_PROPOSAL,
+}
+
+enum AgentEffectCompletionStatus: uint8 {
+    SUCCESS,
+    ERROR,
+    CANCELLED,
+}
+
+enum AgentModelRequestKind: uint8 {
+    CLASSIFY,
+    GENERATE,
+    REPAIR,
+}
+
+enum AgentEventType: uint8 {
+    INTENT_SELECTED,
+    PHASE_CHANGED,
+    ATTEMPT_FINISHED,
+    SUCCEEDED,
+    FAILED,
+    CANCELLED,
+}
+
+table AgentStartRequest {
+    user_prompt: string;
+    intent_override: AgentIntent = UNKNOWN;
+    max_attempts: uint32 = 3;
+    read_only: bool = true;
+}
+
+table AgentVerifyResult {
+    parser_errors: [string];
+    analyzer_errors: [string];
+    visualization_specs: uint32;
+}
+
+table AgentProposal {
+    intent: AgentIntent;
+    candidate_text: string;
+    verify_result: AgentVerifyResult;
+    disposition: AgentApplyDisposition;
+    target_name: string;
+}
+
+table AgentModelRequestEffect {
+    kind: AgentModelRequestKind;
+    intent: AgentIntent = UNKNOWN;
+    user_prompt: string;
+    context: string;
+    previous_candidate: string;
+    errors: [string];
+    editing_chart: bool;
+}
+
+table AgentResolveContextEffect {
+    intent: AgentIntent;
+}
+
+table AgentTranscodeVegaLiteEffect {
+    raw_spec_json: string;
+}
+
+table AgentApplyProposalEffect {
+    proposal: AgentProposal;
+}
+
+table AgentEffect {
+    id: uint64;
+    type: AgentEffectType;
+    model_request: AgentModelRequestEffect;
+    resolve_context: AgentResolveContextEffect;
+    transcode_vegalite: AgentTranscodeVegaLiteEffect;
+    apply_proposal: AgentApplyProposalEffect;
+}
+
+table AgentModelCompletion {
+    text: string;
+}
+
+table AgentContextResult {
+    context: string;
+    target_kind: AgentTargetKind;
+    target_name: string;
+}
+
+table AgentTranscodeVegaLiteResult {
+    candidate_text: string;
+    errors: [string];
+}
+
+table AgentApplyResult {
+    applied: bool;
+}
+
+table AgentEffectCompletion {
+    effect_id: uint64;
+    status: AgentEffectCompletionStatus;
+    model: AgentModelCompletion;
+    context: AgentContextResult;
+    transcode_vegalite: AgentTranscodeVegaLiteResult;
+    apply: AgentApplyResult;
+    error: string;
+}
+
+table AgentAttemptResult {
+    attempt: uint32;
+    candidate_text: string;
+    vegalite_spec: string;
+    errors: [string];
+    verify_result: AgentVerifyResult;
+}
+
+table AgentEvent {
+    type: AgentEventType;
+    phase: AgentPhase = IDLE;
+    intent: AgentIntent = UNKNOWN;
+    intent_overridden: bool;
+    attempt: uint32;
+    attempt_result: AgentAttemptResult;
+    expected_failure: bool;
+    message: string;
+}
+
+table AgentSnapshot {
+    phase: AgentPhase = IDLE;
+    intent: AgentIntent = UNKNOWN;
+    attempt: uint32;
+    max_attempts: uint32;
+    candidate_text: string;
+    vegalite_spec: string;
+    errors: [string];
+}
+
+table AgentOperation {
+    status: AgentStatus = OK;
+    status_message: string;
+    snapshot: AgentSnapshot;
+    events: [AgentEvent];
+    effect: AgentEffect;
+}

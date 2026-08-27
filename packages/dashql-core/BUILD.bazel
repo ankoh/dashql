@@ -7,6 +7,7 @@ load("//bazel:dashql_wasm.bzl", "CORE_WASM_EXPORTS", "SHELL_WASM_EXPORTS", "dash
 # ---------------------------------------------------------------------------
 
 LIB_SRCS = [
+    "src/agent/agent_session.cc",
     "src/analyzer/analysis_state.cc",
     "src/analyzer/analyze_visualization_pass.cc",
     "src/analyzer/analyzer.cc",
@@ -286,6 +287,7 @@ cc_library(
 # ---------------------------------------------------------------------------
 
 test_utils_SRCS = [
+    "src/testing/agent_snapshot_test.cc",
     "src/testing/analyzer_snapshot_test.cc",
     "src/testing/completion_snapshot_test.cc",
     "src/testing/diff_snapshot_test.cc",
@@ -368,6 +370,7 @@ cc_test(
     srcs = [
         "test/analyzer_declaration_test.cc",
         "test/analyzer_insert_test.cc",
+        "test/agent_session_test.cc",
         "test/api_test.cc",
         "test/chunk_buffer_test.cc",
         "test/cursor_test.cc",
@@ -394,6 +397,16 @@ cc_test(
 # Snapshot Tests
 # ---------------------------------------------------------------------------
 
+cc_test(
+    name = "agent_tests",
+    size = "small",
+    srcs = ["test/agent_snapshot_test_suite.cc"],
+    data = ["//snapshots/agent:files"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
+)
 cc_test(
     name = "parser_tests",
     size = "small",

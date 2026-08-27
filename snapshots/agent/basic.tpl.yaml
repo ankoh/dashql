@@ -1,0 +1,80 @@
+agent-snapshots:
+  - name: classify_sql_success
+    input:
+      prompt: Return the number one.
+      max-attempts: 3
+    events:
+      - type: model_response
+        value: sql
+      - type: resolved_context
+        value: ''
+      - type: model_response
+        value: select 1
+      - type: applied_result
+
+  - name: repair_empty_response
+    input:
+      prompt: Return the number one.
+      intent: sql
+      max-attempts: 3
+    events:
+      - type: resolved_context
+        value: ''
+        target-kind: sql
+        target-name: query.sql
+      - type: model_response
+        value: ''
+      - type: model_response
+        value: select 1
+      - type: applied_result
+
+  - name: visualize_replaces_focused_visualization
+    input:
+      prompt: Change the chart to bars.
+      intent: visualize
+    events:
+      - type: resolved_context
+        value: current chart
+        target-kind: visualization
+        target-name: chart.sql
+      - type: model_response
+        value: '{"mark":"bar"}'
+      - type: transcoded_vegalite
+        value: select 1 visualize using vegalite (mark => bar)
+      - type: applied_result
+
+  - name: visualize_creates_beside_focused_sql
+    input:
+      prompt: Chart this query.
+      intent: visualize
+    events:
+      - type: resolved_context
+        value: source query
+        target-kind: sql
+        target-name: query.sql
+      - type: model_response
+        value: '{"mark":"bar"}'
+      - type: transcoded_vegalite
+        value: select 1 visualize using vegalite (mark => bar)
+      - type: applied_result
+
+  - name: exhaust_invalid_sql
+    input:
+      prompt: Write a query.
+      intent: sql
+      max-attempts: 2
+    events:
+      - type: resolved_context
+        value: ''
+      - type: model_response
+        value: select (
+      - type: model_response
+        value: select (
+
+  - name: cancel_pending_generation
+    input:
+      prompt: Write a query.
+      intent: sql
+      max-attempts: 3
+    events:
+      - type: cancel

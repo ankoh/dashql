@@ -57,6 +57,7 @@ import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { InvalidNotebook, describeNotebookValidationError } from '../notebook/persistence/notebook_validation.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
 import { DELETE_COMPUTATION } from '../../compute/computation_state.js';
+import { useCancelAgentRun } from '../notebook/agent/agent_run_provider.js';
 
 interface Props {
     connectionRegistry: ConnectionRegistry;
@@ -105,6 +106,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const [, setNotebookScriptsRegistry] = useNotebookScriptsRegistry();
     const [_computationState, computationDispatch] = useComputationRegistry();
     const deleteNotebookScripts = useNotebookScriptsDeletion();
+    const cancelAgentRun = useCancelAgentRun();
     const storageWriter = useStorageWriter();
     const storageReader = useStorageReader();
     const logger = useLogger();
@@ -378,6 +380,10 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
             return;
         }
 
+        // Stop the run before the first asynchronous deletion step so it cannot apply and persist a
+        // late model response while the notebook files are being removed.
+        await cancelAgentRun(item.notebookId);
+
         // Delete from storage
         try {
             await storageWriter.backend.deleteNotebook(item.notebookId);
@@ -396,7 +402,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
             computationDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
         }
         connectionDispatch(item.connection!.connectionId, { type: DELETE_CONNECTION, value: null });
-    }, [storageWriter, connectionDispatch, computationDispatch, deleteNotebookScripts, props.onDeleteInvalidNotebook]);
+    }, [storageWriter, connectionDispatch, computationDispatch, deleteNotebookScripts, cancelAgentRun, props.onDeleteInvalidNotebook]);
 
     const handleCloneNotebook = React.useCallback(async (item: NotebookItemData) => {
         if (item.invalidReason != null || !props.core) {

@@ -18,6 +18,7 @@
 #include "dashql/script.h"
 #include "dashql/script_diff.h"
 #include "dashql/testing/analyzer_snapshot_test.h"
+#include "dashql/testing/agent_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
 #include "dashql/testing/diff_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
@@ -34,7 +35,45 @@ using namespace dashql::testing;
 DEFINE_string(source_dir, "", "Source directory");
 DEFINE_string(
     filter, "",
-    "Snapshot category to update (parser, analyzer, completion, formatter, plan_view_model, visualize, diff). Empty = all.");
+    "Snapshot category to update (agent, parser, analyzer, completion, formatter, plan_view_model, visualize, diff). Empty = all.");
+
+static void generate_agent_snapshots(const std::filesystem::path& snapshot_dir) {
+    for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
+        auto path = p.path();
+        if (path.extension() != ".yaml" || path.stem().extension() != ".tpl") continue;
+        auto out = path;
+        out.replace_extension();
+        out.replace_extension(".yaml");
+
+        std::ifstream in(path, std::ios::in | std::ios::binary);
+        if (!in) throw std::runtime_error{"failed to read " + path.string()};
+        std::stringstream buffer;
+        buffer << in.rdbuf();
+        std::string content = buffer.str();
+        c4::yml::Tree tree;
+        c4::yml::parse_in_arena(c4::to_csubstr(content), &tree);
+        auto root = tree.rootref();
+        if (!root.has_child("agent-snapshots")) {
+            throw std::runtime_error{"missing agent-snapshots in " + path.string()};
+        }
+        for (auto node : root["agent-snapshots"].children()) {
+            auto test = AgentSnapshotTest::Parse(node);
+            if (test.name.empty() || test.prompt.empty()) {
+                throw std::runtime_error{"invalid agent snapshot in " + path.string()};
+            }
+            if (node.has_child("expected")) node.remove_child("expected");
+            auto expected = node.append_child();
+            expected << c4::yml::key("expected");
+            expected |= c4::yml::MAP;
+            AgentSnapshotTest::EncodeExpected(expected, test);
+        }
+        c4::yml::NodeRef to_emit = tree.ref(tree.first_child(tree.root_id()));
+        std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        InjectBlankLinesInSnapshot(emitted);
+        std::ofstream output(out, std::ofstream::out | std::ofstream::trunc);
+        output << emitted;
+    }
+}
 
 static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
@@ -847,6 +886,7 @@ int main(int argc, char* argv[]) {
     }
     auto source_dir = std::filesystem::path{FLAGS_source_dir};
     const auto& f = FLAGS_filter;
+    if (f.empty() || f == "agent") generate_agent_snapshots(source_dir / "snapshots" / "agent");
     if (f.empty() || f == "parser") generate_parser_snapshots(source_dir / "snapshots" / "parser");
     if (f.empty() || f == "analyzer") generate_analyzer_snapshots(source_dir / "snapshots" / "analyzer");
     if (f.empty() || f == "completion") generate_completion_snapshots(source_dir / "snapshots" / "completion");

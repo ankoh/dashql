@@ -1,0 +1,321 @@
+agent-snapshots:
+
+  - name: classify_sql_success
+    input:
+      prompt: Return the number one.
+      max-attempts: 3
+    events:
+      - type: model_response
+        value: sql
+      - type: resolved_context
+        value: ''
+      - type: model_response
+        value: select 1
+      - type: applied_result
+    expected:
+      operations:
+        - status: PENDING
+          phase: CLASSIFYING
+          attempt: 0
+          effect:
+            type: MODEL_REQUEST
+            kind: CLASSIFY
+            prompt: |-
+              Return the number one.
+        - status: PENDING
+          phase: CLASSIFYING
+          attempt: 0
+          intent: SQL
+          effect:
+            type: RESOLVE_CONTEXT
+        - status: PENDING
+          phase: GENERATING
+          attempt: 1
+          intent: SQL
+          effect:
+            type: MODEL_REQUEST
+            kind: GENERATE
+            prompt: |-
+              Return the number one.
+        - status: PENDING
+          phase: APPLYING
+          attempt: 1
+          intent: SQL
+          effect:
+            type: APPLY_PROPOSAL
+            disposition: CREATE
+            candidate: |-
+              select 1
+          attempt-result:
+            candidate: |-
+              select 1
+            errors: []
+        - status: OK
+          phase: SUCCEEDED
+          attempt: 1
+          intent: SQL
+
+  - name: repair_empty_response
+    input:
+      prompt: Return the number one.
+      intent: sql
+      max-attempts: 3
+    events:
+      - type: resolved_context
+        value: ''
+        target-kind: sql
+        target-name: query.sql
+      - type: model_response
+        value: ''
+      - type: model_response
+        value: select 1
+      - type: applied_result
+    expected:
+      operations:
+        - status: PENDING
+          phase: IDLE
+          attempt: 0
+          intent: SQL
+          effect:
+            type: RESOLVE_CONTEXT
+        - status: PENDING
+          phase: GENERATING
+          attempt: 1
+          intent: SQL
+          effect:
+            type: MODEL_REQUEST
+            kind: GENERATE
+            prompt: |-
+              Return the number one.
+        - status: PENDING
+          phase: REPAIRING
+          attempt: 2
+          intent: SQL
+          effect:
+            type: MODEL_REQUEST
+            kind: REPAIR
+            prompt: |-
+              Return the number one.
+            errors:
+              - The model returned an empty result.
+          attempt-result:
+            candidate: |-
+            errors:
+              - The model returned an empty result.
+        - status: PENDING
+          phase: APPLYING
+          attempt: 2
+          intent: SQL
+          effect:
+            type: APPLY_PROPOSAL
+            disposition: REPLACE
+            target-name: query.sql
+            candidate: |-
+              select 1
+          attempt-result:
+            candidate: |-
+              select 1
+            errors: []
+        - status: OK
+          phase: SUCCEEDED
+          attempt: 2
+          intent: SQL
+
+  - name: visualize_replaces_focused_visualization
+    input:
+      prompt: Change the chart to bars.
+      intent: visualize
+    events:
+      - type: resolved_context
+        value: current chart
+        target-kind: visualization
+        target-name: chart.sql
+      - type: model_response
+        value: '{"mark":"bar"}'
+      - type: transcoded_vegalite
+        value: select 1 visualize using vegalite (mark => bar)
+      - type: applied_result
+    expected:
+      operations:
+        - status: PENDING
+          phase: IDLE
+          attempt: 0
+          intent: VISUALIZE
+          effect:
+            type: RESOLVE_CONTEXT
+        - status: PENDING
+          phase: GENERATING
+          attempt: 1
+          intent: VISUALIZE
+          effect:
+            type: MODEL_REQUEST
+            kind: GENERATE
+            prompt: |-
+              Change the chart to bars.
+            context: |-
+              current chart
+            editing-chart: 1
+        - status: PENDING
+          phase: GENERATING
+          attempt: 1
+          intent: VISUALIZE
+          effect:
+            type: TRANSCODE_VEGALITE
+            raw-spec: |-
+              {"mark":"bar"}
+        - status: PENDING
+          phase: APPLYING
+          attempt: 1
+          intent: VISUALIZE
+          effect:
+            type: APPLY_PROPOSAL
+            disposition: REPLACE
+            target-name: chart.sql
+            candidate: |-
+              select 1 visualize using vegalite (mark => bar)
+          attempt-result:
+            candidate: |-
+              select 1 visualize using vegalite (mark => bar)
+            errors: []
+        - status: OK
+          phase: SUCCEEDED
+          attempt: 1
+          intent: VISUALIZE
+
+  - name: visualize_creates_beside_focused_sql
+    input:
+      prompt: Chart this query.
+      intent: visualize
+    events:
+      - type: resolved_context
+        value: source query
+        target-kind: sql
+        target-name: query.sql
+      - type: model_response
+        value: '{"mark":"bar"}'
+      - type: transcoded_vegalite
+        value: select 1 visualize using vegalite (mark => bar)
+      - type: applied_result
+    expected:
+      operations:
+        - status: PENDING
+          phase: IDLE
+          attempt: 0
+          intent: VISUALIZE
+          effect:
+            type: RESOLVE_CONTEXT
+        - status: PENDING
+          phase: GENERATING
+          attempt: 1
+          intent: VISUALIZE
+          effect:
+            type: MODEL_REQUEST
+            kind: GENERATE
+            prompt: |-
+              Chart this query.
+            context: |-
+              source query
+        - status: PENDING
+          phase: GENERATING
+          attempt: 1
+          intent: VISUALIZE
+          effect:
+            type: TRANSCODE_VEGALITE
+            raw-spec: |-
+              {"mark":"bar"}
+        - status: PENDING
+          phase: APPLYING
+          attempt: 1
+          intent: VISUALIZE
+          effect:
+            type: APPLY_PROPOSAL
+            disposition: CREATE
+            candidate: |-
+              select 1 visualize using vegalite (mark => bar)
+          attempt-result:
+            candidate: |-
+              select 1 visualize using vegalite (mark => bar)
+            errors: []
+        - status: OK
+          phase: SUCCEEDED
+          attempt: 1
+          intent: VISUALIZE
+
+  - name: exhaust_invalid_sql
+    input:
+      prompt: Write a query.
+      intent: sql
+      max-attempts: 2
+    events:
+      - type: resolved_context
+        value: ''
+      - type: model_response
+        value: select (
+      - type: model_response
+        value: select (
+    expected:
+      operations:
+        - status: PENDING
+          phase: IDLE
+          attempt: 0
+          intent: SQL
+          effect:
+            type: RESOLVE_CONTEXT
+        - status: PENDING
+          phase: GENERATING
+          attempt: 1
+          intent: SQL
+          effect:
+            type: MODEL_REQUEST
+            kind: GENERATE
+            prompt: |-
+              Write a query.
+        - status: PENDING
+          phase: REPAIRING
+          attempt: 2
+          intent: SQL
+          effect:
+            type: MODEL_REQUEST
+            kind: REPAIR
+            prompt: |-
+              Write a query.
+            previous-candidate: |-
+              select (
+            errors:
+              - 'syntax error, unexpected EOF'
+          attempt-result:
+            candidate: |-
+              select (
+            errors:
+              - 'syntax error, unexpected EOF'
+        - status: OK
+          phase: FAILED
+          attempt: 2
+          intent: SQL
+          attempt-result:
+            candidate: |-
+              select (
+            errors:
+              - 'syntax error, unexpected EOF'
+          expected-failure: 1
+          error: 'Gave up after 2 attempts: syntax error, unexpected EOF'
+
+  - name: cancel_pending_generation
+    input:
+      prompt: Write a query.
+      intent: sql
+      max-attempts: 3
+    events:
+      - type: cancel
+    expected:
+      operations:
+        - status: PENDING
+          phase: IDLE
+          attempt: 0
+          intent: SQL
+          effect:
+            type: RESOLVE_CONTEXT
+        - status: OK
+          phase: CANCELLED
+          attempt: 0
+          intent: SQL
