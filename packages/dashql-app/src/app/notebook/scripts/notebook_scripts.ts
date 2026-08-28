@@ -662,11 +662,25 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             // If the script key does not refer to a value we know, we cannot keep the new script alive.
             // Drop the update.
             if (!prevScript) {
+                logger.warn("Dropping editor update for unknown script", {
+                    notebookId: state.notebookId,
+                    scriptKey: update.scriptKey.toString(),
+                    uncommittedScriptId: state.uncommittedScriptId.toString(),
+                    documentRevision: update.editorUpdate?.documentRevision.toString(),
+                    stateRevision: update.editorUpdate?.stateRevision.toString(),
+                }, LOG_CTX, true);
                 update.scriptBuffers?.destroy(update.scriptBuffers);
                 update.scriptCompletion?.buffer.destroy();
                 return clearSemanticUserFocus(state);
             }
             if (updateSession !== prevScript.editorSession) {
+                logger.warn("Dropping editor update from stale editor session", {
+                    notebookId: state.notebookId,
+                    scriptKey: update.scriptKey.toString(),
+                    uncommittedScriptId: state.uncommittedScriptId.toString(),
+                    documentRevision: update.editorUpdate?.documentRevision.toString(),
+                    stateRevision: update.editorUpdate?.stateRevision.toString(),
+                }, LOG_CTX, true);
                 update.scriptBuffers?.destroy(update.scriptBuffers);
                 update.scriptCompletion?.buffer.destroy();
                 return clearSemanticUserFocus(state);
@@ -675,6 +689,19 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const documentChanged = prevScript.editorUpdate?.documentRevision !== update.editorUpdate?.documentRevision;
             const analysisRefreshed = update.editorUpdate?.analysisUpdated === true;
             const projectionChanged = prevScript.editorUpdate?.stateRevision !== update.editorUpdate?.stateRevision;
+            logger.debug("Applying editor processor update", {
+                notebookId: state.notebookId,
+                scriptKey: update.scriptKey.toString(),
+                uncommittedScriptId: state.uncommittedScriptId.toString(),
+                documentChanged: documentChanged.toString(),
+                analysisRefreshed: analysisRefreshed.toString(),
+                projectionChanged: projectionChanged.toString(),
+                previousDocumentRevision: prevScript.editorUpdate?.documentRevision.toString(),
+                documentRevision: update.editorUpdate?.documentRevision.toString(),
+                previousStateRevision: prevScript.editorUpdate?.stateRevision.toString(),
+                stateRevision: update.editorUpdate?.stateRevision.toString(),
+                cursorOffset: update.editorUpdate?.primaryCursorState?.textOffset?.toString(),
+            }, LOG_CTX, true);
             let focusUpdate: FocusUpdate | null = null;
             if (projectionChanged) {
                 focusUpdate = FocusUpdate.Clear;
@@ -1744,6 +1771,17 @@ export function compileQuery(
     scriptData: ScriptData,
     logger?: LoggerLike,
 ): string {
+    logger?.debug('Compiling script for query execution', {
+        scriptKey: scriptData.scriptKey.toString(),
+        folderName: scriptData.folderName,
+        fileName: scriptData.fileName,
+        documentRevision: scriptData.editorUpdate?.documentRevision.toString(),
+        stateRevision: scriptData.editorUpdate?.stateRevision.toString(),
+        nativeDocumentRevision: scriptData.editorSession.getDocumentRevision?.().toString(),
+        analysisOutdated: scriptData.analysisOutdated.toString(),
+        analysisAvailable: scriptData.editorUpdate?.analysisAvailable.toString(),
+        textLength: scriptData.editorSession.getText?.().length.toString(),
+    }, LOG_CTX, true);
     const compiled = scriptData.editorSession.compileQuery(executionFormattingConfig());
     try {
         const reader = compiled.read();
@@ -1765,7 +1803,10 @@ export function compileQuery(
                 script: scriptData.editorSession.getText(),
             }, LOG_CTX);
         }
-        logger?.debug('Compiled script for query execution', { sql }, LOG_CTX);
+        logger?.debug('Compiled script for query execution', {
+            scriptKey: scriptData.scriptKey.toString(),
+            sqlLength: sql.length.toString(),
+        }, LOG_CTX, true);
         return sql;
     } finally {
         compiled.destroy();

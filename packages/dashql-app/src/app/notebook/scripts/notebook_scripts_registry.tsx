@@ -8,6 +8,8 @@ import { useStorageWriter } from '../persistence/storage_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { REPLACE_NOTEBOOK_SCRIPTS, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites } from "../persistence/storage_writer.js";
 
+const LOG_CTX = 'notebook_scripts_registry';
+
 /// The scripts registry.
 ///
 /// Note that we're deliberately not using immutable maps for notebook scripts and the connection index.
@@ -135,6 +137,11 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
         const pending = pendingActionsRef.current;
         if (pending.length === 0 || id == null) return;
         pendingActionsRef.current = [];
+        logger.debug('Flushing notebook script actions', {
+            notebookId: id,
+            actionCount: pending.length.toString(),
+            actionTypes: pending.map(({ action }) => action.type.description ?? action.type.toString()).join(','),
+        }, LOG_CTX, true);
 
         setRegistry((reg: NotebookScriptsRegistry) => {
             // Check if the connection is active to gate storage writes
@@ -147,6 +154,11 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
                     resolve(null);
                     continue;
                 }
+                logger.debug('Reducing notebook script action', {
+                    notebookId: id,
+                    actionType: action.type.description ?? action.type.toString(),
+                    uncommittedScriptId: prev.uncommittedScriptId.toString(),
+                }, LOG_CTX, true);
                 const next = reduceNotebookScripts(prev, action, storageWriter, logger, active);
                 reg.notebookScriptsMap.set(id, next);
                 resolve(next);
@@ -159,6 +171,11 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
     const dispatch = React.useCallback((action: NotebookScriptsAction) => {
         if (id == null) return Promise.resolve(null);
         return new Promise<NotebookScripts | null>((resolve) => {
+            logger.debug('Queued notebook script action', {
+                notebookId: id,
+                actionType: action.type.description ?? action.type.toString(),
+                queueLength: (pendingActionsRef.current.length + 1).toString(),
+            }, LOG_CTX, true);
             // Queue the action
             pendingActionsRef.current.push({ action, resolve });
 

@@ -25,13 +25,13 @@ This encoding is compact and efficient for simple passes, but is not directly su
 ### Building
 
 ```
-# Dev server with for Vite in the browser.
-# We don't support HMR in the browser since pthread web-workers + HMR crash Chrome.
+# Vite dev server for the browser (HMR is disabled because pthread workers crash Chrome).
 bazel run //packages/dashql-app:dev
 
-# Dev server for the Electron desktop app.
-# Run the Electron desktop application.
-bazel run //packages/dashql-electron:dev
+# For Electron renderer HMR, run these in separate terminals.
+bazel run //packages/dashql-app:dev -- --mode electron
+bazel run //packages/dashql-native:dev
+# Override DASHQL_ELECTRON_RENDERER_URL if Vite uses another loopback HTTP origin.
 
 # If you need demangled wasm stacktraces, run with
 bazel run --config=debug //packages/dashql-app:dev
@@ -43,8 +43,8 @@ bazel build //packages/dashql-app:pages
 bazel build //packages/dashql-app:reloc
 
 # The native app can be cross-compiled for arm and x86
-bazel run //packages/dashql-electron:mac_package_arm64
-bazel run //packages/dashql-electron:mac_package_x86_64
+bazel run //packages/dashql-native:mac_package_arm64
+bazel run //packages/dashql-native:mac_package_x86_64
 
 # Test everything
 bazel test //...

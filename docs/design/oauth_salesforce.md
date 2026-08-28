@@ -16,7 +16,7 @@ encodes it into a platform-appropriate event, and hands it back to the originati
 1. Generate a PKCE challenge (`code_verifier` + `code_challenge` via S256).
 2. Choose `flowVariant` based on platform type:
    - `WEB_OPENER_FLOW` — when running as a web app (including localhost dev server)
-   - `NATIVE_LINK_FLOW` — when running as the Tauri native app
+   - `NATIVE_LINK_FLOW` — when running as the Electron desktop app
 3. Serialise `OAuthState { flowVariant, salesforceProvider: { instanceUrl, appConsumerKey, expiresAt } }` → JSON → base64url → `state` query param.
 4. Build the Salesforce authorization URL:
    ```
@@ -88,7 +88,7 @@ CORS configuration is needed on `localhost`.
 `flowVariant = NATIVE_LINK_FLOW`
 
 ```
-Native app (Tauri)        Salesforce            System browser            OS deep-link
+Native app (Electron)     Salesforce            System browser            OS deep-link
     |                         |                      |                         |
     |--- shell.open(url) ---->|                      |                         |
     |                         |<-- user authenticates|                         |
@@ -99,21 +99,21 @@ Native app (Tauri)        Salesforce            System browser            OS dee
     |                         |                      |    builds AppEventData  |
     |                         |                      |--- window.open -------->|
     |                         |                      |    dashql://localhost   |
-    |<--------------------------------------------------------------- Tauri deep-link event
+    |<------------------------------------------------------------ Electron deep-link event
     |                         |
     |--- token exchange ------>
 ```
 
-1. `shell.open(url)` opens the authorization URL in the system browser (outside the Tauri webview).
+1. Electron's `shell.openExternal(url)` opens the authorization URL in the system browser (outside the app window).
 2. Salesforce redirects the browser to `https://dashql.app/oauth.html?code=xxx&state=base64url`.
 3. `oauth.html` loads `oauth_redirect.tsx` inside the **system browser**.
 4. `RedirectPage` decodes `state` → recovers `OAuthState` with `flowVariant = NATIVE_LINK_FLOW`.
 5. `OAuthSucceeded` encodes `AppEventData` as before.
 6. After a 2-second delay, `triggerFlow` calls `window.open("dashql://localhost?data=eventBase64", '_self')`.
-   - The OS routes the `dashql://` deep link to the registered Tauri app.
+   - The OS routes the `dashql://` deep link to the registered Electron app.
    - An "Open in App" button lets the user retry until the code expires.
-7. `NativePlatformEventListener` receives the deep link on the `"dashql:event"` Tauri channel, calls `readAppEvent → dispatchAppEvent → dispatchOAuthRedirect`, resolving `waitForOAuthRedirect`.
-   - On cold start, `readInitialDeepLinkEvents` also checks `plugin:deep-link|get_current` to catch deep links that launched the app before the listener was registered.
+7. `ElectronPlatformEventListener` receives the deep link through the preload bridge, calls `readAppEvent → dispatchAppEvent → dispatchOAuthRedirect`, resolving `waitForOAuthRedirect`.
+   - On cold start, Electron queues command-line and `open-url` deep links until the renderer requests them.
 
 ### Debug mode
 

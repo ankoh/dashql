@@ -47,7 +47,7 @@ describe('runNotebookScript', () => {
             outdated,
             executeQuery,
             modifyNotebookScripts,
-            { debug: vi.fn() } as any,
+            { debug: vi.fn(), info: vi.fn(), warn: vi.fn() } as any,
         );
         expect(executeQuery).not.toHaveBeenCalled();
         await execution;

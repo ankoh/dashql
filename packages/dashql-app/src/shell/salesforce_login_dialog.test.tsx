@@ -262,6 +262,21 @@ describe('useSalesforceLoginDialog', () => {
         expect(document.querySelector('[role="dialog"]')).toBeNull();
     });
 
+    it('submits without opening a popup for native OAuth', async () => {
+        act(() => root.render(<Harness nativeOAuth openOAuthPopup={openOAuthPopup} />));
+        const result = open();
+        fillValidForm();
+
+        submit();
+
+        expect(openOAuthPopup).not.toHaveBeenCalled();
+        await expect(result).resolves.toEqual(expect.objectContaining({
+            alias: 'production',
+            oauthPopup: undefined,
+        }));
+        act(() => closeButton().click());
+    });
+
     it('closes automatically when login succeeds', async () => {
         openOAuthPopup.mockReturnValue({} as Window);
         const result = open();

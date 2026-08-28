@@ -212,10 +212,10 @@ jobs:
               shell: bash
               run: |
                 bazel test --config=release \
-                    //packages/dashql-electron:test \
-                    //packages/dashql-electron:native_addon_utility_test \
-                    //packages/dashql-electron:startup_smoke_test \
-                    //packages/dashql-electron:opfs_persistence_test \
+                    //packages/dashql-native:test \
+                    //packages/dashql-native:native_addon_utility_test \
+                    //packages/dashql-native:startup_smoke_test \
+                    //packages/dashql-native:opfs_persistence_test \
                     --test_output=errors
 
             - name: Build Electron arm64 packages
@@ -232,7 +232,7 @@ jobs:
                       printf '%s' "$APPLE_API_KEY_CONTENT" > "$APPLE_API_KEY"
                       export APPLE_API_KEY
                   fi
-                  bazel run --config=release //packages/dashql-electron:mac_package_arm64
+                  bazel run --config=release //packages/dashql-native:mac_package_arm64
 
             - name: Upload Electron arm64 packages
               uses: actions/upload-artifact@v7
@@ -273,7 +273,7 @@ jobs:
                       printf '%s' "$APPLE_API_KEY_CONTENT" > "$APPLE_API_KEY"
                       export APPLE_API_KEY
                   fi
-                  bazel run --config=release //packages/dashql-electron:mac_package_x86_64
+                  bazel run --config=release //packages/dashql-native:mac_package_x86_64
 
             - name: Upload Electron x86_64 packages
               uses: actions/upload-artifact@v7

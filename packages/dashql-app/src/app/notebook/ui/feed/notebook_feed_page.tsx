@@ -226,7 +226,7 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
 
     return (
         <div className={styles.page}>
-            <header className={styles.mobile_header} data-tauri-drag-region="deep">
+            <header className={styles.mobile_header} data-electron-drag-region>
                 <IconButton ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open notebook navigation" onClick={() => setNavigationDrawerOpen(true)}>
                     <ThreeBarsIcon />
                 </IconButton>

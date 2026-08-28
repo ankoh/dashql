@@ -428,6 +428,32 @@ describe('NotebookFeed', () => {
         expect(executeButtons[1].getAttribute('aria-current')).toBe('true');
     });
 
+    it('focuses a script when its card is hovered inside the Electron drag region', () => {
+        const modifyNotebookScripts = vi.fn();
+        renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts, showDetails: vi.fn() });
+
+        const secondPreview = container.querySelectorAll('[data-testid="script-preview"]')[1];
+        const cardPair = secondPreview.closest('[data-electron-drag-region="false"]');
+        expect(cardPair).not.toBeNull();
+
+        act(() => {
+            cardPair!.dispatchEvent(new MouseEvent('pointerover', { bubbles: true }));
+        });
+
+        expect(modifyNotebookScripts).toHaveBeenCalledWith({
+            type: SELECT_SCRIPT,
+            value: '02-script.sql',
+        });
+    });
+
+    it('makes only the exposed feed background an Electron window drag region', () => {
+        renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
+
+        expect(container.firstElementChild?.hasAttribute('data-electron-drag-region')).toBe(false);
+        expect(container.querySelectorAll('[data-electron-drag-region]:not([data-electron-drag-region="false"])')).toHaveLength(3);
+        expect(container.querySelectorAll('[data-electron-drag-region="false"]')).toHaveLength(3);
+    });
+
     it('executes the clicked script without changing notebookScripts focus', () => {
         const notebookScripts = createNotebookScripts();
         const modifyNotebookScripts = vi.fn();
@@ -810,10 +836,16 @@ describe('NotebookFeed', () => {
         });
     });
 
-    it('suppresses Ctrl+E when the compose editor is focused', () => {
+    it('routes Ctrl+E to draft execution when the compose editor is focused', () => {
+        const modifyNotebookScripts = vi.fn();
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[notebookScripts.uncommittedScriptId] = makeScriptData(
+            notebookScripts.uncommittedScriptId,
+            'select 3',
+        );
         renderFeed({
-            notebookScripts: createNotebookScripts(),
-            modifyNotebookScripts: vi.fn(),
+            notebookScripts,
+            modifyNotebookScripts,
             showDetails: vi.fn(),
             scrollTarget: null,
         });
@@ -822,11 +854,15 @@ describe('NotebookFeed', () => {
         expect(handler).toBeDefined();
 
         const stopPropagation = vi.fn();
+        const preventDefault = vi.fn();
         act(() => {
-            handler!.callback({ stopPropagation } as unknown as KeyboardEvent);
+            handler!.callback({ stopPropagation, preventDefault } as unknown as KeyboardEvent);
         });
 
         expect(stopPropagation).toHaveBeenCalledTimes(1);
+        expect(preventDefault).toHaveBeenCalledTimes(1);
+        expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
+        expect(mockState.executeQuery).toHaveBeenCalledTimes(1);
     });
 
     it('does not suppress Ctrl+E when the compose editor is not focused', () => {

@@ -195,7 +195,7 @@ const VersionButton = (_props: {}) => {
 };
 
 const BrandLogo = (props: { onClose: () => void }) => (
-    <div className={styles.brand_logo} data-tauri-drag-region="true" aria-label="dashql" onClick={props.onClose}>
+    <div className={styles.brand_logo} data-electron-drag-region aria-label="dashql" onClick={props.onClose}>
         <svg width="24px" height="24px" aria-hidden="true">
             <use xlinkHref={`${symbols}#dashql`} />
         </svg>
@@ -262,13 +262,9 @@ export const NavBar = (): React.ReactElement => {
     // its recorded physical location; the uuid stays the authoritative identity.
     const notebookPath = notebookId ? displayPath(notebookId, storageReader.getNotebookLocation(notebookId)) : "";
     return (
-        // `deep` makes the whole toolbar a native window-drag surface: clicks anywhere drag the
-        // window except on genuinely interactive elements (the notebook bar button, version buttons,
-        // …), which Tauri's drag.js still treats as clickable and lets through. A bare/`true` value
-        // would only drag on direct clicks on this exact element — which the notebook bar button now
-        // fully covers, so dragging would never trigger.
+        // Electron excludes the interactive controls below via the global no-drag rules.
         <div className={isMac ? styles.navbar_mac : styles.navbar_default}
-            data-tauri-drag-region="deep"
+            data-electron-drag-region
         >
             {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
             <div className={styles.tabs}>

@@ -197,6 +197,22 @@ interface FlatBufferObject<T, O> {
     unpack(): O;
 }
 
+// The pthread-enabled module exposes FlatBuffers through SharedArrayBuffer-backed Wasm memory.
+// Some browsers reject those views in TextDecoder, so copy only strings before decoding them.
+class WasmFlatBufferByteBuffer extends flatbuffers.ByteBuffer {
+    constructor(bytes: Uint8Array, private readonly decoder: TextDecoder) {
+        super(bytes);
+    }
+
+    override __string(offset: number, encoding?: flatbuffers.Encoding): string | Uint8Array {
+        const bytes = super.__string(offset, flatbuffers.Encoding.UTF8_BYTES) as Uint8Array;
+        if (encoding === flatbuffers.Encoding.UTF8_BYTES) return bytes;
+        const copy = new Uint8Array(bytes.byteLength);
+        copy.set(bytes);
+        return this.decoder.decode(copy);
+    }
+}
+
 const ANALYZED_SCRIPT_TYPE = Symbol('ANALYZED_SCRIPT_TYPE');
 const AGENT_SESSION_TYPE = Symbol('AGENT_SESSION_TYPE');
 const AGENT_OPERATION_TYPE = Symbol('AGENT_OPERATION_TYPE');
@@ -774,13 +790,13 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
     // C.f. getRootAsAnalyzedScript
     public read(obj: T | null = null): T {
         obj = obj ?? this.factory();
-        const bb = new flatbuffers.ByteBuffer(this.data);
+        const bb = new WasmFlatBufferByteBuffer(this.data, this.api.decoder);
         return obj.__init(bb.readInt32(bb.position()) + bb.position(), bb);
     }
     // Get the flatbuffer object, unpack it and destroy the memory
     public unpackAndDestroy(obj: T | null = null): O {
         obj = obj ?? this.factory();
-        const bb = new flatbuffers.ByteBuffer(this.data);
+        const bb = new WasmFlatBufferByteBuffer(this.data, this.api.decoder);
         obj.__init(bb.readInt32(bb.position()) + bb.position(), bb);
         const out = obj.unpack();
         this.destroy();

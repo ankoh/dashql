@@ -312,7 +312,7 @@ artifacts.
 
 ### Phase 1: Chromium Capability Proof
 
-- Add a parallel `packages/dashql-electron` package and Bazel targets.
+- Replace the retired Tauri host with Electron in `packages/dashql-native`.
 - Start Electron against the existing native renderer bundle.
 - Serve assets through `app://bundle/` with COOP, COEP, CSP, and MIME headers.
 - Keep renderer sandboxing and context isolation enabled.
@@ -426,9 +426,8 @@ Sidecar integration follows only after this capability proof is green.
 
 ### 2026-08-28: Initial Capability Host
 
-The first parallel Electron package now exists at
-`packages/dashql-electron`. It does not alter the Tauri application or release
-targets.
+The first Electron host now exists at `packages/dashql-native`, replacing the
+retired Tauri application while retaining the native app's release identity.
 
 Implemented:
 
@@ -442,17 +441,17 @@ Implemented:
   isolation enabled.
 - A narrow preload method for runtime-version and isolation reporting.
 - A headless-by-lifecycle capability runner at
-  `//packages/dashql-electron:capability_test`.
+  `//packages/dashql-native:capability_test`.
 - Unit tests for application URL validation, isolation headers, and Wasm MIME
   handling.
 
 Verified through Bazel:
 
 ```text
-bazel build //packages/dashql-electron:compile
-bazel build //packages/dashql-electron:dev //packages/dashql-electron:capability_test
-bazel test //packages/dashql-electron:test
-bazel run //packages/dashql-electron:capability_test
+bazel build //packages/dashql-native:compile
+bazel build //packages/dashql-native:dev //packages/dashql-native:capability_test
+bazel test //packages/dashql-native:test
+bazel run //packages/dashql-native:capability_test
 ```
 
 Observed capability result:

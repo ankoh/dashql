@@ -99,6 +99,13 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Create a new editor state and update the view.
     // XXX Here's the place where we would restore a previous state, if one exists.
     if (state.editorSession !== scriptData.editorSession) {
+        logger.debug("Resetting editor for a different native session", {
+            notebookId: scripts.notebookId,
+            scriptKey: scriptData.scriptKey.toString(),
+            editorHadSession: (state.editorSession != null).toString(),
+            nativeDocumentRevision: scriptData.editorSession.getDocumentRevision().toString(),
+            projectedDocumentRevision: scriptData.editorUpdate?.documentRevision.toString(),
+        }, LOG_CTX, true);
         // When that happens we have to reset the editor state.
         // It means that someone gave us a new notebook script that requires a state update
         const extensions = createCodeMirrorExtensions();
@@ -114,7 +121,14 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
         const scriptText = scriptData.editorSession.getText();
         const editorText = view.state.doc.toString();
         if (scriptText !== editorText) {
-            logger.debug("Replacing editor script", {}, LOG_CTX);
+            logger.warn("Replacing CodeMirror text from native editor session", {
+                notebookId: scripts.notebookId,
+                scriptKey: scriptData.scriptKey.toString(),
+                editorTextLength: editorText.length.toString(),
+                scriptTextLength: scriptText.length.toString(),
+                editorStateRevision: state.editorUpdate?.stateRevision.toString(),
+                projectedStateRevision: scriptData.editorUpdate?.stateRevision.toString(),
+            }, LOG_CTX, true);
             changes.push({
                 from: 0,
                 to: view.state.doc.length,
@@ -137,6 +151,12 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
             if (nextCursorOffset != null && nextCursorOffset !== mainSel.head) {
                 const clampedOffset = Math.max(0, Math.min(nextCursorOffset, view.state.doc.length));
                 selection = EditorSelection.create([EditorSelection.cursor(clampedOffset)]);
+                logger.debug("Projecting external cursor into CodeMirror", {
+                    notebookId: scripts.notebookId,
+                    scriptKey: scriptData.scriptKey.toString(),
+                    currentCursorOffset: mainSel.head.toString(),
+                    nextCursorOffset: clampedOffset.toString(),
+                }, LOG_CTX, true);
             }
         }
     }
@@ -147,6 +167,13 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Called when the script gets updated by the CodeMirror extension.
     // Note that this is also called when the state is set up initially.
     const updateScript = (update: DashQLProcessorUpdateOut) => {
+        logger.debug("Dispatching editor processor update", {
+            notebookId: scripts.notebookId,
+            scriptKey: update.scriptKey.toString(),
+            documentRevision: update.editorUpdate?.documentRevision.toString(),
+            stateRevision: update.editorUpdate?.stateRevision.toString(),
+            cursorOffset: update.editorUpdate?.primaryCursorState?.textOffset?.toString(),
+        }, LOG_CTX, true);
         modifyScripts({
             type: UPDATE_FROM_PROCESSOR,
             value: update,

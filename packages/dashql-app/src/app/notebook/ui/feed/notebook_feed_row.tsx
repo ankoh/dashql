@@ -196,6 +196,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
     return (
         <div
             className={styles.feed_entry_pair}
+            data-electron-drag-region="false"
             onPointerEnter={() => props.onFocus(props.scriptFileName)}
         >
             <div className={styles.feed_entry_message_script}>
@@ -451,7 +452,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     }, [cachedHeight, entry, entryIndex, props.onHeightMeasured, previewReady, props.topPadding]);
 
     if (isFillerRow) {
-        return <div className={styles.feed_list_filler} style={props.style} />;
+        return <div className={styles.feed_list_filler} style={props.style} data-electron-drag-region />;
     }
 
     return (
@@ -468,6 +469,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         >
             <div
                 className={styles.feed_list_item}
+                data-electron-drag-region
             >
                 <ScriptCard
                     key={entry?.scriptId}
