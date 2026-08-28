@@ -474,6 +474,42 @@
         }
       }
     },
+    "//bazel:external_tableauhyperapi.bzl%tableauhyperapi_ext": {
+      "general": {
+        "bzlTransitiveDigest": "FD2gVlUs+7d1ugV+cBeo4VUWhS0QHoxIhKfO4JcWXL8=",
+        "usagesDigest": "/Cj4t34gwtluFYaKn+aza5CUpAo3VxHJDL1vTkM7hIs=",
+        "recordedInputs": [],
+        "generatedRepoSpecs": {
+          "tableauhyperapi_cxx_linux_x86_64": {
+            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_cxx_repository",
+            "attributes": {
+              "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26225.rbf04a855.zip",
+              "sha256": "2c211c09ccfdc6f0574fcb45261439569b081ac1bac88002bb5b5ee80d37b8e8",
+              "strip_prefix": "tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26225.rbf04a855",
+              "shared_library": "lib/libtableauhyperapi.so"
+            }
+          },
+          "tableauhyperapi_cxx_macos_arm64": {
+            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_cxx_repository",
+            "attributes": {
+              "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-arm64-release-main.0.0.26225.rbf04a855.zip",
+              "sha256": "77d118eb35930de56cc891cf63127638782cd2ccfd283bcb06615ae074ab9b22",
+              "strip_prefix": "tableauhyperapi-cxx-macos-arm64-release-main.0.0.26225.rbf04a855",
+              "shared_library": "lib/libtableauhyperapi.dylib"
+            }
+          },
+          "tableauhyperapi_cxx_macos_x86_64": {
+            "repoRuleId": "@@//bazel:external_tableauhyperapi.bzl%tableauhyperapi_cxx_repository",
+            "attributes": {
+              "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26225.rbf04a855.zip",
+              "sha256": "58d9096d7e69aa90d784a998cd960b33db4eb114edb9e0fece4c868531aecb57",
+              "strip_prefix": "tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26225.rbf04a855",
+              "shared_library": "lib/libtableauhyperapi.dylib"
+            }
+          }
+        }
+      }
+    },
     "//packages/dashql-app:bazel/version.bzl%dashql_app_version_ext": {
       "general": {
         "bzlTransitiveDigest": "0Y2WXnkZSrBAGnC/jfDe/wjW2fWUWitBbpCD/KH1NCU=",
@@ -801,9 +837,9 @@
           "REPO_MAPPING:rules_rust+,rules_rust rules_rust+",
           "FILE:@@//Cargo.lock a136ae064445c58b3bf50d3d4efc52223fa605137beaaf30715561c953dd8642",
           "FILE:@@//Cargo.toml 06c054a06d387c8b4f3b9b80a65b24843ce694241c36cda0622ab12160a81e00",
-          "FILE:@@//packages/dashql-native/Cargo.toml d057e4ec6a0c57ff94caadc55ce253e78e84599f5160aad81001ebe2e3093393",
+          "FILE:@@//packages/dashql-native/Cargo.toml 90aa17d68e98a41a8699b92cc8a825ffe6420e298407b2c32de7ad30070f9cd0",
           "FILE:@@//packages/tauri-aclgen/Cargo.toml 87ad81d5b6cacf370c143e1f19372d91f7843200e503c87d44068fd7efd1c40d",
-          "FILE:@@//packages/dashql-pack/Cargo.toml 6395c936aa4f096c38555a290a9b56f50eed00f04f7579c6705f1fb1b116494a",
+          "FILE:@@//packages/dashql-pack/Cargo.toml e1d85368596f408fae3802f7af9c6c5f5f54d690f815385f0bd477d344669c59",
           "FILE:@@//packages/dashql-data/Cargo.toml feb2dc35c105e2b3a6af3b46d4c3b3785648fe99337e95496722c0bbc31c6bfb"
         ],
         "generatedRepoSpecs": {
