@@ -1,0 +1,1 @@
+create table if not exists test_table(some_attribute text);
