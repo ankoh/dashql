@@ -1,11 +1,27 @@
 #include "dashql/api.h"
 
+#include "dashql/async_analysis.h"
 #include "dashql/catalog.h"
+#include "dashql/exception.h"
 #include "gtest/gtest.h"
+
+#include <chrono>
+#include <thread>
 
 using namespace dashql;
 
 namespace {
+
+using namespace std::chrono_literals;
+
+uint32_t WaitForJob(uint32_t job_id) {
+    for (size_t i = 0; i < 10'000; ++i) {
+        auto state = AsyncAnalysisJobs::Poll(job_id);
+        if (state >= AsyncAnalysisJobState::READY) return static_cast<uint32_t>(state);
+        std::this_thread::sleep_for(1ms);
+    }
+    return static_cast<uint32_t>(AsyncAnalysisJobs::Poll(job_id));
+}
 
 std::pair<std::string_view, std::unique_ptr<char[]>> copyText(std::string_view text) {
     auto buffer = std::unique_ptr<char[]>(new char[text.size()]);
@@ -111,6 +127,105 @@ TEST(ApiTest, GetStatementTextExcludesSeparatorAndTrivia) {
     script.InsertTextAt(0, "  SELECT ';' AS value ; -- trailing comment\n");
 
     EXPECT_EQ(script.GetStatementText(), "SELECT ';' AS value");
+}
+
+TEST(ApiTest, LoadScriptsUsesCompactPointerAndRankArrays) {
+    Catalog catalog;
+    Script relations{catalog};
+    Script functions{catalog};
+    relations.InsertTextAt(0, "create table db.schema.items(id int);");
+    functions.InsertTextAt(0, "create function db.schema.item_count() returns int;");
+    relations.Analyze();
+    functions.Analyze();
+    Script* scripts[] = {&relations, &functions};
+    const uint32_t ranks[] = {7, 3};
+    auto previous_version = catalog.GetVersion();
+
+    ASSERT_NO_THROW(dashql_catalog_load_scripts(&catalog, scripts, ranks, 2));
+    EXPECT_EQ(catalog.GetVersion(), previous_version + 1);
+    EXPECT_TRUE(catalog.Contains(relations.GetCatalogEntryId()));
+    EXPECT_TRUE(catalog.Contains(functions.GetCatalogEntryId()));
+}
+
+TEST(ApiTest, AsyncAnalysisRunsTwoJobsAndPublishesResults) {
+    Catalog catalog;
+    Script first{catalog};
+    Script second{catalog};
+    first.InsertTextAt(0, "select 1");
+    second.InsertTextAt(0, "select 2");
+
+    auto first_job = dashql_script_analyze_async(&first, true);
+    auto second_job = dashql_script_analyze_async(&second, true);
+    EXPECT_EQ(WaitForJob(first_job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
+    EXPECT_EQ(WaitForJob(second_job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
+    dashql_script_analysis_job_release(first_job);
+    dashql_script_analysis_job_release(second_job);
+    EXPECT_NE(first.GetAnalyzedScript(), nullptr);
+    EXPECT_NE(second.GetAnalyzedScript(), nullptr);
+}
+
+TEST(ApiTest, AsyncAnalysisRejectsDuplicateAndBusyOperations) {
+    Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, "select 1");
+    auto job = dashql_script_analyze_async(&script, true);
+
+    EXPECT_THROW(dashql_script_analyze_async(&script, true), Exception);
+    EXPECT_THROW(script.ToString(), Exception);
+    EXPECT_THROW(script.Analyze(), Exception);
+    EXPECT_EQ(WaitForJob(job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
+    EXPECT_THROW(script.ToString(), Exception);
+    dashql_script_analysis_job_release(job);
+    EXPECT_EQ(script.ToString(), "select 1");
+}
+
+TEST(ApiTest, AsyncAnalysisContainsWorkerExceptions) {
+    Catalog catalog;
+    Script invalid{catalog};
+    auto failed = dashql_script_analyze_async(&invalid, false);
+    EXPECT_EQ(WaitForJob(failed), static_cast<uint32_t>(AsyncAnalysisJobState::FAILED));
+    EXPECT_EQ(dashql_script_analysis_job_get_error_code(failed),
+              static_cast<uint32_t>(buffers::status::StatusCode::SCRIPT_NOT_PARSED));
+    FFIResult message;
+    dashql_script_analysis_job_get_error_message(&message, failed);
+    EXPECT_EQ(std::string_view(static_cast<const char*>(message.data_ptr), message.data_length), "Script is not parsed");
+    dashql_delete_owner(message.owner_ptr, message.owner_deleter);
+    dashql_script_analysis_job_release(failed);
+
+    Script valid{catalog};
+    valid.InsertTextAt(0, "select 1");
+    auto ready = dashql_script_analyze_async(&valid, true);
+    EXPECT_EQ(WaitForJob(ready), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
+    dashql_script_analysis_job_release(ready);
+}
+
+TEST(ApiTest, AsyncAnalysisCancellationDiscardsRunningResult) {
+    Catalog catalog;
+    Script script{catalog};
+    std::string query = "select ";
+    for (size_t i = 0; i < 20'000; ++i) query += i == 0 ? "1" : "+1";
+    script.InsertTextAt(0, query);
+    auto job = dashql_script_analyze_async(&script, true);
+    EXPECT_TRUE(dashql_script_analysis_job_cancel(job));
+    EXPECT_EQ(WaitForJob(job), static_cast<uint32_t>(AsyncAnalysisJobState::CANCELLED));
+    dashql_script_analysis_job_release(job);
+    EXPECT_EQ(script.GetAnalyzedScript(), nullptr);
+}
+
+TEST(ApiTest, AsyncAnalysisDefersFFIScriptAndCatalogDestruction) {
+    FFIResult catalog_owner;
+    dashql_catalog_new(&catalog_owner);
+    auto* catalog = catalog_owner.CastOwnerPtr<Catalog>();
+    FFIResult script_owner;
+    dashql_script_new(&script_owner, catalog);
+    auto* script = script_owner.CastOwnerPtr<Script>();
+    script->InsertTextAt(0, "select 1");
+    auto job = dashql_script_analyze_async(script, true);
+
+    dashql_delete_owner(script_owner.owner_ptr, script_owner.owner_deleter);
+    dashql_delete_owner(catalog_owner.owner_ptr, catalog_owner.owner_deleter);
+    EXPECT_EQ(WaitForJob(job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
+    dashql_script_analysis_job_release(job);
 }
 
 }  // namespace

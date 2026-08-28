@@ -3,12 +3,17 @@
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 
+#include <atomic>
 #include <functional>
 #include <limits>
+#include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <span>
+#include <string>
 #include <string_view>
 #include <tuple>
+#include <unordered_map>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
@@ -276,8 +281,7 @@ class CatalogEntry {
         std::string_view database_alias;
         /// Constructor
         ///
-        /// The database ID is only preliminary if the entry has not been added to the catalog yet.
-        /// Adding the entry to the catalog might fail if this id becomes invalid.
+        /// The database ID is reserved canonically by the catalog.
         DatabaseReference(QualifiedCatalogObjectID database_id, std::string_view database_name,
                           std::string_view database_alias)
             : CatalogObject(database_id), database_name(database_name), database_alias(database_alias) {}
@@ -294,8 +298,7 @@ class CatalogEntry {
         std::string_view schema_name;
         /// Constructor
         ///
-        /// Database and schema IDs are only preliminary if the entry has not been added to the catalog yet.
-        /// Adding the entry to the catalog might fail if this id becomes invalid.
+        /// Database and schema IDs are reserved canonically by the catalog.
         SchemaReference(QualifiedCatalogObjectID schema_id, std::string_view database_name,
                         std::string_view schema_name)
             : CatalogObject(schema_id), database_name(database_name), schema_name(schema_name) {}
@@ -437,6 +440,11 @@ class Catalog {
     friend class CatalogEntry;
 
    protected:
+    /// A script and its rank for atomic catalog publication.
+    struct RankedScript {
+        Script* script;
+        CatalogEntry::Rank rank;
+    };
     /// A catalog entry backed by an analyzed script
     struct ScriptEntry {
         /// The script
@@ -511,12 +519,6 @@ class Catalog {
     btree::map<std::tuple<std::string_view, CatalogEntry::Rank, CatalogEntryID>, CatalogSchemaEntryInfo>
         entries_by_schema;
 
-    /// The next database id
-    CatalogDatabaseID next_database_id = INITIAL_DATABASE_ID;
-    /// The next schema id
-    CatalogSchemaID next_schema_id = INITIAL_SCHEMA_ID;
-    /// The next entry id
-    CatalogEntryID next_entry_id = INITIAL_ENTRY_ID;
     /// The databases.
     /// The btrees contain all the databases that are currently referenced by catalog entries.
     btree::map<std::string_view, std::unique_ptr<DatabaseDeclaration>> databases;
@@ -524,26 +526,43 @@ class Catalog {
     /// These btrees contain all the schemas that are currently referenced by catalog entries.
     /// Ordered by <database, schema>
     btree::map<std::pair<std::string_view, std::string_view>, std::unique_ptr<SchemaDeclaration>> schemas;
-
-    /// Update a script entry.
-    /// Updating a script performs work in the order of |databases + schemas| in the script.
-    /// NOT in |tables| or |columns| or |names|
-    ///
-    /// It is not super cheap, but still significantly cheaper than the analysis passes.
-    /// Updating a script regularly if it contains table declarations is not a problem.
-    ///
-    /// The most important architectural decision is that each CatalogEntry maintains own
-    /// search indexes. The completion is actually paying |catalog_entries| since we're checking
-    /// the name index of every qualifying catalog entry during completion.
-    buffers::status::StatusCode UpdateScript(ScriptEntry& entry);
+    /// Protects the persistent canonical database and schema ID namespaces.
+    /// Callers that also need the state lock acquire state_mutex first.
+    std::mutex id_reservation_mutex;
+    /// Canonical database IDs by owned database name.
+    std::unordered_map<std::string, CatalogDatabaseID, StringHasher, std::equal_to<>> database_ids_by_name;
+    /// Canonical schema IDs by owned (database, schema) name.
+    std::unordered_map<std::pair<std::string, std::string>, QualifiedCatalogObjectID, StringPairHasher, StringPairEqual>
+        schema_ids_by_name;
+    /// Monotonic ID counters. Reserved IDs are never reused during the catalog lifetime.
+    std::atomic<CatalogDatabaseID> next_database_id{INITIAL_DATABASE_ID};
+    std::atomic<CatalogSchemaID> next_schema_id{INITIAL_SCHEMA_ID};
+    std::atomic<CatalogEntryID> next_entry_id{INITIAL_ENTRY_ID};
+    /// Protects active catalog membership and indexes.
+    mutable std::shared_mutex state_mutex;
+    /// C-ABI lifetime state for scripts and async jobs borrowing this catalog.
+    std::mutex lifetime_mutex;
+    uint32_t live_scripts = 0;
+    uint32_t async_lifetime_refs = 0;
+    bool delete_requested = false;
+    bool delete_started = false;
 
    public:
+    using ScriptBatchEntry = RankedScript;
     /// Explicit constructor needed due to deleted copy constructor
     Catalog();
+    ~Catalog() = default;
     /// Catalogs must not be copied
     Catalog(const Catalog& other) = delete;
     /// Catalogs must not be copy-assigned
     Catalog& operator=(const Catalog& other) = delete;
+
+    void RequestDelete();
+    void RegisterScript();
+    void UnregisterScript();
+    void AcquireAsyncLease();
+    void ReleaseAsyncLease();
+    void DropScriptUnlocked(Script& script);
 
     /// Get the current version of the registry
     uint64_t GetVersion() const { return version; }
@@ -567,27 +586,16 @@ class Catalog {
             f(id, *entry, rank);
         }
     }
-    /// Register a database name
-    QualifiedCatalogObjectID AllocateDatabaseId(std::string_view database) {
-        auto iter = databases.find(database);
-        if (iter != databases.end()) {
-            return iter->second->object_id;
-        } else {
-            return QualifiedCatalogObjectID::Database(next_database_id++);
-        }
-    }
-    /// Register a schema name
-    QualifiedCatalogObjectID AllocateSchemaId(std::string_view database, std::string_view schema,
-                                              QualifiedCatalogObjectID db_id) {
-        auto iter = schemas.find({database, schema});
-        if (iter != schemas.end()) {
-            return iter->second->object_id;
-        } else {
-            return QualifiedCatalogObjectID::Schema(db_id.UnpackDatabaseID(), next_schema_id++);
-        }
-    }
+    /// Reserve the canonical ID for a database name.
+    QualifiedCatalogObjectID ReserveDatabaseId(std::string_view database);
+    /// Reserve the canonical ID for a qualified schema name.
+    QualifiedCatalogObjectID ReserveSchemaId(std::string_view database, std::string_view schema,
+                                              QualifiedCatalogObjectID db_id);
     /// Allocate an entry id
     CatalogEntryID AllocateEntryId();
+    /// Analyze a script while preserving catalog entry lifetimes.
+    void AnalyzeScript(Script& script, bool parse_if_outdated);
+    void AnalyzeScriptAsync(Script& script, bool parse_if_outdated, const std::atomic<bool>& cancelled);
 
     /// Clear a catalog
     void Clear();
@@ -602,6 +610,8 @@ class Catalog {
 
     /// Add a script (throws Exception on error)
     void LoadScript(Script& script, CatalogEntry::Rank rank);
+    /// Atomically add or replace ranked scripts (throws Exception on error).
+    void LoadScripts(std::span<const ScriptBatchEntry> scripts);
     /// Drop a script
     void DropScript(Script& script);
 

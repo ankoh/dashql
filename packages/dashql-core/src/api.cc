@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 #include "dashql/analyzer/completion.h"
+#include "dashql/async_analysis.h"
 #include "dashql/agent/agent_session.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
@@ -44,6 +45,20 @@ template <typename T> static void packPtr(FFIResult* result, std::unique_ptr<T> 
     result->data_length = 0;
     result->owner_ptr = raw_ptr;
     result->owner_deleter = [](void* p) { delete reinterpret_cast<T*>(p); };
+}
+
+static void packScriptPtr(FFIResult* result, std::unique_ptr<Script> ptr) {
+    result->data_ptr = nullptr;
+    result->data_length = 0;
+    result->owner_ptr = ptr.release();
+    result->owner_deleter = [](void* ptr) { reinterpret_cast<Script*>(ptr)->RequestDelete(); };
+}
+
+static void packCatalogPtr(FFIResult* result, std::unique_ptr<Catalog> ptr) {
+    result->data_ptr = nullptr;
+    result->data_length = 0;
+    result->owner_ptr = ptr.release();
+    result->owner_deleter = [](void* ptr) { reinterpret_cast<Catalog*>(ptr)->RequestDelete(); };
 }
 
 static void packBuffer(FFIResult* result, std::unique_ptr<flatbuffers::DetachedBuffer> detached) {
@@ -176,10 +191,13 @@ extern "C" void dashql_script_new(FFIResult* result, dashql::Catalog* catalog) {
     }
     // Construct the script
     auto script = std::make_unique<Script>(*catalog);
-    packPtr(result, std::move(script));
+    packScriptPtr(result, std::move(script));
 }
 /// Get the catalog entry id
-extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) { return script->GetCatalogEntryId(); }
+extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) {
+    script->EnsureNotBusy();
+    return script->GetCatalogEntryId();
+}
 /// Insert char at a position
 extern "C" void dashql_script_insert_char_at(Script* script, size_t offset, uint32_t unicode) {
     script->InsertCharAt(offset, unicode);
@@ -240,6 +258,21 @@ extern "C" void dashql_script_scan(Script* script) { script->Scan(); }
 extern "C" void dashql_script_parse(Script* script) { script->Parse(); }
 /// Analyze a script
 extern "C" void dashql_script_analyze(Script* script, bool parse_if_outdated) { script->Analyze(parse_if_outdated); }
+extern "C" uint32_t dashql_script_analyze_async(Script* script, bool parse_if_outdated) {
+    return AsyncAnalysisJobs::Submit(*script, parse_if_outdated);
+}
+extern "C" uint32_t dashql_script_analysis_job_get_error_code(uint32_t job_id) {
+    return AsyncAnalysisJobs::GetErrorCode(job_id);
+}
+extern "C" void dashql_script_analysis_job_get_error_message(FFIResult* result, uint32_t job_id) {
+    auto message = std::make_unique<std::string>(AsyncAnalysisJobs::GetErrorMessage(job_id));
+    result->data_ptr = message->data();
+    result->data_length = message->size();
+    result->owner_ptr = message.release();
+    result->owner_deleter = [](void* ptr) { delete reinterpret_cast<std::string*>(ptr); };
+}
+extern "C" bool dashql_script_analysis_job_cancel(uint32_t job_id) { return AsyncAnalysisJobs::Cancel(job_id); }
+extern "C" void dashql_script_analysis_job_release(uint32_t job_id) { AsyncAnalysisJobs::Release(job_id); }
 /// Format a script
 extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t dialect, size_t mode,
                                       size_t max_width, size_t indentation_width, bool debug_mode,
@@ -265,7 +298,7 @@ extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t d
     new_script->InsertTextAt(0, text);
 
     // Pack the script pointer
-    packPtr(result, std::move(new_script));
+    packScriptPtr(result, std::move(new_script));
 }
 
 extern "C" uint32_t dashql_script_is_fully_formattable(Script* script, size_t dialect, size_t mode, size_t max_width,
@@ -295,6 +328,7 @@ extern "C" void dashql_script_get_unformattable_nodes(
 
 /// Get the parsed script
 extern "C" void dashql_script_get_scanned(FFIResult* result, Script* script) {
+    script->EnsureNotBusy();
     if (script->scanned_script == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
     }
@@ -308,6 +342,7 @@ extern "C" void dashql_script_get_scanned(FFIResult* result, Script* script) {
 
 /// Get the parsed script
 extern "C" void dashql_script_get_parsed(FFIResult* result, Script* script) {
+    script->EnsureNotBusy();
     if (script->parsed_script == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
     }
@@ -321,6 +356,7 @@ extern "C" void dashql_script_get_parsed(FFIResult* result, Script* script) {
 
 /// Get the analyzed script
 extern "C" void dashql_script_get_analyzed(FFIResult* result, Script* script) {
+    script->EnsureNotBusy();
     if (script->analyzed_script == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
     }
@@ -334,6 +370,8 @@ extern "C" void dashql_script_get_analyzed(FFIResult* result, Script* script) {
 
 /// Compute a statement-level semantic diff from a source (old) script to a target (new) script
 extern "C" void dashql_script_compute_diff(FFIResult* result, Script* source, Script* target) {
+    source->EnsureNotBusy();
+    target->EnsureNotBusy();
     if (source->parsed_script == nullptr || target->parsed_script == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
     }
@@ -500,7 +538,7 @@ extern "C" void dashql_editor_session_drop_from_catalog(editor::EditorSession* s
 }
 
 /// Create a catalog
-extern "C" void dashql_catalog_new(FFIResult* result) { packPtr(result, std::make_unique<dashql::Catalog>()); }
+extern "C" void dashql_catalog_new(FFIResult* result) { packCatalogPtr(result, std::make_unique<dashql::Catalog>()); }
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog) { catalog->Clear(); }
 /// Get script id
@@ -536,10 +574,22 @@ extern "C" void dashql_catalog_flatten(FFIResult* result, dashql::Catalog* catal
 }
 /// Add a script in the catalog
 extern "C" void dashql_catalog_load_script(dashql::Catalog* catalog, dashql::Script* script, size_t rank) {
+    script->EnsureNotBusy();
     catalog->LoadScript(*script, rank);
+}
+extern "C" void dashql_catalog_load_scripts(dashql::Catalog* catalog, dashql::Script* const* scripts,
+                                              const uint32_t* ranks, uint32_t script_count) {
+    std::vector<dashql::Catalog::ScriptBatchEntry> batch;
+    batch.reserve(script_count);
+    for (uint32_t i = 0; i < script_count; ++i) {
+        scripts[i]->EnsureNotBusy();
+        batch.push_back({scripts[i], ranks[i]});
+    }
+    catalog->LoadScripts(batch);
 }
 /// Drop entry in the catalog
 extern "C" void dashql_catalog_drop_script(dashql::Catalog* catalog, dashql::Script* script) {
+    script->EnsureNotBusy();
     catalog->DropScript(*script);
 }
 

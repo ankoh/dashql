@@ -7,6 +7,7 @@ load("//bazel:dashql_wasm.bzl", "CORE_WASM_EXPORTS", "SHELL_WASM_EXPORTS", "dash
 # ---------------------------------------------------------------------------
 
 LIB_SRCS = [
+    "src/async_analysis.cc",
     "src/agent/agent_session.cc",
     "src/analyzer/analysis_state.cc",
     "src/analyzer/analyze_visualization_pass.cc",
@@ -112,20 +113,29 @@ cc_library(
 
 WASM_COPTS = [
     "-std=c++20",
+    "-pthread",
+    "-matomics",
     "-DWASM=1",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
     "-Wno-deprecated-declarations",
     "-fconstexpr-steps=100000000",
     "-mbulk-memory",
 ]
-WASM_LINKOPTS = dashql_wasm_linkopts(CORE_WASM_EXPORTS, 16777216, "web,node") + ["-sSTACK_SIZE=1048576"]
-
+WASM_LINKOPTS = dashql_wasm_linkopts(CORE_WASM_EXPORTS, 67108864, "web,node,worker", 2147483648) + [
+    "-pthread",
+    "-matomics",
+    "-sSTACK_SIZE=1048576",
+    "-sPTHREAD_POOL_SIZE=2",
+    "-sPTHREAD_POOL_SIZE_STRICT=1",
+    "-sALLOW_BLOCKING_ON_MAIN_THREAD=0",
+    "-sPROXY_TO_PTHREAD=0",
+]
 # Parser generated .cc compiled with -O1 only (bison output has huge local count at -O0).
 cc_library(
     name = "parser_generated_wasm",
     srcs = ["//grammar:gen/include/dashql/parser/parser_generated.cc"],
     copts = WASM_COPTS + ["-O1"],
-    features = ["wasm_exceptions", "wasm_simd"],
+    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = CORE_DEPS,
 )
@@ -134,7 +144,7 @@ cc_library(
     name = "scanner_generated_wasm",
     srcs = ["//grammar:scanner_generated"],
     copts = WASM_COPTS,
-    features = ["wasm_exceptions", "wasm_simd"],
+    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [":parser_generated_wasm"] + CORE_DEPS,
 )
@@ -143,7 +153,7 @@ cc_library(
     name = "dashql_core_wasm_library",
     srcs = LIB_SRCS,
     copts = WASM_COPTS,
-    features = ["wasm_exceptions", "wasm_simd"],
+    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
         ":parser_generated_wasm",
@@ -156,7 +166,7 @@ cc_binary(
     name = "dashql_core_wasm",
     srcs = LIB_SRCS,
     copts = WASM_COPTS,
-    features = ["wasm_exceptions", "wasm_simd"],
+    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
     linkopts = WASM_LINKOPTS,
     tags = ["manual"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
@@ -167,14 +177,35 @@ cc_binary(
 )
 
 wasm_cc_binary(
-    name = "core_wasm",
+    name = "core_wasm_unpatched",
     cc_target = ":dashql_core_wasm",
     standalone = False,
     outputs = [
+        "unpatched/dashql_core.wasm",
+        "unpatched/dashql_core.js",
+    ],
+    tags = ["manual"],
+)
+
+genrule(
+    name = "core_wasm",
+    srcs = [":core_wasm_unpatched"],
+    outs = [
         "dashql_core.wasm",
         "dashql_core.js",
     ],
-    tags = ["manual"],
+    cmd = """
+        SRCS=($(locations :core_wasm_unpatched))
+        OUTS=($(OUTS))
+        for src in $${SRCS[@]}; do
+            if [[ $$src == *.wasm ]]; then
+                cp $$src $${OUTS[0]}
+            elif [[ $$src == *.js ]]; then
+                python3 $(location utils/patch_pthread_worker_loader.py) $$src $${OUTS[1]}
+            fi
+        done
+    """,
+    tools = ["utils/patch_pthread_worker_loader.py"],
     visibility = ["//visibility:public"],
 )
 

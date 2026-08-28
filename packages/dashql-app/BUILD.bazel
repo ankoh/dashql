@@ -41,6 +41,7 @@ genrule(
     outs = [
         "dependencies/dashql-core-wasm/dashql_core.wasm",
         "dependencies/dashql-core-wasm/dashql_core.js",
+        "dependencies/dashql-core-wasm/dashql_core_wasm",
     ],
     cmd = """
         # Copy both .wasm and .js files
@@ -51,6 +52,7 @@ genrule(
                 cp $$src $${OUTS[0]}
             elif [[ $$src == *.js ]]; then
                 cp $$src $${OUTS[1]}
+                cp $$src $${OUTS[2]}
             fi
         done
     """,

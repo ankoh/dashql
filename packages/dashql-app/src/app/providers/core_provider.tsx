@@ -8,7 +8,11 @@ import { createTrace } from '../../platform/logger/trace_context.js';
 // Asset import: dedicated alias so WASM resolves independently from API (Bazel: DASHQL_CORE_WASM_PATH; local: core dist).
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
 import coreWasmUrl from '@ankoh/dashql-core-wasm?url';
+// Emscripten pthread workers reload the generated Core module itself.
+// eslint-disable-next-line import/no-unresolved -- resolved by bundler
+import coreWorkerUrl from '@ankoh/dashql-core-js?url';
 const DASHQL_WASM_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
+const DASHQL_WORKER_URL = typeof coreWorkerUrl === 'string' ? coreWorkerUrl : new URL(coreWorkerUrl as string, import.meta.url).href;
 
 export function logCoreStderr(traced: TracedLogger, text: string): void {
     // Emscripten prints an "Aborted(...)" line immediately before it throws the same failure. The
@@ -62,6 +66,9 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
             // Try to determine file size
             const request = new Request(url);
             const response = await fetch(request);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch core wasm: ${response.status} ${response.statusText}`);
+            }
             const contentLengthHdr = response.headers.get('content-length');
             const contentLength = contentLengthHdr ? parseInt(contentLengthHdr, 10) || 0 : 0;
 
@@ -83,41 +90,27 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                 },
             };
             const ts = new TransformStream(tracker);
-            const progressResponse = new Response(response.clone().body?.pipeThrough(ts), response);
-            const progressDone = progressResponse.arrayBuffer().then(() => undefined);
-            return {
-                response,
-                progressDone,
-            };
+            return new Response(response.body?.pipeThrough(ts), response);
         };
 
         const instantiate = async (): Promise<dashql.DashQL> => {
             const traced = logger.withTrace(createTrace());
             const initStart = performance.now();
             try {
-                // With JS glue code, we can intercept instantiation for progress tracking
+                const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
+                const isCrossOriginIsolated = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
+                if (!hasSharedArrayBuffer || !isCrossOriginIsolated) {
+                    throw new Error('DashQL Core requires SharedArrayBuffer and a cross-origin-isolated page');
+                }
+                traced.info("Loading core Wasm", { "context": context }, "core");
+                const response = await fetchWithProgress(DASHQL_WASM_URL, traced);
+                const wasmBinary = new Uint8Array(await response.arrayBuffer());
                 const instance = await dashql.DashQL.create({
                     // Optional: Console output handlers
                     print: (text: string) => traced.info(text, {}, "core"),
                     printErr: (text: string) => logCoreStderr(traced, text),
-
-                    // Override WASM instantiation to add progress tracking
-                    instantiateWasm: async (imports, successCallback) => {
-                        traced.info("Instantiating core", { "context": context }, "core");
-
-                        // Fetch WASM with progress
-                        const { response, progressDone } = await fetchWithProgress(DASHQL_WASM_URL, traced);
-
-                        // Instantiate with streaming compilation
-                        const result = await WebAssembly.instantiateStreaming(response, imports);
-                        await progressDone;
-
-                        // Notify Emscripten of successful instantiation
-                        successCallback(result.instance, result.module);
-
-                        // Return empty object (Emscripten expects this)
-                        return {};
-                    },
+                    mainScriptUrlOrBlob: DASHQL_WORKER_URL,
+                    wasmBinary,
                 });
 
                 const initEnd = performance.now();

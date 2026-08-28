@@ -77,6 +77,7 @@ describe('restoreAppState', () => {
             createCatalog: vi.fn(() => ({
                 dropScript: vi.fn(),
                 loadScript: vi.fn(),
+                loadScripts: vi.fn(),
                 destroy: vi.fn(),
             })),
             createEditorSession: vi.fn(() => {
@@ -106,6 +107,7 @@ describe('restoreAppState', () => {
             createScript: vi.fn(() => ({
                 replaceText: vi.fn(),
                 analyze: vi.fn(),
+                analyzeAsync: vi.fn(async () => {}),
                 toString: vi.fn(() => ''),
                 getParsed: vi.fn(() => null),
                 destroy: vi.fn(),
@@ -563,8 +565,10 @@ describe('restoreAppState', () => {
 
         // Verify catalogRelationScript was updated with schema
         expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledWith(schemaSQL);
-        expect(connection.catalogRelationScript.analyze).toHaveBeenCalled();
-        expect(connection.catalog.loadScript).toHaveBeenCalled();
+        expect(connection.catalogRelationScript.analyzeAsync).toHaveBeenCalled();
+        expect(connection.catalog.loadScripts).toHaveBeenCalledWith([
+            [connection.catalogRelationScript, expect.any(Number)],
+        ]);
     });
 
     it('restores catalog functions eagerly', async () => {
@@ -589,11 +593,10 @@ describe('restoreAppState', () => {
         const connection = result.connectionStates.get(result.connectionByNotebook.get(SCHEMA_ID)!)!;
 
         expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledWith(functionsSQL);
-        expect(connection.catalogFunctionScript.analyze).toHaveBeenCalled();
-        expect(connection.catalog.loadScript).toHaveBeenCalledWith(
-            connection.catalogFunctionScript,
-            expect.any(Number),
-        );
+        expect(connection.catalogFunctionScript.analyzeAsync).toHaveBeenCalled();
+        expect(connection.catalog.loadScripts).toHaveBeenCalledWith([
+            [connection.catalogFunctionScript, expect.any(Number)],
+        ]);
     });
 
     it('handles catalog restoration failure gracefully', async () => {

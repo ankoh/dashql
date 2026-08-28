@@ -45,6 +45,8 @@ class Exception : public std::exception {
                 return "Script is not parsed";
             case buffers::status::StatusCode::SCRIPT_NOT_ANALYZED:
                 return "Script is not analyzed";
+            case buffers::status::StatusCode::SCRIPT_BUSY:
+                return "Script has an active asynchronous analysis job";
             case buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED:
                 return "Unanalyzed scripts cannot be added to the catalog";
             case buffers::status::StatusCode::CATALOG_SCRIPT_UNKNOWN:

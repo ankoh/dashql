@@ -96,4 +96,73 @@ describe('DashQL scripts', () => {
         schema.destroy();
         catalog.destroy();
     });
+
+    it('resolves asynchronous analysis from the completion callback and always releases the job', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, 'select 1');
+        const exports = dql!.instanceExports;
+        const originalRelease = exports.dashql_script_analysis_job_release;
+        let released = 0;
+        exports.dashql_script_analysis_job_release = (job) => {
+            ++released;
+            originalRelease(job);
+        };
+        try {
+            await script.analyzeAsync();
+            expect(released).toBe(1);
+            expect(script.getAnalyzed()).not.toBeNull();
+        } finally {
+            exports.dashql_script_analysis_job_release = originalRelease;
+            script.destroy();
+            catalog.destroy();
+        }
+    });
+
+    it('accepts completion before the promise handler is registered', async () => {
+        const exports = dql!.instanceExports;
+        const originalSubmit = exports.dashql_script_analyze_async;
+        const originalRelease = exports.dashql_script_analysis_job_release;
+        const jobId = 0xffff;
+        let released = 0;
+        exports.dashql_script_analyze_async = () => {
+            dql!.module.onDashQLAnalysisJobComplete!(jobId, 3);
+            return jobId;
+        };
+        exports.dashql_script_analysis_job_release = () => { ++released; };
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        try {
+            await script.analyzeAsync();
+            expect(released).toBe(1);
+        } finally {
+            exports.dashql_script_analyze_async = originalSubmit;
+            exports.dashql_script_analysis_job_release = originalRelease;
+            script.destroy();
+            catalog.destroy();
+        }
+    });
+
+    it('rejects asynchronous worker errors and releases the job', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        const exports = dql!.instanceExports;
+        const originalRelease = exports.dashql_script_analysis_job_release;
+        let released = 0;
+        exports.dashql_script_analysis_job_release = (job) => {
+            ++released;
+            originalRelease(job);
+        };
+        try {
+            await expect(script.analyzeAsync(false)).rejects.toMatchObject({
+                name: 'AsyncAnalysisError',
+                message: 'Script is not parsed',
+            });
+            expect(released).toBe(1);
+        } finally {
+            exports.dashql_script_analysis_job_release = originalRelease;
+            script.destroy();
+            catalog.destroy();
+        }
+    });
 });

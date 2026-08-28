@@ -3,15 +3,34 @@
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 
+#include <atomic>
+#include <chrono>
+#include <future>
+#include <shared_mutex>
+#include <string>
+#include <vector>
+
 #include "dashql/analyzer/analyzer.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
+#include "dashql/exception.h"
 #include "dashql/script.h"
 #include "gtest/gtest.h"
 
 using namespace dashql;
 
 namespace {
+
+class LockInspectableCatalog : public Catalog {
+   public:
+    bool TryLockStateExclusive() {
+        if (!state_mutex.try_lock()) {
+            return false;
+        }
+        state_mutex.unlock();
+        return true;
+    }
+};
 
 TEST(CatalogTest, FlattenEmpty) {
     Catalog catalog;
@@ -146,6 +165,131 @@ TEST(CatalogTest, FlattenExampleSchema) {
     ASSERT_EQ(flat->catalog_version(), catalog.GetVersion());
     ASSERT_EQ(flat->databases()->size(), 1);
     ASSERT_EQ(flat->schemas()->size(), 1);
+}
+
+TEST(CatalogTest, LoadScriptsPublishesOneRankedGeneration) {
+    Catalog catalog;
+    Script relations{catalog};
+    Script functions{catalog};
+    relations.InsertTextAt(0, "create table db.schema.items(id int);");
+    functions.InsertTextAt(0, "create function db.schema.item_count() returns int;");
+    relations.Analyze();
+    functions.Analyze();
+    auto previous_version = catalog.GetVersion();
+
+    const Catalog::ScriptBatchEntry batch[] = {{&relations, 20}, {&functions, 10}};
+    ASSERT_NO_THROW(catalog.LoadScripts(batch));
+
+    EXPECT_EQ(catalog.GetVersion(), previous_version + 1);
+    EXPECT_TRUE(catalog.Contains(relations.GetCatalogEntryId()));
+    EXPECT_TRUE(catalog.Contains(functions.GetCatalogEntryId()));
+    std::vector<std::tuple<CatalogEntryID, CatalogEntry::Rank, size_t, size_t>> entries;
+    catalog.IterateRanked([&](auto id, auto& entry, auto rank) {
+        entries.emplace_back(id, rank, entry.GetTables().GetSize(), entry.GetFunctions().GetSize());
+    });
+    ASSERT_EQ(entries.size(), 2);
+    EXPECT_EQ(entries[0], std::make_tuple(functions.GetCatalogEntryId(), 10, 0, 1));
+    EXPECT_EQ(entries[1], std::make_tuple(relations.GetCatalogEntryId(), 20, 1, 0));
+}
+
+TEST(CatalogTest, LoadScriptsUpdatesLoadedScriptsAndRanksOnce) {
+    Catalog catalog;
+    Script first{catalog};
+    Script second{catalog};
+    first.InsertTextAt(0, "create table db.schema.old_table(id int);");
+    second.InsertTextAt(0, "create table db.schema.second_table(id int);");
+    first.Analyze();
+    second.Analyze();
+    catalog.LoadScript(first, 1);
+    catalog.LoadScript(second, 2);
+
+    first.ReplaceText("create table db.schema.new_table(id int);");
+    first.Analyze();
+    auto previous_version = catalog.GetVersion();
+    const Catalog::ScriptBatchEntry batch[] = {{&first, 30}, {&second, 20}};
+    catalog.LoadScripts(batch);
+
+    EXPECT_EQ(catalog.GetVersion(), previous_version + 1);
+    std::vector<std::pair<CatalogEntryID, CatalogEntry::Rank>> ranked;
+    catalog.IterateRanked([&](auto id, auto&, auto rank) { ranked.emplace_back(id, rank); });
+    EXPECT_EQ(ranked, (std::vector<std::pair<CatalogEntryID, CatalogEntry::Rank>>{
+                          {second.GetCatalogEntryId(), 20}, {first.GetCatalogEntryId(), 30}}));
+    bool found_new_table = false;
+    catalog.Iterate([&](auto id, auto& entry) {
+        if (id == first.GetCatalogEntryId()) {
+            ASSERT_EQ(entry.GetTables().GetSize(), 1);
+            found_new_table = entry.GetTables()[0].table_name.table_name.get().text == "new_table";
+        }
+    });
+    EXPECT_TRUE(found_new_table);
+}
+
+TEST(CatalogTest, LoadScriptsValidationFailurePreservesCatalog) {
+    Catalog catalog;
+    Catalog other_catalog;
+    Script loaded{catalog};
+    Script valid{catalog};
+    Script unanalyzed{catalog};
+    Script mismatched{other_catalog};
+    loaded.InsertTextAt(0, "create table db.schema.loaded(id int);");
+    valid.InsertTextAt(0, "create table db.schema.valid(id int);");
+    mismatched.InsertTextAt(0, "create table db.schema.other(id int);");
+    loaded.Analyze();
+    valid.Analyze();
+    mismatched.Analyze();
+    catalog.LoadScript(loaded, 1);
+    auto previous_version = catalog.GetVersion();
+
+    const Catalog::ScriptBatchEntry unanalyzed_batch[] = {{&valid, 2}, {&unanalyzed, 3}};
+    EXPECT_THROW(catalog.LoadScripts(unanalyzed_batch), Exception);
+    EXPECT_EQ(catalog.GetVersion(), previous_version);
+    EXPECT_TRUE(catalog.Contains(loaded.GetCatalogEntryId()));
+    EXPECT_FALSE(catalog.Contains(valid.GetCatalogEntryId()));
+
+    const Catalog::ScriptBatchEntry duplicate_batch[] = {{&valid, 2}, {&valid, 3}};
+    EXPECT_THROW(catalog.LoadScripts(duplicate_batch), Exception);
+    EXPECT_EQ(catalog.GetVersion(), previous_version);
+    EXPECT_FALSE(catalog.Contains(valid.GetCatalogEntryId()));
+
+    const Catalog::ScriptBatchEntry mismatch_batch[] = {{&valid, 2}, {&mismatched, 3}};
+    EXPECT_THROW(catalog.LoadScripts(mismatch_batch), Exception);
+    EXPECT_EQ(catalog.GetVersion(), previous_version);
+    EXPECT_FALSE(catalog.Contains(valid.GetCatalogEntryId()));
+}
+
+TEST(CatalogTest, WriterWaitsForActiveAnalysis) {
+    using namespace std::chrono_literals;
+
+    LockInspectableCatalog catalog;
+    Script script{catalog};
+    std::string declarations;
+    declarations.reserve(250'000);
+    for (size_t i = 0; i < 5'000; ++i) {
+        declarations += "create table db.schema.table_" + std::to_string(i) + "(a int);";
+    }
+    script.InsertTextAt(0, declarations);
+
+    std::atomic<bool> analysis_finished = false;
+    auto analysis = std::async(std::launch::async, [&] {
+        script.Analyze();
+        analysis_finished.store(true, std::memory_order_release);
+    });
+
+    bool observed_active_analysis = false;
+    while (!analysis_finished.load(std::memory_order_acquire)) {
+        if (!catalog.TryLockStateExclusive()) {
+            observed_active_analysis = true;
+            break;
+        }
+        std::this_thread::yield();
+    }
+    ASSERT_TRUE(observed_active_analysis);
+
+    auto writer = std::async(std::launch::async, [&] { catalog.Clear(); });
+    EXPECT_EQ(writer.wait_for(1ms), std::future_status::timeout);
+    analysis.get();
+    EXPECT_EQ(writer.wait_for(5s), std::future_status::ready);
+    writer.get();
 }
 
 }  // namespace

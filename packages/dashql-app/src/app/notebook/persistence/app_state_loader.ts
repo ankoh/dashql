@@ -1,4 +1,4 @@
-import type { DashQL } from '../../../core/api.js';
+import type { DashQL, DashQLScript } from '../../../core/api.js';
 import type { Logger } from '../../../platform/logger/logger.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { ProgressCounter } from '../../../utils/progress.js';
@@ -293,65 +293,49 @@ async function restoreNotebookEntry(
     });
 
     try {
-        // Load catalog schema SQL from storage
-        logger.info("Loading catalog schema", { notebookId }, LOG_CTX);
-        const schemaSQL = await backend.loadNotebookSchema(notebookId);
+        logger.info("Loading catalog scripts", { notebookId }, LOG_CTX);
+        const [schemaSQL, functionsSQL] = await Promise.all([
+            backend.loadNotebookSchema(notebookId),
+            backend.loadNotebookFunctions(notebookId),
+        ]);
+        const { catalog, catalogRelationScript, catalogFunctionScript } = connectionState;
+        const catalogScripts: Array<readonly [DashQLScript, number]> = [];
+        const analyses: Array<Promise<void>> = [];
+
         if (schemaSQL && schemaSQL.trim().length > 0) {
             logger.info("Catalog schema loaded", {
                 notebookId,
                 schemaLength: schemaSQL.length.toString()
             }, LOG_CTX);
-
-            const { catalog, catalogRelationScript } = connectionState;
-
-            // Apply schema to catalog script
             logger.info("Analyzing catalog schema", { notebookId }, LOG_CTX);
             catalogRelationScript.replaceText(schemaSQL);
-            catalogRelationScript.analyze();
-
-            // Load into catalog (drop old first if exists)
-            logger.info("Loading catalog schema into catalog", { notebookId }, LOG_CTX);
-            try {
-                catalog.dropScript(catalogRelationScript);
-            } catch (e) {
-                // Script not loaded yet, ignore
-            }
-            catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
-
-            // Mark as restored
-            connectionState.catalogUpdates.restoredAt = new Date();
-
-            const catalogDuration = performance.now() - catalogStartTime;
-            logger.info("Catalog schema restored", {
-                notebookId,
-                schemaLength: schemaSQL.length.toString(),
-                durationMs: catalogDuration.toFixed(2)
-            }, LOG_CTX);
+            analyses.push(catalogRelationScript.analyzeAsync());
+            catalogScripts.push([catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK]);
         } else {
             logger.info("No catalog schema found for notebook", { notebookId }, LOG_CTX);
         }
 
-        // Load function catalog SQL from storage
-        const functionsSQL = await backend.loadNotebookFunctions(notebookId);
         if (functionsSQL && functionsSQL.trim().length > 0) {
             logger.info("Catalog functions loaded", {
                 notebookId,
                 functionsLength: functionsSQL.length.toString()
             }, LOG_CTX);
-
-            const { catalog, catalogFunctionScript } = connectionState;
-
             catalogFunctionScript.replaceText(functionsSQL);
-            catalogFunctionScript.analyze();
+            analyses.push(catalogFunctionScript.analyzeAsync());
+            catalogScripts.push([catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK]);
+        }
 
-            try {
-                catalog.dropScript(catalogFunctionScript);
-            } catch (e) {
-                // Script not loaded yet, ignore
-            }
-            catalog.loadScript(catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+        if (analyses.length > 0) {
+            await Promise.all(analyses);
+            logger.info("Loading catalog scripts into catalog", { notebookId }, LOG_CTX);
+            catalog.loadScripts(catalogScripts);
+            connectionState.catalogUpdates.restoredAt = new Date();
 
-            logger.info("Catalog functions restored", { notebookId }, LOG_CTX);
+            const catalogDuration = performance.now() - catalogStartTime;
+            logger.info("Catalog scripts restored", {
+                notebookId,
+                durationMs: catalogDuration.toFixed(2)
+            }, LOG_CTX);
         }
 
         restoreCatalogs.addSucceeded();
