@@ -150,7 +150,7 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
             aria-label={`Query execution plan with ${scene.operators.length} operators`}
             tabIndex={0}
             onKeyDown={onKeyDown}
-            data-tauri-drag-region="false"
+            data-electron-drag-region="false"
         >
             <svg ref={svgRef} className={styles.svg} onClick={event => {
                 if (event.target === svgRef.current) setSelection(null);

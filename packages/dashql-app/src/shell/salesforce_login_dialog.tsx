@@ -44,6 +44,7 @@ export interface SalesforceLoginDialogHookResult {
 
 export interface SalesforceLoginDialogOptions {
     openOAuthPopup?: () => Window | null;
+    nativeOAuth?: boolean;
     hasAlias?: (alias: string) => boolean;
     loadHistory?: () => Promise<SalesforceLoginHistoryEntry[]>;
     deleteHistoryEntry?: (organizationId: string) => Promise<SalesforceLoginHistoryEntry[]>;
@@ -191,6 +192,7 @@ export function useSalesforceLoginDialog(
         dialog: isOpen ? (
             <SalesforceLoginDialog
                 openOAuthPopup={openOAuthPopup}
+                nativeOAuth={options.nativeOAuth ?? false}
                 state={dialogState}
                 abortSignal={pendingRequestRef.current?.abortController.signal}
                 hasAlias={options.hasAlias}
@@ -205,6 +207,7 @@ export function useSalesforceLoginDialog(
 
 interface SalesforceLoginDialogProps {
     openOAuthPopup: () => Window | null;
+    nativeOAuth: boolean;
     state: DialogState;
     abortSignal?: AbortSignal;
     hasAlias?: (alias: string) => boolean;
@@ -292,8 +295,8 @@ function SalesforceLoginDialog(props: SalesforceLoginDialogProps) {
         }
         if (!valid) return;
 
-        const oauthPopup = props.openOAuthPopup();
-        if (!oauthPopup) {
+        const oauthPopup = props.nativeOAuth ? undefined : props.openOAuthPopup();
+        if (!props.nativeOAuth && !oauthPopup) {
             setAppConsumerValidation({ type: VALIDATION_ERROR, value: 'OAuth window was blocked. Allow popups for this site, then try again' });
             return;
         }

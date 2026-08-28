@@ -244,7 +244,7 @@ Retain a non-pthread Core build as a compatibility fallback for environments wit
 
 The fallback preserves existing synchronous behavior and API compatibility, but catalog analysis continues to block the event loop.
 
-The Vite build must be checked to ensure that Emscripten's pthread self-loader and generated worker URLs remain valid after asset hashing and bundling. The existing Pages and development COOP/COEP headers must apply to all Core worker resources. Tauri/WebKit support requires separate validation because its production assets use a custom scheme.
+The Vite build must be checked to ensure that Emscripten's pthread self-loader and generated worker URLs remain valid after asset hashing and bundling. The existing Pages, development, and Electron loopback-server COOP/COEP headers must apply to all Core worker resources.
 
 ## Batch Catalog Commit
 

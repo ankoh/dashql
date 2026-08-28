@@ -239,6 +239,23 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         const notebookScripts = props.notebookScripts;
         const scriptKey = notebookScripts.uncommittedScriptId;
         const scriptData = notebookScripts.scripts[scriptKey];
+        const editorTextLength = composeEditorView?.state?.doc?.length ?? -1;
+        const nativeTextLength = scriptData?.editorSession.getText().length ?? -1;
+        logger?.info("Draft action requested", {
+            notebookId: notebookScripts.notebookId,
+            action: execute ? 'execute' : 'save',
+            scriptKey: scriptKey.toString(),
+            scriptFound: (scriptData != null).toString(),
+            disconnected: isDisconnected.toString(),
+            editorHasFocus: (composeEditorView?.hasFocus ?? false).toString(),
+            editorTextLength: editorTextLength.toString(),
+            nativeTextLength: nativeTextLength.toString(),
+            textLengthsMatch: (editorTextLength === nativeTextLength).toString(),
+            editorDocumentRevision: scriptData?.editorUpdate?.documentRevision.toString(),
+            nativeDocumentRevision: scriptData?.editorSession.getDocumentRevision?.().toString(),
+            analysisOutdated: scriptData?.analysisOutdated.toString(),
+            analysisAvailable: scriptData?.editorUpdate?.analysisAvailable.toString(),
+        }, 'notebook_feed', true);
 
         // The compose editor keeps the draft analyzed as it is typed, so the
         // resolved VISUALIZE query / derived annotations are already present (and
@@ -260,9 +277,22 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                     userProvided: true
                 }
             });
+            logger?.info("Draft query allocated", {
+                notebookId: notebookScripts.notebookId,
+                scriptKey: scriptKey.toString(),
+                queryId: queryId.toString(),
+                queryLength: queryText.length.toString(),
+            }, 'notebook_feed', true);
             registerNotebookScriptQuery(scriptData, queryId, queryText, execution, props.modifyNotebookScripts);
+        } else if (execute) {
+            logger?.warn("Draft execution stopped before query allocation", {
+                notebookId: notebookScripts.notebookId,
+                scriptKey: scriptKey.toString(),
+                disconnected: isDisconnected.toString(),
+                queryLength: queryText.length.toString(),
+            }, 'notebook_feed', true);
         }
-    }, [props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery]);
+    }, [props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, composeEditorView, logger]);
 
     // Refresh: drop the stale cache entry for a script's result, then re-execute — a plain cacheable
     // run then misses the cache and re-populates it. Resolves the script by feed file name.
@@ -403,6 +433,10 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                 if (!feedActive || !composeEditorView?.hasFocus) {
                     return;
                 }
+                logger?.info("Draft Ctrl+Enter received", {
+                    notebookId: props.notebookScripts.notebookId,
+                    scriptKey: props.notebookScripts.uncommittedScriptId.toString(),
+                }, 'notebook_feed', true);
                 event.preventDefault();
                 handleComposeSend();
             },
@@ -466,10 +500,16 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                 if (!feedActive || !composeEditorView?.hasFocus) {
                     return;
                 }
+                logger?.info("Draft Ctrl+E received; executing draft", {
+                    notebookId: props.notebookScripts.notebookId,
+                    scriptKey: props.notebookScripts.uncommittedScriptId.toString(),
+                }, 'notebook_feed', true);
+                event.preventDefault();
                 event.stopPropagation();
+                handleComposeSend();
             },
         },
-    ], [feedActive, composeEditorView, handleComposeSend, props.notebookScripts, handleAcceptDiff, handleRejectDiff]);
+    ], [feedActive, composeEditorView, handleComposeSend, props.notebookScripts, handleAcceptDiff, handleRejectDiff, logger]);
     useKeyEvents(keyHandlers);
 
     const feedLayout = useNotebookFeedLayout(entries, props.scrollTarget, pendingScrollToBottomRef);
@@ -516,7 +556,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     return (
         <div
             className={styles.feed_body_container}
-            data-tauri-drag-region="deep"
             style={{ '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px` } as React.CSSProperties}
         >
             <div className={styles.feed_list_container} ref={feedLayout.listContainerRef}>
@@ -544,7 +583,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                     rowProps={rowProps}
                 />
             </div>
-            <div className={styles.compose_section} ref={feedLayout.composeSectionRef}>
+            <div className={styles.compose_section} ref={feedLayout.composeSectionRef} data-electron-drag-region="false">
                 <NotebookFeedComposer
                     notebookId={notebookId}
                     scriptKey={getUncommittedScriptData(props.notebookScripts)?.scriptKey ?? 0}

@@ -1,5 +1,5 @@
 {
-    "name": "@ankoh/dashql-electron",
+    "name": "@ankoh/dashql-native",
     "version": "0.0.2-dev.17",
     "description": "DashQL desktop application",
     "author": "DashQL",

@@ -34,7 +34,7 @@ import { resolveSalesforceCatalog } from '../app/notebook/connections/salesforce
 import { fetchPrefetchedHyperFunctions } from '../app/notebook/connections/prefetched_hyper_functions.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
-import { usePlatformType } from '../platform/platform_type.js';
+import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { useAppConfig } from '../app/config/app_config.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
 import * as styles from './shell_page.module.css';
@@ -64,6 +64,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const loginHistoryRef = React.useRef(new SalesforceLoginHistoryStore());
     const attachmentManagerRef = React.useRef<SalesforceRemoteAttachmentManager | null>(null);
     const { controller: loginDialog, dialog } = useSalesforceLoginDialog({
+        nativeOAuth: platformType !== PlatformType.WEB,
         hasAlias: (alias: string) => attachmentManagerRef.current?.hasAlias(alias) ?? false,
         loadHistory: () => loginHistoryRef.current.load(),
         deleteHistoryEntry: organizationId => loginHistoryRef.current.delete(organizationId),
@@ -137,6 +138,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         onProgress: progress => {
                             const messages: Partial<Record<typeof progress.stage, string>> = {
                                 GENERATING_PKCE_CHALLENGE: 'Preparing secure Salesforce login',
+                                OAUTH_NATIVE_LINK_OPENED: 'Waiting for Salesforce authorization in your browser',
                                 OAUTH_WEB_WINDOW_OPENED: 'Waiting for Salesforce authorization',
                                 REQUESTING_CORE_AUTH_TOKEN: 'Exchanging Salesforce authorization code',
                                 REQUESTING_DATA_CLOUD_ACCESS_TOKEN: 'Requesting Data Cloud credentials',

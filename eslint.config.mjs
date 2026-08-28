@@ -40,7 +40,6 @@ const config = ts.config(
             "target/*",
             "node_modules/*",
             "packages/dashql-core/**",
-            "packages/dashql-native/**",
             "packages/dashql-pack/**",
         ],
     }

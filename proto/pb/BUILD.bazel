@@ -15,7 +15,7 @@ exports_files([
     "salesforce/hyperdb/grpc/v1/error_details.proto",
 ])
 
-# Proto sources for dashql-native (tonic_build in build.rs).
+# Proto sources for native Rust consumers.
 # Note: the native proxy only forwards the opaque `grpc-status-details-bin`
 # bytes, it never parses google.rpc.Status / ErrorInfo, so those protos are
 # intentionally NOT compiled into Rust.

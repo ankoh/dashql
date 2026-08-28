@@ -6,9 +6,9 @@ import {promisify} from "node:util";
 import {fileURLToPath} from "node:url";
 import {brotliDecompress} from "node:zlib";
 
-import {app, BrowserWindow, dialog, ipcMain, protocol, utilityProcess} from "electron";
+import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProcess} from "electron";
 
-import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, resolveAppRequest} from "./app_protocol.js";
+import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
 import {GrpcTestServer, GRPC_TEST_REQUEST, GRPC_TEST_STREAM_BODY, GRPC_TEST_UNARY_RESPONSE} from "./grpc_test_server.js";
 import {NativeProxyService, type NativeProxyRequest, validateNativeProxyRequest} from "./native_proxy.js";
@@ -27,6 +27,7 @@ protocol.registerSchemesAsPrivileged([
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
 const rendererRoot = process.env.DASHQL_ELECTRON_RENDERER ?? path.join(process.resourcesPath, "renderer");
+const rendererDevOrigin = parseRendererDevOrigin(process.env.DASHQL_ELECTRON_RENDERER_URL);
 const decompressBrotli = promisify(brotliDecompress);
 const deepLinks = new DeepLinkQueue();
 let nativeProxy: NativeProxyService | null = null;
@@ -103,6 +104,20 @@ async function createWindow(testMode: RendererTestMode): Promise<BrowserWindow> 
         },
     });
     window.webContents.setWindowOpenHandler(() => ({action: "deny"}));
+    if (rendererDevOrigin !== null) {
+        window.webContents.on("context-menu", (_event, params) => {
+            Menu.buildFromTemplate([
+                {
+                    label: "Reload",
+                    click: () => window.webContents.reload(),
+                },
+                {
+                    label: "Inspect Element",
+                    click: () => window.webContents.inspectElement(params.x, params.y),
+                },
+            ]).popup({window});
+        });
+    }
     if (testMode !== null) {
         window.webContents.on("console-message", (_event, level, message) => {
             console.error(`[renderer:${level}] ${message}`);
@@ -115,14 +130,14 @@ async function createWindow(testMode: RendererTestMode): Promise<BrowserWindow> 
         });
     }
     window.webContents.on("will-navigate", (event, target) => {
-        if (!target.startsWith(`${APP_ORIGIN}/`)) {
+        if (!isTrustedRendererUrl(target, rendererDevOrigin)) {
             event.preventDefault();
         }
     });
     const target = testMode === "capability" || testMode?.startsWith("persistence-")
         ? `hyperdb-capability.html?mode=${testMode}`
         : "index.html";
-    await window.loadURL(`${APP_ORIGIN}/${target}`);
+    await window.loadURL(`${rendererDevOrigin ?? APP_ORIGIN}/${target}`);
     window.on("closed", () => {
         if (mainWindow === window) mainWindow = null;
         deepLinks.detach();
@@ -417,7 +432,7 @@ async function runNativeAddonTest(): Promise<void> {
 }
 
 function isTrustedRenderer(url: string | undefined): boolean {
-    return url !== undefined && url.startsWith(`${APP_ORIGIN}/`);
+    return isTrustedRendererUrl(url, rendererDevOrigin);
 }
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -519,6 +534,15 @@ if (!hasSingleInstanceLock) {
             electron: process.versions.electron,
             node: process.versions.node,
         };
+    });
+
+    ipcMain.handle("dashql:open-external", async (event, requestedUrl: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || typeof requestedUrl !== "string") {
+            throw new Error("Rejected external URL request");
+        }
+        const url = new URL(requestedUrl);
+        if (url.protocol !== "https:") throw new Error("Rejected external URL request");
+        await shell.openExternal(url.toString());
     });
 
     ipcMain.handle("dashql:update-status", (event) => {

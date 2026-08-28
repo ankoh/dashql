@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
         method: request.method,
         url: request.url,
     }),
+    openExternal: async (url) => await ipcRenderer.invoke("dashql:open-external", url),
     updates: {
         check: async () => await ipcRenderer.invoke("dashql:check-for-updates"),
         download: async () => await ipcRenderer.invoke("dashql:download-update"),

@@ -5,10 +5,8 @@ try-import %workspace%/.bazelrc.user
 common --experimental_isolated_extension_usages
 common --enable_platform_specific_config
 
-# Align exec (proc-macro) and target compilation modes so that
-# cfg(debug_assertions)-gated struct fields match in generated code.
-# Tauri's generate_context!() can otherwise emit code that mismatches
-# release targets when host/proc-macro compilation stays in fastbuild.
+# Keep host tools aligned with the default target compilation mode. Release
+# builds override this below so proc macros and their targets use opt together.
 build --host_compilation_mode=fastbuild
 
 # Use Clang + LLD on Linux.

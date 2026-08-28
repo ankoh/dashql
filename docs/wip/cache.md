@@ -10,7 +10,7 @@ result straight from disk instead of hitting the backend.
 
 The cache is entirely file-based and self-managing:
 - A `cache/` folder inside each notebook's storage holds `<sha256hex>.arrow` files.
-- For native (Tauri) notebooks, a top-level `.gitignore` in the notebook folder excludes `cache/`.
+- For native notebooks, a top-level `.gitignore` in the notebook folder excludes `cache/`.
 - When storing a new result we evict least-recently-used files until we're under a size **and** a
   file-count threshold, then write the new file.
 
@@ -65,7 +65,7 @@ export async function evictToFit(store, notebookId, incomingBytes, maxBytes?, ma
   `lastModified`; then `createWritable`/`write(bytes)`/`close`.
 
 ### 4. Native backend — `platform/storage/native_storage_backend.ts`
-- Import `readFile`, `writeFile`, `stat` from `@tauri-apps/plugin-fs`. (`readDir` DirEntry gives only
+- Import `readFile`, `writeFile`, and `stat` from `platform/electron_fs`. (`readDir` entries give only
   `name`/`isFile` — no size/mtime — so eviction must `stat()` each `*.arrow` file.)
 - `loadQueryResultCache`: `abs('cache/'+hash+'.arrow')`, `exists` guard, `readFile`.
 - `saveQueryResultCache`: `ensureDir('cache')`; lazily write `<dir>/.gitignore` (`cache/`) only if it
@@ -119,7 +119,7 @@ catalog/health-check callers untouched.
 
 ## Correctness notes
 - **Eviction split**: LRU policy lives once in `evictToFit`; only list-with-stat and delete differ
-  per backend, exposed via `QueryResultCacheStore`. Keeps OPFS/Tauri types out of the shared module
+  per backend, exposed via `QueryResultCacheStore`. Keeps OPFS/Electron types out of the shared module
   and makes the policy unit-testable with an in-memory store.
 - **Recency = write time only.** A cache *hit* does not re-touch the file (OPFS has no `utimes`).
   Documented and accepted.
@@ -154,7 +154,7 @@ Tests must run via **bazel**, never `npx vitest` directly (confirm the exact tar
    block" into testable helpers and cover: miss calls connector then writes cache; hit decodes bytes
    and skips the connector; `cacheable` false never touches the cache; catalog/health-check queries
    never cache.
-5. **Manual (Tauri native notebook)**: run a user query, confirm `<dir>/cache/<hash>.arrow` and
+5. **Manual (Electron native notebook)**: run a user query, confirm `<dir>/cache/<hash>.arrow` and
    `<dir>/.gitignore` (containing `cache/`) appear; re-run the same query and confirm it serves from
    cache (log line + no backend round-trip); edit the SQL and confirm a new cache file; exceed the
    thresholds (temporarily lower them) and confirm oldest files are evicted.

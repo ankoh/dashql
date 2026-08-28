@@ -34,9 +34,8 @@ the "Endpoint URL" at the gateway and adds an `Authorization` header.
   them. Because it's a **Rust** crate (not a JS package), living under `packages/` is safe —
   pnpm's `packages/*` glob only adopts dirs containing a `package.json`, and this crate has
   none. Isolation from the root Cargo workspace is achieved by two facts:
-  - The root `Cargo.toml` uses an **explicit `members` list** (not a glob) — its members are
-    `packages/dashql-native`, `packages/tauri-aclgen`, `packages/dashql-pack`. A crate not on
-    that list is not pulled in.
+   - The root `Cargo.toml` uses an **explicit `members` list** (not a glob). A crate not on that
+     list is not pulled in.
   - `packages/dashql-cloud/Cargo.toml` carries its **own `[workspace]` table**, making it an
     isolated workspace root so Cargo doesn't try to attach it to the parent (and Bazel's
     `crate_universe`, which consumes the root workspace, never ingests it).

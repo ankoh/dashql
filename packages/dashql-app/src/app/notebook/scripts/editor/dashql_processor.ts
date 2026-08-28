@@ -6,6 +6,7 @@ import { deriveFocusFromEditorUpdate, SemanticUserFocus } from '../focus.js';
 import { CompletionPatch, computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
+const LOG_PREFIX = '[notebook-editor-debug]';
 
 /// A script key
 export type DashQLScriptKey = number;
@@ -283,6 +284,15 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         // No editor session at all?
         // Then abort early, nothing to do here
         if (state.editorSession == null) {
+            if (transaction.docChanged || selectionChanged) {
+                console.warn(`${LOG_PREFIX} ignored CodeMirror transaction without editor session`, {
+                    scriptKey: state.scriptKey,
+                    docChanged: transaction.docChanged,
+                    selectionChanged,
+                    documentLength: transaction.newDoc.length,
+                    cursorOffset: selection,
+                });
+            }
             return state;
         }
 
@@ -291,11 +301,32 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         if (transaction.docChanged || selectionChanged || state.editorUpdate?.primaryCursorState == null) {
             state = copyLazily(state, prevState);
             const editorSession = state.editorSession!;
+            const expectedDocumentRevision = editorSession.getDocumentRevision();
             const update = editorSession.apply(transactionToEditorEvent(
                 transaction,
-                editorSession.getDocumentRevision(),
+                expectedDocumentRevision,
             ));
+            console.debug(`${LOG_PREFIX} applied CodeMirror transaction`, {
+                scriptKey: state.scriptKey,
+                docChanged: transaction.docChanged,
+                selectionChanged,
+                expectedDocumentRevision,
+                resultDocumentRevision: update.documentRevision,
+                resultStateRevision: update.stateRevision,
+                status: update.status,
+                statusMessage: update.statusMessage,
+                analysisAvailable: update.analysisAvailable,
+                analysisUpdated: update.analysisUpdated,
+                documentLength: transaction.newDoc.length,
+                cursorOffset: selection,
+            });
             if (update.status !== dashql.buffers.editor.EditorUpdateStatus.OK) {
+                console.error(`${LOG_PREFIX} native editor session rejected CodeMirror transaction`, {
+                    scriptKey: state.scriptKey,
+                    expectedDocumentRevision,
+                    status: update.status,
+                    statusMessage: update.statusMessage,
+                });
                 throw new Error(editorUpdateMessage(update));
             }
             state.editorUpdate = update;
@@ -316,6 +347,14 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         // It's the responsibility of the user to persist anything here and cleanup whatever is now dead.
         // We cannot do that on behalf of the user since CodeMirror lacks "destroy" lifecycle hooks.
         if (prevState !== state && !externalUpdate) {
+            console.debug(`${LOG_PREFIX} emitting processor update`, {
+                scriptKey: state.scriptKey,
+                documentRevision: state.editorUpdate?.documentRevision,
+                stateRevision: state.editorUpdate?.stateRevision,
+                analysisAvailable: state.editorUpdate?.analysisAvailable,
+                analysisUpdated: state.editorUpdate?.analysisUpdated,
+                cursorOffset: state.editorUpdate?.primaryCursorState?.textOffset?.toString(),
+            });
             state.onUpdate(state);
         }
         return state;

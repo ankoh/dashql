@@ -47,6 +47,9 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
             url: request.url,
         }) as NativeProxyResponse;
     },
+    openExternal: async (url: string): Promise<void> => {
+        await ipcRenderer.invoke("dashql:open-external", url);
+    },
     onDeepLink: (listener: (data: string) => void): (() => void) => {
         const handler = (_event: Electron.IpcRendererEvent, data: string) => listener(data);
         ipcRenderer.on("dashql:deep-link", handler);

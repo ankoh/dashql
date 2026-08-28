@@ -1,8 +1,8 @@
 # HyperDB WASM
 
-> **Status: WIP investigation.** This document records the current HyperDB WASM integration work
-> and, in particular, the WebKit compatibility findings for the macOS Tauri application. Update it
-> as newer WebKit builds ship in macOS.
+> **Status: Archived investigation.** This document records WebKit compatibility findings from the
+> former macOS desktop host. DashQL now ships Electron, whose Chromium runtime supports the required
+> HyperDB features; the WebKit findings below are retained only as migration history.
 
 ## WebKit compatibility
 
@@ -21,7 +21,7 @@ and setting COOP/COEP headers does not help if the WebKit build cannot compile M
 
 ### Shipping macOS WebKit
 
-DashQL's macOS application uses Tauri's system `WKWebView`. It does not bundle Chromium or select
+The former macOS application used the system `WKWebView`. It did not bundle Chromium or select
 the WebKit included with Safari Technology Preview. The tested machine ran macOS 26.6.1 with
 WebKit framework version `623.1.14`.
 
@@ -80,10 +80,10 @@ The page reported:
 This proves that current WebKit main can execute the actual HyperDB wasm64 package. It does not yet
 establish which future macOS release will ship a sufficiently new system WebKit.
 
-### Tauri custom-scheme isolation
+### Former custom-scheme isolation
 
-Production Tauri assets are served through a custom URL scheme backed by `WKURLSchemeHandler`, not
-an HTTP server. The former desktop host configured:
+The former desktop host served production assets through a custom URL scheme backed by
+`WKURLSchemeHandler`, not an HTTP server. It configured:
 
 ```json
 {
@@ -95,7 +95,7 @@ an HTTP server. The former desktop host configured:
 [WebKit bug 314080](https://bugs.webkit.org/show_bug.cgi?id=314080) reports that these headers do
 not enable cross-origin isolation for custom-scheme responses. The public bug remains open.
 
-A standalone `WKWebView` harness was created to reproduce the important Tauri behavior:
+A standalone `WKWebView` harness was created to reproduce the important former-host behavior:
 
 - `app://localhost` origin.
 - `WKURLSchemeHandler` asset responses.
@@ -118,16 +118,16 @@ custom-scheme loading semantics, OPFS setup, or another Emscripten runtime assum
 The successful loopback HTTP test separately proves that Memory64, WebAssembly exceptions, threads,
 and the HyperDB engine itself work together in current WebKit main.
 
-## Current decision
+## Historical decision
 
-- Keep native DuckDB for released macOS Tauri builds until a sufficiently new system WebKit is
+- Keep native DuckDB for the former macOS builds until a sufficiently new system WebKit is
   broadly available and the custom-scheme startup failure is resolved.
 - Treat HyperDB WASM on macOS `WKWebView` as feasible on a future WebKit release, not as a permanent
   platform incompatibility.
 - Use WebKit build archives for development experiments only.
-- Test the ordinary DashQL Tauri build on macOS 27 beta or later once its system WebKit contains
+- Test the ordinary former-host build on macOS 27 beta or later once its system WebKit contains
   `318257@main` or a corresponding released Memory64 implementation.
-- Do not use Safari Technology Preview support as evidence of Tauri support; Tauri loads the system
+- Do not use Safari Technology Preview support as evidence of embedded WebKit support; the host loaded the system
   `WKWebView` supplied by macOS.
 - Prefer capability detection over user-agent checks. At minimum, validate or compile a small
   representative Memory64 module and verify `crossOriginIsolated` plus `SharedArrayBuffer` before
@@ -137,10 +137,10 @@ and the HyperDB engine itself work together in current WebKit main.
 
 1. Run the custom-scheme harness with worker-side logging for `crossOriginIsolated`,
    `SharedArrayBuffer`, OPFS setup, and Emscripten abort details.
-2. Run the exact package in a normal DashQL Tauri build using WebKit `319159@main`, rather than only
+2. Run the exact package in a normal former-host build using WebKit `319159@main`, rather than only
    the standalone `WKWebView` harness.
 3. Repeat without framework injection on the newest macOS 27 beta to measure the shipping system
    WebKit behavior.
-4. Verify OPFS write, application termination, relaunch, and read in the packaged Tauri application.
-5. Add a browser/Tauri runtime gate before selecting HyperDB so unsupported systems retain the
+4. Verify OPFS write, application termination, relaunch, and read in the packaged application.
+5. Add a browser/WebKit runtime gate before selecting HyperDB so unsupported systems retain the
    existing DuckDB path instead of failing during module compilation.

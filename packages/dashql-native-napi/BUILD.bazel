@@ -43,7 +43,7 @@ platform_binary(
     platform = "//bazel/platforms:aarch64_macos",
     tags = ["manual"],
     target_compatible_with = ["@platforms//os:macos"],
-    visibility = ["//packages/dashql-electron:__pkg__"],
+    visibility = ["//packages/dashql-native:__pkg__"],
 )
 
 platform_binary(
@@ -52,5 +52,5 @@ platform_binary(
     platform = "//bazel/platforms:x86_64_macos",
     tags = ["manual"],
     target_compatible_with = ["@platforms//os:macos"],
-    visibility = ["//packages/dashql-electron:__pkg__"],
+    visibility = ["//packages/dashql-native:__pkg__"],
 )
