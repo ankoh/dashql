@@ -10,7 +10,7 @@ import { SegmentedControl, SegmentedControlSize } from '../../../../../ui/founda
 import { SymbolIcon } from '../../../../../ui/foundations/symbol_icon.js';
 import { JsonView } from '../../../../../ui/json/json_view.js';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../../../scripts/editor/codemirror.js';
-import { DashQLUpdateEffect, DashQLScriptBuffers, analyzeScript } from '../../../scripts/editor/dashql_processor.js';
+import { DashQLUpdateEffect } from '../../../scripts/editor/dashql_processor.js';
 import { Overlay, OverlaySize } from '../../../../../ui/foundations/overlay.js';
 import { useDashQLCoreSetup } from '../../../../providers/core_provider.js';
 import { CopyToClipboardButton } from '../../../../../utils/clipboard.js';
@@ -38,16 +38,29 @@ interface DetectedFormats {
     json: object | null;
     sql: {
         originalText: string;
-        originalScript: dashql.DashQLScript;
+        originalUpdate: dashql.buffers.editor.EditorUpdateT;
         formattedText: string | null;
-        formattedScript: dashql.DashQLScript | null;
-        catalog: dashql.DashQLCatalog;
+        formattedUpdate: dashql.buffers.editor.EditorUpdateT | null;
         hasErrors: boolean;
     } | null;
     plan: string | null;
 }
 
-function detectFormats(core: dashql.DashQL | null, value: string | null): DetectedFormats {
+function projectSqlText(
+    core: dashql.DashQL,
+    catalog: dashql.DashQLCatalog,
+    text: string,
+): dashql.buffers.editor.EditorUpdateT {
+    const session = core.createEditorSession(catalog);
+    try {
+        session.replaceText(0n, text);
+        return session.ensureAnalysis();
+    } finally {
+        session.destroy();
+    }
+}
+
+export function detectFormats(core: dashql.DashQL | null, value: string | null): DetectedFormats {
     const result: DetectedFormats = { json: null, sql: null, plan: null };
     if (value == null) return result;
 
@@ -76,7 +89,9 @@ function detectFormats(core: dashql.DashQL | null, value: string | null): Detect
             const parsed = script.getParsed();
             const hasErrors = parsed != null && (parsed.read().scannerErrorsLength() > 0 || parsed.read().parserErrorsLength() > 0);
             parsed?.destroy();
+            const originalUpdate = projectSqlText(core, catalog, value);
             let formattedText: string | null = null;
+            let formattedUpdate: dashql.buffers.editor.EditorUpdateT | null = null;
             try {
                 const config = new dashql.buffers.formatting.FormattingConfigT(
                     dashql.buffers.formatting.FormattingDialect.HYPER,
@@ -85,12 +100,16 @@ function detectFormats(core: dashql.DashQL | null, value: string | null): Detect
                     4,
                 );
                 formattedScript = script.format(config, null);
-                formattedScript.parse();
-                formattedText = formattedScript.toString();
+                const text = formattedScript.toString();
+                formattedUpdate = projectSqlText(core, catalog, text);
+                formattedText = text;
             } catch {
                 // Format failed, but parse succeeded
             }
-            result.sql = { originalText: value, originalScript: script, formattedText, formattedScript, catalog, hasErrors };
+            result.sql = { originalText: value, originalUpdate, formattedText, formattedUpdate, hasErrors };
+            formattedScript?.ptr.destroy();
+            script.ptr.destroy();
+            catalog.ptr.destroy();
             return result;
         } catch {
             // Not valid SQL — destroy everything
@@ -101,14 +120,6 @@ function detectFormats(core: dashql.DashQL | null, value: string | null): Detect
     }
 
     return result;
-}
-
-function destroyFormats(formats: DetectedFormats) {
-    if (formats.sql != null) {
-        formats.sql.formattedScript?.ptr.destroy();
-        formats.sql.originalScript.ptr.destroy();
-        formats.sql.catalog.ptr.destroy();
-    }
 }
 
 function pickDefaultMode(formats: DetectedFormats): FormatMode {
@@ -149,54 +160,39 @@ const PencilAIIcon = SymbolIcon('pencil_ai_16');
 
 interface SqlTextViewProps {
     originalText: string;
-    originalScript: dashql.DashQLScript;
+    originalUpdate: dashql.buffers.editor.EditorUpdateT;
     formattedText: string | null;
-    formattedScript: dashql.DashQLScript | null;
+    formattedUpdate: dashql.buffers.editor.EditorUpdateT | null;
 }
 
 // SQL CodeMirror sub-view (with DashQL syntax highlighting)
 function SqlTextView(props: SqlTextViewProps) {
     const [view, setView] = React.useState<EditorView | null>(null);
     const readonlyExtensions = React.useMemo(() => createReadonlyCodeMirrorExtensions(), []);
-    const prevBuffersRef = React.useRef<DashQLScriptBuffers | null>(null);
     const [pretty, setPretty] = React.useState(false);
 
     const activeText = pretty && props.formattedText != null ? props.formattedText : props.originalText;
-    const activeScript = pretty && props.formattedScript != null ? props.formattedScript : props.originalScript;
+    const activeUpdate = pretty && props.formattedUpdate != null ? props.formattedUpdate : props.originalUpdate;
 
     React.useEffect(() => {
         if (view == null) return;
         const changes = { from: 0, to: view.state.doc.length, insert: activeText };
-        if (activeScript != null) {
-            const buffers = analyzeScript(activeScript);
-            prevBuffersRef.current?.destroy(prevBuffersRef.current);
-            prevBuffersRef.current = buffers;
-            view.dispatch({
-                changes,
-                effects: [
-                    DashQLUpdateEffect.of({
-                        scriptKey: activeScript.getCatalogEntryId(),
-                        editorSession: null,
-                        editorUpdate: null,
-                        scriptBuffers: buffers,
-                        scriptCompletion: null,
-                        scriptPendingDiff: null,
-                        derivedFocus: null,
-                        onUpdate: () => { },
-                    }),
-                ],
-            });
-        } else {
-            view.dispatch({ changes });
-        }
-    }, [view, activeText, activeScript]);
-
-    React.useEffect(() => {
-        return () => {
-            prevBuffersRef.current?.destroy(prevBuffersRef.current);
-            prevBuffersRef.current = null;
-        };
-    }, []);
+        view.dispatch({
+            changes,
+            effects: [
+                DashQLUpdateEffect.of({
+                    scriptKey: 0,
+                    editorSession: null,
+                    editorUpdate: activeUpdate,
+                    scriptBuffers: null,
+                    scriptCompletion: null,
+                    scriptPendingDiff: null,
+                    derivedFocus: null,
+                    onUpdate: () => { },
+                }),
+            ],
+        });
+    }, [view, activeText, activeUpdate]);
 
     return (
         <div className={styles.codemirror_container}>
@@ -242,7 +238,6 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
     const [core, setCore] = React.useState<dashql.DashQL | null>(null);
     const [formats, setFormats] = React.useState<DetectedFormats>(EMPTY_FORMATS);
     const [selectedFormat, setSelectedFormat] = React.useState<FormatMode>(FormatMode.Raw);
-    const prevFormatsRef = React.useRef<DetectedFormats | null>(null);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -253,23 +248,10 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
     }, [coreSetup]);
 
     React.useEffect(() => {
-        if (prevFormatsRef.current != null) {
-            destroyFormats(prevFormatsRef.current);
-        }
         const f = detectFormats(core, props.formattedValue);
-        prevFormatsRef.current = f;
         setFormats(f);
         setSelectedFormat(pickDefaultMode(f));
     }, [props.formattedValue, core]);
-
-    React.useEffect(() => {
-        return () => {
-            if (prevFormatsRef.current != null) {
-                destroyFormats(prevFormatsRef.current);
-                prevFormatsRef.current = null;
-            }
-        };
-    }, []);
 
     const availableModes = React.useMemo(() => getAvailableModes(formats), [formats]);
 
@@ -360,9 +342,9 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
                         {selectedFormat === FormatMode.SQL && formats.sql != null && (
                             <SqlTextView
                                 originalText={formats.sql.originalText}
-                                originalScript={formats.sql.originalScript}
+                                originalUpdate={formats.sql.originalUpdate}
                                 formattedText={formats.sql.formattedText}
-                                formattedScript={formats.sql.formattedScript}
+                                formattedUpdate={formats.sql.formattedUpdate}
                             />
                         )}
                         {selectedFormat === FormatMode.Plan && formats.plan != null && (
