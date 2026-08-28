@@ -1,8 +1,7 @@
-#include "dashql/testing/agent_snapshot_test.h"
-
 #include <stdexcept>
 #include <utility>
 
+#include "dashql/testing/agent_snapshot_test.h"
 #include "dashql/testing/yaml_tests.h"
 #include "gtest/gtest.h"
 
@@ -37,12 +36,11 @@ TEST_P(AgentSnapshotTestSuite, Test) {
     ASSERT_TRUE(MatchesContent(root, test->tree->ref(test->node_id)["expected"]));
 }
 
-TEST(AgentSnapshotDiscovery, LoadsBasicSnapshots) {
-    EXPECT_FALSE(AgentSnapshotTest::GetTests("basic.yaml").empty());
-}
+TEST(AgentSnapshotDiscovery, LoadsBasicSnapshots) { EXPECT_FALSE(AgentSnapshotTest::GetTests("basic.yaml").empty()); }
 
 TEST(AgentSnapshotFixtureValidation, RejectsMismatchedEvent) {
-    auto test = MakeFixture({AgentSnapshotEvent{.type = AgentSnapshotEvent::Type::kCompleteModel, .value = "select 1"}});
+    auto test =
+        MakeFixture({AgentSnapshotEvent{.type = AgentSnapshotEvent::Type::kCompleteModel, .value = "select 1"}});
     EXPECT_THROW(EncodeFixture(test), std::runtime_error);
 }
 
@@ -62,12 +60,25 @@ TEST(AgentSnapshotFixtureValidation, RejectsEventAfterTerminalOperation) {
 }
 
 TEST(AgentSnapshotFixtureValidation, RejectsUnknownEventType) {
-    auto tree = c4::yml::parse_in_arena("name: invalid_fixture\ninput:\n  prompt: Write a query.\nevents:\n  - type: typo\n");
+    auto tree =
+        c4::yml::parse_in_arena("name: invalid_fixture\ninput:\n  prompt: Write a query.\nevents:\n  - type: typo\n");
     EXPECT_THROW(AgentSnapshotTest::Parse(tree.rootref()), std::invalid_argument);
 }
 
-INSTANTIATE_TEST_SUITE_P(Basic, AgentSnapshotTestSuite,
-                         ::testing::ValuesIn(AgentSnapshotTest::GetTests("basic.yaml")),
+TEST(AgentSnapshotFixtureValidation, ParsesFormattingConfig) {
+    auto tree = c4::yml::parse_in_arena(
+        "name: formatting_fixture\ninput:\n  prompt: Write a query.\n  formatting:\n    mode: compact\n    "
+        "max-width: 60\n    indentation-width: 4\n");
+    auto test = AgentSnapshotTest::Parse(tree.rootref());
+    EXPECT_EQ(test.formatting_mode, dashql::buffers::formatting::FormattingMode::COMPACT);
+    EXPECT_EQ(test.formatting_max_width, 60u);
+    EXPECT_EQ(test.formatting_indentation_width, 4u);
+}
+
+INSTANTIATE_TEST_SUITE_P(Basic, AgentSnapshotTestSuite, ::testing::ValuesIn(AgentSnapshotTest::GetTests("basic.yaml")),
+                         AgentSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(VisualizationEdits, AgentSnapshotTestSuite,
+                         ::testing::ValuesIn(AgentSnapshotTest::GetTests("vis_edits.yaml")),
                          AgentSnapshotTest::TestPrinter());
 
 }  // namespace

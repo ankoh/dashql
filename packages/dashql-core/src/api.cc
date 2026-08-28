@@ -122,12 +122,11 @@ extern "C" void dashql_delete_owner(void* owner_ptr, void (*owner_deleter)(void*
 }
 
 extern "C" void dashql_agent_session_new(FFIResult* result, Catalog* catalog, editor::EditorSession* target,
-                                           const char* target_name_ptr, size_t target_name_length) {
+                                            size_t dialect, size_t mode, size_t max_width,
+                                            size_t indentation_width, bool debug_mode) {
     if (!catalog) throw Exception(buffers::status::StatusCode::CATALOG_NULL);
-    std::string target_name = target_name_ptr && target_name_length > 0
-                                  ? std::string{target_name_ptr, target_name_length}
-                                  : std::string{};
-    packPtr(result, std::make_unique<agent::AgentSession>(*catalog, target, std::move(target_name)));
+    auto formatting_config = makeFormattingConfig(dialect, mode, max_width, indentation_width, debug_mode);
+    packPtr(result, std::make_unique<agent::AgentSession>(*catalog, target, std::move(formatting_config)));
 }
 
 extern "C" void dashql_agent_session_start(FFIResult* result, agent::AgentSession* session,

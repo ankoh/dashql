@@ -19,6 +19,9 @@ class EditorSession;
 
 namespace dashql::agent {
 
+/// Default formatting policy for generated agent candidates.
+buffers::formatting::FormattingConfigT DefaultAgentFormattingConfig();
+
 /// Core-owned agent workflow that suspends for host-provided effects such as model calls.
 /// The borrowed catalog must outlive the session and any coroutine currently suspended in it.
 class AgentSession {
@@ -32,7 +35,7 @@ class AgentSession {
 
     /// Create an idle session borrowing the catalog and optional focused editor target.
     explicit AgentSession(Catalog& catalog, editor::EditorSession* target = nullptr,
-                          std::string target_name = {});
+                          buffers::formatting::FormattingConfigT formatting_config = DefaultAgentFormattingConfig());
     /// Destroy the suspended coroutine, if any.
     ~AgentSession();
 
@@ -192,6 +195,8 @@ class AgentSession {
     std::string CompileTargetScript();
     /// Inject source SQL into raw Vega-Lite JSON and transcode it into DashQL VISUALIZE syntax.
     std::string TranscodeVegaLite(std::string_view raw_spec, std::string_view source_sql) const;
+    /// Pretty-format a complete candidate when the formatter supports every parsed node.
+    std::optional<std::string> PrettyFormatCandidate(std::string_view candidate) const;
     /// Add actionable diagnostics for Vega-Lite marks unsupported by DashQL.
     void DiagnoseVegaLiteSpec(std::string_view raw_spec, std::vector<std::string>& errors) const;
 
@@ -199,6 +204,8 @@ class AgentSession {
     Catalog& catalog_;
     /// Focused native editor target, or null when the run creates without a target.
     editor::EditorSession* target_ = nullptr;
+    /// Formatting policy used for source extraction and final generated candidates.
+    buffers::formatting::FormattingConfigT formatting_config_;
     /// Current externally visible phase of the active or most recent run.
     AgentPhase phase_ = AgentPhase::IDLE;
     /// Requested or model-classified artifact intent.
@@ -225,8 +232,6 @@ class AgentSession {
     std::string context_;
     /// Kind of focused target reported by the host during context resolution.
     buffers::agent::AgentTargetKind target_kind_ = buffers::agent::AgentTargetKind::NONE;
-    /// Display name of the focused target, empty when no target exists.
-    std::string target_name_;
     /// Core-owned decision describing whether the proposal creates or replaces a script.
     buffers::agent::AgentApplyDisposition apply_disposition_ = buffers::agent::AgentApplyDisposition::CREATE;
     /// Whether verification rejects mutating and multi-statement candidates.

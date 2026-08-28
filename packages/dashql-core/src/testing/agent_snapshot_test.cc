@@ -37,6 +37,13 @@ std::string EffectName(AgentEffectType effect) { return EnumNameAgentEffectType(
 std::string ModelKindName(AgentModelRequestKind kind) { return EnumNameAgentModelRequestKind(kind); }
 std::string ErrorName(AgentOperationError error) { return EnumNameAgentOperationError(error); }
 
+buffers::formatting::FormattingMode ParseFormattingMode(std::string_view text) {
+    if (text == "inline") return buffers::formatting::FormattingMode::INLINE;
+    if (text == "compact") return buffers::formatting::FormattingMode::COMPACT;
+    if (text == "pretty") return buffers::formatting::FormattingMode::PRETTY;
+    throw std::invalid_argument{"unknown agent formatting mode: " + std::string{text}};
+}
+
 AgentEffectType ExpectedEffect(AgentSnapshotEvent::Type type) {
     switch (type) {
         case AgentSnapshotEvent::Type::kCompleteModel:
@@ -137,10 +144,6 @@ void EncodeOperation(c4::yml::NodeRef root, const AgentOperationT& operation) {
             effect.append_child() << c4::yml::key("disposition")
                                   << std::string{EnumNameAgentApplyDisposition(
                                          operation.effect->apply_proposal->proposal->disposition)};
-            if (!operation.effect->apply_proposal->proposal->target_name.empty()) {
-                effect.append_child() << c4::yml::key("target-name")
-                                      << operation.effect->apply_proposal->proposal->target_name;
-            }
             auto candidate = effect.append_child();
             candidate << c4::yml::key("candidate") << operation.effect->apply_proposal->proposal->candidate_text;
             candidate.set_val_style(c4::yml::VAL_LITERAL);
@@ -187,14 +190,23 @@ AgentSnapshotTest AgentSnapshotTest::Parse(c4::yml::ConstNodeRef node, bool requ
         if (input.has_child("prompt")) test.prompt = ReadText(input["prompt"]);
         if (input.has_child("intent")) test.intent = ParseIntent(ReadText(input["intent"]));
         if (input.has_child("max-attempts")) input["max-attempts"] >> test.max_attempts;
-        if (input.has_child("target-name")) test.target_name = ReadText(input["target-name"]);
-        if (input.has_child("target-script")) test.target_script = ReadText(input["target-script"]);
+        if (input.has_child("script")) test.script = ReadText(input["script"]);
+        if (input.has_child("formatting")) {
+            auto formatting = input["formatting"];
+            if (formatting.has_child("mode")) {
+                test.formatting_mode = ParseFormattingMode(ReadText(formatting["mode"]));
+            }
+            if (formatting.has_child("max-width")) formatting["max-width"] >> test.formatting_max_width;
+            if (formatting.has_child("indentation-width")) {
+                formatting["indentation-width"] >> test.formatting_indentation_width;
+            }
+        }
     }
     if (node.has_child("events")) {
         for (auto event_node : node["events"].children()) {
             AgentSnapshotEvent event;
             event.type = ParseEventType(event_node.has_child("type") ? ReadText(event_node["type"])
-                                                                     : "model_response");
+                                                                      : "model_response");
             if (event_node.has_child("value")) event.value = ReadText(event_node["value"]);
             if (event_node.has_child("errors")) {
                 for (auto error : event_node["errors"].children()) event.errors.push_back(ReadText(error));
@@ -210,11 +222,15 @@ void AgentSnapshotTest::EncodeExpected(c4::yml::NodeRef root, const AgentSnapsho
     // Drive the same coroutine/effect boundary used by WASM without external services.
     Catalog catalog;
     std::unique_ptr<editor::EditorSession> target;
-    if (!test.target_script.empty()) {
+    if (!test.script.empty()) {
         target = std::make_unique<editor::EditorSession>(catalog);
-        target->ReplaceText(0, test.target_script);
+        target->ReplaceText(0, test.script);
     }
-    agent::AgentSession session{catalog, target.get(), test.target_name};
+    auto formatting_config = agent::DefaultAgentFormattingConfig();
+    formatting_config.mode = test.formatting_mode;
+    formatting_config.max_width = test.formatting_max_width;
+    formatting_config.indentation_width = test.formatting_indentation_width;
+    agent::AgentSession session{catalog, target.get(), formatting_config};
     AgentStartRequestT request;
     request.user_prompt = test.prompt;
     request.intent_override = test.intent;

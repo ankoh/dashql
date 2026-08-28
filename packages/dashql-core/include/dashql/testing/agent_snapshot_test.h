@@ -31,9 +31,11 @@ struct AgentSnapshotTest {
     std::string prompt;
     buffers::agent::AgentIntent intent = buffers::agent::AgentIntent::UNKNOWN;
     uint32_t max_attempts = 3;
-    std::string target_name;
-    std::string target_script;
+    std::string script;
     std::vector<AgentSnapshotEvent> events;
+    buffers::formatting::FormattingMode formatting_mode = buffers::formatting::FormattingMode::PRETTY;
+    uint32_t formatting_max_width = 120;
+    uint32_t formatting_indentation_width = 2;
     c4::yml::Tree* tree = nullptr;
     c4::yml::id_type node_id = c4::yml::NONE;
 

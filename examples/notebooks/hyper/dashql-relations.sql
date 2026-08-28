@@ -1,9 +1,10 @@
 -- DashQL Connection Relations.
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
--- Catalog Source: SQL pg_class
--- Last Refresh: 2026-08-16T20:02:02.353Z
+-- Catalog Source: Hyper attached databases
+-- Last Refresh: 2026-08-28T10:21:20.228Z
 
+-- DashQL Hyper Catalog Section: "default"
 CREATE TABLE "default"."pg_catalog"."hyper_attached_database" (
     "database_name" VARCHAR,
     "database_alias" VARCHAR
@@ -1183,3 +1184,4 @@ CREATE TABLE "default"."pg_catalog"."pg_views" (
     "viewowner" VARCHAR,
     "definition" VARCHAR
 );
+-- DashQL Hyper Catalog Section End
