@@ -11,7 +11,7 @@ use crate::{
         UpdateManifest,
     },
     release_version::ReleaseVersion,
-    remote_paths::derive_remote_paths,
+    remote_paths::{derive_remote_paths, electron_channel_manifest},
 };
 
 #[derive(Debug)]
@@ -29,15 +29,26 @@ pub struct Release {
     pub release_update_manifest_path: String,
     pub channel_metadata_paths: Vec<&'static str>,
     pub channel_update_manifest_paths: Vec<&'static str>,
+    pub electron_channel_manifests: Vec<(String, Vec<u8>)>,
 }
 
 pub struct ReleaseArgs {
     pub remote_base_url: String,
     pub git_repo: GitInfo,
     pub release_version: ReleaseVersion,
-    pub macos_dmg_path: PathBuf,
-    pub macos_updater_bundle_path: PathBuf,
-    pub macos_updater_signature_path: Option<PathBuf>,
+    pub macos_arm64_dmg_path: PathBuf,
+    pub macos_arm64_zip_path: PathBuf,
+    pub macos_arm64_zip_blockmap_path: PathBuf,
+    pub macos_arm64_update_manifest_path: PathBuf,
+    pub macos_x64_dmg_path: PathBuf,
+    pub macos_x64_zip_path: PathBuf,
+    pub macos_x64_zip_blockmap_path: PathBuf,
+    pub macos_x64_update_manifest_path: PathBuf,
+}
+
+fn file_name(path: &PathBuf) -> anyhow::Result<String> {
+    path.file_name().and_then(|value| value.to_str()).map(str::to_owned)
+        .ok_or_else(|| anyhow::anyhow!("artifact path has no valid file name: {:?}", path))
 }
 
 impl Release {
@@ -73,82 +84,47 @@ impl Release {
         release.channel_metadata_paths = remote_paths.channel_metadata.clone();
         release.channel_update_manifest_paths = remote_paths.channel_update.clone();
 
-        // Register macOS .dmg
-        if args.macos_dmg_path.is_file() {
-            let remote_path = format!("{}/macos/DashQL.dmg", remote_paths.release_directory);
+        for (arch, architecture, dmg, zip, blockmap, manifest) in [
+            ("arm64", Architecture::Aarch64, &args.macos_arm64_dmg_path, &args.macos_arm64_zip_path, &args.macos_arm64_zip_blockmap_path, &args.macos_arm64_update_manifest_path),
+            ("x64", Architecture::X86_64, &args.macos_x64_dmg_path, &args.macos_x64_zip_path, &args.macos_x64_zip_blockmap_path, &args.macos_x64_update_manifest_path),
+        ] {
+            for artifact in [dmg, zip, blockmap] {
+                if !artifact.is_file() {
+                    return Err(anyhow::anyhow!("missing Electron artifact: {:?}", artifact));
+                }
+                let remote_path = format!("{}/macos/{}/{}", remote_paths.release_directory, arch, file_name(artifact)?);
+                release.file_uploads.insert(remote_path.clone(), FileUpload {source_path: artifact.clone(), remote_path});
+            }
+
+            let dmg_name = file_name(dmg)?;
+            let remote_path = format!("{}/macos/{}/{}", remote_paths.release_directory, arch, dmg_name);
             let remote_url = format!("{}/{}", &args.remote_base_url, remote_path);
             let bundle = Bundle {
                 url: remote_url.clone(),
                 signature: None,
-                name: "DashQL.dmg".to_string(),
+                name: dmg_name,
                 bundle_type: BundleType::Dmg,
-                targets: vec![
-                    BundleTarget {
-                        platform: Platform::Darwin,
-                        arch: Architecture::X86_64,
-                    },
-                    BundleTarget {
-                        platform: Platform::Darwin,
-                        arch: Architecture::Aarch64,
-                    },
-                ],
+                targets: vec![BundleTarget {platform: Platform::Darwin, arch: architecture}],
             };
-
-            // Create upload task
-            let upload_task = FileUpload {
-                source_path: args.macos_dmg_path.clone(),
-                remote_path: remote_path.clone(),
-            };
-            release
-                .file_uploads
-                .insert(remote_path.clone(), upload_task);
-
-            // Register release artifact
             release.release_metadata.bundles.push(bundle);
-        }
 
-        // Register macOS tauri update
-        if args.macos_updater_bundle_path.is_file() {
-            let remote_path = format!("{}/macos/DashQL.app.tar.gz", remote_paths.release_directory);
-            let remote_url = format!("{}/{}", &args.remote_base_url, &remote_path);
-            let sig = if let Some(sig_path) = &args.macos_updater_signature_path {
-                if sig_path.is_file() {
-                    Some(std::fs::read_to_string(sig_path)?)
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
+            let zip_name = file_name(zip)?;
+            let zip_remote_path = format!("{}/macos/{}/{}", remote_paths.release_directory, arch, zip_name);
             let update_artifact = UpdateArtifact {
-                url: remote_url.clone(),
-                signature: sig.unwrap_or_default(),
+                url: format!("{}/{}", &args.remote_base_url, zip_remote_path),
+                signature: String::new(),
             };
+            release.release_update_manifest.platforms.insert(BundleTarget {platform: Platform::Darwin, arch: architecture}, update_artifact);
 
-            // Create upload task
-            let upload_task = FileUpload {
-                source_path: args.macos_updater_bundle_path.clone(),
-                remote_path: remote_path.clone(),
-            };
-            release
-                .file_uploads
-                .insert(remote_path.clone(), upload_task);
-
-            // Register artifacts
-            release.release_update_manifest.platforms.insert(
-                BundleTarget {
-                    platform: Platform::Darwin,
-                    arch: Architecture::X86_64,
-                },
-                update_artifact.clone(),
-            );
-            release.release_update_manifest.platforms.insert(
-                BundleTarget {
-                    platform: Platform::Darwin,
-                    arch: Architecture::Aarch64,
-                },
-                update_artifact.clone(),
-            );
+            let manifest_text = std::fs::read_to_string(manifest)?;
+            let artifact_base = format!("{}/{}/macos/{}/", args.remote_base_url, remote_paths.release_directory, arch);
+            let manifest_text = manifest_text
+                .replace(&format!("url: {}", zip_name), &format!("url: {}{}", artifact_base, zip_name))
+                .replace(&format!("path: {}", zip_name), &format!("path: {}{}", artifact_base, zip_name));
+            release.electron_channel_manifests.push((electron_channel_manifest(remote_paths.channel, arch), manifest_text.into_bytes()));
+            if remote_paths.channel == "stable" {
+                release.electron_channel_manifests.push((electron_channel_manifest("canary", arch), release.electron_channel_manifests.last().unwrap().1.clone()));
+            }
         }
 
         log::info!("{:?}", &release);
@@ -169,6 +145,7 @@ impl Release {
                 }
                 Err(e) => {
                     log::error!("multipart upload failed, path={}, error={}", &path, &e);
+                    return Err(e);
                 }
             }
         }
@@ -193,6 +170,7 @@ impl Release {
             let path = path.clone();
             let bytes = ByteStream::from(metadata.to_vec());
             let client = client.clone();
+            let content_type = if path.ends_with(".yml") {"application/yaml"} else {"application/json"};
             log::info!("upload started, path={}", &path);
             upload_futures.push(tokio::spawn(async move {
                 client
@@ -200,7 +178,7 @@ impl Release {
                     .bucket("dashql-get")
                     .key(&path)
                     .body(bytes)
-                    .content_type("application/json")
+                    .content_type(content_type)
                     // Versioned release files are immutable, cache them aggressively.
                     .cache_control("public, max-age=31536000, immutable")
                     .send()
@@ -212,6 +190,7 @@ impl Release {
 
         // Join all uploads
         let mut upload_error: Option<anyhow::Error> = None;
+        let mut channel_upload_error: Option<anyhow::Error> = None;
         while let Some(next) = upload_futures.next().await {
             match next {
                 Ok(Ok(path)) => {
@@ -235,12 +214,15 @@ impl Release {
             return Err(e);
         }
 
-        // Now update the release manifests
+        // Update mutable channel pointers only after every immutable artifact is available.
         for channel_metadata_path in self.channel_metadata_paths.iter() {
             pending_uploads.push((channel_metadata_path.to_string(), &release_metadata));
         }
         for ref channel_update_manifest_path in self.channel_update_manifest_paths.iter() {
             pending_uploads.push((channel_update_manifest_path.to_string(), &update_manifest));
+        }
+        for (path, manifest) in &self.electron_channel_manifests {
+            pending_uploads.push((path.clone(), manifest));
         }
         for (path, metadata) in pending_uploads.drain(..) {
             let path = path.clone();
@@ -273,11 +255,16 @@ impl Release {
                 }
                 Ok(Err((path, e))) => {
                     log::error!("upload failed, path={}, error={}", &path, &e);
+                    channel_upload_error = Some(e.into());
                 }
                 Err(e) => {
                     log::error!("failed to join upload task, error={}", &e);
+                    channel_upload_error = Some(e.into());
                 }
             }
+        }
+        if let Some(error) = channel_upload_error {
+            return Err(error);
         }
         Ok(())
     }
@@ -294,6 +281,7 @@ async fn multipart_upload(
         .bucket("dashql-get")
         .key(remote_path)
         .content_type("application/octet-stream")
+        .cache_control("public, max-age=31536000, immutable")
         .send()
         .await?;
     let upload_id = create_upload.upload_id().unwrap();

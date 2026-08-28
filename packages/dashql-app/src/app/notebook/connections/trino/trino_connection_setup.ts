@@ -1,5 +1,3 @@
-import * as shell from '@tauri-apps/plugin-shell';
-
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
@@ -27,14 +25,10 @@ import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
 import { TrinoConnectorConfig } from '../connector_configs.js';
 import { generatePKCEChallenge } from '../../../../utils/pkce.js';
 import { PlatformType } from '../../../../platform/platform_type.js';
-import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { HttpClient } from '../../../../platform/http/http_client.js';
 import { dateToTimestamp } from '../proto_helper.js';
 
 const LOG_CTX = "trino_setup";
-
-// OAuth callback channel name (must match the Rust side)
-const OAUTH_CALLBACK_CHANNEL = "dashql:oauth-callback";
 
 // Default OAuth callback URL for Trino
 const DEFAULT_OAUTH_CALLBACK_URL = "http://localhost:56512/Callback";
@@ -103,42 +97,8 @@ async function setupTrinoConnectionBasic(
 
 /// Wait for OAuth callback from the native server
 async function waitForOAuthCallback(abortSignal: AbortSignal): Promise<OAuthCallbackData> {
-    // Dynamic import to avoid issues in web builds
-    const { listen } = await import("@tauri-apps/api/event");
-
-    return new Promise<OAuthCallbackData>((resolve, reject) => {
-        let unlisten: (() => void) | null = null;
-
-        const abortHandler = () => {
-            if (unlisten) {
-                unlisten();
-            }
-            reject({ name: 'AbortError', message: 'OAuth callback was aborted' });
-        };
-
-        abortSignal.addEventListener('abort', abortHandler);
-
-        listen(OAUTH_CALLBACK_CHANNEL, (event: any) => {
-            abortSignal.removeEventListener('abort', abortHandler);
-            if (unlisten) {
-                unlisten();
-            }
-            resolve(event.payload as OAuthCallbackData);
-        }).then((unlistenFn) => {
-            unlisten = unlistenFn;
-            // Check if already aborted
-            if (abortSignal.aborted) {
-                unlisten();
-                reject({ name: 'AbortError', message: 'OAuth callback was aborted' });
-            }
-        });
-    });
-}
-
-/// Start the OAuth callback server in Tauri
-async function startOAuthCallbackServer(): Promise<void> {
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("start_oauth_callback_server");
+    abortSignal.throwIfAborted();
+    throw new Error('Trino OAuth callback handling is not available');
 }
 
 /// Exchange the authorization code for an access token
@@ -224,12 +184,6 @@ async function setupTrinoConnectionOAuth(
         abortSignal.throwIfAborted();
         modifyState({ type: GENERATED_PKCE_CHALLENGE, value: pkceChallenge });
 
-        // Start the OAuth callback server (native only)
-        logger.debug("Starting OAuth callback server", {}, LOG_CTX);
-        if (isNativePlatform()) {
-            await startOAuthCallbackServer();
-        }
-
         // Build the authorization URL
         const callbackUrl = oauthConfig.callbackUrl || DEFAULT_OAUTH_CALLBACK_URL;
         const authURLParams = new URLSearchParams({
@@ -253,7 +207,7 @@ async function setupTrinoConnectionOAuth(
 
         // Open the browser for OAuth
         logger.debug("Opening OAuth URL", { url: authUrl }, LOG_CTX);
-        await shell.open(authUrl);
+        window.open(authUrl, '_blank', 'noopener,noreferrer');
         modifyState({
             type: OAUTH_BROWSER_OPENED,
             value: null,

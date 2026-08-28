@@ -181,37 +181,6 @@ genrule(
 )
 
 genrule(
-    name = "vite_config_native",
-    srcs = [
-        "vite.config.tpl.ts",
-        "@dashql_app_version//:version.env",
-        "//:package.json",
-    ],
-    outs = ["vite.config.native.ts"],
-    cmd = """
-        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_app_version//:version.env)")
-        COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
-        HYPERDB_WASM_VERSION=$$(awk -F'"' '/"hyperdb-wasm"/{print $$4; exit}' "$(location //:package.json)")
-        if [ -z "$$VERSION" ]; then VERSION="0.0.1"; fi
-        if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
-
-        sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
-            -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
-            -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
-            -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
-            -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
-            -e "s|__SHELL_JS_PATH__|./dependencies/dashql-shell-wasm/dashql_shell.js|g" \\
-            -e "s|__SHELL_WASM_PATH__|./dependencies/dashql-shell-wasm/dashql_shell.wasm|g" \\
-            -e "s|__UMAP_JS_PATH__|./dependencies/umap-wasm/index.js|g" \\
-            -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
-            -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
-            -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
-            -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \\
-            $(location vite.config.tpl.ts) > $@
-    """,
-)
-
-genrule(
     name = "dev_config",
     srcs = [
         "vite.config.tpl.ts",
@@ -251,6 +220,7 @@ copy_to_bin(
         "src/**/*.js",
         "src/**/*.wgsl",
         "utils/**/*.ts",
+        "hyperdb-capability.html",
         "index.html",
         "oauth.html",
         "shell.html",
@@ -329,19 +299,6 @@ _vite_web_deps = [
     "//:node_modules",
 ]
 
-_vite_native_deps = [
-    ":srcs",
-    ":vite_config_native",
-    ":dep_flatbuf",
-    ":dep_protobuf",
-    ":dep_jsonschema",
-    ":dep_core_wasm",
-    ":dep_shell_wasm",
-    ":dep_umap_wasm",
-    ":dep_svg_symbols",
-    "//:node_modules",
-]
-
 vite_bin.vite(
     name = "reloc",
     srcs = _vite_web_deps,
@@ -352,11 +309,25 @@ vite_bin.vite(
 )
 
 vite_bin.vite(
-    name = "native",
-    srcs = _vite_native_deps,
-    args = ["build", "--config", "vite.config.native.ts", "--mode", "native", "--outDir", "native"],
+    name = "electron",
+    srcs = _vite_web_deps,
+    args = ["build", "--config", "vite.config.generated.ts", "--mode", "electron", "--outDir", "electron"],
     chdir = "packages/dashql-app",
-    out_dirs = ["native"],
+    out_dirs = ["electron"],
+    visibility = ["//visibility:public"],
+)
+
+copy_to_directory(
+    name = "electron_bundle",
+    srcs = [
+        ":electron",
+        "static/config.json",
+    ],
+    out = "electron_deploy",
+    replace_prefixes = {
+        "electron": "",
+        "packages/dashql-app/static/config.json": "static/config.json",
+    },
     visibility = ["//visibility:public"],
 )
 
@@ -395,10 +366,7 @@ vitest_bin.vitest_test(
     node_options = ["--experimental-wasm-exnref"],
     tags = [],
     chdir = "packages/dashql-app",
-    data = _vite_web_deps + [":tsc_typecheck", "//packages/dashql-native:ipc_bridge"],
-    env = {
-        "DASHQL_NATIVE_IPC_BRIDGE": "$(rootpath //packages/dashql-native:ipc_bridge)",
-    },
+    data = _vite_web_deps + [":tsc_typecheck"],
     visibility = ["//visibility:public"],
 )
 
@@ -406,23 +374,6 @@ sh_binary(
     name = "dev",
     srcs = ["utils/dev.sh"],
     args = ["$(location :dev_config)"],
-    data = [
-        ":dev_config",
-        ":dep_flatbuf",
-        ":dep_protobuf",
-        ":dep_jsonschema",
-        ":dep_core_wasm",
-        ":dep_shell_wasm",
-        ":dep_umap_wasm",
-        ":dep_svg_symbols",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "dev_native",
-    srcs = ["utils/dev.sh"],
-    args = ["$(location :dev_config)", "--mode", "native"],
     data = [
         ":dev_config",
         ":dep_flatbuf",

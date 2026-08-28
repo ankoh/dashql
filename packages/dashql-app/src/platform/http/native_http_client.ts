@@ -3,6 +3,7 @@ import { getProxyErrorData, RawProxyError } from '../channel_common.js';
 import { HttpClient, HttpFetchResult } from './http_client.js';
 import { Logger } from '../logger/logger.js';
 import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_ERROR, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_RESPONSE_STARTED, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from '../native_proxy_headers.js';
+import { nativeProxyFetch } from '../electron_native_fetch.js';
 
 export enum NativeHttpServerStreamBatchEvent {
     StreamFailed = "StreamFailed",
@@ -88,7 +89,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
         headers.set(HEADER_NAME_BATCH_TIMEOUT, "1000");
         headers.set(HEADER_NAME_READ_TIMEOUT, "10000");
 
-        const response = await fetch(new Request(url, {
+        const response = await nativeProxyFetch(new Request(url, {
             method: 'GET',
             headers,
         }));
@@ -248,7 +249,7 @@ export class NativeHttpClient implements HttpClient {
             headers,
             body: init?.body
         });
-        const response = await fetch(request);
+        const response = await nativeProxyFetch(request);
 
         // Parse the stream id
         let streamId: number | null = null;

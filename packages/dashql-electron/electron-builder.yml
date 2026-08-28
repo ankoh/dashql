@@ -1,0 +1,35 @@
+appId: app.dashql
+productName: DashQL
+electronVersion: 38.8.6
+asar: true
+asarUnpack:
+  - resources/dashql_native_napi.node
+files:
+  - dist/**
+  - preload.cjs
+  - package.json
+extraResources:
+  - from: renderer
+    to: renderer
+  - from: dashql_native_napi.node
+    to: dashql_native_napi.node
+mac:
+  artifactName: DashQL-${version}-${arch}.${ext}
+  category: public.app-category.developer-tools
+  entitlements: Entitlements.plist
+  entitlementsInherit: Entitlements.plist
+  extendInfo:
+    CFBundleURLTypes:
+      - CFBundleURLName: app.dashql
+        CFBundleURLSchemes:
+          - dashql
+  hardenedRuntime: true
+  icon: icon.icns
+  target:
+    - dmg
+    - zip
+dmg:
+  sign: false
+publish:
+  provider: generic
+  url: https://get.dashql.app/channels/stable/macos/${arch}

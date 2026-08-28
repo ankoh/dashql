@@ -14,7 +14,6 @@ import { createTrinoConnectionStateDetails } from './trino/trino_connection_stat
 import { newConnectionSignature, ConnectionSignatureMap } from './connection_signature.js';
 import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
-import { isNativePlatform } from '../../../platform/native_globals.js';
 
 // Re-export connection param types from JSON Schema
 export type ConnectionParams = app_notebook.ConnectionParams;
@@ -161,7 +160,7 @@ export function createDefaultConnectionParamsForConnector(connector: ConnectorIn
         case ConnectorType.DUCKDB:
             return { duckdb: {} };
         case ConnectorType.HYPER:
-            return { hyper: { protocol: isNativePlatform() ? 'V3_DOCKER' : 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
+            return { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
         case ConnectorType.SALESFORCE_DATA_CLOUD:
             return { salesforce: { hyperProtocol: 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
         case ConnectorType.TRINO:

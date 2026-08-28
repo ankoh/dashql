@@ -25,17 +25,6 @@
     "@primer/behaviors": "^1.10.3",
     "@primer/octicons-react": "^19.27.0",
     "@react-hook/resize-observer": "^2.0.2",
-    "@tauri-apps/api": "^2.11.0",
-    "@tauri-apps/cli": "^2.11.2",
-    "@tauri-apps/plugin-deep-link": "^2.4.9",
-    "@tauri-apps/plugin-dialog": "^2.7.1",
-    "@tauri-apps/plugin-fs": "^2.5.1",
-    "@tauri-apps/plugin-http": "^2.5.9",
-    "@tauri-apps/plugin-log": "^2.8.0",
-    "@tauri-apps/plugin-os": "^2.3.2",
-    "@tauri-apps/plugin-process": "^2.3.1",
-    "@tauri-apps/plugin-shell": "^2.3.5",
-    "@tauri-apps/plugin-updater": "^2.10.1",
     "@types/d3": "^7.4.3",
     "@types/d3-color": "^3.1.3",
     "@types/node": "^24.12.4",
@@ -50,6 +39,9 @@
     "d3": "^7.9.0",
     "d3-color": "^3.1.0",
     "dexie": "^4.4.5",
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.12",
+    "electron-updater": "^6.6.2",
     "eslint": "^10.4.1",
     "flatbuffers": "^25.9.23",
     "hyperdb-wasm": "0.0.26315-dev.wasm.g14ecf9e0",
@@ -78,7 +70,8 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@bufbuild/buf",
-      "@parcel/watcher"
+      "@parcel/watcher",
+      "electron"
     ]
   },
   "browserslist": [

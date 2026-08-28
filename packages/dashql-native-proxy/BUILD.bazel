@@ -1,0 +1,36 @@
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+package(default_visibility = ["//visibility:private"])
+
+exports_files(["Cargo.toml"])
+
+rust_library(
+    name = "proxy",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_native_proxy",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    deps = [
+        "@crates//:base64",
+        "@crates//:byteorder",
+        "@crates//:bytes",
+        "@crates//:http",
+        "@crates//:http-body-util",
+        "@crates//:hyper",
+        "@crates//:hyper-util",
+        "@crates//:lazy_static",
+        "@crates//:log",
+        "@crates//:mime",
+        "@crates//:once_cell",
+        "@crates//:regex-automata",
+        "@crates//:reqwest",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:tokio",
+        "@crates//:tonic",
+        "@crates//:tracing",
+        "@crates//:url",
+        "@crates//:uuid",
+    ],
+    visibility = ["//packages/dashql-native-napi:__pkg__"],
+)

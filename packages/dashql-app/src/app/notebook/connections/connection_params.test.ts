@@ -8,6 +8,16 @@ describe('createDefaultConnectionParamsForConnector', () => {
         expect(params).toMatchObject({ hyper: { protocol: 'WASM' } });
     });
 
+    it('uses WASM for Electron Hyper', () => {
+        (globalThis as any).dashqlElectron = {};
+        try {
+            const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]);
+            expect(params).toMatchObject({ hyper: { protocol: 'WASM' } });
+        } finally {
+            delete (globalThis as any).dashqlElectron;
+        }
+    });
+
     it('uses HTTP for Salesforce', () => {
         const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD]);
         expect(params).toMatchObject({ salesforce: { hyperProtocol: 'V3_HTTP' } });

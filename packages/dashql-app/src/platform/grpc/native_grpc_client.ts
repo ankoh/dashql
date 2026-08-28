@@ -1,6 +1,7 @@
 import { ChannelArgs, ChannelError, ChannelMetadataProvider, RawProxyError } from '../channel_common.js';
 import { Logger } from "../logger/logger.js";
 import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_CHANNEL_ID, HEADER_NAME_ENDPOINT, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_STREAM_ID, HEADER_NAME_TLS, HEADER_NAME_TLS_CACERTS, HEADER_NAME_TLS_CLIENT_CERT, HEADER_NAME_TLS_CLIENT_KEY } from '../native_proxy_headers.js';
+import { nativeProxyFetch } from '../electron_native_fetch.js';
 
 const LOG_CTX = 'native_grpc_client';
 
@@ -95,7 +96,7 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
             method: 'GET',
             headers
         });
-        const response = await fetch(request);
+        const response = await nativeProxyFetch(request);
         await throwIfError(response);
 
         const streamBatchEvent = requireStringHeader(response.headers, "dashql-batch-event");
@@ -122,7 +123,7 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
             const request = new Request(url, {
                 method: 'DELETE'
             });
-            await fetch(request);
+            await nativeProxyFetch(request);
             // XXX Log if the dropping failed
             throw new ChannelError({ message: "batch message count mismatch" }, 13, undefined, LOG_CTX);
         }
@@ -168,7 +169,7 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
         this.reachedEndOfStream = true;
         const url = new URL(this.endpoint.proxyEndpoint);
         url.pathname = `/grpc/channel/${this.channelId}/stream/${this.streamId}`;
-        const response = await fetch(new Request(url, { method: 'DELETE' }));
+        const response = await nativeProxyFetch(new Request(url, { method: 'DELETE' }));
         await throwIfError(response);
     }
 }
@@ -267,7 +268,7 @@ export class NativeGrpcChannel {
             headers,
             body: args.body as BodyInit,
         });
-        const response = await fetch(request);
+        const response = await nativeProxyFetch(request);
         await throwIfError(response);
 
         const streamId = requireIntegerHeader(response.headers, HEADER_NAME_STREAM_ID);
@@ -290,7 +291,7 @@ export class NativeGrpcChannel {
             headers,
             body: "",
         });
-        const response = await fetch(request);
+        const response = await nativeProxyFetch(request);
         await throwIfError(response);
     }
 }
@@ -333,7 +334,7 @@ export class NativeGrpcClient {
             method: 'POST',
             headers
         });
-        const response = await fetch(request);
+        const response = await nativeProxyFetch(request);
         await throwIfError(response);
 
         const channelId = requireIntegerHeader(response.headers, HEADER_NAME_CHANNEL_ID);

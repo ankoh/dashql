@@ -1,11 +1,4 @@
 
-## General Signing
-
-We use a simple Ed25519 key pair for signing our own binaries.
-https://jedisct1.github.io/minisign/
-
-They are passed to Tauri via TAURI_SIGNING_PRIVATE_KEY & TAURI_SIGNING_PRIVATE_KEY_PASSWORD.
-
 ## MacOS Signing
 
 We need only two things for MacOS signing:
@@ -28,26 +21,30 @@ Provided through: (Vault "DashQL AppStoreConnect CI")
 - APPLE_API_KEY_PATH
 
 
-## Create signed universal apps
+## Create signed Electron apps
 
 Find your signing identity using:
 ```
 security find-identity -v -p codesigning
 ```
 
-Create a local .bazelrc.user file with the following content:
+Export the identity before invoking the package target:
 ```
-build:sign --action_env=APPLE_SIGNING_IDENTITY="Developer ID Application: XX"
+export CSC_NAME="Developer ID Application: XX"
 ```
 
 Then build signed artifacts using:
 ```
-bazel build --config=release --config=sign //packages/dashql-native:mac_universal_dmg_signed
-bazel build --config=release --config=sign //packages/dashql-native:mac_universal_updater_bundle_signed
+
+CI uses `CSC_LINK` and `CSC_KEY_PASSWORD` for the Developer ID certificate. It
+also provides `APPLE_API_KEY`, `APPLE_API_KEY_ID`, and `APPLE_API_ISSUER` so
+electron-builder submits each architecture-specific package for notarization.
+bazel run --config=release //packages/dashql-electron:mac_package_arm64
+bazel run --config=release //packages/dashql-electron:mac_package_x86_64
 ```
 
 Make sure codesigning worked using:
 ```
-codesign -vvv --verify ./bazel-bin/packages/dashql-native/DashQL-universal-signed.app
-codesign -vvv --verify ./bazel-bin/packages/dashql-native/mac_universal_dmg_signed_src/DashQL.app
+codesign -vvv --verify ./dist/electron/arm64/mac-arm64/DashQL.app
+codesign -vvv --verify ./dist/electron/x64/mac/DashQL.app
 ```

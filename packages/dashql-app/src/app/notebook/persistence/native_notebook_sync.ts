@@ -1,4 +1,3 @@
-import type { UnwatchFn, WatchEvent } from '@tauri-apps/plugin-fs';
 import type { Logger } from '../../../platform/logger/logger.js';
 import type { NotebookLocation } from './notebook_locator.js';
 import {
@@ -17,6 +16,7 @@ export interface NativeNotebookWatch {
 }
 
 export type NativeNotebookChanged = (notebookId: string) => void;
+export interface WatchEvent { type?: unknown; paths: string[]; attrs?: unknown; }
 
 export function nativeNotebookWatchForLocation(notebookId: string, location: NotebookLocation): NativeNotebookWatch | null {
     if (location.type !== StorageBackendType.Native || !location.nativePath) {
@@ -29,7 +29,7 @@ export function nativeNotebookWatchForLocation(notebookId: string, location: Not
 /// cache are intentionally outside this boundary; connection identity/config changes require a full
 /// connection lifecycle rather than an in-place file reload.
 export function isNotebookContentWatchEvent(event: WatchEvent, dir: string): boolean {
-    if (typeof event.type === 'object' && 'access' in event.type) {
+    if (event.type != null && typeof event.type === 'object' && 'access' in event.type) {
         return false;
     }
     const normalizedDir = dir.replace(/\\/g, '/').replace(/\/$/, '');
@@ -48,7 +48,7 @@ export function isNotebookContentWatchEvent(event: WatchEvent, dir: string): boo
 export class NativeNotebookSyncService {
     private readonly logger: Logger;
     private readonly onChanged: NativeNotebookChanged;
-    private watches = new Map<string, { dir: string; unwatch: UnwatchFn }>();
+    private watches = new Map<string, { dir: string; unwatch: () => Promise<void> }>();
     private generation = 0;
 
     constructor(logger: Logger, onChanged: NativeNotebookChanged) {
@@ -64,23 +64,23 @@ export class NativeNotebookSyncService {
             if (desired.get(notebookId) === current.dir) {
                 continue;
             }
-            current.unwatch();
+            void current.unwatch();
             this.watches.delete(notebookId);
         }
 
-        const { watch } = await import('@tauri-apps/plugin-fs');
         for (const [notebookId, dir] of desired) {
             if (generation !== this.generation || this.watches.has(notebookId)) {
                 continue;
             }
             try {
-                const unwatch = await watch(dir, event => {
+                const unwatch = await globalThis.dashqlElectron!.watchDirectory(dir, paths => {
+                    const event: WatchEvent = {paths};
                     if (isNotebookContentWatchEvent(event, dir)) {
                         this.onChanged(notebookId);
                     }
-                }, { recursive: true, delayMs: WATCH_DEBOUNCE_MS });
+                });
                 if (generation !== this.generation || desired.get(notebookId) !== dir) {
-                    unwatch();
+                    void unwatch();
                     continue;
                 }
                 this.watches.set(notebookId, { dir, unwatch });
@@ -97,7 +97,7 @@ export class NativeNotebookSyncService {
     public close(): void {
         this.generation++;
         for (const watch of this.watches.values()) {
-            watch.unwatch();
+            void watch.unwatch();
         }
         this.watches.clear();
     }

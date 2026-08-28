@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { isNativePlatform } from '../../../../platform/native_globals.js';
+import { isDesktopHost } from '../../../../platform/native_globals.js';
 import { HyperDatabaseClient } from './hyperdb_grpc_client.js';
 import { NativeHyperDatabaseClient } from './platform/native_hyperdb_grpc_client.js';
 import { WebHyperDatabaseClient } from './platform/web_hyperdb_http_client.js';
@@ -23,7 +23,7 @@ export const HyperDatabaseClientProvider: React.FC<Props> = (props: Props) => {
     const [grpcClient, setGrpcClient] = React.useState<HyperDatabaseClient | null>(null);
     const [httpHyperClient, setHttpHyperClient] = React.useState<HyperDatabaseClient | null>(null);
     React.useEffect(() => {
-        if (isNativePlatform()) {
+        if (isDesktopHost()) {
             setGrpcClient(new NativeHyperDatabaseClient({ proxyEndpoint: new URL("dashql-native://localhost") }, logger));
         }
         if (httpClient) {

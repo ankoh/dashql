@@ -29,10 +29,9 @@ This encoding is compact and efficient for simple passes, but is not directly su
 # We don't support HMR in the browser since pthread web-workers + HMR crash Chrome.
 bazel run //packages/dashql-app:dev
 
-# Dev server for dashql-native:dev.
-# dashql-app:dev_native supports HMR for the Tauri WebView.
-bazel run //packages/dashql-app:dev_native
-bazel run //packages/dashql-native:dev
+# Dev server for the Electron desktop app.
+# Run the Electron desktop application.
+bazel run //packages/dashql-electron:dev
 
 # If you need demangled wasm stacktraces, run with
 bazel run --config=debug //packages/dashql-app:dev
@@ -44,7 +43,8 @@ bazel build //packages/dashql-app:pages
 bazel build //packages/dashql-app:reloc
 
 # The native app can be cross-compiled for arm and x86
-bazel build //packages/dashql-native:mac_universal_dmg
+bazel run //packages/dashql-electron:mac_package_arm64
+bazel run //packages/dashql-electron:mac_package_x86_64
 
 # Test everything
 bazel test //...

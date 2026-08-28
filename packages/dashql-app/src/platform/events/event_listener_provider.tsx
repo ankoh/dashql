@@ -3,9 +3,9 @@ import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { PlatformEventListener, EVENT_QUERY_PARAMETER } from './event_listener.js';
-import { NativePlatformEventListener } from './native_event_listener.js';
 import { WebPlatformEventListener } from './web_event_listener.js';
-import { isNativePlatform } from '../native_globals.js';
+import { ElectronPlatformEventListener } from './electron_event_listener.js';
+import { AppHost, getAppHost } from '../native_globals.js';
 import { useLogger } from '../logger/logger_provider.js';
 
 export const SKIP_EVENT_LISTENER = Symbol("SKIP_EVENT_LISTENER");
@@ -23,7 +23,10 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
 
     // Construct the event listener
     const listener = React.useMemo<PlatformEventListener>(() => {
-        const l = isNativePlatform() ? new NativePlatformEventListener(logger) : new WebPlatformEventListener(logger);
+        const host = getAppHost();
+        const l = host === AppHost.ELECTRON
+            ? new ElectronPlatformEventListener(logger)
+            : new WebPlatformEventListener(logger);
         l.setup();
         return l;
     }, []);
