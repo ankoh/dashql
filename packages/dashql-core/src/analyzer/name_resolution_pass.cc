@@ -88,7 +88,7 @@ QualifiedCatalogObjectID NameResolutionPass::RegisterSchema(RegisteredName& data
     auto db_ref_iter = state.analyzed->databases_by_name.find({database_name});
     QualifiedCatalogObjectID db_id = QualifiedCatalogObjectID::Deferred();
     if (db_ref_iter == state.analyzed->databases_by_name.end()) {
-        db_id = state.catalog.AllocateDatabaseId(database_name);
+        db_id = state.catalog.ReserveDatabaseId(database_name);
         auto& db =
             state.analyzed->database_references.PushBack(CatalogEntry::DatabaseReference{db_id, database_name, ""});
         state.analyzed->databases_by_name.insert({{database_name}, db});
@@ -101,7 +101,7 @@ QualifiedCatalogObjectID NameResolutionPass::RegisterSchema(RegisteredName& data
     QualifiedCatalogObjectID schema_id = QualifiedCatalogObjectID::Deferred();
     auto schema_ref_iter = state.analyzed->schemas_by_qualified_name.find({database_name, schema_name});
     if (schema_ref_iter == state.analyzed->schemas_by_qualified_name.end()) {
-        schema_id = state.catalog.AllocateSchemaId(database_name, schema_name, db_id);
+        schema_id = state.catalog.ReserveSchemaId(database_name, schema_name, db_id);
         auto& schema = state.analyzed->schema_references.PushBack(
             CatalogEntry::SchemaReference{schema_id, database_name, schema_name});
         state.analyzed->schemas_by_qualified_name.insert({{database_name, schema_name}, schema});

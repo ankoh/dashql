@@ -21,6 +21,7 @@ const g = globalThis as typeof globalThis & {
     Request?: typeof Request;
     Response?: typeof Response;
     DASHQL_PRECOMPILED?: Promise<Uint8Array>;
+    DASHQL_CORE_WORKER_URL?: string;
     DASHQL_SHELL_PRECOMPILED?: Promise<Uint8Array>;
 };
 if (typeof g.TextEncoder === "undefined") g.TextEncoder = TextEncoder;
@@ -31,6 +32,7 @@ if (typeof g.Request === "undefined") g.Request = Request;
 if (typeof g.Response === "undefined") g.Response = Response;
 
 const coreWasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
+const coreJsPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.js");
 const shellWasmPath = path.resolve(process.cwd(), "dependencies/dashql-shell-wasm/dashql_shell.wasm");
 
 // Pre-load the WASM binary for faster instantiation
@@ -55,4 +57,5 @@ function getShellWasmBinary(): Promise<Uint8Array> {
 // Provide preloaded WASM binary to Emscripten
 // This is type-compatible and lets Emscripten handle all the memory setup properly
 g.DASHQL_PRECOMPILED = getWasmBinary();
+g.DASHQL_CORE_WORKER_URL = coreJsPath;
 g.DASHQL_SHELL_PRECOMPILED = getShellWasmBinary();

@@ -12,6 +12,7 @@ declare module '@ankoh/dashql-core-js' {
         HEAPF32: Float32Array;
         HEAPF64: Float64Array;
         memory: WebAssembly.Memory;
+        onDashQLAnalysisJobComplete?: (jobId: number, state: number) => void;
 
         // Runtime methods
         ccall?: (name: string, returnType: string | null, argTypes: string[], args: any[]) => any;
@@ -34,6 +35,7 @@ declare module '@ankoh/dashql-core-js' {
 
         // Path configuration
         locateFile?: (path: string, prefix: string) => string;
+        mainScriptUrlOrBlob?: string | Blob;
 
         // Memory configuration
         INITIAL_MEMORY?: number;

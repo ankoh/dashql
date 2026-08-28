@@ -86,6 +86,16 @@ extern "C" void dashql_script_scan(dashql::Script* script);
 extern "C" void dashql_script_parse(dashql::Script* script);
 /// Analyze a script (throws exception on error)
 extern "C" void dashql_script_analyze(dashql::Script* script, bool parse_if_outdated);
+/// Submit analysis to the fixed native worker pool. Throws if this script already has a job.
+extern "C" uint32_t dashql_script_analyze_async(dashql::Script* script, bool parse_if_outdated);
+/// Return the worker error code (DashQL status code when available), or zero.
+extern "C" uint32_t dashql_script_analysis_job_get_error_code(uint32_t job_id);
+/// Return an owned worker error message under normal FFIResult conventions.
+extern "C" void dashql_script_analysis_job_get_error_message(FFIResult* result, uint32_t job_id);
+/// Request cancellation. Running analysis is allowed to finish and its result is discarded logically.
+extern "C" bool dashql_script_analysis_job_cancel(uint32_t job_id);
+/// Consume a terminal job, or detach a queued/running job for automatic cleanup.
+extern "C" void dashql_script_analysis_job_release(uint32_t job_id);
 /// Get a pretty-printed version of the SQL query
 extern "C" void dashql_script_format(FFIResult* result, dashql::Script* script, size_t dialect, size_t mode,
                                        size_t max_width, size_t indentation_width, bool debug_mode,
@@ -180,6 +190,9 @@ extern "C" void dashql_catalog_describe_entries(FFIResult* result, dashql::Catal
 extern "C" void dashql_catalog_describe_entries_of(FFIResult* result, dashql::Catalog* catalog, size_t external_id);
 /// Add a script to the catalog (throws exception on error)
 extern "C" void dashql_catalog_load_script(dashql::Catalog* catalog, dashql::Script* script, size_t rank);
+/// Atomically add or replace scripts using parallel arrays of wasm32 pointers and uint32 ranks.
+extern "C" void dashql_catalog_load_scripts(dashql::Catalog* catalog, dashql::Script* const* scripts,
+                                             const uint32_t* ranks, uint32_t script_count);
 /// Drop script from the catalog
 extern "C" void dashql_catalog_drop_script(dashql::Catalog* catalog, dashql::Script* script);
 /// Get catalog statistics
