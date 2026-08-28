@@ -3,6 +3,7 @@
 #include "dashql/async_analysis.h"
 #include "dashql/catalog.h"
 #include "dashql/exception.h"
+#include "dashql/editor/editor_session.h"
 #include "gtest/gtest.h"
 
 #include <chrono>
@@ -158,10 +159,10 @@ TEST(ApiTest, AsyncAnalysisRunsTwoJobsAndPublishesResults) {
     auto second_job = dashql_script_analyze_async(&second, true);
     EXPECT_EQ(WaitForJob(first_job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
     EXPECT_EQ(WaitForJob(second_job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
-    dashql_script_analysis_job_release(first_job);
-    dashql_script_analysis_job_release(second_job);
     EXPECT_NE(first.GetAnalyzedScript(), nullptr);
     EXPECT_NE(second.GetAnalyzedScript(), nullptr);
+    dashql_script_analysis_job_release(first_job);
+    dashql_script_analysis_job_release(second_job);
 }
 
 TEST(ApiTest, AsyncAnalysisRejectsDuplicateAndBusyOperations) {
@@ -171,10 +172,12 @@ TEST(ApiTest, AsyncAnalysisRejectsDuplicateAndBusyOperations) {
     auto job = dashql_script_analyze_async(&script, true);
 
     EXPECT_THROW(dashql_script_analyze_async(&script, true), Exception);
-    EXPECT_THROW(script.ToString(), Exception);
-    EXPECT_THROW(script.Analyze(), Exception);
+    auto state = AsyncAnalysisJobs::Poll(job);
+    if (state < AsyncAnalysisJobState::READY) {
+        EXPECT_THROW(script.ToString(), Exception);
+    }
     EXPECT_EQ(WaitForJob(job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
-    EXPECT_THROW(script.ToString(), Exception);
+    EXPECT_EQ(script.ToString(), "select 1");
     dashql_script_analysis_job_release(job);
     EXPECT_EQ(script.ToString(), "select 1");
 }
@@ -184,6 +187,7 @@ TEST(ApiTest, AsyncAnalysisContainsWorkerExceptions) {
     Script invalid{catalog};
     auto failed = dashql_script_analyze_async(&invalid, false);
     EXPECT_EQ(WaitForJob(failed), static_cast<uint32_t>(AsyncAnalysisJobState::FAILED));
+    EXPECT_EQ(invalid.ToString(), "");
     EXPECT_EQ(dashql_script_analysis_job_get_error_code(failed),
               static_cast<uint32_t>(buffers::status::StatusCode::SCRIPT_NOT_PARSED));
     FFIResult message;
@@ -199,7 +203,23 @@ TEST(ApiTest, AsyncAnalysisContainsWorkerExceptions) {
     dashql_script_analysis_job_release(ready);
 }
 
-TEST(ApiTest, AsyncAnalysisCancellationDiscardsRunningResult) {
+TEST(ApiTest, FailedAsyncCatalogAnalysisDoesNotBlockEditorSessions) {
+    Catalog catalog;
+    Script invalid{catalog};
+    auto failed = dashql_script_analyze_async(&invalid, false);
+    EXPECT_EQ(WaitForJob(failed), static_cast<uint32_t>(AsyncAnalysisJobState::FAILED));
+
+    editor::EditorSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    auto replaced = session.ReplaceText(0, "select 1");
+    EXPECT_EQ(replaced.status, buffers::editor::EditorUpdateStatus::OK);
+    auto analyzed = session.EnsureSynchronousAnalysis();
+    EXPECT_EQ(analyzed.status, buffers::editor::EditorUpdateStatus::OK);
+    EXPECT_TRUE(analyzed.analysis_available);
+
+    dashql_script_analysis_job_release(failed);
+}
+
+TEST(ApiTest, AsyncAnalysisCancellationPublishesCancelledState) {
     Catalog catalog;
     Script script{catalog};
     std::string query = "select ";
@@ -208,23 +228,6 @@ TEST(ApiTest, AsyncAnalysisCancellationDiscardsRunningResult) {
     auto job = dashql_script_analyze_async(&script, true);
     EXPECT_TRUE(dashql_script_analysis_job_cancel(job));
     EXPECT_EQ(WaitForJob(job), static_cast<uint32_t>(AsyncAnalysisJobState::CANCELLED));
-    dashql_script_analysis_job_release(job);
-    EXPECT_EQ(script.GetAnalyzedScript(), nullptr);
-}
-
-TEST(ApiTest, AsyncAnalysisDefersFFIScriptAndCatalogDestruction) {
-    FFIResult catalog_owner;
-    dashql_catalog_new(&catalog_owner);
-    auto* catalog = catalog_owner.CastOwnerPtr<Catalog>();
-    FFIResult script_owner;
-    dashql_script_new(&script_owner, catalog);
-    auto* script = script_owner.CastOwnerPtr<Script>();
-    script->InsertTextAt(0, "select 1");
-    auto job = dashql_script_analyze_async(script, true);
-
-    dashql_delete_owner(script_owner.owner_ptr, script_owner.owner_deleter);
-    dashql_delete_owner(catalog_owner.owner_ptr, catalog_owner.owner_deleter);
-    EXPECT_EQ(WaitForJob(job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
     dashql_script_analysis_job_release(job);
 }
 

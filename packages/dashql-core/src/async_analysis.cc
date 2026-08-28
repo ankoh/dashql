@@ -9,6 +9,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <unordered_map>
+#include <utility>
 
 #include <thread>
 
@@ -31,6 +32,11 @@ struct Job {
     std::atomic<bool> released{false};
     uint32_t error_code = 0;
     std::string error_message;
+};
+
+struct Work {
+    std::shared_ptr<Job> job;
+    Script::AsyncJobGuard guard;
 };
 
 static_assert(sizeof(std::atomic<uint32_t>) == sizeof(uint32_t));
@@ -68,7 +74,7 @@ class Executor {
    public:
     std::mutex mutex;
     std::condition_variable ready;
-    std::deque<std::shared_ptr<Job>> queue;
+    std::deque<std::unique_ptr<Work>> queue;
     std::unordered_map<uint32_t, std::shared_ptr<Job>> jobs;
     std::atomic<uint32_t> next_id{1};
 
@@ -80,9 +86,7 @@ class Executor {
 
     uint32_t Submit(Script& script, bool parse_if_outdated) {
         auto id = NextId();
-        if (!script.AcquireAsyncLease(id)) {
-            throw Exception(buffers::status::StatusCode::SCRIPT_BUSY);
-        }
+        auto guard = script.BeginAsyncJob(id);
         auto job = std::make_shared<Job>();
         job->id = id;
         job->script = &script;
@@ -90,11 +94,10 @@ class Executor {
         {
             std::lock_guard lock{mutex};
             if (queue.size() >= MAX_QUEUED_JOBS) {
-                script.ReleaseAsyncLease(id);
                 throw std::runtime_error("asynchronous analysis queue is full");
             }
             jobs.emplace(id, job);
-            queue.push_back(job);
+            queue.push_back(std::make_unique<Work>(Work{job, std::move(guard)}));
         }
         ready.notify_one();
         return id;
@@ -109,7 +112,7 @@ class Executor {
     void Release(uint32_t id) {
         std::shared_ptr<Job> job;
         bool terminal = false;
-        bool cancelled_queued = false;
+        std::unique_ptr<Work> cancelled_work;
         {
             std::lock_guard lock{mutex};
             auto iter = jobs.find(id);
@@ -120,18 +123,21 @@ class Executor {
             terminal = state == AsyncAnalysisJobState::READY || state == AsyncAnalysisJobState::FAILED ||
                        state == AsyncAnalysisJobState::CANCELLED;
             if (!terminal && state == AsyncAnalysisJobState::QUEUED) {
-                auto queued = std::find(queue.begin(), queue.end(), job);
+                auto queued = std::find_if(queue.begin(), queue.end(),
+                                           [&](const auto& work) { return work->job == job; });
                 if (queued != queue.end()) {
+                    cancelled_work = std::move(*queued);
                     queue.erase(queued);
                     job->cancelled.store(true, std::memory_order_release);
-                    cancelled_queued = true;
                     terminal = true;
                 }
             }
             if (terminal) jobs.erase(iter);
         }
-        if (cancelled_queued) PublishState(*job, AsyncAnalysisJobState::CANCELLED);
-        if (terminal) job->script->ReleaseAsyncLease(job->id);
+        if (cancelled_work) {
+            cancelled_work.reset();
+            PublishState(*job, AsyncAnalysisJobState::CANCELLED);
+        }
     }
 
    private:
@@ -144,43 +150,41 @@ class Executor {
 
     void Worker() {
         for (;;) {
-            std::shared_ptr<Job> job;
+            std::unique_ptr<Work> work;
             {
                 std::unique_lock lock{mutex};
                 ready.wait(lock, [&] { return !queue.empty(); });
-                job = std::move(queue.front());
+                work = std::move(queue.front());
                 queue.pop_front();
             }
-            Run(job);
+            const auto job = work->job;
+            auto state = Run(job);
+            work.reset();
+            PublishState(*job, state);
+            FinishReleased(job);
         }
     }
 
-    void Run(const std::shared_ptr<Job>& job) {
+    AsyncAnalysisJobState Run(const std::shared_ptr<Job>& job) {
         if (job->cancelled.load(std::memory_order_acquire)) {
-            PublishState(*job, AsyncAnalysisJobState::CANCELLED);
-            FinishReleased(job);
-            return;
+            return AsyncAnalysisJobState::CANCELLED;
         }
         PublishState(*job, AsyncAnalysisJobState::ANALYZING);
         try {
-            job->script->catalog.AnalyzeScriptAsync(*job->script, job->parse_if_outdated, job->cancelled);
-            PublishState(*job, job->cancelled.load(std::memory_order_acquire)
-                                   ? AsyncAnalysisJobState::CANCELLED
-                                   : AsyncAnalysisJobState::READY);
+            job->script->AnalyzeAsync(job->parse_if_outdated);
+            return job->cancelled.load(std::memory_order_acquire) ? AsyncAnalysisJobState::CANCELLED
+                                                                   : AsyncAnalysisJobState::READY;
         } catch (const Exception& e) {
             job->error_code = static_cast<uint32_t>(e.GetCode());
             job->error_message = e.what();
-            PublishState(*job, AsyncAnalysisJobState::FAILED);
         } catch (const std::exception& e) {
             job->error_code = STD_EXCEPTION_ERROR;
             job->error_message = e.what();
-            PublishState(*job, AsyncAnalysisJobState::FAILED);
         } catch (...) {
             job->error_code = UNKNOWN_EXCEPTION_ERROR;
             job->error_message = "unknown exception during asynchronous analysis";
-            PublishState(*job, AsyncAnalysisJobState::FAILED);
         }
-        FinishReleased(job);
+        return AsyncAnalysisJobState::FAILED;
     }
 
    public:
@@ -192,7 +196,6 @@ class Executor {
             if (iter == jobs.end() || iter->second.get() != job.get()) return;
             jobs.erase(iter);
         }
-        job->script->ReleaseAsyncLease(job->id);
     }
 };
 
@@ -244,9 +247,12 @@ bool AsyncAnalysisJobs::Cancel(uint32_t job_id) {
     {
         std::lock_guard lock{executor.mutex};
         if (job->state.load(std::memory_order_acquire) == static_cast<uint32_t>(AsyncAnalysisJobState::QUEUED)) {
-            auto iter = std::find(executor.queue.begin(), executor.queue.end(), job);
+            auto iter = std::find_if(executor.queue.begin(), executor.queue.end(),
+                                     [&](const auto& work) { return work->job == job; });
             if (iter != executor.queue.end()) {
+                auto cancelled_work = std::move(*iter);
                 executor.queue.erase(iter);
+                cancelled_work.reset();
                 removed = true;
             }
         }

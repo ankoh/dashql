@@ -47,20 +47,6 @@ template <typename T> static void packPtr(FFIResult* result, std::unique_ptr<T> 
     result->owner_deleter = [](void* p) { delete reinterpret_cast<T*>(p); };
 }
 
-static void packScriptPtr(FFIResult* result, std::unique_ptr<Script> ptr) {
-    result->data_ptr = nullptr;
-    result->data_length = 0;
-    result->owner_ptr = ptr.release();
-    result->owner_deleter = [](void* ptr) { reinterpret_cast<Script*>(ptr)->RequestDelete(); };
-}
-
-static void packCatalogPtr(FFIResult* result, std::unique_ptr<Catalog> ptr) {
-    result->data_ptr = nullptr;
-    result->data_length = 0;
-    result->owner_ptr = ptr.release();
-    result->owner_deleter = [](void* ptr) { reinterpret_cast<Catalog*>(ptr)->RequestDelete(); };
-}
-
 static void packBuffer(FFIResult* result, std::unique_ptr<flatbuffers::DetachedBuffer> detached) {
     result->data_ptr = detached->data();
     result->data_length = detached->size();
@@ -191,7 +177,7 @@ extern "C" void dashql_script_new(FFIResult* result, dashql::Catalog* catalog) {
     }
     // Construct the script
     auto script = std::make_unique<Script>(*catalog);
-    packScriptPtr(result, std::move(script));
+    packPtr(result, std::move(script));
 }
 /// Get the catalog entry id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) {
@@ -298,7 +284,7 @@ extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t d
     new_script->InsertTextAt(0, text);
 
     // Pack the script pointer
-    packScriptPtr(result, std::move(new_script));
+    packPtr(result, std::move(new_script));
 }
 
 extern "C" uint32_t dashql_script_is_fully_formattable(Script* script, size_t dialect, size_t mode, size_t max_width,
@@ -538,7 +524,7 @@ extern "C" void dashql_editor_session_drop_from_catalog(editor::EditorSession* s
 }
 
 /// Create a catalog
-extern "C" void dashql_catalog_new(FFIResult* result) { packCatalogPtr(result, std::make_unique<dashql::Catalog>()); }
+extern "C" void dashql_catalog_new(FFIResult* result) { packPtr(result, std::make_unique<dashql::Catalog>()); }
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog) { catalog->Clear(); }
 /// Get script id
