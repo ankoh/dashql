@@ -38,6 +38,7 @@ class EditorSession {
     uint64_t GetCatalogRevision() const { return catalog_.GetVersion(); }
     buffers::editor::EditorOffsetUnit GetOffsetUnit() const { return offset_unit_; }
     const std::optional<EditorSelection>& GetPrimarySelection() const { return primary_selection_; }
+    Script& GetScript() { return script_; }
     const Script& GetScript() const { return script_; }
 
     EditorUpdate ReplaceText(uint64_t expected_document_revision, std::string_view text);

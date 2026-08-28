@@ -1,6 +1,5 @@
 import * as core from '../../../core/index.js';
 
-import { VisSource, visSourceToData } from './script_agent_host.js';
 import { verifyScript } from '../agent/agent_verify.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -16,12 +15,12 @@ afterEach(() => {
 });
 
 /// Transcode a spec object via the WASM core, injecting an inline source as the `data` member.
-function transcode(spec: Record<string, unknown>, source: VisSource = INLINE_SOURCE): string {
-    const data = visSourceToData(source);
+function transcode(spec: Record<string, unknown>, source: { kind: 'inline-select'; sql: string } = INLINE_SOURCE): string {
+    const data = { $sql: source.sql.trim() };
     return dql!.parseVegaLiteToVisualize(JSON.stringify({ ...spec, data }));
 }
 
-const INLINE_SOURCE: VisSource = { kind: 'inline-select', sql: 'SELECT * FROM sales' };
+const INLINE_SOURCE = { kind: 'inline-select' as const, sql: 'SELECT * FROM sales' };
 
 describe('parseVegaLiteToVisualize (WASM)', () => {
     it('rejects a named data source without query text', () => {
@@ -186,16 +185,6 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
 
     it('returns an empty string for malformed JSON', () => {
         expect(dql!.parseVegaLiteToVisualize('not json')).toBe('');
-    });
-});
-
-describe('visSourceToData', () => {
-    it('encodes a raw source verbatim', () => {
-        expect(visSourceToData({ kind: 'raw', text: ' SELECT * FROM sales ' })).toEqual({ $raw: 'SELECT * FROM sales' });
-    });
-    it('encodes an inline query as $sql', () => {
-        expect(visSourceToData({ kind: 'inline-select', sql: ' SELECT a FROM t ' }))
-            .toEqual({ $sql: 'SELECT a FROM t' });
     });
 });
 

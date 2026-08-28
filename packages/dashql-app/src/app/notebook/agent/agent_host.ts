@@ -16,12 +16,6 @@ export interface AgentHost {
     /// source query + current chart + output schema for visualize, …). Returns "" when there is
     /// nothing to contribute.
     buildContext(intent: AgentIntent): string;
-    /// Describe the focused target so the C++ workflow can decide whether to create or replace.
-    describeTarget(): AgentTargetDescription;
-    /// Transcode a raw Vega-Lite spec (the JSON the model emitted) into the target DSL, resolving
-    /// and injecting the data source along the way. THROWS on a malformed spec / transcode failure
-    /// so the driver treats it as a verifiable error and repairs.
-    transcodeVegaLite(rawSpecJson: string): string;
     /// Execute the create/replace disposition selected by the C++ workflow.
     applyProposal(disposition: AgentApplyDisposition, candidateText: string): void;
     /// Attach this run's id to the run's context (so a UI can resolve the run — and its trace — the
@@ -29,10 +23,4 @@ export interface AgentHost {
     registerRun?(runId: number): void;
 }
 
-export type AgentTargetKind = 'none' | 'sql' | 'visualization';
 export type AgentApplyDisposition = 'create' | 'replace';
-
-export interface AgentTargetDescription {
-    kind: AgentTargetKind;
-    name: string | null;
-}

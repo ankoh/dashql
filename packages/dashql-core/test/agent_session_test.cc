@@ -1,6 +1,7 @@
 #include "dashql/agent/agent_session.h"
 
 #include "dashql/catalog.h"
+#include "dashql/editor/editor_session.h"
 #include "gtest/gtest.h"
 
 using namespace dashql;
@@ -11,15 +12,11 @@ namespace {
 
 // These tests exercise the public suspension protocol rather than coroutine internals.
 
-AgentEffectCompletionT CompleteContext(const AgentOperationT& operation, std::string context = {},
-                                       AgentTargetKind target_kind = AgentTargetKind::NONE,
-                                       std::string target_name = {}) {
+AgentEffectCompletionT CompleteContext(const AgentOperationT& operation, std::string context = {}) {
     AgentEffectCompletionT completion;
     completion.effect_id = operation.effect->id;
     completion.context = std::make_unique<AgentContextResultT>();
     completion.context->context = std::move(context);
-    completion.context->target_kind = target_kind;
-    completion.context->target_name = std::move(target_name);
     return completion;
 }
 
@@ -28,16 +25,6 @@ AgentEffectCompletionT CompleteModel(const AgentOperationT& operation, std::stri
     completion.effect_id = operation.effect->id;
     completion.model = std::make_unique<AgentModelCompletionT>();
     completion.model->text = std::move(text);
-    return completion;
-}
-
-AgentEffectCompletionT CompleteTranscode(const AgentOperationT& operation, std::string candidate,
-                                         std::vector<std::string> errors = {}) {
-    AgentEffectCompletionT completion;
-    completion.effect_id = operation.effect->id;
-    completion.transcode_vegalite = std::make_unique<AgentTranscodeVegaLiteResultT>();
-    completion.transcode_vegalite->candidate_text = std::move(candidate);
-    completion.transcode_vegalite->errors = std::move(errors);
     return completion;
 }
 
@@ -69,7 +56,8 @@ TEST(AgentSessionTest, CleanSqlProducesApplyProposalAndSucceeds) {
     Catalog catalog;
     AgentSession session{catalog};
     auto operation = StartWithIntent(session, AgentIntent::SQL);
-    ASSERT_EQ(operation.status, AgentStatus::PENDING);
+    ASSERT_EQ(operation.error, AgentOperationError::NONE);
+    ASSERT_NE(operation.effect, nullptr);
     ASSERT_EQ(operation.effect->type, AgentEffectType::RESOLVE_CONTEXT);
 
     operation = session.CompleteEffect(CompleteContext(operation, "schema context"));
@@ -96,7 +84,8 @@ TEST(AgentSessionTest, ApplyAcknowledgementMustConfirmApplication) {
     operation = session.CompleteEffect(CompleteContext(operation));
     operation = session.CompleteEffect(CompleteModel(operation, "select 1"));
     operation = session.CompleteEffect(RejectApply(operation));
-    EXPECT_EQ(operation.status, AgentStatus::OK);
+    EXPECT_EQ(operation.error, AgentOperationError::NONE);
+    EXPECT_EQ(operation.effect, nullptr);
     EXPECT_EQ(operation.snapshot->phase, AgentPhase::FAILED);
     ASSERT_EQ(operation.events.size(), 1u);
     EXPECT_EQ(operation.events[0]->message, "the proposal was not applied");
@@ -112,17 +101,21 @@ class ApplyDispositionTest : public testing::TestWithParam<ApplyDispositionCase>
 
 TEST_P(ApplyDispositionTest, CoreChoosesApplyDispositionFromIntentAndTarget) {
     Catalog catalog;
-    AgentSession session{catalog};
     const auto& param = GetParam();
+    std::optional<editor::EditorSession> target;
+    if (param.target_kind != AgentTargetKind::NONE) {
+        target.emplace(catalog);
+        const auto target_script = param.target_kind == AgentTargetKind::VISUALIZATION
+                                       ? "select 1 visualize using vegalite (mark => line)"
+                                       : "select 1";
+        target->ReplaceText(0, target_script);
+    }
+    AgentSession session{catalog, target ? &*target : nullptr, "target.sql"};
 
     auto operation = StartWithIntent(session, param.intent);
-    operation = session.CompleteEffect(CompleteContext(operation, {}, param.target_kind, "target.sql"));
+    operation = session.CompleteEffect(CompleteContext(operation));
     operation = session.CompleteEffect(CompleteModel(
         operation, param.intent == AgentIntent::SQL ? "select 1" : "{\"mark\":\"bar\"}"));
-    if (param.intent == AgentIntent::VISUALIZE) {
-        operation = session.CompleteEffect(CompleteTranscode(
-            operation, "select 1 visualize using vegalite (mark => bar)"));
-    }
 
     ASSERT_EQ(operation.effect->apply_proposal->proposal->disposition, param.expected);
     if (param.expected == AgentApplyDisposition::REPLACE) {
@@ -138,10 +131,24 @@ INSTANTIATE_TEST_SUITE_P(
         ApplyDispositionCase{AgentIntent::SQL, AgentTargetKind::NONE, AgentApplyDisposition::CREATE},
         ApplyDispositionCase{AgentIntent::SQL, AgentTargetKind::SQL, AgentApplyDisposition::REPLACE},
         ApplyDispositionCase{AgentIntent::SQL, AgentTargetKind::VISUALIZATION, AgentApplyDisposition::REPLACE},
-        ApplyDispositionCase{AgentIntent::VISUALIZE, AgentTargetKind::NONE, AgentApplyDisposition::CREATE},
         ApplyDispositionCase{AgentIntent::VISUALIZE, AgentTargetKind::SQL, AgentApplyDisposition::CREATE},
         ApplyDispositionCase{AgentIntent::VISUALIZE, AgentTargetKind::VISUALIZATION,
                              AgentApplyDisposition::REPLACE}));
+
+TEST(AgentSessionTest, VisualizationWithoutTargetRepairsBecauseItHasNoSource) {
+    Catalog catalog;
+    AgentSession session{catalog};
+    auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
+    operation = session.CompleteEffect(CompleteContext(operation));
+    operation = session.CompleteEffect(CompleteModel(operation, "{\"mark\":\"bar\"}"));
+
+    ASSERT_NE(operation.effect, nullptr);
+    ASSERT_NE(operation.effect->model_request, nullptr);
+    EXPECT_EQ(operation.effect->model_request->kind, AgentModelRequestKind::REPAIR);
+    ASSERT_FALSE(operation.effect->model_request->errors.empty());
+    EXPECT_EQ(operation.effect->model_request->errors[0],
+              "A focused query source is required to create a visualization.");
+}
 
 TEST(AgentSessionTest, ParserErrorsDriveRepairAndExhaustion) {
     Catalog catalog;
@@ -175,20 +182,31 @@ TEST(AgentSessionTest, EmptySqlIsRepairable) {
     EXPECT_EQ(operation.effect->model_request->errors[0], "The model returned an empty result.");
 }
 
-TEST(AgentSessionTest, VisualizationUsesTranscodeEffectAndRequiresVisualizationSpec) {
+TEST(AgentSessionTest, VisualizationTranscodesAndVerifiesInsideSession) {
     Catalog catalog;
-    AgentSession session{catalog};
+    editor::EditorSession target{catalog};
+    target.ReplaceText(0, "select 1");
+    AgentSession session{catalog, &target, "query.sql"};
     auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
     operation = session.CompleteEffect(CompleteContext(operation));
     operation = session.CompleteEffect(CompleteModel(operation, "before {\"mark\":\"bar\"} after"));
-    ASSERT_EQ(operation.effect->type, AgentEffectType::TRANSCODE_VEGALITE);
-    EXPECT_EQ(operation.effect->transcode_vegalite->raw_spec_json, "{\"mark\":\"bar\"}");
+    ASSERT_EQ(operation.effect->type, AgentEffectType::APPLY_PROPOSAL);
+    EXPECT_NE(operation.effect->apply_proposal->proposal->candidate_text.find("VISUALIZE USING vegalite"),
+              std::string::npos);
+}
 
-    operation = session.CompleteEffect(CompleteTranscode(operation, "select 1"));
-    ASSERT_EQ(operation.effect->model_request->kind, AgentModelRequestKind::REPAIR);
-    ASSERT_FALSE(operation.effect->model_request->errors.empty());
-    EXPECT_EQ(operation.effect->model_request->errors[0],
-              "The statement did not resolve into a visualization. Check the source and channels.");
+TEST(AgentSessionTest, VisualizationCompilesSourceFromFocusedVisualization) {
+    Catalog catalog;
+    editor::EditorSession target{catalog};
+    target.ReplaceText(0, "select 1 visualize using vegalite (mark => line)");
+    AgentSession session{catalog, &target, "chart.sql"};
+    auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
+    operation = session.CompleteEffect(CompleteContext(operation));
+    operation = session.CompleteEffect(CompleteModel(operation, "{\"mark\":\"bar\"}"));
+
+    ASSERT_EQ(operation.effect->type, AgentEffectType::APPLY_PROPOSAL);
+    EXPECT_NE(operation.effect->apply_proposal->proposal->candidate_text.find("select 1"), std::string::npos);
+    EXPECT_NE(operation.effect->apply_proposal->proposal->candidate_text.find("mark => bar"), std::string::npos);
 }
 
 TEST(AgentSessionTest, ClassificationDefaultsAmbiguousOutputToSql) {
@@ -215,7 +233,7 @@ TEST(AgentSessionTest, CancellationAndStaleCompletionsAreExplicit) {
     EXPECT_EQ(operation.snapshot->phase, AgentPhase::CANCELLED);
 
     operation = session.CompleteEffect(stale);
-    EXPECT_EQ(operation.status, AgentStatus::STALE_EFFECT);
+    EXPECT_EQ(operation.error, AgentOperationError::STALE_EFFECT);
 }
 
 TEST(AgentSessionTest, MissingCompletionPayloadDoesNotConsumeEffect) {
@@ -227,13 +245,13 @@ TEST(AgentSessionTest, MissingCompletionPayloadDoesNotConsumeEffect) {
     AgentEffectCompletionT missing;
     missing.effect_id = effect_id;
     operation = session.CompleteEffect(missing);
-    EXPECT_EQ(operation.status, AgentStatus::INVALID_ARGUMENT);
+    EXPECT_EQ(operation.error, AgentOperationError::INVALID_ARGUMENT);
 
     AgentEffectCompletionT valid;
     valid.effect_id = effect_id;
     valid.context = std::make_unique<AgentContextResultT>();
     operation = session.CompleteEffect(valid);
-    EXPECT_EQ(operation.status, AgentStatus::PENDING);
+    EXPECT_EQ(operation.error, AgentOperationError::NONE);
     ASSERT_NE(operation.effect, nullptr);
     EXPECT_EQ(operation.effect->model_request->kind, AgentModelRequestKind::GENERATE);
 }
@@ -246,7 +264,8 @@ TEST(AgentSessionTest, TerminalSessionCanRestartAndCancel) {
     ASSERT_EQ(operation.snapshot->phase, AgentPhase::CANCELLED);
 
     operation = StartWithIntent(session, AgentIntent::SQL);
-    ASSERT_EQ(operation.status, AgentStatus::PENDING);
+    ASSERT_EQ(operation.error, AgentOperationError::NONE);
+    ASSERT_NE(operation.effect, nullptr);
     EXPECT_EQ(operation.snapshot->phase, AgentPhase::IDLE);
     operation = session.Cancel();
     EXPECT_EQ(operation.snapshot->phase, AgentPhase::CANCELLED);

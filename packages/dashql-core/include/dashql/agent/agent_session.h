@@ -13,6 +13,10 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 
+namespace dashql::editor {
+class EditorSession;
+}
+
 namespace dashql::agent {
 
 /// Core-owned agent workflow that suspends for host-provided effects such as model calls.
@@ -26,8 +30,9 @@ class AgentSession {
     /// Portable result supplied by the host for the current pending effect.
     using AgentEffectCompletion = buffers::agent::AgentEffectCompletionT;
 
-    /// Create an idle agent session borrowing `catalog` for candidate verification.
-    explicit AgentSession(Catalog& catalog) : catalog_{catalog} {}
+    /// Create an idle session borrowing the catalog and optional focused editor target.
+    explicit AgentSession(Catalog& catalog, editor::EditorSession* target = nullptr,
+                          std::string target_name = {});
     /// Destroy the suspended coroutine, if any.
     ~AgentSession();
 
@@ -45,8 +50,8 @@ class AgentSession {
     using AgentIntent = buffers::agent::AgentIntent;
     /// Current externally observable workflow phase.
     using AgentPhase = buffers::agent::AgentPhase;
-    /// Status of an operation returned across the host boundary.
-    using AgentStatus = buffers::agent::AgentStatus;
+    /// Error from the latest host protocol operation, independent of workflow phase.
+    using AgentOperationError = buffers::agent::AgentOperationError;
 
     /// Owning wrapper for the root agent coroutine handle.
     struct Task {
@@ -100,12 +105,6 @@ class AgentSession {
             buffers::agent::AgentEffectCompletionStatus::SUCCESS;
         /// Primary text result: model output, context, candidate, or error message.
         std::string value;
-        /// Repairable diagnostics returned by visualization transcoding.
-        std::vector<std::string> errors;
-        /// Kind of focused target supplied with the notebook context.
-        buffers::agent::AgentTargetKind target_kind = buffers::agent::AgentTargetKind::NONE;
-        /// Display name of the focused target.
-        std::string target_name;
         /// Whether the host confirmed that it applied the proposal.
         bool applied = false;
     };
@@ -152,8 +151,6 @@ class AgentSession {
     EffectAwaiter AwaitModel(buffers::agent::AgentModelRequestKind kind);
     /// Suspend while the host assembles notebook-specific prompt context.
     EffectAwaiter AwaitContext();
-    /// Suspend while the host injects the source and transcodes Vega-Lite JSON to DashQL.
-    EffectAwaiter AwaitTranscode();
     /// Suspend while the host applies the verified proposal to notebook state.
     EffectAwaiter AwaitApply(const VerifyResult& verify);
     /// Publish an effect and retain everything required to resume its coroutine.
@@ -164,7 +161,8 @@ class AgentSession {
     /// Convert a suspended or completed coroutine into a portable host operation.
     AgentOperation CollectOperation(Task::Handle coroutine);
     /// Build an operation containing a snapshot of the current workflow state.
-    AgentOperation MakeOperation(AgentStatus status, std::string message = {});
+    AgentOperation MakeOperation(AgentOperationError error = AgentOperationError::NONE,
+                                 std::string message = {});
     /// Complete the workflow with an expected exhaustion or unexpected failure.
     void SetFailed(bool expected, std::string message);
     /// Complete the workflow after a host effect is cancelled.
@@ -190,9 +188,17 @@ class AgentSession {
     static std::string ExtractSql(std::string_view completion);
     /// Extract the first balanced JSON object from a visualization completion.
     static std::string ExtractJsonObject(std::string_view completion);
+    /// Compile the focused native script into executable source SQL and derive its kind.
+    std::string CompileTargetScript();
+    /// Inject source SQL into raw Vega-Lite JSON and transcode it into DashQL VISUALIZE syntax.
+    std::string TranscodeVegaLite(std::string_view raw_spec, std::string_view source_sql) const;
+    /// Add actionable diagnostics for Vega-Lite marks unsupported by DashQL.
+    void DiagnoseVegaLiteSpec(std::string_view raw_spec, std::vector<std::string>& errors) const;
 
     /// Catalog borrowed for parser/analyzer verification; must outlive this session.
     Catalog& catalog_;
+    /// Focused native editor target, or null when the run creates without a target.
+    editor::EditorSession* target_ = nullptr;
     /// Current externally visible phase of the active or most recent run.
     AgentPhase phase_ = AgentPhase::IDLE;
     /// Requested or model-classified artifact intent.

@@ -13,13 +13,11 @@
 namespace dashql::testing {
 
 struct AgentSnapshotEvent {
-    enum class Type { kCompleteModel, kCompleteContext, kCompleteTranscode, kCompleteApply, kCancel };
+    enum class Type { kCompleteModel, kCompleteContext, kCompleteApply, kCancel };
 
     Type type = Type::kCompleteModel;
     std::string value;
     std::vector<std::string> errors;
-    buffers::agent::AgentTargetKind target_kind = buffers::agent::AgentTargetKind::NONE;
-    std::string target_name;
 };
 
 struct AgentSnapshotTest {
@@ -33,6 +31,8 @@ struct AgentSnapshotTest {
     std::string prompt;
     buffers::agent::AgentIntent intent = buffers::agent::AgentIntent::UNKNOWN;
     uint32_t max_attempts = 3;
+    std::string target_name;
+    std::string target_script;
     std::vector<AgentSnapshotEvent> events;
     c4::yml::Tree* tree = nullptr;
     c4::yml::id_type node_id = c4::yml::NONE;

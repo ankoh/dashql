@@ -26,7 +26,7 @@ export interface EmscriptenModule {
     _dashql_malloc: (length: number) => number;
     _dashql_free: (ptr: number) => void;
     _dashql_delete_owner: (owner_ptr: number, owner_deleter: number) => void;
-    _dashql_agent_session_new: (result: number, catalog: number) => void;
+    _dashql_agent_session_new: (result: number, catalog: number, target: number, targetName: number, targetNameLength: number) => void;
     _dashql_agent_session_start: (result: number, ptr: number, request: number, requestLength: number) => void;
     _dashql_agent_session_complete_effect: (result: number, ptr: number, completion: number, completionLength: number) => void;
     _dashql_agent_session_cancel: (result: number, ptr: number) => void;
@@ -101,7 +101,7 @@ interface DashQLModuleExports {
     dashql_free: (ptr: number) => void;
     dashql_delete_owner: (owner_ptr: number, owner_deleter: number) => void;
 
-    dashql_agent_session_new: (result: number, catalog: number) => void;
+    dashql_agent_session_new: (result: number, catalog: number, target: number, targetName: number, targetNameLength: number) => void;
     dashql_agent_session_start: (result: number, ptr: number, request: number, requestLength: number) => void;
     dashql_agent_session_complete_effect: (result: number, ptr: number, completion: number, completionLength: number) => void;
     dashql_agent_session_cancel: (result: number, ptr: number) => void;
@@ -470,11 +470,32 @@ export class DashQL {
         return script;
     }
 
-    public createAgentSession(catalog: DashQLCatalog): DashQLAgentSession {
+    public createAgentSession(
+        catalog: DashQLCatalog,
+        target: DashQLEditorSession | null = null,
+        targetName: string | null = null,
+    ): DashQLAgentSession {
         const catalogPtr = catalog.ptr.assertNotNull();
-        const ptr = this.callSRetPtr(AGENT_SESSION_TYPE, (resultPtr) =>
-            this.instanceExports.dashql_agent_session_new(resultPtr, catalogPtr)
-        );
+        const targetPtr = target?.ptr.assertNotNull() ?? 0;
+        let targetNamePtr = 0;
+        let targetNameLength = 0;
+        if (targetName != null) {
+            [targetNamePtr, targetNameLength] = this.copyString(targetName);
+        }
+        let ptr: Ptr<typeof AGENT_SESSION_TYPE>;
+        try {
+            ptr = this.callSRetPtr(AGENT_SESSION_TYPE, (resultPtr) =>
+                this.instanceExports.dashql_agent_session_new(
+                    resultPtr,
+                    catalogPtr,
+                    targetPtr,
+                    targetNamePtr,
+                    targetNameLength,
+                )
+            );
+        } finally {
+            if (targetNamePtr !== 0) this.instanceExports.dashql_free(targetNamePtr);
+        }
         const session = new DashQLAgentSession(ptr);
         this.registerMemory({ type: AGENT_SESSION_TYPE, value: session.ptr });
         return session;
