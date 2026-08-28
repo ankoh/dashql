@@ -36,12 +36,11 @@ class FakeHost implements AgentHost {
         const targetScript = this.targetScript;
         const target = targetScript == null ? null : dql!.createEditorSession(catalog!);
         if (target != null && targetScript != null) target.replaceText(0n, targetScript);
-        return dql!.createAgentSession(catalog!, target, this.targetName);
+        return dql!.createAgentSession(catalog!, target);
     }
     /// The context block returned to the driver (asserted to reach the generation prompt).
     contextText = 'FAKE-CONTEXT';
     contextError: Error | null = null;
-    targetName: string | null = 'the-target';
     targetScript: string | null = 'select 1';
 
     /// Recorded calls, for assertions.
@@ -247,7 +246,7 @@ describe('startAgentRun (fake host)', () => {
         // The committed candidate is the transcoded DSL, not the raw spec.
         expect(host.committed).toHaveLength(1);
         expect(host.committed[0].disposition).toBe('create');
-        expect(host.committed[0].candidate).toContain('VISUALIZE USING vegalite');
+        expect(host.committed[0].candidate).toContain('visualize using vegalite');
         expect(host.committed[0].candidate).toContain('mark => line');
     });
 

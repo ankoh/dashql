@@ -45,8 +45,9 @@ extern "C" void dashql_delete_owner(void* owner_ptr, void (*owner_deleter)(void*
 /// Create an agent session borrowing the catalog and optional focused editor target.
 /// Destroy it before destroying either borrowed object.
 extern "C" void dashql_agent_session_new(FFIResult* result, dashql::Catalog* catalog,
-                                           dashql::editor::EditorSession* target,
-                                           const char* target_name_ptr, size_t target_name_length);
+                                            dashql::editor::EditorSession* target,
+                                            size_t dialect, size_t mode, size_t max_width,
+                                            size_t indentation_width, bool debug_mode);
 /// Start an agent session from a serialized AgentStartRequest.
 extern "C" void dashql_agent_session_start(FFIResult* result, dashql::agent::AgentSession* session,
                                             const uint8_t* request_ptr, size_t request_length);

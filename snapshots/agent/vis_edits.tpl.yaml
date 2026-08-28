@@ -1,0 +1,116 @@
+agent-snapshots:
+  - name: change_mark_preserves_aggregate_query
+    input:
+      prompt: Change this chart from a line chart to a bar chart.
+      intent: visualize
+      script: |-
+        with source as (
+          select 1 as month, 10 as revenue
+          union all
+          select 2 as month, 20 as revenue
+        )
+        select month, sum(revenue) as total
+        from source
+        where revenue > 0
+        group by month
+        order by month
+        limit 12
+        visualize using vegalite (
+          mark => line,
+          encoding => (
+            x => (field => month, type => ordinal),
+            y => (field => total, type => quantitative)
+          )
+        )
+    events:
+      - type: resolved_context
+        value: existing monthly revenue chart
+      - type: model_response
+        value: |-
+          {
+            "mark": "bar",
+            "encoding": {
+              "x": {"field": "month", "type": "ordinal"},
+              "y": {"field": "total", "type": "quantitative"}
+            }
+          }
+      - type: applied_result
+
+  - name: change_encoding_preserves_join_query
+    input:
+      prompt: Put amount on x, customer on y, and color by segment.
+      intent: visualize
+      script: |-
+        with customers as (
+          select 1 as customer_id, 'Acme' as customer, 'Enterprise' as segment
+          union all
+          select 2 as customer_id, 'Dash' as customer, 'SMB' as segment
+        ), orders as (
+          select 1 as customer_id, 125 as amount
+          union all
+          select 2 as customer_id, 75 as amount
+        )
+        select c.customer, c.segment, sum(o.amount) as amount
+        from customers c
+        join orders o on o.customer_id = c.customer_id
+        group by c.customer, c.segment
+        having sum(o.amount) > 50
+        order by amount desc
+        visualize using vegalite (
+          mark => point,
+          encoding => (
+            x => (field => customer, type => nominal),
+            y => (field => amount, type => quantitative)
+          )
+        )
+    events:
+      - type: resolved_context
+        value: existing customer order chart
+      - type: model_response
+        value: |-
+          {
+            "mark": "bar",
+            "encoding": {
+              "x": {"field": "amount", "type": "quantitative"},
+              "y": {"field": "customer", "type": "nominal"},
+              "color": {"field": "segment", "type": "nominal"}
+            }
+          }
+      - type: applied_result
+
+  - name: change_style_preserves_set_query
+    input:
+      prompt: Make the chart wider and use a red area mark.
+      intent: visualize
+      formatting:
+        mode: compact
+        max-width: 60
+        indentation-width: 4
+      script: |-
+        select 1 as period, 4 as metric
+        union all
+        select 2 as period, 9 as metric
+        union all
+        select 3 as period, 16 as metric
+        visualize using vegalite (
+          mark => line,
+          width => 400,
+          encoding => (
+            x => (field => period, type => ordinal),
+            y => (field => metric, type => quantitative)
+          )
+        )
+    events:
+      - type: resolved_context
+        value: existing trend chart
+      - type: model_response
+        value: |-
+          {
+            "mark": {"type": "area", "color": "red"},
+            "width": 900,
+            "encoding": {
+              "x": {"field": "period", "type": "ordinal"},
+              "y": {"field": "metric", "type": "quantitative"}
+            }
+          }
+      - type: applied_result

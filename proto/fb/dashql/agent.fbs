@@ -83,7 +83,6 @@ table AgentProposal {
     candidate_text: string;
     verify_result: AgentVerifyResult;
     disposition: AgentApplyDisposition;
-    target_name: string;
 }
 
 table AgentModelRequestEffect {

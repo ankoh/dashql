@@ -259,7 +259,7 @@ describe('startAgentRun — SQL path', () => {
 });
 
 describe('startAgentRun — visualize path', () => {
-    it('transcodes a Vega-Lite spec and creates a new entry with the focused SQL inline', async () => {
+    it('transcodes a Vega-Lite spec and creates a pretty-formatted entry with the focused SQL', async () => {
         const { state, focusedKey } = buildNotebookScripts('select category, amount from sales');
         const spec = JSON.stringify({
             mark: 'bar',
@@ -275,8 +275,8 @@ describe('startAgentRun — visualize path', () => {
         expect(applied).toHaveLength(1);
         expect(applied[0].type).toBe(CREATE_SCRIPT_WITH_TEXT);
         const text = (applied[0].value as any).text as string;
-        expect(text).toContain('select category, amount from sales');
-        expect(text).toContain('\nVISUALIZE USING vegalite');
+        expect(text).toContain('select category, amount\nfrom sales');
+        expect(text).toContain('\nvisualize using vegalite');
         expect(text).toContain('mark => bar');
     });
 

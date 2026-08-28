@@ -1,3 +1,4 @@
+import * as core from '../../../core/index.js';
 import { AgentHost, AgentApplyDisposition } from '../agent/agent_host.js';
 import { AgentIntent } from '../agent/agent_prompts.js';
 import {
@@ -13,7 +14,6 @@ import {
     ScriptData,
     SET_SCRIPT_TEXT,
 } from './notebook_scripts.js';
-import { scriptDisplayName } from './script_types.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';
 
 /// Everything an agent run needs to read and write notebook scripts.
@@ -48,7 +48,13 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
             return notebookScripts.instance.createAgentSession(
                 notebookScripts.connectionCatalog,
                 contextScriptData?.editorSession ?? null,
-                contextScriptData == null ? null : scriptDisplayName(contextScriptData.fileName),
+                new core.buffers.formatting.FormattingConfigT(
+                    core.buffers.formatting.FormattingDialect.HYPER,
+                    core.buffers.formatting.FormattingMode.PRETTY,
+                    120,
+                    2,
+                    false,
+                ),
             );
         },
 

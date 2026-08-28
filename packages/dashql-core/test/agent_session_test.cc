@@ -110,7 +110,7 @@ TEST_P(ApplyDispositionTest, CoreChoosesApplyDispositionFromIntentAndTarget) {
                                        : "select 1";
         target->ReplaceText(0, target_script);
     }
-    AgentSession session{catalog, target ? &*target : nullptr, "target.sql"};
+    AgentSession session{catalog, target ? &*target : nullptr};
 
     auto operation = StartWithIntent(session, param.intent);
     operation = session.CompleteEffect(CompleteContext(operation));
@@ -118,11 +118,6 @@ TEST_P(ApplyDispositionTest, CoreChoosesApplyDispositionFromIntentAndTarget) {
         operation, param.intent == AgentIntent::SQL ? "select 1" : "{\"mark\":\"bar\"}"));
 
     ASSERT_EQ(operation.effect->apply_proposal->proposal->disposition, param.expected);
-    if (param.expected == AgentApplyDisposition::REPLACE) {
-        EXPECT_EQ(operation.effect->apply_proposal->proposal->target_name, "target.sql");
-    } else {
-        EXPECT_TRUE(operation.effect->apply_proposal->proposal->target_name.empty());
-    }
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -186,12 +181,12 @@ TEST(AgentSessionTest, VisualizationTranscodesAndVerifiesInsideSession) {
     Catalog catalog;
     editor::EditorSession target{catalog};
     target.ReplaceText(0, "select 1");
-    AgentSession session{catalog, &target, "query.sql"};
+    AgentSession session{catalog, &target};
     auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
     operation = session.CompleteEffect(CompleteContext(operation));
     operation = session.CompleteEffect(CompleteModel(operation, "before {\"mark\":\"bar\"} after"));
     ASSERT_EQ(operation.effect->type, AgentEffectType::APPLY_PROPOSAL);
-    EXPECT_NE(operation.effect->apply_proposal->proposal->candidate_text.find("VISUALIZE USING vegalite"),
+    EXPECT_NE(operation.effect->apply_proposal->proposal->candidate_text.find("visualize using vegalite"),
               std::string::npos);
 }
 
@@ -199,7 +194,7 @@ TEST(AgentSessionTest, VisualizationCompilesSourceFromFocusedVisualization) {
     Catalog catalog;
     editor::EditorSession target{catalog};
     target.ReplaceText(0, "select 1 visualize using vegalite (mark => line)");
-    AgentSession session{catalog, &target, "chart.sql"};
+    AgentSession session{catalog, &target};
     auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
     operation = session.CompleteEffect(CompleteContext(operation));
     operation = session.CompleteEffect(CompleteModel(operation, "{\"mark\":\"bar\"}"));
@@ -207,6 +202,76 @@ TEST(AgentSessionTest, VisualizationCompilesSourceFromFocusedVisualization) {
     ASSERT_EQ(operation.effect->type, AgentEffectType::APPLY_PROPOSAL);
     EXPECT_NE(operation.effect->apply_proposal->proposal->candidate_text.find("select 1"), std::string::npos);
     EXPECT_NE(operation.effect->apply_proposal->proposal->candidate_text.find("mark => bar"), std::string::npos);
+}
+
+TEST(AgentSessionTest, VisualizationCandidateIsPrettyFormatted) {
+    Catalog catalog;
+    editor::EditorSession target{catalog};
+    target.ReplaceText(0,
+                       "with source as (select 1 as category, 10 as amount union all select 2 as category, 20 as "
+                       "amount) select category, sum(amount) as total from source group by category order by category "
+                       "visualize using vegalite (mark => line)");
+    AgentSession session{catalog, &target};
+    auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
+    operation = session.CompleteEffect(CompleteContext(operation));
+    operation = session.CompleteEffect(CompleteModel(operation, "{\"mark\":\"bar\"}"));
+
+    ASSERT_EQ(operation.effect->type, AgentEffectType::APPLY_PROPOSAL);
+    EXPECT_EQ(operation.effect->apply_proposal->proposal->candidate_text,
+              R"SQL(with source as (
+  select 1 as category, 10 as amount union all select 2 as category, 20 as amount
+)
+select category, sum(amount) as total
+from source
+group by category
+order by category
+visualize using vegalite (
+  mark => bar
+);)SQL");
+}
+
+TEST(AgentSessionTest, VisualizationCandidateUsesSessionFormattingConfig) {
+    Catalog catalog;
+    editor::EditorSession target{catalog};
+    target.ReplaceText(0, "select 1 as category, 10 as amount visualize using vegalite (mark => line)");
+    auto formatting = DefaultAgentFormattingConfig();
+    formatting.mode = buffers::formatting::FormattingMode::COMPACT;
+    formatting.max_width = 40;
+    formatting.indentation_width = 4;
+    AgentSession session{catalog, &target, formatting};
+    auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
+    operation = session.CompleteEffect(CompleteContext(operation));
+    operation = session.CompleteEffect(CompleteModel(
+        operation,
+        "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"category\",\"type\":\"nominal\"}}}"));
+
+    ASSERT_EQ(operation.effect->type, AgentEffectType::APPLY_PROPOSAL);
+    EXPECT_EQ(operation.effect->apply_proposal->proposal->candidate_text,
+              R"SQL(select 1 as category, 10 as amount
+visualize using vegalite (
+    mark => bar,
+    encoding => (
+        x => (
+            field => category,
+            type => nominal
+        )
+    )
+);)SQL");
+}
+
+TEST(AgentSessionTest, VisualizationFormattingFailurePreservesStitchedCandidate) {
+    Catalog catalog;
+    editor::EditorSession target{catalog};
+    target.ReplaceText(0, "select default");
+    AgentSession session{catalog, &target};
+    auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
+    operation = session.CompleteEffect(CompleteContext(operation));
+    operation = session.CompleteEffect(CompleteModel(operation, "{\"mark\":\"bar\"}"));
+
+    ASSERT_EQ(operation.effect->type, AgentEffectType::APPLY_PROPOSAL);
+    EXPECT_EQ(operation.effect->apply_proposal->proposal->candidate_text,
+              "select default\nVISUALIZE USING vegalite (\n  mark => bar\n);");
+    EXPECT_EQ(operation.effect->apply_proposal->proposal->candidate_text.find("'<"), std::string::npos);
 }
 
 TEST(AgentSessionTest, ClassificationDefaultsAmbiguousOutputToSql) {

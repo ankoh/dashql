@@ -292,7 +292,7 @@ async function driveCoreAgentSession(
     const { host, aiClient, now } = deps;
     const maxAttempts = params.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
     const session = host.createAgentSession();
-    let applyResult: { inPlace: boolean; targetName: string | null } | null = null;
+    let appliedInPlace = false;
     let terminalEventSeen = false;
 
     const processEvents = (operation: core.buffers.agent.AgentOperationT) => {
@@ -329,15 +329,13 @@ async function driveCoreAgentSession(
                 });
             } else if (event.type === core.buffers.agent.AgentEventType.SUCCEEDED) {
                 terminalEventSeen = true;
-                const inPlace = applyResult?.inPlace ?? false;
-                const targetName = applyResult?.targetName ?? null;
                 const intent = appIntent(event.intent);
                 const noun = intentNoun(intent);
                 dispatchAgent({
                     type: AGENT_SUCCEEDED,
                     value: {
-                        message: inPlace
-                            ? `Done — updated ${targetName ? `"${targetName}"` : 'the focused target'} with the new ${noun}`
+                        message: appliedInPlace
+                            ? `Done — updated the focused target with the new ${noun}`
                             : `Done — created a new entry with the ${noun}`,
                         timestamp: now(),
                     },
@@ -440,16 +438,15 @@ async function driveCoreAgentSession(
                     const proposal = effect.applyProposal.proposal;
                     const intent = appIntent(proposal.intent);
                     const disposition = appDisposition(proposal.disposition);
-                    const proposalTargetName = stringValue(proposal.targetName) || null;
                     const inPlace = disposition === 'replace';
-                    applyResult = { inPlace, targetName: proposalTargetName };
+                    appliedInPlace = inPlace;
                     dispatchAgent({
                         type: AGENT_PHASE,
                         value: {
                             phase: AgentRunPhase.APPLYING,
                             attempt: operation.snapshot?.attempt ?? 0,
                             message: inPlace
-                                ? `Applying the ${intentNoun(intent)} to ${proposalTargetName ? `"${proposalTargetName}"` : 'the focused target'}`
+                                ? `Applying the ${intentNoun(intent)} to the focused target`
                                 : `Adding a new entry with the generated ${intentNoun(intent)}`,
                             timestamp: now(),
                         },

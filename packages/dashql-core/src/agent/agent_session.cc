@@ -4,9 +4,10 @@
 #include <cctype>
 #include <stdexcept>
 
-#include "dashql/script_compiler.h"
-#include "dashql/script.h"
 #include "dashql/editor/editor_session.h"
+#include "dashql/formatter/formatter.h"
+#include "dashql/script.h"
+#include "dashql/script_compiler.h"
 #include "dashql/visualize/vegalite.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -47,15 +48,22 @@ void AppendUnique(std::vector<std::string>& target, const std::vector<std::strin
 
 }  // namespace
 
-AgentSession::AgentSession(Catalog& catalog, editor::EditorSession* target, std::string target_name)
-    : catalog_{catalog}, target_{target}, target_name_{std::move(target_name)} {
-    if (!target_) return;
+buffers::formatting::FormattingConfigT DefaultAgentFormattingConfig() {
     buffers::formatting::FormattingConfigT config;
     config.dialect = buffers::formatting::FormattingDialect::HYPER;
-    config.mode = buffers::formatting::FormattingMode::INLINE;
+    config.mode = buffers::formatting::FormattingMode::PRETTY;
     config.max_width = 120;
     config.indentation_width = 2;
-    auto compiled = target_->GetScript().CompileQuery(config);
+    return config;
+}
+
+AgentSession::AgentSession(Catalog& catalog, editor::EditorSession* target,
+                           buffers::formatting::FormattingConfigT formatting_config)
+    : catalog_{catalog},
+      target_{target},
+      formatting_config_{std::move(formatting_config)} {
+    if (!target_) return;
+    auto compiled = target_->GetScript().CompileQuery(formatting_config_);
     target_kind_ = compiled.errors.empty() &&
                            compiled.kind == buffers::execution::ScriptCompilationStatementKind::VISUALIZE
                        ? AgentTargetKind::VISUALIZATION
@@ -196,6 +204,14 @@ AgentSession::Task AgentSession::Run() {
                     candidate_text_ = vegalite_spec_;
                 } else {
                     final_verify = VerifyCandidate(candidate_text_);
+                    if (auto formatted = PrettyFormatCandidate(candidate_text_)) {
+                        auto formatted_verify = VerifyCandidate(*formatted);
+                        if (formatted_verify.parser_errors.empty() && formatted_verify.analyzer_errors.empty() &&
+                            formatted_verify.visualization_specs > 0) {
+                            candidate_text_ = std::move(*formatted);
+                            final_verify = std::move(formatted_verify);
+                        }
+                    }
                 }
             }
         } else {
@@ -271,8 +287,6 @@ AgentSession::EffectAwaiter AgentSession::AwaitApply(const VerifyResult& verify)
     effect->apply_proposal->proposal->candidate_text = candidate_text_;
     effect->apply_proposal->proposal->verify_result = PackVerifyResult(verify);
     effect->apply_proposal->proposal->disposition = apply_disposition_;
-    effect->apply_proposal->proposal->target_name =
-        apply_disposition_ == AgentApplyDisposition::REPLACE ? target_name_ : "";
     return EffectAwaiter{*this, std::move(effect)};
 }
 
@@ -454,12 +468,7 @@ AgentSession::EffectResult AgentSession::ReadCompletion(AgentEffectType type,
 
 std::string AgentSession::CompileTargetScript() {
     if (!target_) return {};
-    buffers::formatting::FormattingConfigT config;
-    config.dialect = buffers::formatting::FormattingDialect::HYPER;
-    config.mode = buffers::formatting::FormattingMode::INLINE;
-    config.max_width = 120;
-    config.indentation_width = 2;
-    auto compiled = target_->GetScript().CompileQuery(config);
+    auto compiled = target_->GetScript().CompileQuery(formatting_config_);
     return compiled.errors.empty() ? compiled.sql : std::string{};
 }
 
@@ -481,6 +490,23 @@ std::string AgentSession::TranscodeVegaLite(std::string_view raw_spec, std::stri
     rapidjson::Writer<rapidjson::StringBuffer> writer{buffer};
     doc.Accept(writer);
     return visualize::ParseVegaLiteToVisualize(buffer.GetString());
+}
+
+std::optional<std::string> AgentSession::PrettyFormatCandidate(std::string_view candidate) const {
+    try {
+        Script script{catalog_};
+        script.InsertTextAt(0, candidate);
+        script.Parse();
+        const auto& parsed = script.GetParsedScript();
+        if (!parsed || !parsed->scanned_script->errors.empty() || !parsed->errors.empty()) return std::nullopt;
+
+        Formatter formatter{*parsed};
+        auto formatted = formatter.Format(formatting_config_);
+        if (formatted.empty() || !formatter.IsFullyFormatted()) return std::nullopt;
+        return formatted;
+    } catch (...) {
+        return std::nullopt;
+    }
 }
 
 void AgentSession::DiagnoseVegaLiteSpec(std::string_view raw_spec, std::vector<std::string>& errors) const {
