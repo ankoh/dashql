@@ -1245,31 +1245,11 @@ void AnalyzedScript::FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_
     }
 }
 
-namespace {
-thread_local const Script* async_analysis_script = nullptr;
-}
+thread_local const Script* Script::async_analysis_script = nullptr;
 
-Script::Script(Catalog& catalog) : catalog(catalog), catalog_entry_id(catalog.AllocateEntryId()), text(1024) {
-    catalog.RegisterScript();
-}
+Script::Script(Catalog& catalog) : catalog(catalog), catalog_entry_id(catalog.AllocateEntryId()), text(1024) {}
 
-Script::~Script() {
-    catalog.DropScriptUnlocked(*this);
-    catalog.UnregisterScript();
-}
-
-void Script::RequestDelete() {
-    bool should_delete = false;
-    {
-        std::lock_guard lock{lifetime_mutex};
-        delete_requested = true;
-        if (async_lifetime_refs == 0 && !delete_started) {
-            delete_started = true;
-            should_delete = true;
-        }
-    }
-    if (should_delete) delete this;
-}
+Script::~Script() { catalog.DropScriptUnlocked(*this); }
 
 void Script::CheckNotBusy() const {
     if (async_analysis_script != this && async_job_id.load(std::memory_order_acquire) != 0) {
@@ -1277,35 +1257,26 @@ void Script::CheckNotBusy() const {
     }
 }
 
-bool Script::AcquireAsyncLease(uint32_t job_id) {
-    {
-        std::lock_guard lock{lifetime_mutex};
-        if (delete_requested || async_job_id.load(std::memory_order_acquire) != 0) return false;
-        async_job_id.store(job_id, std::memory_order_release);
-        ++async_lifetime_refs;
+Script::AsyncJobGuard Script::BeginAsyncJob(uint32_t job_id) {
+    uint32_t expected = 0;
+    if (!async_job_id.compare_exchange_strong(expected, job_id, std::memory_order_acq_rel)) {
+        throw Exception(buffers::status::StatusCode::SCRIPT_BUSY);
     }
-    catalog.AcquireAsyncLease();
-    return true;
+    return AsyncJobGuard{*this, job_id};
 }
 
-void Script::ReleaseAsyncLease(uint32_t job_id) {
+void Script::EndAsyncJob(uint32_t job_id) {
     uint32_t expected = job_id;
-    if (!async_job_id.compare_exchange_strong(expected, 0, std::memory_order_acq_rel)) {
-        return;
-    }
-    auto* catalog_ptr = &catalog;
-    bool should_delete = false;
-    {
-        std::lock_guard lock{lifetime_mutex};
-        assert(async_lifetime_refs > 0);
-        --async_lifetime_refs;
-        if (async_lifetime_refs == 0 && delete_requested && !delete_started) {
-            delete_started = true;
-            should_delete = true;
-        }
-    }
-    catalog_ptr->ReleaseAsyncLease();
-    if (should_delete) delete this;
+    [[maybe_unused]] bool cleared =
+        async_job_id.compare_exchange_strong(expected, 0, std::memory_order_acq_rel);
+    assert(cleared);
+}
+
+Script::AsyncJobGuard::AsyncJobGuard(AsyncJobGuard&& other) noexcept
+    : script_(std::exchange(other.script_, nullptr)), job_id_(other.job_id_) {}
+
+Script::AsyncJobGuard::~AsyncJobGuard() {
+    if (script_ != nullptr) script_->EndAsyncJob(job_id_);
 }
 
 /// Insert a character at an offet
@@ -1464,29 +1435,10 @@ void Script::Analyze(bool parse_if_outdated) {
     catalog.AnalyzeScript(*this, parse_if_outdated);
 }
 
-void Script::AnalyzeAsync(bool parse_if_outdated, const std::atomic<bool>& cancelled) {
+void Script::AnalyzeAsync(bool parse_if_outdated) {
     async_analysis_script = this;
     try {
-        if (parse_if_outdated) {
-            if (scanned_script == nullptr || scanned_script->text_version != text_version) Scan();
-            if (parsed_script == nullptr || parsed_script->scanned_script.get() != scanned_script.get()) Parse();
-        }
-        if (analyzed_script) {
-            for (auto& chunk : scanned_script->name_registry.GetChunks()) {
-                for (auto& entry : chunk) {
-                    entry.coarse_analyzer_tags = 0;
-                    entry.resolved_objects.Clear();
-                }
-            }
-        }
-        auto time_before = std::chrono::steady_clock::now();
-        auto analyzed = Analyzer::Analyze(parsed_script, catalog);
-        if (!cancelled.load(std::memory_order_acquire)) {
-            analyzed_script = std::move(analyzed);
-            timing_statistics.mutate_analyzer_last_elapsed(
-                std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before)
-                    .count());
-        }
+        Analyze(parse_if_outdated);
     } catch (...) {
         async_analysis_script = nullptr;
         throw;

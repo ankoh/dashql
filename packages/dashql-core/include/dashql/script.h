@@ -3,13 +3,13 @@
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 
+#include <atomic>
 #include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <variant>
-#include <atomic>
 
 #include "dashql/analyzer/analyzer_types.h"
 #include "dashql/buffers/index_generated.h"
@@ -367,15 +367,28 @@ class Script {
     /// Analyze while the catalog state lock is held.
     void AnalyzeUnlocked(bool parse_if_outdated);
     void CheckNotBusy() const;
-    void AnalyzeAsync(bool parse_if_outdated, const std::atomic<bool>& cancelled);
-
+    static thread_local const Script* async_analysis_script;
     std::atomic<uint32_t> async_job_id{0};
-    std::mutex lifetime_mutex;
-    uint32_t async_lifetime_refs = 0;
-    bool delete_requested = false;
-    bool delete_started = false;
+
+    void EndAsyncJob(uint32_t job_id);
 
    public:
+    class AsyncJobGuard {
+       public:
+        AsyncJobGuard(const AsyncJobGuard&) = delete;
+        AsyncJobGuard& operator=(const AsyncJobGuard&) = delete;
+        AsyncJobGuard(AsyncJobGuard&& other) noexcept;
+        AsyncJobGuard& operator=(AsyncJobGuard&& other) = delete;
+        ~AsyncJobGuard();
+
+       private:
+        friend class Script;
+        AsyncJobGuard(Script& script, uint32_t job_id) : script_(&script), job_id_(job_id) {}
+
+        Script* script_;
+        uint32_t job_id_;
+    };
+
     /// The catalog
     Catalog& catalog;
     /// The catalog entry id
@@ -410,21 +423,30 @@ class Script {
     /// Scripts must not be copy-assigned
     Script& operator=(const Script& other) = delete;
 
-    void RequestDelete();
+    /// Ensure the job is not busy
     void EnsureNotBusy() const { CheckNotBusy(); }
-    bool AcquireAsyncLease(uint32_t job_id);
-    void ReleaseAsyncLease(uint32_t job_id);
+    /// Begin an async job
+    AsyncJobGuard BeginAsyncJob(uint32_t job_id);
 
     /// Get the catalog entry id
     auto GetCatalogEntryId() const { return catalog_entry_id; }
     /// Get the catalog
     auto& GetCatalog() const { return catalog; }
     /// Get the latest scanned script
-    auto& GetScannedScript() const { CheckNotBusy(); return scanned_script; };
+    auto& GetScannedScript() const {
+        CheckNotBusy();
+        return scanned_script;
+    };
     /// Get the latest scanned script
-    auto& GetParsedScript() const { CheckNotBusy(); return parsed_script; };
+    auto& GetParsedScript() const {
+        CheckNotBusy();
+        return parsed_script;
+    };
     /// Get the latest parsed script
-    auto& GetAnalyzedScript() const { CheckNotBusy(); return analyzed_script; };
+    auto& GetAnalyzedScript() const {
+        CheckNotBusy();
+        return analyzed_script;
+    };
 
     /// Insert a unicode codepoint at an offset
     void InsertCharAt(size_t offset, uint32_t unicode);
@@ -452,6 +474,8 @@ class Script {
     /// Analyzes the script (throws Exception on error)
     /// When `parse_if_outdated` is set we scan and parse the script, if it changed.
     void Analyze(bool parse_if_outdated = true);
+    /// Analyze from an async worker. The caller must keep this script and its catalog alive.
+    void AnalyzeAsync(bool parse_if_outdated = true);
 
     /// Move the cursor (throws Exception on error)
     const ScriptCursor* MoveCursor(size_t text_offset);

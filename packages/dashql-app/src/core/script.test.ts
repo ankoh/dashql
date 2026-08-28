@@ -159,6 +159,8 @@ describe('DashQL scripts', () => {
                 message: 'Script is not parsed',
             });
             expect(released).toBe(1);
+            script.insertTextAt(0, 'select 1');
+            expect(script.toString()).toBe('select 1');
         } finally {
             exports.dashql_script_analysis_job_release = originalRelease;
             script.destroy();
