@@ -12,7 +12,7 @@ import {
 import { type CacheFileStat } from './query_result_cache_eviction.js';
 import { TestLogger } from '../../../platform/logger/test_logger.js';
 
-// Spy standing in for the Tauri `grant_fs_scope` bridge. Hoisted so the vi.mock factory can use it.
+// Spy standing in for the filesystem scope compatibility hook.
 const grantSpy = vi.hoisted(() => vi.fn(async (_path: string) => { }));
 vi.mock('./native_fs_scope.js', () => ({ grantFsScope: grantSpy }));
 
@@ -22,8 +22,10 @@ vi.mock('./native_fs_scope.js', () => ({ grantFsScope: grantSpy }));
 // native_storage_backend.ts is imported once and bound to whichever file's mock loaded first, so a
 // per-file store would be read/written by the other file's backend. The factories use async
 // `import()` so both files resolve the same singleton store.
-vi.mock('@tauri-apps/api/path', async () => (await import('./test_fs_mock.js')).makePathMock());
-vi.mock('@tauri-apps/plugin-fs', async () => (await import('./test_fs_mock.js')).makeFsMock());
+vi.mock('../../../platform/electron_fs.js', async () => ({
+    ...(await import('./test_fs_mock.js')).makeFsMock(),
+    ...(await import('./test_fs_mock.js')).makePathMock(),
+}));
 
 // Import after the mocks are registered.
 import { fsStore, resetFsStore } from './test_fs_mock.js';

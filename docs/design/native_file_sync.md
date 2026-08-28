@@ -250,7 +250,7 @@ Relevant Bazel targets:
 ```bash
 bazel test //packages/dashql-app:tsc_typecheck_test
 bazel test //packages/dashql-app:test
-bazel build //packages/dashql-native:app
+bazel build //packages/dashql-electron:compile
 ```
 
 ## Known Limitations
@@ -272,7 +272,7 @@ bazel build //packages/dashql-native:app
 - Writer coordination: `packages/dashql-app/src/platform/storage/storage_writer.ts`
 - Catalog reconciliation: `packages/dashql-app/src/connection/connection_state.ts`
 - Notebook scripts reconciliation: `packages/dashql-app/src/scripts/notebook_scripts.ts`
-- Tauri permissions: `packages/dashql-native/acl_capabilities.json`
+- Electron main/preload filesystem bridge: `packages/dashql-electron/src/main.ts` and `src/preload.cjs`
 - Watcher tests: `packages/dashql-app/src/platform/storage/native_notebook_sync.test.ts`
 - Writer tests: `packages/dashql-app/src/platform/storage/storage_writer.test.ts`
 - Notebook scripts reconciliation tests: `packages/dashql-app/src/scripts/notebook_scripts.test.ts`

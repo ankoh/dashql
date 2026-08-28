@@ -69,7 +69,7 @@ function readHyperConnectionMetadata(params: connection.HyperConnectionParams | 
 export function buildHyperConnectionPageState(params: connection.HyperConnectionParams | undefined): HyperConnectionPageState {
     const metadata = readHyperConnectionMetadata(params);
     return {
-        protocol: params?.protocol ?? (isNativePlatform() ? "V3_DOCKER" : "WASM"),
+        protocol: params?.protocol ?? "WASM",
         endpoint: params?.endpoint ?? "http://localhost:7484",
         mTlsKeyPath: params?.tls?.clientKeyPath ?? "",
         mTlsPubPath: params?.tls?.clientCertPath ?? "",
@@ -140,12 +140,10 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const protocol = pageState.protocol;
 
     // Docker and direct gRPC both require the native platform
-    const wrongPlatform = protocol === 'WASM'
-        ? isNativePlatform()
-        : (protocol === "V3_GRPC" || protocol === "V3_DOCKER") && !isNativePlatform();
+    const wrongPlatform = (protocol === "V3_GRPC" || protocol === "V3_DOCKER") && !isNativePlatform();
     const isDocker = protocol === "V3_DOCKER";
     const protocols: connection.HyperProtocol[] = isNativePlatform()
-        ? ["V3_DOCKER", "V3_GRPC", "V3_HTTP"]
+        ? ["WASM", "V3_DOCKER", "V3_GRPC", "V3_HTTP"]
         : ["WASM", "V3_HTTP"];
     const setProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, protocol: v }));
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));

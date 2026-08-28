@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { isNativePlatform } from '../native_globals.js';
-import { NativeVersionCheck } from './native_version_check.js';
 import { ReleaseManifest, WebVersionCheck } from './web_version_check.js';
 import { Result } from '../../utils/result.js';
+import { AppHost, getAppHost } from '../native_globals.js';
+import { ElectronVersionCheck } from './electron_version_check.js';
 
 export enum VersionCheckStatusCode {
     Unknown = 0,
@@ -59,9 +59,7 @@ interface VersionCheckProps {
 }
 
 export const VersionCheck: React.FC<VersionCheckProps> = (props: VersionCheckProps) => {
-    if (isNativePlatform()) {
-        return <NativeVersionCheck>{props.children}</NativeVersionCheck>;
-    } else {
-        return <WebVersionCheck>{props.children}</WebVersionCheck>;
-    }
+    return getAppHost() === AppHost.ELECTRON
+        ? <ElectronVersionCheck>{props.children}</ElectronVersionCheck>
+        : <WebVersionCheck>{props.children}</WebVersionCheck>;
 };

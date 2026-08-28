@@ -1,8 +1,5 @@
 import { FileDownloader } from './file_downloader.js';
 
-import { save } from '@tauri-apps/plugin-dialog';
-import { writeFile } from '@tauri-apps/plugin-fs';
-
 export class NativeFileDownloader implements FileDownloader {
     async downloadBufferAsFile(data: Uint8Array, filename: string): Promise<void> {
         const dot = filename.lastIndexOf('.');
@@ -10,13 +7,12 @@ export class NativeFileDownloader implements FileDownloader {
         const filters = ext.length > 0
             ? [{ name: `${ext.toUpperCase()} file`, extensions: [ext] }]
             : undefined;
-        const path = await save({
-            defaultPath: filename,
-            filters,
-        });
-        if (path != null) {
-            await writeFile(path, data);
-        }
+        void filters;
+        const blob = new Blob([new Uint8Array(data)]);
+        const anchor = document.createElement('a');
+        anchor.href = URL.createObjectURL(blob);
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(anchor.href);
     }
 }
-

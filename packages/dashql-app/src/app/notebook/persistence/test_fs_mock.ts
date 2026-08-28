@@ -1,7 +1,7 @@
-/// Shared in-memory filesystem backing the `@tauri-apps/plugin-fs` mock used by the storage tests.
+/// Shared in-memory filesystem backing the Electron filesystem mock used by the storage tests.
 ///
 /// `native_storage_backend.test.ts` and `composite_storage_backend.test.ts` both exercise the *real*
-/// `NativeStorageBackend` against a mocked `@tauri-apps/plugin-fs`. The app's vitest config runs with
+/// `NativeStorageBackend` against a mocked Electron bridge. The app's vitest config runs with
 /// `isolate: false` (see `vite.config.tpl.ts`), so when both files land on the same worker the
 /// production `native_storage_backend.ts` module is imported and cached only once, bound to whichever
 /// file's mock factory loaded first. If each test file owned its own store, the other file's backend
@@ -44,7 +44,7 @@ export function resetFsStore(): void {
     fsStore.clock = 0;
 }
 
-/// Build the `@tauri-apps/plugin-fs` mock object over the shared store.
+/// Build the Electron filesystem mock object over the shared store.
 export function makeFsMock() {
     const { files, binFiles, dirs, mtimes } = fsStore;
     const nextMtime = () => ++fsStore.clock;
@@ -151,7 +151,7 @@ export function makeFsMock() {
         },
         rename: async (from: string, to: string) => {
             // Move a file or a whole directory subtree, re-keying every path prefixed by `from`.
-            // Mirrors Tauri's atomic rename: the destination's parent is registered like writeTextFile.
+            // Mirrors the host filesystem's atomic rename.
             const reKey = (k: string) => (k === from ? to : k.startsWith(from + '/') ? to + k.substring(from.length) : null);
             for (const [k, v] of [...files.entries()]) {
                 const nk = reKey(k);
@@ -187,7 +187,7 @@ export function makeFsMock() {
     };
 }
 
-/// Build the `@tauri-apps/api/path` mock object. Tests use "/" separators for simplicity.
+/// Build the path mock object. Tests use "/" separators for simplicity.
 export function makePathMock() {
     return {
         join: async (...parts: string[]) => parts.filter(p => p.length > 0).join('/'),

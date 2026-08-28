@@ -1,23 +1,23 @@
 filegroup(
     name = "icon_icns_source",
     srcs = ["app_icons_mac.icns"],
-    visibility = ["//packages/dashql-native:__pkg__"],
+    visibility = ["//packages/dashql-electron:__pkg__"],
 )
 
 filegroup(
     name = "iconset",
     srcs = glob(["app_icons_mac.iconset/*.png"]),
-    visibility = ["//packages/dashql-native:__pkg__"],
+    visibility = ["//packages/dashql-electron:__pkg__"],
 )
 
 filegroup(
     name = "icon_icns_inverted_source",
     srcs = ["app_icons_mac_inverted.icns"],
-    visibility = ["//packages/dashql-native:__pkg__"],
+    visibility = ["//packages/dashql-electron:__pkg__"],
 )
 
 filegroup(
     name = "iconset_inverted",
     srcs = glob(["app_icons_mac_inverted.iconset/*.png"]),
-    visibility = ["//packages/dashql-native:__pkg__"],
+    visibility = ["//packages/dashql-electron:__pkg__"],
 )

@@ -44,9 +44,6 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
         const initBackend = async () => {
             const initStartTime = performance.now();
 
-            // The OPFS root manifest is the single registry of every notebook. The composite backend
-            // serves registry ops from OPFS and routes per-notebook ops by uuid -> location, building
-            // the location map (and re-granting native fs scopes) from the manifest during init.
             logger.info("Initializing storage backend", {}, "storage_provider");
             const opfsBackend = new OPFSStorageBackend();
             const composite = new CompositeStorageBackend(opfsBackend, logger);

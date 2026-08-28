@@ -8,6 +8,7 @@ import {
     HEADER_NAME_STREAM_ID,
 } from "../native_proxy_headers.js";
 import { DockerClient } from "./docker_client.js";
+import { nativeProxyFetch } from "../electron_native_fetch.js";
 import {
     DockerContainerSummary,
     DockerCreateContainerSpec,
@@ -96,20 +97,20 @@ export class NativeDockerClient implements DockerClient {
         if (labelKey) {
             url.searchParams.set("label", labelKey);
         }
-        const response = await fetch(url, { method: "GET" });
+        const response = await nativeProxyFetch(url, { method: "GET" });
         await throwIfError(response);
         return (await response.json()) as DockerContainerSummary[];
     }
 
     async startContainer(id: string): Promise<void> {
-        const response = await fetch(this.url(`/docker/containers/${encodeURIComponent(id)}/start`), {
+        const response = await nativeProxyFetch(this.url(`/docker/containers/${encodeURIComponent(id)}/start`), {
             method: "POST",
         });
         await throwIfError(response);
     }
 
     async stopContainer(id: string): Promise<void> {
-        const response = await fetch(this.url(`/docker/containers/${encodeURIComponent(id)}/stop`), {
+        const response = await nativeProxyFetch(this.url(`/docker/containers/${encodeURIComponent(id)}/stop`), {
             method: "POST",
         });
         await throwIfError(response);
@@ -118,7 +119,7 @@ export class NativeDockerClient implements DockerClient {
     async removeContainer(id: string, force: boolean): Promise<void> {
         const url = this.url(`/docker/containers/${encodeURIComponent(id)}`);
         url.searchParams.set("force", force ? "true" : "false");
-        const response = await fetch(url, { method: "DELETE" });
+        const response = await nativeProxyFetch(url, { method: "DELETE" });
         await throwIfError(response);
     }
 
@@ -127,7 +128,7 @@ export class NativeDockerClient implements DockerClient {
         if (name) {
             url.searchParams.set("name", name);
         }
-        const response = await fetch(url, {
+        const response = await nativeProxyFetch(url, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(spec),
@@ -143,7 +144,7 @@ export class NativeDockerClient implements DockerClient {
         for (const [k, v] of Object.entries(search)) {
             url.searchParams.set(k, v);
         }
-        const response = await fetch(url, { method });
+        const response = await nativeProxyFetch(url, { method });
         await throwIfError(response);
         const id = response.headers.get(HEADER_NAME_STREAM_ID);
         if (id == null) {
@@ -155,7 +156,7 @@ export class NativeDockerClient implements DockerClient {
     private async closeStream(streamId: number): Promise<void> {
         const url = this.url(`/docker/log-streams/${streamId}`);
         try {
-            await fetch(url, { method: "DELETE" });
+            await nativeProxyFetch(url, { method: "DELETE" });
         } catch (e) {
             this.logger.debug("failed closing docker stream", { error: String(e) }, LOG_CTX);
         }
@@ -172,7 +173,7 @@ export class NativeDockerClient implements DockerClient {
                 headers.set(HEADER_NAME_BATCH_BYTES, "1000000");
                 headers.set(HEADER_NAME_BATCH_TIMEOUT, "1000");
                 headers.set(HEADER_NAME_READ_TIMEOUT, "10000");
-                const response = await fetch(url, { method: "GET", headers, signal });
+                const response = await nativeProxyFetch(url, { method: "GET", headers, signal });
                 await throwIfError(response);
                 const event = response.headers.get(HEADER_NAME_BATCH_EVENT);
                 const buffer = new Uint8Array(await response.arrayBuffer());
@@ -237,7 +238,7 @@ export class NativeDockerClient implements DockerClient {
     async *listImageTags(repository: string, signal?: AbortSignal): AsyncIterable<DockerImageTagPage> {
         const url = this.url("/docker/registry/tags");
         url.searchParams.set("repository", repository);
-        const response = await fetch(url, { method: "GET", signal });
+        const response = await nativeProxyFetch(url, { method: "GET", signal });
         await throwIfError(response);
         const body = (await response.json()) as { tags: string[] };
         const PAGE = 200;

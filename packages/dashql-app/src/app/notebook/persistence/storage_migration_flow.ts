@@ -1,5 +1,3 @@
-import { open } from '@tauri-apps/plugin-dialog';
-
 import type { Logger } from '../../../platform/logger/logger.js';
 import type { CompositeStorageBackend } from './composite_storage_backend.js';
 import { StorageWriter } from './storage_writer.js';
@@ -26,13 +24,8 @@ export async function relocateNotebookToNative(
 ): Promise<boolean> {
     // 1. Pick a target directory. recursive:true so the picker's auto-grant also covers nested
     //    scripts/… paths (matters even though the boot path re-grants on reload).
-    const folder = await open({
-        directory: true,
-        multiple: false,
-        recursive: true,
-        title: 'Select a folder for this notebook',
-    });
-    if (folder == null || Array.isArray(folder)) {
+    const folder = await globalThis.dashqlElectron?.openDirectory('Select a folder for this notebook');
+    if (folder == null) {
         // User cancelled.
         return false;
     }
@@ -77,13 +70,8 @@ export async function addNativeNotebookFromFolder(
     logger: Logger,
 ): Promise<boolean> {
     // recursive:true so the picker's auto-grant also covers the notebook's nested scripts/… paths.
-    const folder = await open({
-        directory: true,
-        multiple: false,
-        recursive: true,
-        title: 'Open an existing notebook folder',
-    });
-    if (folder == null || Array.isArray(folder)) {
+    const folder = await globalThis.dashqlElectron?.openDirectory('Open an existing notebook folder');
+    if (folder == null) {
         // User cancelled.
         return false;
     }

@@ -6,7 +6,6 @@ import type { DetailedError } from '../connection_types.js';
 
 import { VariantKind } from '../../../../utils/variant.js';
 import { HyperDatabaseChannel } from './hyperdb_grpc_client.js';
-import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { ConnectorType, CONNECTOR_INFOS, HYPER_CONNECTOR } from '../connector_info.js';
 import {
     ConnectionHealth,
@@ -39,7 +38,7 @@ export function createHyperConnectionStateDetails(params?: connection.HyperConne
         proto: {
             setupTimings: {},
             setupParams: params ?? {
-                protocol: isNativePlatform() ? "V3_DOCKER" : "WASM",
+                protocol: "WASM",
                 endpoint: "",
                 tls: {
                     clientKeyPath: "",
@@ -88,7 +87,7 @@ export type HyperConnectorAction =
     | VariantKind<typeof HYPER_CHANNEL_SETUP_STARTED, connection.HyperConnectionParams>
     | VariantKind<typeof HYPER_CHANNEL_SETUP_CANCELLED, DetailedError>
     | VariantKind<typeof HYPER_CHANNEL_SETUP_FAILED, DetailedError>
-    | VariantKind<typeof HYPER_CHANNEL_READY, HyperDatabaseChannel>
+    | VariantKind<typeof HYPER_CHANNEL_READY, [HyperDatabaseChannel, connection.HyperConnectionParams]>
     | VariantKind<typeof HEALTH_CHECK_STARTED, null>
     | VariantKind<typeof HEALTH_CHECK_CANCELLED, null>
     | VariantKind<typeof HEALTH_CHECK_FAILED, DetailedError>
@@ -192,10 +191,11 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
             break;
         }
         case HYPER_CHANNEL_READY:
+            const [channel, setupParams] = action.value;
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_READY,
-                connectionHealth: details.proto.setupParams?.protocol === 'WASM'
+                connectionHealth: setupParams.protocol === 'WASM'
                     ? ConnectionHealth.ONLINE
                     : ConnectionHealth.CONNECTING,
                 details: {
@@ -204,12 +204,13 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                         ...details,
                         proto: {
                             ...details.proto,
+                            setupParams,
                             setupTimings: {
                                 ...details.proto.setupTimings,
                                 channelReadyAt: dateToTimestamp(new Date()),
                             },
                         },
-                        channel: action.value,
+                        channel,
                     }
                 },
             };

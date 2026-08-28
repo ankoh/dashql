@@ -6,8 +6,10 @@ import type { NotebookData } from './storage_backend.js';
 // when both files land on the same worker, the real native_storage_backend.ts is imported once and
 // bound to whichever file's mock loaded first, so a per-file store would be read/written by the
 // other file's backend. The factories use async `import()` so both files resolve the same singleton.
-vi.mock('@tauri-apps/api/path', async () => (await import('./test_fs_mock.js')).makePathMock());
-vi.mock('@tauri-apps/plugin-fs', async () => (await import('./test_fs_mock.js')).makeFsMock());
+vi.mock('../../../platform/electron_fs.js', async () => ({
+    ...(await import('./test_fs_mock.js')).makeFsMock(),
+    ...(await import('./test_fs_mock.js')).makePathMock(),
+}));
 
 // Import after the mocks are registered.
 import { fsStore, resetFsStore } from './test_fs_mock.js';

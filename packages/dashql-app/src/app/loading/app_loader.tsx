@@ -23,6 +23,7 @@ import { useStorage } from '../notebook/persistence/storage_provider.js';
 import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts_registry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { InvalidNotebook } from '../notebook/persistence/notebook_validation.js';
+import { getAppHost } from '../../platform/native_globals.js';
 import { mergeRestoredNotebookIntoConnections, mergeRestoredNotebookIntoScripts } from '../notebook/persistence/app_state_loader.js';
 
 async function loadFonts(): Promise<void> {
@@ -161,7 +162,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 traced.warn("Embedded database initialization failed", { error: String(error) }, "app_loader");
                 return null;
             });
-            const [core] = await Promise.all([corePromise, embeddedDatabasePromise, loadFonts()]);
+            const [core, embeddedDatabase] = await Promise.all([corePromise, embeddedDatabasePromise, loadFonts()]);
 
             const coreDuration = performance.now() - coreStartTime;
             traced.info("Core and embedded database ready", {
@@ -201,8 +202,21 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 type: FINISH_SETUP,
                 value: null
             });
+            globalThis.__DASHQL_STARTUP__ = {
+                embeddedDatabase: embeddedDatabase == null ? null : 'hyperdb-wasm',
+                host: getAppHost(),
+                status: embeddedDatabase == null ? 'degraded' : 'ready',
+            };
         };
-        run();
+        run().catch(error => {
+            globalThis.__DASHQL_STARTUP__ = {
+                embeddedDatabase: null,
+                error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+                host: getAppHost(),
+                status: 'failed',
+            };
+            logger.error("Application initialization failed", { error: String(error) }, "app_loader");
+        });
     }, [config]);
 
     // Delete an invalid notebook: remove its files from storage and drop it from the selector list.

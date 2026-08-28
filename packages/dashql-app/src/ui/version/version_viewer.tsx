@@ -71,7 +71,7 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
                     const installable = props.updateManifest.value;
                     status = <Button onClick={() => props.onInstall(props.channel, installable)}>Install</Button>;
                 } else {
-                    // The manifest advertises a newer version but the tauri check returned no installable
+                    // The manifest advertises a newer version but no installable update was returned.
                     // update yet (e.g. the check is still in flight or failed). Surface it without an action.
                     status = <span className={styles.update_channel_action_status}>update available</span>;
                 }

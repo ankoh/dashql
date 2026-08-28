@@ -30,8 +30,7 @@ const LOG_CTX = 'composite_storage_backend';
 ///   - Native notebooks -> a per-notebook `NativeStorageBackend` bound to the recorded directory.
 ///
 /// Native filesystem scope is re-granted lazily (and idempotently) the first time a native notebook
-/// is touched, since Tauri's runtime scope is lost across reloads and the manifest is the source of
-/// truth for which directories belong to dashql.
+/// is touched. The compatibility scope hook is currently a no-op under Electron.
 export class CompositeStorageBackend implements NotebookRegistryBackend {
     /// The OPFS backend, which owns the notebook registry
     private readonly opfs: NotebookRegistryBackend;

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { isNativePlatform } from './native_globals.js';
+import { isDesktopHost } from './native_globals.js';
 
 type Props = {
     children: React.ReactElement;
@@ -15,6 +15,6 @@ const PLATFORM_TYPE_CTX = React.createContext<PlatformType>(PlatformType.WEB);
 export const usePlatformType = () => React.useContext(PLATFORM_TYPE_CTX)!;
 
 export const PlatformTypeProvider: React.FC<Props> = (props: Props) => {
-    const t = isNativePlatform() ? PlatformType.MACOS : PlatformType.WEB;
+    const t = isDesktopHost() ? PlatformType.MACOS : PlatformType.WEB;
     return <PLATFORM_TYPE_CTX.Provider value={t}>{props.children}</PLATFORM_TYPE_CTX.Provider>;
 };

@@ -1,5 +1,6 @@
 packages/dashql-core/build
 packages/dashql-app/node_modules
+packages/dashql-electron/node_modules
 packages/dashql-core/api/node_modules
 packages/vite-example/node_modules
 node_modules

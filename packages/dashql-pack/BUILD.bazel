@@ -1,4 +1,4 @@
-load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 
 exports_files(["Cargo.toml"])
 
@@ -32,6 +32,14 @@ rust_binary(
     visibility = ["//visibility:public"]
 )
 
+rust_test(
+    name = "test",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    deps = _DEPS,
+    visibility = ["//visibility:public"],
+)
+
 rust_binary(
     name = "vacuum",
     srcs = glob(["src/**/*.rs"]),
@@ -39,26 +47,6 @@ rust_binary(
     args = [
         "vacuum",
     ],
-    deps = _DEPS,
-    visibility = ["//visibility:public"]
-)
-
-rust_binary(
-    name = "publish",
-    srcs = glob(["src/**/*.rs"]),
-    crate_root = "src/main.rs",
-    args = [
-        "publish",
-        "--macos-dmg-path",
-        "$(rootpath //packages/dashql-native:mac_universal_dmg)",
-        "--macos-updater-bundle-path",
-        "$(rootpath //packages/dashql-native:mac_universal_updater_bundle)",
-    ],
-    data = [
-        "//packages/dashql-native:mac_universal_dmg",
-        "//packages/dashql-native:mac_universal_updater_bundle",
-    ],
-    tags = ["manual"],
     deps = _DEPS,
     visibility = ["//visibility:public"]
 )

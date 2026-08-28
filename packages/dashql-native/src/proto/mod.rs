@@ -1,6 +1,0 @@
-pub mod salesforce_hyperdb_grpc_v1 {
-    tonic::include_proto!("salesforce.hyperdb.grpc.v1");
-}
-pub mod dashql_test {
-    tonic::include_proto!("dashql.test");
-}
