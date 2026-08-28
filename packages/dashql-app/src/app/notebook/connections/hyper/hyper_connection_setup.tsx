@@ -23,7 +23,6 @@ import { useAppConfig } from '../../../config/app_config.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
 import { RESET_CONNECTION } from '../connection_state.js';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../../../platform/database/embedded_database_provider.js';
-import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
 
 const LOG_CTX = "hyper_setup";
@@ -59,7 +58,6 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
         abortSignal.throwIfAborted()
 
         if (params.protocol === 'WASM') {
-            if (isNativePlatform()) throw new Error('Hyper WASM is only available in the browser');
             const database = await setupEmbeddedDatabase('hyper_wasm_connector');
             channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(
                 await database.connect({ defaultDatabase: 'pg_catalog' }),
@@ -88,7 +86,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
         // Mark the channel as ready
         updateState({
             type: HYPER_CHANNEL_READY,
-            value: channel,
+            value: [channel, params],
         });
         abortSignal.throwIfAborted();
 

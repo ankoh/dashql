@@ -27,16 +27,10 @@ interface NotebookReloadDecision {
 }
 
 async function confirmExternalReload(hasPendingWrites: boolean): Promise<NotebookReloadDecision> {
-    const { confirm } = await import('@tauri-apps/plugin-dialog');
     const message = hasPendingWrites
         ? 'This notebook changed on disk while DashQL still has local changes waiting to be saved. Reload from disk and discard those pending local changes?'
         : 'This notebook changed outside DashQL. Reload it from disk?';
-    const reload = await confirm(message, {
-        title: 'Notebook changed on disk',
-        kind: 'warning',
-        okLabel: 'Reload',
-        cancelLabel: 'Keep current',
-    });
+    const reload = await globalThis.dashqlElectron!.confirm({message, title: 'Notebook changed on disk'});
     return { reload, discardPendingWrites: reload && hasPendingWrites };
 }
 

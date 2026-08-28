@@ -1,13 +1,12 @@
 import { type StorageBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
 
-import { exists, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
-import { join } from '@tauri-apps/api/path';
+import { exists, join, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile } from '../../../platform/electron_fs.js';
 
 /// The name of the notebook-level .gitignore that excludes the cache folder from version control.
 const GITIGNORE_FILE = '.gitignore';
 
-/// Native filesystem storage backend for a single notebook (Tauri only).
+/// Native filesystem storage backend for a single Electron notebook.
 ///
 /// One directory holds exactly one notebook. Unlike OPFS, there is no `notebooks/<uuid>` nesting and
 /// no manifest file in the directory: the notebook's files (`dashql-notebook.json`,

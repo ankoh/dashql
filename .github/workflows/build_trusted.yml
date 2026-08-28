@@ -190,8 +190,8 @@ jobs:
                 path: ./bazel-bin/packages/dashql-app/pages_deploy/
                 retention-days: 1
 
-    macos_aarch64:
-        name: MacOS Release Arm
+    macos_electron_arm64:
+        name: macOS Electron arm64
         runs-on: macos-26
         needs: [core_wasm_release]
         steps:
@@ -208,35 +208,41 @@ jobs:
                   bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
                   bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
 
-            - name: Assert WASM is in remote cache
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    --experimental_remote_require_cached \
-                    //packages/dashql-core:core_wasm
-
-            - name: Build aarch64
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    --platforms=//bazel/platforms:aarch64_macos \
-                    //packages/dashql-native:mac_app_aarch64 \
-                    //packages/dashql-native:tests
-
-            - name: Test Desktop App
+            - name: Test Electron
               shell: bash
               run: |
                 bazel test --config=release \
-                    --platforms=//bazel/platforms:aarch64_macos \
-                    //packages/hyper-api:smoke_test \
-                    //packages/dashql-core:formatter_validation_hyper_tests \
-                    //packages/dashql-native/... \
-                    --build_tests_only \
-                    --test_output=errors \
-                    --test_summary=detailed
+                    //packages/dashql-electron:test \
+                    //packages/dashql-electron:native_addon_utility_test \
+                    //packages/dashql-electron:startup_smoke_test \
+                    //packages/dashql-electron:opfs_persistence_test \
+                    --test_output=errors
 
-    macos_x86_64:
-        name: MacOS Release x86
+            - name: Build Electron arm64 packages
+              shell: bash
+              env:
+                  CSC_LINK: ${{ inputs.signed && secrets.MACOS_DEVELOPER_ID_APPLICATION_BASE64 || '' }}
+                  CSC_KEY_PASSWORD: ${{ inputs.signed && secrets.MACOS_DEVELOPER_ID_APPLICATION_SECRET || '' }}
+                  APPLE_API_ISSUER: ${{ inputs.signed && secrets.MACOS_STORE_ISSUER_ID || '' }}
+                  APPLE_API_KEY_ID: ${{ inputs.signed && secrets.MACOS_STORE_KEY_ID || '' }}
+                  APPLE_API_KEY_CONTENT: ${{ inputs.signed && secrets.MACOS_STORE_KEY || '' }}
+              run: |
+                  if [[ -n "$APPLE_API_KEY_CONTENT" ]]; then
+                      APPLE_API_KEY="${{ runner.temp }}/AuthKey_${APPLE_API_KEY_ID}.p8"
+                      printf '%s' "$APPLE_API_KEY_CONTENT" > "$APPLE_API_KEY"
+                      export APPLE_API_KEY
+                  fi
+                  bazel run --config=release //packages/dashql-electron:mac_package_arm64
+
+            - name: Upload Electron arm64 packages
+              uses: actions/upload-artifact@v7
+              with:
+                name: dashql_macos_electron_arm64
+                path: ./dist/electron/arm64/
+                retention-days: 7
+
+    macos_electron_x86_64:
+        name: macOS Electron x86_64
         runs-on: macos-26
         needs: [core_wasm_release]
         steps:
@@ -253,120 +259,25 @@ jobs:
                   bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
                   bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
 
-            - name: Assert WASM is in remote cache
+            - name: Build Electron x86_64 packages
               shell: bash
+              env:
+                  CSC_LINK: ${{ inputs.signed && secrets.MACOS_DEVELOPER_ID_APPLICATION_BASE64 || '' }}
+                  CSC_KEY_PASSWORD: ${{ inputs.signed && secrets.MACOS_DEVELOPER_ID_APPLICATION_SECRET || '' }}
+                  APPLE_API_ISSUER: ${{ inputs.signed && secrets.MACOS_STORE_ISSUER_ID || '' }}
+                  APPLE_API_KEY_ID: ${{ inputs.signed && secrets.MACOS_STORE_KEY_ID || '' }}
+                  APPLE_API_KEY_CONTENT: ${{ inputs.signed && secrets.MACOS_STORE_KEY || '' }}
               run: |
-                bazel build --config=release \
-                    --experimental_remote_require_cached \
-                    //packages/dashql-core:core_wasm
+                  if [[ -n "$APPLE_API_KEY_CONTENT" ]]; then
+                      APPLE_API_KEY="${{ runner.temp }}/AuthKey_${APPLE_API_KEY_ID}.p8"
+                      printf '%s' "$APPLE_API_KEY_CONTENT" > "$APPLE_API_KEY"
+                      export APPLE_API_KEY
+                  fi
+                  bazel run --config=release //packages/dashql-electron:mac_package_x86_64
 
-            - name: Build x86_64
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    --platforms=//bazel/platforms:x86_64_macos \
-                    //packages/hyper-api:smoke_test \
-                    //packages/dashql-core:formatter_validation_hyper_tests \
-                    //packages/dashql-native:mac_app_x86_64
-
-    macos_universal_unsigned:
-        name: MacOS Release Universal Unsigned
-        if: ${{ !inputs.signed }}
-        runs-on: macos-26
-        needs: [macos_aarch64, macos_x86_64]
-        steps:
-            - uses: actions/checkout@v6
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
-
-            - name: Setup Bazel
-              uses: ./.github/actions/setup-bazel
-              with:
-                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
-                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
-                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
-
-            - name: Assert arch binaries are in remote cache
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    --experimental_remote_require_cached \
-                    //packages/dashql-native:mac_app_aarch64 \
-                    //packages/dashql-native:mac_app_x86_64
-
-            - name: Build unsigned Desktop App
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    //packages/dashql-native:mac_universal_app_bundle \
-                    //packages/dashql-native:mac_universal_dmg
-
-            - name: Upload unsigned DMG
+            - name: Upload Electron x86_64 packages
               uses: actions/upload-artifact@v7
               with:
-                name: dashql_macos_dmg
-                path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
-                retention-days: 1
-
-    macos_universal_signed:
-        name: MacOS Release Universal Signed
-        if: ${{ inputs.signed }}
-        runs-on: macos-26
-        needs: [macos_aarch64, macos_x86_64]
-        steps:
-            - uses: actions/checkout@v6
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
-
-            - name: Setup Bazel
-              uses: ./.github/actions/setup-bazel
-              with:
-                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
-                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
-                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
-
-            - name: Assert arch binaries are in remote cache
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    --experimental_remote_require_cached \
-                    //packages/dashql-native:mac_app_aarch64 \
-                    //packages/dashql-native:mac_app_x86_64
-
-            - name: Build Desktop App
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    //packages/dashql-native:mac_universal_app_bundle
-
-            - name: Sign Desktop App
-              uses: ./.github/actions/sign-macos
-              with:
-                signing-identity: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-                certificate-base64: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_BASE64 }}
-                certificate-password: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_SECRET }}
-                notarytool-issuer: ${{ secrets.MACOS_STORE_ISSUER_ID }}
-                notarytool-key-id: ${{ secrets.MACOS_STORE_KEY_ID }}
-                notarytool-key: ${{ secrets.MACOS_STORE_KEY }}
-                updater-signing-key: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
-                updater-signing-key-password: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
-
-            - name: Upload signed DMG
-              uses: actions/upload-artifact@v7
-              with:
-                name: dashql_macos_dmg_signed
-                path: ${{ runner.temp }}/DashQL-universal-signed.dmg
-                retention-days: 7
-
-            - name: Upload updater bundle
-              uses: actions/upload-artifact@v7
-              with:
-                name: dashql_macos_updater_signed
-                path: |
-                    ./bazel-bin/packages/dashql-native/DashQL-universal-signed.app.tar.gz
-                    ./bazel-bin/packages/dashql-native/DashQL-universal-signed.app.tar.gz.sig
+                name: dashql_macos_electron_x86_64
+                path: ./dist/electron/x64/
                 retention-days: 7

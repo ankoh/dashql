@@ -34,7 +34,6 @@ import {
     CONNECTOR_INFOS,
     ConnectorType,
 } from '../notebook/connections/connector_info.js';
-import { isNativePlatform } from '../../platform/native_globals.js';
 import { createConnectionStateFromParams, createDefaultConnectionParamsForConnector } from '../notebook/connections/connection_params.js';
 import { ConnectionConfigCard } from '../notebook/connections/ui/connection_config_card.js';
 import { NotebookScriptsSetup } from '../notebook/scripts/notebook_scripts_setup.js';
@@ -115,8 +114,6 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     // Bumping this after a drag-persist forces the list to re-read and re-render in the new order.
     const [orderVersion, setOrderVersion] = React.useState(0);
 
-    // Opening a folder-backed notebook needs the native filesystem and a per-notebook-routing
-    // composite backend (web OPFS has neither a folder picker nor on-disk notebooks to load).
     const canOpenFolder =
         platform === PlatformType.MACOS &&
         storageReader.backend instanceof CompositeStorageBackend;
@@ -202,7 +199,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                 displayName: inv.title,
                 notebookName: null,
                 displayPath,
-                connectorType: inv.connectorType ?? (isNativePlatform() ? ConnectorType.DUCKDB : ConnectorType.HYPER),
+                connectorType: inv.connectorType ?? ConnectorType.HYPER,
                 lastAccessed: null,
                 isNative: location.type === StorageBackendType.Native,
                 invalidReason: describeNotebookValidationError(inv.error),
@@ -247,8 +244,8 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         // order synchronously, so bumping orderVersion right after re-renders the list in the new
         // order without waiting on the write. A bare (test) backend has no reorder support — skip.
         const backend = storageReader.backend;
-        if (backend instanceof CompositeStorageBackend) {
-            backend.reorderNotebooks(reordered).catch(e =>
+        if ('reorderNotebooks' in backend) {
+            (backend as {reorderNotebooks(ids: string[]): Promise<void>}).reorderNotebooks(reordered).catch(e =>
                 logger.warn('failed to persist notebook order', { error: String(e) }, 'notebook_selector')
             );
             setOrderVersion(v => v + 1);
@@ -279,7 +276,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
             return;
         }
 
-        const connectorType = isNativePlatform() ? ConnectorType.DUCKDB : ConnectorType.HYPER;
+        const connectorType = ConnectorType.HYPER;
         const connectorInfo = CONNECTOR_INFOS[connectorType];
 
         // Create default connection parameters
@@ -300,15 +297,11 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     }, [props, navigate]);
 
     const handleOpenFolder = React.useCallback(async () => {
-        if (!(storageReader.backend instanceof CompositeStorageBackend)) {
-            return;
-        }
+        if (!(storageReader.backend instanceof CompositeStorageBackend)) return;
         try {
-            // On success the flow registers the notebook and triggers a full reload, so we never
-            // reach steady state here. Errors are logged (and surfaced via the toast) inside the flow.
             await addNativeNotebookFromFolder(storageReader.backend, logger);
         } catch {
-            // Keep the button usable; the failure was already reported to the user.
+            // The flow already logged the error.
         }
     }, [storageReader.backend, logger]);
 
@@ -534,6 +527,15 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                                 : <DuplicateIcon size={16} />
                                             }
                                         </IconButton>
+                                        {canOpenFolder && (
+                                            <IconButton
+                                                variant={ButtonVariant.Invisible}
+                                                aria-label={"Open notebook folder"}
+                                                onClick={handleOpenFolder}
+                                            >
+                                                <FileDirectoryIcon size={16} />
+                                            </IconButton>
+                                        )}
                                     </div>
                                     <div className={baseStyles.card_actions_right}>
                                         <IconButton
@@ -558,15 +560,6 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                         >
                                             <PlusIcon size={16} />
                                         </IconButton>
-                                        {canOpenFolder && (
-                                            <IconButton
-                                                variant={ButtonVariant.Invisible}
-                                                aria-label={"Open notebook folder"}
-                                                onClick={handleOpenFolder}
-                                            >
-                                                <FileDirectoryIcon size={16} />
-                                            </IconButton>
-                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -2,7 +2,6 @@ import * as React from 'react';
 
 import type { EmbeddedComputeDatabase } from './embedded_database.js';
 import { useLogger } from '../logger/logger_provider.js';
-import { isNativePlatform } from '../native_globals.js';
 
 const SETUP_CTX = React.createContext<EmbeddedDatabaseSetupFn | null>(null);
 
@@ -28,10 +27,6 @@ export const EmbeddedDatabaseProvider: React.FC<Props> = (props: Props) => {
         }
 
         const instantiate = async (): Promise<EmbeddedComputeDatabase> => {
-            if (process.env.DASHQL_NATIVE_BUILD === 'true' || isNativePlatform()) {
-                const { setupNativeDuckDB } = await import('../duckdb/duckdb_provider_native.js');
-                return await setupNativeDuckDB(context, logger);
-            }
             const { setupWebHyperDB } = await import('../hyperdb/hyperdb_provider_web.js');
             return await setupWebHyperDB(context, logger, onSetupProgress);
         };

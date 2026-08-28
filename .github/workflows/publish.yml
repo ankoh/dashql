@@ -12,6 +12,65 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    desktop_release:
+        name: Electron Release
+        runs-on: ubuntu-24.04
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  ref: ${{ inputs.commit || github.sha }}
+                  fetch-depth: 0
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: dashql_macos_electron_arm64
+                  path: ${{ runner.temp }}/artifacts/electron/arm64
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: dashql_macos_electron_x86_64
+                  path: ${{ runner.temp }}/artifacts/electron/x64
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Publish Electron release to R2
+              shell: bash
+              env:
+                  DASHQL_GET_R2_ENDPOINT: ${{ secrets.R2_DASHQL_GET_ENDPOINT }}
+                  DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_GET_ACCESS_KEY_ID }}
+                  DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_GET_SECRET_ACCESS_KEY }}
+              run: |
+                  ARM64="${{ runner.temp }}/artifacts/electron/arm64"
+                  X64="${{ runner.temp }}/artifacts/electron/x64"
+                  bazel run --config=release //packages/dashql-pack:pack -- publish \
+                      --source-dir "${{ github.workspace }}" \
+                      --macos-arm64-dmg-path "$ARM64"/DashQL-*-arm64.dmg \
+                      --macos-arm64-zip-path "$ARM64"/DashQL-*-arm64.zip \
+                      --macos-arm64-zip-blockmap-path "$ARM64"/DashQL-*-arm64.zip.blockmap \
+                      --macos-arm64-update-manifest-path "$ARM64"/dev-mac.yml \
+                      --macos-x64-dmg-path "$X64"/DashQL-*-x64.dmg \
+                      --macos-x64-zip-path "$X64"/DashQL-*-x64.zip \
+                      --macos-x64-zip-blockmap-path "$X64"/DashQL-*-x64.zip.blockmap \
+                      --macos-x64-update-manifest-path "$X64"/dev-mac.yml
+
+            - name: Remove expired Electron releases from R2
+              shell: bash
+              env:
+                  DASHQL_GET_R2_ENDPOINT: ${{ secrets.R2_DASHQL_GET_ENDPOINT }}
+                  DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_GET_ACCESS_KEY_ID }}
+                  DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_GET_SECRET_ACCESS_KEY }}
+              run: |
+                  bazel run --config=release //packages/dashql-pack:vacuum -- \
+                      --keep-stable 100 \
+                      --keep-canary 10
+
     pages_deploy:
         name: Cloudflare Pages
         runs-on: ubuntu-24.04
@@ -41,73 +100,3 @@ jobs:
                   packageManager: npm
                   command: pages deploy ${{ runner.temp }}/artifacts/pages --project-name=dashql --branch=main --commit-hash=${{ inputs.commit }}
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-
-    native:
-        name: Native apps
-        runs-on: ubuntu-24.04
-        steps:
-            - uses: actions/checkout@v6
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
-
-            - uses: ./.github/actions/setup-ubuntu-mirror
-
-            - name: Install apt dependencies
-              shell: bash
-              run: |
-                  sudo apt-get install -y lld
-
-            - name: Setup Bazel
-              uses: ./.github/actions/setup-bazel
-              with:
-                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
-                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
-                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
-
-            - name: Build DashQL Pack
-              shell: bash
-              run: |
-                bazel build --config=release \
-                  //packages/dashql-pack:pack
-
-            - uses: actions/download-artifact@v8
-              with:
-                  name: dashql_macos_dmg_signed
-                  path: ${{ runner.temp }}/artifacts/
-
-            - uses: actions/download-artifact@v8
-              with:
-                  name: dashql_macos_updater_signed
-                  path: ${{ runner.temp }}/artifacts/
-
-            - name: Publish native apps
-              env:
-                DASHQL_GET_R2_ENDPOINT: ${{ secrets.R2_DASHQL_GET_ENDPOINT }}
-                DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_GET_ACCESS_KEY_ID }}
-                DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_GET_SECRET_ACCESS_KEY }}
-                DASHQL_RELEASE_SIGNING_KEY_BASE64: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
-                DASHQL_RELEASE_SIGNING_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
-              run: |
-                bazel run --config=release //packages/dashql-pack:pack -- publish \
-                  --source-dir $GITHUB_WORKSPACE \
-                  --macos-dmg-path ${{ runner.temp }}/artifacts/DashQL-universal-signed.dmg \
-                  --macos-updater-bundle-path ${{ runner.temp }}/artifacts/DashQL-universal-signed.app.tar.gz \
-                  --macos-updater-signature-path ${{ runner.temp }}/artifacts/DashQL-universal-signed.app.tar.gz.sig \
-                  --save-summary ${{ runner.temp }}/release.json
-
-            - name: Cleanup native app releases
-              env:
-                DASHQL_GET_R2_ENDPOINT: ${{ secrets.R2_DASHQL_GET_ENDPOINT }}
-                DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_GET_ACCESS_KEY_ID }}
-                DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_GET_SECRET_ACCESS_KEY }}
-              run: |
-                bazel run --config=release //packages/dashql-pack:vacuum -- --keep-stable 100 --keep-canary 10
-
-            - name: Publish release metadata through Slack Webhook
-              uses: slackapi/slack-github-action@v3.0.3
-              with:
-                webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-                webhook-type: incoming-webhook
-                payload-file-path: "${{ runner.temp }}/release.json"

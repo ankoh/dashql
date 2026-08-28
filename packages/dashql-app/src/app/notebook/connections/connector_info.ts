@@ -195,8 +195,6 @@ export function requiresSwitchingToNative(info: ConnectorInfo) {
 }
 
 export const useConnectorList = () => {
-    const connectorTypes = isNativePlatform()
-        ? [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO, ConnectorType.DUCKDB]
-        : [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO];
+    const connectorTypes = [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO];
     return connectorTypes.map(type => CONNECTOR_INFOS[type]).filter(isConnectorAvailable);
 };

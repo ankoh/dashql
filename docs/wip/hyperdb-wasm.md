@@ -83,7 +83,7 @@ establish which future macOS release will ship a sufficiently new system WebKit.
 ### Tauri custom-scheme isolation
 
 Production Tauri assets are served through a custom URL scheme backed by `WKURLSchemeHandler`, not
-an HTTP server. `packages/dashql-native/tauri.conf.json` already sets:
+an HTTP server. The former desktop host configured:
 
 ```json
 {

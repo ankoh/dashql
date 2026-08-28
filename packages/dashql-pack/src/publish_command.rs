@@ -21,11 +21,21 @@ pub struct PublishArgs {
     source_dir: PathBuf,
 
     #[arg(long, required = true)]
-    macos_dmg_path: PathBuf,
+    macos_arm64_dmg_path: PathBuf,
     #[arg(long, required = true)]
-    macos_updater_bundle_path: PathBuf,
-    #[arg(long, required = false)]
-    macos_updater_signature_path: Option<PathBuf>,
+    macos_arm64_zip_path: PathBuf,
+    #[arg(long, required = true)]
+    macos_arm64_zip_blockmap_path: PathBuf,
+    #[arg(long, required = true)]
+    macos_arm64_update_manifest_path: PathBuf,
+    #[arg(long, required = true)]
+    macos_x64_dmg_path: PathBuf,
+    #[arg(long, required = true)]
+    macos_x64_zip_path: PathBuf,
+    #[arg(long, required = true)]
+    macos_x64_zip_blockmap_path: PathBuf,
+    #[arg(long, required = true)]
+    macos_x64_update_manifest_path: PathBuf,
 }
 
 pub async fn publish(args: PublishArgs) -> Result<()> {
@@ -49,9 +59,14 @@ pub async fn publish(args: PublishArgs) -> Result<()> {
         remote_base_url: url.clone(),
         git_repo: git_repo.clone(),
         release_version: version,
-        macos_dmg_path: args.macos_dmg_path,
-        macos_updater_bundle_path: args.macos_updater_bundle_path,
-        macos_updater_signature_path: args.macos_updater_signature_path,
+        macos_arm64_dmg_path: args.macos_arm64_dmg_path,
+        macos_arm64_zip_path: args.macos_arm64_zip_path,
+        macos_arm64_zip_blockmap_path: args.macos_arm64_zip_blockmap_path,
+        macos_arm64_update_manifest_path: args.macos_arm64_update_manifest_path,
+        macos_x64_dmg_path: args.macos_x64_dmg_path,
+        macos_x64_zip_path: args.macos_x64_zip_path,
+        macos_x64_zip_blockmap_path: args.macos_x64_zip_blockmap_path,
+        macos_x64_update_manifest_path: args.macos_x64_update_manifest_path,
     })
     .await?;
 

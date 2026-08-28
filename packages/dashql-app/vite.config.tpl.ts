@@ -9,8 +9,8 @@ const DASHQL_COMMIT = "__DASHQL_COMMIT__";
 const HYPERDB_WASM_VERSION = "__HYPERDB_WASM_VERSION__";
 
 export default vite.defineConfig(({ mode, command }) => {
-    const isNativeBuild = mode === 'native';
-    const isReloc = mode === 'reloc' || isNativeBuild;
+    const isElectronBuild = mode === 'electron';
+    const isReloc = mode === 'reloc' || isElectronBuild;
     const isTest = mode === 'test';
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
@@ -58,6 +58,9 @@ export default vite.defineConfig(({ mode, command }) => {
                     app: path.resolve(rootDir, "index.html"),
                     shell: path.resolve(rootDir, "shell.html"),
                     oauth_redirect: path.resolve(rootDir, "oauth.html"),
+                    ...(isElectronBuild
+                        ? { hyperdb_capability: path.resolve(rootDir, "hyperdb-capability.html") }
+                        : {}),
                 },
                 external: (id) => {
                     if (typeof id !== 'string') return false;
@@ -92,7 +95,6 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.HYPERDB_WASM_VERSION': JSON.stringify(HYPERDB_WASM_VERSION),
             'process.env.DASHQL_APP_URL': JSON.stringify(process.env.DASHQL_APP_URL || 'https://dashql.app'),
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),
-            'process.env.DASHQL_NATIVE_BUILD': JSON.stringify(isNativeBuild),
         },
         resolve: {
             // In the Bazel sandbox, source files are symlinks pointing to the execroot.
@@ -120,15 +122,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@ankoh\/dashql-shell-wasm(\?.*)?$/,
                     replacement: SHELL_WASM_PATH + "$1",
                 },
-                ...(
-                    isNativeBuild
-                        ? [{
-                            find: '../hyperdb/hyperdb_provider_web.js',
-                            replacement: path.resolve(rootDir, 'src/platform/hyperdb/hyperdb_provider_web_stub.ts'),
-                        }]
-                        : []
-                ),
-                ...(!isNativeBuild && !isTest ? [{
+                ...(!isTest ? [{
                     find: /^@dashql\/hyperdb-wasm-worker\?url$/,
                     replacement: path.resolve(rootDir, '../../node_modules/hyperdb-wasm/dist/browser_worker.js') + '?url',
                 }, {
@@ -171,11 +165,10 @@ export default vite.defineConfig(({ mode, command }) => {
             strictPort: true,
             // HMR disabled for browser builds: hot-swapping DuckDB/core WASM + Worker graph
             // stacks live instances (doubled workers, 2 GB SAB reservations), causing crashes.
-            // Native builds use FFI — no WebWorkers or SAB — so HMR is safe there.
-            hmr: isNativeBuild,
+            hmr: false,
             cors: true,
             // Enable Cross-Origin Isolation for SharedArrayBuffer (required for multi-threaded WASM)
-            headers: isNativeBuild ? {} : {
+            headers: {
                 'Cross-Origin-Opener-Policy': 'same-origin',
                 'Cross-Origin-Embedder-Policy': 'require-corp',
             },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { WatchEvent } from '@tauri-apps/plugin-fs';
+import type { WatchEvent } from './native_notebook_sync.js';
 
 import { isNotebookContentWatchEvent, nativeNotebookWatchForLocation } from './native_notebook_sync.js';
 import { StorageBackendType } from './storage_backend.js';

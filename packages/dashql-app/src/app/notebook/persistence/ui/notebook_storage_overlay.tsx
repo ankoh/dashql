@@ -115,7 +115,6 @@ export const NotebookStorageViewer: React.FC<NotebookStorageViewerProps> = (prop
 
     const location = props.notebookId ? reader.getNotebookLocation(props.notebookId) : null;
     const isNative = location?.type === StorageBackendType.Native;
-    // Relocation requires a per-notebook-routing composite backend and the native platform.
     const canRelocate =
         platform === PlatformType.MACOS &&
         !isNative &&
@@ -123,15 +122,11 @@ export const NotebookStorageViewer: React.FC<NotebookStorageViewerProps> = (prop
         reader.backend instanceof CompositeStorageBackend;
 
     const onRelocate = React.useCallback(async () => {
-        if (props.notebookId == null || !(reader.backend instanceof CompositeStorageBackend)) {
-            return;
-        }
+        if (props.notebookId == null || !(reader.backend instanceof CompositeStorageBackend)) return;
         setMigrating(true);
         try {
             await relocateNotebookToNative(props.notebookId, reader.backend, writer, logger);
-            // On success the flow triggers a full reload, so we never reach steady state here.
         } catch {
-            // Errors are logged (and surfaced via the toast) inside the flow; keep the button usable.
             setMigrating(false);
         }
     }, [props.notebookId, reader.backend, writer, logger]);

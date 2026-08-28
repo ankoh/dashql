@@ -1,4 +1,4 @@
-import { readFile } from '@tauri-apps/plugin-fs';
+import { readFile } from '../electron_fs.js';
 import { PlatformFile } from './file.js';
 
 export class NativeFile implements PlatformFile {

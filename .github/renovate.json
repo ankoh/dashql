@@ -153,15 +153,9 @@
             "matchPackageNames": ["/^@types/.*/", "!/^@types/react.*/"]
         },
         {
-            "groupName": "tauri",
+            "groupName": "electron",
             "automerge": false,
-            "matchPackageNames": [
-                "tauri",
-                "tauri-build",
-                "tauri-plugin",
-                "/^tauri-plugin-.*/",
-                "/^@tauri-apps/.*/"
-            ]
+            "matchPackageNames": ["electron", "electron-builder", "electron-updater"]
         },
         {
             "groupName": "bufbuild",

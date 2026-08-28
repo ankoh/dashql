@@ -1,6 +1,5 @@
 import type { FileDownloader } from '../platform/file/file_downloader.js';
 import type { PlatformFile } from '../platform/file/file.js';
-import { isNativePlatform } from '../platform/native_globals.js';
 import type { DashQLShellCommand } from './api.js';
 
 const SHELL_FILES_DIRECTORY = 'dashql-shell-files';
@@ -16,7 +15,7 @@ export class ShellFileRegistry {
     private readonly files = new Map<string, ShellFileEntry>();
 
     constructor(
-        private readonly native: boolean = isNativePlatform(),
+        private readonly native: boolean = false,
         private readonly getOPFSRoot: () => Promise<FileSystemDirectoryHandle> = () => navigator.storage.getDirectory(),
     ) {}
 
@@ -158,16 +157,6 @@ export function createShellFilesCommand(
 }
 
 async function selectPlatformFiles(): Promise<readonly PlatformFile[]> {
-    if (isNativePlatform()) {
-        const [{ open }, { NativeFile }] = await Promise.all([
-            import('@tauri-apps/plugin-dialog'),
-            import('../platform/file/native_file.js'),
-        ]);
-        const paths = await open({ multiple: true });
-        if (paths == null) return [];
-        return (Array.isArray(paths) ? paths : [paths]).map(path => new NativeFile(path));
-    }
-
     const { WebFile } = await import('../platform/file/web_file.js');
     return await new Promise(resolve => {
         const input = document.createElement('input');

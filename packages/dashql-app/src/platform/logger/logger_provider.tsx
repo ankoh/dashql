@@ -1,8 +1,6 @@
 import * as React from 'react';
 
 import { Logger } from './logger.js';
-import { isNativePlatform } from '../native_globals.js';
-import { NativeLogger } from './native_logger.js';
 import { WebLogger } from './web_logger.js';
 
 const LOGGER_CTX = React.createContext<Logger | null>(null);
@@ -17,7 +15,7 @@ type Props = {
 
 export const LoggerProvider: React.FC<Props> = (props: Props) => {
     const logger = React.useMemo<Logger>(() => {
-        let logger: Logger = isNativePlatform() ? new NativeLogger() : new WebLogger();
+        const logger: Logger = new WebLogger();
         GLOBAL_LOGGER = logger;
         return logger;
     }, []);

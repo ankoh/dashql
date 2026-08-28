@@ -1,0 +1,12 @@
+{
+    "name": "@ankoh/dashql-electron",
+    "version": "0.0.2-dev.17",
+    "description": "DashQL desktop application",
+    "author": "DashQL",
+    "private": true,
+    "type": "module",
+    "main": "dist/main.js",
+    "dependencies": {
+        "electron-updater": "^6.6.2"
+    }
+}

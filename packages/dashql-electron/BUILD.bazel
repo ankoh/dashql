@@ -1,0 +1,197 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+package(default_visibility = ["//visibility:private"])
+
+exports_files(["package.json"])
+
+filegroup(
+    name = "srcs",
+    srcs = glob(["src/**/*.ts"]),
+)
+
+filegroup(
+    name = "preload",
+    srcs = ["src/preload.cjs"],
+)
+
+typescript_bin.tsc_binary(
+    name = "tsc_bin",
+)
+
+ts_project(
+    name = "compile",
+    srcs = [":srcs"],
+    out_dir = "dist",
+    root_dir = "src",
+    source_map = True,
+    tsconfig = "tsconfig.bazel.json",
+    tsc = ":tsc_bin",
+    tsc_worker = ":tsc_bin",
+    transpiler = "tsc",
+    validate = False,
+    validator = ":tsc_bin",
+    deps = ["//:node_modules"],
+    visibility = ["//visibility:public"],
+)
+
+vitest_bin.vitest_test(
+    name = "test",
+    size = "small",
+    args = ["run", "--config", "vitest.config.ts"],
+    chdir = "packages/dashql-electron",
+    data = [
+        ":compile_typecheck",
+        ":srcs",
+        "//:node_modules/electron-builder",
+        "tsconfig.bazel.json",
+        "vitest.config.ts",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "dev",
+    srcs = ["scripts/run_electron.sh"],
+    data = [
+        ":compile",
+        ":package.json",
+        ":preload",
+        "@dashql_app_version//:version.env",
+        "//:node_modules/electron",
+        "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-native-napi:addon",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "mac_package_arm64",
+    srcs = ["scripts/package_macos.sh"],
+    args = ["arm64", "$(location //packages/dashql-native-napi:addon_aarch64)"],
+    data = [
+        ":compile",
+        ":package.json",
+        ":preload",
+        "@dashql_app_version//:version.env",
+        "Entitlements.plist",
+        "electron-builder.yml",
+        "//:node_modules",
+        "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-native-napi:addon_aarch64",
+        "//misc/logo-dashql-glyphs:icon_icns_source",
+    ],
+    tags = ["manual"],
+    target_compatible_with = ["@platforms//os:macos"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "mac_package_x86_64",
+    srcs = ["scripts/package_macos.sh"],
+    args = ["x64", "$(location //packages/dashql-native-napi:addon_x86_64)"],
+    data = [
+        ":compile",
+        ":package.json",
+        ":preload",
+        "@dashql_app_version//:version.env",
+        "Entitlements.plist",
+        "electron-builder.yml",
+        "//:node_modules",
+        "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-native-napi:addon_x86_64",
+        "//misc/logo-dashql-glyphs:icon_icns_source",
+    ],
+    tags = ["manual"],
+    target_compatible_with = ["@platforms//os:macos"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "capability_test",
+    srcs = ["scripts/run_electron.sh"],
+    args = ["--capability-test"],
+    data = [
+        ":compile",
+        ":package.json",
+        ":preload",
+        "//:node_modules/electron",
+        "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-native-napi:addon",
+    ],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "native_addon_test",
+    srcs = ["scripts/run_electron.sh"],
+    args = ["--native-addon-test"],
+    data = [
+        ":compile",
+        ":package.json",
+        ":preload",
+        "//:node_modules/electron",
+        "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-native-napi:addon",
+    ],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+sh_test(
+    name = "native_addon_utility_test",
+    size = "medium",
+    srcs = ["scripts/run_electron.sh"],
+    args = ["--native-addon-test"],
+    data = [
+        ":compile",
+        ":package.json",
+        ":preload",
+        "//:node_modules/electron",
+        "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-native-napi:addon",
+    ],
+    target_compatible_with = ["@platforms//os:macos"],
+    visibility = ["//visibility:public"],
+)
+
+sh_test(
+    name = "startup_smoke_test",
+    size = "large",
+    srcs = ["scripts/run_electron.sh"],
+    args = ["--startup-smoke-test"],
+    data = [
+        ":compile",
+        ":package.json",
+        ":preload",
+        "//:node_modules/electron",
+        "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-native-napi:addon",
+    ],
+    target_compatible_with = ["@platforms//os:macos"],
+    tags = ["no-sandbox"],
+    timeout = "long",
+    visibility = ["//visibility:public"],
+)
+
+sh_test(
+    name = "opfs_persistence_test",
+    size = "large",
+    srcs = ["scripts/test_opfs_persistence.sh"],
+    data = [
+        ":compile",
+        ":package.json",
+        ":preload",
+        "//:node_modules/electron",
+        "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-native-napi:addon",
+    ],
+    target_compatible_with = ["@platforms//os:macos"],
+    tags = ["no-sandbox"],
+    timeout = "long",
+    visibility = ["//visibility:public"],
+)

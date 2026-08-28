@@ -1,4 +1,3 @@
-import * as shell from '@tauri-apps/plugin-shell';
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
@@ -129,9 +128,7 @@ export async function authenticateSalesforce(options: SalesforceAuthenticationOp
         abortSignal.throwIfAborted();
         onProgress({ stage: 'GENERATED_PKCE_CHALLENGE', pkceChallenge });
 
-        const flowVariant: OAuthState['flowVariant'] = platformType === PlatformType.WEB
-            ? 'WEB_OPENER_FLOW'
-            : 'NATIVE_LINK_FLOW';
+        const flowVariant: OAuthState['flowVariant'] = 'WEB_OPENER_FLOW';
         const requestedAt = Date.now();
         const state: OAuthState = {
             flowId: crypto.randomUUID(),
@@ -155,21 +152,14 @@ export async function authenticateSalesforce(options: SalesforceAuthenticationOp
             forceReLogin,
         );
 
-        if (flowVariant === 'WEB_OPENER_FLOW') {
-            const popup = oauthPopup ?? window.open(authorizationUrl, OAUTH_POPUP_NAME, OAUTH_POPUP_SETTINGS);
-            if (!popup) {
-                throw new Error('could not open oauth window');
-            }
-            oauthPopup = popup;
-            if (reservedOAuthPopup) {
-                popup.location.replace(authorizationUrl.toString());
-            }
-            popup.focus();
-            onProgress({ stage: 'OAUTH_WEB_WINDOW_OPENED' });
-        } else {
-            await shell.open(authorizationUrl.toString());
-            onProgress({ stage: 'OAUTH_NATIVE_LINK_OPENED' });
+        const popup = oauthPopup ?? window.open(authorizationUrl, OAUTH_POPUP_NAME, OAUTH_POPUP_SETTINGS);
+        if (!popup) {
+            throw new Error('could not open oauth window');
         }
+        oauthPopup = popup;
+        if (reservedOAuthPopup) popup.location.replace(authorizationUrl.toString());
+        popup.focus();
+        onProgress({ stage: 'OAUTH_WEB_WINDOW_OPENED' });
 
         const callback = await appEvents.waitForOAuthRedirect(
             abortSignal,

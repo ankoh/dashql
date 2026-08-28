@@ -1,23 +1,9 @@
 import * as React from 'react';
-import * as process from "@tauri-apps/plugin-process";
-
 import { Logger } from './logger/logger.js';
-import { isNativePlatform } from './native_globals.js';
 import { useLogger } from './logger/logger_provider.js';
 
 export interface ProcessApi {
     relaunch(): Promise<void>;
-}
-
-class NativeProcess implements ProcessApi {
-    logger: Logger;
-    constructor(logger: Logger) {
-        this.logger = logger;
-    }
-    async relaunch(): Promise<void> {
-        this.logger.info("Relaunching", {});
-        await process.relaunch();
-    }
 }
 
 class WebProcess implements ProcessApi {
@@ -27,6 +13,10 @@ class WebProcess implements ProcessApi {
     }
     async relaunch(): Promise<void> {
         this.logger.info("Relaunching", {});
+        if (globalThis.dashqlElectron !== undefined) {
+            await globalThis.dashqlElectron.updates.install();
+            return;
+        }
         window.location.reload();
     }
 }
@@ -40,7 +30,7 @@ interface ProcessProviderProps {
 
 export const ProcessProvider: React.FC<ProcessProviderProps> = (props: ProcessProviderProps) => {
     const logger = useLogger();
-    const process = isNativePlatform() ? new NativeProcess(logger) : new WebProcess(logger);
+    const process = new WebProcess(logger);
     return (
         <PROCESS_CTX.Provider value={process}>
             {props.children}

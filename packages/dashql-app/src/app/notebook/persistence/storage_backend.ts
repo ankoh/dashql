@@ -37,7 +37,7 @@ export type ConnectionParams = NotebookData['connectionParams'];
 export enum StorageBackendType {
     /// Origin Private File System (browser-only)
     OPFS = 'opfs',
-    /// Native filesystem (Tauri only)
+    /// Native filesystem (Electron only)
     Native = 'native',
 }
 

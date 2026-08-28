@@ -46,7 +46,10 @@ bazel build //...
 |--------|---------|
 | `//packages/dashql-app:pages` | Web app bundle for Cloudflare Pages |
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
-| `//packages/dashql-native:mac_universal_dmg` | Universal macOS DMG |
+| `//packages/dashql-electron:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
+| `//packages/dashql-electron:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
+| `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
+| `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
 | `//packages/dashql-core:dashql_core` | Core C++ library |
 
 ### Build Configs
@@ -92,7 +95,7 @@ bazel test //packages/dashql-core:*_tests
 | `//packages/dashql-core:formatter_tests` | Formatter snapshot tests |
 | `//packages/dashql-core:formatter_validation_hyper_tests` | Execute formatted SQL against Hyper |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
-| `//packages/dashql-native:tests` | Rust unit tests for native app |
+| `//packages/dashql-electron:test` | Electron host unit tests |
 | `//packages/dashql-app:test` | TypeScript/Jest tests for web app |
 
 ### Test Output
@@ -143,7 +146,7 @@ Rust type checking happens automatically during `bazel build` and `bazel test`. 
 
 ```bash
 # This type-checks as part of building
-bazel build //packages/dashql-native:dashql_native
+bazel build //packages/dashql-native-napi:addon
 ```
 
 ### C++
@@ -169,7 +172,7 @@ bazel query //packages/dashql-core:all
 bazel query 'kind(".*_test", //...)'
 
 # Find all Rust targets
-bazel query 'kind("rust_.*", //packages/dashql-native:all)'
+bazel query 'kind("rust_.*", //packages/dashql-native-napi:all)'
 
 # Show dependencies of a target
 bazel query 'deps(//packages/dashql-app:pages)'
@@ -187,7 +190,7 @@ For local development with hot module reloading:
 bazel run //packages/dashql-app:dev
 
 # Start native app dev server (connects to dashql-app:dev)
-bazel run //packages/dashql-native:dev
+bazel run //packages/dashql-electron:dev
 ```
 
 Run these in separate terminals. The native app connects to the web app's dev server.
@@ -226,10 +229,10 @@ rm -rf bazel-bin/packages/bar/
 bazel test //packages/dashql-app:tsc_typecheck_test
 
 # ✅ Bazel building
-bazel build //packages/dashql-native:dashql_native
+bazel build //packages/dashql-native-napi:addon
 
 # ✅ Bazel testing
-bazel test //packages/dashql-native:tests
+bazel test //packages/dashql-electron:test
 
 # ✅ Bazel target for code generation
 bazel run //snapshots/parser:update
@@ -249,7 +252,7 @@ bazel test //packages/dashql-app:test
 
 ```bash
 # Build and test (type checking happens automatically)
-bazel test //packages/dashql-native:tests
+bazel test //packages/dashql-electron:test
 ```
 
 ### After Changing C++ Code

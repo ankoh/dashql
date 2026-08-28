@@ -7,14 +7,14 @@ use chrono::prelude::*;
 use semver::Version;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
 pub enum Platform {
     Darwin,
     Linux,
     Windows,
 }
 
-#[derive(Eq, PartialEq, Hash, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
 pub enum Architecture {
     X86_64,
     Aarch64,
@@ -172,11 +172,8 @@ impl Default for ReleaseMetadata {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tauri_plugin_updater::RemoteRelease as TauriRemoteRelease;
-
     #[test]
-    fn test_tauri_manifest() -> Result<()> {
-        // Make sure we can read a tauri update manifest correctly
+    fn test_update_manifest() -> Result<()> {
         let data = r#"
             {
                 "version": "1.0.0",
@@ -239,9 +236,6 @@ mod tests {
         );
         assert_eq!(darwin_x64.signature, "Content of app.tar.gz.sig");
 
-        // Make sure the test config is still a valid tauri config
-        let tauri_release: TauriRemoteRelease = serde_json::from_str(data)?;
-        assert_eq!(tauri_release.version.major, 1);
         Ok(())
     }
 }

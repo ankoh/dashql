@@ -191,7 +191,7 @@ register_toolchains("@rust_toolchains//:all")
 app_version = use_extension("//packages/dashql-app:bazel/version.bzl", "dashql_app_version_ext")
 use_repo(app_version, "dashql_app_version")
 
-# Native crate universe (dashql-native, dashql-pack -- no WASM).
+# Native crate universe for the Electron addon and release tooling (no WASM).
 # Root workspace at Cargo.toml with members pointing downward into packages/.
 # Run CARGO_BAZEL_REPIN=1 bazel build @crates//:all after changing root Cargo.toml or Cargo.lock.
 # Native crate universe: aarch64 + x86_64 macOS (for universal binary) + Linux.
@@ -232,50 +232,9 @@ wasm_crate.from_cargo(
 )
 use_repo(wasm_crate, "umap_crates")
 
-# Tauri plugin crates that ship ACL permission TOML files.
-# Update version suffixes in use_repo below when upgrading tauri plugin dependencies, then repin:
-#   CARGO_BAZEL_REPIN=1 bazel build @crates//:all
-_TAURI_PLUGINS = [
-    "tauri-plugin-deep-link",
-    "tauri-plugin-dialog",
-    "tauri-plugin-fs",
-    "tauri-plugin-http",
-    "tauri-plugin-log",
-    "tauri-plugin-os",
-    "tauri-plugin-process",
-    "tauri-plugin-shell",
-    "tauri-plugin-updater",
-]
-
-# Filegroup added to every tauri plugin crate so tauri-aclgen can read
-# permission TOML files as proper Bazel inputs (avoids sandbox path issues).
-_TAURI_PERMISSION_FILEGROUP = """
-filegroup(
-    name = "permission_files",
-    srcs = glob(["permissions/**/*.toml"]),
-    visibility = ["//visibility:public"],
-)
-"""
-
-# Export permission TOML files from tauri plugin crates.
-[native_crate.annotation(
-    crate = plugin_name,
-    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
-) for plugin_name in _TAURI_PLUGINS]
-
 use_repo(
     native_crate,
     "crates",
-    # Individual plugin crate repos for permission file access by tauri-aclgen.
-    "crates__tauri-plugin-deep-link-2.4.9",
-    "crates__tauri-plugin-dialog-2.7.1",
-    "crates__tauri-plugin-fs-2.5.1",
-    "crates__tauri-plugin-http-2.5.9",
-    "crates__tauri-plugin-log-2.8.0",
-    "crates__tauri-plugin-os-2.3.2",
-    "crates__tauri-plugin-process-2.3.1",
-    "crates__tauri-plugin-shell-2.3.5",
-    "crates__tauri-plugin-updater-2.10.1",
 )
 
 # WASM build: use emscripten toolchain (standalone mode, same .wasm output as WASI SDK).
