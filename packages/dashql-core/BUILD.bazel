@@ -177,35 +177,14 @@ cc_binary(
 )
 
 wasm_cc_binary(
-    name = "core_wasm_unpatched",
+    name = "core_wasm",
     cc_target = ":dashql_core_wasm",
     standalone = False,
     outputs = [
-        "unpatched/dashql_core.wasm",
-        "unpatched/dashql_core.js",
-    ],
-    tags = ["manual"],
-)
-
-genrule(
-    name = "core_wasm",
-    srcs = [":core_wasm_unpatched"],
-    outs = [
         "dashql_core.wasm",
         "dashql_core.js",
     ],
-    cmd = """
-        SRCS=($(locations :core_wasm_unpatched))
-        OUTS=($(OUTS))
-        for src in $${SRCS[@]}; do
-            if [[ $$src == *.wasm ]]; then
-                cp $$src $${OUTS[0]}
-            elif [[ $$src == *.js ]]; then
-                python3 $(location utils/patch_pthread_worker_loader.py) $$src $${OUTS[1]}
-            fi
-        done
-    """,
-    tools = ["utils/patch_pthread_worker_loader.py"],
+    tags = ["manual"],
     visibility = ["//visibility:public"],
 )
 
