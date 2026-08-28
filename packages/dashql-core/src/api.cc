@@ -84,8 +84,8 @@ static void packAgentOperation(FFIResult* result, const buffers::agent::AgentOpe
 
 static buffers::agent::AgentOperationT invalidAgentOperation(std::string message) {
     buffers::agent::AgentOperationT operation;
-    operation.status = buffers::agent::AgentStatus::INVALID_ARGUMENT;
-    operation.status_message = std::move(message);
+    operation.error = buffers::agent::AgentOperationError::INVALID_ARGUMENT;
+    operation.error_message = std::move(message);
     operation.snapshot = std::make_unique<buffers::agent::AgentSnapshotT>();
     return operation;
 }
@@ -121,9 +121,13 @@ extern "C" void dashql_delete_owner(void* owner_ptr, void (*owner_deleter)(void*
     }
 }
 
-extern "C" void dashql_agent_session_new(FFIResult* result, Catalog* catalog) {
+extern "C" void dashql_agent_session_new(FFIResult* result, Catalog* catalog, editor::EditorSession* target,
+                                           const char* target_name_ptr, size_t target_name_length) {
     if (!catalog) throw Exception(buffers::status::StatusCode::CATALOG_NULL);
-    packPtr(result, std::make_unique<agent::AgentSession>(*catalog));
+    std::string target_name = target_name_ptr && target_name_length > 0
+                                  ? std::string{target_name_ptr, target_name_length}
+                                  : std::string{};
+    packPtr(result, std::make_unique<agent::AgentSession>(*catalog, target, std::move(target_name)));
 }
 
 extern "C" void dashql_agent_session_start(FFIResult* result, agent::AgentSession* session,

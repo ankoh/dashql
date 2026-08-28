@@ -1,8 +1,7 @@
 namespace dashql.buffers.agent;
 
-enum AgentStatus: uint8 {
-    OK,
-    PENDING,
+enum AgentOperationError: uint8 {
+    NONE,
     INVALID_ARGUMENT,
     STALE_EFFECT,
     BUSY,
@@ -42,7 +41,6 @@ enum AgentEffectType: uint8 {
     NONE,
     MODEL_REQUEST,
     RESOLVE_CONTEXT,
-    TRANSCODE_VEGALITE,
     APPLY_PROPOSAL,
 }
 
@@ -102,10 +100,6 @@ table AgentResolveContextEffect {
     intent: AgentIntent;
 }
 
-table AgentTranscodeVegaLiteEffect {
-    raw_spec_json: string;
-}
-
 table AgentApplyProposalEffect {
     proposal: AgentProposal;
 }
@@ -115,7 +109,6 @@ table AgentEffect {
     type: AgentEffectType;
     model_request: AgentModelRequestEffect;
     resolve_context: AgentResolveContextEffect;
-    transcode_vegalite: AgentTranscodeVegaLiteEffect;
     apply_proposal: AgentApplyProposalEffect;
 }
 
@@ -125,13 +118,6 @@ table AgentModelCompletion {
 
 table AgentContextResult {
     context: string;
-    target_kind: AgentTargetKind;
-    target_name: string;
-}
-
-table AgentTranscodeVegaLiteResult {
-    candidate_text: string;
-    errors: [string];
 }
 
 table AgentApplyResult {
@@ -143,7 +129,6 @@ table AgentEffectCompletion {
     status: AgentEffectCompletionStatus;
     model: AgentModelCompletion;
     context: AgentContextResult;
-    transcode_vegalite: AgentTranscodeVegaLiteResult;
     apply: AgentApplyResult;
     error: string;
 }
@@ -178,8 +163,8 @@ table AgentSnapshot {
 }
 
 table AgentOperation {
-    status: AgentStatus = OK;
-    status_message: string;
+    error: AgentOperationError = NONE;
+    error_message: string;
     snapshot: AgentSnapshot;
     events: [AgentEvent];
     effect: AgentEffect;

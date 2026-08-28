@@ -15,7 +15,6 @@ import {
     buildClassifyPrompt,
     buildSqlPrompt,
     buildVisualizePrompt,
-    diagnoseVegaLiteSpec,
 } from './agent_prompts.js';
 import { AgentHost } from './agent_host.js';
 import { LoggerLike } from '../../../platform/logger/logger.js';
@@ -255,12 +254,6 @@ function appIntent(intent: core.buffers.agent.AgentIntent): AgentIntent {
     return intent === core.buffers.agent.AgentIntent.VISUALIZE ? 'visualize' : 'sql';
 }
 
-function coreTargetKind(kind: 'none' | 'sql' | 'visualization'): core.buffers.agent.AgentTargetKind {
-    if (kind === 'sql') return core.buffers.agent.AgentTargetKind.SQL;
-    if (kind === 'visualization') return core.buffers.agent.AgentTargetKind.VISUALIZATION;
-    return core.buffers.agent.AgentTargetKind.NONE;
-}
-
 function appDisposition(disposition: core.buffers.agent.AgentApplyDisposition): 'create' | 'replace' {
     return disposition === core.buffers.agent.AgentApplyDisposition.REPLACE ? 'replace' : 'create';
 }
@@ -368,7 +361,6 @@ async function driveCoreAgentSession(
         null,
         null,
         null,
-        null,
         error instanceof Error ? error.message : String(error),
     );
 
@@ -382,34 +374,38 @@ async function driveCoreAgentSession(
 
         while (true) {
             processEvents(operation);
-            if (operation.status !== core.buffers.agent.AgentStatus.PENDING) {
-                if (operation.status !== core.buffers.agent.AgentStatus.OK || !terminalEventSeen) {
+            if (operation.error !== core.buffers.agent.AgentOperationError.NONE) {
+                dispatchAgent({
+                    type: AGENT_FAILED,
+                    value: {
+                        error: stringValue(operation.errorMessage) || 'Agent session protocol operation failed',
+                        timestamp: now(),
+                    },
+                });
+                break;
+            }
+            if (operation.effect == null) {
+                if (!terminalEventSeen) {
                     dispatchAgent({
                         type: AGENT_FAILED,
                         value: {
-                            error: stringValue(operation.statusMessage) || 'Agent session ended without a terminal result',
+                            error: 'Agent session ended without a terminal result',
                             timestamp: now(),
                         },
                     });
                 }
                 break;
             }
-            if (operation.effect == null) throw new Error('Agent session is pending without an effect');
             const effect = operation.effect;
             let completion: core.buffers.agent.AgentEffectCompletionT;
             try {
                 if (effect.type === core.buffers.agent.AgentEffectType.RESOLVE_CONTEXT && effect.resolveContext != null) {
                     const intent = appIntent(effect.resolveContext.intent);
-                    const target = host.describeTarget();
                     completion = new core.buffers.agent.AgentEffectCompletionT(
                         effect.id,
                         core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
                         null,
-                        new core.buffers.agent.AgentContextResultT(
-                            host.buildContext(intent),
-                            coreTargetKind(target.kind),
-                            target.name,
-                        ),
+                        new core.buffers.agent.AgentContextResultT(host.buildContext(intent)),
                     );
                 } else if (effect.type === core.buffers.agent.AgentEffectType.MODEL_REQUEST && effect.modelRequest != null) {
                     const request = effect.modelRequest;
@@ -440,27 +436,6 @@ async function driveCoreAgentSession(
                         core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
                         new core.buffers.agent.AgentModelCompletionT(response),
                     );
-                } else if (effect.type === core.buffers.agent.AgentEffectType.TRANSCODE_VEGALITE && effect.transcodeVegalite != null) {
-                    const raw = stringValue(effect.transcodeVegalite.rawSpecJson);
-                    const hints = diagnoseVegaLiteSpec(raw);
-                    try {
-                        completion = new core.buffers.agent.AgentEffectCompletionT(
-                            effect.id,
-                            core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
-                            null,
-                            null,
-                            new core.buffers.agent.AgentTranscodeVegaLiteResultT(host.transcodeVegaLite(raw), hints),
-                        );
-                    } catch (error) {
-                        const message = error instanceof Error ? error.message : String(error);
-                        completion = new core.buffers.agent.AgentEffectCompletionT(
-                            effect.id,
-                            core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
-                            null,
-                            null,
-                            new core.buffers.agent.AgentTranscodeVegaLiteResultT(raw, [...hints, message]),
-                        );
-                    }
                 } else if (effect.type === core.buffers.agent.AgentEffectType.APPLY_PROPOSAL && effect.applyProposal?.proposal != null) {
                     const proposal = effect.applyProposal.proposal;
                     const intent = appIntent(proposal.intent);
@@ -483,7 +458,6 @@ async function driveCoreAgentSession(
                     completion = new core.buffers.agent.AgentEffectCompletionT(
                         effect.id,
                         core.buffers.agent.AgentEffectCompletionStatus.SUCCESS,
-                        null,
                         null,
                         null,
                         new core.buffers.agent.AgentApplyResultT(true),

@@ -17,11 +17,11 @@ agent-snapshots:
       prompt: Return the number one.
       intent: sql
       max-attempts: 3
+      target-name: query.sql
+      target-script: select 1
     events:
       - type: resolved_context
         value: ''
-        target-kind: sql
-        target-name: query.sql
       - type: model_response
         value: ''
       - type: model_response
@@ -32,30 +32,26 @@ agent-snapshots:
     input:
       prompt: Change the chart to bars.
       intent: visualize
+      target-name: chart.sql
+      target-script: select 1 visualize using vegalite (mark => line)
     events:
       - type: resolved_context
         value: current chart
-        target-kind: visualization
-        target-name: chart.sql
       - type: model_response
         value: '{"mark":"bar"}'
-      - type: transcoded_vegalite
-        value: select 1 visualize using vegalite (mark => bar)
       - type: applied_result
 
   - name: visualize_creates_beside_focused_sql
     input:
       prompt: Chart this query.
       intent: visualize
+      target-name: query.sql
+      target-script: select 1
     events:
       - type: resolved_context
         value: source query
-        target-kind: sql
-        target-name: query.sql
       - type: model_response
         value: '{"mark":"bar"}'
-      - type: transcoded_vegalite
-        value: select 1 visualize using vegalite (mark => bar)
       - type: applied_result
 
   - name: exhaust_invalid_sql

@@ -4,7 +4,13 @@
 #include <cctype>
 #include <stdexcept>
 
+#include "dashql/script_compiler.h"
 #include "dashql/script.h"
+#include "dashql/editor/editor_session.h"
+#include "dashql/visualize/vegalite.h"
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 namespace dashql::agent {
 namespace {
@@ -41,19 +47,34 @@ void AppendUnique(std::vector<std::string>& target, const std::vector<std::strin
 
 }  // namespace
 
+AgentSession::AgentSession(Catalog& catalog, editor::EditorSession* target, std::string target_name)
+    : catalog_{catalog}, target_{target}, target_name_{std::move(target_name)} {
+    if (!target_) return;
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = buffers::formatting::FormattingDialect::HYPER;
+    config.mode = buffers::formatting::FormattingMode::INLINE;
+    config.max_width = 120;
+    config.indentation_width = 2;
+    auto compiled = target_->GetScript().CompileQuery(config);
+    target_kind_ = compiled.errors.empty() &&
+                           compiled.kind == buffers::execution::ScriptCompilationStatementKind::VISUALIZE
+                       ? AgentTargetKind::VISUALIZATION
+                       : AgentTargetKind::SQL;
+}
+
 AgentSession::~AgentSession() {
     if (pending_effect_) pending_effect_->coroutine.destroy();
 }
 
 AgentSession::AgentOperation AgentSession::Start(const AgentStartRequest& request) {
     if (pending_effect_ || (phase_ != AgentPhase::IDLE && !IsTerminal(phase_))) {
-        return MakeOperation(AgentStatus::BUSY, "the agent already has an active operation");
+        return MakeOperation(AgentOperationError::BUSY, "the agent already has an active operation");
     }
-    if (request.user_prompt.empty()) return MakeOperation(AgentStatus::INVALID_ARGUMENT, "user prompt must not be empty");
-    if (request.max_attempts == 0) return MakeOperation(AgentStatus::INVALID_ARGUMENT, "max attempts must be greater than zero");
+    if (request.user_prompt.empty()) return MakeOperation(AgentOperationError::INVALID_ARGUMENT, "user prompt must not be empty");
+    if (request.max_attempts == 0) return MakeOperation(AgentOperationError::INVALID_ARGUMENT, "max attempts must be greater than zero");
     if (request.intent_override != AgentIntent::UNKNOWN && request.intent_override != AgentIntent::SQL &&
         request.intent_override != AgentIntent::VISUALIZE) {
-        return MakeOperation(AgentStatus::INVALID_ARGUMENT, "invalid intent override");
+        return MakeOperation(AgentOperationError::INVALID_ARGUMENT, "invalid intent override");
     }
 
     phase_ = AgentPhase::IDLE;
@@ -64,8 +85,6 @@ AgentSession::AgentOperation AgentSession::Start(const AgentStartRequest& reques
     read_only_ = request.read_only;
     user_prompt_ = request.user_prompt;
     context_.clear();
-    target_kind_ = AgentTargetKind::NONE;
-    target_name_.clear();
     apply_disposition_ = AgentApplyDisposition::CREATE;
     candidate_text_.clear();
     vegalite_spec_.clear();
@@ -80,19 +99,19 @@ AgentSession::AgentOperation AgentSession::Start(const AgentStartRequest& reques
 
 AgentSession::AgentOperation AgentSession::CompleteEffect(const AgentEffectCompletion& completion) {
     if (!pending_effect_ || pending_effect_->id != completion.effect_id) {
-        return MakeOperation(AgentStatus::STALE_EFFECT, "effect is no longer pending");
+        return MakeOperation(AgentOperationError::STALE_EFFECT, "effect is no longer pending");
     }
     if (completion.status != AgentEffectCompletionStatus::SUCCESS &&
         completion.status != AgentEffectCompletionStatus::ERROR &&
         completion.status != AgentEffectCompletionStatus::CANCELLED) {
-        return MakeOperation(AgentStatus::INVALID_ARGUMENT, "invalid effect completion status");
+        return MakeOperation(AgentOperationError::INVALID_ARGUMENT, "invalid effect completion status");
     }
 
     EffectResult result;
     try {
         result = ReadCompletion(pending_effect_->type, completion);
     } catch (const std::invalid_argument& error) {
-        return MakeOperation(AgentStatus::INVALID_ARGUMENT, error.what());
+        return MakeOperation(AgentOperationError::INVALID_ARGUMENT, error.what());
     }
     auto pending = std::move(*pending_effect_);
     pending_effect_.reset();
@@ -103,7 +122,7 @@ AgentSession::AgentOperation AgentSession::CompleteEffect(const AgentEffectCompl
 }
 
 AgentSession::AgentOperation AgentSession::Cancel() {
-    if (!pending_effect_) return MakeOperation(AgentStatus::OK);
+    if (!pending_effect_) return MakeOperation();
     AgentEffectCompletion completion;
     completion.effect_id = pending_effect_->id;
     completion.status = AgentEffectCompletionStatus::CANCELLED;
@@ -139,8 +158,6 @@ AgentSession::Task AgentSession::Run() {
         co_return;
     }
     context_ = std::move(context.value);
-    target_kind_ = context.target_kind;
-    target_name_ = std::move(context.target_name);
     apply_disposition_ =
         (intent_ == AgentIntent::SQL && target_kind_ != AgentTargetKind::NONE) ||
                 (intent_ == AgentIntent::VISUALIZE && target_kind_ == AgentTargetKind::VISUALIZATION)
@@ -167,20 +184,19 @@ AgentSession::Task AgentSession::Run() {
         final_verify = {};
         if (intent_ == AgentIntent::VISUALIZE) {
             vegalite_spec_ = ExtractJsonObject(model.value);
-            candidate_text_ = vegalite_spec_;
-            auto transcode = co_await AwaitTranscode();
-            if (transcode.status == AgentEffectCompletionStatus::CANCELLED) {
-                SetCancelled();
-                co_return;
-            }
-            if (transcode.status == AgentEffectCompletionStatus::ERROR) {
-                SetFailed(false, transcode.value);
-                co_return;
-            }
-            candidate_text_ = std::move(transcode.value);
-            errors_ = std::move(transcode.errors);
-            if (candidate_text_ != vegalite_spec_ && !Trim(candidate_text_).empty()) {
-                final_verify = VerifyCandidate(candidate_text_);
+            DiagnoseVegaLiteSpec(vegalite_spec_, errors_);
+            auto source_sql = CompileTargetScript();
+            if (source_sql.empty()) {
+                errors_.push_back("A focused query source is required to create a visualization.");
+                candidate_text_ = vegalite_spec_;
+            } else {
+                candidate_text_ = TranscodeVegaLite(vegalite_spec_, source_sql);
+                if (candidate_text_.empty()) {
+                    errors_.push_back("Could not transcode the Vega-Lite specification.");
+                    candidate_text_ = vegalite_spec_;
+                } else {
+                    final_verify = VerifyCandidate(candidate_text_);
+                }
             }
         } else {
             candidate_text_ = ExtractSql(model.value);
@@ -246,14 +262,6 @@ AgentSession::EffectAwaiter AgentSession::AwaitContext() {
     return EffectAwaiter{*this, std::move(effect)};
 }
 
-AgentSession::EffectAwaiter AgentSession::AwaitTranscode() {
-    auto effect = std::make_unique<AgentEffectT>();
-    effect->type = AgentEffectType::TRANSCODE_VEGALITE;
-    effect->transcode_vegalite = std::make_unique<AgentTranscodeVegaLiteEffectT>();
-    effect->transcode_vegalite->raw_spec_json = vegalite_spec_;
-    return EffectAwaiter{*this, std::move(effect)};
-}
-
 AgentSession::EffectAwaiter AgentSession::AwaitApply(const VerifyResult& verify) {
     auto effect = std::make_unique<AgentEffectT>();
     effect->type = AgentEffectType::APPLY_PROPOSAL;
@@ -295,9 +303,9 @@ AgentSession::AgentOperation AgentSession::CollectOperation(Task::Handle corouti
         if (!outgoing_effect_) {
             if (pending_effect_ && pending_effect_->coroutine == coroutine) pending_effect_.reset();
             coroutine.destroy();
-            return MakeOperation(AgentStatus::INTERNAL_ERROR, "agent coroutine suspended without an effect");
+            return MakeOperation(AgentOperationError::INTERNAL_ERROR, "agent coroutine suspended without an effect");
         }
-        auto operation = MakeOperation(AgentStatus::PENDING);
+        auto operation = MakeOperation();
         operation.effect = std::move(outgoing_effect_);
         operation.events = std::move(events_);
         events_.clear();
@@ -311,19 +319,19 @@ AgentSession::AgentOperation AgentSession::CollectOperation(Task::Handle corouti
         try {
             std::rethrow_exception(exception);
         } catch (const std::exception& error) {
-            return MakeOperation(AgentStatus::INTERNAL_ERROR, error.what());
+            return MakeOperation(AgentOperationError::INTERNAL_ERROR, error.what());
         }
     }
-    if (!completed_operation_) return MakeOperation(AgentStatus::INTERNAL_ERROR, "agent coroutine completed without output");
+    if (!completed_operation_) return MakeOperation(AgentOperationError::INTERNAL_ERROR, "agent coroutine completed without output");
     auto out = std::move(*completed_operation_);
     completed_operation_.reset();
     return out;
 }
 
-AgentSession::AgentOperation AgentSession::MakeOperation(AgentStatus status, std::string message) {
+AgentSession::AgentOperation AgentSession::MakeOperation(AgentOperationError error, std::string message) {
     AgentOperation operation;
-    operation.status = status;
-    operation.status_message = std::move(message);
+    operation.error = error;
+    operation.error_message = std::move(message);
     operation.snapshot = std::make_unique<AgentSnapshotT>();
     operation.snapshot->phase = phase_;
     operation.snapshot->intent = intent_;
@@ -345,7 +353,7 @@ void AgentSession::SetFailed(bool expected, std::string message) {
     event->expected_failure = expected;
     event->message = std::move(message);
     events_.push_back(std::move(event));
-    completed_operation_ = MakeOperation(AgentStatus::OK);
+    completed_operation_ = MakeOperation();
     completed_operation_->events = std::move(events_);
 }
 
@@ -357,7 +365,7 @@ void AgentSession::SetCancelled() {
     event->intent = intent_;
     event->attempt = std::min(attempt_, max_attempts_);
     events_.push_back(std::move(event));
-    completed_operation_ = MakeOperation(AgentStatus::OK);
+    completed_operation_ = MakeOperation();
     completed_operation_->events = std::move(events_);
 }
 
@@ -372,7 +380,7 @@ void AgentSession::SetSucceeded() {
                          ? "updated the focused target"
                          : "created a new entry";
     events_.push_back(std::move(event));
-    completed_operation_ = MakeOperation(AgentStatus::OK);
+    completed_operation_ = MakeOperation();
     completed_operation_->events = std::move(events_);
 }
 
@@ -433,13 +441,6 @@ AgentSession::EffectResult AgentSession::ReadCompletion(AgentEffectType type,
         case AgentEffectType::RESOLVE_CONTEXT:
             if (!completion.context) throw std::invalid_argument{"context result is missing"};
             out.value = completion.context->context;
-            out.target_kind = completion.context->target_kind;
-            out.target_name = completion.context->target_name;
-            break;
-        case AgentEffectType::TRANSCODE_VEGALITE:
-            if (!completion.transcode_vegalite) throw std::invalid_argument{"Vega-Lite transcode result is missing"};
-            out.value = completion.transcode_vegalite->candidate_text;
-            out.errors = completion.transcode_vegalite->errors;
             break;
         case AgentEffectType::APPLY_PROPOSAL:
             if (!completion.apply) throw std::invalid_argument{"apply result is missing"};
@@ -449,6 +450,63 @@ AgentSession::EffectResult AgentSession::ReadCompletion(AgentEffectType type,
             throw std::invalid_argument{"unknown agent effect"};
     }
     return out;
+}
+
+std::string AgentSession::CompileTargetScript() {
+    if (!target_) return {};
+    buffers::formatting::FormattingConfigT config;
+    config.dialect = buffers::formatting::FormattingDialect::HYPER;
+    config.mode = buffers::formatting::FormattingMode::INLINE;
+    config.max_width = 120;
+    config.indentation_width = 2;
+    auto compiled = target_->GetScript().CompileQuery(config);
+    return compiled.errors.empty() ? compiled.sql : std::string{};
+}
+
+std::string AgentSession::TranscodeVegaLite(std::string_view raw_spec, std::string_view source_sql) const {
+    rapidjson::Document doc;
+    doc.Parse(raw_spec.data(), raw_spec.size());
+    if (doc.HasParseError() || !doc.IsObject()) return {};
+    auto& allocator = doc.GetAllocator();
+    rapidjson::Value data{rapidjson::kObjectType};
+    data.AddMember(rapidjson::Value{"$sql", allocator},
+                   rapidjson::Value{source_sql.data(), static_cast<rapidjson::SizeType>(source_sql.size()), allocator},
+                   allocator);
+    if (doc.HasMember("data")) {
+        doc["data"] = std::move(data);
+    } else {
+        doc.AddMember(rapidjson::Value{"data", allocator}, std::move(data), allocator);
+    }
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer{buffer};
+    doc.Accept(writer);
+    return visualize::ParseVegaLiteToVisualize(buffer.GetString());
+}
+
+void AgentSession::DiagnoseVegaLiteSpec(std::string_view raw_spec, std::vector<std::string>& errors) const {
+    rapidjson::Document doc;
+    doc.Parse(raw_spec.data(), raw_spec.size());
+    if (doc.HasParseError() || !doc.IsObject() || !doc.HasMember("mark")) return;
+    const auto& mark = doc["mark"];
+    std::string_view type;
+    if (mark.IsString()) {
+        type = mark.GetString();
+    } else if (mark.IsObject() && mark.HasMember("type") && mark["type"].IsString()) {
+        type = mark["type"].GetString();
+    }
+    if (type == "pie") {
+        errors.push_back("Vega-Lite has no \"pie\" mark; use mark \"arc\" with theta and color channels.");
+    } else if (type == "donut" || type == "doughnut") {
+        errors.push_back("Vega-Lite has no donut mark; use mark \"arc\" with innerRadius, theta, and color.");
+    } else if (type == "scatter") {
+        errors.push_back("Vega-Lite has no \"scatter\" mark; use mark \"point\" with x and y channels.");
+    } else if (type == "bubble") {
+        errors.push_back("Vega-Lite has no \"bubble\" mark; use mark \"point\" with x, y, and size channels.");
+    } else if (type == "histogram") {
+        errors.push_back("Vega-Lite has no \"histogram\" mark; use mark \"bar\" with a binned x channel.");
+    } else if (type == "column") {
+        errors.push_back("Vega-Lite has no \"column\" mark; use mark \"bar\".");
+    }
 }
 
 AgentSession::VerifyResult AgentSession::VerifyCandidate(std::string_view candidate) const {

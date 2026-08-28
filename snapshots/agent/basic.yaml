@@ -14,22 +14,19 @@ agent-snapshots:
       - type: applied_result
     expected:
       operations:
-        - status: PENDING
-          phase: CLASSIFYING
+        - phase: CLASSIFYING
           attempt: 0
           effect:
             type: MODEL_REQUEST
             kind: CLASSIFY
             prompt: |-
               Return the number one.
-        - status: PENDING
-          phase: CLASSIFYING
+        - phase: CLASSIFYING
           attempt: 0
           intent: SQL
           effect:
             type: RESOLVE_CONTEXT
-        - status: PENDING
-          phase: GENERATING
+        - phase: GENERATING
           attempt: 1
           intent: SQL
           effect:
@@ -37,8 +34,7 @@ agent-snapshots:
             kind: GENERATE
             prompt: |-
               Return the number one.
-        - status: PENDING
-          phase: APPLYING
+        - phase: APPLYING
           attempt: 1
           intent: SQL
           effect:
@@ -46,12 +42,11 @@ agent-snapshots:
             disposition: CREATE
             candidate: |-
               select 1
-          attempt-result:
+          validation:
             candidate: |-
               select 1
             errors: []
-        - status: OK
-          phase: SUCCEEDED
+        - phase: SUCCEEDED
           attempt: 1
           intent: SQL
 
@@ -60,11 +55,11 @@ agent-snapshots:
       prompt: Return the number one.
       intent: sql
       max-attempts: 3
+      target-name: query.sql
+      target-script: select 1
     events:
       - type: resolved_context
         value: ''
-        target-kind: sql
-        target-name: query.sql
       - type: model_response
         value: ''
       - type: model_response
@@ -72,14 +67,12 @@ agent-snapshots:
       - type: applied_result
     expected:
       operations:
-        - status: PENDING
-          phase: IDLE
+        - phase: IDLE
           attempt: 0
           intent: SQL
           effect:
             type: RESOLVE_CONTEXT
-        - status: PENDING
-          phase: GENERATING
+        - phase: GENERATING
           attempt: 1
           intent: SQL
           effect:
@@ -87,8 +80,7 @@ agent-snapshots:
             kind: GENERATE
             prompt: |-
               Return the number one.
-        - status: PENDING
-          phase: REPAIRING
+        - phase: REPAIRING
           attempt: 2
           intent: SQL
           effect:
@@ -98,12 +90,11 @@ agent-snapshots:
               Return the number one.
             errors:
               - The model returned an empty result.
-          attempt-result:
+          validation:
             candidate: |-
             errors:
               - The model returned an empty result.
-        - status: PENDING
-          phase: APPLYING
+        - phase: APPLYING
           attempt: 2
           intent: SQL
           effect:
@@ -112,12 +103,11 @@ agent-snapshots:
             target-name: query.sql
             candidate: |-
               select 1
-          attempt-result:
+          validation:
             candidate: |-
               select 1
             errors: []
-        - status: OK
-          phase: SUCCEEDED
+        - phase: SUCCEEDED
           attempt: 2
           intent: SQL
 
@@ -125,26 +115,22 @@ agent-snapshots:
     input:
       prompt: Change the chart to bars.
       intent: visualize
+      target-name: chart.sql
+      target-script: select 1 visualize using vegalite (mark => line)
     events:
       - type: resolved_context
         value: current chart
-        target-kind: visualization
-        target-name: chart.sql
       - type: model_response
         value: '{"mark":"bar"}'
-      - type: transcoded_vegalite
-        value: select 1 visualize using vegalite (mark => bar)
       - type: applied_result
     expected:
       operations:
-        - status: PENDING
-          phase: IDLE
+        - phase: IDLE
           attempt: 0
           intent: VISUALIZE
           effect:
             type: RESOLVE_CONTEXT
-        - status: PENDING
-          phase: GENERATING
+        - phase: GENERATING
           attempt: 1
           intent: VISUALIZE
           effect:
@@ -155,16 +141,7 @@ agent-snapshots:
             context: |-
               current chart
             editing-chart: 1
-        - status: PENDING
-          phase: GENERATING
-          attempt: 1
-          intent: VISUALIZE
-          effect:
-            type: TRANSCODE_VEGALITE
-            raw-spec: |-
-              {"mark":"bar"}
-        - status: PENDING
-          phase: APPLYING
+        - phase: APPLYING
           attempt: 1
           intent: VISUALIZE
           effect:
@@ -172,13 +149,18 @@ agent-snapshots:
             disposition: REPLACE
             target-name: chart.sql
             candidate: |-
-              select 1 visualize using vegalite (mark => bar)
-          attempt-result:
+              select 1
+              VISUALIZE USING vegalite (
+                mark => bar
+              );
+          validation:
             candidate: |-
-              select 1 visualize using vegalite (mark => bar)
+              select 1
+              VISUALIZE USING vegalite (
+                mark => bar
+              );
             errors: []
-        - status: OK
-          phase: SUCCEEDED
+        - phase: SUCCEEDED
           attempt: 1
           intent: VISUALIZE
 
@@ -186,26 +168,22 @@ agent-snapshots:
     input:
       prompt: Chart this query.
       intent: visualize
+      target-name: query.sql
+      target-script: select 1
     events:
       - type: resolved_context
         value: source query
-        target-kind: sql
-        target-name: query.sql
       - type: model_response
         value: '{"mark":"bar"}'
-      - type: transcoded_vegalite
-        value: select 1 visualize using vegalite (mark => bar)
       - type: applied_result
     expected:
       operations:
-        - status: PENDING
-          phase: IDLE
+        - phase: IDLE
           attempt: 0
           intent: VISUALIZE
           effect:
             type: RESOLVE_CONTEXT
-        - status: PENDING
-          phase: GENERATING
+        - phase: GENERATING
           attempt: 1
           intent: VISUALIZE
           effect:
@@ -215,29 +193,25 @@ agent-snapshots:
               Chart this query.
             context: |-
               source query
-        - status: PENDING
-          phase: GENERATING
-          attempt: 1
-          intent: VISUALIZE
-          effect:
-            type: TRANSCODE_VEGALITE
-            raw-spec: |-
-              {"mark":"bar"}
-        - status: PENDING
-          phase: APPLYING
+        - phase: APPLYING
           attempt: 1
           intent: VISUALIZE
           effect:
             type: APPLY_PROPOSAL
             disposition: CREATE
             candidate: |-
-              select 1 visualize using vegalite (mark => bar)
-          attempt-result:
+              select 1
+              VISUALIZE USING vegalite (
+                mark => bar
+              );
+          validation:
             candidate: |-
-              select 1 visualize using vegalite (mark => bar)
+              select 1
+              VISUALIZE USING vegalite (
+                mark => bar
+              );
             errors: []
-        - status: OK
-          phase: SUCCEEDED
+        - phase: SUCCEEDED
           attempt: 1
           intent: VISUALIZE
 
@@ -255,14 +229,12 @@ agent-snapshots:
         value: select (
     expected:
       operations:
-        - status: PENDING
-          phase: IDLE
+        - phase: IDLE
           attempt: 0
           intent: SQL
           effect:
             type: RESOLVE_CONTEXT
-        - status: PENDING
-          phase: GENERATING
+        - phase: GENERATING
           attempt: 1
           intent: SQL
           effect:
@@ -270,8 +242,7 @@ agent-snapshots:
             kind: GENERATE
             prompt: |-
               Write a query.
-        - status: PENDING
-          phase: REPAIRING
+        - phase: REPAIRING
           attempt: 2
           intent: SQL
           effect:
@@ -283,16 +254,15 @@ agent-snapshots:
               select (
             errors:
               - 'syntax error, unexpected EOF'
-          attempt-result:
+          validation:
             candidate: |-
               select (
             errors:
               - 'syntax error, unexpected EOF'
-        - status: OK
-          phase: FAILED
+        - phase: FAILED
           attempt: 2
           intent: SQL
-          attempt-result:
+          validation:
             candidate: |-
               select (
             errors:
@@ -309,13 +279,11 @@ agent-snapshots:
       - type: cancel
     expected:
       operations:
-        - status: PENDING
-          phase: IDLE
+        - phase: IDLE
           attempt: 0
           intent: SQL
           effect:
             type: RESOLVE_CONTEXT
-        - status: OK
-          phase: CANCELLED
+        - phase: CANCELLED
           attempt: 0
           intent: SQL

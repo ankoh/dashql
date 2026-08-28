@@ -1,5 +1,5 @@
 import { startAgentRun, AgentAIClient, AgentRunParams } from './agent_run_driver.js';
-import { AgentApplyDisposition, AgentHost, AgentTargetKind } from './agent_host.js';
+import { AgentApplyDisposition, AgentHost } from './agent_host.js';
 import * as core from '../../../core/index.js';
 import {
     AGENT_ATTEMPT_RESULT,
@@ -33,14 +33,16 @@ afterEach(() => {
 class FakeHost implements AgentHost {
     /// Whether visualize runs should reframe as an edit.
     createAgentSession(): core.DashQLAgentSession {
-        return dql!.createAgentSession(catalog!);
+        const targetScript = this.targetScript;
+        const target = targetScript == null ? null : dql!.createEditorSession(catalog!);
+        if (target != null && targetScript != null) target.replaceText(0n, targetScript);
+        return dql!.createAgentSession(catalog!, target, this.targetName);
     }
     /// The context block returned to the driver (asserted to reach the generation prompt).
     contextText = 'FAKE-CONTEXT';
-    /// Vega-Lite transcode; defaults to wrapping the raw spec. May throw to trigger repair.
-    transcodeImpl: (raw: string) => string = () => 'select 1 visualize using vegalite (mark => bar)';
-    targetKind: AgentTargetKind = 'sql';
+    contextError: Error | null = null;
     targetName: string | null = 'the-target';
+    targetScript: string | null = 'select 1';
 
     /// Recorded calls, for assertions.
     registerRunCalls: number[] = [];
@@ -48,14 +50,9 @@ class FakeHost implements AgentHost {
     contextIntents: AgentIntent[] = [];
 
     buildContext(intent: AgentIntent): string {
+        if (this.contextError != null) throw this.contextError;
         this.contextIntents.push(intent);
         return this.contextText;
-    }
-    describeTarget() {
-        return { kind: this.targetKind, name: this.targetName };
-    }
-    transcodeVegaLite(rawSpecJson: string): string {
-        return this.transcodeImpl(rawSpecJson);
     }
     applyProposal(disposition: AgentApplyDisposition, candidateText: string): void {
         this.committed.push({ disposition, candidate: candidateText });
@@ -210,8 +207,7 @@ describe('startAgentRun (fake host)', () => {
 
     it('surfaces an unexpected host failure as an unexpected AGENT_FAILED', async () => {
         const host = new FakeHost();
-        host.contextText = '';
-        host.describeTarget = () => { throw new Error('catalog exploded'); };
+        host.contextError = new Error('catalog exploded');
         const ai = new MockAIClient('sql', ['select 1']);
         const { agent, actions } = await drive(host, ai, { intentOverride: 'sql' });
 
@@ -235,26 +231,24 @@ describe('startAgentRun (fake host)', () => {
         expect(host.committed).toEqual([{ disposition: 'replace', candidate: 'select good' }]);
     });
 
-    it('treats a transcode failure as a verifiable error and repairs', async () => {
+    it('treats malformed Vega-Lite as a verifiable error and repairs', async () => {
         const host = new FakeHost();
-        let t = 0;
-        host.transcodeImpl = (raw) => {
-            if (++t === 1) throw new Error('bad spec');
-            return 'select 1 visualize using vegalite (mark => bar)';
-        };
-        const ai = new MockAIClient('visualize', ['{"mark":"bar"}', '{"mark":"line"}']);
+        const ai = new MockAIClient('visualize', ['not json', '{"mark":"line"}']);
         const { agent, actions } = await drive(host, ai, { intentOverride: 'visualize' });
 
         expect(agent!.phase).toBe(AgentRunPhase.SUCCEEDED);
         expect(agent!.attempt).toBe(2);
-        // The failed attempt records the transcode error and retains the raw spec it was fed.
+        // The failed attempt records the transcode error and retains the raw response it was fed.
         const first = attemptResults(actions).find(r => r.attempt === 1)!;
-        expect(first.errors[0]).toContain('bad spec');
-        expect(first.vegaLiteSpec).toBe('{"mark":"bar"}');
+        expect(first.errors[0]).toContain('transcode');
+        expect(first.vegaLiteSpec).toBe('not json');
         // The repair prompt carries the transcode error.
-        expect(lastGenerationPrompt(ai)).toContain('bad spec');
+        expect(lastGenerationPrompt(ai)).toContain('transcode');
         // The committed candidate is the transcoded DSL, not the raw spec.
-        expect(host.committed).toEqual([{ disposition: 'create', candidate: 'select 1 visualize using vegalite (mark => bar)' }]);
+        expect(host.committed).toHaveLength(1);
+        expect(host.committed[0].disposition).toBe('create');
+        expect(host.committed[0].candidate).toContain('VISUALIZE USING vegalite');
+        expect(host.committed[0].candidate).toContain('mark => line');
     });
 
     it('feeds a spec-level hint for an unsupported mark into repair', async () => {
@@ -278,7 +272,7 @@ describe('startAgentRun (fake host)', () => {
 
     it('reframes the visualize prompt as an edit when the host is editing a chart', async () => {
         const host = new FakeHost();
-        host.targetKind = 'visualization';
+        host.targetScript = 'select 1 visualize using vegalite (mark => bar)';
         const ai = new MockAIClient('visualize', ['{"mark":"line"}']);
         await drive(host, ai, { intentOverride: 'visualize' });
         expect(lastGenerationPrompt(ai)).toContain('You are EDITING the existing chart');

@@ -116,7 +116,7 @@ export const visualizeSourceContributor: AgentContextContributor = (input) => {
             // "$schema" and a "data" member (the transcoded source), but the prompt tells the model
             // NOT to emit either — showing them as an example contradicts that instruction and a
             // small model imitates the example. The driver re-injects the real `data` regardless
-            // (see visSourceToData), so dropping them here is purely cosmetic downstream.
+            // The core injects source data during transcoding, so dropping them here is cosmetic.
             // Only the Vega-Lite renderer exposes an editable spec surface to the agent.
             if (vis.renderer === 'vegalite') {
                 parts.push(`Current chart (Vega-Lite spec):\n${JSON.stringify(stripInternalSpecKeys(vis.vegaLiteSpec), null, 2)}`);

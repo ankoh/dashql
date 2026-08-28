@@ -3,11 +3,13 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <unordered_map>
 
 #include "c4/yml/std/std.hpp"
 #include "dashql/agent/agent_session.h"
 #include "dashql/catalog.h"
+#include "dashql/editor/editor_session.h"
 #include "dashql/testing/runfiles_dir.h"
 
 namespace dashql::testing {
@@ -33,7 +35,51 @@ std::string IntentName(AgentIntent intent) { return EnumNameAgentIntent(intent);
 std::string PhaseName(AgentPhase phase) { return EnumNameAgentPhase(phase); }
 std::string EffectName(AgentEffectType effect) { return EnumNameAgentEffectType(effect); }
 std::string ModelKindName(AgentModelRequestKind kind) { return EnumNameAgentModelRequestKind(kind); }
-std::string StatusName(AgentStatus status) { return EnumNameAgentStatus(status); }
+std::string ErrorName(AgentOperationError error) { return EnumNameAgentOperationError(error); }
+
+AgentEffectType ExpectedEffect(AgentSnapshotEvent::Type type) {
+    switch (type) {
+        case AgentSnapshotEvent::Type::kCompleteModel:
+            return AgentEffectType::MODEL_REQUEST;
+        case AgentSnapshotEvent::Type::kCompleteContext:
+            return AgentEffectType::RESOLVE_CONTEXT;
+        case AgentSnapshotEvent::Type::kCompleteApply:
+            return AgentEffectType::APPLY_PROPOSAL;
+        case AgentSnapshotEvent::Type::kCancel:
+            break;
+    }
+    return AgentEffectType::NONE;
+}
+
+const char* EventName(AgentSnapshotEvent::Type type) {
+    switch (type) {
+        case AgentSnapshotEvent::Type::kCompleteModel:
+            return "model_response";
+        case AgentSnapshotEvent::Type::kCompleteContext:
+            return "resolved_context";
+        case AgentSnapshotEvent::Type::kCompleteApply:
+            return "applied_result";
+        case AgentSnapshotEvent::Type::kCancel:
+            return "cancel";
+    }
+}
+
+bool IsTerminal(const AgentOperationT& operation) {
+    if (!operation.snapshot) return false;
+    return operation.snapshot->phase == AgentPhase::SUCCEEDED || operation.snapshot->phase == AgentPhase::FAILED ||
+           operation.snapshot->phase == AgentPhase::CANCELLED;
+}
+
+std::runtime_error InvalidFixture(const AgentSnapshotTest& test, size_t event_index, std::string message) {
+    return std::runtime_error{"agent snapshot \"" + test.name + "\", event " + std::to_string(event_index + 1) +
+                              ": " + std::move(message)};
+}
+
+void RequireValidOperation(const AgentSnapshotTest& test, const AgentOperationT& operation) {
+    if (operation.error == AgentOperationError::NONE) return;
+    throw std::runtime_error{"agent snapshot \"" + test.name + "\": agent operation failed with " +
+                             ErrorName(operation.error) + ": " + operation.error_message};
+}
 
 void EncodeStrings(c4::yml::NodeRef root, const char* key, const std::vector<std::string>& values) {
     auto node = root.append_child();
@@ -45,12 +91,16 @@ void EncodeStrings(c4::yml::NodeRef root, const char* key, const std::vector<std
 void EncodeOperation(c4::yml::NodeRef root, const AgentOperationT& operation) {
     auto node = root.append_child();
     node |= c4::yml::MAP;
-    node.append_child() << c4::yml::key("status") << StatusName(operation.status);
-    if (!operation.status_message.empty()) {
-        node.append_child() << c4::yml::key("status-message") << operation.status_message;
-    }
     if (operation.snapshot) {
         node.append_child() << c4::yml::key("phase") << PhaseName(operation.snapshot->phase);
+    }
+    if (operation.error != AgentOperationError::NONE) {
+        node.append_child() << c4::yml::key("error") << ErrorName(operation.error);
+    }
+    if (!operation.error_message.empty()) {
+        node.append_child() << c4::yml::key("error-message") << operation.error_message;
+    }
+    if (operation.snapshot) {
         node.append_child() << c4::yml::key("attempt") << operation.snapshot->attempt;
         if (operation.snapshot->intent != AgentIntent::UNKNOWN) {
             node.append_child() << c4::yml::key("intent") << IntentName(operation.snapshot->intent);
@@ -83,11 +133,6 @@ void EncodeOperation(c4::yml::NodeRef root, const AgentOperationT& operation) {
                 EncodeStrings(effect, "errors", operation.effect->model_request->errors);
             }
         }
-        if (operation.effect->transcode_vegalite) {
-            auto raw = effect.append_child();
-            raw << c4::yml::key("raw-spec") << operation.effect->transcode_vegalite->raw_spec_json;
-            raw.set_val_style(c4::yml::VAL_LITERAL);
-        }
         if (operation.effect->apply_proposal && operation.effect->apply_proposal->proposal) {
             effect.append_child() << c4::yml::key("disposition")
                                   << std::string{EnumNameAgentApplyDisposition(
@@ -104,7 +149,7 @@ void EncodeOperation(c4::yml::NodeRef root, const AgentOperationT& operation) {
     for (const auto& event : operation.events) {
         if (!event || event->type != AgentEventType::ATTEMPT_FINISHED || !event->attempt_result) continue;
         auto attempt = node.append_child();
-        attempt << c4::yml::key("attempt-result");
+        attempt << c4::yml::key("validation");
         attempt |= c4::yml::MAP;
         auto candidate = attempt.append_child();
         candidate << c4::yml::key("candidate") << event->attempt_result->candidate_text;
@@ -125,17 +170,11 @@ AgentIntent ParseIntent(std::string_view text) {
 }
 
 AgentSnapshotEvent::Type ParseEventType(std::string_view text) {
+    if (text == "model_response") return AgentSnapshotEvent::Type::kCompleteModel;
     if (text == "resolved_context") return AgentSnapshotEvent::Type::kCompleteContext;
-    if (text == "transcoded_vegalite") return AgentSnapshotEvent::Type::kCompleteTranscode;
     if (text == "applied_result") return AgentSnapshotEvent::Type::kCompleteApply;
     if (text == "cancel") return AgentSnapshotEvent::Type::kCancel;
-    return AgentSnapshotEvent::Type::kCompleteModel;
-}
-
-AgentTargetKind ParseTargetKind(std::string_view text) {
-    if (text == "sql") return AgentTargetKind::SQL;
-    if (text == "visualization") return AgentTargetKind::VISUALIZATION;
-    return AgentTargetKind::NONE;
+    throw std::invalid_argument{"unknown agent snapshot event: " + std::string{text}};
 }
 
 }  // namespace
@@ -148,6 +187,8 @@ AgentSnapshotTest AgentSnapshotTest::Parse(c4::yml::ConstNodeRef node, bool requ
         if (input.has_child("prompt")) test.prompt = ReadText(input["prompt"]);
         if (input.has_child("intent")) test.intent = ParseIntent(ReadText(input["intent"]));
         if (input.has_child("max-attempts")) input["max-attempts"] >> test.max_attempts;
+        if (input.has_child("target-name")) test.target_name = ReadText(input["target-name"]);
+        if (input.has_child("target-script")) test.target_script = ReadText(input["target-script"]);
     }
     if (node.has_child("events")) {
         for (auto event_node : node["events"].children()) {
@@ -155,8 +196,6 @@ AgentSnapshotTest AgentSnapshotTest::Parse(c4::yml::ConstNodeRef node, bool requ
             event.type = ParseEventType(event_node.has_child("type") ? ReadText(event_node["type"])
                                                                      : "model_response");
             if (event_node.has_child("value")) event.value = ReadText(event_node["value"]);
-            if (event_node.has_child("target-name")) event.target_name = ReadText(event_node["target-name"]);
-            if (event_node.has_child("target-kind")) event.target_kind = ParseTargetKind(ReadText(event_node["target-kind"]));
             if (event_node.has_child("errors")) {
                 for (auto error : event_node["errors"].children()) event.errors.push_back(ReadText(error));
             }
@@ -170,7 +209,12 @@ AgentSnapshotTest AgentSnapshotTest::Parse(c4::yml::ConstNodeRef node, bool requ
 void AgentSnapshotTest::EncodeExpected(c4::yml::NodeRef root, const AgentSnapshotTest& test) {
     // Drive the same coroutine/effect boundary used by WASM without external services.
     Catalog catalog;
-    agent::AgentSession session{catalog};
+    std::unique_ptr<editor::EditorSession> target;
+    if (!test.target_script.empty()) {
+        target = std::make_unique<editor::EditorSession>(catalog);
+        target->ReplaceText(0, test.target_script);
+    }
+    agent::AgentSession session{catalog, target.get(), test.target_name};
     AgentStartRequestT request;
     request.user_prompt = test.prompt;
     request.intent_override = test.intent;
@@ -181,15 +225,28 @@ void AgentSnapshotTest::EncodeExpected(c4::yml::NodeRef root, const AgentSnapsho
     operations << c4::yml::key("operations");
     operations |= c4::yml::SEQ;
     auto operation = session.Start(request);
+    RequireValidOperation(test, operation);
     EncodeOperation(operations, operation);
-    for (const auto& event : test.events) {
+    for (size_t event_index = 0; event_index < test.events.size(); ++event_index) {
+        const auto& event = test.events[event_index];
+        if (!operation.effect) {
+            throw InvalidFixture(test, event_index, "event " + std::string{EventName(event.type)} +
+                                                        " was provided when no effect is pending");
+        }
         if (event.type == AgentSnapshotEvent::Type::kCancel) {
             operation = session.Cancel();
+            RequireValidOperation(test, operation);
             EncodeOperation(operations, operation);
             continue;
         }
+        auto expected_effect = ExpectedEffect(event.type);
+        if (operation.effect->type != expected_effect) {
+            throw InvalidFixture(test, event_index,
+                                 "event " + std::string{EventName(event.type)} + " cannot complete pending effect " +
+                                     EffectName(operation.effect->type));
+        }
         AgentEffectCompletionT completion;
-        completion.effect_id = operation.effect ? operation.effect->id : 0;
+        completion.effect_id = operation.effect->id;
         switch (event.type) {
             case AgentSnapshotEvent::Type::kCompleteModel:
                 completion.model = std::make_unique<AgentModelCompletionT>();
@@ -198,13 +255,6 @@ void AgentSnapshotTest::EncodeExpected(c4::yml::NodeRef root, const AgentSnapsho
             case AgentSnapshotEvent::Type::kCompleteContext:
                 completion.context = std::make_unique<AgentContextResultT>();
                 completion.context->context = event.value;
-                completion.context->target_kind = event.target_kind;
-                completion.context->target_name = event.target_name;
-                break;
-            case AgentSnapshotEvent::Type::kCompleteTranscode:
-                completion.transcode_vegalite = std::make_unique<AgentTranscodeVegaLiteResultT>();
-                completion.transcode_vegalite->candidate_text = event.value;
-                completion.transcode_vegalite->errors = event.errors;
                 break;
             case AgentSnapshotEvent::Type::kCompleteApply:
                 completion.apply = std::make_unique<AgentApplyResultT>();
@@ -214,7 +264,13 @@ void AgentSnapshotTest::EncodeExpected(c4::yml::NodeRef root, const AgentSnapsho
                 break;
         }
         operation = session.CompleteEffect(completion);
+        RequireValidOperation(test, operation);
         EncodeOperation(operations, operation);
+    }
+    if (!IsTerminal(operation)) {
+        auto pending = operation.effect ? EffectName(operation.effect->type) : "no effect";
+        throw std::runtime_error{"agent snapshot \"" + test.name + "\": fixture ended while " + pending +
+                                 " was pending"};
     }
 }
 
