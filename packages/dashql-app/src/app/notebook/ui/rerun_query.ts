@@ -24,11 +24,31 @@ export function runNotebookScript(
     modifyNotebookScripts: ModifyNotebookScripts,
     logger: LoggerLike,
 ): Promise<void> | void {
+    logger?.info('Notebook script execution requested', {
+        connectionId,
+        notebookId: notebookScripts.notebookId,
+        scriptKey: scriptData.scriptKey.toString(),
+        analysisOutdated: scriptData.analysisOutdated.toString(),
+        analysisAvailable: scriptData.editorUpdate?.analysisAvailable.toString(),
+        documentRevision: scriptData.editorUpdate?.documentRevision.toString(),
+        nativeDocumentRevision: scriptData.editorSession.getDocumentRevision?.().toString(),
+        textLength: scriptData.editorSession.getText?.().length.toString(),
+    }, 'notebook_execution', true);
     if (scriptData.analysisOutdated) {
         return ensureNotebookScriptAnalyzed(notebookScripts, scriptData.scriptKey, modifyNotebookScripts)
             .then((analyzed) => {
                 if (analyzed != null) {
+                    logger?.info('Outdated notebook script analysis completed', {
+                        notebookId: notebookScripts.notebookId,
+                        scriptKey: scriptData.scriptKey.toString(),
+                        analysisAvailable: analyzed.editorUpdate?.analysisAvailable.toString(),
+                    }, 'notebook_execution', true);
                     executeNotebookScript(connectionId, analyzed, executeQuery, modifyNotebookScripts, logger);
+                } else {
+                    logger?.warn('Notebook execution stopped because analysis returned no script', {
+                        notebookId: notebookScripts.notebookId,
+                        scriptKey: scriptData.scriptKey.toString(),
+                    }, 'notebook_execution', true);
                 }
             });
     }
@@ -44,6 +64,9 @@ function executeNotebookScript(
 ): void {
     const queryText = compileQuery(scriptData, logger);
     if (queryText.trim().length === 0) {
+        logger?.warn('Notebook execution stopped because compiled query is empty', {
+            scriptKey: scriptData.scriptKey.toString(),
+        }, 'notebook_execution', true);
         return;
     }
     const [queryId, execution] = executeQuery(connectionId, {
@@ -60,5 +83,11 @@ function executeNotebookScript(
             userProvided: true,
         },
     });
+    logger?.info('Notebook query allocated', {
+        connectionId,
+        scriptKey: scriptData.scriptKey.toString(),
+        queryId: queryId.toString(),
+        queryLength: queryText.length.toString(),
+    }, 'notebook_execution', true);
     registerNotebookScriptQuery(scriptData, queryId, queryText, execution, modifyNotebookScripts);
 }

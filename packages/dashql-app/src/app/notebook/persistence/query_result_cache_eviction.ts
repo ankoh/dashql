@@ -5,7 +5,7 @@
 /// `lastModified` from a `File`; the native backend has to `stat()` each entry), so those primitives
 /// live behind `QueryResultCacheStore` while the policy below is shared and unit-testable.
 ///
-/// Eviction is a true LRU keyed on `lastAccessMs`. Neither OPFS nor the Tauri fs plugin exposes a
+/// Eviction is a true LRU keyed on `lastAccessMs`. Neither OPFS nor the native filesystem bridge exposes a
 /// filesystem last-access time (nor a way to set one), and re-touching the payload on a hit would
 /// mean rewriting a potentially large `.arrow` blob and would clobber its write time. So each entry
 /// carries an empty sibling marker (`<hash>.arrow.last_access`) whose own mtime is bumped on every

@@ -465,11 +465,8 @@ export function EmbeddingScatter(props: Props): React.ReactElement {
     }, [interactive, pickable, onPointerDown, onPointerDownPick]);
 
     return (
-        // Opt out of the enclosing feed's `data-tauri-drag-region="deep"`: without this, a
-        // mouse-down anywhere on the canvas walks up the composed path to that region and starts
-        // dragging the OS window instead of panning the scatter. "false" halts that walk for this
-        // subtree; our own pointer-based pan (a separate pointerdown handler) still fires.
-        <div ref={containerRef} className={styles.root} data-tauri-drag-region="false">
+        // Keep canvas panning separate from the enclosing Electron window drag region.
+        <div ref={containerRef} className={styles.root} data-electron-drag-region="false">
             {error && <div className={styles.error}>{error}</div>}
             <canvas
                 ref={canvasRef}

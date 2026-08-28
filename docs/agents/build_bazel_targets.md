@@ -46,8 +46,8 @@ bazel build //...
 |--------|---------|
 | `//packages/dashql-app:pages` | Web app bundle for Cloudflare Pages |
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
-| `//packages/dashql-electron:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
-| `//packages/dashql-electron:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
+| `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
+| `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
 | `//packages/dashql-core:dashql_core` | Core C++ library |
@@ -95,7 +95,7 @@ bazel test //packages/dashql-core:*_tests
 | `//packages/dashql-core:formatter_tests` | Formatter snapshot tests |
 | `//packages/dashql-core:formatter_validation_hyper_tests` | Execute formatted SQL against Hyper |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
-| `//packages/dashql-electron:test` | Electron host unit tests |
+| `//packages/dashql-native:test` | Electron host unit tests |
 | `//packages/dashql-app:test` | TypeScript/Jest tests for web app |
 
 ### Test Output
@@ -186,14 +186,19 @@ bazel query 'rdeps(//..., //packages/dashql-core:dashql_core)'
 For local development with hot module reloading:
 
 ```bash
-# Start web app dev server (Vite HMR)
+# Start browser dev server (Vite without HMR)
 bazel run //packages/dashql-app:dev
 
-# Start native app dev server (connects to dashql-app:dev)
-bazel run //packages/dashql-electron:dev
+# Start the Vite server in Electron mode with renderer HMR
+bazel run //packages/dashql-app:dev -- --mode electron
+
+# Start the native app (connects to the Electron-mode Vite server)
+bazel run //packages/dashql-native:dev
 ```
 
-Run these in separate terminals. The native app connects to the web app's dev server.
+Run the last two commands in separate terminals for Electron development.
+`//packages/dashql-native:dev` defaults to `http://localhost:9002`; set
+`DASHQL_ELECTRON_RENDERER_URL` to use another loopback HTTP origin.
 
 ## Anti-Patterns
 
@@ -232,7 +237,7 @@ bazel test //packages/dashql-app:tsc_typecheck_test
 bazel build //packages/dashql-native-napi:addon
 
 # ✅ Bazel testing
-bazel test //packages/dashql-electron:test
+bazel test //packages/dashql-native:test
 
 # ✅ Bazel target for code generation
 bazel run //snapshots/parser:update
@@ -252,7 +257,7 @@ bazel test //packages/dashql-app:test
 
 ```bash
 # Build and test (type checking happens automatically)
-bazel test //packages/dashql-electron:test
+bazel test //packages/dashql-native:test
 ```
 
 ### After Changing C++ Code

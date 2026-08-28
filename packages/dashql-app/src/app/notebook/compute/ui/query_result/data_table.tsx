@@ -307,11 +307,11 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const totalDataHeight = dataRowCount * ROW_HEIGHT;
 
     return (
-        // The grid can be rendered within the notebook feed's deep Tauri drag region. Opt out so
+        // The grid can be rendered within the notebook feed's Electron drag region. Opt out so
         // native scrollbar thumbs receive pointer drags instead of moving the application window.
         <div
             className={classNames(styles.root, props.className)}
-            data-tauri-drag-region="false"
+            data-electron-drag-region="false"
             style={{
                 ...(props.cellBackground ? { '--data_table_bg': props.cellBackground } : {}),
                 ...(props.fitHeight ? { height: gridContainerHeight } : {}),

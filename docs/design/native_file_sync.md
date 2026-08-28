@@ -76,7 +76,7 @@ flowchart TD
 `NativeNotebookSyncService` in
 `packages/dashql-app/src/platform/storage/native_notebook_sync.ts` is the platform adapter. It:
 
-- Creates recursive watchers through `@tauri-apps/plugin-fs`.
+- Creates recursive watchers through the Electron preload bridge.
 - Reconciles the desired notebook-to-directory set with currently active watchers.
 - Debounces native events by 200 ms.
 - Normalizes Windows separators before matching relative paths.
@@ -227,11 +227,10 @@ filesystem event can retry.
 
 ## Security and Permissions
 
-Native watchers operate only on directories already registered as native DashQL notebooks. Tauri's
-runtime filesystem scope is granted from the OPFS notebook registry before native storage access.
-
-The native capability manifest grants `fs:allow-watch` and `fs:allow-unwatch`. Existing read/write
-permissions and runtime path scope still constrain which directories can be observed.
+Native watchers operate only on directories already registered as native DashQL notebooks. The
+renderer can request watches only through the narrow preload API; the Electron main process rejects
+requests from untrusted renderer origins and non-absolute paths. Watchers are released when the
+renderer is destroyed or explicitly unsubscribes.
 
 ## Testing
 
@@ -250,7 +249,7 @@ Relevant Bazel targets:
 ```bash
 bazel test //packages/dashql-app:tsc_typecheck_test
 bazel test //packages/dashql-app:test
-bazel build //packages/dashql-electron:compile
+bazel build //packages/dashql-native:compile
 ```
 
 ## Known Limitations
@@ -272,7 +271,7 @@ bazel build //packages/dashql-electron:compile
 - Writer coordination: `packages/dashql-app/src/platform/storage/storage_writer.ts`
 - Catalog reconciliation: `packages/dashql-app/src/connection/connection_state.ts`
 - Notebook scripts reconciliation: `packages/dashql-app/src/scripts/notebook_scripts.ts`
-- Electron main/preload filesystem bridge: `packages/dashql-electron/src/main.ts` and `src/preload.cjs`
+- Electron main/preload filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
 - Watcher tests: `packages/dashql-app/src/platform/storage/native_notebook_sync.test.ts`
 - Writer tests: `packages/dashql-app/src/platform/storage/storage_writer.test.ts`
 - Notebook scripts reconciliation tests: `packages/dashql-app/src/scripts/notebook_scripts.test.ts`

@@ -104,22 +104,22 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
     }, [navigate]);
 
     return (
-        <div className={baseStyles.page} data-tauri-drag-region>
-            <div className={baseStyles.banner_and_content_container} data-tauri-drag-region>
-                <div className={baseStyles.banner_container} data-tauri-drag-region>
-                    <div className={baseStyles.banner_logo} data-tauri-drag-region>
+        <div className={baseStyles.page} data-electron-drag-region>
+            <div className={baseStyles.banner_and_content_container} data-electron-drag-region>
+                <div className={baseStyles.banner_container} data-electron-drag-region>
+                    <div className={baseStyles.banner_logo} data-electron-drag-region>
                         <svg width="100%" height="100%">
                             <use xlinkHref={`${symbols}#dashql`} />
                         </svg>
                     </div>
-                    <div className={baseStyles.banner_text_container} data-tauri-drag-region>
-                        <div className={baseStyles.banner_title} data-tauri-drag-region>dashql</div>
-                        <div className={baseStyles.app_version} data-tauri-drag-region>version {DASHQL_VERSION}</div>
+                    <div className={baseStyles.banner_text_container} data-electron-drag-region>
+                        <div className={baseStyles.banner_title} data-electron-drag-region>dashql</div>
+                        <div className={baseStyles.app_version} data-electron-drag-region>version {DASHQL_VERSION}</div>
                     </div>
                 </div>
-                <div className={baseStyles.content_container} data-tauri-drag-region>
+                <div className={baseStyles.content_container} data-electron-drag-region>
                     <div className={baseStyles.card}>
-                        <div className={baseStyles.card_header} data-tauri-drag-region>
+                        <div className={baseStyles.card_header} data-electron-drag-region>
                             <div className={baseStyles.card_header_left_container}>
                                 <div className={baseStyles.card_header_left_title}>
                                     Setup

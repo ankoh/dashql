@@ -39,8 +39,8 @@ Then build signed artifacts using:
 CI uses `CSC_LINK` and `CSC_KEY_PASSWORD` for the Developer ID certificate. It
 also provides `APPLE_API_KEY`, `APPLE_API_KEY_ID`, and `APPLE_API_ISSUER` so
 electron-builder submits each architecture-specific package for notarization.
-bazel run --config=release //packages/dashql-electron:mac_package_arm64
-bazel run --config=release //packages/dashql-electron:mac_package_x86_64
+bazel run --config=release //packages/dashql-native:mac_package_arm64
+bazel run --config=release //packages/dashql-native:mac_package_x86_64
 ```
 
 Make sure codesigning worked using:

@@ -23,6 +23,7 @@ interface DashQLElectronBridge {
     getRuntimeCapabilities(): Promise<unknown>;
     nativeProxyRequest(request: unknown): Promise<unknown>;
     onDeepLink(listener: (data: string) => void): () => void;
+    openExternal(url: string): Promise<void>;
     openDirectory(title: string): Promise<string | null>;
     updates: {
         check(): Promise<DashQLElectronUpdateStatus>;

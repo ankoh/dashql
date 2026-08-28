@@ -61,6 +61,36 @@ describe('DashQL setup', () => {
         expect(api.readString(8, 5)).toBe('shell');
     });
 
+    it('copies FlatBuffer strings from shared Wasm memory before decoding them', () => {
+        const decoder = dql!.decoder;
+        const nativeDecoder = new TextDecoder();
+        dql!.decoder = {
+            decode(input?: AllowSharedBufferSource) {
+                if (ArrayBuffer.isView(input) && input.buffer instanceof SharedArrayBuffer) {
+                    throw new TypeError('The provided ArrayBufferView value must not be shared');
+                }
+                return nativeDecoder.decode(input);
+            },
+        } as TextDecoder;
+
+        try {
+            const catalog = dql!.createCatalog();
+            const script = dql!.createScript(catalog);
+            script.replaceText('CREATE TABLE foo(a INT)');
+            script.analyze();
+            const analyzed = script.getAnalyzed();
+            try {
+                const table = analyzed.read().tables(0);
+                expect(table?.tableName()?.tableName()).toBe('foo');
+                expect(table?.tableColumns(0)?.columnName()).toBe('a');
+            } finally {
+                analyzed.destroy();
+            }
+        } finally {
+            dql!.decoder = decoder;
+        }
+    });
+
 });
 
 describe('DashQL editor sessions', () => {
@@ -180,6 +210,34 @@ describe('DashQL editor sessions', () => {
         diff.destroy();
         target.destroy();
         formatted.destroy();
+    });
+
+    it('decodes compiled SQL without passing shared memory to TextDecoder', () => {
+        const decoder = dql!.decoder;
+        const nativeDecoder = new TextDecoder();
+        dql!.decoder = {
+            decode(input?: AllowSharedBufferSource) {
+                if (ArrayBuffer.isView(input) && input.buffer instanceof SharedArrayBuffer) {
+                    throw new TypeError('The provided ArrayBufferView value must not be shared');
+                }
+                return nativeDecoder.decode(input);
+            },
+        } as TextDecoder;
+
+        try {
+            const catalog = dql!.createCatalog();
+            const session = dql!.createEditorSession(catalog);
+            session.replaceText(0n, 'select 1 as value');
+            session.ensureAnalysis();
+            const compilation = session.compileQuery(formattingConfig());
+            try {
+                expect(compilation.read().sql()).toBe('select 1 as value');
+            } finally {
+                compilation.destroy();
+            }
+        } finally {
+            dql!.decoder = decoder;
+        }
     });
 
     it('loads and drops the session-owned script from its catalog', () => {

@@ -45,6 +45,22 @@
     box-sizing: border-box;
 }
 
+[data-electron-drag-region]:not([data-electron-drag-region="false"]) {
+    -webkit-app-region: drag;
+}
+
+[data-electron-drag-region="false"],
+[data-electron-drag-region="false"] *,
+a,
+button,
+input,
+select,
+textarea,
+[contenteditable="true"],
+[role="button"] {
+    -webkit-app-region: no-drag;
+}
+
 html {
     width: 100%;
     height: 100%;

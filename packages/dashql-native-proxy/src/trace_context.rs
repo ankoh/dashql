@@ -66,7 +66,7 @@ impl TraceContext {
         )
     }
 
-    /// Log with trace context using the log crate (for compatibility with tauri-plugin-log)
+    /// Return trace context fields for callers that use the `log` crate.
     /// Returns (trace_id, span_id, parent_span_id) for manual KV addition
     #[allow(dead_code)]
     pub fn trace_fields(&self) -> (&str, &str, &str) {

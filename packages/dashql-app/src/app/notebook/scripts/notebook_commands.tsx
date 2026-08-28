@@ -114,7 +114,17 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
             switch (command) {
                 // Execute the query script in the current notebook
                 case NotebookCommandType.ExecuteEditorQuery:
-                    if (notebookViewModeRef.current !== NotebookViewMode.Notebook) break;
+                    logger.info("Ctrl+E notebook command received", {
+                        notebookId: route.notebookId,
+                        viewMode: notebookViewModeRef.current.toString(),
+                        connectionHealth: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED),
+                        focusedFolder: notebookScripts.scriptFocus.folderName,
+                        focusedFile: notebookScripts.scriptFocus.fileName,
+                    }, LOG_CTX, true);
+                    if (notebookViewModeRef.current !== NotebookViewMode.Notebook) {
+                        logger.warn("Ignoring Ctrl+E outside notebook view", { notebookId: route.notebookId }, LOG_CTX, true);
+                        break;
+                    }
                     if (connection!.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.warn("Cannot execute query command with an unhealthy connection", {
                             notebookId: route.notebookId,
@@ -122,8 +132,22 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         }, LOG_CTX);
                     } else {
                         const entry = getSelectedScriptRef(notebookScripts);
-                        if (!entry) break;
+                        if (!entry) {
+                            logger.warn("Ignoring Ctrl+E because no committed script is selected", {
+                                notebookId: route.notebookId,
+                                focusedFolder: notebookScripts.scriptFocus.folderName,
+                                focusedFile: notebookScripts.scriptFocus.fileName,
+                            }, LOG_CTX, true);
+                            break;
+                        }
                         const scriptData = notebookScripts.scripts[entry.scriptId];
+                        if (!scriptData) {
+                            logger.warn("Ignoring Ctrl+E because selected script data is missing", {
+                                notebookId: route.notebookId,
+                                scriptKey: entry.scriptId.toString(),
+                            }, LOG_CTX, true);
+                            break;
+                        }
                         await runNotebookScript(
                             connection!.connectionId,
                             notebookScripts,

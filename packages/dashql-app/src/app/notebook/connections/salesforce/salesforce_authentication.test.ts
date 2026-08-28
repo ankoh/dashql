@@ -51,6 +51,7 @@ function decodeState(url: URL): OAuthState {
 
 afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe('Salesforce OAuth URL', () => {
@@ -148,6 +149,43 @@ describe('authenticateSalesforce', () => {
             'REQUESTING_DATA_CLOUD_ACCESS_TOKEN',
             'RECEIVED_DATA_CLOUD_ACCESS_TOKEN',
         ]);
+    });
+
+    it('opens native OAuth in the system browser and waits for a deep-link callback', async () => {
+        const openExternal = vi.fn();
+        vi.stubGlobal('dashqlElectron', { openExternal });
+        const open = vi.spyOn(window, 'open');
+        const coreAccessToken = { createdAt: new Date(0).toISOString(), accessToken: 'core-token' } as connection.SalesforceCoreAccessToken;
+        const dataCloudAccessToken = { createdAt: new Date(0).toISOString(), expiresAt: new Date(1).toISOString() } as connection.SalesforceDataCloudAccessToken;
+        const apiClient = {
+            getCoreAccessToken: vi.fn().mockResolvedValue(coreAccessToken),
+            getCoreUserInfo: vi.fn().mockRejectedValue(new Error('unavailable')),
+            getDataCloudAccessToken: vi.fn().mockResolvedValue(dataCloudAccessToken),
+        } as unknown as SalesforceApiClientInterface;
+        const appEvents = {
+            waitForOAuthRedirect: vi.fn().mockImplementation(async () => {
+                const state = decodeState(new URL(openExternal.mock.calls[0][0]));
+                return { state, code: 'authorization-code' };
+            }),
+        };
+        const stages: string[] = [];
+
+        await expect(authenticateSalesforce({
+            logger: new NullLogger(),
+            params,
+            authConfig,
+            platformType: PlatformType.MACOS,
+            apiClient,
+            appEvents: appEvents as any,
+            forceReLogin: false,
+            abortSignal: new AbortController().signal,
+            onProgress: progress => stages.push(progress.stage),
+        })).resolves.toEqual({ coreAccessToken, dataCloudAccessToken });
+
+        expect(open).not.toHaveBeenCalled();
+        expect(openExternal).toHaveBeenCalledOnce();
+        expect(decodeState(new URL(openExternal.mock.calls[0][0])).flowVariant).toBe('NATIVE_LINK_FLOW');
+        expect(stages).toContain('OAUTH_NATIVE_LINK_OPENED');
     });
 
     it('propagates OAuth error descriptions and closes the popup', async () => {

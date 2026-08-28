@@ -26,7 +26,7 @@ If the executor cannot recover connection parameters or derive a signature, it t
 
 ## Storage Layout
 
-The `StorageBackend` interface owns all cache operations, so the executor does not depend on OPFS or Tauri filesystem APIs.
+The `StorageBackend` interface owns all cache operations, so the executor does not depend on OPFS or Electron filesystem APIs.
 
 | Backend | Cache location |
 | --- | --- |

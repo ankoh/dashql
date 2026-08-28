@@ -2,6 +2,27 @@ import path from "node:path";
 
 export const APP_ORIGIN = "app://bundle";
 
+export function parseRendererDevOrigin(value: string | undefined): string | null {
+    if (value === undefined) return null;
+    const url = new URL(value);
+    const isLoopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
+    if (url.protocol !== "http:" || !isLoopback || url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
+        throw new Error(`Invalid Electron renderer development URL: ${value}`);
+    }
+    return url.origin;
+}
+
+export function isTrustedRendererUrl(value: string | undefined, devOrigin: string | null): boolean {
+    if (value === undefined) return false;
+    try {
+        const url = new URL(value);
+        const isPackaged = url.protocol === "app:" && url.hostname === "bundle" && !url.username && !url.password && !url.port;
+        return isPackaged || (devOrigin !== null && url.origin === devOrigin);
+    } catch {
+        return false;
+    }
+}
+
 export const APP_RESPONSE_HEADERS = Object.freeze({
     "Cross-Origin-Embedder-Policy": "require-corp",
     "Cross-Origin-Opener-Policy": "same-origin",

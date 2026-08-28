@@ -42,7 +42,7 @@ vitest_bin.vitest_test(
     name = "test",
     size = "small",
     args = ["run", "--config", "vitest.config.ts"],
-    chdir = "packages/dashql-electron",
+    chdir = "packages/dashql-native",
     data = [
         ":compile_typecheck",
         ":srcs",
@@ -56,6 +56,7 @@ vitest_bin.vitest_test(
 sh_binary(
     name = "dev",
     srcs = ["scripts/run_electron.sh"],
+    args = ["--renderer-dev-server"],
     data = [
         ":compile",
         ":package.json",
