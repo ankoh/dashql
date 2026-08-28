@@ -540,13 +540,6 @@ class Catalog {
     std::atomic<CatalogEntryID> next_entry_id{INITIAL_ENTRY_ID};
     /// Protects active catalog membership and indexes.
     mutable std::shared_mutex state_mutex;
-    /// C-ABI lifetime state for scripts and async jobs borrowing this catalog.
-    std::mutex lifetime_mutex;
-    uint32_t live_scripts = 0;
-    uint32_t async_lifetime_refs = 0;
-    bool delete_requested = false;
-    bool delete_started = false;
-
    public:
     using ScriptBatchEntry = RankedScript;
     /// Explicit constructor needed due to deleted copy constructor
@@ -557,11 +550,6 @@ class Catalog {
     /// Catalogs must not be copy-assigned
     Catalog& operator=(const Catalog& other) = delete;
 
-    void RequestDelete();
-    void RegisterScript();
-    void UnregisterScript();
-    void AcquireAsyncLease();
-    void ReleaseAsyncLease();
     void DropScriptUnlocked(Script& script);
 
     /// Get the current version of the registry
@@ -595,7 +583,6 @@ class Catalog {
     CatalogEntryID AllocateEntryId();
     /// Analyze a script while preserving catalog entry lifetimes.
     void AnalyzeScript(Script& script, bool parse_if_outdated);
-    void AnalyzeScriptAsync(Script& script, bool parse_if_outdated, const std::atomic<bool>& cancelled);
 
     /// Clear a catalog
     void Clear();

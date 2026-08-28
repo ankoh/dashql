@@ -243,57 +243,6 @@ void CatalogEntry::ResolveTableColumnsWithCatalog(std::string_view table_column,
 
 Catalog::Catalog() {}
 
-void Catalog::RequestDelete() {
-    bool should_delete = false;
-    {
-        std::lock_guard lock{lifetime_mutex};
-        delete_requested = true;
-        if (live_scripts == 0 && async_lifetime_refs == 0 && !delete_started) {
-            delete_started = true;
-            should_delete = true;
-        }
-    }
-    if (should_delete) delete this;
-}
-
-void Catalog::RegisterScript() {
-    std::lock_guard lock{lifetime_mutex};
-    ++live_scripts;
-}
-
-void Catalog::UnregisterScript() {
-    bool should_delete = false;
-    {
-        std::lock_guard lock{lifetime_mutex};
-        assert(live_scripts > 0);
-        --live_scripts;
-        if (live_scripts == 0 && async_lifetime_refs == 0 && delete_requested && !delete_started) {
-            delete_started = true;
-            should_delete = true;
-        }
-    }
-    if (should_delete) delete this;
-}
-
-void Catalog::AcquireAsyncLease() {
-    std::lock_guard lock{lifetime_mutex};
-    ++async_lifetime_refs;
-}
-
-void Catalog::ReleaseAsyncLease() {
-    bool should_delete = false;
-    {
-        std::lock_guard lock{lifetime_mutex};
-        assert(async_lifetime_refs > 0);
-        --async_lifetime_refs;
-        if (async_lifetime_refs == 0 && live_scripts == 0 && delete_requested && !delete_started) {
-            delete_started = true;
-            should_delete = true;
-        }
-    }
-    if (should_delete) delete this;
-}
-
 CatalogEntryID Catalog::AllocateEntryId() {
     return next_entry_id.fetch_add(1, std::memory_order_relaxed);
 }
@@ -301,11 +250,6 @@ CatalogEntryID Catalog::AllocateEntryId() {
 void Catalog::AnalyzeScript(Script& script, bool parse_if_outdated) {
     std::shared_lock lock{state_mutex};
     script.AnalyzeUnlocked(parse_if_outdated);
-}
-
-void Catalog::AnalyzeScriptAsync(Script& script, bool parse_if_outdated, const std::atomic<bool>& cancelled) {
-    std::shared_lock lock{state_mutex};
-    script.AnalyzeAsync(parse_if_outdated, cancelled);
 }
 
 QualifiedCatalogObjectID Catalog::ReserveDatabaseId(std::string_view database) {

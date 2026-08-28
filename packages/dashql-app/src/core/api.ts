@@ -1087,7 +1087,6 @@ export class DashQLScript {
     /// Delete a graph
     public destroy() {
         if (this.asyncJobId != null) {
-            this.ptr.api.instanceExports.dashql_script_analysis_job_cancel(this.asyncJobId);
             throw new Error('cannot destroy a script while asynchronous analysis is active');
         }
         this.ptr.destroy();
