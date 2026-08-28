@@ -15,6 +15,7 @@ enum StatusCode: uint32 {
 
     SCRIPT_NOT_PARSED = 31,
     SCRIPT_NOT_ANALYZED = 32,
+    SCRIPT_BUSY = 33,
 
     EXTERNAL_ID_COLLISION = 40,
 

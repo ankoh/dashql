@@ -5,6 +5,7 @@
 #include <flatbuffers/verifier.h>
 
 #include <map>
+#include <unordered_set>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
@@ -242,14 +243,99 @@ void CatalogEntry::ResolveTableColumnsWithCatalog(std::string_view table_column,
 
 Catalog::Catalog() {}
 
+void Catalog::RequestDelete() {
+    bool should_delete = false;
+    {
+        std::lock_guard lock{lifetime_mutex};
+        delete_requested = true;
+        if (live_scripts == 0 && async_lifetime_refs == 0 && !delete_started) {
+            delete_started = true;
+            should_delete = true;
+        }
+    }
+    if (should_delete) delete this;
+}
+
+void Catalog::RegisterScript() {
+    std::lock_guard lock{lifetime_mutex};
+    ++live_scripts;
+}
+
+void Catalog::UnregisterScript() {
+    bool should_delete = false;
+    {
+        std::lock_guard lock{lifetime_mutex};
+        assert(live_scripts > 0);
+        --live_scripts;
+        if (live_scripts == 0 && async_lifetime_refs == 0 && delete_requested && !delete_started) {
+            delete_started = true;
+            should_delete = true;
+        }
+    }
+    if (should_delete) delete this;
+}
+
+void Catalog::AcquireAsyncLease() {
+    std::lock_guard lock{lifetime_mutex};
+    ++async_lifetime_refs;
+}
+
+void Catalog::ReleaseAsyncLease() {
+    bool should_delete = false;
+    {
+        std::lock_guard lock{lifetime_mutex};
+        assert(async_lifetime_refs > 0);
+        --async_lifetime_refs;
+        if (async_lifetime_refs == 0 && live_scripts == 0 && delete_requested && !delete_started) {
+            delete_started = true;
+            should_delete = true;
+        }
+    }
+    if (should_delete) delete this;
+}
+
 CatalogEntryID Catalog::AllocateEntryId() {
-    auto picked = next_entry_id;
-    for (; entries.contains(picked); ++picked);
-    next_entry_id = picked + 1;
-    return picked;
+    return next_entry_id.fetch_add(1, std::memory_order_relaxed);
+}
+
+void Catalog::AnalyzeScript(Script& script, bool parse_if_outdated) {
+    std::shared_lock lock{state_mutex};
+    script.AnalyzeUnlocked(parse_if_outdated);
+}
+
+void Catalog::AnalyzeScriptAsync(Script& script, bool parse_if_outdated, const std::atomic<bool>& cancelled) {
+    std::shared_lock lock{state_mutex};
+    script.AnalyzeAsync(parse_if_outdated, cancelled);
+}
+
+QualifiedCatalogObjectID Catalog::ReserveDatabaseId(std::string_view database) {
+    std::lock_guard lock{id_reservation_mutex};
+    if (auto iter = database_ids_by_name.find(database); iter != database_ids_by_name.end()) {
+        return QualifiedCatalogObjectID::Database(iter->second);
+    }
+
+    auto id = next_database_id.fetch_add(1, std::memory_order_relaxed);
+    database_ids_by_name.emplace(std::string{database}, id);
+    return QualifiedCatalogObjectID::Database(id);
+}
+
+QualifiedCatalogObjectID Catalog::ReserveSchemaId(std::string_view database, std::string_view schema,
+                                                   QualifiedCatalogObjectID db_id) {
+    std::lock_guard lock{id_reservation_mutex};
+    std::pair<std::string_view, std::string_view> key{database, schema};
+    if (auto iter = schema_ids_by_name.find(key); iter != schema_ids_by_name.end()) {
+        assert(iter->second.UnpackSchemaID().first == db_id.UnpackDatabaseID());
+        return iter->second;
+    }
+
+    auto schema_id = next_schema_id.fetch_add(1, std::memory_order_relaxed);
+    auto id = QualifiedCatalogObjectID::Schema(db_id.UnpackDatabaseID(), schema_id);
+    schema_ids_by_name.emplace(std::pair<std::string, std::string>{database, schema}, id);
+    return id;
 }
 
 void Catalog::Clear() {
+    std::unique_lock lock{state_mutex};
     entries_by_qualified_schema.clear();
     entries_by_schema.clear();
     entries_ranked.clear();
@@ -548,233 +634,134 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
 }
 
 void Catalog::LoadScript(Script& script, CatalogEntry::Rank rank) {
-    if (!script.analyzed_script) {
-        throw Exception(buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED);
-    }
-    if (&script.catalog != this) {
-        throw Exception(buffers::status::StatusCode::CATALOG_MISMATCH);
-    }
-
-    // Script has been added to catalog before?
-    auto script_iter = script_entries.find(&script);
-    if (script_iter != script_entries.end()) {
-        auto status = UpdateScript(script_iter->second);
-        if (status != buffers::status::StatusCode::OK) {
-            throw Exception(status);
-        }
-        return;
-    }
-    // Is there another entry (!= the script) with the same external id?
-    auto entry_iter = entries.find(script.GetCatalogEntryId());
-    if (entry_iter != entries.end()) {
-        throw Exception(buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
-    }
-    // Check if any of the containng schemas/databases are registered with a different id.
-    //
-    // That may happen in the following case:
-    //  - First the user create schema script and analyzes it.
-    //  - In the schema script, there are CREATE TABLE statements referencing a schema foo.bar
-    //  - During name-resolution, this schema foo.bar is registered IN THE SCRIPT with the schema id 42.
-    //  - This schema id is allocated by bumping the next_schema_id in the catalog.
-    //  - After analyzing the script, the user adds a schema descriptor to the catalog.
-    //  - This descriptor also contains a schema with name foo.bar.
-    //  - The catalog allocates the next schema id and registers foo.bar with id 43.
-    //  - The user then calls catalog.LoadScript() with the analyzed script.
-    //  - The loading MUST FAIL since otherwise we'd have the ids 42 and 43 referencing the same schema.
-    //
-    // Rule of thumb:
-    // When analysing a schema script, immediately add it to the catalog
-    {
-        // Declare all databases
-        for (auto& [key, ref] : script.analyzed_script->GetDatabasesByName()) {
-            auto iter = databases.find(key);
-            if (iter != databases.end()) {
-                if (iter->second->object_id != ref.get().object_id) {
-                    // Catalog id is out of sync
-                    throw Exception(buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
-                }
-            } else {
-                auto db = std::make_unique<DatabaseDeclaration>(ref.get().object_id, ref.get().database_name,
-                                                                ref.get().database_alias);
-                std::string_view db_key{db->database_name};
-                databases.insert({db_key, std::move(db)});
-            }
-        }
-        // Declare all schemas
-        for (auto& [key, ref] : script.analyzed_script->GetSchemasByName()) {
-            auto iter = schemas.find(key);
-            if (iter != schemas.end()) {
-                if (iter->second->object_id != ref.get().object_id) {
-                    // Catalog id is out of sync
-                    throw Exception(buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
-                }
-            } else {
-                // Copy strings and register the schema
-                auto schema = std::make_unique<SchemaDeclaration>(ref.get().object_id, ref.get().database_name,
-                                                                  ref.get().schema_name);
-                schemas.insert(
-                    {std::pair<std::string_view, std::string_view>{schema->database_name, schema->schema_name},
-                     std::move(schema)});
-            }
-        }
-    }
-
-    // Collect all schema names
-    CatalogEntry& entry = *script.analyzed_script;
-    for (auto& [schema_qualified, schema_ref] : entry.schemas_by_qualified_name) {
-        auto& [db_name, schema_name] = schema_qualified;
-        std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> qualified_schema_key{
-            db_name, schema_name, rank, entry.GetCatalogEntryId()};
-        std::tuple<std::string_view, CatalogEntry::Rank, CatalogEntryID> schema_key{schema_name, rank,
-                                                                                    entry.GetCatalogEntryId()};
-        CatalogSchemaEntryInfo entry_info{
-            .catalog_entry_id = entry.GetCatalogEntryId(),
-            .catalog_schema_id = schema_ref.get().object_id,
-        };
-        entries_by_qualified_schema.insert({qualified_schema_key, entry_info});
-        entries_by_schema.insert({schema_key, entry_info});
-    }
-    // Register as script entry
-    script_entries.insert({&script, {.script = script, .analyzed = script.analyzed_script, .rank = rank}});
-    // Register as catalog entry
-    entries.insert({entry.GetCatalogEntryId(), &entry});
-    // Register rank
-    entries_ranked.insert({rank, entry.GetCatalogEntryId()});
-    ++version;
+    ScriptBatchEntry entry{&script, rank};
+    LoadScripts(std::span{&entry, 1});
 }
 
-buffers::status::StatusCode Catalog::UpdateScript(ScriptEntry& entry) {
-    auto& script = entry.script;
-    assert(script.analyzed_script);
-
-    // Script stayed the same? Nothing to do then
-    if (entry.analyzed == script.analyzed_script) {
-        return buffers::status::StatusCode::OK;
+void Catalog::LoadScripts(std::span<const ScriptBatchEntry> scripts) {
+    if (scripts.empty()) {
+        return;
     }
-    auto external_id = script.GetCatalogEntryId();
-    auto rank = entry.rank;
 
-    // New database entry
-    struct NewDatabaseEntry {
-        /// A Schema ref
-        const CatalogEntry::DatabaseReference& database_ref;
-        /// Already existed?
-        bool already_exists;
-    };
-    // Collect all new database names
-    std::unordered_map<std::string_view, NewDatabaseEntry> new_dbs;
-    new_dbs.reserve(script.analyzed_script->databases_by_name.size());
-    for (auto& [key, ref] : script.analyzed_script->databases_by_name) {
-        NewDatabaseEntry new_entry{.database_ref = ref, .already_exists = false};
-        new_dbs.insert({key, new_entry});
-    }
-    // Scan previous database names, mark new names that already exist.
-    // We erase those later that no longer exist.
-    auto& prev_databases = entry.analyzed->databases_by_name;
-    for (auto iter = prev_databases.begin(); iter != prev_databases.end(); ++iter) {
-        auto db_name = iter->first;
-        // Check if the previous schema name is in the new schema entries.
-        auto new_name_iter = new_dbs.find(db_name);
-        if (new_name_iter != new_dbs.end()) {
-            new_name_iter->second.already_exists = true;
+    std::unique_lock state_lock{state_mutex};
+    std::lock_guard reservation_lock{id_reservation_mutex};
+    std::unordered_set<Script*> batch_scripts;
+    std::unordered_map<CatalogEntryID, Script*> batch_ids;
+
+    for (auto [script, rank] : scripts) {
+        (void)rank;
+        if (script == nullptr || &script->catalog != this) {
+            throw Exception(buffers::status::StatusCode::CATALOG_MISMATCH);
         }
-    }
-    // Insert unmarked new database entries
-    for (auto& [k, new_entry] : new_dbs) {
-        if (!new_entry.already_exists) {
-            auto db = std::make_unique<DatabaseDeclaration>(new_entry.database_ref.object_id, k, "");
-            databases.insert({db->database_name, std::move(db)});
+        script->EnsureNotBusy();
+        if (!script->analyzed_script) {
+            throw Exception(buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED);
         }
-    }
-
-    // New schema entry
-    struct NewSchemaEntry {
-        /// A Schema ref
-        const CatalogEntry::SchemaReference& schema_ref;
-        /// Already existed?
-        bool already_exists;
-    };
-    // Collect all new schema names
-    std::unordered_map<std::pair<std::string_view, std::string_view>, NewSchemaEntry, TupleHasher> new_schemas;
-    new_schemas.reserve(script.analyzed_script->schemas_by_qualified_name.size());
-    for (auto& [key, ref] : script.analyzed_script->schemas_by_qualified_name) {
-        NewSchemaEntry new_entry{.schema_ref = ref, .already_exists = false};
-        new_schemas.insert({key, new_entry});
-    }
-    // Scan previous schema names, mark new names that already exist, erase those that no longer exist
-    auto& prev_schemas = entry.analyzed->schemas_by_qualified_name;
-    for (auto iter = prev_schemas.begin(); iter != prev_schemas.end(); ++iter) {
-        auto& [db_name, schema_name] = iter->first;
-        // Check if the previous schema name is in the new schema entries.
-        auto new_name_iter = new_schemas.find({db_name, schema_name});
-        if (new_name_iter != new_schemas.end()) {
-            new_name_iter->second.already_exists = true;
-        } else {
-            // Previous schema no longer exists in new schema.
-            // Drop the entry reference from the catalog for this schema.
-            entries_by_qualified_schema.erase({db_name, schema_name, rank, external_id});
-            entries_by_schema.erase({schema_name, rank, external_id});
-            // Check if there's any remaining catalog entry with that schema name
-            auto rem_iter = entries_by_qualified_schema.lower_bound({db_name, schema_name, 0, 0});
-            if (rem_iter == entries_by_qualified_schema.end() || std::get<0>(rem_iter->first) != db_name ||
-                std::get<1>(rem_iter->first) != schema_name) {
-                // If not, remove the schema declaration from the catalog completely
-                schemas.erase({db_name, schema_name});
+        if (!batch_scripts.insert(script).second ||
+            !batch_ids.emplace(script->GetCatalogEntryId(), script).second) {
+            throw Exception(buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
+        }
+        if (auto iter = entries.find(script->GetCatalogEntryId());
+            iter != entries.end() && iter->second != script->analyzed_script.get() && !script_entries.contains(script)) {
+            throw Exception(buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
+        }
+        for (auto& [name, ref] : script->analyzed_script->GetDatabasesByName()) {
+            auto canonical = database_ids_by_name.find(name);
+            if (canonical == database_ids_by_name.end() ||
+                ref.get().object_id != QualifiedCatalogObjectID::Database(canonical->second)) {
+                throw Exception(buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
             }
         }
-    }
-    // Insert unmarked new schema entries
-    for (auto& [k, new_entry] : new_schemas) {
-        if (!new_entry.already_exists) {
-            // Add schema entries
-            auto& [db_name, schema_name] = k;
-            CatalogSchemaEntryInfo entry{
-                .catalog_entry_id = external_id,
-                .catalog_schema_id = new_entry.schema_ref.object_id,
-            };
-            std::tuple<std::string_view, std::string_view, CatalogEntry::Rank, CatalogEntryID> qualified_schema_key{
-                db_name, schema_name, rank, external_id};
-            std::tuple<std::string_view, CatalogEntry::Rank, CatalogEntryID> schema_key{schema_name, rank, external_id};
-            entries_by_qualified_schema.insert({qualified_schema_key, entry});
-            entries_by_schema.insert({schema_key, entry});
-
-            // Add schema declaration
-            if (!schemas.contains({db_name, schema_name})) {
-                assert(databases.contains(db_name));
-                auto schema = std::make_unique<SchemaDeclaration>(new_entry.schema_ref.object_id,
-                                                                  databases.find(db_name)->first, schema_name);
-                schemas.insert(
-                    {std::pair<std::string_view, std::string_view>{schema->database_name, schema->schema_name},
-                     std::move(schema)});
+        for (auto& [name, ref] : script->analyzed_script->GetSchemasByName()) {
+            auto canonical = schema_ids_by_name.find(name);
+            if (canonical == schema_ids_by_name.end() || ref.get().object_id != canonical->second) {
+                throw Exception(buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
             }
         }
     }
 
-    // Erase previous databases that are no longer part of the new databases.
-    // We deliberately cleanup the dead databases after cleaning up dead schemas.
-    // Otherwise we're keeping databases alive through schema references that are just to be deleted.
-    for (auto iter = prev_databases.begin(); iter != prev_databases.end(); ++iter) {
-        auto db_name = iter->first;
-        // Check if the previous schema name is in the new schema entries.
-        auto new_name_iter = new_dbs.find(db_name);
-        if (new_name_iter == new_dbs.end()) {
-            // Check if there are other entries with that database name
-            auto other_iter = entries_by_qualified_schema.lower_bound({db_name, "", 0, 0});
-            if (other_iter == entries_by_qualified_schema.end() || std::get<0>(other_iter->first) != db_name) {
-                databases.erase(db_name);
+    decltype(script_entries) staged_script_entries;
+    staged_script_entries.reserve(script_entries.size() + scripts.size());
+    for (auto& [script, entry] : script_entries) {
+        staged_script_entries.emplace(script, entry);
+    }
+    for (auto [script, rank] : scripts) {
+        staged_script_entries.erase(script);
+        staged_script_entries.emplace(script, ScriptEntry{*script, script->analyzed_script, rank});
+    }
+
+    decltype(entries) staged_entries;
+    decltype(entries_ranked) staged_entries_ranked;
+    decltype(entries_by_qualified_schema) staged_entries_by_qualified_schema;
+    decltype(entries_by_schema) staged_entries_by_schema;
+    decltype(databases) staged_databases;
+    decltype(schemas) staged_schemas;
+    staged_entries.reserve(staged_script_entries.size());
+
+    for (auto& [script, script_entry] : staged_script_entries) {
+        auto& analyzed = *script_entry.analyzed;
+        auto entry_id = analyzed.GetCatalogEntryId();
+        if (!staged_entries.emplace(entry_id, &analyzed).second) {
+            throw Exception(buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
+        }
+        staged_entries_ranked.emplace(script_entry.rank, entry_id);
+
+        for (auto& [name, ref] : analyzed.GetDatabasesByName()) {
+            auto iter = staged_databases.find(name);
+            if (iter != staged_databases.end()) {
+                if (iter->second->object_id != ref.get().object_id) {
+                    throw Exception(buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
+                }
+                continue;
             }
+            auto declaration = std::make_unique<DatabaseDeclaration>(
+                ref.get().object_id, ref.get().database_name, ref.get().database_alias);
+            std::string_view key = declaration->database_name;
+            staged_databases.emplace(key, std::move(declaration));
+        }
+        for (auto& [name, ref] : analyzed.GetSchemasByName()) {
+            auto iter = staged_schemas.find(name);
+            if (iter != staged_schemas.end()) {
+                if (iter->second->object_id != ref.get().object_id) {
+                    throw Exception(buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
+                }
+                continue;
+            }
+            auto database = staged_databases.find(name.first);
+            if (database == staged_databases.end()) {
+                throw Exception(buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
+            }
+            auto declaration = std::make_unique<SchemaDeclaration>(
+                ref.get().object_id, database->first, ref.get().schema_name);
+            std::pair<std::string_view, std::string_view> key{declaration->database_name,
+                                                              declaration->schema_name};
+            staged_schemas.emplace(key, std::move(declaration));
+        }
+        for (auto& [name, ref] : analyzed.GetSchemasByName()) {
+            CatalogSchemaEntryInfo info{entry_id, ref.get().object_id};
+            staged_entries_by_qualified_schema.emplace(
+                std::tuple{name.first, name.second, script_entry.rank, entry_id}, info);
+            staged_entries_by_schema.emplace(std::tuple{name.second, script_entry.rank, entry_id}, info);
         }
     }
 
-    entry.analyzed = script.analyzed_script;
-    auto entry_iter = entries.find(script.GetCatalogEntryId());
-    assert(entry_iter != entries.end());
-    entry_iter->second = entry.analyzed.get();
+    script_entries.swap(staged_script_entries);
+    entries.swap(staged_entries);
+    entries_ranked.swap(staged_entries_ranked);
+    entries_by_qualified_schema.swap(staged_entries_by_qualified_schema);
+    entries_by_schema.swap(staged_entries_by_schema);
+    databases.swap(staged_databases);
+    schemas.swap(staged_schemas);
     ++version;
-    return buffers::status::StatusCode::OK;
 }
 
 void Catalog::DropScript(Script& script) {
+    script.EnsureNotBusy();
+    DropScriptUnlocked(script);
+}
+
+void Catalog::DropScriptUnlocked(Script& script) {
+    std::unique_lock lock{state_mutex};
     auto iter = script_entries.find(&script);
     if (iter != script_entries.end()) {
         auto external_id = script.GetCatalogEntryId();

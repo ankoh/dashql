@@ -1,9 +1,15 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
-#include "dashql/exception.h"
 #include "dashql/external.h"
 #include "dashql/script.h"
 #include "gtest/gtest.h"
+
+#include <algorithm>
+#include <barrier>
+#include <exception>
+#include <thread>
+#include <unordered_set>
+#include <vector>
 
 using namespace dashql;
 
@@ -191,8 +197,24 @@ TEST(UnificationTest, ParallelDatabaseRegistration) {
 
     ASSERT_NO_THROW(schema0.Analyze());
     ASSERT_NO_THROW(schema1.Analyze());
+    auto& analyzed0 = schema0.GetAnalyzedScript();
+    auto& analyzed1 = schema1.GetAnalyzedScript();
+    auto db0_iter = analyzed0->GetDatabasesByName().find("db1");
+    auto db1_iter = analyzed1->GetDatabasesByName().find("db1");
+    ASSERT_NE(db0_iter, analyzed0->GetDatabasesByName().end());
+    ASSERT_NE(db1_iter, analyzed1->GetDatabasesByName().end());
+    auto db_id = db0_iter->second.get().GetDatabaseID();
+    EXPECT_EQ(db1_iter->second.get().GetDatabaseID(), db_id);
+
     ASSERT_NO_THROW(catalog.LoadScript(schema0, 1));
-    ASSERT_THROW(catalog.LoadScript(schema1, 2), Exception);
+    ASSERT_NO_THROW(catalog.LoadScript(schema1, 2));
+    ASSERT_EQ(catalog.GetDatabases().size(), 1);
+    auto db_iter = catalog.GetDatabases().find("db1");
+    ASSERT_NE(db_iter, catalog.GetDatabases().end());
+    EXPECT_EQ(db_iter->second->GetDatabaseID(), db_id);
+    EXPECT_EQ(catalog.GetSchemas().size(), 2);
+    EXPECT_TRUE(catalog.Contains(schema0.GetCatalogEntryId()));
+    EXPECT_TRUE(catalog.Contains(schema1.GetCatalogEntryId()));
 }
 
 TEST(UnificationTest, ParallelSchemaRegistration) {
@@ -205,8 +227,120 @@ TEST(UnificationTest, ParallelSchemaRegistration) {
 
     ASSERT_NO_THROW(schema0.Analyze());
     ASSERT_NO_THROW(schema1.Analyze());
+    auto& analyzed0 = schema0.GetAnalyzedScript();
+    auto& analyzed1 = schema1.GetAnalyzedScript();
+    auto schema0_iter = analyzed0->GetSchemasByName().find({"", "schema1"});
+    auto schema1_iter = analyzed1->GetSchemasByName().find({"", "schema1"});
+    ASSERT_NE(schema0_iter, analyzed0->GetSchemasByName().end());
+    ASSERT_NE(schema1_iter, analyzed1->GetSchemasByName().end());
+    auto schema_id = schema0_iter->second.get().object_id;
+    EXPECT_EQ(schema1_iter->second.get().object_id, schema_id);
+
     ASSERT_NO_THROW(catalog.LoadScript(schema0, 1));
-    ASSERT_THROW(catalog.LoadScript(schema1, 2), Exception);
+    ASSERT_NO_THROW(catalog.LoadScript(schema1, 2));
+    ASSERT_EQ(catalog.GetDatabases().size(), 1);
+    ASSERT_EQ(catalog.GetSchemas().size(), 1);
+    auto schema_iter = catalog.GetSchemas().find({"", "schema1"});
+    ASSERT_NE(schema_iter, catalog.GetSchemas().end());
+    EXPECT_EQ(schema_iter->second->object_id, schema_id);
+    EXPECT_TRUE(catalog.Contains(schema0.GetCatalogEntryId()));
+    EXPECT_TRUE(catalog.Contains(schema1.GetCatalogEntryId()));
+}
+
+TEST(UnificationTest, ConcurrentDeclarationAnalysisUsesCanonicalIds) {
+    Catalog catalog;
+    Script schema0{catalog};
+    Script schema1{catalog};
+    schema0.InsertTextAt(0, "create table db1.schema1.table1(a int);");
+    schema1.InsertTextAt(0, "create table db1.schema1.table2(b int);");
+    ASSERT_NO_THROW(schema0.Parse());
+    ASSERT_NO_THROW(schema1.Parse());
+
+    std::barrier start{3};
+    std::exception_ptr errors[2];
+    std::thread threads[] = {
+        std::thread{[&] {
+            start.arrive_and_wait();
+            try {
+                schema0.Analyze(false);
+            } catch (...) {
+                errors[0] = std::current_exception();
+            }
+        }},
+        std::thread{[&] {
+            start.arrive_and_wait();
+            try {
+                schema1.Analyze(false);
+            } catch (...) {
+                errors[1] = std::current_exception();
+            }
+        }},
+    };
+    start.arrive_and_wait();
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    ASSERT_EQ(errors[0], nullptr);
+    ASSERT_EQ(errors[1], nullptr);
+
+    auto& analyzed0 = schema0.GetAnalyzedScript();
+    auto& analyzed1 = schema1.GetAnalyzedScript();
+    ASSERT_NE(analyzed0, nullptr);
+    ASSERT_NE(analyzed1, nullptr);
+    auto db0 = analyzed0->GetDatabasesByName().find("db1");
+    auto db1 = analyzed1->GetDatabasesByName().find("db1");
+    ASSERT_NE(db0, analyzed0->GetDatabasesByName().end());
+    ASSERT_NE(db1, analyzed1->GetDatabasesByName().end());
+    EXPECT_EQ(db0->second.get().object_id, db1->second.get().object_id);
+    auto schema0_iter = analyzed0->GetSchemasByName().find({"db1", "schema1"});
+    auto schema1_iter = analyzed1->GetSchemasByName().find({"db1", "schema1"});
+    ASSERT_NE(schema0_iter, analyzed0->GetSchemasByName().end());
+    ASSERT_NE(schema1_iter, analyzed1->GetSchemasByName().end());
+    EXPECT_EQ(schema0_iter->second.get().object_id, schema1_iter->second.get().object_id);
+
+    ASSERT_NO_THROW(catalog.LoadScript(schema0, 1));
+    ASSERT_NO_THROW(catalog.LoadScript(schema1, 2));
+    EXPECT_TRUE(catalog.Contains(schema0.GetCatalogEntryId()));
+    EXPECT_TRUE(catalog.Contains(schema1.GetCatalogEntryId()));
+
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(catalog.Flatten(fb));
+    auto flat = flatbuffers::GetRoot<buffers::catalog::FlatCatalog>(fb.GetBufferPointer());
+    ASSERT_EQ(flat->databases()->size(), 1);
+    ASSERT_EQ(flat->schemas()->size(), 1);
+    ASSERT_EQ(flat->tables()->size(), 2);
+    EXPECT_NE(flat->tables()->Get(0)->catalog_object_id(), flat->tables()->Get(1)->catalog_object_id());
+}
+
+TEST(UnificationTest, ConcurrentScriptConstructionAllocatesUniqueEntryIds) {
+    Catalog catalog;
+    constexpr size_t thread_count = 8;
+    constexpr size_t scripts_per_thread = 128;
+    std::vector<std::vector<CatalogEntryID>> ids(thread_count);
+    std::vector<std::thread> threads;
+    threads.reserve(thread_count);
+
+    for (size_t thread_id = 0; thread_id < thread_count; ++thread_id) {
+        threads.emplace_back([&catalog, &ids, thread_id] {
+            ids[thread_id].reserve(scripts_per_thread);
+            for (size_t i = 0; i < scripts_per_thread; ++i) {
+                Script script{catalog};
+                ids[thread_id].push_back(script.GetCatalogEntryId());
+            }
+        });
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    std::unordered_set<CatalogEntryID> unique_ids;
+    for (auto& thread_ids : ids) {
+        unique_ids.insert(thread_ids.begin(), thread_ids.end());
+    }
+    EXPECT_EQ(unique_ids.size(), thread_count * scripts_per_thread);
+    EXPECT_EQ(*std::min_element(unique_ids.begin(), unique_ids.end()), INITIAL_ENTRY_ID);
+    EXPECT_EQ(*std::max_element(unique_ids.begin(), unique_ids.end()),
+              INITIAL_ENTRY_ID + thread_count * scripts_per_thread - 1);
 }
 
 }  // namespace

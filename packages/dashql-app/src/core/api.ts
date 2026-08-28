@@ -15,7 +15,8 @@ export interface EmscriptenModule {
     HEAPF32: Float32Array;
     HEAPF64: Float64Array;
 
-    memory: WebAssembly.Memory;
+    memory?: WebAssembly.Memory;
+    onDashQLAnalysisJobComplete?: (jobId: number, state: number) => void;
 
     // Stack manipulation functions (for stack allocation)
     stackSave: () => number;
@@ -58,6 +59,11 @@ export interface EmscriptenModule {
     _dashql_script_compile_query: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, allow_extensions: boolean, parse_if_outdated: boolean) => void;
     _dashql_script_parse: (ptr: number) => void;
     _dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => void;
+    _dashql_script_analyze_async: (ptr: number, parse_if_outdated: boolean) => number;
+    _dashql_script_analysis_job_get_error_code: (job: number) => number;
+    _dashql_script_analysis_job_get_error_message: (result: number, job: number) => void;
+    _dashql_script_analysis_job_cancel: (job: number) => boolean;
+    _dashql_script_analysis_job_release: (job: number) => void;
     _dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
     _dashql_script_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
     _dashql_script_get_catalog_entry_id: (ptr: number) => number;
@@ -76,7 +82,7 @@ export interface EmscriptenModule {
     _dashql_catalog_flatten: (result: number, catalog_ptr: number) => void;
     _dashql_parse_vegalite_to_visualize: (result: number, json: number, json_length: number) => void;
     _dashql_catalog_load_script: (catalog_ptr: number, script_ptr: number, rank: number) => void;
-    _dashql_catalog_update_script: (catalog_ptr: number, script_ptr: number) => number;
+    _dashql_catalog_load_scripts: (catalog_ptr: number, script_ptrs: number, ranks: number, script_count: number) => void;
     _dashql_catalog_drop_script: (catalog_ptr: number, script_ptr: number) => void;
     _dashql_catalog_get_statistics: (result: number, ptr: number) => void;
     _dashql_plan_view_model_new: (result: number) => void;
@@ -93,6 +99,7 @@ export interface DashQLModuleOptions {
     print?: (text: string) => void;
     printErr?: (text: string) => void;
     locateFile?: (path: string, prefix: string) => string;
+    mainScriptUrlOrBlob?: string | Blob;
 }
 
 // Our cleaned-up API interface (without underscores)
@@ -135,6 +142,11 @@ interface DashQLModuleExports {
     dashql_script_compile_query: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, allow_extensions: boolean, parse_if_outdated: boolean) => void;
     dashql_script_parse: (ptr: number) => void;
     dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => void;
+    dashql_script_analyze_async: (ptr: number, parse_if_outdated: boolean) => number;
+    dashql_script_analysis_job_get_error_code: (job: number) => number;
+    dashql_script_analysis_job_get_error_message: (result: number, job: number) => void;
+    dashql_script_analysis_job_cancel: (job: number) => boolean;
+    dashql_script_analysis_job_release: (job: number) => void;
     dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
     dashql_script_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
@@ -154,7 +166,7 @@ interface DashQLModuleExports {
     dashql_catalog_flatten: (result: number, catalog_ptr: number) => void;
     dashql_parse_vegalite_to_visualize: (result: number, json: number, json_length: number) => void;
     dashql_catalog_load_script: (catalog_ptr: number, script_ptr: number, rank: number) => void;
-    dashql_catalog_update_script: (catalog_ptr: number, script_ptr: number) => number;
+    dashql_catalog_load_scripts: (catalog_ptr: number, script_ptrs: number, ranks: number, script_count: number) => void;
     dashql_catalog_drop_script: (catalog_ptr: number, script_ptr: number) => void;
     dashql_catalog_get_statistics: (result: number, ptr: number) => void;
 
@@ -239,14 +251,20 @@ export class DashQL {
     instanceExports: DashQLModuleExports;
     nextScriptId: number;
     registeredMemory: Map<number, DashQLRegisteredMemoryEntry>;
+    private asyncAnalysisJobs = new Map<number, {
+        resolve: () => void;
+        reject: (error: AsyncAnalysisError) => void;
+    }>();
+    private completedAsyncAnalysisJobs = new Map<number, number>();
 
     public constructor(module: EmscriptenModule) {
         this.encoder = new TextEncoder();
         this.decoder = new TextDecoder();
         this.module = module;
-        this.memory = module.memory;
+        this.memory = module.memory ?? ({ buffer: module.HEAPU8.buffer } as WebAssembly.Memory);
         this.nextScriptId = 1;
         this.registeredMemory = new Map();
+        module.onDashQLAnalysisJobComplete = (jobId, state) => this.completeAsyncAnalysisJob(jobId, state);
 
         // Wrap all Emscripten exports, removing the leading underscore
         this.instanceExports = {
@@ -286,6 +304,11 @@ export class DashQL {
             dashql_script_compile_query: module._dashql_script_compile_query,
             dashql_script_parse: module._dashql_script_parse,
             dashql_script_analyze: module._dashql_script_analyze,
+            dashql_script_analyze_async: module._dashql_script_analyze_async,
+            dashql_script_analysis_job_get_error_code: module._dashql_script_analysis_job_get_error_code,
+            dashql_script_analysis_job_get_error_message: module._dashql_script_analysis_job_get_error_message,
+            dashql_script_analysis_job_cancel: module._dashql_script_analysis_job_cancel,
+            dashql_script_analysis_job_release: module._dashql_script_analysis_job_release,
             dashql_script_get_statistics: module._dashql_script_get_statistics,
             dashql_script_get_catalog_entry_id: module._dashql_script_get_catalog_entry_id,
             dashql_script_get_parsed: module._dashql_script_get_parsed,
@@ -303,7 +326,7 @@ export class DashQL {
             dashql_catalog_flatten: module._dashql_catalog_flatten,
             dashql_parse_vegalite_to_visualize: module._dashql_parse_vegalite_to_visualize,
             dashql_catalog_load_script: module._dashql_catalog_load_script,
-            dashql_catalog_update_script: module._dashql_catalog_update_script,
+            dashql_catalog_load_scripts: module._dashql_catalog_load_scripts,
             dashql_catalog_drop_script: module._dashql_catalog_drop_script,
             dashql_catalog_get_statistics: module._dashql_catalog_get_statistics,
             dashql_plan_view_model_new: module._dashql_plan_view_model_new,
@@ -315,7 +338,42 @@ export class DashQL {
         };
     }
 
+    public waitForAsyncAnalysisJob(jobId: number): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            this.asyncAnalysisJobs.set(jobId, { resolve, reject });
+            const state = this.completedAsyncAnalysisJobs.get(jobId);
+            if (state != null) {
+                this.completedAsyncAnalysisJobs.delete(jobId);
+                this.completeAsyncAnalysisJob(jobId, state);
+            }
+        });
+    }
+
+    private completeAsyncAnalysisJob(jobId: number, state: number): void {
+        const pending = this.asyncAnalysisJobs.get(jobId);
+        if (pending == null) {
+            this.completedAsyncAnalysisJobs.set(jobId, state);
+            return;
+        }
+        this.asyncAnalysisJobs.delete(jobId);
+        if (state === 3) {
+            pending.resolve();
+            return;
+        }
+        if (state === 4) {
+            const code = this.instanceExports.dashql_script_analysis_job_get_error_code(jobId);
+            const message = this.readStringResult((resultPtr) =>
+                this.instanceExports.dashql_script_analysis_job_get_error_message(resultPtr, jobId)
+            );
+            pending.reject(new AsyncAnalysisError(code, message));
+            return;
+        }
+        pending.reject(new AsyncAnalysisError(0, 'asynchronous analysis was cancelled'));
+    }
+
     public static async create(options?: DashQLModuleOptions): Promise<DashQL> {
+        const testWorkerUrl = (globalThis as typeof globalThis & { DASHQL_CORE_WORKER_URL?: string })
+            .DASHQL_CORE_WORKER_URL;
         // Call the Emscripten-generated factory function
         // All WASI stubs and initialization are handled automatically!
         const module = await createDashQLModule({
@@ -330,6 +388,7 @@ export class DashQL {
             instantiateWasm: options?.instantiateWasm,
 
             locateFile: options?.locateFile,
+            mainScriptUrlOrBlob: options?.mainScriptUrlOrBlob ?? testWorkerUrl,
         });
 
         return new DashQL(module);
@@ -737,6 +796,16 @@ export class ParserError extends Error {
     }
 }
 
+export class AsyncAnalysisError extends Error {
+    public readonly code: number;
+
+    constructor(code: number, message: string) {
+        super(message || `asynchronous analysis failed with error code ${code}`);
+        this.name = 'AsyncAnalysisError';
+        this.code = code;
+    }
+}
+
 export class DashQLAgentSession {
     public readonly ptr: Ptr<typeof AGENT_SESSION_TYPE>;
 
@@ -1009,6 +1078,7 @@ export class DashQLEditorSession {
 export class DashQLScript {
     public readonly ptr: Ptr<typeof SCRIPT_TYPE>;
     public readonly catalog_entry_id: number;
+    private asyncJobId: number | null = null;
 
     public constructor(ptr: Ptr<typeof SCRIPT_TYPE>) {
         this.ptr = ptr;
@@ -1016,14 +1086,25 @@ export class DashQLScript {
     }
     /// Delete a graph
     public destroy() {
+        if (this.asyncJobId != null) {
+            this.ptr.api.instanceExports.dashql_script_analysis_job_cancel(this.asyncJobId);
+            throw new Error('cannot destroy a script while asynchronous analysis is active');
+        }
         this.ptr.destroy();
+    }
+    private assertIdle(): void {
+        if (this.asyncJobId != null) {
+            throw new Error('script has an active asynchronous analysis job');
+        }
     }
     /// Get the script id
     public getCatalogEntryId(): number {
+        this.assertIdle();
         return this.ptr.api.instanceExports.dashql_script_get_catalog_entry_id(this.ptr.assertNotNull());
     }
     /// Whether formatting can complete without unsupported-node placeholders.
     public isFullyFormattable(config: buffers.formatting.FormattingConfigT, parseIfOutdated: boolean = true): boolean {
+        this.assertIdle();
         return this.ptr.api.instanceExports.dashql_script_is_fully_formattable(
             this.ptr.assertNotNull(),
             config.dialect,
@@ -1036,6 +1117,7 @@ export class DashQLScript {
     }
     /// AST node ids that prevent formatting.
     public getUnformattableNodes(config: buffers.formatting.FormattingConfigT, parseIfOutdated: boolean = true): number[] {
+        this.assertIdle();
         return this.ptr.api.readUint32ArrayResult((resultPtr) =>
             this.ptr.api.instanceExports.dashql_script_get_unformattable_nodes(
                 resultPtr,
@@ -1051,6 +1133,7 @@ export class DashQLScript {
     }
     /// Insert text at an offset
     public insertTextAt(offset: number, text: string) {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         // Short-circuit inserting texts of length 1
         if (text.length == 1) {
@@ -1062,17 +1145,20 @@ export class DashQLScript {
     }
     /// Earse a range of characters
     public eraseTextRange(offset: number, length: number) {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         this.ptr.api.instanceExports.dashql_script_erase_text_range(scriptPtr, offset, length);
     }
     /// Replace the text text
     public replaceText(text: string) {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         const [textBegin, textLength] = this.ptr.api.copyString(text);
         this.ptr.api.instanceExports.dashql_script_replace_text(scriptPtr, textBegin, textLength);
     }
     /// Convert the script, or a UTF-8 byte range of it, to a string.
     public toString(offset?: number, length?: number): string {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         return this.ptr.api.readStringResult((resultPtr) =>
             this.ptr.api.instanceExports.dashql_script_to_string(
@@ -1085,6 +1171,7 @@ export class DashQLScript {
     }
     /// Return the first parsed statement without its separator or surrounding trivia.
     public getStatementText(parseIfOutdated: boolean = true): string {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         return this.ptr.api.readStringResult((resultPtr) =>
             this.ptr.api.instanceExports.dashql_script_get_statement_text(
@@ -1100,6 +1187,7 @@ export class DashQLScript {
         allowExtensions: boolean = true,
         parseIfOutdated: boolean = true,
     ): FlatBufferPtr<buffers.execution.ScriptCompilationResult> {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.execution.ScriptCompilationResult, buffers.execution.ScriptCompilationResultT>(
             SCRIPT_COMPILATION_TYPE,
@@ -1120,16 +1208,32 @@ export class DashQLScript {
     }
     /// Parse the script (throws exception on error)
     public parse() {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         this.ptr.api.instanceExports.dashql_script_parse(scriptPtr);
     }
     /// Analyze the script (throws exception on error)
     public analyze(parseIfOutdated: boolean = true) {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         this.ptr.api.instanceExports.dashql_script_analyze(scriptPtr, parseIfOutdated);
     }
+    /// Analyze without blocking the caller when the module has native Wasm threads.
+    public async analyzeAsync(parseIfOutdated: boolean = true): Promise<void> {
+        this.assertIdle();
+        const api = this.ptr.api;
+        const jobId = api.instanceExports.dashql_script_analyze_async(this.ptr.assertNotNull(), parseIfOutdated);
+        this.asyncJobId = jobId;
+        try {
+            await api.waitForAsyncAnalysisJob(jobId);
+        } finally {
+            api.instanceExports.dashql_script_analysis_job_release(jobId);
+            this.asyncJobId = null;
+        }
+    }
     /// Get the parsed script
     public getParsed(): FlatBufferPtr<buffers.parser.ParsedScript> {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.parser.ParsedScript, buffers.parser.ParsedScriptT>(
             PARSED_SCRIPT_TYPE,
@@ -1141,6 +1245,7 @@ export class DashQLScript {
     }
     /// Get the analyzed script
     public getAnalyzed(): FlatBufferPtr<buffers.analyzer.AnalyzedScript> {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.analyzer.AnalyzedScript, buffers.analyzer.AnalyzedScriptT>(
             ANALYZED_SCRIPT_TYPE,
@@ -1152,6 +1257,8 @@ export class DashQLScript {
     }
     /// Compute a statement-level semantic diff from this (source/old) script to another (target/new) script
     public computeDiff(target: DashQLScript): FlatBufferPtr<buffers.diff.ScriptDiff> {
+        this.assertIdle();
+        target.assertIdle();
         const sourcePtr = this.ptr.assertNotNull();
         const targetPtr = target.ptr.assertNotNull();
         const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.diff.ScriptDiff, buffers.diff.ScriptDiffT>(
@@ -1164,6 +1271,7 @@ export class DashQLScript {
     }
     /// Move the cursor
     public moveCursor(textOffset: number): FlatBufferPtr<buffers.cursor.ScriptCursor> {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.cursor.ScriptCursor, buffers.cursor.ScriptCursorT>(
             CURSOR_TYPE,
@@ -1175,6 +1283,7 @@ export class DashQLScript {
     }
     /// Complete at the cursor
     public completeAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.completion.Completion, buffers.completion.CompletionT>(
             COMPLETION_TYPE,
@@ -1198,6 +1307,7 @@ export class DashQLScript {
     /// One way out might be COEP but we cannot easily set that with GitHub pages.
     /// https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#reduced_precision
     public getStatistics(): FlatBufferPtr<buffers.statistics.ScriptStatistics> {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.statistics.ScriptStatistics, buffers.statistics.ScriptStatisticsT>(
             SCRIPT_STATISTICS_TYPE,
@@ -1213,6 +1323,7 @@ export class DashQLScript {
         catalog: DashQLCatalog | null = null,
         parseIfOutdated: boolean = true,
     ): DashQLScript {
+        this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         const catalogPtr = catalog?.ptr.assertNotNull() ?? 0;
         const newScriptPtr = this.ptr.api.callSRetPtr(SCRIPT_TYPE, (resultPtr) =>
@@ -1342,6 +1453,29 @@ export class DashQLCatalog {
     public loadScript(script: DashQLScript, rank: number) {
         this.deleteSnapshot();
         this.ptr.api.instanceExports.dashql_catalog_load_script(this.ptr.assertNotNull(), script.ptr.assertNotNull(), rank);
+    }
+    /// Atomically add or replace ranked scripts in the catalog.
+    public loadScripts(scripts: ReadonlyArray<readonly [DashQLScript, number]>): void {
+        if (scripts.length === 0) {
+            return;
+        }
+        const stack = this.ptr.api.module.stackSave();
+        try {
+            const scriptPtrs = this.ptr.api.module.stackAlloc(scripts.length * 4);
+            const ranks = this.ptr.api.module.stackAlloc(scripts.length * 4);
+            const scriptHeap = this.ptr.api.module.HEAPU32.subarray(scriptPtrs / 4, scriptPtrs / 4 + scripts.length);
+            const rankHeap = this.ptr.api.module.HEAPU32.subarray(ranks / 4, ranks / 4 + scripts.length);
+            for (let i = 0; i < scripts.length; ++i) {
+                scriptHeap[i] = scripts[i][0].ptr.assertNotNull();
+                rankHeap[i] = scripts[i][1];
+            }
+            this.ptr.api.instanceExports.dashql_catalog_load_scripts(
+                this.ptr.assertNotNull(), scriptPtrs, ranks, scripts.length
+            );
+            this.deleteSnapshot();
+        } finally {
+            this.ptr.api.module.stackRestore(stack);
+        }
     }
     /// Update a script from the registry
     public dropScript(script: DashQLScript) {
