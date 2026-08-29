@@ -6,23 +6,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const mockState = vi.hoisted(() => ({
-    logger: {
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-    },
     hyperDb: { kind: 'hyper', terminate: vi.fn() } as any,
     setupWebHyperDB: vi.fn(),
 }));
 
-vi.mock('../logger/logger_provider.js', () => ({
-    useLogger: () => mockState.logger,
-}));
 vi.mock('../hyperdb/hyperdb_provider_web.js', () => ({
     setupWebHyperDB: (...args: any[]) => mockState.setupWebHyperDB(...args),
 }));
 
 import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
+import { getGlobalLogger, LoggerProvider } from '../logger/logger_provider.js';
 
 function SetupConsumer(props: {
     context: string;
@@ -45,9 +38,6 @@ describe('EmbeddedDatabaseProvider', () => {
         document.body.appendChild(container);
         root = createRoot(container);
 
-        mockState.logger.info.mockReset();
-        mockState.logger.warn.mockReset();
-        mockState.logger.error.mockReset();
         mockState.hyperDb.terminate.mockReset();
         mockState.setupWebHyperDB.mockReset().mockResolvedValue(mockState.hyperDb);
     });
@@ -67,9 +57,11 @@ describe('EmbeddedDatabaseProvider', () => {
 
         await act(async () => {
             root.render(
-                <EmbeddedDatabaseProvider>
-                    <SetupConsumer context={context} onReady={(db) => resolveDb?.(db)} />
-                </EmbeddedDatabaseProvider>
+                <LoggerProvider>
+                    <EmbeddedDatabaseProvider>
+                        <SetupConsumer context={context} onReady={(db) => resolveDb?.(db)} />
+                    </EmbeddedDatabaseProvider>
+                </LoggerProvider>
             );
         });
 
@@ -81,14 +73,14 @@ describe('EmbeddedDatabaseProvider', () => {
 
         expect(db).toBe(mockState.hyperDb);
         expect(mockState.setupWebHyperDB).toHaveBeenCalledTimes(1);
-        expect(mockState.setupWebHyperDB).toHaveBeenCalledWith('web-test', mockState.logger, undefined);
+        expect(mockState.setupWebHyperDB).toHaveBeenCalledWith('web-test', getGlobalLogger(), undefined);
     });
 
     it('uses HyperDB on Electron', async () => {
         const db = await renderAndSetup('electron-test');
 
         expect(db).toBe(mockState.hyperDb);
-        expect(mockState.setupWebHyperDB).toHaveBeenCalledWith('electron-test', mockState.logger, undefined);
+        expect(mockState.setupWebHyperDB).toHaveBeenCalledWith('electron-test', getGlobalLogger(), undefined);
     });
 
     it('forwards setup progress to HyperDB setup', async () => {
@@ -98,20 +90,22 @@ describe('EmbeddedDatabaseProvider', () => {
 
         await act(async () => {
             root.render(
-                <EmbeddedDatabaseProvider>
-                    <SetupConsumer
-                        context="progress-test"
-                        onSetupProgress={onSetupProgress}
-                        onReady={(db) => resolveDb?.(db)}
-                    />
-                </EmbeddedDatabaseProvider>
+                <LoggerProvider>
+                    <EmbeddedDatabaseProvider>
+                        <SetupConsumer
+                            context="progress-test"
+                            onSetupProgress={onSetupProgress}
+                            onReady={(db) => resolveDb?.(db)}
+                        />
+                    </EmbeddedDatabaseProvider>
+                </LoggerProvider>
             );
         });
         await dbPromise;
 
         expect(mockState.setupWebHyperDB).toHaveBeenCalledWith(
             'progress-test',
-            mockState.logger,
+            getGlobalLogger(),
             onSetupProgress,
         );
     });
