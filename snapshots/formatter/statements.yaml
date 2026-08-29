@@ -99,6 +99,26 @@ formatter-snapshots:
             expected: |-
               create or replace temporary view result as select 1;
 
+  - name: coverage_create_or_replace_view_wrap_after_as
+    input: |-
+      create or replace view analytics.result as select * from analytics.source
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create or replace view analytics.result as select * from analytics.source;
+          - mode: compact
+            width: 65
+            expected: |-
+              create or replace view analytics.result as
+              select * from analytics.source;
+          - mode: pretty
+            expected: |-
+              create or replace view analytics.result as
+              select *
+              from analytics.source;
+
   - name: coverage_create_function
     input: |-
       create function analytics.render(value int, label varchar) returns varchar

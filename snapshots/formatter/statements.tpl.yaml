@@ -32,6 +32,14 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  - name: coverage_create_or_replace_view_wrap_after_as
+    input: create or replace view analytics.result as select * from analytics.source
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 65
+
   - name: coverage_create_function
     input: create function analytics.render(value int, label varchar) returns varchar
     dialects:
