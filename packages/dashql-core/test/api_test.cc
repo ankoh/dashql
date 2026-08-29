@@ -168,18 +168,17 @@ TEST(ApiTest, AsyncAnalysisRunsTwoJobsAndPublishesResults) {
 TEST(ApiTest, AsyncAnalysisRejectsDuplicateAndBusyOperations) {
     Catalog catalog;
     Script script{catalog};
-    script.InsertTextAt(0, "select 1");
+    std::string query = "select ";
+    for (size_t i = 0; i < 20'000; ++i) query += i == 0 ? "1" : "+1";
+    script.InsertTextAt(0, query);
     auto job = dashql_script_analyze_async(&script, true);
 
     EXPECT_THROW(dashql_script_analyze_async(&script, true), Exception);
-    auto state = AsyncAnalysisJobs::Poll(job);
-    if (state < AsyncAnalysisJobState::READY) {
-        EXPECT_THROW(script.ToString(), Exception);
-    }
+    EXPECT_THROW(script.ToString(), Exception);
     EXPECT_EQ(WaitForJob(job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
-    EXPECT_EQ(script.ToString(), "select 1");
+    EXPECT_EQ(script.ToString(), query);
     dashql_script_analysis_job_release(job);
-    EXPECT_EQ(script.ToString(), "select 1");
+    EXPECT_EQ(script.ToString(), query);
 }
 
 TEST(ApiTest, AsyncAnalysisContainsWorkerExceptions) {
