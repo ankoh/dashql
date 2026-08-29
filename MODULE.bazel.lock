@@ -512,6 +512,72 @@
         }
       }
     },
+    "//packages/dashql-data:deps.bzl%dashql_datasets": {
+      "general": {
+        "bzlTransitiveDigest": "M2Jf7ZhfIapxKeyzwrIRbeAWgeOr9bF/CvfNVvSGcaI=",
+        "usagesDigest": "9/L3i6J/hCuVodSExd/OhU+8RgPqZrNJh2dYfdMS3tc=",
+        "recordedInputs": [
+          "REPO_MAPPING:,aspect_bazel_lib aspect_bazel_lib+",
+          "REPO_MAPPING:,bazel_tools bazel_tools",
+          "REPO_MAPPING:aspect_bazel_lib+,bazel_lib bazel_lib+",
+          "REPO_MAPPING:aspect_bazel_lib+,bazel_tools bazel_tools",
+          "REPO_MAPPING:bazel_lib+,bazel_skylib bazel_skylib+",
+          "REPO_MAPPING:bazel_lib+,bazel_tools bazel_tools"
+        ],
+        "generatedRepoSpecs": {
+          "dataset_vega_cars_cars": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
+            "attributes": {
+              "urls": [
+                "https://raw.githubusercontent.com/vega/vega-datasets/v2.9.0/data/cars.json"
+              ],
+              "sha256": "f686a53678b21f4231e2f6a5ba7ce5761d9d39204fccdea1caa29fb8c460e319",
+              "downloaded_file_path": "cars.json"
+            }
+          },
+          "tpch_extension_osx_arm64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
+            "attributes": {
+              "urls": [
+                "https://extensions.duckdb.org/v1.5.4/osx_arm64/tpch.duckdb_extension.gz"
+              ],
+              "sha256": "a209167487df9390c497d0f041c2557f2d43dcad199e2cd16e15a7264de53a4b",
+              "downloaded_file_path": "tpch.duckdb_extension.gz"
+            }
+          },
+          "tpch_extension_osx_amd64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
+            "attributes": {
+              "urls": [
+                "https://extensions.duckdb.org/v1.5.4/osx_amd64/tpch.duckdb_extension.gz"
+              ],
+              "sha256": "b8420ecad2a6759f146decdef3f52957ec5bb37a6ab02464a591cccd1d3d17e0",
+              "downloaded_file_path": "tpch.duckdb_extension.gz"
+            }
+          },
+          "tpch_extension_linux_amd64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
+            "attributes": {
+              "urls": [
+                "https://extensions.duckdb.org/v1.5.4/linux_amd64/tpch.duckdb_extension.gz"
+              ],
+              "sha256": "7ec6d5b002e2f19758b3dabd4397d85c55dbfcc43b25faa56659d173decb4ba6",
+              "downloaded_file_path": "tpch.duckdb_extension.gz"
+            }
+          },
+          "tpch_extension_linux_arm64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
+            "attributes": {
+              "urls": [
+                "https://extensions.duckdb.org/v1.5.4/linux_arm64/tpch.duckdb_extension.gz"
+              ],
+              "sha256": "f27a450f729239f7a3c4308d852526463e12642021d5e5b56b202f3a74455c94",
+              "downloaded_file_path": "tpch.duckdb_extension.gz"
+            }
+          }
+        }
+      }
+    },
     "@@aspect_tools_telemetry+//:extension.bzl%telemetry": {
       "general": {
         "bzlTransitiveDigest": "cl5A2O84vDL6Tt+Qga8FCj1DUDGqn+e7ly5rZ+4xvcc=",
