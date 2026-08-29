@@ -157,6 +157,7 @@ sh_test(
         "//packages/dashql-native-napi:addon",
     ],
     target_compatible_with = ["@platforms//os:macos"],
+    tags = ["exclusive"],
     visibility = ["//visibility:public"],
 )
 
@@ -174,7 +175,10 @@ sh_test(
         "//packages/dashql-native-napi:addon",
     ],
     target_compatible_with = ["@platforms//os:macos"],
-    tags = ["no-sandbox"],
+    tags = [
+        "exclusive",
+        "no-sandbox",
+    ],
     timeout = "long",
     visibility = ["//visibility:public"],
 )
@@ -192,7 +196,10 @@ sh_test(
         "//packages/dashql-native-napi:addon",
     ],
     target_compatible_with = ["@platforms//os:macos"],
-    tags = ["no-sandbox"],
+    tags = [
+        "exclusive",
+        "no-sandbox",
+    ],
     timeout = "long",
     visibility = ["//visibility:public"],
 )
