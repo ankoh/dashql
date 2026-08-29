@@ -328,6 +328,7 @@ _vite_web_deps = [
     "//:node_modules/vega-embed",
     "//:node_modules/vega-interpreter",
     "//:node_modules/vega-lite",
+    "//:node_modules/vite",
     "//:node_modules/vite-plugin-checker",
 ]
 
