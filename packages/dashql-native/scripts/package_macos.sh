@@ -28,6 +28,7 @@ ln -s "${WORKSPACE_ROOT}/node_modules" "${STAGE}/node_modules"
 
 BUILDER_ARGS=(--config "${STAGE}/electron-builder.yml")
 if [[ -z "${CSC_LINK:-}" && -z "${CSC_NAME:-}" ]]; then
+    unset CSC_LINK CSC_NAME CSC_KEY_PASSWORD
     export CSC_IDENTITY_AUTO_DISCOVERY=false
 else
     BUILDER_ARGS+=(--config.mac.notarize=true)
