@@ -6,7 +6,7 @@ import {promisify} from "node:util";
 import {fileURLToPath} from "node:url";
 import {brotliDecompress} from "node:zlib";
 
-import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProcess} from "electron";
+import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProcess, type WebContents} from "electron";
 
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
@@ -30,6 +30,7 @@ const rendererRoot = process.env.DASHQL_ELECTRON_RENDERER ?? path.join(process.r
 const rendererDevOrigin = parseRendererDevOrigin(process.env.DASHQL_ELECTRON_RENDERER_URL);
 const decompressBrotli = promisify(brotliDecompress);
 const deepLinks = new DeepLinkQueue();
+let deepLinkSender: WebContents | null = null;
 let nativeProxy: NativeProxyService | null = null;
 let mainWindow: BrowserWindow | null = null;
 let updater: ElectronUpdater | null = null;
@@ -468,7 +469,15 @@ if (!hasSingleInstanceLock) {
         const initial = deepLinks.attach((data) => {
             if (!sender.isDestroyed()) sender.send("dashql:deep-link", data);
         });
-        sender.once("destroyed", () => deepLinks.detach());
+        if (deepLinkSender !== sender) {
+            deepLinkSender = sender;
+            sender.once("destroyed", () => {
+                if (deepLinkSender === sender) {
+                    deepLinkSender = null;
+                    deepLinks.detach();
+                }
+            });
+        }
         return initial;
     });
 
@@ -583,11 +592,13 @@ if (!hasSingleInstanceLock) {
             return;
         }
         const testMode = rendererTestMode();
-        updater = createElectronUpdater(app.getVersion(), () => mainWindow);
+        if (app.isPackaged || process.env.DASHQL_ENABLE_DEV_UPDATES) {
+            updater = createElectronUpdater(app.getVersion(), () => mainWindow);
+        }
         nativeProxy = startNativeProxy();
         await nativeProxy.ready();
         const window = await createWindow(testMode);
-        if (testMode === null) void updater.check().catch((error) => console.error("Update check failed", error));
+        if (testMode === null) void updater?.check().catch((error) => console.error("Update check failed", error));
         if (testMode === "capability") {
             await runCapabilityTest(window);
         } else if (testMode === "persistence-write" || testMode === "persistence-verify") {
