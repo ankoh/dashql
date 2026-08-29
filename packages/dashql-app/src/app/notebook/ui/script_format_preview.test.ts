@@ -14,7 +14,7 @@ beforeAll(async () => {
 describe('script format preview', () => {
     it('projects syntax highlighting against pretty-formatted text', () => {
         const catalog = dql.createCatalog();
-        const session = dql.createEditorSession(catalog);
+        const session = dql.createScriptSession(catalog);
         let formatted: dashql.DashQLScript | null = null;
         try {
             session.replaceText(0n, 'select count(*) from items where value > 1');

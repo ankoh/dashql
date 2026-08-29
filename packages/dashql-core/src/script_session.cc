@@ -1,4 +1,4 @@
-#include "dashql/editor/editor_session.h"
+#include "dashql/script_session.h"
 
 #include <algorithm>
 #include <limits>
@@ -14,7 +14,7 @@
 #include "dashql/utils/ast_attributes.h"
 #include "utf8proc/utf8proc_wrapper.hpp"
 
-namespace dashql::editor {
+namespace dashql {
 namespace {
 
 using buffers::editor::EditorUpdateStatus;
@@ -80,7 +80,7 @@ bool SameTable(const ResolvedTableIDs& table, uint32_t database_id, uint32_t sch
 
 }  // namespace
 
-EditorSession::EditorSession(Catalog& catalog, buffers::editor::EditorOffsetUnit offset_unit)
+ScriptSession::ScriptSession(Catalog& catalog, buffers::editor::EditorOffsetUnit offset_unit)
     : catalog_(catalog), script_(catalog), offset_unit_(offset_unit) {
     if (offset_unit != buffers::editor::EditorOffsetUnit::UTF8_BYTES &&
         offset_unit != buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS) {
@@ -88,7 +88,7 @@ EditorSession::EditorSession(Catalog& catalog, buffers::editor::EditorOffsetUnit
     }
 }
 
-std::optional<rope::Rope::TextPosition> EditorSession::ResolveOffset(const rope::Rope& text, uint64_t offset) const {
+std::optional<rope::Rope::TextPosition> ScriptSession::ResolveOffset(const rope::Rope& text, uint64_t offset) const {
     if (offset > std::numeric_limits<size_t>::max()) return std::nullopt;
     const auto position = static_cast<size_t>(offset);
     return offset_unit_ == buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS
@@ -96,7 +96,7 @@ std::optional<rope::Rope::TextPosition> EditorSession::ResolveOffset(const rope:
                : text.ResolveByteBoundary(position);
 }
 
-std::optional<uint64_t> EditorSession::TryProjectByteOffset(uint64_t offset) const {
+std::optional<uint64_t> ScriptSession::TryProjectByteOffset(uint64_t offset) const {
     if (offset_unit_ == buffers::editor::EditorOffsetUnit::UTF8_BYTES) return offset;
     if (offset > std::numeric_limits<size_t>::max()) return std::nullopt;
     auto position = script_.text.ResolveByteBoundary(static_cast<size_t>(offset));
@@ -104,20 +104,20 @@ std::optional<uint64_t> EditorSession::TryProjectByteOffset(uint64_t offset) con
     return position->utf16_code_units;
 }
 
-uint64_t EditorSession::ProjectByteOffset(uint64_t offset) const {
+uint64_t ScriptSession::ProjectByteOffset(uint64_t offset) const {
     auto projected = TryProjectByteOffset(offset);
     if (!projected) throw std::logic_error("internal text span is not on a UTF-8 codepoint boundary");
     return *projected;
 }
 
-std::unique_ptr<EditorTextSpan> EditorSession::ProjectTextSpan(buffers::parser::TextSpan span) const {
+std::unique_ptr<EditorTextSpan> ScriptSession::ProjectTextSpan(buffers::parser::TextSpan span) const {
     const auto begin = TryProjectByteOffset(span.offset());
     const auto end = TryProjectByteOffset(static_cast<uint64_t>(span.offset()) + span.length());
     if (!begin || !end || *end < *begin) return nullptr;
     return std::make_unique<EditorTextSpan>(*begin, *end - *begin);
 }
 
-EditorSession::EditorUpdate EditorSession::MakeUpdate(EditorUpdateStatus status, std::string_view message) {
+ScriptSession::EditorUpdate ScriptSession::MakeUpdate(EditorUpdateStatus status, std::string_view message) {
     EditorUpdate update;
     update.status = status;
     update.status_message = message;
@@ -135,12 +135,12 @@ EditorSession::EditorUpdate EditorSession::MakeUpdate(EditorUpdateStatus status,
     return update;
 }
 
-EditorSession::EditorUpdate EditorSession::FinalizeUpdate(EditorUpdate update) {
+ScriptSession::EditorUpdate ScriptSession::FinalizeUpdate(EditorUpdate update) {
     ProjectEditorState(update);
     return update;
 }
 
-void EditorSession::ProjectEditorState(EditorUpdate& update) {
+void ScriptSession::ProjectEditorState(EditorUpdate& update) {
     if (!update.analysis_available) return;
 
     auto parsed = script_.GetParsedScript();
@@ -389,7 +389,7 @@ void EditorSession::ProjectEditorState(EditorUpdate& update) {
     update.processing_statistics = std::move(projected_statistics);
 }
 
-bool EditorSession::EnsureAnalysis(EditorUpdate& update) {
+bool ScriptSession::EnsureAnalysis(EditorUpdate& update) {
     if (analyzed_document_revision_ == document_revision_ && analyzed_catalog_revision_ == catalog_.GetVersion() &&
         script_.GetAnalyzedScript() != nullptr) {
         update.analysis_available = true;
@@ -414,7 +414,7 @@ bool EditorSession::EnsureAnalysis(EditorUpdate& update) {
     return false;
 }
 
-EditorSession::EditorUpdate EditorSession::ReplaceText(uint64_t expected_document_revision, std::string_view text) {
+ScriptSession::EditorUpdate ScriptSession::ReplaceText(uint64_t expected_document_revision, std::string_view text) {
     EditorEvent event;
     event.expected_document_revision = expected_document_revision;
     event.origin = buffers::editor::EditorEventOrigin::SYSTEM;
@@ -430,7 +430,7 @@ EditorSession::EditorUpdate EditorSession::ReplaceText(uint64_t expected_documen
     return Apply(event);
 }
 
-EditorSession::EditorUpdate EditorSession::SetPrimaryCursor(uint64_t expected_document_revision, uint64_t offset) {
+ScriptSession::EditorUpdate ScriptSession::SetPrimaryCursor(uint64_t expected_document_revision, uint64_t offset) {
     EditorEvent event;
     event.expected_document_revision = expected_document_revision;
     event.origin = buffers::editor::EditorEventOrigin::USER;
@@ -441,11 +441,11 @@ EditorSession::EditorUpdate EditorSession::SetPrimaryCursor(uint64_t expected_do
     return Apply(event);
 }
 
-void EditorSession::PackCompletion(flatbuffers::FlatBufferBuilder& builder, size_t limit) {
+flatbuffers::Offset<buffers::completion::Completion> ScriptSession::PackCompletion(
+    flatbuffers::FlatBufferBuilder& builder, size_t limit) {
     auto completion = script_.CompleteAtCursor(limit);
     if (offset_unit_ == buffers::editor::EditorOffsetUnit::UTF8_BYTES) {
-        builder.Finish(completion->Pack(builder));
-        return;
+        return completion->Pack(builder);
     }
 
     flatbuffers::FlatBufferBuilder utf8_builder;
@@ -473,16 +473,16 @@ void EditorSession::PackCompletion(flatbuffers::FlatBufferBuilder& builder, size
         if (!cursor) throw std::logic_error("completion cursor is not on a UTF-8 codepoint boundary");
         candidate->completion_cursor_offset = static_cast<uint32_t>(cursor->utf16_code_units);
     }
-    builder.Finish(buffers::completion::Completion::Pack(builder, projected.get()));
+    return buffers::completion::Completion::Pack(builder, projected.get());
 }
 
-void EditorSession::CompileQuery(flatbuffers::FlatBufferBuilder& builder,
-                                 const buffers::formatting::FormattingConfigT& config, bool allow_extensions,
-                                 bool parse_if_outdated) {
-    ScriptCompiler::CompileAndPack(builder, script_, config, allow_extensions, parse_if_outdated);
+ScriptCompilationResult ScriptSession::CompileQuery(const buffers::formatting::FormattingConfigT& config,
+                                                    bool allow_extensions, bool parse_if_outdated) {
+    return ScriptCompiler::Compile(
+        script_, config, {.allow_extensions = allow_extensions, .parse_if_outdated = parse_if_outdated});
 }
 
-std::unique_ptr<Script> EditorSession::Format(const buffers::formatting::FormattingConfigT& config,
+std::unique_ptr<Script> ScriptSession::Format(const buffers::formatting::FormattingConfigT& config,
                                               bool parse_if_outdated, Catalog* catalog) {
     auto text = script_.Format(config, parse_if_outdated);
     auto result = std::make_unique<Script>(catalog != nullptr ? *catalog : catalog_);
@@ -490,18 +490,18 @@ std::unique_ptr<Script> EditorSession::Format(const buffers::formatting::Formatt
     return result;
 }
 
-bool EditorSession::IsFullyFormattable(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated) {
+bool ScriptSession::IsFullyFormattable(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated) {
     return script_.IsFullyFormattable(config, parse_if_outdated);
 }
 
-void EditorSession::ComputeDiff(flatbuffers::FlatBufferBuilder& builder, Script& target) {
+flatbuffers::Offset<buffers::diff::ScriptDiff> ScriptSession::PackDiff(flatbuffers::FlatBufferBuilder& builder,
+                                                                       Script& target) {
     if (script_.GetParsedScript() == nullptr || target.GetParsedScript() == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
     }
     ScriptDiff diff{*script_.GetParsedScript(), *target.GetParsedScript()};
     if (offset_unit_ == buffers::editor::EditorOffsetUnit::UTF8_BYTES) {
-        builder.Finish(diff.Pack(builder));
-        return;
+        return diff.Pack(builder);
     }
 
     flatbuffers::FlatBufferBuilder utf8_builder;
@@ -531,10 +531,10 @@ void EditorSession::ComputeDiff(flatbuffers::FlatBufferBuilder& builder, Script&
                                                end->utf16_code_units - begin->utf16_code_units);
         }
     }
-    builder.Finish(buffers::diff::ScriptDiff::Pack(builder, projected.get()));
+    return buffers::diff::ScriptDiff::Pack(builder, projected.get());
 }
 
-void EditorSession::LoadIntoCatalog(CatalogEntry::Rank rank) {
+void ScriptSession::LoadIntoCatalog(CatalogEntry::Rank rank) {
     catalog_.LoadScript(script_, rank);
     // Publishing this exact analyzed snapshot advances the catalog generation but does not make
     // the session stale against itself. Other sessions observe the new generation and reanalyze.
@@ -542,9 +542,9 @@ void EditorSession::LoadIntoCatalog(CatalogEntry::Rank rank) {
     cursor_catalog_revision_ = catalog_.GetVersion();
 }
 
-void EditorSession::DropFromCatalog() { catalog_.DropScript(script_); }
+void ScriptSession::DropFromCatalog() { catalog_.DropScript(script_); }
 
-EditorSession::EditorUpdate EditorSession::EnsureSynchronousAnalysis() {
+ScriptSession::EditorUpdate ScriptSession::EnsureSynchronousAnalysis() {
     auto update = MakeUpdate();
     if (EnsureAnalysis(update)) {
         const bool cursor_outdated =
@@ -565,7 +565,7 @@ EditorSession::EditorUpdate EditorSession::EnsureSynchronousAnalysis() {
     return FinalizeUpdate(std::move(update));
 }
 
-EditorSession::EditorUpdate EditorSession::Apply(const EditorEvent& event) {
+ScriptSession::EditorUpdate ScriptSession::Apply(const EditorEvent& event) {
     auto update = MakeUpdate();
     update.origin = event.origin;
     update.intent = event.intent;
@@ -714,4 +714,4 @@ EditorSession::EditorUpdate EditorSession::Apply(const EditorEvent& event) {
     return FinalizeUpdate(std::move(update));
 }
 
-}  // namespace dashql::editor
+}  // namespace dashql

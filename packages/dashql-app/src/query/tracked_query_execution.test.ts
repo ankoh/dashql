@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { QueryExecutionStatus, QueryType } from './query_execution_state.js';
+import { QUERY_STATEMENT_STARTED, QueryExecutionStatus, QueryType } from './query_execution_state.js';
 import { allocateQueryId, executeTrackedQuery } from './tracked_query_execution.js';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
 import { createQueryExecutionMetrics, reduceQueryAction, type QueryExecutionHistoryState } from './query_execution_state.js';
@@ -73,5 +73,23 @@ describe('executeTrackedQuery', () => {
 
         expect(state.metrics.successfulQueries?.totalQueries).toBe(0);
         expect(state.queriesFinished.size).toBe(1);
+    });
+
+    it('records the active script statement', async () => {
+        const tracker = new ShellQueryExecutionTracker();
+
+        await executeTrackedQuery({
+            query: 'CREATE TABLE t(a INT); SELECT * FROM t',
+            metadata,
+            tracker,
+            execute: async context => {
+                context.dispatch({ type: QUERY_STATEMENT_STARTED, value: [context.queryId, 1, 2] });
+            },
+        });
+
+        expect(tracker.getSnapshot()[0]).toMatchObject({
+            statementIndex: 1,
+            statementCount: 2,
+        });
     });
 });

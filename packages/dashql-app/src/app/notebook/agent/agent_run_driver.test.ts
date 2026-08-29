@@ -34,7 +34,7 @@ class FakeHost implements AgentHost {
     /// Whether visualize runs should reframe as an edit.
     createAgentSession(): core.DashQLAgentSession {
         const targetScript = this.targetScript;
-        const target = targetScript == null ? null : dql!.createEditorSession(catalog!);
+        const target = targetScript == null ? null : dql!.createScriptSession(catalog!);
         if (target != null && targetScript != null) target.replaceText(0n, targetScript);
         return dql!.createAgentSession(catalog!, target);
     }

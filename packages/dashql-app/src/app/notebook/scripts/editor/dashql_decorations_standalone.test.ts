@@ -28,7 +28,7 @@ describe('scanner decorations', () => {
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, text);
         script.analyze();
-        const session = dql!.createEditorSession(catalog);
+        const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, text);
         const update = session.ensureAnalysis();
         const state = EditorState.create({
@@ -57,7 +57,7 @@ describe('scanner decorations', () => {
     it('highlights relation and function identifiers', () => {
         const text = 'select util.read_parquet(path) from db.public.items';
         const catalog = dql!.createCatalog();
-        const session = dql!.createEditorSession(catalog);
+        const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, text);
         const update = session.ensureAnalysis();
         const state = EditorState.create({
@@ -91,7 +91,7 @@ describe('scanner decorations', () => {
     it('renders relation and function colors with the production theme', () => {
         const text = 'select read_parquet(path) from items';
         const catalog = dql!.createCatalog();
-        const session = dql!.createEditorSession(catalog);
+        const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, text);
         const update = session.ensureAnalysis();
         const view = new EditorView({

@@ -9,7 +9,7 @@
 #include "c4/yml/std/std.hpp"
 #include "dashql/agent/agent_session.h"
 #include "dashql/catalog.h"
-#include "dashql/editor/editor_session.h"
+#include "dashql/script_session.h"
 #include "dashql/testing/runfiles_dir.h"
 
 namespace dashql::testing {
@@ -221,9 +221,9 @@ AgentSnapshotTest AgentSnapshotTest::Parse(c4::yml::ConstNodeRef node, bool requ
 void AgentSnapshotTest::EncodeExpected(c4::yml::NodeRef root, const AgentSnapshotTest& test) {
     // Drive the same coroutine/effect boundary used by WASM without external services.
     Catalog catalog;
-    std::unique_ptr<editor::EditorSession> target;
+    std::unique_ptr<ScriptSession> target;
     if (!test.script.empty()) {
-        target = std::make_unique<editor::EditorSession>(catalog);
+        target = std::make_unique<ScriptSession>(catalog);
         target->ReplaceText(0, test.script);
     }
     auto formatting_config = agent::DefaultAgentFormattingConfig();

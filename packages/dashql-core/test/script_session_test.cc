@@ -1,4 +1,4 @@
-#include "dashql/editor/editor_session.h"
+#include "dashql/script_session.h"
 
 #include <flatbuffers/flatbuffer_builder.h>
 
@@ -13,8 +13,10 @@
 #include "dashql/catalog.h"
 #include "gtest/gtest.h"
 
-namespace dashql::editor {
+namespace dashql {
 namespace {
+
+using ScriptSession = ScriptSession;
 
 using buffers::editor::EditorCursorSemanticKind;
 using buffers::editor::EditorDiagnosticSource;
@@ -50,8 +52,8 @@ template <typename T> const T* ReadBuffer(const std::vector<uint8_t>& data) {
     return flatbuffers::GetRoot<T>(data.data());
 }
 
-EditorSession::EditorUpdate Analyze(EditorSession& session, std::string_view text) {
-    EditorSession::EditorEvent event;
+ScriptSession::EditorUpdate Analyze(ScriptSession& session, std::string_view text) {
+    ScriptSession::EditorEvent event;
     event.expected_document_revision = session.GetDocumentRevision();
     event.ensure_analysis = true;
     event.changes.push_back(Change(0, session.GetText().size(), text));
@@ -63,7 +65,7 @@ std::string_view ReadSpan(std::string_view text, const buffers::editor::EditorTe
     return text.substr(span->offset(), span->length());
 }
 
-const buffers::editor::EditorSemanticSpanT* FindSemanticSpan(const EditorSession::EditorUpdate& update,
+const buffers::editor::EditorSemanticSpanT* FindSemanticSpan(const ScriptSession::EditorUpdate& update,
                                                              std::string_view text,
                                                              buffers::editor::EditorSemanticReferenceKind kind,
                                                              std::string_view source) {
@@ -73,19 +75,19 @@ const buffers::editor::EditorSemanticSpanT* FindSemanticSpan(const EditorSession
     return nullptr;
 }
 
-TEST(EditorSessionTest, AppliesAtomicBatchInPreChangeOffsets) {
+TEST(ScriptSessionTest, AppliesAtomicBatchInPreChangeOffsets) {
     Catalog catalog;
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     ASSERT_EQ(session.ReplaceText(0, "abcdef").status, EditorUpdateStatus::OK);
 
-    EditorSession::EditorEvent event;
+    ScriptSession::EditorEvent event;
     event.expected_document_revision = 1;
     event.origin = EditorEventOrigin::USER;
     event.intent = EditorEventIntent::EDIT;
     event.action = EditorEventAction::TYPE;
     event.changes.push_back(Change(1, 2, "X"));
     event.changes.push_back(Change(4, 6, "YZ"));
-    event.primary_selection = std::make_unique<EditorSession::EditorSelection>();
+    event.primary_selection = std::make_unique<ScriptSession::EditorSelection>();
     event.primary_selection->anchor = 6;
     event.primary_selection->head = 6;
 
@@ -98,12 +100,12 @@ TEST(EditorSessionTest, AppliesAtomicBatchInPreChangeOffsets) {
     EXPECT_EQ(update.primary_selection->head, 6);
 }
 
-TEST(EditorSessionTest, PreservesInputOrderForInsertionsAtSameOffset) {
+TEST(ScriptSessionTest, PreservesInputOrderForInsertionsAtSameOffset) {
     Catalog catalog;
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     ASSERT_EQ(session.ReplaceText(0, "ab").status, EditorUpdateStatus::OK);
 
-    EditorSession::EditorEvent event;
+    ScriptSession::EditorEvent event;
     event.expected_document_revision = 1;
     event.changes.push_back(Change(1, 1, "X"));
     event.changes.push_back(Change(1, 1, "Y"));
@@ -112,12 +114,12 @@ TEST(EditorSessionTest, PreservesInputOrderForInsertionsAtSameOffset) {
     EXPECT_EQ(session.GetText(), "aXYb");
 }
 
-TEST(EditorSessionTest, RejectsWholeOverlappingOrStaleBatch) {
+TEST(ScriptSessionTest, RejectsWholeOverlappingOrStaleBatch) {
     Catalog catalog;
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     ASSERT_EQ(session.ReplaceText(0, "abcdef").status, EditorUpdateStatus::OK);
 
-    EditorSession::EditorEvent overlap;
+    ScriptSession::EditorEvent overlap;
     overlap.expected_document_revision = 1;
     overlap.changes.push_back(Change(1, 4, "x"));
     overlap.changes.push_back(Change(3, 5, "y"));
@@ -126,7 +128,7 @@ TEST(EditorSessionTest, RejectsWholeOverlappingOrStaleBatch) {
     EXPECT_EQ(session.GetText(), "abcdef");
     EXPECT_EQ(session.GetDocumentRevision(), 1);
 
-    EditorSession::EditorEvent stale;
+    ScriptSession::EditorEvent stale;
     stale.expected_document_revision = 0;
     stale.changes.push_back(Change(0, 1, "z"));
     auto stale_update = session.Apply(stale);
@@ -135,19 +137,19 @@ TEST(EditorSessionTest, RejectsWholeOverlappingOrStaleBatch) {
     EXPECT_EQ(session.GetStateRevision(), 1);
 }
 
-TEST(EditorSessionTest, ConvertsUtf8ByteOffsetsAndRejectsSplitCodepoints) {
+TEST(ScriptSessionTest, ConvertsUtf8ByteOffsetsAndRejectsSplitCodepoints) {
     Catalog catalog;
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     ASSERT_EQ(session.ReplaceText(0, "a\xC3\xA9z").status, EditorUpdateStatus::OK);
 
-    EditorSession::EditorEvent valid;
+    ScriptSession::EditorEvent valid;
     valid.expected_document_revision = 1;
     valid.changes.push_back(Change(1, 3, "\xE2\x98\x83"));
     auto valid_update = session.Apply(valid);
     EXPECT_EQ(valid_update.status, EditorUpdateStatus::OK);
     EXPECT_EQ(session.GetText(), "a\xE2\x98\x83z");
 
-    EditorSession::EditorEvent split;
+    ScriptSession::EditorEvent split;
     split.expected_document_revision = 2;
     split.changes.push_back(Change(2, 3, "x"));
     auto split_update = session.Apply(split);
@@ -156,10 +158,10 @@ TEST(EditorSessionTest, ConvertsUtf8ByteOffsetsAndRejectsSplitCodepoints) {
     EXPECT_EQ(session.GetDocumentRevision(), 2);
 }
 
-TEST(EditorSessionTest, UsesUtf16OffsetsForEventsSelectionsAndProjections) {
+TEST(ScriptSessionTest, UsesUtf16OffsetsForEventsSelectionsAndProjections) {
     constexpr std::string_view text = "select '\xF0\x9F\x98\x80' from missing";
     Catalog catalog;
-    EditorSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
 
     auto update = Analyze(session, text);
     ASSERT_EQ(update.status, EditorUpdateStatus::OK);
@@ -171,10 +173,10 @@ TEST(EditorSessionTest, UsesUtf16OffsetsForEventsSelectionsAndProjections) {
     ASSERT_NE(missing, update.semantic_spans.end());
     EXPECT_EQ((*missing)->text_span->offset(), 17u);
 
-    EditorSession::EditorEvent event;
+    ScriptSession::EditorEvent event;
     event.expected_document_revision = 1;
     event.changes.push_back(Change(8, 10, "x"));
-    event.primary_selection = std::make_unique<EditorSession::EditorSelection>();
+    event.primary_selection = std::make_unique<ScriptSession::EditorSelection>();
     event.primary_selection->anchor = 9;
     event.primary_selection->head = 9;
     update = session.Apply(event);
@@ -183,24 +185,24 @@ TEST(EditorSessionTest, UsesUtf16OffsetsForEventsSelectionsAndProjections) {
     ASSERT_NE(update.primary_selection, nullptr);
     EXPECT_EQ(update.primary_selection->head, 9u);
 
-    EditorSession::EditorEvent split_surrogate;
+    ScriptSession::EditorEvent split_surrogate;
     split_surrogate.expected_document_revision = 2;
     split_surrogate.changes.push_back(Change(0, 0, "\xF0\x9F\x98\x80"));
-    split_surrogate.primary_selection = std::make_unique<EditorSession::EditorSelection>();
+    split_surrogate.primary_selection = std::make_unique<ScriptSession::EditorSelection>();
     split_surrogate.primary_selection->anchor = 1;
     split_surrogate.primary_selection->head = 1;
     EXPECT_EQ(session.Apply(split_surrogate).status, EditorUpdateStatus::INVALID_RANGE);
 }
 
-TEST(EditorSessionTest, ProjectsCompletionAndDiffAsUtf16) {
+TEST(ScriptSessionTest, ProjectsCompletionAndDiffAsUtf16) {
     Catalog catalog;
-    EditorSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
     ASSERT_EQ(session.ReplaceText(0, "-- \xF0\x9F\x98\x80\ns").status, EditorUpdateStatus::OK);
     ASSERT_EQ(session.SetPrimaryCursor(1, 7).status, EditorUpdateStatus::OK);
     ASSERT_EQ(session.EnsureSynchronousAnalysis().status, EditorUpdateStatus::OK);
 
     flatbuffers::FlatBufferBuilder completion_builder;
-    session.PackCompletion(completion_builder, 10);
+    completion_builder.Finish(session.PackCompletion(completion_builder, 10));
     auto* completion = flatbuffers::GetRoot<buffers::completion::Completion>(completion_builder.GetBufferPointer());
     ASSERT_NE(completion->candidates(), nullptr);
     ASSERT_FALSE(completion->candidates()->empty());
@@ -213,7 +215,7 @@ TEST(EditorSessionTest, ProjectsCompletionAndDiffAsUtf16) {
     target.ReplaceText("-- \xF0\x9F\x98\x80\nselect 2");
     target.Parse();
     flatbuffers::FlatBufferBuilder diff_builder;
-    session.ComputeDiff(diff_builder, target);
+    diff_builder.Finish(session.PackDiff(diff_builder, target));
     auto* diff = flatbuffers::GetRoot<buffers::diff::ScriptDiff>(diff_builder.GetBufferPointer());
     ASSERT_NE(diff->ops(), nullptr);
     ASSERT_FALSE(diff->ops()->empty());
@@ -222,9 +224,9 @@ TEST(EditorSessionTest, ProjectsCompletionAndDiffAsUtf16) {
     EXPECT_EQ(target_span->offset(), 6u);
 }
 
-TEST(EditorSessionTest, EnsuresSynchronousAnalysisAtCatalogRevision) {
+TEST(ScriptSessionTest, EnsuresSynchronousAnalysisAtCatalogRevision) {
     Catalog catalog;
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     ASSERT_EQ(session.ReplaceText(0, "create table items (id int); select * from items;").status,
               EditorUpdateStatus::OK);
     EXPECT_FALSE(catalog.Contains(session.GetCatalogEntryId()));
@@ -255,14 +257,14 @@ TEST(EditorSessionTest, EnsuresSynchronousAnalysisAtCatalogRevision) {
     EXPECT_NE(session.GetScript().GetAnalyzedScript(), nullptr);
 }
 
-TEST(EditorSessionTest, CursorMoveRefreshesAnalysisAfterCatalogRevision) {
+TEST(ScriptSessionTest, CursorMoveRefreshesAnalysisAfterCatalogRevision) {
     Catalog catalog;
-    EditorSession source{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ScriptSession source{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
     auto initial = Analyze(source, "select value from items");
     ASSERT_TRUE(initial.analysis_available);
     ASSERT_FALSE(initial.syntax_spans.empty());
 
-    EditorSession schema{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ScriptSession schema{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
     ASSERT_TRUE(Analyze(schema, "create table items (value int)").analysis_available);
     schema.LoadIntoCatalog(0);
 
@@ -273,9 +275,9 @@ TEST(EditorSessionTest, CursorMoveRefreshesAnalysisAfterCatalogRevision) {
     EXPECT_FALSE(moved.syntax_spans.empty());
 }
 
-TEST(EditorSessionTest, EditingPublishedScriptDropsStaleCatalogEntry) {
+TEST(ScriptSessionTest, EditingPublishedScriptDropsStaleCatalogEntry) {
     Catalog catalog;
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     ASSERT_TRUE(Analyze(session, "create table items (id int)").analysis_available);
     session.LoadIntoCatalog(0);
     ASSERT_TRUE(catalog.Contains(session.GetCatalogEntryId()));
@@ -286,15 +288,15 @@ TEST(EditorSessionTest, EditingPublishedScriptDropsStaleCatalogEntry) {
     EXPECT_FALSE(catalog.Contains(session.GetCatalogEntryId()));
 }
 
-TEST(EditorSessionTest, EditCanSynchronouslyAnalyzeAndPlaceCursor) {
+TEST(ScriptSessionTest, EditCanSynchronouslyAnalyzeAndPlaceCursor) {
     Catalog catalog;
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
 
-    EditorSession::EditorEvent event;
+    ScriptSession::EditorEvent event;
     event.expected_document_revision = 0;
     event.ensure_analysis = true;
     event.changes.push_back(Change(0, 0, "select 1"));
-    event.primary_selection = std::make_unique<EditorSession::EditorSelection>();
+    event.primary_selection = std::make_unique<ScriptSession::EditorSelection>();
     event.primary_selection->anchor = 8;
     event.primary_selection->head = 8;
 
@@ -313,10 +315,10 @@ TEST(EditorSessionTest, EditCanSynchronouslyAnalyzeAndPlaceCursor) {
     EXPECT_EQ(update.state_revision, 1);
 }
 
-TEST(EditorSessionTest, ProjectsUnicodeSyntaxCommentsAndDiagnosticsAsUtf8Bytes) {
+TEST(ScriptSessionTest, ProjectsUnicodeSyntaxCommentsAndDiagnosticsAsUtf8Bytes) {
     constexpr std::string_view text = "-- caf\xC3\xA9\nselect '\xC3\xA9' from missing";
     Catalog catalog;
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     auto update = Analyze(session, text);
 
     ASSERT_EQ(update.status, EditorUpdateStatus::OK);
@@ -342,7 +344,7 @@ TEST(EditorSessionTest, ProjectsUnicodeSyntaxCommentsAndDiagnosticsAsUtf8Bytes) 
     EXPECT_EQ(missing->resolution, EditorSemanticResolution::UNRESOLVED);
     EXPECT_EQ(missing->text_span->offset(), text.find("missing"));
 
-    EditorSession scanner_session{catalog};
+    ScriptSession scanner_session{catalog};
     constexpr std::string_view scanner_text = "select '\xC3\xA9";
     auto scanner_update = Analyze(scanner_session, scanner_text);
     ASSERT_FALSE(scanner_update.diagnostics.empty());
@@ -352,7 +354,7 @@ TEST(EditorSessionTest, ProjectsUnicodeSyntaxCommentsAndDiagnosticsAsUtf8Bytes) 
     EXPECT_EQ((*scanner)->message, "unterminated quoted string");
     EXPECT_EQ(ReadSpan(scanner_text, (*scanner)->text_span.get()), "'\xC3\xA9");
 
-    EditorSession parser_session{catalog};
+    ScriptSession parser_session{catalog};
     constexpr std::string_view parser_text = "select 1 'alias'";
     auto parser_update = Analyze(parser_session, parser_text);
     auto parser = std::find_if(parser_update.diagnostics.begin(), parser_update.diagnostics.end(),
@@ -362,14 +364,14 @@ TEST(EditorSessionTest, ProjectsUnicodeSyntaxCommentsAndDiagnosticsAsUtf8Bytes) 
     EXPECT_FALSE(ReadSpan(parser_text, (*parser)->text_span.get()).empty());
 }
 
-TEST(EditorSessionTest, ProjectsAnalyzerErrorsAndResolvedAndUnresolvedReferences) {
+TEST(ScriptSessionTest, ProjectsAnalyzerErrorsAndResolvedAndUnresolvedReferences) {
     Catalog catalog;
     Script schema{catalog};
     schema.ReplaceText("create table items (id int); create table other (id int)");
     schema.Analyze();
     catalog.LoadScript(schema, 0);
 
-    EditorSession ambiguous_session{catalog};
+    ScriptSession ambiguous_session{catalog};
     constexpr std::string_view ambiguous_text = "select id from items, other";
     auto ambiguous_update = Analyze(ambiguous_session, ambiguous_text);
     auto analyzer = std::find_if(ambiguous_update.diagnostics.begin(), ambiguous_update.diagnostics.end(),
@@ -378,7 +380,7 @@ TEST(EditorSessionTest, ProjectsAnalyzerErrorsAndResolvedAndUnresolvedReferences
     EXPECT_NE((*analyzer)->message.find("ambiguous"), std::string::npos);
     EXPECT_EQ(ReadSpan(ambiguous_text, (*analyzer)->text_span.get()), "id");
 
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     constexpr std::string_view text = "select id, missing from items, absent";
     auto update = Analyze(session, text);
     auto* items = FindSemanticSpan(update, text, EditorSemanticReferenceKind::TABLE, "items");
@@ -397,14 +399,14 @@ TEST(EditorSessionTest, ProjectsAnalyzerErrorsAndResolvedAndUnresolvedReferences
     EXPECT_EQ(missing->resolution, EditorSemanticResolution::UNRESOLVED);
 }
 
-TEST(EditorSessionTest, ProjectsFunctionReferenceSpans) {
+TEST(ScriptSessionTest, ProjectsFunctionReferenceSpans) {
     Catalog catalog;
     Script schema{catalog};
     schema.ReplaceText("create table items (id int)");
     schema.Analyze();
     catalog.LoadScript(schema, 0);
 
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     constexpr std::string_view text = "select count(id) from items";
     auto update = Analyze(session, text);
     auto* function = FindSemanticSpan(update, text, EditorSemanticReferenceKind::FUNCTION, "count");
@@ -413,14 +415,14 @@ TEST(EditorSessionTest, ProjectsFunctionReferenceSpans) {
     ASSERT_NE(table, nullptr);
 }
 
-TEST(EditorSessionTest, ProjectsPrimaryCursorSemanticContextAndRelatedReferences) {
+TEST(ScriptSessionTest, ProjectsPrimaryCursorSemanticContextAndRelatedReferences) {
     Catalog catalog;
     Script schema{catalog};
     schema.ReplaceText("create table items (id int)");
     schema.Analyze();
     catalog.LoadScript(schema, 0);
 
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     constexpr std::string_view text = "select id from items where id = 1 and items.id > 0";
     auto update = Analyze(session, text);
     ASSERT_EQ(update.status, EditorUpdateStatus::OK);
@@ -442,9 +444,9 @@ TEST(EditorSessionTest, ProjectsPrimaryCursorSemanticContextAndRelatedReferences
     EXPECT_EQ(table_update.primary_cursor_context->related_column_reference_ids.size(), 3u);
 }
 
-TEST(EditorSessionTest, ProjectsScriptAnnotationsAndPlainProcessingStatistics) {
+TEST(ScriptSessionTest, ProjectsScriptAnnotationsAndPlainProcessingStatistics) {
     Catalog catalog;
-    EditorSession session{catalog};
+    ScriptSession session{catalog};
     constexpr std::string_view text = "create table result (id int); select id from result";
     auto update = Analyze(session, text);
 
@@ -466,9 +468,9 @@ TEST(EditorSessionTest, ProjectsScriptAnnotationsAndPlainProcessingStatistics) {
     EXPECT_GE(update.processing_statistics->analyzer_last_elapsed_ns, 0.0);
 }
 
-TEST(EditorSessionTest, ProjectsStatementDescriptionsAsUtf16) {
+TEST(ScriptSessionTest, ProjectsStatementDescriptionsAsUtf16) {
     Catalog catalog;
-    EditorSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
     auto update = Analyze(session, "-- \xF0\x9F\x98\x80 summary\nselect 1;");
 
     ASSERT_NE(update.script_annotations, nullptr);
@@ -481,9 +483,9 @@ TEST(EditorSessionTest, ProjectsStatementDescriptionsAsUtf16) {
     EXPECT_EQ(description->text_span->length(), 8u);
 }
 
-TEST(EditorSessionTest, ProjectsIncompleteWithPrefixAsUtf16) {
+TEST(ScriptSessionTest, ProjectsIncompleteWithPrefixAsUtf16) {
     Catalog catalog;
-    EditorSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
 
     EXPECT_NO_THROW({
         auto update = Analyze(session, "wit");
@@ -492,17 +494,17 @@ TEST(EditorSessionTest, ProjectsIncompleteWithPrefixAsUtf16) {
     });
 }
 
-TEST(EditorSessionTest, ProjectsIncrementallyTypedWithPrefixAsUtf16) {
+TEST(ScriptSessionTest, ProjectsIncrementallyTypedWithPrefixAsUtf16) {
     Catalog catalog;
-    EditorSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
 
     for (std::string_view character : {"w", "i", "t"}) {
-        EditorSession::EditorEvent event;
+        ScriptSession::EditorEvent event;
         event.expected_document_revision = session.GetDocumentRevision();
         event.ensure_analysis = true;
         const auto offset = session.GetText().size();
         event.changes.push_back(Change(offset, offset, character));
-        event.primary_selection = std::make_unique<EditorSession::EditorSelection>();
+        event.primary_selection = std::make_unique<ScriptSession::EditorSelection>();
         event.primary_selection->anchor = offset + 1;
         event.primary_selection->head = offset + 1;
         EXPECT_NO_THROW({
@@ -514,7 +516,7 @@ TEST(EditorSessionTest, ProjectsIncrementallyTypedWithPrefixAsUtf16) {
     EXPECT_EQ(session.GetText(), "wit");
 }
 
-TEST(EditorSessionTest, ProjectsIncompleteWithPrefixAfterUtf8AsUtf16) {
+TEST(ScriptSessionTest, ProjectsIncompleteWithPrefixAfterUtf8AsUtf16) {
     for (std::string_view text : {
              "\xC3\xA9 wit",
              "'\xC3\xA9' wit",
@@ -524,7 +526,7 @@ TEST(EditorSessionTest, ProjectsIncompleteWithPrefixAfterUtf8AsUtf16) {
          }) {
         SCOPED_TRACE(text);
         Catalog catalog;
-        EditorSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+        ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
         EXPECT_NO_THROW({
             auto update = Analyze(session, text);
             EXPECT_EQ(update.status, EditorUpdateStatus::OK);
@@ -533,21 +535,21 @@ TEST(EditorSessionTest, ProjectsIncompleteWithPrefixAfterUtf8AsUtf16) {
     }
 }
 
-TEST(EditorSessionTest, CAbiOwnsSessionAndDetachedUpdateBuffers) {
+TEST(ScriptSessionTest, CAbiOwnsSessionAndDetachedUpdateBuffers) {
     Catalog catalog;
     const auto initial_catalog_revision = catalog.GetVersion();
     uint32_t entry_id = 0;
     {
         FFIResult session_result;
-        dashql_editor_session_new(&session_result, &catalog,
+        dashql_script_session_new(&session_result, &catalog,
                                   static_cast<size_t>(buffers::editor::EditorOffsetUnit::UTF8_BYTES));
-        auto* session = session_result.CastOwnerPtr<EditorSession>();
+        auto* session = session_result.CastOwnerPtr<ScriptSession>();
         ASSERT_NE(session, nullptr);
-        entry_id = dashql_editor_session_get_catalog_entry_id(session);
+        entry_id = dashql_script_session_get_catalog_entry_id(session);
 
         FFIResult replace_result;
         constexpr std::string_view text = "select 42";
-        dashql_editor_session_replace_text(&replace_result, session, 0, CopyText(text), text.size());
+        dashql_script_session_replace_text(&replace_result, session, 0, CopyText(text), text.size());
         ASSERT_NE(replace_result.data_ptr, nullptr);
         auto* update = flatbuffers::GetRoot<buffers::editor::EditorUpdate>(replace_result.data_ptr);
         EXPECT_EQ(update->status(), EditorUpdateStatus::OK);
@@ -563,20 +565,20 @@ TEST(EditorSessionTest, CAbiOwnsSessionAndDetachedUpdateBuffers) {
         event_builder.Finish(event);
 
         FFIResult apply_result;
-        dashql_editor_session_apply(&apply_result, session, event_builder.GetBufferPointer(), event_builder.GetSize());
+        dashql_script_session_apply(&apply_result, session, event_builder.GetBufferPointer(), event_builder.GetSize());
         update = flatbuffers::GetRoot<buffers::editor::EditorUpdate>(apply_result.data_ptr);
         EXPECT_EQ(update->status(), EditorUpdateStatus::OK);
         EXPECT_EQ(update->document_revision(), 2);
         dashql_delete_owner(apply_result.owner_ptr, apply_result.owner_deleter);
 
         FFIResult text_result;
-        dashql_editor_session_get_text(&text_result, session);
+        dashql_script_session_get_text(&text_result, session);
         EXPECT_EQ(std::string_view(static_cast<const char*>(text_result.data_ptr), text_result.data_length),
                   "select 42!");
         dashql_delete_owner(text_result.owner_ptr, text_result.owner_deleter);
 
         FFIResult cursor_result;
-        dashql_editor_session_set_primary_cursor(&cursor_result, session, 2, 10);
+        dashql_script_session_set_primary_cursor(&cursor_result, session, 2, 10);
         update = flatbuffers::GetRoot<buffers::editor::EditorUpdate>(cursor_result.data_ptr);
         EXPECT_EQ(update->status(), EditorUpdateStatus::OK);
         ASSERT_NE(update->primary_selection(), nullptr);
@@ -584,7 +586,7 @@ TEST(EditorSessionTest, CAbiOwnsSessionAndDetachedUpdateBuffers) {
         dashql_delete_owner(cursor_result.owner_ptr, cursor_result.owner_deleter);
 
         FFIResult analysis_result;
-        dashql_editor_session_ensure_analysis(&analysis_result, session);
+        dashql_script_session_ensure_analysis(&analysis_result, session);
         update = flatbuffers::GetRoot<buffers::editor::EditorUpdate>(analysis_result.data_ptr);
         EXPECT_EQ(update->status(), EditorUpdateStatus::OK);
         EXPECT_TRUE(update->analysis_available());
@@ -601,12 +603,12 @@ TEST(EditorSessionTest, CAbiOwnsSessionAndDetachedUpdateBuffers) {
     EXPECT_EQ(catalog.GetVersion(), initial_catalog_revision);
 
     FFIResult session_result;
-    dashql_editor_session_new(&session_result, &catalog,
+    dashql_script_session_new(&session_result, &catalog,
                               static_cast<size_t>(buffers::editor::EditorOffsetUnit::UTF8_BYTES));
-    dashql_editor_session_destroy(session_result.CastOwnerPtr<EditorSession>());
+    dashql_script_session_destroy(session_result.CastOwnerPtr<ScriptSession>());
 }
 
-TEST(EditorSessionTest, CompletionApiMatchesNormalScript) {
+TEST(ScriptSessionTest, CompletionApiMatchesNormalScript) {
     constexpr std::string_view text = "select caf\xC3\xA9 from items";
     const size_t cursor_offset = text.size();
 
@@ -618,45 +620,45 @@ TEST(EditorSessionTest, CompletionApiMatchesNormalScript) {
 
     Catalog session_catalog;
     FFIResult session_owner;
-    dashql_editor_session_new(&session_owner, &session_catalog,
+    dashql_script_session_new(&session_owner, &session_catalog,
                               static_cast<size_t>(buffers::editor::EditorOffsetUnit::UTF8_BYTES));
-    auto* session = session_owner.CastOwnerPtr<EditorSession>();
+    auto* session = session_owner.CastOwnerPtr<ScriptSession>();
 
     FFIResult update_result;
-    dashql_editor_session_replace_text(&update_result, session, 0, CopyText(text), text.size());
+    dashql_script_session_replace_text(&update_result, session, 0, CopyText(text), text.size());
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
-    dashql_editor_session_set_primary_cursor(&update_result, session, 1, cursor_offset);
+    dashql_script_session_set_primary_cursor(&update_result, session, 1, cursor_offset);
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
-    dashql_editor_session_ensure_analysis(&update_result, session);
+    dashql_script_session_ensure_analysis(&update_result, session);
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
 
     FFIResult expected_result;
     FFIResult actual_result;
     dashql_script_complete_at_cursor(&expected_result, &script, 10);
-    dashql_editor_session_complete_at_cursor(&actual_result, session, 10);
+    dashql_script_session_complete_at_cursor(&actual_result, session, 10);
     EXPECT_EQ(TakeBuffer(expected_result), TakeBuffer(actual_result));
 
     dashql_delete_owner(session_owner.owner_ptr, session_owner.owner_deleter);
 }
 
-TEST(EditorSessionTest, CompatibilityQueryFormattingAndDiffApis) {
+TEST(ScriptSessionTest, CompatibilityQueryFormattingAndDiffApis) {
     Catalog catalog;
     FFIResult session_owner;
-    dashql_editor_session_new(&session_owner, &catalog,
+    dashql_script_session_new(&session_owner, &catalog,
                               static_cast<size_t>(buffers::editor::EditorOffsetUnit::UTF8_BYTES));
-    auto* session = session_owner.CastOwnerPtr<EditorSession>();
+    auto* session = session_owner.CastOwnerPtr<ScriptSession>();
 
     constexpr std::string_view source_text = "select 1 as value";
     FFIResult update_result;
-    dashql_editor_session_replace_text(&update_result, session, 0, CopyText(source_text), source_text.size());
+    dashql_script_session_replace_text(&update_result, session, 0, CopyText(source_text), source_text.size());
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
-    dashql_editor_session_ensure_analysis(&update_result, session);
+    dashql_script_session_ensure_analysis(&update_result, session);
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
 
     constexpr auto dialect = static_cast<size_t>(buffers::formatting::FormattingDialect::HYPER);
     constexpr auto mode = static_cast<size_t>(buffers::formatting::FormattingMode::INLINE);
     FFIResult compilation_result;
-    dashql_editor_session_compile_query(&compilation_result, session, dialect, mode, 80, 4, true, true);
+    dashql_script_session_compile_query(&compilation_result, session, dialect, mode, 80, 4, true, true);
     auto compilation = TakeBuffer(compilation_result);
     auto* compiled = ReadBuffer<buffers::execution::ScriptCompilationResult>(compilation);
     ASSERT_NE(compiled->sql(), nullptr);
@@ -664,9 +666,9 @@ TEST(EditorSessionTest, CompatibilityQueryFormattingAndDiffApis) {
     ASSERT_NE(compiled->errors(), nullptr);
     EXPECT_TRUE(compiled->errors()->empty());
 
-    EXPECT_EQ(dashql_editor_session_is_fully_formattable(session, dialect, mode, 80, 4, false, true), 1);
+    EXPECT_EQ(dashql_script_session_is_fully_formattable(session, dialect, mode, 80, 4, false, true), 1);
     FFIResult formatted_result;
-    dashql_editor_session_format(&formatted_result, session, dialect, mode, 80, 4, false, true, nullptr);
+    dashql_script_session_format(&formatted_result, session, dialect, mode, 80, 4, false, true, nullptr);
     auto* formatted = formatted_result.CastOwnerPtr<Script>();
     ASSERT_NE(formatted, nullptr);
     EXPECT_EQ(formatted->ToString(), "select 1 as value;");
@@ -675,7 +677,7 @@ TEST(EditorSessionTest, CompatibilityQueryFormattingAndDiffApis) {
     target.ReplaceText("select 2 as value");
     target.Parse();
     FFIResult diff_result;
-    dashql_editor_session_compute_diff(&diff_result, session, &target);
+    dashql_script_session_compute_diff(&diff_result, session, &target);
     auto diff = TakeBuffer(diff_result);
     auto* packed_diff = ReadBuffer<buffers::diff::ScriptDiff>(diff);
     ASSERT_NE(packed_diff->ops(), nullptr);
@@ -686,22 +688,22 @@ TEST(EditorSessionTest, CompatibilityQueryFormattingAndDiffApis) {
     dashql_delete_owner(session_owner.owner_ptr, session_owner.owner_deleter);
 }
 
-TEST(EditorSessionTest, CatalogLoadAndDropUseSessionOwnedScriptAndRank) {
+TEST(ScriptSessionTest, CatalogLoadAndDropUseSessionOwnedScriptAndRank) {
     Catalog catalog;
     FFIResult session_owner;
-    dashql_editor_session_new(&session_owner, &catalog,
+    dashql_script_session_new(&session_owner, &catalog,
                               static_cast<size_t>(buffers::editor::EditorOffsetUnit::UTF8_BYTES));
-    auto* session = session_owner.CastOwnerPtr<EditorSession>();
+    auto* session = session_owner.CastOwnerPtr<ScriptSession>();
     const auto entry_id = session->GetCatalogEntryId();
 
     constexpr std::string_view text = "create table items (id int)";
     FFIResult update_result;
-    dashql_editor_session_replace_text(&update_result, session, 0, CopyText(text), text.size());
+    dashql_script_session_replace_text(&update_result, session, 0, CopyText(text), text.size());
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
-    dashql_editor_session_ensure_analysis(&update_result, session);
+    dashql_script_session_ensure_analysis(&update_result, session);
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
 
-    dashql_editor_session_load_into_catalog(session, 17);
+    dashql_script_session_load_into_catalog(session, 17);
     EXPECT_TRUE(catalog.Contains(entry_id));
     size_t entries = 0;
     catalog.IterateRanked([&](CatalogEntryID id, const CatalogEntry&, CatalogEntry::Rank rank) {
@@ -711,14 +713,14 @@ TEST(EditorSessionTest, CatalogLoadAndDropUseSessionOwnedScriptAndRank) {
     });
     EXPECT_EQ(entries, 1);
 
-    dashql_editor_session_drop_from_catalog(session);
+    dashql_script_session_drop_from_catalog(session);
     EXPECT_FALSE(catalog.Contains(entry_id));
 
-    dashql_editor_session_load_into_catalog(session, 23);
+    dashql_script_session_load_into_catalog(session, 23);
     EXPECT_TRUE(catalog.Contains(entry_id));
     dashql_delete_owner(session_owner.owner_ptr, session_owner.owner_deleter);
     EXPECT_FALSE(catalog.Contains(entry_id));
 }
 
 }  // namespace
-}  // namespace dashql::editor
+}  // namespace dashql

@@ -160,6 +160,10 @@ export interface QueryExecutionState {
     error: LoggableException | null;
     /// The latest update for the query execution
     latestProgressUpdate: QueryExecutionProgress | null;
+    /// One-based active statement position for a core-steered script execution.
+    statementIndex: number | null;
+    /// Total statements in the active script execution.
+    statementCount: number | null;
     /// The number of record batches that are already buffered
     resultSchema: arrow.Schema | null;
     /// The number of record batches that are already buffered
@@ -191,6 +195,7 @@ export const QUERY_PREPARING = Symbol('QUERY_PREPARING');
 export const QUERY_SENDING = Symbol('QUERY_SENDING');
 export const QUERY_RUNNING = Symbol('QUERY_RUNNING');
 export const QUERY_PROGRESS_UPDATED = Symbol('QUERY_PROGRESS_UPDATED');
+export const QUERY_STATEMENT_STARTED = Symbol('QUERY_STATEMENT_STARTED');
 export const QUERY_RECEIVED_BATCH = Symbol('QUERY_RECEIVED_BATCH');
 export const QUERY_RECEIVED_ALL_BATCHES = Symbol('QUERY_RECEIVED_ALL_BATCHES');
 export const QUERY_PROCESSING_RESULTS = Symbol('QUERY_PROCESSING_RESULTS');
@@ -207,6 +212,7 @@ export type QueryExecutionAction =
     | VariantKind<typeof QUERY_SENDING, [number]>
     | VariantKind<typeof QUERY_RUNNING, [number, QueryExecutionResponseStream | null]>
     | VariantKind<typeof QUERY_PROGRESS_UPDATED, [number, QueryExecutionProgress]>
+    | VariantKind<typeof QUERY_STATEMENT_STARTED, [number, number, number]>
     | VariantKind<typeof QUERY_RECEIVED_BATCH, [number, arrow.RecordBatch, QueryExecutionMetrics]>
     | VariantKind<typeof QUERY_RECEIVED_ALL_BATCHES, [number, arrow.Table, Map<string, string>, QueryExecutionMetrics]>
     | VariantKind<typeof QUERY_PROCESSING_RESULTS, [number]>
@@ -264,6 +270,8 @@ export function createQueryExecutionState(
             streamMetrics: createQueryResponseStreamMetrics(),
         },
         latestProgressUpdate: null,
+        statementIndex: null,
+        statementCount: null,
         resultMetadata: null,
         resultSchema: null,
         resultBatches: [],
@@ -374,6 +382,20 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
                 next.metrics.queryQueuedStartedAt = now;
             }
             state.queriesActive.set(query.queryId, next);
+            return { ...state };
+        }
+        case QUERY_STATEMENT_STARTED: {
+            query = {
+                ...query,
+                statementIndex: action.value[1],
+                statementCount: action.value[2],
+                status: QueryExecutionStatus.RUNNING,
+                metrics: {
+                    ...query.metrics,
+                    lastUpdatedAt: now,
+                },
+            };
+            state.queriesActive.set(query.queryId, query);
             return { ...state };
         }
         case QUERY_RECEIVED_BATCH: {

@@ -7,6 +7,12 @@ enum ScriptCompilationStatementKind: uint8 {
     VISUALIZE,
 }
 
+enum CompiledScriptStatementKind: uint8 {
+    COMMAND,
+    OUTPUT,
+    VISUALIZE,
+}
+
 enum ScriptCompilationErrorCode: uint8 {
     SCANNER_ERROR,
     PARSER_ERROR,
@@ -15,6 +21,7 @@ enum ScriptCompilationErrorCode: uint8 {
     EXTENSIONS_DISABLED,
     VISUALIZATION_METADATA_UNAVAILABLE,
     FORMAT_ERROR,
+    OUTPUT_STATEMENT_NOT_LAST,
 }
 
 table ScriptCompilationError {
@@ -31,10 +38,19 @@ table CompiledVisualization {
     umap_spec: string;
 }
 
+table CompiledScriptStatement {
+    statement_id: uint32 = 4294967295;
+    statement_type: parser.StatementType = NONE;
+    kind: CompiledScriptStatementKind = COMMAND;
+    sql: string;
+    visualization: CompiledVisualization;
+}
+
 table ScriptCompilationResult {
     kind: ScriptCompilationStatementKind = QUERY;
     terminal_statement_id: uint32 = 4294967295;
     sql: string;
     visualization: CompiledVisualization;
     errors: [ScriptCompilationError];
+    statements: [CompiledScriptStatement];
 }

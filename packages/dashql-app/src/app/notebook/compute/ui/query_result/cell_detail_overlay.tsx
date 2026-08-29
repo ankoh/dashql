@@ -51,7 +51,7 @@ function projectSqlText(
     catalog: dashql.DashQLCatalog,
     text: string,
 ): dashql.buffers.editor.EditorUpdateT {
-    const session = core.createEditorSession(catalog);
+    const session = core.createScriptSession(catalog);
     try {
         session.replaceText(0n, text);
         return session.ensureAnalysis();
@@ -182,7 +182,7 @@ function SqlTextView(props: SqlTextViewProps) {
             effects: [
                 DashQLUpdateEffect.of({
                     scriptKey: 0,
-                    editorSession: null,
+                    scriptSession: null,
                     editorUpdate: activeUpdate,
                     scriptBuffers: null,
                     scriptCompletion: null,

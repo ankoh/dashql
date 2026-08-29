@@ -43,7 +43,7 @@ export const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
             effects: [
                 DashQLUpdateEffect.of({
                     scriptKey: props.script.getCatalogEntryId(),
-                    editorSession: null,
+                    scriptSession: null,
                     editorUpdate: null,
                     scriptBuffers: buffers,
                     scriptCompletion: null,

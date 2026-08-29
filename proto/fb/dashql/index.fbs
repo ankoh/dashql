@@ -12,6 +12,7 @@ include "dashql/plan_view_model.fbs";
 include "dashql/plan_view_model_events.fbs";
 include "dashql/script_cursor.fbs";
 include "dashql/script_compilation.fbs";
+include "dashql/script_execution.fbs";
 include "dashql/script_diff.fbs";
 include "dashql/script_statistics.fbs";
 include "dashql/status.fbs";

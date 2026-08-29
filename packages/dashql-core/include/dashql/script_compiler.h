@@ -26,6 +26,15 @@ struct CompiledVisualization {
     std::string umap_spec;
 };
 
+struct CompiledScriptStatement {
+    uint32_t statement_id = PROTO_NULL_U32;
+    buffers::parser::StatementType statement_type = buffers::parser::StatementType::NONE;
+    buffers::execution::CompiledScriptStatementKind kind =
+        buffers::execution::CompiledScriptStatementKind::COMMAND;
+    std::string sql;
+    std::optional<CompiledVisualization> visualization;
+};
+
 struct ScriptCompilationResult {
     buffers::execution::ScriptCompilationStatementKind kind =
         buffers::execution::ScriptCompilationStatementKind::QUERY;
@@ -33,6 +42,7 @@ struct ScriptCompilationResult {
     std::string sql;
     std::optional<CompiledVisualization> visualization;
     std::vector<ScriptCompilationError> errors;
+    std::vector<CompiledScriptStatement> statements;
 
     flatbuffers::Offset<buffers::execution::ScriptCompilationResult> Pack(
         flatbuffers::FlatBufferBuilder& builder) const;
@@ -42,11 +52,6 @@ struct ScriptCompiler {
     static ScriptCompilationResult Compile(Script& script,
                                            const buffers::formatting::FormattingConfigT& config,
                                            ScriptCompilationOptions options = {});
-    static void CompileAndPack(flatbuffers::FlatBufferBuilder& builder,
-                               Script& script,
-                               const buffers::formatting::FormattingConfigT& config,
-                               bool allow_extensions = true,
-                               bool parse_if_outdated = true);
 };
 
 }  // namespace dashql

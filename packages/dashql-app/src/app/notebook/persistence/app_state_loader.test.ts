@@ -71,7 +71,7 @@ describe('restoreAppState', () => {
         };
 
         // Mock DashQL WASM instance. Connection-owned catalog scripts still use DashQLScript;
-        // notebook-owned documents use DashQLEditorSession.
+        // notebook-owned documents use DashQLScriptSession.
         let scriptIdCounter = 0;
         mockCore = {
             createCatalog: vi.fn(() => ({
@@ -80,10 +80,10 @@ describe('restoreAppState', () => {
                 loadScripts: vi.fn(),
                 destroy: vi.fn(),
             })),
-            createEditorSession: vi.fn(() => {
+            createScriptSession: vi.fn(() => {
                 let text = '';
                 let documentRevision = 0n;
-                const editorSession = {
+                const scriptSession = {
                     getCatalogEntryId: vi.fn(() => ++scriptIdCounter),
                     getDocumentRevision: vi.fn(() => documentRevision),
                     replaceText: vi.fn((_revision: bigint, nextText: string) => {
@@ -102,7 +102,7 @@ describe('restoreAppState', () => {
                     dropFromCatalog: vi.fn(),
                     destroy: vi.fn(),
                 };
-                return editorSession;
+                return scriptSession;
             }),
             createScript: vi.fn(() => ({
                 replaceText: vi.fn(),
@@ -698,11 +698,11 @@ describe('restoreAppState', () => {
         expect(Object.keys(notebookScripts.scriptFolders['page-3'].scripts).length).toBe(0);
 
         // Verify draft script was loaded
-        expect(notebookScripts.scripts[notebookScripts.uncommittedScriptId].editorSession.replaceText).toHaveBeenCalledWith(0n, '-- my draft');
+        expect(notebookScripts.scripts[notebookScripts.uncommittedScriptId].scriptSession.replaceText).toHaveBeenCalledWith(0n, '-- my draft');
         for (const scriptData of Object.values(notebookScripts.scripts)) {
             expect(scriptData.analysisOutdated).toBe(true);
             expect(scriptData.editorUpdate).toBeNull();
-            expect(scriptData.editorSession.ensureAnalysis).not.toHaveBeenCalled();
+            expect(scriptData.scriptSession.ensureAnalysis).not.toHaveBeenCalled();
         }
     });
 
@@ -737,7 +737,7 @@ describe('restoreAppState', () => {
         const scripts = result.notebookScripts.get(MULTI_PAGE_ID)!;
         for (const scriptData of Object.values(scripts.scripts)) {
             expect(scriptData.analysisOutdated).toBe(true);
-            expect(scriptData.editorSession.ensureAnalysis).not.toHaveBeenCalled();
+            expect(scriptData.scriptSession.ensureAnalysis).not.toHaveBeenCalled();
         }
     });
 

@@ -70,7 +70,7 @@ export interface DashQLProcessorUpdateOut {
     /// The key of the currently active script
     scriptKey: DashQLScriptKey;
     /// The currently active editor session
-    editorSession?: dashql.DashQLEditorSession | null;
+    scriptSession?: dashql.DashQLScriptSession | null;
     /// The latest plain editor-session snapshot.
     editorUpdate?: dashql.buffers.editor.EditorUpdateT | null;
     /// The previous processed script buffers (if any)
@@ -86,7 +86,7 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     derivedFocus: SemanticUserFocus | null;
 
     /// Resolve a notebook editor session by its catalog entry id for code actions.
-    lookupEditorSession?: (scriptKey: DashQLScriptKey) => dashql.DashQLEditorSession | null;
+    lookupScriptSession?: (scriptKey: DashQLScriptKey) => dashql.DashQLScriptSession | null;
     /// Navigate to a notebook script definition.
     onNavigateToScript?: (scriptKey: DashQLScriptKey) => void;
 
@@ -216,14 +216,14 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         // By default, the DashQL script is not configured
         const config: DashQLProcessorState = {
             scriptKey: 0,
-            editorSession: null,
+            scriptSession: null,
             editorUpdate: null,
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
 
             derivedFocus: null as SemanticUserFocus | null,
-            lookupEditorSession: undefined,
+            lookupScriptSession: undefined,
             onNavigateToScript: undefined,
 
             onUpdate: () => { },
@@ -245,7 +245,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         for (const effect of transaction.effects) {
             // DashQL update effect?
             if (effect.is(DashQLUpdateEffect)) {
-                const keepLocalCompletion = state.editorSession === effect.value.editorSession
+                const keepLocalCompletion = state.scriptSession === effect.value.scriptSession
                     && state.editorUpdate?.stateRevision === effect.value.editorUpdate?.stateRevision;
                 state = {
                     ...state,
@@ -260,14 +260,14 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 // Script changed?
                 // Signaled either through a completely new script or through a new script buffer
                 if (
-                    prevState.editorSession !== state.editorSession ||
+                    prevState.scriptSession !== state.scriptSession ||
                     prevState.editorUpdate?.stateRevision !== state.editorUpdate?.stateRevision
                 ) {
                     return state;
                 }
 
                 // Is a redundant update?
-                const redundantUpdate = prevState.editorSession == effect.value.editorSession
+                const redundantUpdate = prevState.scriptSession == effect.value.scriptSession
                     && prevState.editorUpdate?.stateRevision == effect.value.editorUpdate?.stateRevision
                     && prevState.scriptPendingDiff == effect.value.scriptPendingDiff
                     && prevState.derivedFocus == effect.value.derivedFocus
@@ -283,7 +283,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
 
         // No editor session at all?
         // Then abort early, nothing to do here
-        if (state.editorSession == null) {
+        if (state.scriptSession == null) {
             if (transaction.docChanged || selectionChanged) {
                 console.warn(`${LOG_PREFIX} ignored CodeMirror transaction without editor session`, {
                     scriptKey: state.scriptKey,
@@ -300,9 +300,9 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         // are measured in the pre-change document; the selection is measured in the new document.
         if (transaction.docChanged || selectionChanged || state.editorUpdate?.primaryCursorState == null) {
             state = copyLazily(state, prevState);
-            const editorSession = state.editorSession!;
-            const expectedDocumentRevision = editorSession.getDocumentRevision();
-            const update = editorSession.apply(transactionToEditorEvent(
+            const scriptSession = state.scriptSession!;
+            const expectedDocumentRevision = scriptSession.getDocumentRevision();
+            const update = scriptSession.apply(transactionToEditorEvent(
                 transaction,
                 expectedDocumentRevision,
             ));
@@ -446,16 +446,16 @@ function userEventCanStartCompletion(transaction: Transaction, prevState: DashQL
 // Helper to update a completion based on a transaction
 function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcessorState, transaction: Transaction): DashQLProcessorState {
     // We need a script and script cursor to complete.
-    if (!state.editorSession || !state.editorUpdate?.primaryCursorState) {
+    if (!state.scriptSession || !state.editorUpdate?.primaryCursorState) {
         return state;
     }
-    const editorSession = state.editorSession;
+    const scriptSession = state.scriptSession;
     const cursorOffset = cursorUtf16Offset(state);
 
     // Check additional completion effects
     for (const effect of transaction.effects) {
         if (effect.is(DashQLCompletionStartEffect)) {
-            const buffer = editorSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
+            const buffer = scriptSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
             state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
             continue;
 
@@ -603,7 +603,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
         // Get a completion going.
         const noActiveCompletion = !state.scriptCompletion || state.scriptCompletion.status != DashQLCompletionStatus.AVAILABLE;
         if (noActiveCompletion && userEventCanStartCompletion(transaction, prevState)) {
-            const buffer = editorSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
+            const buffer = scriptSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
             state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
         }
 
@@ -624,7 +624,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                         state.scriptCompletion = null;
                         break;
                     }
-                    const buffer = editorSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
+                    const buffer = scriptSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
                     state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
                     break;
                 default:

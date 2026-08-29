@@ -16,7 +16,7 @@ afterEach(() => dql!.resetUnsafe());
 
 function parseDescriptions(text: string): core.buffers.editor.EditorUpdateT {
     const catalog = dql!.createCatalog();
-    const session = dql!.createEditorSession(catalog);
+    const session = dql!.createScriptSession(catalog);
     session.replaceText(0n, text);
     const update = session.ensureAnalysis();
     session.destroy();

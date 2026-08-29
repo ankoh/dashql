@@ -59,7 +59,7 @@ export function releaseAppliedPreviewSnapshot(
 
 /// Description previews retain raw source text because their parser spans index the source directly.
 function buildDescriptionPreview(scriptData: ScriptData): PreviewSnapshot | null {
-    const text = scriptData.editorSession.getText();
+    const text = scriptData.scriptSession.getText();
     if (!hasStatementDescriptions(scriptData.editorUpdate)) return null;
     return {
         scriptText: text,
@@ -70,7 +70,7 @@ function buildDescriptionPreview(scriptData: ScriptData): PreviewSnapshot | null
 
 function projectPreviewText(instance: core.DashQL, scriptText: string): core.buffers.editor.EditorUpdateT | null {
     const projectionCatalog = instance.createCatalog();
-    const projectionSession = instance.createEditorSession(projectionCatalog);
+    const projectionSession = instance.createScriptSession(projectionCatalog);
     try {
         projectionSession.replaceText(0n, scriptText);
         return projectionSession.ensureAnalysis();
@@ -81,9 +81,9 @@ function projectPreviewText(instance: core.DashQL, scriptText: string): core.buf
 }
 
 export function buildUnformattedPreview(instance: core.DashQL, scriptData: ScriptData, logger: Logger): PreviewSnapshot {
-    const scriptText = readSessionText(scriptData.editorSession, logger, scriptData.scriptKey, LOG_CTX) ?? '';
+    const scriptText = readSessionText(scriptData.scriptSession, logger, scriptData.scriptKey, LOG_CTX) ?? '';
     let editorUpdate = scriptData.editorUpdate ?? null;
-    if (editorUpdate == null || editorUpdate.documentRevision !== scriptData.editorSession.getDocumentRevision()) {
+    if (editorUpdate == null || editorUpdate.documentRevision !== scriptData.scriptSession.getDocumentRevision()) {
         try {
             editorUpdate = projectPreviewText(instance, scriptText);
         } catch (e: any) {
@@ -117,7 +117,7 @@ function logUnformattableScript(
     }, LOG_CTX);
 }
 
-function readSessionText(session: core.DashQLEditorSession, logger: Logger, scriptKey: number, logCtx: string): string | null {
+function readSessionText(session: core.DashQLScriptSession, logger: Logger, scriptKey: number, logCtx: string): string | null {
     try {
         return session.getText();
     } catch (e: any) {
@@ -154,14 +154,14 @@ function computeCompactDiff(
     let priorCatalog: core.DashQLCatalog | null = null;
     let priorRaw: core.DashQLScript | null = null;
     let priorFormatted: core.DashQLScript | null = null;
-    let priorSession: core.DashQLEditorSession | null = null;
+    let priorSession: core.DashQLScriptSession | null = null;
     try {
         priorCatalog = instance.createCatalog();
         priorRaw = instance.createScript(priorCatalog);
         priorRaw.insertTextAt(0, priorText);
         if (priorRaw.getUnformattableNodes(compactFormattingConfig(maxWidth, debugMode), true).length > 0) return null;
         priorFormatted = priorRaw.format(compactFormattingConfig(maxWidth, debugMode), null, true);
-        priorSession = instance.createEditorSession(priorCatalog);
+        priorSession = instance.createScriptSession(priorCatalog);
         priorSession.replaceText(0n, priorFormatted.toString());
         priorSession.ensureAnalysis();
         const diffBuffer = priorSession.computeDiff(newFormatted);
@@ -184,7 +184,7 @@ function computeCompactDiff(
 /// Helper to format a preview script (and, when a rewrite is staged, its compact diff overlay).
 function formatPreviewScript(
     instance: core.DashQL,
-    sourceSession: core.DashQLEditorSession,
+    sourceSession: core.DashQLScriptSession,
     pendingDiff: DashQLPendingDiff | null,
     scriptKey: number,
     maxWidth: number,
@@ -283,7 +283,7 @@ export function usePreviewSnapshot({
         }
         const nextFormatted = formatPreviewScript(
             instance,
-            scriptData.editorSession,
+            scriptData.scriptSession,
             pendingDiff,
             scriptData.scriptKey,
             maxWidthChars,
@@ -308,7 +308,7 @@ export function usePreviewSnapshot({
         formattingDebugMode,
         logger,
         maxWidthChars,
-        scriptData.editorSession,
+        scriptData.scriptSession,
         scriptData.scriptKey,
         scriptData.editorUpdate,
         // A staged rewrite appearing/clearing must recompute the compact diff overlay. Width

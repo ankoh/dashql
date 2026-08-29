@@ -18,7 +18,7 @@ export function projectFormattedText(
     text: string,
 ): dashql.buffers.editor.EditorUpdateT {
     const catalog = instance.createCatalog();
-    const session = instance.createEditorSession(catalog);
+    const session = instance.createScriptSession(catalog);
     try {
         session.replaceText(0n, text);
         return session.ensureAnalysis();
@@ -58,12 +58,12 @@ export function useScriptFormatPreview(
                 4,
                 false,
             );
-            formattedScript = scriptData.editorSession.format(config, null);
+            formattedScript = scriptData.scriptSession.format(config, null);
             if (editorView == null) return;
 
             const formattedText = formattedScript.toString();
             if (formattedText === editorView.state.doc.toString()) return;
-            const editorUpdate = projectFormattedText(scriptData.editorSession.ptr.api, formattedText);
+            const editorUpdate = projectFormattedText(scriptData.scriptSession.ptr.api, formattedText);
             const resources = {
                 editorState: editorView.state,
                 text: formattedText,
@@ -78,7 +78,7 @@ export function useScriptFormatPreview(
             editorView.dispatch({
                 effects: DashQLUpdateEffect.of({
                     scriptKey: scriptData.scriptKey,
-                    editorSession: null,
+                    scriptSession: null,
                     editorUpdate,
                     scriptBuffers: null,
                     scriptCompletion: null,

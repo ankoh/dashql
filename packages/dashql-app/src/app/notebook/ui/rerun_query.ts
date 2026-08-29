@@ -1,6 +1,6 @@
 import type { QueryExecutor } from '../connections/query_executor.js';
 import { QueryType } from '../connections/query_execution_state.js';
-import { NotebookScripts, ScriptData, REGISTER_QUERY, compileQuery } from '../scripts/notebook_scripts.js';
+import { NotebookScripts, ScriptData, REGISTER_QUERY, compileQuery, createScriptExecution } from '../scripts/notebook_scripts.js';
 import { ensureNotebookScriptAnalyzed, ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { projectionForVisualizeQuery } from '../scripts/script_types.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';
@@ -31,8 +31,8 @@ export function runNotebookScript(
         analysisOutdated: scriptData.analysisOutdated.toString(),
         analysisAvailable: scriptData.editorUpdate?.analysisAvailable.toString(),
         documentRevision: scriptData.editorUpdate?.documentRevision.toString(),
-        nativeDocumentRevision: scriptData.editorSession.getDocumentRevision?.().toString(),
-        textLength: scriptData.editorSession.getText?.().length.toString(),
+        nativeDocumentRevision: scriptData.scriptSession.getDocumentRevision?.().toString(),
+        textLength: scriptData.scriptSession.getText?.().length.toString(),
     }, 'notebook_execution');
     if (scriptData.analysisOutdated) {
         return ensureNotebookScriptAnalyzed(notebookScripts, scriptData.scriptKey, modifyNotebookScripts)
@@ -71,9 +71,10 @@ function executeNotebookScript(
     }
     const [queryId, execution] = executeQuery(connectionId, {
         query: queryText,
+        scriptExecution: createScriptExecution(scriptData),
         analyzeResults: true,
         replaceComputationId: scriptData.latestQueryId,
-        cacheable: true,
+        cacheable: false,
         projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
         metadata: {
             queryType: QueryType.USER_PROVIDED,

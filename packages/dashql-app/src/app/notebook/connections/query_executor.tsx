@@ -8,14 +8,12 @@ import {
     QUERY_PROCESSING_RESULTS,
     QUERY_PROCESSED_RESULTS,
     QUERY_PROGRESS_UPDATED,
+    QUERY_STATEMENT_STARTED,
     QUERY_RECEIVED_ALL_BATCHES,
     QUERY_RECEIVED_BATCH,
-    QueryExecutionProgress,
     QueryExecutionResponseStream,
     QueryExecutionTracker,
 } from '../../../query/query_execution_state.js';
-import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { useComputationRegistry } from '../../../compute/computation_registry.js';
 import { analyzeTable } from '../../../compute/computation_logic.js';
 import { DELETE_COMPUTATION } from '../../../compute/computation_state.js';
@@ -29,13 +27,11 @@ import { computeQueryResultCacheKey } from '../../../query/query_result_cache_ke
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { createTrace, type TraceContext } from '../../../platform/logger/trace_context.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
-import { executeTrinoQuery } from './trino/trino_query_execution.js';
-import { executeSalesforceQuery } from './salesforce/salesforce_query_execution.js';
-import { executeHyperQuery } from './hyper/hyper_query_execution.js';
-import { AsyncConsumerLambdas } from '../../../utils/async_consumer.js';
 import { LoggableException, stringifyError } from '../../../platform/logger/logger.js';
 import type { LogRecord } from '../../../platform/logger/log_buffer.js';
 import { allocateQueryId, executeTrackedQuery } from '../../../query/tracked_query_execution.js';
+import { consumeQueryResponseStream, executeConnectionQuery } from './query_execution.js';
+import { executeScriptQuery } from './script_query_execution.js';
 
 const LOG_CTX = 'query_executor';
 
@@ -90,7 +86,6 @@ function createConnectionQueryExecutionTracker(connectionId: string, dispatch: R
 
 export function QueryExecutorProvider(props: { children?: React.ReactElement }) {
     const logger = useLogger();
-    const sfApi = useSalesforceAPI();
 
     // The connection registry changes frequently, the connection map is stable.
     // This executor will depend on the map directly since it can resolve everything ad-hoc.
@@ -132,6 +127,78 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     "text": args.query
                 }, LOG_CTX);
 
+                if (args.scriptExecution != null) {
+                    try {
+                        const table = await executeScriptQuery({
+                            execution: args.scriptExecution,
+                            queryArgs: args,
+                            abortSignal: initialState.cancellation.signal,
+                            logger: traced,
+                            notebookId,
+                            queryId,
+                            logTarget: LOG_CTX,
+                            callbacks: {
+                                onStatementStarted: (index, statementCount) => queryTracker.dispatch({
+                                    type: QUERY_STATEMENT_STARTED,
+                                    value: [queryId, index, statementCount],
+                                }),
+                                setResultStream: stream => {
+                                    runtime.resultStream = stream;
+                                },
+                                executeStatement: async (statementArgs, producesOutput) => {
+                                    tracked.sending();
+                                    const stream = await executeConnectionQuery(
+                                        conn.details,
+                                        statementArgs,
+                                        initialState.cancellation.signal,
+                                    );
+                                    runtime.resultStream = stream;
+                                    tracked.running(stream);
+                                    const statementTable = await consumeQueryResponseStream({
+                                        stream,
+                                        abort: initialState.cancellation.signal,
+                                        publishResults: producesOutput,
+                                        onProgress: progress => queryTracker.dispatch({
+                                            type: QUERY_PROGRESS_UPDATED,
+                                            value: [queryId, progress],
+                                        }),
+                                        onBatch: (batch, batchStream) => queryTracker.dispatch({
+                                            type: QUERY_RECEIVED_BATCH,
+                                            value: [queryId, batch, batchStream.getMetrics()],
+                                        }),
+                                    });
+                                    if (statementTable != null) {
+                                        queryTracker.dispatch({
+                                            type: QUERY_RECEIVED_ALL_BATCHES,
+                                            value: [queryId, statementTable, stream.getMetadata(), stream.getMetrics()],
+                                        });
+                                    }
+                                    return statementTable;
+                                },
+                            },
+                        });
+                        if (table && args.analyzeResults) {
+                            if (args.replaceComputationId != null && args.replaceComputationId !== queryId) {
+                                computeDispatch({ type: DELETE_COMPUTATION, value: [args.replaceComputationId] });
+                            }
+                            queryTracker.dispatch({ type: QUERY_PROCESSING_RESULTS, value: [queryId] });
+                            await analyzeTable(queryId, table, computeDispatch, computeDb, traced, args.projection);
+                            initialState.cancellation.signal.throwIfAborted();
+                            queryTracker.dispatch({ type: QUERY_PROCESSED_RESULTS, value: [queryId] });
+                        }
+                        return table;
+                    } catch (error: any) {
+                        const cancelled = initialState.cancellation.signal.aborted || error?.name === 'AbortError' || error?.message === 'AbortError';
+                        const metrics = runtime.resultStream?.getMetrics() ?? null;
+                        if (cancelled) tracked.cancel(error, metrics);
+                        else tracked.fail(error, metrics);
+                        if (args.throwOnError) throw error;
+                        return null;
+                    } finally {
+                        runtime.resultStream = null;
+                    }
+                }
+
                 // Compute the cache key up front for cacheable queries. This is best-effort: if the
                 // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
                 // caching and execute normally. Never let a cache concern surface into the query path.
@@ -150,225 +217,196 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 let table: arrow.Table | null = null;
                 let servedFromCache = false;
                 try {
-            // Cache read path: on a hit, load the Arrow IPC bytes and drive the state machine as if
-            // the result had just streamed in, skipping the backend entirely.
-            if (cacheHash != null) {
-                let cached: CachedQueryResult | null = null;
-                try {
-                    cached = await resultCache!.load(cacheHash);
-                } catch (e: any) {
-                    traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
-                }
-                // A user cancel during the async cache read should behave like any other cancel:
-                // let the catch below route it to QUERY_CANCELLED.
-                if (initialState.cancellation.signal.aborted) {
-                    throw new Error('AbortError');
-                }
-                if (cached != null) {
-                    table = arrow.tableFromIPC(cached.bytes);
-                    servedFromCache = true;
-                    // Record the access so eviction sees this as a recently-used (LRU) entry. This
-                    // bumps only the empty `.last_access` marker, never the payload, so it is cheap and
-                    // leaves the payload's "cached at" write time intact. Best-effort: a failure here
-                    // must never surface into the query path (it only means the entry looks colder to
-                    // eviction than it is).
-                    void resultCache!.touch(cacheHash).catch((e: any) => {
-                        traced.warn("Failed to record query cache access", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
-                    });
-                    traced.info("Served query from cache", {
-                        notebookId,
-                        "query": queryId.toString(),
-                        "numRows": table.numRows.toString(),
-                        "numCols": table.numCols.toString(),
-                        "cachedAt": new Date(cached.cachedAtMs).toISOString(),
-                    }, LOG_CTX);
-                    // No live stream, so synthesize empty metadata and zeroed stream metrics.
-                    queryTracker.dispatch({
-                        type: QUERY_RECEIVED_ALL_BATCHES,
-                        value: [queryId, table, new Map<string, string>(), createQueryResponseStreamMetrics()],
-                    });
-                    // Record the cache key and the entry's write time so the UI can show how old the
-                    // cached result is and offer to delete it.
-                    queryTracker.dispatch({
-                        type: QUERY_CACHE_RECORDED,
-                        value: [queryId, cacheHash, true, cached.cachedAtMs],
-                    });
-                }
-            }
-
-            if (!servedFromCache) {
-                tracked.sending();
-
-                // Start the query
-                switch (conn.details.type) {
-                    case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                        resultStream = await executeSalesforceQuery(conn.details.value, args, initialState.cancellation.signal);
-                        break;
-                    case HYPER_CONNECTOR:
-                        resultStream = await executeHyperQuery(conn.details.value, args, initialState.cancellation.signal);
-                        break;
-                    case TRINO_CONNECTOR:
-                        resultStream = await executeTrinoQuery(conn.details.value, args, initialState.cancellation.signal);
-                        break;
-                }
-                traced.debug("Received query results", {
-                    notebookId,
-                    "query": queryId.toString()
-                }, LOG_CTX);
-
-                if (resultStream != null) {
-                    runtime.resultStream = resultStream;
-                    tracked.running(resultStream);
-
-                    // Helper to forward progress updates
-                    const consumeProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>(
-                        (_: QueryExecutionResponseStream, progress: QueryExecutionProgress) => {
-                            queryTracker.dispatch({
-                                type: QUERY_PROGRESS_UPDATED,
-                                value: [queryId, progress],
+                    // Cache read path: on a hit, load the Arrow IPC bytes and drive the state machine as if
+                    // the result had just streamed in, skipping the backend entirely.
+                    if (cacheHash != null) {
+                        let cached: CachedQueryResult | null = null;
+                        try {
+                            cached = await resultCache!.load(cacheHash);
+                        } catch (e: any) {
+                            traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                        }
+                        // A user cancel during the async cache read should behave like any other cancel:
+                        // let the catch below route it to QUERY_CANCELLED.
+                        if (initialState.cancellation.signal.aborted) {
+                            throw new Error('AbortError');
+                        }
+                        if (cached != null) {
+                            table = arrow.tableFromIPC(cached.bytes);
+                            servedFromCache = true;
+                            // Record the access so eviction sees this as a recently-used (LRU) entry. This
+                            // bumps only the empty `.last_access` marker, never the payload, so it is cheap and
+                            // leaves the payload's "cached at" write time intact. Best-effort: a failure here
+                            // must never surface into the query path (it only means the entry looks colder to
+                            // eviction than it is).
+                            void resultCache!.touch(cacheHash).catch((e: any) => {
+                                traced.warn("Failed to record query cache access", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
                             });
-                        },
-                    );
-
-                    // Helper to consume result batches
-                    const batches: arrow.RecordBatch[] = [];
-                    const consumeBatches = new AsyncConsumerLambdas<QueryExecutionResponseStream, arrow.RecordBatch>(
-                        (ctx: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
-                            batches.push(batch);
-
-                            traced.debug("Received result batch", {
+                            traced.info("Served query from cache", {
                                 notebookId,
                                 "query": queryId.toString(),
-                                "batchColumns": batch.numCols.toString(),
-                                "batchRows": batch.numRows.toString(),
+                                "numRows": table.numRows.toString(),
+                                "numCols": table.numCols.toString(),
+                                "cachedAt": new Date(cached.cachedAtMs).toISOString(),
                             }, LOG_CTX);
+                            // No live stream, so synthesize empty metadata and zeroed stream metrics.
                             queryTracker.dispatch({
-                                type: QUERY_RECEIVED_BATCH,
-                                value: [queryId, batch, ctx.getMetrics()],
+                                type: QUERY_RECEIVED_ALL_BATCHES,
+                                value: [queryId, table, new Map<string, string>(), createQueryResponseStreamMetrics()],
                             });
-                        },
-                    );
+                            // Record the cache key and the entry's write time so the UI can show how old the
+                            // cached result is and offer to delete it.
+                            queryTracker.dispatch({
+                                type: QUERY_CACHE_RECORDED,
+                                value: [queryId, cacheHash, true, cached.cachedAtMs],
+                            });
+                        }
+                    }
 
-                    // Subscribe to query_status and result messages
-                    await resultStream.produce(consumeBatches, consumeProgress, initialState.cancellation.signal);
-                    const schema = batches.length > 0
-                        ? batches[0].schema
-                        : await resultStream.getSchema() ?? new arrow.Schema();
-                    table = new arrow.Table(schema, batches);
+                    if (!servedFromCache) {
+                        tracked.sending();
 
-                    traced.info("Executed query", {
-                        notebookId,
-                        "query": queryId.toString(),
-                        "numRows": table.numRows.toString(),
-                        "numCols": table.numCols.toString(),
-                        "batchesReceived": resultStream.getMetrics().totalBatchesReceived.toString(),
-                        "dataBytesReceived": resultStream.getMetrics().totalDataBytesReceived.toString(),
-                    }, LOG_CTX);
+                        // Start the query
+                        resultStream = await executeConnectionQuery(conn.details, args, initialState.cancellation.signal);
+                        traced.debug("Received query results", {
+                            notebookId,
+                            "query": queryId.toString()
+                        }, LOG_CTX);
 
-                    // Is there any metadata?
-                    const metadata = resultStream.getMetadata();
-                    queryTracker.dispatch({
-                        type: QUERY_RECEIVED_ALL_BATCHES,
-                        value: [queryId, table!, metadata, resultStream!.getMetrics()],
-                    });
-                } else {
-                    traced.warn("Query returned no results", { notebookId, "query": queryId.toString() }, LOG_CTX);
-                }
-            }
+                        if (resultStream != null) {
+                            runtime.resultStream = resultStream;
+                            tracked.running(resultStream);
+
+                            // Subscribe to query_status and result messages
+                            table = await consumeQueryResponseStream({
+                                stream: resultStream,
+                                abort: initialState.cancellation.signal,
+                                publishResults: true,
+                                onProgress: progress => queryTracker.dispatch({
+                                    type: QUERY_PROGRESS_UPDATED,
+                                    value: [queryId, progress],
+                                }),
+                                onBatch: (batch, stream) => queryTracker.dispatch({
+                                    type: QUERY_RECEIVED_BATCH,
+                                    value: [queryId, batch, stream.getMetrics()],
+                                }),
+                                logger: traced,
+                                logContext: { notebookId, queryId, target: LOG_CTX },
+                            });
+
+                            traced.info("Executed query", {
+                                notebookId,
+                                "query": queryId.toString(),
+                                "numRows": table!.numRows.toString(),
+                                "numCols": table!.numCols.toString(),
+                                "batchesReceived": resultStream.getMetrics().totalBatchesReceived.toString(),
+                                "dataBytesReceived": resultStream.getMetrics().totalDataBytesReceived.toString(),
+                            }, LOG_CTX);
+
+                            // Is there any metadata?
+                            const metadata = resultStream.getMetadata();
+                            queryTracker.dispatch({
+                                type: QUERY_RECEIVED_ALL_BATCHES,
+                                value: [queryId, table!, metadata, resultStream!.getMetrics()],
+                            });
+                        } else {
+                            traced.warn("Query returned no results", { notebookId, "query": queryId.toString() }, LOG_CTX);
+                        }
+                    }
                 } catch (e: any) {
-            if (initialState.cancellation.signal.aborted || e?.name === 'AbortError' || e?.message === 'AbortError') {
-                const cancellationError = e instanceof LoggableException
-                    ? e
-                    : new LoggableException('Query was cancelled', {}, LOG_CTX);
-                traced.warn("Cancelled query", {
-                    query: queryId.toString(),
-                    notebookId
-                }, LOG_CTX);
-                tracked.cancel(cancellationError, resultStream?.getMetrics() ?? null);
-            } else {
-                if (e instanceof LoggableException) {
-                    traced.warn(e.message, e.keyValues, e.target);
-                } else {
-                    traced.warn("Query failed with unknown error", {
-                        query: queryId.toString(),
-                        notebookId,
-                        raw: stringifyError(e),
-                    }, LOG_CTX);
-                }
-                tracked.fail(e, resultStream?.getMetrics() ?? null);
-            }
-            if (args.throwOnError) {
-                throw e;
-            }
-            return null;
+                    if (initialState.cancellation.signal.aborted || e?.name === 'AbortError' || e?.message === 'AbortError') {
+                        const cancellationError = e instanceof LoggableException
+                            ? e
+                            : new LoggableException('Query was cancelled', {}, LOG_CTX);
+                        traced.warn("Cancelled query", {
+                            query: queryId.toString(),
+                            notebookId
+                        }, LOG_CTX);
+                        tracked.cancel(cancellationError, resultStream?.getMetrics() ?? null);
+                    } else {
+                        if (e instanceof LoggableException) {
+                            traced.warn(e.message, e.keyValues, e.target);
+                        } else {
+                            traced.warn("Query failed with unknown error", {
+                                query: queryId.toString(),
+                                notebookId,
+                                raw: stringifyError(e),
+                            }, LOG_CTX);
+                        }
+                        tracked.fail(e, resultStream?.getMetrics() ?? null);
+                    }
+                    if (args.throwOnError) {
+                        throw e;
+                    }
+                    return null;
                 }
 
 
                 // Compute all table summaries of the result
                 if (table && args.analyzeResults) {
-            try {
-                if (args.replaceComputationId != null && args.replaceComputationId !== queryId) {
-                    computeDispatch({
-                        type: DELETE_COMPUTATION,
-                        value: [args.replaceComputationId],
-                    });
-                }
-                queryTracker.dispatch({
-                    type: QUERY_PROCESSING_RESULTS,
-                    value: [queryId],
-                });
+                    try {
+                        if (args.replaceComputationId != null && args.replaceComputationId !== queryId) {
+                            computeDispatch({
+                                type: DELETE_COMPUTATION,
+                                value: [args.replaceComputationId],
+                            });
+                        }
+                        queryTracker.dispatch({
+                            type: QUERY_PROCESSING_RESULTS,
+                            value: [queryId],
+                        });
 
-                await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
-                initialState.cancellation.signal.throwIfAborted();
+                        await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
+                        initialState.cancellation.signal.throwIfAborted();
 
-                queryTracker.dispatch({
-                    type: QUERY_PROCESSED_RESULTS,
-                    value: [queryId],
-                });
-            } catch (e: any) {
-                if (initialState.cancellation.signal.aborted || e?.name === 'AbortError') {
-                    const cancellationError = e instanceof LoggableException
-                        ? e
-                        : new LoggableException('Query was cancelled', {}, LOG_CTX);
-                    traced.warn("Cancelled query during result processing", {
-                        query: queryId.toString(),
-                        notebookId,
-                    }, LOG_CTX);
-                    tracked.cancel(cancellationError, resultStream?.getMetrics() ?? null);
-                    return null;
-                }
-                const processingError = e instanceof LoggableException
-                    ? e
-                    : new LoggableException("Query result processing failed", {
-                        error: stringifyError(e),
-                    }, LOG_CTX);
-                traced.warn("Query result processing failed", {
-                    query: queryId.toString(),
-                    notebookId,
-                    error: processingError.message,
-                    ...processingError.keyValues,
-                }, LOG_CTX);
-                tracked.fail(processingError);
-                throw processingError;
-            }
+                        queryTracker.dispatch({
+                            type: QUERY_PROCESSED_RESULTS,
+                            value: [queryId],
+                        });
+                    } catch (e: any) {
+                        if (initialState.cancellation.signal.aborted || e?.name === 'AbortError') {
+                            const cancellationError = e instanceof LoggableException
+                                ? e
+                                : new LoggableException('Query was cancelled', {}, LOG_CTX);
+                            traced.warn("Cancelled query during result processing", {
+                                query: queryId.toString(),
+                                notebookId,
+                            }, LOG_CTX);
+                            tracked.cancel(cancellationError, resultStream?.getMetrics() ?? null);
+                            return null;
+                        }
+                        const processingError = e instanceof LoggableException
+                            ? e
+                            : new LoggableException("Query result processing failed", {
+                                error: stringifyError(e),
+                            }, LOG_CTX);
+                        traced.warn("Query result processing failed", {
+                            query: queryId.toString(),
+                            notebookId,
+                            error: processingError.message,
+                            ...processingError.keyValues,
+                        }, LOG_CTX);
+                        tracked.fail(processingError);
+                        throw processingError;
+                    }
                 }
 
                 // Cache write path: after a successful miss, store the result for next time. Fire-and-forget
                 // (not awaited) so a large eviction scan never stalls the caller's promise, and never fatal —
                 // a quota/permission failure just logs.
                 if (!servedFromCache && cacheHash != null && table != null) {
-            const bytes = arrow.tableToIPC(table, 'stream');
-            void resultCache!.store(cacheHash, bytes).then(() => {
-                // The write landed: record the key (but not servedFromCache — this run hit the
-                // backend) so the UI can offer to delete the freshly-cached entry. The "cached at"
-                // time is the write we just made; a later hit reads the precise mtime from disk.
-                queryTracker.dispatch({
-                    type: QUERY_CACHE_RECORDED,
-                    value: [queryId, cacheHash, false, null],
-                });
-            }).catch((e: any) => {
-                traced.warn("Failed to write query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
-            });
+                    const bytes = arrow.tableToIPC(table, 'stream');
+                    void resultCache!.store(cacheHash, bytes).then(() => {
+                        // The write landed: record the key (but not servedFromCache — this run hit the
+                        // backend) so the UI can offer to delete the freshly-cached entry. The "cached at"
+                        // time is the write we just made; a later hit reads the precise mtime from disk.
+                        queryTracker.dispatch({
+                            type: QUERY_CACHE_RECORDED,
+                            value: [queryId, cacheHash, false, null],
+                        });
+                    }).catch((e: any) => {
+                        traced.warn("Failed to write query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                    });
                 }
 
                 return table;
@@ -376,7 +414,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         });
         return execution;
 
-    }, [computeDb, connMap, computeDispatch, logger, sfApi, storageReader]);
+    }, [computeDb, connMap, computeDispatch, logger, storageReader]);
 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((connectionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {

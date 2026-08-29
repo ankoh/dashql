@@ -1,6 +1,6 @@
 # Native Editor Session
 
-`dashql::editor::EditorSession` is the native owner of one editable `Script`. It borrows a `Catalog`,
+`dashql::editor::ScriptSession` is the native owner of one editable `Script`. It borrows a `Catalog`,
 which must outlive the session. Synchronous analysis reads that catalog. The session can explicitly load
 its owned script into the catalog with an application-defined rank and drop it again; destruction also
 drops it through the normal `Script` lifecycle.
@@ -8,7 +8,7 @@ drops it through the normal `Script` lifecycle.
 Editor-facing analysis is returned as portable `EditorUpdate` data. Operations with inherently structured
 results still return detached FlatBuffers for completion, query compilation, and semantic diffs. Formatting
 returns a separately owned normal `Script`; parsed and analyzed snapshots remain available only on that
-explicit `Script` API, not on `EditorSession`.
+explicit `Script` API, not on `ScriptSession`.
 
 ## Portable Projection
 
@@ -40,15 +40,15 @@ models create a separate normal `Script`. The portable fields intentionally dupl
 data and do not contain nested `ParsedScript`, `AnalyzedScript`, or `ScriptCursor` objects.
 
 Portable text inputs passed to the C ABI are copied into session-owned state before the call returns.
-`dashql_editor_session_replace_text` consumes its `dashql_malloc` text buffer, matching the existing
-normal `Script` text APIs. `dashql_editor_session_apply` only borrows its serialized event buffer for
+`dashql_script_session_replace_text` consumes its `dashql_malloc` text buffer, matching the existing
+normal `Script` text APIs. `dashql_script_session_apply` only borrows its serialized event buffer for
 the duration of the call and unpacks all strings before returning.
 
 ## Offset Unit
 
-An `EditorSession` selects either UTF-8 bytes or UTF-16 code units at construction. Every portable
+An `ScriptSession` selects either UTF-8 bytes or UTF-16 code units at construction. Every portable
 `EditorEvent`, `EditorUpdate`, completion result, and session-owned diff uses that unit for the lifetime
-of the session. The rope's mutation API uses Unicode codepoint offsets, so `EditorSession` resolves and
+of the session. The rope's mutation API uses Unicode codepoint offsets, so `ScriptSession` resolves and
 validates selected-unit boundaries before applying the complete batch atomically. Invalid UTF-8,
 split-codepoint or split-surrogate ranges, overlapping ranges, and stale document revisions leave the
 document unchanged. Web sessions select UTF-16 so CodeMirror can consume native projections directly;

@@ -4,7 +4,7 @@
 #include <cctype>
 #include <stdexcept>
 
-#include "dashql/editor/editor_session.h"
+#include "dashql/script_session.h"
 #include "dashql/formatter/formatter.h"
 #include "dashql/script.h"
 #include "dashql/script_compiler.h"
@@ -57,7 +57,7 @@ buffers::formatting::FormattingConfigT DefaultAgentFormattingConfig() {
     return config;
 }
 
-AgentSession::AgentSession(Catalog& catalog, editor::EditorSession* target,
+AgentSession::AgentSession(Catalog& catalog, ScriptSession* target,
                            buffers::formatting::FormattingConfigT formatting_config)
     : catalog_{catalog},
       target_{target},

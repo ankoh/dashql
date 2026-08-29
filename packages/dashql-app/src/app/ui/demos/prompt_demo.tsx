@@ -62,10 +62,10 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
 
     // Core instance and editor session
     const [catalog, setCatalog] = React.useState<dashql.DashQLCatalog | null>(null);
-    const [editorSession, setEditorSession] = React.useState<dashql.DashQLEditorSession | null>(null);
+    const [scriptSession, setScriptSession] = React.useState<dashql.DashQLScriptSession | null>(null);
     const runtimeRef = React.useRef<{
         catalog: dashql.DashQLCatalog;
-        editorSession: dashql.DashQLEditorSession;
+        scriptSession: dashql.DashQLScriptSession;
     } | null>(null);
 
     // Editor DOM node and view
@@ -79,15 +79,15 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
             try {
                 const instance = await setupCore(LOG_CTX);
                 const cat = instance.createCatalog();
-                const session = instance.createEditorSession(cat);
+                const session = instance.createScriptSession(cat);
                 if (disposed) {
                     session.destroy();
                     cat.destroy();
                     return;
                 }
-                runtimeRef.current = { catalog: cat, editorSession: session };
+                runtimeRef.current = { catalog: cat, scriptSession: session };
                 setCatalog(cat);
-                setEditorSession(session);
+                setScriptSession(session);
                 logger.info("prompt editor initialized", {}, LOG_CTX);
             } catch (e) {
                 logger.error("failed to initialize prompt editor", { error: String(e) }, LOG_CTX);
@@ -97,7 +97,7 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         // Cleanup on unmount
         return () => {
             disposed = true;
-            runtimeRef.current?.editorSession.destroy();
+            runtimeRef.current?.scriptSession.destroy();
             runtimeRef.current?.catalog.destroy();
             runtimeRef.current = null;
         };
@@ -125,11 +125,11 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
 
     // Wire CodeMirror with dashql-core when both are ready
     React.useEffect(() => {
-        if (editorView == null || editorSession == null) {
+        if (editorView == null || scriptSession == null) {
             return;
         }
 
-        let currentUpdate = editorSession.ensureAnalysis();
+        let currentUpdate = scriptSession.ensureAnalysis();
         let currentCompletion: DashQLProcessorUpdateOut['scriptCompletion'] = null;
         // Helper to handle processor updates
         const onUpdate = (update: DashQLProcessorUpdateOut) => {
@@ -146,8 +146,8 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         // Initial setup: push the session into the processor
         const effects: StateEffect<any>[] = [
             DashQLUpdateEffect.of({
-                scriptKey: editorSession.getCatalogEntryId(),
-                editorSession,
+                scriptKey: scriptSession.getCatalogEntryId(),
+                scriptSession,
                 editorUpdate: currentUpdate,
                 scriptBuffers: null,
                 scriptCompletion: null,
@@ -162,7 +162,7 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
             currentCompletion?.buffer.destroy();
         };
 
-    }, [editorView, editorSession]);
+    }, [editorView, scriptSession]);
 
     // Handle Cmd/Ctrl+Enter to submit
     React.useEffect(() => {

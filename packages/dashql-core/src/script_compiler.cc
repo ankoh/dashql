@@ -11,6 +11,7 @@ using AttributeKey = buffers::parser::AttributeKey;
 using ErrorCode = buffers::execution::ScriptCompilationErrorCode;
 using NodeType = buffers::parser::NodeType;
 using StatementKind = buffers::execution::ScriptCompilationStatementKind;
+using CompiledKind = buffers::execution::CompiledScriptStatementKind;
 
 namespace {
 
@@ -50,6 +51,34 @@ std::optional<uint32_t> ReadTerminalSqlNode(const ParsedScript& parsed, uint32_t
     return std::nullopt;
 }
 
+bool InsertHasReturning(const ParsedScript& parsed, const ParsedScript::Statement& statement) {
+    const auto& root = parsed.nodes[statement.root];
+    auto [returning] = LookupAttributes<AttributeKey::SQL_INSERT_RETURNING>(
+        std::span{parsed.nodes}.subspan(root.children_begin_or_value(), root.children_count()));
+    return returning != nullptr && returning->node_type() != NodeType::NONE;
+}
+
+bool ProducesOutput(const ParsedScript& parsed, const ParsedScript::Statement& statement) {
+    switch (statement.type) {
+        case buffers::parser::StatementType::SELECT:
+        case buffers::parser::StatementType::EXPLAIN:
+        case buffers::parser::StatementType::SELECT_INTO:
+        case buffers::parser::StatementType::VIS_VISUALISE:
+            return true;
+        case buffers::parser::StatementType::INSERT:
+            return InsertHasReturning(parsed, statement);
+        default:
+            return false;
+    }
+}
+
+flatbuffers::Offset<buffers::execution::CompiledVisualization> PackVisualization(
+    flatbuffers::FlatBufferBuilder& builder, const CompiledVisualization& visualization) {
+    return buffers::execution::CreateCompiledVisualization(
+        builder, builder.CreateString(visualization.renderer), builder.CreateString(visualization.vegalite_spec),
+        builder.CreateString(visualization.umap_spec));
+}
+
 }  // namespace
 
 flatbuffers::Offset<buffers::execution::ScriptCompilationResult> ScriptCompilationResult::Pack(
@@ -71,12 +100,20 @@ flatbuffers::Offset<buffers::execution::ScriptCompilationResult> ScriptCompilati
 
     flatbuffers::Offset<buffers::execution::CompiledVisualization> visualization_offset;
     if (visualization) {
-        visualization_offset = buffers::execution::CreateCompiledVisualization(
-            builder, builder.CreateString(visualization->renderer), builder.CreateString(visualization->vegalite_spec),
-            builder.CreateString(visualization->umap_spec));
+        visualization_offset = PackVisualization(builder, *visualization);
     }
+    std::vector<flatbuffers::Offset<buffers::execution::CompiledScriptStatement>> statement_offsets;
+    statement_offsets.reserve(statements.size());
+    for (const auto& statement : statements) {
+        flatbuffers::Offset<buffers::execution::CompiledVisualization> statement_visualization;
+        if (statement.visualization) statement_visualization = PackVisualization(builder, *statement.visualization);
+        statement_offsets.push_back(buffers::execution::CreateCompiledScriptStatement(
+            builder, statement.statement_id, statement.statement_type, statement.kind,
+            builder.CreateString(statement.sql), statement_visualization));
+    }
+    auto statements_offset = builder.CreateVector(statement_offsets);
     return buffers::execution::CreateScriptCompilationResult(builder, kind, terminal_statement_id, sql_offset,
-                                                             visualization_offset, errors_offset);
+                                                              visualization_offset, errors_offset, statements_offset);
 }
 
 ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::formatting::FormattingConfigT& config,
@@ -111,15 +148,37 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
                                            "DashQL VISUALIZE syntax is not executable in the shell"));
         return result;
     }
+    auto terminal_statement_id = static_cast<uint32_t>(parsed.statements.size() - 1);
+    result.terminal_statement_id = terminal_statement_id;
+
+    auto descriptions = parsed.AssociateDescriptions();
+    auto input = parsed.scanned_script->GetInput();
+    result.statements.reserve(parsed.statements.size());
+    for (uint32_t statement_id = 0; statement_id < parsed.statements.size(); ++statement_id) {
+        const auto& statement = parsed.statements[statement_id];
+        const bool produces_output = ProducesOutput(parsed, statement);
+        if (produces_output && statement_id != terminal_statement_id) {
+            const auto& span = descriptions[statement_id].statement_span;
+            result.errors.push_back(MakeError(ErrorCode::OUTPUT_STATEMENT_NOT_LAST,
+                                              "SELECT, EXPLAIN, SELECT INTO, INSERT RETURNING, or VISUALIZE must be the final statement",
+                                              statement_id, statement.root, span));
+            continue;
+        }
+        const auto& span = descriptions[statement_id].source_span;
+        result.statements.push_back({
+            .statement_id = statement_id,
+            .statement_type = statement.type,
+            .kind = produces_output ? CompiledKind::OUTPUT : CompiledKind::COMMAND,
+            .sql = std::string{input.substr(span.offset(), span.length())},
+        });
+    }
+    if (!result.errors.empty()) return result;
+
     if ((parsed.feature_flags & execution_features) == 0) {
         result.kind = StatementKind::QUERY;
-        result.terminal_statement_id = static_cast<uint32_t>(parsed.statements.size() - 1);
         result.sql = parsed.scanned_script->GetInput();
         return result;
     }
-
-    auto terminal_statement_id = static_cast<uint32_t>(parsed.statements.size() - 1);
-    result.terminal_statement_id = terminal_statement_id;
 
     auto terminal_sql_node_id = ReadTerminalSqlNode(parsed, terminal_statement_id, result.kind);
     if (!terminal_sql_node_id) {
@@ -164,47 +223,12 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
             compiled.umap_spec = visualize::GenerateUmapSpec(*visualization, *script.analyzed_script);
         }
         result.visualization = std::move(compiled);
+        auto& terminal = result.statements.back();
+        terminal.kind = CompiledKind::VISUALIZE;
+        terminal.sql = result.sql;
+        terminal.visualization = result.visualization;
     }
     return result;
-}
-
-void ScriptCompiler::CompileAndPack(flatbuffers::FlatBufferBuilder& builder, Script& script,
-                                    const buffers::formatting::FormattingConfigT& config, bool allow_extensions,
-                                    bool parse_if_outdated) {
-    if (parse_if_outdated &&
-        (!script.parsed_script || script.parsed_script->scanned_script->text_version != script.text_version)) {
-        script.Parse();
-    }
-
-    ScriptCompilationResult compiled;
-    if (!script.parsed_script) {
-        compiled.errors.push_back(MakeError(ErrorCode::EMPTY_SCRIPT, "script is not parsed"));
-    } else {
-        auto& parsed = *script.parsed_script;
-        for (const auto& [span, message] : parsed.scanned_script->errors) {
-            compiled.errors.push_back(
-                MakeError(ErrorCode::SCANNER_ERROR, message, PROTO_NULL_U32, PROTO_NULL_U32, span));
-        }
-        for (const auto& error : parsed.errors) {
-            compiled.errors.push_back(MakeError(ErrorCode::PARSER_ERROR, error.message, PROTO_NULL_U32, PROTO_NULL_U32,
-                                                parsed.scanned_script->ResolveTextSpan(error.location)));
-        }
-
-        constexpr auto execution_features = static_cast<uint32_t>(buffers::parser::ParsedScriptFeature::VISUALIZE);
-        if (compiled.errors.empty() && parsed.statements.empty()) {
-            compiled.errors.push_back(MakeError(ErrorCode::EMPTY_SCRIPT, "script has no executable statement"));
-        } else if (compiled.errors.empty() && !allow_extensions && (parsed.feature_flags & execution_features) != 0) {
-            compiled.errors.push_back(MakeError(ErrorCode::EXTENSIONS_DISABLED,
-                                                 "DashQL VISUALIZE syntax is not executable in the shell"));
-        } else if (compiled.errors.empty() && (parsed.feature_flags & execution_features) == 0) {
-            compiled.kind = StatementKind::QUERY;
-            compiled.terminal_statement_id = static_cast<uint32_t>(parsed.statements.size() - 1);
-            compiled.sql = parsed.scanned_script->GetInput();
-        } else if (compiled.errors.empty()) {
-            compiled = Compile(script, config, {.parse_if_outdated = false});
-        }
-    }
-    builder.Finish(compiled.Pack(builder));
 }
 
 }  // namespace dashql

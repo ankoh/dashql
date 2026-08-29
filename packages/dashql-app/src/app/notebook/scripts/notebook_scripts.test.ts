@@ -35,7 +35,7 @@ import {
     getSortedScriptFileNames,
     getSortedScriptFolderNames,
     notebookScriptsMatchStorageSnapshot,
-    replaceEditorSessionText,
+    replaceScriptSessionText,
     replaceNotebookScriptsFromStorage,
 } from './notebook_scripts.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
@@ -172,7 +172,7 @@ describe('external storage replacement', () => {
         const state = buildState();
         const oldFile = state.scriptFocus.fileName;
         const retained = state.scripts[state.scriptFolders[MAIN_FOLDER].scripts[oldFile].scriptId];
-        replaceEditorSessionText(retained.editorSession, 'SELECT 1');
+        replaceScriptSessionText(retained.scriptSession, 'SELECT 1');
 
         const next = replaceNotebookScriptsFromStorage(state, {
             folders: [{
@@ -186,10 +186,10 @@ describe('external storage replacement', () => {
         }, logger);
 
         const retainedAfter = next.scripts[next.scriptFolders[MAIN_FOLDER].scripts[oldFile].scriptId];
-        expect(retainedAfter.editorSession.ptr).toBe(retained.editorSession.ptr);
-        expect(retainedAfter.editorSession.getText()).toBe('SELECT 2');
-        expect(next.scripts[next.scriptFolders[MAIN_FOLDER].scripts['2_added.sql'].scriptId].editorSession.getText()).toBe('SELECT 3');
-        expect(next.scripts[next.uncommittedScriptId].editorSession.getText()).toBe('SELECT 4');
+        expect(retainedAfter.scriptSession.ptr).toBe(retained.scriptSession.ptr);
+        expect(retainedAfter.scriptSession.getText()).toBe('SELECT 2');
+        expect(next.scripts[next.scriptFolders[MAIN_FOLDER].scripts['2_added.sql'].scriptId].scriptSession.getText()).toBe('SELECT 3');
+        expect(next.scripts[next.uncommittedScriptId].scriptSession.getText()).toBe('SELECT 4');
         for (const scriptData of Object.values(next.scripts)) {
             expect(scriptData.analysisOutdated).toBe(true);
             expect(scriptData.editorUpdate).toBeNull();
@@ -212,7 +212,7 @@ describe('external storage replacement', () => {
     it('invalidates analyzed scripts after a catalog reload without reanalyzing them', () => {
         let state = buildState();
         const scriptKey = state.scriptFolders[MAIN_FOLDER].scripts[state.scriptFocus.fileName].scriptId;
-        replaceEditorSessionText(state.scripts[scriptKey].editorSession, 'SELECT 1');
+        replaceScriptSessionText(state.scripts[scriptKey].scriptSession, 'SELECT 1');
         state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
         expect(state.scripts[scriptKey].analysisOutdated).toBe(false);
 
@@ -690,7 +690,7 @@ function buildMultiPageState(folderNames: string[]): NotebookScripts {
     for (const folderName of folderNames) {
         const [key, data] = createEmptyScriptData(state.instance, state.connectionCatalog);
         const fileName = generateScriptFileName({});
-        replaceEditorSessionText(data.editorSession, 'SELECT 1 as x');
+        replaceScriptSessionText(data.scriptSession, 'SELECT 1 as x');
         scripts[key] = { ...data, folderName, fileName };
         pages[folderName] = { folderName, scripts: { [fileName]: createScriptRef(key, fileName) } };
         if (firstFolder === '') { firstFolder = folderName; firstFile = fileName; }
@@ -972,7 +972,7 @@ function buildScriptState(fileNames: string[]): NotebookScripts {
     const pageScripts: { [fileName: string]: ScriptRef } = {};
     for (const fileName of fileNames) {
         const [key, data] = createEmptyScriptData(state.instance, state.connectionCatalog);
-        replaceEditorSessionText(data.editorSession, 'SELECT 1 as x');
+        replaceScriptSessionText(data.scriptSession, 'SELECT 1 as x');
         scripts[key] = { ...data, folderName: MAIN_FOLDER, fileName };
         pageScripts[fileName] = createScriptRef(key, fileName);
     }
@@ -1218,20 +1218,20 @@ describe('UPDATE_FROM_PROCESSOR semantic focus', () => {
         let state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         const scriptData = state.scripts[scriptKey];
-        const schemaSession = dql!.createEditorSession(state.connectionCatalog);
+        const schemaSession = dql!.createScriptSession(state.connectionCatalog);
         schemaSession.replaceText(0n, 'create table items (id int)');
         schemaSession.ensureAnalysis();
         schemaSession.loadIntoCatalog(0);
-        replaceEditorSessionText(scriptData.editorSession, 'select id from items where id = 1 and items.id > 0');
+        replaceScriptSessionText(scriptData.scriptSession, 'select id from items where id = 1 and items.id > 0');
         state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
         const analyzed = state.scripts[scriptKey];
 
-        const columnUpdate = analyzed.editorSession.setCursor(analyzed.editorSession.getDocumentRevision(), 8n);
+        const columnUpdate = analyzed.scriptSession.setCursor(analyzed.scriptSession.getDocumentRevision(), 8n);
         const next = reduce(state, {
             type: UPDATE_FROM_PROCESSOR,
             value: {
                 scriptKey,
-                editorSession: analyzed.editorSession,
+                scriptSession: analyzed.scriptSession,
                 editorUpdate: columnUpdate,
                 scriptBuffers: null,
                 scriptCompletion: null,
@@ -1248,20 +1248,20 @@ describe('UPDATE_FROM_PROCESSOR semantic focus', () => {
         let state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         const scriptData = state.scripts[scriptKey];
-        const schemaSession = dql!.createEditorSession(state.connectionCatalog);
+        const schemaSession = dql!.createScriptSession(state.connectionCatalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
         schemaSession.ensureAnalysis();
         schemaSession.loadIntoCatalog(0);
-        replaceEditorSessionText(scriptData.editorSession, 'select identifier from items where identifier > 0');
+        replaceScriptSessionText(scriptData.scriptSession, 'select identifier from items where identifier > 0');
         state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
         const analyzed = state.scripts[scriptKey];
 
-        const firstCursorUpdate = analyzed.editorSession.setCursor(analyzed.editorSession.getDocumentRevision(), 8n);
+        const firstCursorUpdate = analyzed.scriptSession.setCursor(analyzed.scriptSession.getDocumentRevision(), 8n);
         state = reduce(state, {
             type: UPDATE_FROM_PROCESSOR,
             value: {
                 scriptKey,
-                editorSession: analyzed.editorSession,
+                scriptSession: analyzed.scriptSession,
                 editorUpdate: firstCursorUpdate,
                 scriptBuffers: null,
                 scriptCompletion: null,
@@ -1270,12 +1270,12 @@ describe('UPDATE_FROM_PROCESSOR semantic focus', () => {
         });
         expect(state.semanticUserFocus?.scriptColumnRefs.size).toBe(2);
 
-        const secondCursorUpdate = analyzed.editorSession.setCursor(analyzed.editorSession.getDocumentRevision(), 9n);
+        const secondCursorUpdate = analyzed.scriptSession.setCursor(analyzed.scriptSession.getDocumentRevision(), 9n);
         const next = reduce(state, {
             type: UPDATE_FROM_PROCESSOR,
             value: {
                 scriptKey,
-                editorSession: analyzed.editorSession,
+                scriptSession: analyzed.scriptSession,
                 editorUpdate: secondCursorUpdate,
                 scriptBuffers: null,
                 scriptCompletion: null,
@@ -1291,17 +1291,17 @@ describe('UPDATE_FROM_PROCESSOR semantic focus', () => {
     it('does not persist on a cursor-only processor update', () => {
         let state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
-        replaceEditorSessionText(state.scripts[scriptKey].editorSession, 'select 1');
+        replaceScriptSessionText(state.scripts[scriptKey].scriptSession, 'select 1');
         state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
         const analyzed = state.scripts[scriptKey];
-        const cursorUpdate = analyzed.editorSession.setCursor(analyzed.editorSession.getDocumentRevision(), 1n);
+        const cursorUpdate = analyzed.scriptSession.setCursor(analyzed.scriptSession.getDocumentRevision(), 1n);
 
         const recorder = new RecordingStorageWriter(logger, backend);
         reduceNotebookScripts(state, {
             type: UPDATE_FROM_PROCESSOR,
             value: {
                 scriptKey,
-                editorSession: analyzed.editorSession,
+                scriptSession: analyzed.scriptSession,
                 editorUpdate: cursorUpdate,
                 scriptBuffers: null,
                 scriptCompletion: null,
@@ -1328,7 +1328,7 @@ describe('compileQuery', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         const scriptData = state.scripts[scriptKey];
-        replaceEditorSessionText(scriptData.editorSession, VISUALIZE_SCRIPT);
+        replaceScriptSessionText(scriptData.scriptSession, VISUALIZE_SCRIPT);
 
         expect(scriptData.analysisOutdated).toBe(true);
         expect(scriptData.annotations.visualizeQuery).toBeNull();
@@ -1341,7 +1341,7 @@ describe('compileQuery', () => {
     it('extracts the inner SELECT once the script has been analyzed', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
-        replaceEditorSessionText(state.scripts[scriptKey].editorSession, VISUALIZE_SCRIPT);
+        replaceScriptSessionText(state.scripts[scriptKey].scriptSession, VISUALIZE_SCRIPT);
 
         const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
         const scriptData = s1.scripts[scriptKey];
@@ -1405,21 +1405,21 @@ describe('compileQuery', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         const scriptData = state.scripts[scriptKey];
-        replaceEditorSessionText(scriptData.editorSession, 'SELECT 1 as x');
+        replaceScriptSessionText(scriptData.scriptSession, 'SELECT 1 as x');
 
         const text = compileQuery(scriptData);
         expect(text).toBe('SELECT 1 as x');
     });
 
-    it('preserves plain multi-statement SQL verbatim', () => {
+    it('preserves valid plain multi-statement SQL verbatim', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         const next = reduce(state, {
             type: SET_SCRIPT_TEXT,
-            value: { scriptKey, text: 'select 1; select 2' },
+            value: { scriptKey, text: 'create table t(a int); select * from t' },
         });
 
-        expect(compileQuery(next.scripts[scriptKey])).toBe('select 1; select 2');
+        expect(compileQuery(next.scripts[scriptKey])).toBe('create table t(a int); select * from t');
     });
 
     it('preserves former relational syntax inside a string', () => {
@@ -1500,7 +1500,7 @@ describe('SET_SCRIPT_TEXT', () => {
         const state = buildState();
         const scriptKey = getSelectedScriptFolder(state)!.scripts[state.scriptFocus.fileName].scriptId;
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT 1 as x' } });
-        expect(next.scripts[scriptKey].editorSession.getText()).toBe('SELECT 1 as x');
+        expect(next.scripts[scriptKey].scriptSession.getText()).toBe('SELECT 1 as x');
     });
 
     it('re-analyzes the rewritten script', () => {
@@ -1550,7 +1550,7 @@ describe('SET_SCRIPT_TEXT', () => {
         const next = reduce(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'SELECT 1 as x', withDiff: true } });
         expect(next.scripts[scriptKey].pendingDiff).not.toBeNull();
         expect(next.scripts[scriptKey].pendingDiff!.priorText).toBe('');
-        expect(next.scripts[scriptKey].editorSession.getText()).toBe('SELECT 1 as x');
+        expect(next.scripts[scriptKey].scriptSession.getText()).toBe('SELECT 1 as x');
     });
 });
 
@@ -1578,7 +1578,7 @@ describe('ACCEPT_PENDING_DIFF / REJECT_PENDING_DIFF', () => {
         const next = reduce(staged, { type: ACCEPT_PENDING_DIFF, value: scriptKey });
         expect(next.scripts[scriptKey].pendingDiff).toBeNull();
         // Accept keeps the applied (new) text — no rope change.
-        expect(next.scripts[scriptKey].editorSession.getText()).toBe('SELECT 2 as b');
+        expect(next.scripts[scriptKey].scriptSession.getText()).toBe('SELECT 2 as b');
     });
 
     it('ACCEPT frees the staged diff buffer', () => {
@@ -1593,7 +1593,7 @@ describe('ACCEPT_PENDING_DIFF / REJECT_PENDING_DIFF', () => {
         const next = reduce(staged, { type: REJECT_PENDING_DIFF, value: scriptKey });
         expect(next.scripts[scriptKey].pendingDiff).toBeNull();
         // Reject restores the verbatim prior text and re-analyzes it.
-        expect(next.scripts[scriptKey].editorSession.getText()).toBe('SELECT 1 as a');
+        expect(next.scripts[scriptKey].scriptSession.getText()).toBe('SELECT 1 as a');
         expect(next.scripts[scriptKey].analysisOutdated).toBe(false);
         expect(next.scripts[scriptKey].editorUpdate?.analysisAvailable).toBe(true);
     });
@@ -1638,7 +1638,7 @@ describe('CREATE_SCRIPT_WITH_TEXT', () => {
         expect(pageEntryCount(next)).toBe(prevCount + 1);
         const focusFile = next.scriptFocus.fileName;
         const newEntry = getSelectedScriptFolder(next)!.scripts[focusFile];
-        expect(next.scripts[newEntry.scriptId].editorSession.getText()).toBe('SELECT 1 as x');
+        expect(next.scripts[newEntry.scriptId].scriptSession.getText()).toBe('SELECT 1 as x');
     });
 
     it('analyzes the new entry before returning', () => {
@@ -1672,7 +1672,7 @@ describe('destroyNotebookScripts', () => {
 
     it('frees every owned script', () => {
         const state = buildState();
-        const scriptPtrs = Object.values(state.scripts).map(s => s.editorSession.ptr);
+        const scriptPtrs = Object.values(state.scripts).map(s => s.scriptSession.ptr);
 
         // Everything is alive before teardown.
         for (const p of scriptPtrs) {

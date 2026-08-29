@@ -69,8 +69,9 @@ import { ScriptDetails } from './script_details.js';
 function makeScriptData(scriptKey: number, text: string, fileName: string) {
     return {
         scriptKey,
-        editorSession: {
+        scriptSession: {
             getText: () => text,
+            startExecution: () => ({}),
             compileQuery: () => ({
                 ...mockState.compileQuery(),
                 read: () => ({
@@ -191,7 +192,7 @@ describe('ScriptDetails', () => {
         expect(hideDetails).toHaveBeenCalledOnce();
         expect(mockState.executeQuery).toHaveBeenCalledWith('test-connection', expect.objectContaining({
             query: 'select 2',
-            cacheable: true,
+            cacheable: false,
         }));
         expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [102, 42] });
     });
@@ -221,7 +222,7 @@ describe('ScriptDetails', () => {
         expect(hideDetails).toHaveBeenCalledOnce();
         expect(mockState.executeQuery).toHaveBeenCalledWith('test-connection', expect.objectContaining({
             query: 'select 2',
-            cacheable: true,
+            cacheable: false,
         }));
         expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [102, 42] });
     });

@@ -30,23 +30,23 @@ afterEach(() => {
     dql!.resetUnsafe();
 });
 
-function createEditorSession(catalog: dashql.DashQLCatalog, text: string, cursor = text.length) {
-    const editorSession = dql!.createEditorSession(catalog);
-    editorSession.replaceText(0n, text);
-    const update = editorSession.ensureAnalysis();
+function createScriptSession(catalog: dashql.DashQLCatalog, text: string, cursor = text.length) {
+    const scriptSession = dql!.createScriptSession(catalog);
+    scriptSession.replaceText(0n, text);
+    const update = scriptSession.ensureAnalysis();
     expect(update.analysisAvailable).toBe(true);
-    const editorUpdate = editorSession.setCursor(1n, BigInt(cursor));
-    return { editorSession, editorUpdate };
+    const editorUpdate = scriptSession.setCursor(1n, BigInt(cursor));
+    return { scriptSession, editorUpdate };
 }
 
 describe('CodeMirror portable editor events', () => {
     it('keeps an incrementally typed WITH prefix analyzable', () => {
         const catalog = dql!.createCatalog();
-        const editorSession = dql!.createEditorSession(catalog);
+        const scriptSession = dql!.createScriptSession(catalog);
         const processorState: DashQLProcessorUpdateIn = {
-            scriptKey: editorSession.getCatalogEntryId(),
-            editorSession,
-            editorUpdate: editorSession.ensureAnalysis(),
+            scriptKey: scriptSession.getCatalogEntryId(),
+            scriptSession,
+            editorUpdate: scriptSession.ensureAnalysis(),
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
@@ -70,17 +70,17 @@ describe('CodeMirror portable editor events', () => {
         }
 
         expect(editorState.doc.toString()).toBe('wit');
-        expect(editorSession.getText()).toBe('wit');
+        expect(scriptSession.getText()).toBe('wit');
         expect(editorState.field(DashQLProcessorPlugin).editorUpdate?.analysisAvailable).toBe(true);
     });
 
     it('keeps highlighting when the catalog changes before a cursor move', () => {
         const catalog = dql!.createCatalog();
         const text = 'select value from items';
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, 0);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 0);
         const processorState: DashQLProcessorUpdateIn = {
-            scriptKey: editorSession.getCatalogEntryId(),
-            editorSession,
+            scriptKey: scriptSession.getCatalogEntryId(),
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -95,7 +95,7 @@ describe('CodeMirror portable editor events', () => {
         });
         editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
 
-        const schemaSession = dql!.createEditorSession(catalog);
+        const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (value int)');
         schemaSession.ensureAnalysis();
         schemaSession.loadIntoCatalog(0);
@@ -111,18 +111,18 @@ describe('CodeMirror portable editor events', () => {
 
     it('renders focused and related semantic references after a cursor update', () => {
         const catalog = dql!.createCatalog();
-        const schemaSession = dql!.createEditorSession(catalog);
+        const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
         schemaSession.ensureAnalysis();
         schemaSession.loadIntoCatalog(0);
 
         const text = 'select identifier from items where identifier > 0';
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, 0);
-        const scriptKey = editorSession.getCatalogEntryId();
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 0);
+        const scriptKey = scriptSession.getCatalogEntryId();
         let emitted: DashQLProcessorUpdateOut | null = null;
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -155,24 +155,24 @@ describe('CodeMirror portable editor events', () => {
         expect(view.dom.querySelectorAll('.dashql-colref-focus')).toHaveLength(1);
         expect(view.dom.querySelectorAll('.dashql-tableref-focus')).toHaveLength(1);
         view.destroy();
-        editorSession.destroy();
+        scriptSession.destroy();
         schemaSession.destroy();
         catalog.destroy();
     });
 
     it('renders semantic focus immediately on a local cursor transaction', () => {
         const catalog = dql!.createCatalog();
-        const schemaSession = dql!.createEditorSession(catalog);
+        const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
         schemaSession.ensureAnalysis();
         schemaSession.loadIntoCatalog(0);
 
         const text = 'select identifier from items where identifier > 0';
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, 0);
-        const scriptKey = editorSession.getCatalogEntryId();
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 0);
+        const scriptKey = scriptSession.getCatalogEntryId();
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -195,25 +195,25 @@ describe('CodeMirror portable editor events', () => {
         expect(view.dom.querySelectorAll('.dashql-colref-focus')).toHaveLength(1);
         expect(view.dom.querySelectorAll('.dashql-tableref-focus')).toHaveLength(1);
         view.destroy();
-        editorSession.destroy();
+        scriptSession.destroy();
         schemaSession.destroy();
         catalog.destroy();
     });
 
     it('keeps relation and function syntax highlighting through the notebook round-trip', () => {
         const catalog = dql!.createCatalog();
-        const schemaSession = dql!.createEditorSession(catalog);
+        const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
         schemaSession.ensureAnalysis();
         schemaSession.loadIntoCatalog(0);
 
         const text = 'select count(identifier) from items';
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, 0);
-        const scriptKey = editorSession.getCatalogEntryId();
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 0);
+        const scriptKey = scriptSession.getCatalogEntryId();
         let emitted: DashQLProcessorUpdateOut | null = null;
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -249,18 +249,18 @@ describe('CodeMirror portable editor events', () => {
         expect(getComputedStyle(functionNode!.querySelector('span')!).color).toBe('rgb(35, 87, 92)');
         expect(getComputedStyle(relationNode!.querySelector('span')!).color).toBe('rgb(82, 43, 178)');
         view.destroy();
-        editorSession.destroy();
+        scriptSession.destroy();
         schemaSession.destroy();
         catalog.destroy();
     });
 
     it('does not materialize compatibility analysis buffers', () => {
         const catalog = dql!.createCatalog();
-        const editorSession = dql!.createEditorSession(catalog);
-        editorSession.replaceText(0n, 'select 1');
+        const scriptSession = dql!.createScriptSession(catalog);
+        scriptSession.replaceText(0n, 'select 1');
         const beforeAnalysis = dql!.registeredMemory.size;
 
-        const update = editorSession.ensureAnalysis();
+        const update = scriptSession.ensureAnalysis();
         expect(dql!.registeredMemory.size).toBe(beforeAnalysis);
         expect(update.analysisAvailable).toBe(true);
         expect(dql!.registeredMemory.size).toBe(beforeAnalysis);
@@ -295,10 +295,10 @@ describe('CodeMirror portable editor events', () => {
     it('applies a Unicode multi-range edit as one session revision', () => {
         const catalog = dql!.createCatalog();
         const text = 'aéz😀q';
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, 1);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 1);
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: 1,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -312,7 +312,7 @@ describe('CodeMirror portable editor events', () => {
             extensions: [DashQLProcessorPlugin],
         });
         editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
-        const revision = editorSession.getDocumentRevision();
+        const revision = scriptSession.getDocumentRevision();
         editorState = editorState.update({
             changes: [
                 { from: 1, to: 2, insert: '☃' },
@@ -322,9 +322,9 @@ describe('CodeMirror portable editor events', () => {
             annotations: Transaction.userEvent.of('input.type'),
         }).state;
 
-        expect(editorSession.getText()).toBe('a☃z!q');
-        expect(editorSession.getDocumentRevision()).toBe(revision + 1n);
-        expect(editorState.doc.toString()).toBe(editorSession.getText());
+        expect(scriptSession.getText()).toBe('a☃z!q');
+        expect(scriptSession.getDocumentRevision()).toBe(revision + 1n);
+        expect(editorState.doc.toString()).toBe(scriptSession.getText());
     });
 });
 
@@ -337,8 +337,8 @@ describe('DashQL processor completion triggers', () => {
         catalog.loadScript(schemaScript, 0);
 
         const text = "select 'é😀', ord";
-        const { editorSession } = createEditorSession(catalog, text);
-        const completionBuffer = editorSession.completeAtCursor(10);
+        const { scriptSession } = createScriptSession(catalog, text);
+        const completionBuffer = scriptSession.completeAtCursor(10);
         const completion = completionBuffer.read();
         let candidateId = -1;
         for (let i = 0; i < completion.candidatesLength(); ++i) {
@@ -377,8 +377,8 @@ describe('DashQL processor completion triggers', () => {
         catalog.loadScript(schemaScript, 0);
 
         const text = 'select * from ord';
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text);
-        const completionBuffer = editorSession.completeAtCursor(10);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text);
+        const completionBuffer = scriptSession.completeAtCursor(10);
         const completion = completionBuffer.read();
         let candidateId = -1;
         for (let i = 0; i < completion.candidatesLength(); ++i) {
@@ -402,7 +402,7 @@ describe('DashQL processor completion triggers', () => {
         }, EditorState.create({ doc: text }).doc, text.length);
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: 1,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: initialCompletion,
@@ -440,7 +440,7 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
   )
 );`;
         const cursorOffset = text.indexOf('VISUALIZE');
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, cursorOffset);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, cursorOffset);
         expect(editorUpdate.primaryCursorState?.scannerRelativePosition).toBe(
             dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL,
         );
@@ -448,7 +448,7 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
 
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: 1,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -476,7 +476,7 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
         const catalog = dql!.createCatalog();
         const text = '\nSELECT';
         const cursorOffset = 1;
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, cursorOffset);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, cursorOffset);
         expect(editorUpdate.primaryCursorState?.scannerRelativePosition).toBe(
             dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL,
         );
@@ -484,7 +484,7 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
 
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: 1,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -511,10 +511,10 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
     it('still starts completion when backspace deletes from a token', () => {
         const catalog = dql!.createCatalog();
         const text = 'SELECT';
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text);
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: 1,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -547,7 +547,7 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
 
         const text = 'select * from tableA where ttr';
         const cursorOffset = text.indexOf('ttr');
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, cursorOffset);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, cursorOffset);
         expect(editorUpdate.primaryCursorState?.scannerRelativePosition).toBe(
             dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL,
         );
@@ -555,7 +555,7 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
 
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: 1,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -584,10 +584,10 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
         const catalog = dql!.createCatalog();
         const text = 'select ttr';
         const cursorOffset = text.indexOf('ttr');
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, cursorOffset);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, cursorOffset);
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: 1,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
@@ -619,11 +619,11 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
 
         const text = 'select * from tableA where att ttr';
         const firstCursor = text.indexOf('att') + 3;
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text, firstCursor);
-        const completionBuffer = editorSession.completeAtCursor(10);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text, firstCursor);
+        const completionBuffer = scriptSession.completeAtCursor(10);
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: 1,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: {
@@ -667,10 +667,10 @@ SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
         catalog.loadScript(schemaScript, 0);
 
         const text = 'select * from tableA where att';
-        const { editorSession, editorUpdate } = createEditorSession(catalog, text);
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text);
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: 1,
-            editorSession,
+            scriptSession,
             editorUpdate,
             scriptBuffers: null,
             scriptCompletion: null,
