@@ -12,7 +12,7 @@ exports_files([
 js_binary(
     name = "protoc_gen_es_bin",
     entry_point = "run_protoc_gen_es.cjs",
-    data = ["//:node_modules"],
+    data = ["//:node_modules/@bufbuild/protoc-gen-es"],
 )
 
 # Plugin definition for rules_proto_grpc: output_directory mode, TypeScript output.
