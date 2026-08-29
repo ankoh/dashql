@@ -134,7 +134,6 @@ use_repo(
     "com_google_flatbuffers",
     "duckdb_cli_linux_amd64",
     "duckdb_cli_osx",
-    "duckdb_source",
     "flex_src",
     "m4_src",
     "rapidjson",

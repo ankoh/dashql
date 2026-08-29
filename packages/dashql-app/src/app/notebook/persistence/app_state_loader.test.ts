@@ -260,7 +260,7 @@ describe('restoreAppState', () => {
             notebookId: GOOD_ID,
             notebookPath: GOOD_ID,
             name: 'Good',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -424,7 +424,7 @@ describe('restoreAppState', () => {
             notebookId: '',
             notebookPath: NO_ID_PATH,
             name: 'No Id',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: { originalFileName: 'x.sql', createdAt: '2024-01-01T00:00:00Z' }
         } as any as NotebookData;
 
@@ -454,7 +454,7 @@ describe('restoreAppState', () => {
             notebookId: GOOD_ID,
             notebookPath: GOOD_ID,
             name: 'Good',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: { originalFileName: 'good.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -577,7 +577,7 @@ describe('restoreAppState', () => {
             notebookId: SCHEMA_ID,
             notebookPath: SCHEMA_ID,
             name: 'Functions Test',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' },
         };
         const functionsSQL = 'CREATE FUNCTION answer() AS 42;';
@@ -712,7 +712,7 @@ describe('restoreAppState', () => {
             notebookId: MULTI_PAGE_ID,
             notebookPath: MULTI_PAGE_ID,
             name: 'Invalid Script',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -822,7 +822,7 @@ describe('restoreAppState', () => {
         vi.mocked(mockBackend.loadNotebook).mockImplementation(async (notebookId) => ({
             notebookId,
             name: 'Imported Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         }));
         vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
@@ -852,7 +852,7 @@ describe('restoreAppState', () => {
         vi.mocked(mockBackend.loadNotebook).mockResolvedValue({
             notebookId: NOTEBOOK_FAIL_ID,
             name: 'Notebook Fail',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         });
         vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
@@ -876,7 +876,7 @@ describe('restoreAppState', () => {
         vi.mocked(mockBackend.loadNotebook).mockResolvedValue({
             notebookId: DATALESS_ID,
             name: 'Broken Connection',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         });
         vi.mocked(mockCore.createCatalog).mockImplementationOnce(() => {

@@ -163,7 +163,7 @@ export default vite.defineConfig(({ mode, command }) => {
         server: {
             port: 9002,
             strictPort: true,
-            // Browser HMR remains disabled because hot-swapping the DuckDB/core WASM worker
+            // Browser HMR remains disabled because hot-swapping the Core WASM worker
             // graph stacks live instances. Electron tears down those instances safely.
             hmr: isElectronBuild,
             cors: true,

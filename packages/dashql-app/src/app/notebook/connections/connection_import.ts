@@ -3,7 +3,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { computeConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { LoggableException } from '../../../platform/logger/logger.js';
-import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { ConnectionHealth, ConnectionState, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
@@ -13,21 +13,7 @@ import { QueryExecutionState } from './query_execution_state.js';
 const LOG_CTX = "connection";
 
 export function decodeConnectionFromProto(conn: connection.Connection, notebookId: string): [ConnectorInfo, ConnectionStateDetailsVariant] {
-    if ('duckdb' in conn) {
-        const duckdb = conn.duckdb as any;
-        const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.DUCKDB];
-        const proto = duckdb?.setupParams
-            ? duckdb
-            : { setupTimings: {}, setupParams: duckdb ?? {} };
-        const details: ConnectionStateDetailsVariant = {
-            type: DUCKDB_CONNECTOR,
-            value: {
-                proto,
-                channel: null,
-            }
-        };
-        return [info, details];
-    } else if ('salesforce' in conn) {
+    if ('salesforce' in conn) {
         const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
         // Storage persists ConnectionParams (flat SalesforceConnectionParams),
         // not the Details wrapper. Normalize so proto.setupParams is populated.

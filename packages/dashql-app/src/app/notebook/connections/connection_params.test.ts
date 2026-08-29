@@ -108,9 +108,4 @@ describe('sanitizeConnectionParamsForSharing', () => {
         expect(sanitized.hyper.endpoint).toBe('https://hyper.example.com');
     });
 
-    it('leaves DuckDB params untouched', () => {
-        const params: ConnectionParams = { duckdb: {} };
-        const sanitized = sanitizeConnectionParamsForSharing(params) as any;
-        expect(sanitized).toEqual({ duckdb: {} });
-    });
 });

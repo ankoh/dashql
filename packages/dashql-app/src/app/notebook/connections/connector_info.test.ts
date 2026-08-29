@@ -7,16 +7,15 @@ describe('connector list', () => {
         delete (globalThis as any).dashqlElectron;
     });
 
-    it('shows Hyper first and omits DuckDB in the browser', () => {
+    it('shows the supported connectors in the browser', () => {
         expect(useConnectorList().map(info => info.connectorType)).toEqual([
             ConnectorType.HYPER,
             ConnectorType.SALESFORCE_DATA_CLOUD,
             ConnectorType.TRINO,
         ]);
-        expect(CONNECTOR_INFOS[ConnectorType.DUCKDB].platforms.browser).toBe(false);
     });
 
-    it('shows Hyper but not DuckDB in Electron', () => {
+    it('shows the supported connectors in Electron', () => {
         (globalThis as any).dashqlElectron = {};
         expect(useConnectorList().map(info => info.connectorType)).toEqual([
             ConnectorType.HYPER,
@@ -30,20 +29,9 @@ describe('connector list', () => {
 describe('connector hello world scripts', () => {
     it.each([
         [ConnectorType.HYPER, 'select version();'],
-        [ConnectorType.DUCKDB, 'select version();'],
         [ConnectorType.SALESFORCE_DATA_CLOUD, 'select version();'],
         [ConnectorType.TRINO, 'select version();'],
     ])('defines an executable starter query for %s', (connectorType, expected) => {
         expect(CONNECTOR_INFOS[connectorType].helloWorldScript).toBe(expected);
-    });
-});
-
-describe('connector icons', () => {
-    it('uses DuckDB-specific symbols', () => {
-        expect(CONNECTOR_INFOS[ConnectorType.DUCKDB].icons).toEqual({
-            colored: 'duckdb',
-            uncolored: 'duckdb_nocolor',
-            outlines: 'duckdb_nocolor',
-        });
     });
 });

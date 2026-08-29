@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <symbol id="duckdb_nocolor" viewBox="0 0 24 24">
-        <path fill="currentColor" fill-rule="evenodd" d="M12 0a12 12 0 1 1 0 24 12 12 0 0 1 0-24ZM9.125 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm6.625 3.2v3.6h2.35a1.8 1.8 0 0 0 0-3.6h-2.35Z"/>
-    </symbol>
-    <use xlink:href="#duckdb_nocolor"/>
-</svg>

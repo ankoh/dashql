@@ -58,7 +58,7 @@ describe('importNotebookFromZip', () => {
             notebookId: 'original-uuid',
             notebookPath: 'original-notebook',
             name: 'Original Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {
                 originalFileName: 'test.sql',
                 createdAt: '2024-01-01T00:00:00Z',
@@ -108,7 +108,7 @@ describe('importNotebookFromZip', () => {
             notebookId: 'test-uuid',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 
@@ -129,7 +129,7 @@ describe('importNotebookFromZip', () => {
             notebookId: 'empty-uuid',
             notebookPath: 'empty-notebook',
             name: 'Empty Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 
@@ -163,7 +163,7 @@ describe('importNotebookFromZip', () => {
     it('removes a partially imported notebook when a script write fails', async () => {
         const notebookData: NotebookData = {
             notebookId: 'original-uuid',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
         const zipBlob = await createZipBlob({
@@ -183,7 +183,7 @@ describe('importNotebookFromZip', () => {
             notebookId: 'test-uuid',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 
@@ -209,7 +209,7 @@ describe('importNotebookFromZip', () => {
             notebookId: 'test-uuid',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 
@@ -235,7 +235,7 @@ describe('importNotebookFromZip', () => {
             notebookId: 'test-uuid',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 
@@ -258,7 +258,7 @@ describe('importNotebookFromZip', () => {
             notebookId: 'test-uuid',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 

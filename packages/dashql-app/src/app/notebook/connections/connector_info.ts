@@ -1,19 +1,16 @@
 import { isNativePlatform } from "../../../platform/native_globals.js";
 
-export const DUCKDB_CONNECTOR = Symbol('DUCKDB_CONNECTOR');
 export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');
 export const HYPER_CONNECTOR = Symbol('HYPER_CONNECTOR');
 export const TRINO_CONNECTOR = Symbol('TRINO_CONNECTOR');
 
 export enum ConnectorType {
     HYPER = 0,
-    DUCKDB = 1,
-    SALESFORCE_DATA_CLOUD = 2,
-    TRINO = 3,
+    SALESFORCE_DATA_CLOUD = 1,
+    TRINO = 2,
 }
 export const CONNECTOR_TYPES: ConnectorType[] = [
     ConnectorType.HYPER,
-    ConnectorType.DUCKDB,
     ConnectorType.SALESFORCE_DATA_CLOUD,
     ConnectorType.TRINO,
 ];
@@ -99,32 +96,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
     },
     {
-        connectorType: ConnectorType.DUCKDB,
-        helloWorldScript: 'select version();',
-        names: {
-            displayShort: 'DuckDB',
-            displayLong: 'DuckDB',
-            fileShort: 'duckdb',
-        },
-        icons: {
-            colored: "duckdb",
-            uncolored: "duckdb_nocolor",
-            outlines: "duckdb_nocolor",
-        },
-        catalogResolver: CatalogResolver.SQL_INFORMATION_SCHEMA,
-        features: {
-            manualSetup: true,
-            healthChecks: true,
-            schemaScript: false,
-            executeQueryAction: true,
-            refreshSchemaAction: true,
-        },
-        platforms: {
-            browser: false,
-            native: true,
-        },
-    },
-    {
         connectorType: ConnectorType.SALESFORCE_DATA_CLOUD,
         helloWorldScript: 'select version();',
         names: {
@@ -178,9 +149,8 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
 ];
 
-export function getConnectorInfoForParams(params: { duckdb?: any; hyper?: any; salesforce?: any; trino?: any }): ConnectorInfo | null {
+export function getConnectorInfoForParams(params: { hyper?: any; salesforce?: any; trino?: any }): ConnectorInfo | null {
     if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
-    if ("duckdb" in params) return CONNECTOR_INFOS[ConnectorType.DUCKDB];
     if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
     if ("trino" in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
     return null;

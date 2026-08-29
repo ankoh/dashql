@@ -25,7 +25,7 @@ describe('ConnectionInlineHeader', () => {
 
     it('offers selection with an embedded engine label instead of health status', () => {
         const connection = {
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.DUCKDB],
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
             connectionHealth: ConnectionHealth.NOT_STARTED,
             connectionStatus: ConnectionStatus.NOT_STARTED,
             details: { type: Symbol('test'), value: null },

@@ -34,7 +34,7 @@ function formattingDetails(scriptData: ScriptData): Record<string, unknown> {
             4,
         );
         details.configuration = {
-            dialect: 'DUCKDB',
+            dialect: 'HYPER',
             mode: 'PRETTY',
             maxWidth: 80,
             indentationWidth: 4,

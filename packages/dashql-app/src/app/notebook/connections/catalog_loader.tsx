@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useDynamicConnectionDispatch } from './connection_registry.js';
 import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
-import { CatalogResolver, DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { CatalogResolver, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
@@ -113,10 +113,6 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                             const catalog = conn.details.value.proto.setupParams?.catalogName ?? "";
                             const schemas = conn.details.value.proto.setupParams?.schemaNames ?? [];
                             await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
-                            break;
-                        }
-                        case DUCKDB_CONNECTOR: {
-                            await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, '', [], executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
                             break;
                         }
                         default:

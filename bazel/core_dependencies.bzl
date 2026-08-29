@@ -5,7 +5,6 @@
     - flatbuffers, ankerl, rapidjson, c4core, rapidyaml (http_archive + build_file)
     - bison_src, m4_src, flex_src (prebuilt xPack)
     - com_google_benchmark (http_archive + external_benchmark.BUILD)
-    - duckdb (http_archive + bazel/duckdb/BUILD.bazel)
     googletest and gflags remain from BCR in MODULE.bazel.
 
     sha256 hashes are maintained by scripts/update_bazel_hashes.sh and are
@@ -110,14 +109,6 @@ def _dashql_core_deps_impl(mctx):
         sha256 = "1f2fa724fb054b3dbe1a9cbd13de5b76997d850e7087ec762ba88db04e0180cf",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/duckdb_cli-linux-amd64.zip"],
         build_file = "//bazel:external_duckdb_cli.BUILD",
-    )
-    # DuckDB source (WASM and custom builds)
-    http_archive(
-        name = "duckdb_source",
-        sha256 = "99c36e4bf415f295e19ed67401adb72e075e63e6a0dc3a14312c986e29781fd0",
-        strip_prefix = "duckdb-" + _DUCKDB_VERSION,
-        urls = ["https://github.com/duckdb/duckdb/archive/refs/tags/v" + _DUCKDB_VERSION + ".tar.gz"],
-        build_file = "//bazel/duckdb:duckdb.bazel",
     )
     # Apache Arrow (minimal: IPC only)
     http_archive(

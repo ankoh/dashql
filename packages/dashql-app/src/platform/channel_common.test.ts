@@ -5,7 +5,7 @@ import { ChannelError, getProxyErrorData } from './channel_common.js';
 describe('proxy errors', () => {
     it('reads native proxy details', () => {
         const error = {
-            message: 'duckdb operation failed',
+            message: 'database operation failed',
             details: {
                 operation: 'insert arrow ipc stream',
                 error: 'unsupported arrow type',
