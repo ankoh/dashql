@@ -2596,7 +2596,7 @@ std::string Formatter::WriteOutput() const {
             const auto& statement = parsed.statements[i];
             output += fmt.Render(node_states[statement.root].reg, options);
             output += ';';
-            if (i + 1 < parsed.statements.size()) output += '\n';
+            if (i + 1 < parsed.statements.size()) output += "\n\n";
         }
         return output;
     }
@@ -2606,6 +2606,10 @@ std::string Formatter::WriteOutput() const {
     auto descriptions = parsed.AssociateDescriptions();
     size_t comment_begin = 0;
     for (size_t i = 0; i < parsed.statements.size(); ++i) {
+        if (i > 0) {
+            if (!output.empty() && output.back() != '\n') output += '\n';
+            output += '\n';
+        }
         const auto& statement = parsed.statements[i];
         const auto& description = descriptions[i];
         auto root_span = scanned.ResolveTextSpan(ast[statement.root].symbol_span());

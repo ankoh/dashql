@@ -13,6 +13,28 @@ afterEach(async () => {
 });
 
 describe('DashQL formatting', () => {
+    it('separates multiple statements with a blank line', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select 1; select 2`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            80,
+            4,
+        );
+        const formatted = script.format(config, catalog, true);
+
+        expect(formatted.toString()).toEqual(
+            "select 1;\n\n" +
+            "select 2;"
+        );
+
+        formatted.destroy();
+        script.destroy();
+        catalog.destroy();
+    });
+
     it('formats inserts through WebAssembly', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);
