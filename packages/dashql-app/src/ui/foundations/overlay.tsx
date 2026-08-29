@@ -194,6 +194,7 @@ export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: Reac
             className={classNames(styles.overlay, width, height, minWidth, maxWidth, maxHeight)}
             ref={overlayRef}
             role={props.role}
+            data-electron-drag-region="false"
             style={props.centered ? undefined : {
                 position: props.position,
                 top: props.top,

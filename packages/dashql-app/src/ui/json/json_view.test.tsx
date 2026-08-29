@@ -41,4 +41,10 @@ describe('JsonView array pagination', () => {
         expect(container.textContent).toContain('Show 100 more (150 remaining)');
         expect(container.textContent).not.toContain('249');
     });
+
+    it('opts out of enclosing Electron drag regions', () => {
+        act(() => root.render(<JsonView value={{ nested: true }} />));
+
+        expect(container.firstElementChild?.getAttribute('data-electron-drag-region')).toBe('false');
+    });
 });

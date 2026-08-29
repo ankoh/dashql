@@ -112,6 +112,7 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
                 {...containerProps}
                 ref={ref}
                 className={`${styles.viewer}${className ? ` ${className}` : ''}`}
+                data-electron-drag-region="false"
             >
                 <JsonValue
                     value={value}

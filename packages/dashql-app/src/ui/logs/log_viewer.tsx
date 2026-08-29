@@ -249,7 +249,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
 
     return (
         <>
-            <div className={styles.overlay}>
+            <div className={styles.overlay} data-electron-drag-region="false">
                 <div className={styles.header_container}>
                     <div className={styles.header_left_container}>
                         <div className={styles.title}>
