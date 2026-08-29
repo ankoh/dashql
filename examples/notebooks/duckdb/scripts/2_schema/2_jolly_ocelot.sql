@@ -1,1 +1,0 @@
-select some_attribute from test_table
