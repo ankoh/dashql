@@ -131,7 +131,7 @@ function seedNotebook(backend: MemoryBackend, id: string): Promise<void> {
         await backend.saveNotebookManifest(id, {
             notebookId: id,
             name: `Notebook ${id}`,
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         });
         await backend.saveNotebookSchema(id, `-- schema ${id}`);
@@ -249,7 +249,7 @@ describe('cloneNotebook', () => {
         await source.saveNotebookManifest(SOURCE_ID, {
             notebookId: SOURCE_ID,
             name: '   ',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         });
         await cloneNotebook(SOURCE_ID, source, target, CLONE_ID, logger);

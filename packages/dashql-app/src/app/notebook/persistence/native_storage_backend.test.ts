@@ -54,7 +54,7 @@ describe('NativeStorageBackend (one-dir-one-notebook)', () => {
             const notebookData: NotebookData = {
                 notebookId: SID,
                 name: 'Test Notebook',
-                connectionParams: { duckdb: {} },
+                connectionParams: { hyper: {} } as any,
                 metadata: {
                     originalFileName: 'test.sql',
                     createdAt: '2024-01-01T00:00:00Z',
@@ -74,7 +74,7 @@ describe('NativeStorageBackend (one-dir-one-notebook)', () => {
             const make = (name: string): NotebookData => ({
                 notebookId: SID,
                 name,
-                connectionParams: { duckdb: {} },
+                connectionParams: { hyper: {} } as any,
                 metadata: {},
             });
             await backend.saveNotebookManifest(SID, make('First'));
@@ -89,7 +89,7 @@ describe('NativeStorageBackend (one-dir-one-notebook)', () => {
         it('returns malformed metadata for the shared validation gate to diagnose', async () => {
             fsStore.files.set(`${DIR}/dashql-notebook.json`, JSON.stringify({
                 sessionId: SID,
-                connectionParams: { duckdb: {} },
+                connectionParams: { hyper: {} } as any,
                 notebook: {},
             }));
 
@@ -362,7 +362,7 @@ describe('NativeStorageBackend (one-dir-one-notebook)', () => {
             await backend.saveNotebookManifest(SID, {
                 notebookId: SID,
                 name: 'Test Notebook',
-                connectionParams: { duckdb: {} },
+                connectionParams: { hyper: {} } as any,
                 metadata: {},
             });
             await backend.createScriptFolder(SID, 'page-1');

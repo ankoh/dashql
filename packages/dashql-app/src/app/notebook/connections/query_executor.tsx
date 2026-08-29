@@ -15,7 +15,7 @@ import {
     QueryExecutionTracker,
 } from '../../../query/query_execution_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
-import { DUCKDB_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { useComputationRegistry } from '../../../compute/computation_registry.js';
 import { analyzeTable } from '../../../compute/computation_logic.js';
 import { DELETE_COMPUTATION } from '../../../compute/computation_state.js';
@@ -32,7 +32,6 @@ import { QueryExecutionArgs } from './query_execution_args.js';
 import { executeTrinoQuery } from './trino/trino_query_execution.js';
 import { executeSalesforceQuery } from './salesforce/salesforce_query_execution.js';
 import { executeHyperQuery } from './hyper/hyper_query_execution.js';
-import { executeDuckDBQuery } from './duckdb/duckdb_query_execution.js';
 import { AsyncConsumerLambdas } from '../../../utils/async_consumer.js';
 import { LoggableException, stringifyError } from '../../../platform/logger/logger.js';
 import type { LogRecord } from '../../../platform/logger/log_buffer.js';
@@ -210,9 +209,6 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         break;
                     case TRINO_CONNECTOR:
                         resultStream = await executeTrinoQuery(conn.details.value, args, initialState.cancellation.signal);
-                        break;
-                    case DUCKDB_CONNECTOR:
-                        resultStream = await executeDuckDBQuery(conn.details.value, args, initialState.cancellation.signal);
                         break;
                 }
                 traced.debug("Received query results", {

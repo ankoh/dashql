@@ -333,7 +333,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "33gqqf3Of0CRh/j084eAytJbs2g9lJll2DqfRGPU9Zo=",
+        "bzlTransitiveDigest": "6dDxY/oCdyPrc2JOxg5j4iO6vjfDrh8vEdSZ9rWh+Hs=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -447,17 +447,6 @@
                 "https://github.com/duckdb/duckdb/releases/download/v1.5.4/duckdb_cli-linux-amd64.zip"
               ],
               "build_file": "@@//bazel:external_duckdb_cli.BUILD"
-            }
-          },
-          "duckdb_source": {
-            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
-            "attributes": {
-              "sha256": "99c36e4bf415f295e19ed67401adb72e075e63e6a0dc3a14312c986e29781fd0",
-              "strip_prefix": "duckdb-1.5.4",
-              "urls": [
-                "https://github.com/duckdb/duckdb/archive/refs/tags/v1.5.4.tar.gz"
-              ],
-              "build_file": "@@//bazel/duckdb:duckdb.bazel"
             }
           },
           "apache_arrow": {

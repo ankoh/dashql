@@ -3,7 +3,6 @@ import * as dashql from '../../../core/index.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';
-import { DuckDBConnectorAction, reduceDuckDBConnectorState } from './duckdb/duckdb_connection_state.js';
 import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
@@ -15,7 +14,6 @@ import {
     ConnectorType,
     HYPER_CONNECTOR,
     SALESFORCE_DATA_CLOUD_CONNECTOR,
-    DUCKDB_CONNECTOR,
     TRINO_CONNECTOR,
 } from './connector_info.js';
 import {
@@ -241,7 +239,6 @@ export type ConnectionStateAction =
     | CatalogAction
     | QueryExecutionAction
     | HyperConnectorAction
-    | DuckDBConnectorAction
     | TrinoConnectorAction
     | SalesforceConnectionStateAction
     ;
@@ -313,9 +310,6 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                     break;
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(cleaned, action as TrinoConnectorAction, storage);
-                    break;
-                case DUCKDB_CONNECTOR:
-                    newState = reduceDuckDBConnectorState(cleaned, action as DuckDBConnectorAction, storage);
                     break;
             }
 
@@ -413,9 +407,6 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
                     break;
-                case DUCKDB_CONNECTOR:
-                    newState = reduceDuckDBConnectorState(state, action as DuckDBConnectorAction, storage);
-                    break;
             }
 
             // Cleaning up details is best-effort. No need to check if RESET was actually consumed
@@ -455,9 +446,6 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                     break;
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
-                    break;
-                case DUCKDB_CONNECTOR:
-                    newState = reduceDuckDBConnectorState(state, action as DuckDBConnectorAction, storage);
                     break;
             }
             if (newState == null) {

@@ -95,36 +95,6 @@
       "required": ["successfulQueries", "canceledQueries", "failedQueries"],
       "additionalProperties": false
     },
-    "DuckDBConnectionParams": {
-      "type": "object",
-      "description": "Connection Parameters - DuckDB",
-      "properties": {},
-      "additionalProperties": false
-    },
-    "DuckDBConnectionDetails": {
-      "type": "object",
-      "description": "Connection Details - DuckDB",
-      "properties": {
-        "setupTimings": {
-          "$ref": "#/definitions/SetupTimings",
-          "description": "The setup timings"
-        },
-        "setupParams": {
-          "$ref": "#/definitions/DuckDBConnectionParams",
-          "description": "The params"
-        },
-        "channelError": {
-          "type": "object",
-          "description": "The channel setup error (if any)"
-        },
-        "healthCheckError": {
-          "type": "object",
-          "description": "The health check error (if any)"
-        }
-      },
-      "required": ["setupTimings", "setupParams"],
-      "additionalProperties": false
-    },
     "TlsConfig": {
       "type": "object",
       "description": "TLS Configuration",
@@ -996,16 +966,6 @@
       "oneOf": [
         {
           "properties": {
-            "duckdb": {
-              "$ref": "#/definitions/DuckDBConnectionParams",
-              "description": "Parameters for DuckDB connections"
-            }
-          },
-          "required": ["duckdb"],
-          "additionalProperties": false
-        },
-        {
-          "properties": {
             "hyper": {
               "$ref": "#/definitions/HyperConnectionParams",
               "description": "Parameters for direct-to-Hyper connections"
@@ -1040,16 +1000,6 @@
       "type": "object",
       "description": "Connection State",
       "oneOf": [
-        {
-          "properties": {
-            "duckdb": {
-              "$ref": "#/definitions/DuckDBConnectionDetails",
-              "description": "Details for DuckDB connections"
-            }
-          },
-          "required": ["duckdb"],
-          "additionalProperties": false
-        },
         {
           "properties": {
             "hyper": {

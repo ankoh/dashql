@@ -5,7 +5,6 @@ import { VerticalTabs, VerticalTabVariant } from '../../../../ui/foundations/ver
 import { CONNECTOR_INFOS, ConnectorType, useConnectorList } from '../connector_info.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
-import { DuckDBConnectorSettings } from './duckdb_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { useConnectionState } from '../connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, SWITCH_CONNECTOR_TYPE } from '../connection_state.js';
@@ -70,8 +69,6 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
                     return <SalesforceConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
                 case ConnectorType.HYPER:
                     return <HyperConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
-                case ConnectorType.DUCKDB:
-                    return <DuckDBConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
                 default:
                     throw new Error(`unsupported connector type ${connectorType}`);
             }

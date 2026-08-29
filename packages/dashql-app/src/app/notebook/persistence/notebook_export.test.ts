@@ -46,7 +46,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'test-uuid-1',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {
                 originalFileName: 'test.sql',
                 createdAt: '2024-01-01T00:00:00Z',
@@ -113,7 +113,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'test-uuid-1',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 
@@ -137,7 +137,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'empty-uuid',
             notebookPath: 'empty-notebook',
             name: 'Empty Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 
@@ -165,7 +165,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'test-uuid-1',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 
@@ -189,7 +189,7 @@ describe('exportNotebookAsZip', () => {
             notebookId: 'test-uuid-1',
             notebookPath: 'test-notebook',
             name: 'Test Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
 
@@ -214,7 +214,7 @@ describe('exportNotebookAsZip', () => {
         const notebookData: NotebookData = {
             notebookId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
             name: 'Shared Notebook',
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: {},
         };
         vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
@@ -265,7 +265,7 @@ describe('exportNotebookAsSharedZip', () => {
             notebookId,
             notebookPath: notebookId,
             ...(name ? { name } : {}),
-            connectionParams: { duckdb: {} },
+            connectionParams: { hyper: {} } as any,
             metadata: { originalFileName: 'notebook.sql' },
         } as unknown as NotebookData;
         return {
@@ -283,7 +283,7 @@ describe('exportNotebookAsSharedZip', () => {
         return JSON.parse(await notebookFile!.async('text'));
     }
 
-    const connectionParams = { duckdb: {} };
+    const connectionParams = { hyper: {} } as any;
 
     it('carries the stored notebook name through so a shared link restores under the same label', async () => {
         const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1', 'My Analysis'), 'uuid-1', connectionParams);
