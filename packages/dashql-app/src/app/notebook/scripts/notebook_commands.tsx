@@ -120,9 +120,9 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         connectionHealth: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED),
                         focusedFolder: notebookScripts.scriptFocus.folderName,
                         focusedFile: notebookScripts.scriptFocus.fileName,
-                    }, LOG_CTX, true);
+                    }, LOG_CTX);
                     if (notebookViewModeRef.current !== NotebookViewMode.Notebook) {
-                        logger.warn("Ignoring Ctrl+E outside notebook view", { notebookId: route.notebookId }, LOG_CTX, true);
+                        logger.warn("Ignoring Ctrl+E outside notebook view", { notebookId: route.notebookId }, LOG_CTX);
                         break;
                     }
                     if (connection!.connectionHealth != ConnectionHealth.ONLINE) {
@@ -137,7 +137,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                                 notebookId: route.notebookId,
                                 focusedFolder: notebookScripts.scriptFocus.folderName,
                                 focusedFile: notebookScripts.scriptFocus.fileName,
-                            }, LOG_CTX, true);
+                            }, LOG_CTX);
                             break;
                         }
                         const scriptData = notebookScripts.scripts[entry.scriptId];
@@ -145,7 +145,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                             logger.warn("Ignoring Ctrl+E because selected script data is missing", {
                                 notebookId: route.notebookId,
                                 scriptKey: entry.scriptId.toString(),
-                            }, LOG_CTX, true);
+                            }, LOG_CTX);
                             break;
                         }
                         await runNotebookScript(
