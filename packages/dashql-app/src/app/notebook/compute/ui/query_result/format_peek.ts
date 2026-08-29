@@ -1,4 +1,4 @@
-export type FormatHint = 'json' | 'sql' | 'plan' | null;
+export type FormatHint = 'array' | 'struct' | 'json' | 'sql' | 'plan' | null;
 
 const PLAN_RE = /^\s*\{.*"operator".*\}\s*$/s;
 const JSON_RE = /^\s*[\{\[].*[\}\]]\s*$/s;

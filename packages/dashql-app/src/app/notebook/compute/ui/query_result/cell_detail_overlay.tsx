@@ -22,14 +22,14 @@ const LOG_CTX = 'cell_detail_overlay';
 
 enum FormatMode {
     Raw = 0,
-    JSON = 1,
+    Structured = 1,
     SQL = 2,
     Plan = 3,
 }
 
 const FORMAT_LABELS: Record<FormatMode, string> = {
     [FormatMode.Raw]: 'Raw',
-    [FormatMode.JSON]: 'JSON',
+    [FormatMode.Structured]: 'Structured',
     [FormatMode.SQL]: 'SQL',
     [FormatMode.Plan]: 'Plan',
 };
@@ -122,16 +122,26 @@ export function detectFormats(core: dashql.DashQL | null, value: string | null):
     return result;
 }
 
+export function detectStructuredFormats(value: object): DetectedFormats {
+    return { json: value, sql: null, plan: null };
+}
+
+export const STRUCTURED_ARRAY_PAGE_SIZE = 100;
+
+export function structuredValueToText(value: object): string {
+    return JSON.stringify(value, (_key, item) => typeof item === 'bigint' ? `${item}n` : item, 2);
+}
+
 function pickDefaultMode(formats: DetectedFormats): FormatMode {
     if (formats.plan != null) return FormatMode.Plan;
     if (formats.sql != null && !formats.sql.hasErrors) return FormatMode.SQL;
-    if (formats.json != null) return FormatMode.JSON;
+    if (formats.json != null) return FormatMode.Structured;
     return FormatMode.Raw;
 }
 
 function getAvailableModes(formats: DetectedFormats): FormatMode[] {
     const modes: FormatMode[] = [FormatMode.Raw];
-    if (formats.json != null) modes.push(FormatMode.JSON);
+    if (formats.json != null) modes.push(FormatMode.Structured);
     if (formats.sql != null) modes.push(FormatMode.SQL);
     if (formats.plan != null) modes.push(FormatMode.Plan);
     return modes;
@@ -212,11 +222,23 @@ function SqlTextView(props: SqlTextViewProps) {
     );
 }
 
+function StructuredValueView(props: { value: object }) {
+    return (
+        <JsonView
+            value={props.value}
+            collapsed={2}
+            shortenTextAfterLength={100}
+            arrayPageSize={STRUCTURED_ARRAY_PAGE_SIZE}
+        />
+    );
+}
+
 
 export interface CellDetailOverlayProps {
     isOpen: boolean;
     onClose: () => void;
     formattedValue: string | null;
+    structuredValue: object | null;
     columnName: string | null;
     dataRow: number;
     maxRow: number;
@@ -248,10 +270,12 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
     }, [coreSetup]);
 
     React.useEffect(() => {
-        const f = detectFormats(core, props.formattedValue);
+        const f = props.structuredValue == null
+            ? detectFormats(core, props.formattedValue)
+            : detectStructuredFormats(props.structuredValue);
         setFormats(f);
         setSelectedFormat(pickDefaultMode(f));
-    }, [props.formattedValue, core]);
+    }, [props.formattedValue, props.structuredValue, core]);
 
     const availableModes = React.useMemo(() => getAvailableModes(formats), [formats]);
 
@@ -280,7 +304,9 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
         },
     ], [props.dataRow, props.maxRow, props.onNavigate]));
 
-    const rawText = props.formattedValue ?? 'NULL';
+    const rawText = props.structuredValue == null
+        ? (props.formattedValue ?? 'NULL')
+        : structuredValueToText(props.structuredValue);
 
     return (
         <Overlay
@@ -328,16 +354,12 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
                             </SegmentedControl>
                         )}
                     </div>
-                    <div className={`${styles.body} ${selectedFormat === FormatMode.JSON ? styles.body_padded : ''}`}>
+                    <div className={`${styles.body} ${selectedFormat === FormatMode.Structured ? styles.body_padded : ''}`}>
                         {selectedFormat === FormatMode.Raw && (
                             <ReadonlyTextView text={rawText} />
                         )}
-                        {selectedFormat === FormatMode.JSON && formats.json != null && (
-                            <JsonView
-                                value={formats.json}
-                                collapsed={2}
-                                shortenTextAfterLength={100}
-                            />
+                        {selectedFormat === FormatMode.Structured && formats.json != null && (
+                            <StructuredValueView value={formats.json} />
                         )}
                         {selectedFormat === FormatMode.SQL && formats.sql != null && (
                             <SqlTextView

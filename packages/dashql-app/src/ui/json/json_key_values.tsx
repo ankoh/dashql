@@ -22,10 +22,11 @@ interface KeyValuesProps<T extends object> {
 export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
     const value = props.value ?? {};
     const { keyName, expandKey = '', level, keyPath: keyPath = [], parentValue } = props;
+    const { objectSortKeys, indentWidth, arrayPageSize = 0, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
+    const [arrayPage, setArrayPage] = React.useState({ value, itemCount: arrayPageSize });
 
     // Is expanded?
     const expands = useNestedExpansionState();
-    const { objectSortKeys, indentWidth, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
     const defaultExpanded =
         typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? level <= collapsed : true;
     const isExpanded = expands[expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
@@ -50,6 +51,13 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
                     typeof a === 'string' && typeof b === 'string' ? objectSortKeys(a, b, valA, valB) : 0,
                 );
     }
+    const visibleItemCount = arrayPage.value === value ? arrayPage.itemCount : arrayPageSize;
+    const hiddenItemCount = isMyArray && arrayPageSize > 0
+        ? Math.max(0, entries.length - visibleItemCount)
+        : 0;
+    if (hiddenItemCount > 0) {
+        entries = entries.slice(0, visibleItemCount);
+    }
 
     const style = {
         borderLeft: 'var(--w-rjv-border-left-width, 1px) var(--w-rjv-line-style, solid) var(--w-rjv-line-color, #ebebeb)',
@@ -63,6 +71,15 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
                     <KeyValuesItem parentValue={value} keyName={key} keyPath={[...keyPath, key]} value={val} key={idx} level={level} />
                 );
             })}
+            {hiddenItemCount > 0 && (
+                <button
+                    type="button"
+                    className={styles.array_load_more}
+                    onClick={() => setArrayPage({ value, itemCount: visibleItemCount + arrayPageSize })}
+                >
+                    Show {Math.min(arrayPageSize, hiddenItemCount)} more ({hiddenItemCount} remaining)
+                </button>
+            )}
         </div>
     );
 };

@@ -18,6 +18,7 @@ export interface JsonViewerState {
     collapsed?: JsonViewProps['collapsed'];
     shouldExpandNodeInitially?: JsonViewProps['shouldExpandNodeInitially'];
     indentWidth?: number;
+    arrayPageSize?: number;
 }
 
 export const initialState: JsonViewerState = {

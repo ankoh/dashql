@@ -1,6 +1,10 @@
 import * as dashql from '../../../../../core/index.js';
 
-import { detectFormats } from './cell_detail_overlay.js';
+import {
+    detectFormats,
+    detectStructuredFormats,
+    structuredValueToText,
+} from './cell_detail_overlay.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -35,5 +39,25 @@ describe('result cell SQL formatting', () => {
             const range = span.textSpan;
             return range == null || Number(range.offset + range.length) <= text.length;
         })).toBe(true);
+    });
+});
+
+describe('result cell structured formatting', () => {
+    it('exposes Arrow list values only through the JSON viewer', () => {
+        const value = [1n, null, { nested: ['value'] }];
+
+        expect(detectStructuredFormats(value)).toEqual({
+            json: value,
+            sql: null,
+            plan: null,
+        });
+    });
+
+    it('serializes the full structured value for raw display and copying', () => {
+        const value = Array.from({ length: 1000 }, (_, index) => BigInt(index));
+        const text = structuredValueToText(value);
+
+        expect(text).toContain('"0n"');
+        expect(text).toContain('"999n"');
     });
 });
