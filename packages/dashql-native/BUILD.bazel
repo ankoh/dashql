@@ -52,6 +52,7 @@ vitest_bin.vitest_test(
         ":srcs",
         "tsconfig.bazel.json",
         "vitest.config.ts",
+        "//:node_modules/vitest",
     ],
     visibility = ["//visibility:public"],
 )
