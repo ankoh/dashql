@@ -232,7 +232,13 @@ jobs:
                       printf '%s' "$APPLE_API_KEY_CONTENT" > "$APPLE_API_KEY"
                       export APPLE_API_KEY
                   fi
-                  bazel run --config=release //packages/dashql-native:mac_package_arm64
+                  bazel run --config=release \
+                      --run_env=CSC_LINK \
+                      --run_env=CSC_KEY_PASSWORD \
+                      --run_env=APPLE_API_ISSUER \
+                      --run_env=APPLE_API_KEY_ID \
+                      --run_env=APPLE_API_KEY \
+                      //packages/dashql-native:mac_package_arm64
 
             - name: Upload Electron arm64 packages
               uses: actions/upload-artifact@v7
@@ -273,7 +279,13 @@ jobs:
                       printf '%s' "$APPLE_API_KEY_CONTENT" > "$APPLE_API_KEY"
                       export APPLE_API_KEY
                   fi
-                  bazel run --config=release //packages/dashql-native:mac_package_x86_64
+                  bazel run --config=release \
+                      --run_env=CSC_LINK \
+                      --run_env=CSC_KEY_PASSWORD \
+                      --run_env=APPLE_API_ISSUER \
+                      --run_env=APPLE_API_KEY_ID \
+                      --run_env=APPLE_API_KEY \
+                      //packages/dashql-native:mac_package_x86_64
 
             - name: Upload Electron x86_64 packages
               uses: actions/upload-artifact@v7
