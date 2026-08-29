@@ -138,7 +138,7 @@ TEST(HyperPlanTest, ResolvesOperatorCrossEdges) {
     EXPECT_EQ(std::count(kinds.begin(), kinds.end(), R"("early-probe")"), 2);
     EXPECT_EQ(std::count(kinds.begin(), kinds.end(), R"("builder")"), 1);
     EXPECT_EQ(std::count(kinds.begin(), kinds.end(), R"("source")"), 1);
-    auto source_operator_id = [&](uint32_t operator_id) {
+    auto source_operator_id = [&](uint32_t operator_id) -> uint64_t {
         const auto* op = plan->operators()->Get(operator_id);
         for (size_t i = 0; i < op->attribute_count(); ++i) {
             const auto* attribute = plan->attributes()->Get(op->attributes_begin() + i);
