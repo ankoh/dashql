@@ -4,6 +4,8 @@
     --notebook_feed_preview_background: transparent;
     --notebook_feed_entry_headerbar_background: hsl(210, 29%, 98%);
     --notebook_feed_entry_footer_background: transparent;
+    --notebook_feed_script_accent: hsl(213, 24%, 64%);
+    --notebook_feed_server_accent: hsl(267, 12%, 61%);
 }
 
 
@@ -26,7 +28,7 @@
     width: 100%;
     box-sizing: border-box;
     justify-content: center;
-    padding: 16px 16px;
+    padding: 18px 16px;
 }
 
 .feed_list_filler {
@@ -206,12 +208,12 @@
 
 .feed_entry_pair {
     width: 100%;
-    max-width: calc(var(--notebook_list_entry_max_width) + 76px);
+    max-width: calc(var(--notebook_list_entry_max_width) + 84px);
     box-sizing: border-box;
-    padding: 0 38px;
+    padding: 0 42px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 @media only screen and (min-width: 700px) {
@@ -224,8 +226,16 @@
 
 .feed_entry_message_script,
 .feed_entry_message_server {
-    width: 100%;
+    width: calc(100% - 12px);
     position: relative;
+}
+
+.feed_entry_message_script {
+    margin-left: auto;
+}
+
+.feed_entry_message_server {
+    margin-right: auto;
 }
 
 .feed_entry_card_script,
@@ -248,12 +258,16 @@
 
 .feed_entry_card_script {
     position: relative;
+    border-right: 2px solid var(--notebook_feed_script_accent);
+    border-radius: 10px var(--border_radius) var(--border_radius) 10px;
 }
 
 .feed_entry_card_server {
     position: relative;
     --notebook_feed_entry_headerbar_background: hsl(0, 0, 10%);
     grid-template-rows: auto;
+    border-left: 2px solid var(--notebook_feed_server_accent);
+    border-radius: var(--border_radius) 10px 10px var(--border_radius);
 }
 
 .feed_entry_card_server_idle {
@@ -279,16 +293,19 @@
     display: grid;
     place-items: center;
     flex: 0 0 30px;
-    color: hsl(210, 12%, 36%);
-    background: hsl(210, 29%, 96%);
+    color: white;
 }
 
 .feed_entry_avatar_script {
-    right: -38px;
+    right: -42px;
+    border-color: var(--notebook_feed_script_accent);
+    background: var(--notebook_feed_script_accent);
 }
 
 .feed_entry_avatar_server {
-    left: -38px;
+    left: -42px;
+    border: 2px solid var(--notebook_feed_server_accent);
+    background: var(--notebook_feed_server_accent);
 }
 
 @media only screen and (max-width: 700px) {
@@ -328,11 +345,13 @@
     .feed_entry_avatar_server {
         left: 0;
     }
+
 }
 
 @media only screen and (max-width: 480px) {
     .feed_entry_message_script,
     .feed_entry_message_server {
+        width: calc(100% - 6px);
         padding: 0;
     }
 

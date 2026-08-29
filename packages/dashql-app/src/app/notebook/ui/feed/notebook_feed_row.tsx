@@ -456,7 +456,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     }, [cachedHeight, entry, entryIndex, props.onHeightMeasured, previewReady, props.topPadding]);
 
     if (isFillerRow) {
-        return <div className={styles.feed_list_filler} style={props.style} data-electron-drag-region />;
+        return <div className={styles.feed_list_filler} style={props.style} />;
     }
 
     return (
@@ -471,10 +471,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 paddingTop: entryIndex === 0 ? props.topPadding : undefined,
             }}
         >
-            <div
-                className={styles.feed_list_item}
-                data-electron-drag-region
-            >
+            <div className={styles.feed_list_item}>
                 <ScriptCard
                     key={entry?.scriptId}
                     notebookId={props.notebookId}

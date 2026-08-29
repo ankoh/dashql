@@ -438,7 +438,7 @@ describe('NotebookFeed', () => {
         expect(executeButtons[1].getAttribute('aria-current')).toBe('true');
     });
 
-    it('focuses a script when its card is hovered inside the Electron drag region', () => {
+    it('focuses a script when its card is hovered', () => {
         const modifyNotebookScripts = vi.fn();
         renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts, showDetails: vi.fn() });
 
@@ -456,11 +456,11 @@ describe('NotebookFeed', () => {
         });
     });
 
-    it('makes only the exposed feed background an Electron window drag region', () => {
+    it('does not place Electron drag regions in the scrollable feed', () => {
         renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
 
         expect(container.firstElementChild?.hasAttribute('data-electron-drag-region')).toBe(false);
-        expect(container.querySelectorAll('[data-electron-drag-region]:not([data-electron-drag-region="false"])')).toHaveLength(3);
+        expect(container.querySelectorAll('[data-electron-drag-region]:not([data-electron-drag-region="false"])')).toHaveLength(0);
         expect(container.querySelectorAll('[data-electron-drag-region="false"]')).toHaveLength(3);
     });
 
