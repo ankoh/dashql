@@ -3,7 +3,6 @@ import * as React from 'react';
 import { AppLoadingStatus } from '../router/app_loading_status.js';
 import { NotebookSetupStatus } from '../router/notebook_setup_status.js';
 import { FINISH_SETUP, OPEN_LINK_NOTEBOOK, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { isDebugBuild } from '../../globals.js';
 import { useConnectionRegistry, useConnectionStateAllocator } from '../notebook/connections/connection_registry.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -11,10 +10,8 @@ import { createTrace } from '../../platform/logger/trace_context.js';
 import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
 import { useNotebookScriptsSetup } from '../notebook/scripts/notebook_scripts_setup.js';
 import { AppLoadingPage } from '../ui/app_loading_page.js';
-import { configureAppWithSetupEvent, FINISHED_LINK_SETUP, InteractiveAppSetupArgs, REQUIRES_INTERACTIVE_SETUP } from './app_setup_events.js';
-import { InteractiveAppSetupPage } from '../ui/app_setup_page_interactive.js';
 import { NotebookSelectorPage } from '../ui/notebook_selector_page.js';
-import { SetupEventVariant } from '../../platform/events/event.js';
+import { SETUP_NOTEBOOK, SetupEventVariant } from '../../platform/events/event.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import { loadApp } from './app_loading_logic.js';
@@ -24,7 +21,8 @@ import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { InvalidNotebook } from '../notebook/persistence/notebook_validation.js';
 import { getAppHost } from '../../platform/native_globals.js';
-import { mergeRestoredNotebookIntoConnections, mergeRestoredNotebookIntoScripts } from '../notebook/persistence/app_state_loader.js';
+import { readNotebookBundleFromZip } from '../notebook/persistence/notebook_import.js';
+import { useNotebookImport } from '../notebook/persistence/notebook_import_provider.js';
 
 async function loadFonts(): Promise<void> {
     await Promise.all([
@@ -50,11 +48,11 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const [storageReader, storageWriter] = useStorage();
     const allocateConnection = useConnectionStateAllocator();
     const [connReg, setConnReg] = useConnectionRegistry();
-    const connectionSignatures = connReg.connectionsBySignature;
     const [notebookScriptsRegistry, setNotebookScriptsRegistry] = useNotebookScriptsRegistry();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
     const appEvents = usePlatformEventListener();
+    const notebookImport = useNotebookImport();
     const [loadedCore, setLoadedCore] = React.useState<any>(null);
     // Notebooks whose metadata was refused a load. Surfaced (marked invalid, blocked, deletable) in
     // the notebook selector instead of being silently dropped.
@@ -76,51 +74,24 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
     // Callback to consume setup event.
     // This function is called through os deep links and when opening DashQL by through .dashql files
-    const [interactiveSetupArgs, setInteractiveSetupArgs] = React.useState<InteractiveAppSetupArgs | null>(null);
     const consumeSetupEvent = React.useEffectEvent(async (data: SetupEventVariant) => {
         // Start trace for setup event handling
         const traced = logger.withTrace(createTrace());
         traced.debug("Consuming setup event", { "event_type": String(data.type) }, "app_loader");
 
-        // Wait for core to be ready
-        const core = await setupCore("app_setup");
+        // Wait for core to be ready before the importer restores a fresh notebook.
+        await setupCore("app_setup");
         // Wait for the initial application restore to finish.
         await setupDone;
-        // Configure the app with the setup event. This imports the shared notebook into storage and
-        // restores it (connection + catalog + notebook) into fresh scratch maps. It reuses the same
-        // restore path as the boot loader, which takes the unwrapped (concrete) logger.
-        const setupResult = await configureAppWithSetupEvent(
-            data,
-            logger,
-            core,
-            storageWriter.backend,
-            connectionSignatures,
-        );
-        if (setupResult == null) {
-            return;
-        }
-        // Are we done with the setup, or do we need an interactive setup?
-        switch (setupResult.type) {
-            case REQUIRES_INTERACTIVE_SETUP:
-                traced.debug("Requires interactive setup", {}, "app_loader");
-                setInteractiveSetupArgs(setupResult.value);
-                break;
-            case FINISHED_LINK_SETUP: {
-                const { restoredNotebook } = setupResult.value;
-                traced.debug("Finished link setup", { notebookId: restoredNotebook.notebookId }, "app_loader");
-
-                // The initial app load already populated the registries, so merge the restored
-                // notebook's connection + notebook into them here. Without this the notebook exists
-                // only in storage and the connection setup screen would have nothing to render.
-                setConnReg(reg => mergeRestoredNotebookIntoConnections(reg, restoredNotebook));
-                setNotebookScriptsRegistry(reg => mergeRestoredNotebookIntoScripts(reg, restoredNotebook));
-
-                // Land directly on this notebook's connection setup screen. OPEN_LINK_NOTEBOOK sets the
-                // full route state atomically (setup done + notebook selected + CONFIGURING), so the
-                // user drops straight into connecting to the shared notebook instead of the loading
-                // ("Setup") screen or the notebook selector.
-                navigate({ type: OPEN_LINK_NOTEBOOK, value: restoredNotebook.notebookId });
-                break;
+        if (data.type === SETUP_NOTEBOOK) {
+            const zipBlob = new Blob([data.value.buffer as ArrayBuffer], { type: 'application/zip' });
+            const bundle = await readNotebookBundleFromZip(zipBlob);
+            const notebookId = await notebookImport.importPortableBundle(bundle, {
+                presentation: { mode: 'centered' },
+            });
+            if (notebookId != null) {
+                traced.debug("Finished link setup", { notebookId }, "app_loader");
+                navigate({ type: OPEN_LINK_NOTEBOOK, value: notebookId });
             }
         }
     });
@@ -256,9 +227,6 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         routeContext.notebookId !== null &&
         (!pauseAfterSetup || routeContext.confirmedFinishedSetup)) {
         return props.children;
-    } else if (interactiveSetupArgs != null) {
-        // Switch to the interactive setup?
-        return <InteractiveAppSetupPage />;
     } else {
         // Otherwise show the app loading page
         return <AppLoadingPage pauseAfterSetup={config?.settings?.pauseAfterAppSetup ?? false} progress={loadingProgress} />;

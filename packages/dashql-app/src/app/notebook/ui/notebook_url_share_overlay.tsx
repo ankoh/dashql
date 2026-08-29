@@ -50,7 +50,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
         uiResetAt: null,
     }));
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
-        withCatalog: false,
+        withCatalog: true,
         withLoginHint: true,
     });
 
@@ -60,13 +60,20 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
         }
 
         let cancelled = false;
+        setState(s => ({ ...s, publicURLText: null, copyError: null }));
 
         async function generateURL() {
             let setupUrl: URL | null = null;
             if (notebookScripts != null && connection != null) {
                 const conn = getConnectionParamsFromStateDetails(connection.details);
                 if (conn) {
-                    setupUrl = await exportNotebookAsUrl(storage.backend, notebookScripts.notebookId, conn, NotebookLinkTarget.WEB, settings.withLoginHint);
+                    setupUrl = await exportNotebookAsUrl(
+                        storage.backend,
+                        notebookScripts.notebookId,
+                        conn,
+                        NotebookLinkTarget.WEB,
+                        settings,
+                    );
                 }
             }
 
@@ -81,7 +88,9 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
             }
         }
 
-        generateURL();
+        generateURL().catch(error => {
+            if (!cancelled) setState(s => ({ ...s, publicURLText: null, copyError: error }));
+        });
 
         return () => {
             cancelled = true;
@@ -146,10 +155,11 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
         >
             <div className={classNames(styles.sharing_overlay, props.className)}>
                 <div className={styles.sharing_url}>
-                    <TextInput disabled={true} value={state.publicURLText ?? ''} />
+                    <TextInput disabled={true} aria-label="Notebook share URL" value={state.publicURLText ?? ''} />
                     <IconButton
                         ref={buttonRef}
                         onClick={copyURL}
+                        disabled={state.publicURLText == null}
                         aria-labelledby="copy-to-clipboard"
                         aria-label="Copy to Clipboard"
                     >
@@ -158,7 +168,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
                     <div className={styles.sharing_url_stats}>{state.publicURLText?.length ?? 0} characters</div>
                 </div>
                 <NotebookExportSettingsView
-                    withCatalog={false}
+                    withCatalog={true}
                     withLoginHint={hasLoginHint}
                     settings={settings}
                     setSettings={setSettings}

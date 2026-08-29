@@ -30,6 +30,15 @@ vi.mock('../../../platform/electron_fs.js', async () => ({
 // Import after the mocks are registered.
 import { fsStore, resetFsStore } from './test_fs_mock.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
+import {
+    findNotebookImportConflict,
+    prepareNativeNotebookImport,
+    registerNativeNotebook,
+    replaceNotebookWithNativeFolder,
+    replaceNotebookWithPortableBundle,
+    writePortableNotebookFresh,
+} from './notebook_import_transaction.js';
+import type { NotebookBundle } from './notebook_bundle.js';
 
 /// An in-memory stand-in for the OPFS registry backend.
 ///
@@ -46,6 +55,9 @@ class MemoryRegistry implements NotebookRegistryBackend {
     drafts = new Map<string, string>();
     pages = new Map<string, Map<string, Map<string, string>>>();
     cache = new Map<string, Map<string, Uint8Array>>();
+    failNextManifestUpsert = false;
+    failNextManifestRemove = false;
+    failScriptWriteForNotebook: string | null = null;
 
     getBackendType(): StorageBackendType { return StorageBackendType.OPFS; }
     async initialize(): Promise<void> { this.initialized = true; }
@@ -75,14 +87,23 @@ class MemoryRegistry implements NotebookRegistryBackend {
         this.functions.delete(notebookId);
         this.drafts.delete(notebookId);
         this.pages.delete(notebookId);
+        this.cache.delete(notebookId);
     }
 
     async upsertNotebookEntry(entry: NotebookEntry): Promise<void> {
+        if (this.failNextManifestUpsert) {
+            this.failNextManifestUpsert = false;
+            throw new Error('manifest write failed');
+        }
         const i = this.manifest.findIndex(s => s.path === entry.path);
         if (i < 0) this.manifest.push(entry);
         else this.manifest[i] = entry;
     }
     async removeNotebookEntry(notebookId: string): Promise<void> {
+        if (this.failNextManifestRemove) {
+            this.failNextManifestRemove = false;
+            throw new Error('manifest write failed');
+        }
         this.manifest = this.manifest.filter(s => s.path !== notebookId);
     }
     async reorderNotebooks(orderedIds: string[]): Promise<void> {
@@ -133,6 +154,10 @@ class MemoryRegistry implements NotebookRegistryBackend {
         return { name: scriptName, sql };
     }
     async saveScript(notebookId: string, folderName: string, scriptName: string, sql: string): Promise<void> {
+        if (this.failScriptWriteForNotebook === notebookId) {
+            this.failScriptWriteForNotebook = null;
+            throw new Error('script write failed');
+        }
         const p = this.pages.get(notebookId) ?? new Map();
         const page = p.get(folderName) ?? new Map();
         page.set(scriptName, sql);
@@ -189,9 +214,25 @@ class MemoryRegistry implements NotebookRegistryBackend {
 const OPFS_ID = '11111111-1111-1111-1111-111111111111';
 const NATIVE_ID = '22222222-2222-2222-2222-222222222222';
 const NATIVE_DIR = '/Users/test/native-notebook';
+const OTHER_NATIVE_DIR = '/Users/test/other-native-notebook';
+const STAGING_ID = '33333333-3333-4333-8333-333333333333';
 
 function notebookData(id: string, name: string, extra: Partial<NotebookData> = {}): NotebookData {
     return { notebookId: id, name, connectionParams: { hyper: {} } as any, metadata: {}, ...extra };
+}
+
+function notebookBundle(id: string, name: string): NotebookBundle {
+    return {
+        notebook: notebookData(id, name, {
+            notebookPath: `fs:///source/${id}`,
+            storageType: StorageBackendType.Native,
+            nativePath: `/source/${id}`,
+        }),
+        schemaSql: `-- ${name} schema`,
+        functionsSql: `-- ${name} functions`,
+        folders: [{ name: 'page', scripts: [{ name: '1_query.sql', sql: `SELECT '${name}';` }] }],
+        draftSql: `-- ${name} draft`,
+    };
 }
 
 describe('CompositeStorageBackend', () => {
@@ -250,6 +291,46 @@ describe('CompositeStorageBackend', () => {
             await composite.saveAppSettings({ flag: true } as any);
             expect(await composite.loadAppSettings()).toEqual({ flag: true });
             expect(opfs.appSettings).toEqual({ flag: true });
+        });
+
+        it('does not mutate in-memory locations before a failed upsert persists', async () => {
+            opfs.failNextManifestUpsert = true;
+
+            await expect(composite.upsertNotebookEntry({
+                path: NATIVE_ID,
+                storageType: StorageBackendType.Native,
+                nativePath: NATIVE_DIR,
+            })).rejects.toThrow('manifest write failed');
+
+            expect(composite.getNotebookOrder()).toEqual([]);
+            expect(composite.getNotebookLocation(NATIVE_ID)).toEqual({ type: StorageBackendType.OPFS });
+        });
+
+        it('does not remove an in-memory location before a failed removal persists', async () => {
+            await composite.upsertNotebookEntry({
+                path: NATIVE_ID,
+                storageType: StorageBackendType.Native,
+                nativePath: NATIVE_DIR,
+            });
+            opfs.failNextManifestRemove = true;
+
+            await expect(composite.removeNotebookEntry(NATIVE_ID)).rejects.toThrow('manifest write failed');
+
+            expect(composite.getNotebookOrder()).toEqual([NATIVE_ID]);
+            expect(composite.getNotebookLocation(NATIVE_ID)).toEqual({
+                type: StorageBackendType.Native,
+                nativePath: NATIVE_DIR,
+            });
+        });
+
+        it('does not reorder in-memory locations before a failed reorder persists', async () => {
+            await composite.upsertNotebookEntry({ path: OPFS_ID, storageType: StorageBackendType.OPFS });
+            await composite.upsertNotebookEntry({ path: NATIVE_ID, storageType: StorageBackendType.OPFS });
+            opfs.reorderNotebooks = async () => { throw new Error('manifest write failed'); };
+
+            await expect(composite.reorderNotebooks([NATIVE_ID, OPFS_ID])).rejects.toThrow('manifest write failed');
+
+            expect(composite.getNotebookOrder()).toEqual([OPFS_ID, NATIVE_ID]);
         });
     });
 
@@ -534,6 +615,255 @@ describe('CompositeStorageBackend', () => {
             await expect(
                 composite.loadNativeNotebook(NATIVE_DIR)
             ).rejects.toThrow(/already registered/);
+        });
+    });
+
+
+    describe('notebook import transactions', () => {
+        async function writeBundleToDir(bundle: NotebookBundle, dir: string): Promise<void> {
+            const { NativeStorageBackend } = await import('./native_storage_backend.js');
+            const native = new NativeStorageBackend(dir);
+            await native.initialize();
+            await native.saveNotebookManifest(bundle.notebook.notebookId, bundle.notebook);
+            if (bundle.schemaSql != null) await native.saveNotebookSchema(bundle.notebook.notebookId, bundle.schemaSql);
+            if (bundle.functionsSql != null) await native.saveNotebookFunctions(bundle.notebook.notebookId, bundle.functionsSql);
+            for (const folder of bundle.folders) {
+                await native.createScriptFolder(bundle.notebook.notebookId, folder.name);
+                for (const script of folder.scripts) {
+                    await native.saveScript(bundle.notebook.notebookId, folder.name, script.name, script.sql);
+                }
+            }
+            if (bundle.draftSql != null) await native.saveScriptDraft(bundle.notebook.notebookId, bundle.draftSql);
+        }
+
+        it('finds case-insensitive conflicts from unavailable manifest entries and returns the actual key', async () => {
+            const registeredId = OPFS_ID.toUpperCase();
+            opfs.manifest.push({
+                path: registeredId,
+                storageType: StorageBackendType.Native,
+                nativePath: '/missing/notebook',
+            });
+            await composite.initialize();
+
+            await expect(findNotebookImportConflict(composite, OPFS_ID)).resolves.toEqual({
+                notebookId: registeredId,
+                location: { type: StorageBackendType.Native, nativePath: '/missing/notebook' },
+            });
+        });
+
+        it('writes a fresh portable import to OPFS with its UUID despite a native routing collision', async () => {
+            const bundle = notebookBundle(OPFS_ID, 'Imported');
+            await composite.initialize();
+            await composite.upsertNotebookEntry({
+                path: OPFS_ID,
+                storageType: StorageBackendType.Native,
+                nativePath: NATIVE_DIR,
+            });
+            // Simulate a stale in-memory route after the durable registry entry has gone away.
+            await opfs.removeNotebookEntry(OPFS_ID);
+
+            await expect(writePortableNotebookFresh(composite, bundle)).resolves.toBe(OPFS_ID);
+
+            expect(opfs.notebooks.get(OPFS_ID)).toEqual(notebookData(OPFS_ID, 'Imported'));
+            expect(composite.getNotebookLocation(OPFS_ID)).toEqual({ type: StorageBackendType.OPFS });
+            expect(await composite.readPortableNotebookBundle(OPFS_ID)).toEqual({
+                ...bundle,
+                notebook: notebookData(OPFS_ID, 'Imported'),
+            });
+        });
+
+        it('stages and replaces portable data, deleting stale durable files and cache while preserving order', async () => {
+            await opfs.saveNotebookManifest(OPFS_ID, notebookData(OPFS_ID, 'Old'));
+            await opfs.createScriptFolder(OPFS_ID, 'stale-page');
+            await opfs.saveScript(OPFS_ID, 'stale-page', 'stale.sql', 'SELECT 0;');
+            await opfs.saveNotebookSchema(OPFS_ID, '-- stale schema');
+            await opfs.saveQueryResultCache(OPFS_ID, 'stale-cache', new Uint8Array([1]));
+            await opfs.saveNotebookManifest(NATIVE_ID, notebookData(NATIVE_ID, 'After'));
+            await composite.initialize();
+            const conflict = (await findNotebookImportConflict(composite, OPFS_ID))!;
+
+            await replaceNotebookWithPortableBundle(composite, notebookBundle(OPFS_ID, 'New'), conflict, {
+                randomUUID: () => STAGING_ID,
+            });
+
+            expect(opfs.manifest.map(entry => entry.path)).toEqual([OPFS_ID, NATIVE_ID]);
+            expect(opfs.pages.get(OPFS_ID)?.has('stale-page')).toBe(false);
+            expect(opfs.cache.has(OPFS_ID)).toBe(false);
+            expect(opfs.notebooks.has(STAGING_ID)).toBe(false);
+            expect(opfs.manifest.some(entry => entry.path === STAGING_ID)).toBe(false);
+            expect((await opfs.loadNotebook(OPFS_ID)).name).toBe('New');
+        });
+
+        it('replaces a case-insensitive conflict under its actual registered key', async () => {
+            const registeredId = OPFS_ID.toUpperCase();
+            await opfs.saveNotebookManifest(registeredId, notebookData(registeredId, 'Old'));
+            await composite.initialize();
+            const conflict = (await findNotebookImportConflict(composite, OPFS_ID))!;
+
+            await replaceNotebookWithPortableBundle(composite, notebookBundle(OPFS_ID, 'New'), conflict, {
+                randomUUID: () => STAGING_ID,
+            });
+
+            expect(opfs.manifest.map(entry => entry.path)).toEqual([registeredId]);
+            expect((await opfs.loadNotebook(registeredId)).notebookId).toBe(registeredId);
+            expect(composite.getNotebookOrder()).toEqual([registeredId]);
+        });
+
+        it('replaces a native registration with OPFS without modifying the old folder', async () => {
+            const oldBundle = notebookBundle(NATIVE_ID, 'Old Native');
+            await writeBundleToDir(oldBundle, NATIVE_DIR);
+            fsStore.binFiles.set(`${NATIVE_DIR}/cache/old.arrow`, new Uint8Array([7]));
+            await opfs.upsertNotebookEntry({
+                path: NATIVE_ID,
+                storageType: StorageBackendType.Native,
+                nativePath: NATIVE_DIR,
+            });
+            await composite.initialize();
+            const oldFiles = new Map(fsStore.files);
+            const oldCache = new Map(fsStore.binFiles);
+            const conflict = (await findNotebookImportConflict(composite, NATIVE_ID.toUpperCase()))!;
+
+            await replaceNotebookWithPortableBundle(composite, notebookBundle(NATIVE_ID, 'Portable'), conflict, {
+                randomUUID: () => STAGING_ID,
+            });
+
+            expect(composite.getNotebookLocation(NATIVE_ID)).toEqual({ type: StorageBackendType.OPFS });
+            expect((await opfs.loadNotebook(NATIVE_ID)).name).toBe('Portable');
+            expect(fsStore.files).toEqual(oldFiles);
+            expect(fsStore.binFiles).toEqual(oldCache);
+        });
+
+        it('restores the prior OPFS bundle and manifest location after a final write failure', async () => {
+            const oldBundle = notebookBundle(OPFS_ID, 'Old');
+            await composite.initialize();
+            await composite.writePortableNotebookBundle(oldBundle, OPFS_ID, true);
+            await opfs.saveQueryResultCache(OPFS_ID, 'old-cache', new Uint8Array([1]));
+            const conflict = (await findNotebookImportConflict(composite, OPFS_ID))!;
+            opfs.failScriptWriteForNotebook = OPFS_ID;
+
+            await expect(replaceNotebookWithPortableBundle(
+                composite,
+                notebookBundle(OPFS_ID, 'New'),
+                conflict,
+                { randomUUID: () => STAGING_ID },
+            )).rejects.toThrow('script write failed');
+
+            expect(await composite.readPortableNotebookBundle(OPFS_ID)).toEqual({
+                ...oldBundle,
+                notebook: notebookData(OPFS_ID, 'Old'),
+            });
+            expect(composite.getNotebookLocation(OPFS_ID)).toEqual({ type: StorageBackendType.OPFS });
+            expect(opfs.manifest.map(entry => entry.path)).toEqual([OPFS_ID]);
+            expect(opfs.notebooks.has(STAGING_ID)).toBe(false);
+            // Derived cache is intentionally not restored by runtime rollback.
+            expect(opfs.cache.has(OPFS_ID)).toBe(false);
+        });
+
+        it('does not mutate the live notebook when staging fails', async () => {
+            const oldBundle = notebookBundle(OPFS_ID, 'Old');
+            await composite.initialize();
+            await composite.writePortableNotebookBundle(oldBundle, OPFS_ID, true);
+            await opfs.saveQueryResultCache(OPFS_ID, 'old-cache', new Uint8Array([1]));
+            const conflict = (await findNotebookImportConflict(composite, OPFS_ID))!;
+            opfs.failScriptWriteForNotebook = STAGING_ID;
+
+            await expect(replaceNotebookWithPortableBundle(
+                composite,
+                notebookBundle(OPFS_ID, 'New'),
+                conflict,
+                { randomUUID: () => STAGING_ID },
+            )).rejects.toThrow('script write failed');
+
+            expect(await composite.readPortableNotebookBundle(OPFS_ID)).toEqual({
+                ...oldBundle,
+                notebook: notebookData(OPFS_ID, 'Old'),
+            });
+            expect(opfs.cache.has(OPFS_ID)).toBe(true);
+            expect(opfs.manifest.map(entry => entry.path)).toEqual([OPFS_ID]);
+        });
+
+        it('prepares and registers a native folder without modifying it', async () => {
+            const bundle = notebookBundle(NATIVE_ID, 'Native Source');
+            await writeBundleToDir(bundle, NATIVE_DIR);
+            const filesBefore = new Map(fsStore.files);
+            await composite.initialize();
+
+            const prepared = await prepareNativeNotebookImport(composite, NATIVE_DIR);
+            await expect(registerNativeNotebook(composite, prepared)).resolves.toBe(NATIVE_ID);
+
+            expect(fsStore.files).toEqual(filesBefore);
+            expect(composite.getNotebookLocation(NATIVE_ID)).toEqual({
+                type: StorageBackendType.Native,
+                nativePath: NATIVE_DIR,
+            });
+        });
+
+        it('replaces a native registration in place, leaves the old folder untouched, and no-ops for the same folder', async () => {
+            const oldBundle = notebookBundle(NATIVE_ID, 'Old Native');
+            const newBundle = notebookBundle(NATIVE_ID, 'New Native');
+            await writeBundleToDir(oldBundle, NATIVE_DIR);
+            await writeBundleToDir(newBundle, OTHER_NATIVE_DIR);
+            await opfs.upsertNotebookEntry({
+                path: NATIVE_ID,
+                storageType: StorageBackendType.Native,
+                nativePath: NATIVE_DIR,
+            });
+            await composite.initialize();
+            const oldFiles = new Map([...fsStore.files].filter(([path]) => path.startsWith(`${NATIVE_DIR}/`)));
+            const prepared = await prepareNativeNotebookImport(composite, OTHER_NATIVE_DIR);
+            const conflict = (await findNotebookImportConflict(composite, NATIVE_ID))!;
+
+            await replaceNotebookWithNativeFolder(composite, prepared, conflict);
+            expect(composite.getNotebookLocation(NATIVE_ID)).toEqual({
+                type: StorageBackendType.Native,
+                nativePath: OTHER_NATIVE_DIR,
+            });
+            expect(new Map([...fsStore.files].filter(([path]) => path.startsWith(`${NATIVE_DIR}/`)))).toEqual(oldFiles);
+
+            opfs.failNextManifestUpsert = true;
+            await expect(replaceNotebookWithNativeFolder(
+                composite,
+                prepared,
+                { notebookId: NATIVE_ID, location: composite.getNotebookLocation(NATIVE_ID) },
+            )).resolves.toBe(NATIVE_ID);
+        });
+
+        it('flips an OPFS registration before deleting its files and leaves them intact if the flip fails', async () => {
+            const oldBundle = notebookBundle(OPFS_ID, 'Old Portable');
+            const nativeBundle = notebookBundle(OPFS_ID, 'Selected Native');
+            await composite.initialize();
+            await composite.writePortableNotebookBundle(oldBundle, OPFS_ID, true);
+            await opfs.saveQueryResultCache(OPFS_ID, 'old-cache', new Uint8Array([1]));
+            await writeBundleToDir(nativeBundle, NATIVE_DIR);
+            const prepared = await prepareNativeNotebookImport(composite, NATIVE_DIR);
+            const conflict = (await findNotebookImportConflict(composite, OPFS_ID))!;
+            opfs.failNextManifestUpsert = true;
+
+            await expect(replaceNotebookWithNativeFolder(composite, prepared, conflict))
+                .rejects.toThrow('manifest write failed');
+
+            expect((await opfs.loadNotebook(OPFS_ID)).name).toBe('Old Portable');
+            expect(opfs.cache.has(OPFS_ID)).toBe(true);
+            expect(composite.getNotebookLocation(OPFS_ID)).toEqual({ type: StorageBackendType.OPFS });
+
+            await replaceNotebookWithNativeFolder(composite, prepared, conflict);
+            expect(opfs.notebooks.has(OPFS_ID)).toBe(false);
+            expect(opfs.cache.has(OPFS_ID)).toBe(false);
+            expect(composite.getNotebookLocation(OPFS_ID)).toEqual({
+                type: StorageBackendType.Native,
+                nativePath: NATIVE_DIR,
+            });
+        });
+
+        it('does not mutate the registry or create a directory before native source validation', async () => {
+            const missingDir = '/Users/test/missing';
+            await composite.initialize();
+
+            await expect(prepareNativeNotebookImport(composite, missingDir)).rejects.toThrow('No dashql notebook found');
+
+            expect(fsStore.dirs.has(missingDir)).toBe(false);
+            expect(opfs.manifest).toEqual([]);
+            expect(composite.getNotebookOrder()).toEqual([]);
         });
     });
 });

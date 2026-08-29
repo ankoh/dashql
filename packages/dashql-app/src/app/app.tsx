@@ -45,6 +45,7 @@ import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database
 import { isDebugBuild } from '../globals.js';
 import { NativeNotebookSync } from './notebook/persistence/native_notebook_sync_react.js';
 import { NotebookComputeQueryExecutionProvider } from './notebook/connections/computation_query_execution.js';
+import { NotebookImportProvider } from './notebook/persistence/notebook_import_provider.js';
 
 import '../../static/fonts/fonts.css';
 import '../styles/colors.css';
@@ -68,11 +69,13 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
                                         <NativeNotebookSync />
                                         <CatalogLoaderProvider>
                                             <AgentRunProvider>
-                                                <NotebookCommands>
-                                                    <AppLoader>
-                                                        {props.children}
-                                                    </AppLoader>
-                                                </NotebookCommands>
+                                                <NotebookImportProvider>
+                                                    <NotebookCommands>
+                                                        <AppLoader>
+                                                            {props.children}
+                                                        </AppLoader>
+                                                    </NotebookCommands>
+                                                </NotebookImportProvider>
                                             </AgentRunProvider>
                                         </CatalogLoaderProvider>
                                     </NotebookScriptsRegistryProvider>

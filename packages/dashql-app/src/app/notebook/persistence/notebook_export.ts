@@ -3,9 +3,16 @@ import JSZip from 'jszip';
 import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
 import type { StorageBackend, NotebookData, ScriptFolderData, ConnectionParams } from './storage_backend.js';
-import { STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
+import {
+    STORAGE_NOTEBOOK_FILE,
+    STORAGE_SCRIPTS_FOLDER,
+    STORAGE_SCRIPT_DRAFT,
+    STORAGE_SCRIPT_FUNCTIONS,
+    STORAGE_SCRIPT_SCHEMA,
+} from './storage_backend.js';
 import { BASE64URL_CODEC } from '../../../utils/base64.js';
 import { sanitizeConnectionParamsForSharing } from '../connections/connection_params.js';
+import { readNotebookBundle } from './notebook_bundle.js';
 
 /// The target platform a shared notebook link points at.
 export enum NotebookLinkTarget {
@@ -15,6 +22,8 @@ export enum NotebookLinkTarget {
 
 /// Options controlling how a notebook is exported to a ZIP.
 export interface NotebookExportOptions {
+    /// Include the persisted relation and function catalog SQL files when they exist.
+    withCatalog?: boolean;
     /// Transform the notebook metadata after it is loaded from the backend and before it is written
     /// into the ZIP. The script folders and draft are always exported verbatim from disk; only the
     /// `dashql-notebook.json` payload passes through here. The sharing path uses this to sanitize
@@ -23,16 +32,34 @@ export interface NotebookExportOptions {
     transformNotebook?: (notebook: NotebookData) => NotebookData;
 }
 
+/// Options applied after sanitizing notebook connection parameters for sharing.
+export interface SharedNotebookExportOptions {
+    /// Carry the sharer's resolved account username in the shared connection identity.
+    withLoginHint?: boolean;
+    /// Include persisted relation and function catalog SQL files when present.
+    withCatalog?: boolean;
+}
+
+type SharedNotebookExportOptionsInput = SharedNotebookExportOptions | boolean;
+
 /// Creates a ZIP file from notebook data and script folders
 export async function createNotebookZip(
     notebookData: NotebookData,
     folders: ScriptFolderData[],
-    draftSql: string | null
+    draftSql: string | null,
+    schemaSql: string | null = null,
+    functionsSql: string | null = null,
 ): Promise<Blob> {
     const zip = new JSZip();
 
     // Add notebook metadata
     zip.file(STORAGE_NOTEBOOK_FILE, JSON.stringify(notebookData, null, 2));
+    if (schemaSql != null) {
+        zip.file(STORAGE_SCRIPT_SCHEMA, schemaSql);
+    }
+    if (functionsSql != null) {
+        zip.file(STORAGE_SCRIPT_FUNCTIONS, functionsSql);
+    }
 
     // Add script folders and files
     const scriptsFolder = zip.folder(STORAGE_SCRIPTS_FOLDER);
@@ -52,7 +79,7 @@ export async function createNotebookZip(
     }
 
     // Add draft script if present
-    if (draftSql) {
+    if (draftSql != null) {
         scriptsFolder.file(STORAGE_SCRIPT_DRAFT, draftSql);
     }
 
@@ -74,16 +101,19 @@ export async function exportNotebookAsZip(
     backend: StorageBackend,
     options: NotebookExportOptions = {}
 ): Promise<Blob> {
-    // Load data from backend
-    const notebookData = await backend.loadNotebook(notebookId);
-    const folders = await backend.loadScriptFolders(notebookId);
-    const draftSql = await backend.loadScriptDraft(notebookId);
+    const bundle = await readNotebookBundle(notebookId, backend, options.withCatalog ?? false);
 
     // Apply the caller's notebook transform (sharing sanitization, name override, ...)
-    const outNotebook = options.transformNotebook ? options.transformNotebook(notebookData) : notebookData;
+    const outNotebook = options.transformNotebook ? options.transformNotebook(bundle.notebook) : bundle.notebook;
 
     // Create ZIP from loaded data
-    return await createNotebookZip(outNotebook, folders, draftSql);
+    return await createNotebookZip(
+        outNotebook,
+        bundle.folders,
+        bundle.draftSql,
+        bundle.schemaSql,
+        bundle.functionsSql,
+    );
 }
 
 /// Export a notebook as a shareable ZIP.
@@ -96,13 +126,14 @@ export async function exportNotebookAsSharedZip(
     backend: StorageBackend,
     notebookId: string,
     connectionParams: any,
-    // When true, carry the login hint (the sharer's resolved account username) in the shared
-    // connection identity. When false, strip it so the link/file doesn't reveal who shared it.
-    withLoginHint: boolean = true
+    optionsInput: SharedNotebookExportOptionsInput = {},
 ): Promise<Blob> {
+    const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
+    const withLoginHint = options.withLoginHint ?? true;
     const sharedConnectionParams: ConnectionParams = sanitizeConnectionParamsForSharing(connectionParams, withLoginHint);
 
     return await exportNotebookAsZip(notebookId, backend, {
+        withCatalog: options.withCatalog ?? true,
         transformNotebook: (notebook: NotebookData): NotebookData => ({
             ...notebook,
             connectionParams: sharedConnectionParams,
@@ -116,9 +147,15 @@ export async function exportNotebookAsUrl(
     notebookId: string,
     connectionParams: any,
     target: NotebookLinkTarget,
-    withLoginHint: boolean = true
+    optionsInput: SharedNotebookExportOptionsInput = {},
 ): Promise<URL> {
-    const zipBlob = await exportNotebookAsSharedZip(backend, notebookId, connectionParams, withLoginHint);
+    const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
+    const zipBlob = await exportNotebookAsSharedZip(
+        backend,
+        notebookId,
+        connectionParams,
+        options,
+    );
     const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
 
     // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema

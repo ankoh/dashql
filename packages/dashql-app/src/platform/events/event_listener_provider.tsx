@@ -43,6 +43,12 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
         const event = listener.readAppEvent(data, "event_listener");
         if (event != null) {
             listener.dispatchAppEvent(event);
+            // Consume the event before an import can trigger a reload. Leaving `data` in the address
+            // would dispatch the same notebook again and immediately reopen the conflict dialog.
+            searchParams.delete(EVENT_QUERY_PARAMETER);
+            const search = searchParams.toString();
+            const nextUrl = `${location.pathname}${search ? `?${search}` : ''}${location.hash}`;
+            globalThis.history.replaceState(globalThis.history.state, '', nextUrl);
         }
     }, [location.search]);
 

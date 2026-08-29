@@ -58,10 +58,11 @@ export async function computeQueryCacheKeyForConnection(
 
 /// The query executor function
 export type QueryExecutor = (connectionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
-export type CancelQuery = (connectionId: string, queryId: number) => void;
+export type CancelQuery = (connectionId: string, queryId: number) => Promise<void>;
 interface QueryExecutionRuntime {
     cancellation: AbortController;
     resultStream: QueryExecutionResponseStream | null;
+    execution: Promise<arrow.Table | null> | null;
 }
 /// The React context to resolve the active query executor
 interface QueryExecutorContextValue {
@@ -480,6 +481,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         const runtime: QueryExecutionRuntime = {
             cancellation: new AbortController(),
             resultStream: null,
+            execution: null,
         };
         const cancelFromCaller = () => runtime.cancellation.abort(args.abortSignal?.reason);
         if (args.abortSignal?.aborted) {
@@ -497,6 +499,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         };
         if (logObserver != null) logger.buffer.subscribeTrace(trace.traceId, logObserver);
         const execution = executeImpl(connectionId, args, queryId, runtime, trace);
+        runtime.execution = execution;
         const removeRuntime = () => {
             args.abortSignal?.removeEventListener('abort', cancelFromCaller);
             queryRuntimes.current.delete(queryId);
@@ -506,18 +509,19 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         return [queryId, execution];
     }, [executeImpl, logger]);
 
-    const cancel = React.useCallback<CancelQuery>((connectionId, queryId) => {
+    const cancel = React.useCallback<CancelQuery>(async (connectionId, queryId) => {
         const runtime = queryRuntimes.current.get(queryId);
         if (runtime == null) return;
         runtime.cancellation.abort();
         const cancellation = runtime.resultStream?.cancel?.();
-        void cancellation?.catch((e: any) => {
+        await cancellation?.catch((e: any) => {
             logger.warn('Failed to cancel query at the backend', {
                 query: queryId.toString(),
                 connectionId,
                 error: stringifyError(e),
             }, LOG_CTX);
         });
+        await runtime.execution?.catch(() => null);
     }, [logger]);
 
     const value = React.useMemo(() => ({ execute, cancel }), [execute, cancel]);

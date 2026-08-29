@@ -7,14 +7,9 @@ import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_in
 import { PlatformFile } from "../../platform/file/file.js";
 import { classNames } from '../../utils/classnames.js';
 import { formatBytes } from '../../utils/format.js';
-import { useRouterNavigate, NOTEBOOK_PATH } from '../router/router.js';
-import { useStorageReader } from '../notebook/persistence/storage_provider.js';
-import { importAndRestoreNotebook } from '../loading/app_setup_events.js';
-import { destroyRestoredNotebook, mergeRestoredNotebookIntoConnections, mergeRestoredNotebookIntoScripts, type RestoredNotebook } from '../notebook/persistence/app_state_loader.js';
-import { useDashQLCoreSetup } from '../providers/core_provider.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useConnectionRegistry } from '../notebook/connections/connection_registry.js';
-import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts_registry.js';
+import { useRouterNavigate, OPEN_LINK_NOTEBOOK } from '../router/router.js';
+import { readNotebookBundleFromZip } from '../notebook/persistence/notebook_import.js';
+import { useNotebookImport } from '../notebook/persistence/notebook_import_provider.js';
 
 interface ProgressState {
     // The file size
@@ -95,12 +90,7 @@ interface Props {
 export function FileLoader(props: Props) {
     const { file, onDone } = props;
     const navigate = useRouterNavigate();
-    const storageReader = useStorageReader();
-    const setupCore = useDashQLCoreSetup();
-    const logger = useLogger();
-    const [connectionRegistry, setConnectionRegistry] = useConnectionRegistry();
-    const connectionSignatures = connectionRegistry.connectionsBySignature;
-    const [, setNotebookScriptsRegistry] = useNotebookScriptsRegistry();
+    const { importPortableBundle } = useNotebookImport();
     const abortController = React.useMemo(() => new AbortController(), []);
 
     const [error, setError] = React.useState<Error | null>(null);
@@ -118,8 +108,6 @@ export function FileLoader(props: Props) {
     // Load the file
     React.useEffect(() => {
         (async () => {
-            let restoredNotebook: RestoredNotebook | null = null;
-            let registered = false;
             try {
                 const zipBlob = await loadNotebookFromFile(
                     file,
@@ -128,41 +116,26 @@ export function FileLoader(props: Props) {
                 );
                 abortController.signal.throwIfAborted();
 
-                // Imports happen after startup restoration, so load the persisted notebook into the
-                // live registries before navigating to it.
-                const core = await setupCore('file_import');
-                const restored = await importAndRestoreNotebook(
-                    zipBlob,
-                    logger,
-                    core,
-                    storageReader.backend,
-                    connectionSignatures,
-                );
-                restoredNotebook = restored;
-                const notebookId = restored.notebookId;
+                const bundle = await readNotebookBundleFromZip(zipBlob);
+                const notebookId = await importPortableBundle(bundle, {
+                    presentation: { mode: 'centered' },
+                });
                 abortController.signal.throwIfAborted();
-                setConnectionRegistry(registry => mergeRestoredNotebookIntoConnections(registry, restored));
-                setNotebookScriptsRegistry(registry => mergeRestoredNotebookIntoScripts(registry, restored));
-                registered = true;
+                if (notebookId == null) {
+                    onDone();
+                    return;
+                }
                 setProgress(current => ({ ...current, importFinishedAt: new Date(), notebookId }));
                 // Navigate to the imported notebook
-                navigate({ type: NOTEBOOK_PATH, value: notebookId });
+                navigate({ type: OPEN_LINK_NOTEBOOK, value: notebookId });
                 onDone();
             } catch (e: any) {
-                if (restoredNotebook && !registered) {
-                    destroyRestoredNotebook(restoredNotebook);
-                    try {
-                        await storageReader.backend.deleteNotebook(restoredNotebook.notebookId);
-                    } catch {
-                        // Preserve the cancellation/restoration error when cleanup fails.
-                    }
-                }
                 setProgress(current => ({ ...current, importFailedAt: new Date() }));
                 setError(e);
             }
         })();
         return () => abortController.abort();
-    }, [file, onDone, storageReader, setupCore, logger, connectionSignatures, setConnectionRegistry, setNotebookScriptsRegistry, abortController, navigate]);
+    }, [file, onDone, importPortableBundle, abortController, navigate]);
 
     // Close button
     const close = React.useCallback(() => {

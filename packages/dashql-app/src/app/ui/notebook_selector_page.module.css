@@ -171,3 +171,7 @@
     color: hsl(210, 12%, 50%);
     font-size: 14px;
 }
+
+.folder_input {
+    display: none;
+}
