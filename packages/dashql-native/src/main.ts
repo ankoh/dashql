@@ -1,5 +1,5 @@
 import {access, mkdir, readFile, readdir, rename, rm, stat, writeFile} from "node:fs/promises";
-import {watch, type FSWatcher} from "node:fs";
+import {watch} from "node:fs";
 import {createServer} from "node:http";
 import path from "node:path";
 import {promisify} from "node:util";
@@ -10,6 +10,7 @@ import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProce
 
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
+import {DirectoryWatchRegistry} from "./directory_watch_registry.js";
 import {GrpcTestServer, GRPC_TEST_REQUEST, GRPC_TEST_STREAM_BODY, GRPC_TEST_UNARY_RESPONSE} from "./grpc_test_server.js";
 import {NativeProxyService, type NativeProxyRequest, validateNativeProxyRequest} from "./native_proxy.js";
 import {createElectronUpdater, type ElectronUpdater} from "./updater.js";
@@ -34,8 +35,7 @@ let deepLinkSender: WebContents | null = null;
 let nativeProxy: NativeProxyService | null = null;
 let mainWindow: BrowserWindow | null = null;
 let updater: ElectronUpdater | null = null;
-let nextWatchId = 1;
-const directoryWatches = new Map<number, FSWatcher>();
+const directoryWatches = new DirectoryWatchRegistry();
 
 if (process.argv.some((arg) => arg.endsWith("-test") || arg.includes("-test="))) {
     app.disableHardwareAcceleration();
@@ -519,19 +519,16 @@ if (!hasSingleInstanceLock) {
 
     ipcMain.handle("dashql:watch-directory", (event, requestedPath: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) throw new Error("Rejected watch request");
-        const watchId = nextWatchId++;
         const sender = event.sender;
         const watcher = watch(requestedPath, {recursive: true}, (_event, filename) => {
             if (!sender.isDestroyed()) sender.send(`dashql:watch-directory:${watchId}`, [filename === null ? requestedPath : path.join(requestedPath, filename)]);
         });
-        directoryWatches.set(watchId, watcher);
-        sender.once("destroyed", () => { watcher.close(); directoryWatches.delete(watchId); });
+        const watchId = directoryWatches.add(sender, watcher);
         return watchId;
     });
     ipcMain.handle("dashql:unwatch-directory", (event, watchId: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof watchId !== "number") throw new Error("Rejected unwatch request");
-        directoryWatches.get(watchId)?.close();
-        directoryWatches.delete(watchId);
+        directoryWatches.close(watchId);
     });
 
     ipcMain.handle("dashql:runtime-capabilities", (event) => {
