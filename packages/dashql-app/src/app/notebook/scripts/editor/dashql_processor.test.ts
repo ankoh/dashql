@@ -33,7 +33,7 @@ afterEach(() => {
 function createScriptSession(catalog: dashql.DashQLCatalog, text: string, cursor = text.length) {
     const scriptSession = dql!.createScriptSession(catalog);
     scriptSession.replaceText(0n, text);
-    const update = scriptSession.ensureAnalysis();
+    const update = scriptSession.analyze();
     expect(update.analysisAvailable).toBe(true);
     const editorUpdate = scriptSession.setCursor(1n, BigInt(cursor));
     return { scriptSession, editorUpdate };
@@ -46,7 +46,7 @@ describe('CodeMirror portable editor events', () => {
         const processorState: DashQLProcessorUpdateIn = {
             scriptKey: scriptSession.getCatalogEntryId(),
             scriptSession,
-            editorUpdate: scriptSession.ensureAnalysis(),
+            editorUpdate: scriptSession.analyze(),
             scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
@@ -97,7 +97,7 @@ describe('CodeMirror portable editor events', () => {
 
         const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (value int)');
-        schemaSession.ensureAnalysis();
+        schemaSession.analyze();
         schemaSession.loadIntoCatalog(0);
 
         editorState = editorState.update({ selection: EditorSelection.cursor(7) }).state;
@@ -113,7 +113,7 @@ describe('CodeMirror portable editor events', () => {
         const catalog = dql!.createCatalog();
         const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
-        schemaSession.ensureAnalysis();
+        schemaSession.analyze();
         schemaSession.loadIntoCatalog(0);
 
         const text = 'select identifier from items where identifier > 0';
@@ -164,7 +164,7 @@ describe('CodeMirror portable editor events', () => {
         const catalog = dql!.createCatalog();
         const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
-        schemaSession.ensureAnalysis();
+        schemaSession.analyze();
         schemaSession.loadIntoCatalog(0);
 
         const text = 'select identifier from items where identifier > 0';
@@ -204,7 +204,7 @@ describe('CodeMirror portable editor events', () => {
         const catalog = dql!.createCatalog();
         const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
-        schemaSession.ensureAnalysis();
+        schemaSession.analyze();
         schemaSession.loadIntoCatalog(0);
 
         const text = 'select count(identifier) from items';
@@ -260,7 +260,7 @@ describe('CodeMirror portable editor events', () => {
         scriptSession.replaceText(0n, 'select 1');
         const beforeAnalysis = dql!.registeredMemory.size;
 
-        const update = scriptSession.ensureAnalysis();
+        const update = scriptSession.analyze();
         expect(dql!.registeredMemory.size).toBe(beforeAnalysis);
         expect(update.analysisAvailable).toBe(true);
         expect(dql!.registeredMemory.size).toBe(beforeAnalysis);

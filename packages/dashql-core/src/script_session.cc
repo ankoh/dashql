@@ -395,7 +395,7 @@ void ScriptSession::ProjectEditorState(EditorUpdate& update) {
     update.processing_statistics = std::move(projected_statistics);
 }
 
-bool ScriptSession::EnsureAnalysis(EditorUpdate& update) {
+bool ScriptSession::Analyze(EditorUpdate& update) {
     if (analyzed_document_revision_ == document_revision_ && analyzed_catalog_revision_ == catalog_.GetVersion() &&
         script_.GetAnalyzedScript() != nullptr) {
         update.analysis_available = true;
@@ -550,9 +550,9 @@ void ScriptSession::LoadIntoCatalog(CatalogEntry::Rank rank) {
 
 void ScriptSession::DropFromCatalog() { catalog_.DropScript(script_); }
 
-ScriptSession::EditorUpdate ScriptSession::EnsureSynchronousAnalysis() {
+ScriptSession::EditorUpdate ScriptSession::Analyze() {
     auto update = MakeUpdate();
-    if (EnsureAnalysis(update)) {
+    if (Analyze(update)) {
         const bool cursor_outdated =
             cursor_document_revision_ != document_revision_ || cursor_catalog_revision_ != catalog_.GetVersion();
         if (primary_selection_ && cursor_outdated) {
@@ -682,8 +682,7 @@ ScriptSession::EditorUpdate ScriptSession::Apply(const EditorEvent& event) {
                                 script_.GetAnalyzedScript() == nullptr;
     // Selection updates also publish a complete EditorUpdate projection. Refresh stale analysis first;
     // otherwise a catalog revision change would turn a cursor move into an empty projection.
-    const bool analysis_succeeded = !(event.ensure_analysis || (event.primary_selection && analysis_stale)) ||
-                                    EnsureAnalysis(update);
+    const bool analysis_succeeded = !(event.analyze || (event.primary_selection && analysis_stale)) || Analyze(update);
     const bool analysis_current = analyzed_document_revision_ == document_revision_ &&
                                   analyzed_catalog_revision_ == catalog_.GetVersion() &&
                                   script_.GetAnalyzedScript() != nullptr;

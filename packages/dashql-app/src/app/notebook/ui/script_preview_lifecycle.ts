@@ -73,7 +73,7 @@ function projectPreviewText(instance: core.DashQL, scriptText: string): core.buf
     const projectionSession = instance.createScriptSession(projectionCatalog);
     try {
         projectionSession.replaceText(0n, scriptText);
-        return projectionSession.ensureAnalysis();
+        return projectionSession.analyze();
     } finally {
         projectionSession.destroy();
         projectionCatalog.destroy();
@@ -163,7 +163,7 @@ function computeCompactDiff(
         priorFormatted = priorRaw.format(compactFormattingConfig(maxWidth, debugMode), null, true);
         priorSession = instance.createScriptSession(priorCatalog);
         priorSession.replaceText(0n, priorFormatted.toString());
-        priorSession.ensureAnalysis();
+        priorSession.analyze();
         const diffBuffer = priorSession.computeDiff(newFormatted);
         return { priorText, diffBuffer };
     } catch (e: any) {

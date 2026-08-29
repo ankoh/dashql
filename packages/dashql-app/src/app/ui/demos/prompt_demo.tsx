@@ -129,7 +129,7 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
             return;
         }
 
-        let currentUpdate = scriptSession.ensureAnalysis();
+        let currentUpdate = scriptSession.analyze();
         let currentCompletion: DashQLProcessorUpdateOut['scriptCompletion'] = null;
         // Helper to handle processor updates
         const onUpdate = (update: DashQLProcessorUpdateOut) => {

@@ -1220,7 +1220,7 @@ describe('UPDATE_FROM_PROCESSOR semantic focus', () => {
         const scriptData = state.scripts[scriptKey];
         const schemaSession = dql!.createScriptSession(state.connectionCatalog);
         schemaSession.replaceText(0n, 'create table items (id int)');
-        schemaSession.ensureAnalysis();
+        schemaSession.analyze();
         schemaSession.loadIntoCatalog(0);
         replaceScriptSessionText(scriptData.scriptSession, 'select id from items where id = 1 and items.id > 0');
         state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
@@ -1250,7 +1250,7 @@ describe('UPDATE_FROM_PROCESSOR semantic focus', () => {
         const scriptData = state.scripts[scriptKey];
         const schemaSession = dql!.createScriptSession(state.connectionCatalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
-        schemaSession.ensureAnalysis();
+        schemaSession.analyze();
         schemaSession.loadIntoCatalog(0);
         replaceScriptSessionText(scriptData.scriptSession, 'select identifier from items where identifier > 0');
         state = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });

@@ -158,7 +158,7 @@ describe('DashQL editor sessions', () => {
         session.replaceText(0n, text);
         const cursorUpdate = session.setCursor(1n, BigInt(text.length));
 
-        const update = session.ensureAnalysis();
+        const update = session.analyze();
         expect(update.status).toBe(dashql.buffers.editor.EditorUpdateStatus.OK);
         expect(cursorUpdate.analysisUpdated).toBe(true);
         expect(update.analysisUpdated).toBe(false);
@@ -177,7 +177,7 @@ describe('DashQL editor sessions', () => {
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 's');
         session.setCursor(1n, 1n);
-        session.ensureAnalysis();
+        session.analyze();
 
         const completion = session.completeAtCursor(10);
         expect(completion.read().candidates(0)?.completionText()).toBe('select');
@@ -188,7 +188,7 @@ describe('DashQL editor sessions', () => {
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 'select 1 as value');
-        session.ensureAnalysis();
+        session.analyze();
 
         const config = formattingConfig();
         const compilation = session.compileQuery(config);
@@ -228,7 +228,7 @@ describe('DashQL editor sessions', () => {
             const catalog = dql!.createCatalog();
             const session = dql!.createScriptSession(catalog);
             session.replaceText(0n, 'select 1 as value');
-            session.ensureAnalysis();
+            session.analyze();
             const compilation = session.compileQuery(formattingConfig());
             try {
                 expect(compilation.read().sql()).toBe('select 1 as value');
@@ -244,7 +244,7 @@ describe('DashQL editor sessions', () => {
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 'create table items (id int)');
-        session.ensureAnalysis();
+        session.analyze();
 
         expect(catalog.containsEntryId(session.catalog_entry_id)).toBeFalsy();
         session.loadIntoCatalog(17);

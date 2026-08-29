@@ -1875,7 +1875,7 @@ function computePendingDiff(
     let targetScript: core.DashQLScript | null = null;
     try {
         // Ensure the source session is parsed (the diff walks the parsed AST).
-        const analysis = sourceSession.ensureAnalysis();
+        const analysis = sourceSession.analyze();
         if (analysis.status !== core.buffers.editor.EditorUpdateStatus.OK || !analysis.analysisAvailable) {
             throw new Error('Failed to analyze source script for diff');
         }
@@ -1901,7 +1901,7 @@ export function analyzeScriptData(scriptData: ScriptData, _catalog: core.DashQLC
     // Analyze the script
     // Capture the underlying failure so callers can log it with notebook/script context
     // instead of writing it directly to the console.
-    const update = next.scriptSession.ensureAnalysis();
+    const update = next.scriptSession.analyze();
     if (update.status !== core.buffers.editor.EditorUpdateStatus.OK || !update.analysisAvailable) {
         throw new Error(typeof update.statusMessage === 'string' && update.statusMessage.length > 0
             ? update.statusMessage

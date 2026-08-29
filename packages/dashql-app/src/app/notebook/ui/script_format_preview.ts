@@ -21,7 +21,7 @@ export function projectFormattedText(
     const session = instance.createScriptSession(catalog);
     try {
         session.replaceText(0n, text);
-        return session.ensureAnalysis();
+        return session.analyze();
     } finally {
         session.destroy();
         catalog.destroy();
