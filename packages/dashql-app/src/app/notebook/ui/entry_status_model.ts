@@ -32,9 +32,12 @@ export function getQueryStatusText(
     status: QueryExecutionStatus,
     statementIndex: number | null = null,
     statementCount: number | null = null,
+    statementSucceeded: boolean = false,
 ): string {
     if (statementIndex != null && statementCount != null && !queryIsDone(status)) {
-        return `Executing statement ${statementIndex} of ${statementCount}`;
+        return statementSucceeded
+            ? `Statement ${statementIndex} executed successfully`
+            : `Executing statement ${statementIndex} of ${statementCount}`;
     }
     switch (status) {
         case QueryExecutionStatus.REQUESTED:
@@ -60,7 +63,9 @@ export function getQueryStatusText(
         case QueryExecutionStatus.CANCELLED:
             return 'Statement execution was cancelled';
         case QueryExecutionStatus.SUCCEEDED:
-            return 'Statement executed successfully';
+            return statementCount != null && statementCount > 1
+                ? 'All statements executed successfully'
+                : 'Statement executed successfully';
     }
 }
 
@@ -93,7 +98,12 @@ export function deriveEntryStatus(
         return {
             kind: EntryStatusKind.Query,
             indicator: IndicatorStatus.Running,
-            message: getQueryStatusText(query.status, query.statementIndex, query.statementCount),
+            message: getQueryStatusText(
+                query.status,
+                query.statementIndex,
+                query.statementCount,
+                query.statementSucceeded,
+            ),
             traceId: query.traceId,
             errorDetail: null,
         };
@@ -129,7 +139,7 @@ export function deriveEntryStatus(
                 indicator: IndicatorStatus.Succeeded,
                 message: query.status === QueryExecutionStatus.SUCCEEDED && query.servedFromCache
                     ? 'Result loaded from cache'
-                    : getQueryStatusText(query.status),
+                    : getQueryStatusText(query.status, query.statementIndex, query.statementCount),
                 traceId: query.traceId,
                 errorDetail: null,
             };

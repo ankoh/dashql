@@ -59,6 +59,7 @@ describe('executeScriptQuery', () => {
         ]);
         const output = arrow.tableFromArrays({ value: [42] });
         const executeStatement = vi.fn(async (_args: QueryExecutionArgs, producesOutput: boolean) => producesOutput ? output : null);
+        const statementEvents: string[] = [];
 
         const result = await executeScriptQuery({
             execution,
@@ -70,7 +71,8 @@ describe('executeScriptQuery', () => {
             logTarget: 'test',
             callbacks: {
                 executeStatement,
-                onStatementStarted: vi.fn(),
+                onStatementStarted: (index, count) => statementEvents.push(`started:${index}/${count}`),
+                onStatementSucceeded: (index, count) => statementEvents.push(`succeeded:${index}/${count}`),
                 setResultStream: vi.fn(),
             },
         });
@@ -80,6 +82,12 @@ describe('executeScriptQuery', () => {
             ['SELECT * FROM t', true],
         ]);
         expect(result).toBe(output);
+        expect(statementEvents).toEqual([
+            'started:1/2',
+            'succeeded:1/2',
+            'started:2/2',
+            'succeeded:2/2',
+        ]);
         expect(execution.resume).toHaveBeenCalledTimes(2);
         expect(execution.destroy).toHaveBeenCalledOnce();
     });
@@ -103,6 +111,7 @@ describe('executeScriptQuery', () => {
             callbacks: {
                 executeStatement: vi.fn().mockRejectedValue(error),
                 onStatementStarted: vi.fn(),
+                onStatementSucceeded: vi.fn(),
                 setResultStream: vi.fn(),
             },
         })).rejects.toBe(error);
@@ -132,6 +141,7 @@ describe('executeScriptQuery', () => {
             callbacks: {
                 executeStatement: vi.fn(),
                 onStatementStarted: vi.fn(),
+                onStatementSucceeded: vi.fn(),
                 setResultStream: vi.fn(),
             },
         })).rejects.toMatchObject({ name: 'AbortError' });

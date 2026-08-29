@@ -9,6 +9,7 @@ import {
     QUERY_PROCESSED_RESULTS,
     QUERY_PROGRESS_UPDATED,
     QUERY_STATEMENT_STARTED,
+    QUERY_STATEMENT_SUCCEEDED,
     QUERY_RECEIVED_ALL_BATCHES,
     QUERY_RECEIVED_BATCH,
     QueryExecutionResponseStream,
@@ -189,6 +190,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                             callbacks: {
                                 onStatementStarted: (index, statementCount) => queryTracker.dispatch({
                                     type: QUERY_STATEMENT_STARTED,
+                                    value: [queryId, index, statementCount],
+                                }),
+                                onStatementSucceeded: (index, statementCount) => queryTracker.dispatch({
+                                    type: QUERY_STATEMENT_SUCCEEDED,
                                     value: [queryId, index, statementCount],
                                 }),
                                 setResultStream: stream => {

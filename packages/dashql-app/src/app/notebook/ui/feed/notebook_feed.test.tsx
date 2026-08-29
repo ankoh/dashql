@@ -29,7 +29,14 @@ const mockState = vi.hoisted(() => ({
         capture?: boolean;
         callback: (event: KeyboardEvent) => void;
     }>,
-    queryStates: new Map<number, { traceId: number; status: number; servedFromCache?: boolean }>(),
+    queryStates: new Map<number, {
+        traceId: number;
+        status: number;
+        servedFromCache?: boolean;
+        statementIndex?: number;
+        statementCount?: number;
+        statementSucceeded?: boolean;
+    }>(),
     agentRuns: new Map<number, { traceId: number; phase?: number; log?: Array<{ message: string }> }>(),
     latestAgentRunId: null as number | null,
     observedWidth: 1200,
@@ -1258,6 +1265,27 @@ describe('NotebookFeed', () => {
         expect(mockState.cancelQuery).toHaveBeenCalledWith('test-connection', 42);
     });
 
+    it('shows when a script statement executes successfully', () => {
+        mockState.queryStates.set(42, {
+            traceId: 100,
+            status: 4 /* RUNNING */,
+            statementIndex: 2,
+            statementCount: 3,
+            statementSucceeded: true,
+        });
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[101] = { ...notebookScripts.scripts[101], latestQueryId: 42 };
+        renderFeed({
+            notebookScripts,
+            modifyNotebookScripts: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        expect(statusBar!.textContent).toContain('Statement 2 executed successfully');
+    });
+
     it('keeps the status bar once a query succeeds', () => {
         mockState.queryStates.set(42, { traceId: 100, status: 9 /* SUCCEEDED */ });
         const notebookScripts = createNotebookScripts();
@@ -1271,6 +1299,27 @@ describe('NotebookFeed', () => {
         const statusBar = container.querySelector('[aria-label^="Show log"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Statement executed successfully');
+    });
+
+    it('shows when all script statements execute successfully', () => {
+        mockState.queryStates.set(42, {
+            traceId: 100,
+            status: 9 /* SUCCEEDED */,
+            statementIndex: 2,
+            statementCount: 2,
+            statementSucceeded: true,
+        });
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[101] = { ...notebookScripts.scripts[101], latestQueryId: 42 };
+        renderFeed({
+            notebookScripts,
+            modifyNotebookScripts: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        expect(statusBar!.textContent).toContain('All statements executed successfully');
     });
 
     it('shows that a successful query result was loaded from cache', () => {
