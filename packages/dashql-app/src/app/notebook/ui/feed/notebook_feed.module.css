@@ -50,7 +50,7 @@
             var(--notebook_body_background_color)
         ) calc(50% - max(var(--feed-scrollbar-inset, 0px), 16px) / 2) center / min(
             calc(100% - max(var(--feed-scrollbar-inset, 0px), 16px)),
-            calc(var(--notebook_list_entry_max_width) + 76px)
+            calc(var(--notebook_list_entry_max_width) + 108px)
         ) 100% no-repeat;
 }
 
@@ -62,7 +62,7 @@
     top: calc(100% - 16px);
     height: 32px;
     width: auto;
-    max-width: calc(var(--notebook_list_entry_max_width) + 76px);
+    max-width: calc(var(--notebook_list_entry_max_width) + 108px);
     margin: 0 auto;
     z-index: 0;
     pointer-events: none;
@@ -77,7 +77,7 @@
     right: max(var(--feed-scrollbar-inset, 0px), 16px);
     bottom: calc(100% - 24px);
     width: auto;
-    max-width: calc(var(--notebook_list_entry_max_width) + 124px);
+    max-width: calc(var(--notebook_list_entry_max_width) + 156px);
     height: 64px;
     margin: 0 auto;
     z-index: 0;
@@ -311,10 +311,6 @@
 @media only screen and (max-width: 700px) {
     .compose_section::before {
         max-width: none;
-    }
-
-    .compose_section::after {
-        max-width: calc(var(--notebook_list_entry_max_width) + 32px);
     }
 
     .compose_card {
