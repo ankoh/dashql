@@ -101,6 +101,7 @@ where
     result
 }
 
+#[allow(dead_code)]
 pub fn current_trace_context() -> Option<TraceContext> {
     // Try task_local first (for async contexts)
     if let Ok(ctx) = TRACE_CONTEXT.try_with(|ctx| ctx.clone()) {
