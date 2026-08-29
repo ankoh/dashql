@@ -270,6 +270,26 @@
     border-radius: var(--border_radius) 10px 10px var(--border_radius);
 }
 
+@media (hover: hover) and (pointer: fine) {
+    .feed_entry_card_server {
+        transition: opacity 120ms ease-out;
+    }
+
+    .feed_entry_card_server[data-unfocused="true"] {
+        opacity: 0.6;
+    }
+
+    .feed_entry_card_server[data-unfocused="true"]:focus-within {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .feed_entry_card_server {
+        transition: none;
+    }
+}
+
 .feed_entry_card_server_idle {
     width: fit-content;
     max-width: 100%;

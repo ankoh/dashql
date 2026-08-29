@@ -438,6 +438,17 @@ describe('NotebookFeed', () => {
         expect(executeButtons[1].getAttribute('aria-current')).toBe('true');
     });
 
+    it('marks only unfocused result cards for pointer-device fading', () => {
+        renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
+
+        const resultCards = container.querySelectorAll('[data-result-card]');
+        expect(resultCards).toHaveLength(2);
+        expect(resultCards[0].hasAttribute('data-unfocused')).toBe(false);
+        expect(resultCards[1].getAttribute('data-unfocused')).toBe('true');
+        expect(container.querySelectorAll('[class*="feed_entry_card_script"][data-unfocused]')).toHaveLength(0);
+        expect(container.querySelectorAll('[class*="feed_entry_avatar_"][data-unfocused]')).toHaveLength(0);
+    });
+
     it('focuses a script when its card is hovered', () => {
         const modifyNotebookScripts = vi.fn();
         renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts, showDetails: vi.fn() });
