@@ -4,7 +4,7 @@ module(
 )
 
 # Rules for C/C++ (cc_library, cc_test, etc.)
-bazel_dep(name = "rules_cc", version = "0.2.17")
+bazel_dep(name = "rules_cc", version = "0.2.22")
 
 # Emscripten SDK
 bazel_dep(name = "emsdk", version = "5.0.5")
@@ -30,7 +30,7 @@ single_version_override(
     patch_strip = 1,
 )
 
-bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "platforms", version = "1.1.0")
 bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "googletest", version = "1.18.0")
 bazel_dep(name = "gflags", version = "2.3.1")
