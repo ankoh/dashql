@@ -202,6 +202,31 @@ const BrandLogo = (props: { onClose: () => void }) => (
     </div>
 );
 
+const BrandIdentity = () => (
+    <div className={styles.brand_identity} data-electron-drag-region>
+        <svg width="24px" height="24px" aria-hidden="true">
+            <use xlinkHref={`${symbols}#dashql`} />
+        </svg>
+        <span>DashQL</span>
+    </div>
+);
+
+export const CompactNavBar = (): React.ReactElement => {
+    const route = useRouteContext();
+    const platform = usePlatformType();
+    const navbarClass = platform === PlatformType.MACOS ? styles.navbar_mac : styles.navbar_default;
+
+    return (
+        <header className={`${navbarClass} ${styles.navbar_overlay}`} data-electron-drag-region>
+            <BrandIdentity />
+            <div className={styles.navbar_actions}>
+                <InternalsButton notebookId={route.notebookId} />
+                <VersionButton />
+            </div>
+        </header>
+    );
+};
+
 export const NavBar = (): React.ReactElement => {
     const logger = useLogger();
     const route = useRouteContext();

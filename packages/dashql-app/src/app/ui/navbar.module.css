@@ -194,6 +194,33 @@
     fill: inherit;
 }
 
+.brand_identity {
+    grid-row: 1;
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: 20px;
+    color: white;
+    fill: currentColor;
+    font-family: 'Roboto Mono';
+    font-size: 1.0rem;
+    font-weight: 400;
+}
+
+.navbar_mac .brand_identity {
+    padding-left: 8px;
+}
+
+.navbar_overlay {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    left: 0;
+    box-sizing: border-box;
+}
+
 .navbar_actions {
     grid-row: 1;
     grid-column: 3;

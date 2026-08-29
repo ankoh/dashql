@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from '../../../../ui/banner/banner_page.module.css';
 import * as styles from './connection_config_card.module.css';
 
@@ -10,8 +9,6 @@ import { ConnectorConfigTabs } from './connector_config_tabs.js';
 import { ConnectorType } from '../connector_info.js';
 import { useConnectionState } from '../connection_registry.js';
 import { ConnectionHealth } from '../connection_state.js';
-import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored_position.js';
-import { InternalsViewerOverlay } from '../../../ui/internals/internals_overlay.js';
 
 interface Props {
     notebookId: string;
@@ -23,26 +20,10 @@ interface Props {
 
 export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
     const [conn, _modifyConn] = useConnectionState(props.notebookId);
-    const [showInternals, setShowInternals] = React.useState<boolean>(false);
 
     // Default to TRINO or first available connector
     const defaultConnectorType = conn?.connectorInfo.connectorType ?? ConnectorType.TRINO;
     const [selectedConnectorType, setSelectedConnectorType] = React.useState<ConnectorType>(defaultConnectorType);
-
-    // Compute the internals button only once to prevent svg flickering
-    const internalsButton = React.useMemo(() => {
-        return (
-            <IconButton
-                variant={ButtonVariant.Invisible}
-                aria-label="Show Internals"
-                onClick={() => setShowInternals(s => !s)}
-            >
-                <svg width="16px" height="16px">
-                    <use xlinkHref={`${symbols}#processor`} />
-                </svg>
-            </IconButton>
-        );
-    }, []);
 
     // Update selected connector when connection changes
     React.useEffect(() => {
@@ -72,14 +53,6 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
                     {props.headerTitle ?? "Configure Connection"}
                 </div>
                 <div className={baseStyles.card_header_right_container}>
-                    <InternalsViewerOverlay
-                        isOpen={showInternals}
-                        onClose={() => setShowInternals(false)}
-                        renderAnchor={(p: object) => <div {...p}>{internalsButton}</div>}
-                        side={AnchorSide.OutsideBottom}
-                        align={AnchorAlignment.End}
-                        anchorOffset={16}
-                    />
                     {props.onSkip && (
                         <Button variant={ButtonVariant.Invisible} onClick={props.onSkip}>
                             Skip

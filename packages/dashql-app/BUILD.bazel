@@ -324,6 +324,7 @@ _vite_web_deps = [
     "//:node_modules/react-router-dom",
     "//:node_modules/react-window",
     "//:node_modules/style-mod",
+    "//:node_modules/three",
     "//:node_modules/vega",
     "//:node_modules/vega-embed",
     "//:node_modules/vega-interpreter",
