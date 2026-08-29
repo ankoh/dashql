@@ -3,6 +3,7 @@ import * as THREE from 'three';
 const LINES_PER_PATH = 100;
 const SAMPLES_PER_LINE = 200;
 const BAND_WIDTH = 0.42;
+const FRAME_INTERVAL_MS = 1000 / 30;
 
 function fract(value: number): number {
     return value - Math.floor(value);
@@ -228,6 +229,7 @@ export class ParticleFlow {
     private disposed = false;
     private elapsedTime = 0;
     private isRunning = false;
+    private lastFrameTimestamp: number | null = null;
 
     constructor(private readonly container: HTMLElement) {
         this.renderer = new THREE.WebGLRenderer({
@@ -253,6 +255,8 @@ export class ParticleFlow {
         this.resizeObserver.observe(this.container);
         this.resize();
         document.addEventListener('visibilitychange', this.handleVisibilityChange);
+        window.addEventListener('blur', this.pauseRendering);
+        window.addEventListener('focus', this.resumeRendering);
     }
 
     start(): void {
@@ -261,8 +265,7 @@ export class ParticleFlow {
         }
 
         this.isRunning = true;
-        this.clock.start();
-        this.render();
+        this.resumeRendering();
     }
 
     dispose(): void {
@@ -275,6 +278,8 @@ export class ParticleFlow {
         cancelAnimationFrame(this.animationFrame);
         this.resizeObserver.disconnect();
         document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+        window.removeEventListener('blur', this.pauseRendering);
+        window.removeEventListener('focus', this.resumeRendering);
         this.geometry.dispose();
         this.glowMaterial.dispose();
         this.material.dispose();
@@ -386,17 +391,21 @@ export class ParticleFlow {
         });
     }
 
-    private readonly render = (): void => {
+    private readonly render = (timestamp: number): void => {
+        this.animationFrame = 0;
         if (!this.isRunning) {
             return;
         }
 
-        this.elapsedTime += Math.min(this.clock.getDelta(), 0.05);
-        this.material.uniforms.uTime.value = this.elapsedTime;
-        this.glowMaterial.uniforms.uTime.value = this.elapsedTime;
-        this.renderer.render(this.scene, this.camera);
+        if (this.lastFrameTimestamp == null || timestamp - this.lastFrameTimestamp >= FRAME_INTERVAL_MS - 1) {
+            this.lastFrameTimestamp = timestamp;
+            this.elapsedTime += Math.min(this.clock.getDelta(), 0.05);
+            this.material.uniforms.uTime.value = this.elapsedTime;
+            this.glowMaterial.uniforms.uTime.value = this.elapsedTime;
+            this.renderer.render(this.scene, this.camera);
+        }
 
-        if (!document.hidden) {
+        if (!document.hidden && document.hasFocus()) {
             this.animationFrame = requestAnimationFrame(this.render);
         }
     };
@@ -458,16 +467,27 @@ export class ParticleFlow {
     }
 
     private readonly handleVisibilityChange = (): void => {
-        cancelAnimationFrame(this.animationFrame);
         if (document.hidden) {
-            this.clock.stop();
+            this.pauseRendering();
+        } else {
+            this.resumeRendering();
+        }
+    };
+
+    private readonly pauseRendering = (): void => {
+        cancelAnimationFrame(this.animationFrame);
+        this.animationFrame = 0;
+        this.lastFrameTimestamp = null;
+        this.clock.stop();
+    };
+
+    private readonly resumeRendering = (): void => {
+        if (!this.isRunning || document.hidden || !document.hasFocus() || this.animationFrame !== 0) {
             return;
         }
 
-        if (this.isRunning) {
-            this.clock.start();
-            this.render();
-        }
+        this.clock.start();
+        this.animationFrame = requestAnimationFrame(this.render);
     };
 
 }
