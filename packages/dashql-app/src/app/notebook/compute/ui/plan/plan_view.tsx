@@ -274,9 +274,14 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                 positionRevision={positionRevision}
             >
                 <section className={styles.inspector} aria-label={`${selection?.operator.label ?? 'Operator'} properties`}>
-                    <header className={styles.inspector_header}>
+                    <header
+                        className={styles.inspector_header}
+                        data-single-line={selection?.operator.typeName == null || selection.operator.typeName === selection.operator.label}
+                    >
                         <strong>{selection?.operator.label}</strong>
-                        <span>{selection?.operator.typeName}</span>
+                        {selection?.operator.typeName != null && selection.operator.typeName !== selection.operator.label && (
+                            <span>{selection.operator.typeName}</span>
+                        )}
                     </header>
                     {selection != null && <JsonView value={selection.operator.properties} collapsed={2} shortenTextAfterLength={100} />}
                 </section>

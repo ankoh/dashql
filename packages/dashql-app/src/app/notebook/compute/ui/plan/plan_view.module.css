@@ -132,4 +132,5 @@
     padding: 12px 12px 4px;
     border-bottom: 1px solid var(--border_color_primary);
 }
+.inspector_header[data-single-line="true"] { padding-bottom: 12px; }
 .inspector_header span { color: hsl(210, 10%, 42%); font-size: 0.8rem; }
