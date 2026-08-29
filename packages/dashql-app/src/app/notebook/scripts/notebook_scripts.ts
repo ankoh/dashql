@@ -668,7 +668,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     uncommittedScriptId: state.uncommittedScriptId.toString(),
                     documentRevision: update.editorUpdate?.documentRevision.toString(),
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
-                }, LOG_CTX, true);
+                }, LOG_CTX);
                 update.scriptBuffers?.destroy(update.scriptBuffers);
                 update.scriptCompletion?.buffer.destroy();
                 return clearSemanticUserFocus(state);
@@ -680,7 +680,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     uncommittedScriptId: state.uncommittedScriptId.toString(),
                     documentRevision: update.editorUpdate?.documentRevision.toString(),
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
-                }, LOG_CTX, true);
+                }, LOG_CTX);
                 update.scriptBuffers?.destroy(update.scriptBuffers);
                 update.scriptCompletion?.buffer.destroy();
                 return clearSemanticUserFocus(state);
@@ -701,7 +701,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 previousStateRevision: prevScript.editorUpdate?.stateRevision.toString(),
                 stateRevision: update.editorUpdate?.stateRevision.toString(),
                 cursorOffset: update.editorUpdate?.primaryCursorState?.textOffset?.toString(),
-            }, LOG_CTX, true);
+            }, LOG_CTX);
             let focusUpdate: FocusUpdate | null = null;
             if (projectionChanged) {
                 focusUpdate = FocusUpdate.Clear;
@@ -1781,7 +1781,7 @@ export function compileQuery(
         analysisOutdated: scriptData.analysisOutdated.toString(),
         analysisAvailable: scriptData.editorUpdate?.analysisAvailable.toString(),
         textLength: scriptData.editorSession.getText?.().length.toString(),
-    }, LOG_CTX, true);
+    }, LOG_CTX);
     const compiled = scriptData.editorSession.compileQuery(executionFormattingConfig());
     try {
         const reader = compiled.read();
@@ -1806,7 +1806,7 @@ export function compileQuery(
         logger?.debug('Compiled script for query execution', {
             scriptKey: scriptData.scriptKey.toString(),
             sqlLength: sql.length.toString(),
-        }, LOG_CTX, true);
+        }, LOG_CTX);
         return sql;
     } finally {
         compiled.destroy();

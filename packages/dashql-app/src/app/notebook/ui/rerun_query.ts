@@ -33,7 +33,7 @@ export function runNotebookScript(
         documentRevision: scriptData.editorUpdate?.documentRevision.toString(),
         nativeDocumentRevision: scriptData.editorSession.getDocumentRevision?.().toString(),
         textLength: scriptData.editorSession.getText?.().length.toString(),
-    }, 'notebook_execution', true);
+    }, 'notebook_execution');
     if (scriptData.analysisOutdated) {
         return ensureNotebookScriptAnalyzed(notebookScripts, scriptData.scriptKey, modifyNotebookScripts)
             .then((analyzed) => {
@@ -42,13 +42,13 @@ export function runNotebookScript(
                         notebookId: notebookScripts.notebookId,
                         scriptKey: scriptData.scriptKey.toString(),
                         analysisAvailable: analyzed.editorUpdate?.analysisAvailable.toString(),
-                    }, 'notebook_execution', true);
+                    }, 'notebook_execution');
                     executeNotebookScript(connectionId, analyzed, executeQuery, modifyNotebookScripts, logger);
                 } else {
                     logger?.warn('Notebook execution stopped because analysis returned no script', {
                         notebookId: notebookScripts.notebookId,
                         scriptKey: scriptData.scriptKey.toString(),
-                    }, 'notebook_execution', true);
+                    }, 'notebook_execution');
                 }
             });
     }
@@ -66,7 +66,7 @@ function executeNotebookScript(
     if (queryText.trim().length === 0) {
         logger?.warn('Notebook execution stopped because compiled query is empty', {
             scriptKey: scriptData.scriptKey.toString(),
-        }, 'notebook_execution', true);
+        }, 'notebook_execution');
         return;
     }
     const [queryId, execution] = executeQuery(connectionId, {
@@ -88,6 +88,6 @@ function executeNotebookScript(
         scriptKey: scriptData.scriptKey.toString(),
         queryId: queryId.toString(),
         queryLength: queryText.length.toString(),
-    }, 'notebook_execution', true);
+    }, 'notebook_execution');
     registerNotebookScriptQuery(scriptData, queryId, queryText, execution, modifyNotebookScripts);
 }

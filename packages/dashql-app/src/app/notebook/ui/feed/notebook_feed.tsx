@@ -255,7 +255,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             nativeDocumentRevision: scriptData?.editorSession.getDocumentRevision?.().toString(),
             analysisOutdated: scriptData?.analysisOutdated.toString(),
             analysisAvailable: scriptData?.editorUpdate?.analysisAvailable.toString(),
-        }, 'notebook_feed', true);
+        }, 'notebook_feed');
 
         // The compose editor keeps the draft analyzed as it is typed, so the
         // resolved VISUALIZE query / derived annotations are already present (and
@@ -282,7 +282,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                 scriptKey: scriptKey.toString(),
                 queryId: queryId.toString(),
                 queryLength: queryText.length.toString(),
-            }, 'notebook_feed', true);
+            }, 'notebook_feed');
             registerNotebookScriptQuery(scriptData, queryId, queryText, execution, props.modifyNotebookScripts);
         } else if (execute) {
             logger?.warn("Draft execution stopped before query allocation", {
@@ -290,7 +290,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                 scriptKey: scriptKey.toString(),
                 disconnected: isDisconnected.toString(),
                 queryLength: queryText.length.toString(),
-            }, 'notebook_feed', true);
+            }, 'notebook_feed');
         }
     }, [props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, composeEditorView, logger]);
 
@@ -436,7 +436,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                 logger?.info("Draft Ctrl+Enter received", {
                     notebookId: props.notebookScripts.notebookId,
                     scriptKey: props.notebookScripts.uncommittedScriptId.toString(),
-                }, 'notebook_feed', true);
+                }, 'notebook_feed');
                 event.preventDefault();
                 handleComposeSend();
             },
@@ -503,7 +503,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                 logger?.info("Draft Ctrl+E received; executing draft", {
                     notebookId: props.notebookScripts.notebookId,
                     scriptKey: props.notebookScripts.uncommittedScriptId.toString(),
-                }, 'notebook_feed', true);
+                }, 'notebook_feed');
                 event.preventDefault();
                 event.stopPropagation();
                 handleComposeSend();

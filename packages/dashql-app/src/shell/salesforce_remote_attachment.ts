@@ -332,10 +332,10 @@ export class SalesforceRemoteAttachmentManager {
     }
 
     private logInfo(message: string, keyValues: Record<string, string>): void {
-        this.dependencies.logger?.info(message, keyValues, LOG_CTX, true);
+        this.dependencies.logger?.info(message, keyValues, LOG_CTX);
     }
 
     private logError(message: string, keyValues: Record<string, string>): void {
-        this.dependencies.logger?.error(message, keyValues, LOG_CTX, true);
+        this.dependencies.logger?.error(message, keyValues, LOG_CTX);
     }
 }

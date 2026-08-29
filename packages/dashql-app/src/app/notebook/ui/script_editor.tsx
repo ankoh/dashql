@@ -105,7 +105,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
             editorHadSession: (state.editorSession != null).toString(),
             nativeDocumentRevision: scriptData.editorSession.getDocumentRevision().toString(),
             projectedDocumentRevision: scriptData.editorUpdate?.documentRevision.toString(),
-        }, LOG_CTX, true);
+        }, LOG_CTX);
         // When that happens we have to reset the editor state.
         // It means that someone gave us a new notebook script that requires a state update
         const extensions = createCodeMirrorExtensions();
@@ -128,7 +128,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
                 scriptTextLength: scriptText.length.toString(),
                 editorStateRevision: state.editorUpdate?.stateRevision.toString(),
                 projectedStateRevision: scriptData.editorUpdate?.stateRevision.toString(),
-            }, LOG_CTX, true);
+            }, LOG_CTX);
             changes.push({
                 from: 0,
                 to: view.state.doc.length,
@@ -156,7 +156,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
                     scriptKey: scriptData.scriptKey.toString(),
                     currentCursorOffset: mainSel.head.toString(),
                     nextCursorOffset: clampedOffset.toString(),
-                }, LOG_CTX, true);
+                }, LOG_CTX);
             }
         }
     }
@@ -173,7 +173,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
             documentRevision: update.editorUpdate?.documentRevision.toString(),
             stateRevision: update.editorUpdate?.stateRevision.toString(),
             cursorOffset: update.editorUpdate?.primaryCursorState?.textOffset?.toString(),
-        }, LOG_CTX, true);
+        }, LOG_CTX);
         modifyScripts({
             type: UPDATE_FROM_PROCESSOR,
             value: update,
