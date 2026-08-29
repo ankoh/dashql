@@ -146,12 +146,14 @@ formatter-snapshots:
           - mode: inline
             expected: |-
               select 1;
+
               select 2;
           - mode: compact
             width: 28
             expected: |-
               select 1;
               /* trailing comment that wraps onto another line */
+
               /* description for the next statement */
               select 2;
           - mode: pretty
@@ -159,6 +161,7 @@ formatter-snapshots:
             expected: |-
               select 1;
               /* trailing comment that wraps onto another line */
+
               /* description for the next statement */
               select 2;
         validation:

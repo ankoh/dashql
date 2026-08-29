@@ -1,5 +1,12 @@
 formatter-snapshots:
 
+  - name: coverage_multiple_statements
+    input: select 1; select 2
+    dialects:
+      hyper:
+        validation:
+          setup: ""
+
   - name: coverage_create_table_as
     input: create table if not exists analytics.result as select 1 as value
     dialects:
