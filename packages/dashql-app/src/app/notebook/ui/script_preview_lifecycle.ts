@@ -98,7 +98,7 @@ export function buildUnformattedPreview(instance: core.DashQL, scriptData: Scrip
 
 /// Build the compact formatting config used for both the preview text and the compact diff, so the
 /// diff's target offsets index the exact string the preview renders.
-function compactFormattingConfig(maxWidth: number, debugMode: boolean): core.buffers.formatting.FormattingConfigT {
+export function createCompactFormattingConfig(maxWidth: number, debugMode: boolean): core.buffers.formatting.FormattingConfigT {
     return new core.buffers.formatting.FormattingConfigT(
         core.buffers.formatting.FormattingDialect.HYPER,
         core.buffers.formatting.FormattingMode.COMPACT,
@@ -159,8 +159,8 @@ function computeCompactDiff(
         priorCatalog = instance.createCatalog();
         priorRaw = instance.createScript(priorCatalog);
         priorRaw.insertTextAt(0, priorText);
-        if (priorRaw.getUnformattableNodes(compactFormattingConfig(maxWidth, debugMode), true).length > 0) return null;
-        priorFormatted = priorRaw.format(compactFormattingConfig(maxWidth, debugMode), null, true);
+        if (priorRaw.getUnformattableNodes(createCompactFormattingConfig(maxWidth, debugMode), true).length > 0) return null;
+        priorFormatted = priorRaw.format(createCompactFormattingConfig(maxWidth, debugMode), null, true);
         priorSession = instance.createScriptSession(priorCatalog);
         priorSession.replaceText(0n, priorFormatted.toString());
         priorSession.analyze();
@@ -191,7 +191,7 @@ function formatPreviewScript(
     debugMode: boolean,
     logger: Logger,
 ): PreviewSnapshot | null {
-    const formattingConfig = compactFormattingConfig(maxWidth, debugMode);
+    const formattingConfig = createCompactFormattingConfig(maxWidth, debugMode);
     let formattedScript: core.DashQLScript;
     try {
         if (!sourceSession.isFullyFormattable(formattingConfig, true)) {

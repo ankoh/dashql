@@ -276,6 +276,8 @@ describe('ScriptDetails', () => {
         act(() => prettyButton.click());
         expect(mockState.formatScript).toHaveBeenLastCalledWith(expect.objectContaining({
             mode: dashql.buffers.formatting.FormattingMode.PRETTY,
+            maxWidth: 80,
+            indentationWidth: 4,
         }), null);
 
         act(() => formatButton.click());
@@ -285,6 +287,7 @@ describe('ScriptDetails', () => {
         act(() => compactButton.click());
         expect(mockState.formatScript).toHaveBeenLastCalledWith(expect.objectContaining({
             mode: dashql.buffers.formatting.FormattingMode.COMPACT,
+            indentationWidth: 2,
         }), null);
     });
 

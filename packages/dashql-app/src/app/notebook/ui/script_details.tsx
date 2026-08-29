@@ -183,12 +183,13 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         }
     }, [scriptData?.scriptSession, scriptData?.editorUpdate?.stateRevision]);
 
+    const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const {
         formatPending,
         format: handleFormat,
         acceptFormat: handleFormatAccept,
         cancelFormat: handleFormatCancel,
-    } = useScriptFormatPreview(editorView, scriptData);
+    } = useScriptFormatPreview(editorView, scriptData, formattingDebugMode);
 
     // A staged agent rewrite is shown as an in-place diff on the editable editor here (the diff
     // decorations + ⏎/⎋ keymap come from the editor's DashQL extensions). Surface visible controls
