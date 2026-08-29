@@ -10,24 +10,12 @@ import * as styles from './release_bundle.module.css';
 import { Result, RESULT_OK } from '../../utils/index.js';
 
 interface ReleaseBundleProps {
-    architecture: string | null;
     name: string;
     channel: ReleaseChannel;
     pubDate: Date;
     url: URL;
     version: string;
 }
-
-export function getMacArchitectureLabel(targets: string[]): string | null {
-    if (targets.includes('darwin-aarch64')) {
-        return 'Apple Silicon';
-    }
-    if (targets.includes('darwin-x86_64')) {
-        return 'Intel';
-    }
-    return null;
-}
-
 const ReleaseBundle: React.FC<ReleaseBundleProps> = (props: ReleaseBundleProps) => {
     const logger = useLogger();
     return (
@@ -50,7 +38,7 @@ const ReleaseBundle: React.FC<ReleaseBundleProps> = (props: ReleaseBundleProps) 
                     link.href = props.url.toString();
                     link.download = props.name;
                     link.click();
-                }}>{props.architecture == null ? 'Download' : `Download for ${props.architecture}`}</Button>
+                }}>Download</Button>
             </div>
         </React.Fragment>
     );
@@ -73,7 +61,6 @@ export const ReleaseBundles: React.FC<ReleaseBundlesProps> = (props: ReleaseBund
                 for (const bundle of manifest.value.bundles) {
                     if (bundle.bundle_type == "Dmg") {
                         macBundles.push({
-                            architecture: getMacArchitectureLabel(bundle.targets),
                             name: bundle.name,
                             channel: channel,
                             pubDate: manifest.value.pub_date,
