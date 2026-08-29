@@ -83,6 +83,22 @@ formatter-snapshots:
             expected: |-
               create temporary view result as select 1;
 
+  - name: coverage_create_or_replace_temporary_view
+    input: |-
+      create or replace temp view result as select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create or replace temporary view result as select 1;
+          - mode: compact
+            expected: |-
+              create or replace temporary view result as select 1;
+          - mode: pretty
+            expected: |-
+              create or replace temporary view result as select 1;
+
   - name: coverage_create_function
     input: |-
       create function analytics.render(value int, label varchar) returns varchar

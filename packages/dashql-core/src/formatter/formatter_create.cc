@@ -123,12 +123,16 @@ FmtReg Formatter::FormatCreateAs(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatView(const buffers::parser::Node& node) {
-    auto [name, columns, temp, statement] =
-        GetAttributes<AttributeKey::SQL_VIEW_NAME, AttributeKey::SQL_VIEW_COLUMNS, AttributeKey::SQL_VIEW_TEMP,
+    auto [name, columns, or_replace, temp, statement] =
+        GetAttributes<AttributeKey::SQL_VIEW_NAME, AttributeKey::SQL_VIEW_COLUMNS,
+                      AttributeKey::SQL_VIEW_OR_REPLACE, AttributeKey::SQL_VIEW_TEMP,
                       AttributeKey::SQL_VIEW_STATEMENT>(node);
     if (!name || !statement) return FormatUnimplemented(node);
 
     std::vector<FmtReg> parts{fmt.Text("create ")};
+    if (or_replace) {
+        parts.push_back(fmt.Text("or replace "));
+    }
     if (temp) {
         parts.push_back(Reg(*temp));
         parts.push_back(fmt.Text(" "));
