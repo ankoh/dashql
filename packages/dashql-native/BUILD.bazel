@@ -49,9 +49,7 @@ vitest_bin.vitest_test(
     args = ["run", "--config", "vitest.config.ts"],
     chdir = "packages/dashql-native",
     data = [
-        ":compile_typecheck",
         ":srcs",
-        "//:node_modules/electron-builder",
         "tsconfig.bazel.json",
         "vitest.config.ts",
     ],
