@@ -27,6 +27,7 @@ export const BEGIN_NOTEBOOK_SETUP = Symbol("BEGIN_NOTEBOOK_SETUP");
 export const CANCEL_NOTEBOOK_SETUP = Symbol("CANCEL_NOTEBOOK_SETUP");
 export const SKIP_NOTEBOOK_SETUP = Symbol("SKIP_NOTEBOOK_SETUP");
 export const OPEN_LINK_NOTEBOOK = Symbol("OPEN_LINK_NOTEBOOK");
+export const OPEN_NOTEBOOK = Symbol("OPEN_NOTEBOOK");
 
 export type RouteTarget =
     VariantKind<typeof NOTEBOOK_PATH, string | null>
@@ -40,6 +41,7 @@ export type RouteTarget =
     | VariantKind<typeof CANCEL_NOTEBOOK_SETUP, null>
     | VariantKind<typeof SKIP_NOTEBOOK_SETUP, null>
     | VariantKind<typeof OPEN_LINK_NOTEBOOK, string>
+    | VariantKind<typeof OPEN_NOTEBOOK, string>
     ;
 
 export function useRouteContext() {
@@ -108,6 +110,15 @@ export function useRouterNavigate() {
                     }
                 });
                 break;
+            case OPEN_NOTEBOOK:
+                navigate(location.pathname, {
+                    state: {
+                        ...context,
+                        notebookId: route.value,
+                        notebookSetupStatus: NotebookSetupStatus.OPENING,
+                    }
+                });
+                break;
             case CHANGE_NOTEBOOK:
                 navigate("/", {
                     state: {
@@ -144,18 +155,15 @@ export function useRouterNavigate() {
                 });
                 break;
             case OPEN_LINK_NOTEBOOK:
-                // A notebook arrived via a shared link (URL / deep-link) and has been restored into
-                // the registries. Land directly on that notebook's connection setup screen: finish
-                // app setup AND select the notebook with CONFIGURING in a single atomic state, so it
-                // doesn't depend on the (possibly stale) prior route context the way chained
-                // FINISH_SETUP + BEGIN_NOTEBOOK_SETUP navigations would. The notebook selector renders
-                // the connection config card whenever notebookSetupStatus is CONFIGURING.
+                // A notebook arrived via a shared link and has been restored into the registries.
+                // Start the common opening flow atomically so embedded connections can initialize
+                // without briefly showing the connection setup screen.
                 navigate(location.pathname, {
                     state: {
                         appLoadingStatus: AppLoadingStatus.SETUP_DONE,
                         confirmedFinishedSetup: false,
                         notebookId: route.value,
-                        notebookSetupStatus: NotebookSetupStatus.CONFIGURING,
+                        notebookSetupStatus: NotebookSetupStatus.OPENING,
                     }
                 });
                 break;

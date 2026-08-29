@@ -29,6 +29,12 @@ function SetupConsumer(props: {
     return null;
 }
 
+function SetupCapture(props: { onSetup: (setup: ReturnType<typeof useEmbeddedDatabaseSetup>) => void }) {
+    const setup = useEmbeddedDatabaseSetup();
+    React.useEffect(() => props.onSetup(setup), [props.onSetup, setup]);
+    return null;
+}
+
 describe('EmbeddedDatabaseProvider', () => {
     let container: HTMLDivElement;
     let root: Root;
@@ -108,6 +114,28 @@ describe('EmbeddedDatabaseProvider', () => {
             getGlobalLogger(),
             onSetupProgress,
         );
+    });
+
+    it('retries after initialization fails', async () => {
+        const failure = new Error('initialization failed');
+        mockState.setupWebHyperDB
+            .mockRejectedValueOnce(failure)
+            .mockResolvedValueOnce(mockState.hyperDb);
+        let setup: ReturnType<typeof useEmbeddedDatabaseSetup> | null = null;
+
+        await act(async () => {
+            root.render(
+                <LoggerProvider>
+                    <EmbeddedDatabaseProvider>
+                        <SetupCapture onSetup={(value) => { setup = value; }} />
+                    </EmbeddedDatabaseProvider>
+                </LoggerProvider>
+            );
+        });
+
+        await expect(setup!('first-attempt')).rejects.toBe(failure);
+        await expect(setup!('retry')).resolves.toBe(mockState.hyperDb);
+        expect(mockState.setupWebHyperDB).toHaveBeenCalledTimes(2);
     });
 
 });

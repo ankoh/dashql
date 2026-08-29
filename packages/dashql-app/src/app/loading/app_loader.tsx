@@ -238,7 +238,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
     // Setup done but no notebook selected, or notebook setup in progress? Show notebook selector
     if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE &&
-        (routeContext.notebookId === null || routeContext.notebookSetupStatus === NotebookSetupStatus.CONFIGURING)) {
+        (routeContext.notebookId === null || routeContext.notebookSetupStatus !== NotebookSetupStatus.NONE)) {
         return <NotebookSelectorPage
             connectionRegistry={connReg}
             notebookScriptsRegistry={notebookScriptsRegistry}

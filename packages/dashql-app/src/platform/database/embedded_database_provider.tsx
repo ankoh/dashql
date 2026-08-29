@@ -31,7 +31,10 @@ export const EmbeddedDatabaseProvider: React.FC<Props> = (props: Props) => {
             return await setupWebHyperDB(context, logger, onSetupProgress);
         };
 
-        instantiation.current = instantiate();
+        instantiation.current = instantiate().catch(error => {
+            instantiation.current = null;
+            throw error;
+        });
         return await instantiation.current;
     }, [logger]);
 
