@@ -24,6 +24,7 @@ using EditorDiagnostic = buffers::editor::EditorDiagnosticT;
 using EditorProcessingStatistics = buffers::editor::EditorProcessingStatisticsT;
 using EditorScriptAnnotations = buffers::editor::EditorScriptAnnotationsT;
 using EditorSemanticSpan = buffers::editor::EditorSemanticSpanT;
+using EditorStatement = buffers::editor::EditorStatementT;
 using EditorStatementDescription = buffers::editor::EditorStatementDescriptionT;
 using EditorSyntaxSpan = buffers::editor::EditorSyntaxSpanT;
 using EditorTableDefinition = buffers::editor::EditorTableDefinitionT;
@@ -357,13 +358,18 @@ void ScriptSession::ProjectEditorState(EditorUpdate& update) {
     for (size_t statement_id = 0; statement_id < parsed->statements.size(); ++statement_id) {
         const auto& statement = parsed->statements[statement_id];
         const auto& metadata = descriptions[statement_id];
-        if (metadata.description_count == 0) continue;
-        auto description = std::make_unique<EditorStatementDescription>();
         auto projected_span = ProjectTextSpan(metadata.statement_span);
         if (!projected_span) continue;
+        auto projected_statement = std::make_unique<EditorStatement>();
+        projected_statement->statement_id = static_cast<uint32_t>(statement_id);
+        projected_statement->statement_type = statement.type;
+        projected_statement->text_span = std::move(projected_span);
+        annotations->statements.push_back(std::move(projected_statement));
+        if (metadata.description_count == 0) continue;
+        auto description = std::make_unique<EditorStatementDescription>();
         description->statement_id = static_cast<uint32_t>(statement_id);
         description->statement_type = statement.type;
-        description->text_span = std::move(projected_span);
+        description->text_span = ProjectTextSpan(metadata.statement_span);
         annotations->statement_descriptions.push_back(std::move(description));
     }
     update.script_annotations = std::move(annotations);

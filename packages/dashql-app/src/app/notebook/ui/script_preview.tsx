@@ -36,7 +36,8 @@ export interface ScriptPreviewProps {
     /// Story controls expand inline in the feed and open Details from the fixed overview cards.
     storyActivation?: 'toggle' | 'open';
     onStoryActivate?: () => void;
-    /// Show collapsed statement controls for descriptions. The overview keeps its SQL preview compact.
+    /// Enable story controls. Toggle previews show fold arrows for every statement; the overview
+    /// retains description-only activation controls.
     showStoryControls?: boolean;
     /// The feed always shows line numbers (and story fold arrows); compact grid cards do not.
     showStoryGutter?: boolean;
@@ -78,8 +79,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
         ...createStoryDecorations({
             activation: storyActivation,
             onActivate: () => onStoryActivate?.(),
-            // The normal feed owns its line-number sidebar even for plain SQL. The fold gutter
-            // appears only when a documented statement has a story control to collapse.
+            // The normal feed owns its line-number sidebar and fold gutter for every statement.
             showGutter: showStoryGutter,
         }).extensions,
     ], [onStoryActivate, showStoryGutter, storyActivation]);

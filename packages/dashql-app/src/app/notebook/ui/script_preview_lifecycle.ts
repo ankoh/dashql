@@ -352,9 +352,9 @@ export function useApplyPreviewSnapshot(
             DashQLScannerDecorationUpdateEffect.of(previewSnapshot.editorUpdate),
             DashQLDiffDecorationUpdateEffect.of(previewSnapshot.diff),
         ];
-        // Width changes refresh the preview snapshot, but they must not reset a statement the user
-        // already expanded. Only replace story decorations when the source projection changes.
-        const descriptionUpdate = descriptionPreview?.editorUpdate ?? null;
+        // Width changes refresh compact statement offsets. Only replace story decorations when the
+        // projected analysis changes, preserving user fold state across unrelated renders.
+        const descriptionUpdate = previewSnapshot.editorUpdate;
         const appliedDescription = appliedDescriptionRef.current;
         if (appliedDescription?.view !== view || appliedDescription.update !== descriptionUpdate) {
             effects.push(DashQLStoryUpdateEffect.of(descriptionUpdate));

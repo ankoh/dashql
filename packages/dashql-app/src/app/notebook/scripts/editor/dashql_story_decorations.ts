@@ -40,12 +40,14 @@ export function hasStatementDescriptions(update: core.buffers.editor.EditorUpdat
     return (update?.scriptAnnotations?.statementDescriptions.length ?? 0) > 0;
 }
 
-function buildStoryModel(update: core.buffers.editor.EditorUpdateT | null): StoryModel | null {
+function buildStoryModel(update: core.buffers.editor.EditorUpdateT | null, activation: StoryActivation): StoryModel | null {
     if (update == null || update.diagnostics.some(d => d.source !== core.buffers.editor.EditorDiagnosticSource.ANALYZER)) {
         return null;
     }
     const statements: StoryStatement[] = [];
-    for (const current of update.scriptAnnotations?.statementDescriptions ?? []) {
+    const annotations = update.scriptAnnotations;
+    const source = activation === 'toggle' ? annotations?.statements : annotations?.statementDescriptions;
+    for (const current of source ?? []) {
         const span = current.textSpan;
         if (span == null) continue;
         const from = Number(span.offset);
@@ -170,8 +172,18 @@ export function createStoryDecorations(config: StoryConfig): { extensions: Exten
             let expanded = value.expanded;
             for (const effect of transaction.effects) {
                 if (effect.is(DashQLStoryUpdateEffect)) {
-                    model = buildStoryModel(effect.value);
-                    expanded = new Set();
+                    const nextModel = buildStoryModel(effect.value, config.activation);
+                    if (config.activation === 'toggle') {
+                        const collapsed = new Set(model?.statements
+                            .filter(statement => !expanded.has(statement.id))
+                            .map(statement => statement.id));
+                        expanded = new Set(nextModel?.statements
+                            .filter(statement => !collapsed.has(statement.id))
+                            .map(statement => statement.id));
+                    } else {
+                        expanded = new Set();
+                    }
+                    model = nextModel;
                 } else if (effect.is(DashQLStoryToggleStatementEffect) && model?.statements.some(s => s.id === effect.value)) {
                     const nextExpanded = new Set(expanded);
                     nextExpanded.has(effect.value) ? nextExpanded.delete(effect.value) : nextExpanded.add(effect.value);

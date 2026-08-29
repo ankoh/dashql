@@ -152,11 +152,18 @@ table EditorStatementDescription {
     text_span: EditorTextSpan;
 }
 
+table EditorStatement {
+    statement_id: uint32;
+    statement_type: dashql.buffers.parser.StatementType;
+    text_span: EditorTextSpan;
+}
+
 table EditorScriptAnnotations {
     table_definitions: [EditorTableDefinition];
     has_visualization_compilation: bool;
     statement_descriptions: [EditorStatementDescription];
     referenced_table_names: [string];
+    statements: [EditorStatement];
 }
 
 /// Plain processing values copied from ScriptStatistics.

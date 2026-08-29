@@ -457,6 +457,11 @@ TEST(ScriptSessionTest, ProjectsScriptAnnotationsAndPlainProcessingStatistics) {
     ASSERT_EQ(update.script_annotations->referenced_table_names.size(), 1u);
     EXPECT_EQ(update.script_annotations->referenced_table_names[0], "result");
     EXPECT_FALSE(update.script_annotations->has_visualization_compilation);
+    ASSERT_EQ(update.script_annotations->statements.size(), 2u);
+    EXPECT_EQ(update.script_annotations->statements[0]->statement_id, 0u);
+    EXPECT_EQ(update.script_annotations->statements[0]->statement_type, buffers::parser::StatementType::CREATE_TABLE);
+    EXPECT_EQ(update.script_annotations->statements[1]->statement_id, 1u);
+    EXPECT_EQ(update.script_annotations->statements[1]->statement_type, buffers::parser::StatementType::SELECT);
     ASSERT_NE(update.processing_statistics, nullptr);
     EXPECT_GT(update.processing_statistics->rope_bytes, 0u);
     EXPECT_EQ(update.processing_statistics->scanner_input_bytes, text.size());
@@ -474,6 +479,10 @@ TEST(ScriptSessionTest, ProjectsStatementDescriptionsAsUtf16) {
     auto update = Analyze(session, "-- \xF0\x9F\x98\x80 summary\nselect 1;");
 
     ASSERT_NE(update.script_annotations, nullptr);
+    ASSERT_EQ(update.script_annotations->statements.size(), 1u);
+    ASSERT_NE(update.script_annotations->statements[0]->text_span, nullptr);
+    EXPECT_EQ(update.script_annotations->statements[0]->text_span->offset(), 14u);
+    EXPECT_EQ(update.script_annotations->statements[0]->text_span->length(), 8u);
     ASSERT_EQ(update.script_annotations->statement_descriptions.size(), 1u);
     auto& description = update.script_annotations->statement_descriptions[0];
     EXPECT_EQ(description->statement_id, 0u);
