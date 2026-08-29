@@ -189,10 +189,10 @@ table EditorEvent {
     origin: EditorEventOrigin;
     intent: EditorEventIntent;
     action: EditorEventAction;
-    ensure_analysis: bool;
+    analyze: bool;
 }
 
-/// The state observed after applying an EditorEvent or another EditorSession operation.
+/// The state observed after applying an EditorEvent or another ScriptSession operation.
 table EditorUpdate {
     status: EditorUpdateStatus;
     status_message: string;

@@ -212,7 +212,7 @@ TEST(ApiTest, FailedAsyncCatalogAnalysisDoesNotBlockScriptSessions) {
     ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
     auto replaced = session.ReplaceText(0, "select 1");
     EXPECT_EQ(replaced.status, buffers::editor::EditorUpdateStatus::OK);
-    auto analyzed = session.EnsureSynchronousAnalysis();
+    auto analyzed = session.Analyze();
     EXPECT_EQ(analyzed.status, buffers::editor::EditorUpdateStatus::OK);
     EXPECT_TRUE(analyzed.analysis_available);
 

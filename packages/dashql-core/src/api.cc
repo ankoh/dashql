@@ -519,8 +519,8 @@ extern "C" void dashql_script_session_set_primary_cursor(FFIResult* result, Scri
     packEditorUpdate(result, session->SetPrimaryCursor(expected_document_revision, offset));
 }
 
-extern "C" void dashql_script_session_ensure_analysis(FFIResult* result, ScriptSession* session) {
-    packEditorUpdate(result, session->EnsureSynchronousAnalysis());
+extern "C" void dashql_script_session_analyze(FFIResult* result, ScriptSession* session) {
+    packEditorUpdate(result, session->Analyze());
 }
 
 extern "C" void dashql_script_session_complete_at_cursor(FFIResult* result, ScriptSession* session,

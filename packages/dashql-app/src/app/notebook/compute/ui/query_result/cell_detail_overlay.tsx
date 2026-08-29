@@ -54,7 +54,7 @@ function projectSqlText(
     const session = core.createScriptSession(catalog);
     try {
         session.replaceText(0n, text);
-        return session.ensureAnalysis();
+        return session.analyze();
     } finally {
         session.destroy();
     }

@@ -20,7 +20,7 @@ CORE_WASM_EXPORTS = [
     "'_dashql_script_session_replace_text'",
     "'_dashql_script_session_apply'",
     "'_dashql_script_session_set_primary_cursor'",
-    "'_dashql_script_session_ensure_analysis'",
+    "'_dashql_script_session_analyze'",
     "'_dashql_script_session_complete_at_cursor'",
     "'_dashql_script_session_compile_query'",
     "'_dashql_script_session_format'",

@@ -30,7 +30,7 @@ describe('scanner decorations', () => {
         script.analyze();
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, text);
-        const update = session.ensureAnalysis();
+        const update = session.analyze();
         const state = EditorState.create({
             doc: text,
             extensions: syntaxHighlighting(HighlightStyle.define([{ tag: commentTag, class: 'comment' }])),
@@ -59,7 +59,7 @@ describe('scanner decorations', () => {
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, text);
-        const update = session.ensureAnalysis();
+        const update = session.analyze();
         const state = EditorState.create({
             doc: text,
             extensions: syntaxHighlighting(HighlightStyle.define([
@@ -93,7 +93,7 @@ describe('scanner decorations', () => {
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, text);
-        const update = session.ensureAnalysis();
+        const update = session.analyze();
         const view = new EditorView({
             state: EditorState.create({
                 doc: text,

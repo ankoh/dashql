@@ -63,7 +63,7 @@ class ScriptSession {
     /// Move the primary cursor without changing text when the expected document revision matches.
     EditorUpdate SetPrimaryCursor(uint64_t expected_document_revision, uint64_t offset);
     /// Bring parsing and analysis up to date with both the document and catalog, then project an update.
-    EditorUpdate EnsureSynchronousAnalysis();
+    EditorUpdate Analyze();
     /// Compute completion candidates and pack them for embedding in the caller's active builder.
     flatbuffers::Offset<buffers::completion::Completion> PackCompletion(flatbuffers::FlatBufferBuilder& builder,
                                                                          size_t limit);
@@ -110,7 +110,7 @@ class ScriptSession {
     /// Populate all editor-facing projections that depend on a current analyzed script.
     void ProjectEditorState(EditorUpdate& update);
     /// Refresh analysis when its document or catalog revision is stale and record the outcome in `update`.
-    bool EnsureAnalysis(EditorUpdate& update);
+    bool Analyze(EditorUpdate& update);
 };
 
 }  // namespace dashql

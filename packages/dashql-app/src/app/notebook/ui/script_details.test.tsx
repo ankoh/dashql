@@ -80,7 +80,7 @@ function makeScriptData(scriptKey: number, text: string, fileName: string) {
                 }),
                 destroy: () => { },
             }),
-            ensureAnalysis: () => { },
+            analyze: () => { },
             format: mockState.formatScript,
             isFullyFormattable: () => mockState.isFormattable,
             getParsed: () => null,

@@ -55,7 +55,7 @@ template <typename T> const T* ReadBuffer(const std::vector<uint8_t>& data) {
 ScriptSession::EditorUpdate Analyze(ScriptSession& session, std::string_view text) {
     ScriptSession::EditorEvent event;
     event.expected_document_revision = session.GetDocumentRevision();
-    event.ensure_analysis = true;
+    event.analyze = true;
     event.changes.push_back(Change(0, session.GetText().size(), text));
     return session.Apply(event);
 }
@@ -199,7 +199,7 @@ TEST(ScriptSessionTest, ProjectsCompletionAndDiffAsUtf16) {
     ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
     ASSERT_EQ(session.ReplaceText(0, "-- \xF0\x9F\x98\x80\ns").status, EditorUpdateStatus::OK);
     ASSERT_EQ(session.SetPrimaryCursor(1, 7).status, EditorUpdateStatus::OK);
-    ASSERT_EQ(session.EnsureSynchronousAnalysis().status, EditorUpdateStatus::OK);
+    ASSERT_EQ(session.Analyze().status, EditorUpdateStatus::OK);
 
     flatbuffers::FlatBufferBuilder completion_builder;
     completion_builder.Finish(session.PackCompletion(completion_builder, 10));
@@ -224,14 +224,14 @@ TEST(ScriptSessionTest, ProjectsCompletionAndDiffAsUtf16) {
     EXPECT_EQ(target_span->offset(), 6u);
 }
 
-TEST(ScriptSessionTest, EnsuresSynchronousAnalysisAtCatalogRevision) {
+TEST(ScriptSessionTest, AnalyzesAtCatalogRevision) {
     Catalog catalog;
     ScriptSession session{catalog};
     ASSERT_EQ(session.ReplaceText(0, "create table items (id int); select * from items;").status,
               EditorUpdateStatus::OK);
     EXPECT_FALSE(catalog.Contains(session.GetCatalogEntryId()));
 
-    auto update = session.EnsureSynchronousAnalysis();
+    auto update = session.Analyze();
     EXPECT_EQ(update.status, EditorUpdateStatus::OK);
     EXPECT_TRUE(update.analysis_updated);
     EXPECT_TRUE(update.analysis_available);
@@ -240,12 +240,12 @@ TEST(ScriptSessionTest, EnsuresSynchronousAnalysisAtCatalogRevision) {
     EXPECT_EQ(update.catalog_revision, catalog.GetVersion());
     EXPECT_EQ(update.state_revision, 2);
 
-    auto no_op = session.EnsureSynchronousAnalysis();
+    auto no_op = session.Analyze();
     EXPECT_FALSE(no_op.analysis_updated);
     EXPECT_EQ(no_op.state_revision, 2);
 
     catalog.Clear();
-    auto catalog_refresh = session.EnsureSynchronousAnalysis();
+    auto catalog_refresh = session.Analyze();
     EXPECT_TRUE(catalog_refresh.analysis_updated);
     EXPECT_TRUE(catalog_refresh.analysis_available);
     EXPECT_EQ(catalog_refresh.catalog_revision, catalog.GetVersion());
@@ -294,7 +294,7 @@ TEST(ScriptSessionTest, EditCanSynchronouslyAnalyzeAndPlaceCursor) {
 
     ScriptSession::EditorEvent event;
     event.expected_document_revision = 0;
-    event.ensure_analysis = true;
+    event.analyze = true;
     event.changes.push_back(Change(0, 0, "select 1"));
     event.primary_selection = std::make_unique<ScriptSession::EditorSelection>();
     event.primary_selection->anchor = 8;
@@ -510,7 +510,7 @@ TEST(ScriptSessionTest, ProjectsIncrementallyTypedWithPrefixAsUtf16) {
     for (std::string_view character : {"w", "i", "t"}) {
         ScriptSession::EditorEvent event;
         event.expected_document_revision = session.GetDocumentRevision();
-        event.ensure_analysis = true;
+        event.analyze = true;
         const auto offset = session.GetText().size();
         event.changes.push_back(Change(offset, offset, character));
         event.primary_selection = std::make_unique<ScriptSession::EditorSelection>();
@@ -595,7 +595,7 @@ TEST(ScriptSessionTest, CAbiOwnsSessionAndDetachedUpdateBuffers) {
         dashql_delete_owner(cursor_result.owner_ptr, cursor_result.owner_deleter);
 
         FFIResult analysis_result;
-        dashql_script_session_ensure_analysis(&analysis_result, session);
+        dashql_script_session_analyze(&analysis_result, session);
         update = flatbuffers::GetRoot<buffers::editor::EditorUpdate>(analysis_result.data_ptr);
         EXPECT_EQ(update->status(), EditorUpdateStatus::OK);
         EXPECT_TRUE(update->analysis_available());
@@ -638,7 +638,7 @@ TEST(ScriptSessionTest, CompletionApiMatchesNormalScript) {
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
     dashql_script_session_set_primary_cursor(&update_result, session, 1, cursor_offset);
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
-    dashql_script_session_ensure_analysis(&update_result, session);
+    dashql_script_session_analyze(&update_result, session);
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
 
     FFIResult expected_result;
@@ -661,7 +661,7 @@ TEST(ScriptSessionTest, CompatibilityQueryFormattingAndDiffApis) {
     FFIResult update_result;
     dashql_script_session_replace_text(&update_result, session, 0, CopyText(source_text), source_text.size());
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
-    dashql_script_session_ensure_analysis(&update_result, session);
+    dashql_script_session_analyze(&update_result, session);
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
 
     constexpr auto dialect = static_cast<size_t>(buffers::formatting::FormattingDialect::HYPER);
@@ -709,7 +709,7 @@ TEST(ScriptSessionTest, CatalogLoadAndDropUseSessionOwnedScriptAndRank) {
     FFIResult update_result;
     dashql_script_session_replace_text(&update_result, session, 0, CopyText(text), text.size());
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
-    dashql_script_session_ensure_analysis(&update_result, session);
+    dashql_script_session_analyze(&update_result, session);
     dashql_delete_owner(update_result.owner_ptr, update_result.owner_deleter);
 
     dashql_script_session_load_into_catalog(session, 17);

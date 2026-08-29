@@ -164,7 +164,7 @@ extern "C" void dashql_script_session_apply(FFIResult* result, dashql::ScriptSes
 extern "C" void dashql_script_session_set_primary_cursor(FFIResult* result, dashql::ScriptSession* session,
                                                           uint64_t expected_document_revision, uint64_t offset);
 /// Analyze and publish the session script synchronously, returning an owned EditorUpdate FlatBuffer.
-extern "C" void dashql_script_session_ensure_analysis(FFIResult* result, dashql::ScriptSession* session);
+extern "C" void dashql_script_session_analyze(FFIResult* result, dashql::ScriptSession* session);
 extern "C" void dashql_script_session_complete_at_cursor(FFIResult* result,
                                                            dashql::ScriptSession* session, size_t limit);
 /// Compile the session script into an executable query FlatBuffer.

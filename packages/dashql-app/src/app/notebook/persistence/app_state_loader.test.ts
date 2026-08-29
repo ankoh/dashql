@@ -92,7 +92,7 @@ describe('restoreAppState', () => {
                         return { status: 0 };
                     }),
                     getText: vi.fn(() => text),
-                    ensureAnalysis: vi.fn(),
+                    analyze: vi.fn(),
                     getParsed: vi.fn(() => null),
                     getAnalyzed: vi.fn(() => null),
                     getStatistics: vi.fn(() => null),
@@ -702,7 +702,7 @@ describe('restoreAppState', () => {
         for (const scriptData of Object.values(notebookScripts.scripts)) {
             expect(scriptData.analysisOutdated).toBe(true);
             expect(scriptData.editorUpdate).toBeNull();
-            expect(scriptData.scriptSession.ensureAnalysis).not.toHaveBeenCalled();
+            expect(scriptData.scriptSession.analyze).not.toHaveBeenCalled();
         }
     });
 
@@ -737,7 +737,7 @@ describe('restoreAppState', () => {
         const scripts = result.notebookScripts.get(MULTI_PAGE_ID)!;
         for (const scriptData of Object.values(scripts.scripts)) {
             expect(scriptData.analysisOutdated).toBe(true);
-            expect(scriptData.scriptSession.ensureAnalysis).not.toHaveBeenCalled();
+            expect(scriptData.scriptSession.analyze).not.toHaveBeenCalled();
         }
     });
 

@@ -45,7 +45,7 @@ export interface EmscriptenModule {
     _dashql_script_session_replace_text: (result: number, ptr: number, expectedDocumentRevision: bigint, text: number, textLength: number) => void;
     _dashql_script_session_apply: (result: number, ptr: number, event: number, eventLength: number) => void;
     _dashql_script_session_set_primary_cursor: (result: number, ptr: number, expectedDocumentRevision: bigint, offset: bigint) => void;
-    _dashql_script_session_ensure_analysis: (result: number, ptr: number) => void;
+    _dashql_script_session_analyze: (result: number, ptr: number) => void;
     _dashql_script_session_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
     _dashql_script_session_compile_query: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, allowExtensions: boolean, parseIfOutdated: boolean) => void;
     _dashql_script_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean, catalog: number) => void;
@@ -132,7 +132,7 @@ interface DashQLModuleExports {
     dashql_script_session_replace_text: (result: number, ptr: number, expectedDocumentRevision: bigint, text: number, textLength: number) => void;
     dashql_script_session_apply: (result: number, ptr: number, event: number, eventLength: number) => void;
     dashql_script_session_set_primary_cursor: (result: number, ptr: number, expectedDocumentRevision: bigint, offset: bigint) => void;
-    dashql_script_session_ensure_analysis: (result: number, ptr: number) => void;
+    dashql_script_session_analyze: (result: number, ptr: number) => void;
     dashql_script_session_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
     dashql_script_session_compile_query: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, allowExtensions: boolean, parseIfOutdated: boolean) => void;
     dashql_script_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean, catalog: number) => void;
@@ -318,7 +318,7 @@ export class DashQL {
             dashql_script_session_replace_text: module._dashql_script_session_replace_text,
             dashql_script_session_apply: module._dashql_script_session_apply,
             dashql_script_session_set_primary_cursor: module._dashql_script_session_set_primary_cursor,
-            dashql_script_session_ensure_analysis: module._dashql_script_session_ensure_analysis,
+            dashql_script_session_analyze: module._dashql_script_session_analyze,
             dashql_script_session_complete_at_cursor: module._dashql_script_session_complete_at_cursor,
             dashql_script_session_compile_query: module._dashql_script_session_compile_query,
             dashql_script_session_format: module._dashql_script_session_format,
@@ -1066,10 +1066,10 @@ export class DashQLScriptSession {
         );
     }
 
-    public ensureAnalysis(): buffers.editor.EditorUpdateT {
+    public analyze(): buffers.editor.EditorUpdateT {
         const sessionPtr = this.ptr.assertNotNull();
         return this.readUpdate((resultPtr) =>
-            this.ptr.api.instanceExports.dashql_script_session_ensure_analysis(resultPtr, sessionPtr)
+            this.ptr.api.instanceExports.dashql_script_session_analyze(resultPtr, sessionPtr)
         );
     }
 
