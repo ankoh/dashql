@@ -1,286 +1,294 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import JSZip from 'jszip';
-import { importNotebookFromZip } from './notebook_import.js';
-import { type StorageBackend, type NotebookData, StorageBackendType } from './storage_backend.js';
-import { STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
 
-// The UUID the allocator hands back for an imported notebook.
+import { importNotebookFromZip, readNotebookBundleFromZip } from './notebook_import.js';
+import type { NotebookData, StorageBackend } from './storage_backend.js';
+import {
+    STORAGE_NOTEBOOK_FILE,
+    STORAGE_SCRIPTS_FOLDER,
+    STORAGE_SCRIPT_DRAFT,
+    STORAGE_SCRIPT_FUNCTIONS,
+    STORAGE_SCRIPT_SCHEMA,
+    StorageBackendType,
+} from './storage_backend.js';
+
+const SOURCE_ID = '11111111-2222-3333-4444-555555555555';
 const NEW_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
+function notebook(overrides: Partial<NotebookData> = {}): NotebookData {
+    return {
+        notebookId: SOURCE_ID,
+        name: 'Original Notebook',
+        connectionParams: { hyper: {} } as any,
+        metadata: {},
+        ...overrides,
+    };
+}
+
+async function createZipBlob(files: Record<string, string>): Promise<Blob> {
+    const zip = new JSZip();
+    for (const [path, content] of Object.entries(files)) {
+        zip.file(path, content);
+    }
+    return await zip.generateAsync({ type: 'blob' });
+}
+
+function createBackend(type: StorageBackendType = StorageBackendType.OPFS): StorageBackend {
+    return {
+        getBackendType: vi.fn(() => type),
+        listNotebooks: vi.fn(),
+        loadNotebook: vi.fn(),
+        saveNotebookManifest: vi.fn(),
+        deleteNotebook: vi.fn(),
+        loadNotebookSchema: vi.fn(),
+        saveNotebookSchema: vi.fn(),
+        loadNotebookFunctions: vi.fn(),
+        saveNotebookFunctions: vi.fn(),
+        loadScriptFolders: vi.fn(),
+        createScriptFolder: vi.fn(),
+        deleteScriptFolder: vi.fn(),
+        renameScriptFolder: vi.fn(),
+        loadScript: vi.fn(),
+        saveScript: vi.fn(),
+        deleteScript: vi.fn(),
+        renameScript: vi.fn(),
+        loadScriptDraft: vi.fn(),
+        saveScriptDraft: vi.fn(),
+        loadQueryResultCache: vi.fn(),
+        saveQueryResultCache: vi.fn(),
+        listQueryResultCache: vi.fn(),
+        hasCachedQueryResult: vi.fn(),
+        touchQueryResultCacheAccess: vi.fn(),
+        deleteQueryResultCache: vi.fn(),
+        loadAppSettings: vi.fn(),
+        saveAppSettings: vi.fn(),
+    };
+}
+
+describe('readNotebookBundleFromZip', () => {
+    it('fully reads durable notebook data and ignores unrelated and derived files', async () => {
+        const zipBlob = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()),
+            [STORAGE_SCRIPT_SCHEMA]: 'CREATE TABLE example(id int);',
+            [STORAGE_SCRIPT_FUNCTIONS]: 'CREATE FUNCTION answer() RETURNS int RETURN 42;',
+            [`${STORAGE_SCRIPTS_FOLDER}/10_later/2_second.sql`]: 'SELECT 2;',
+            [`${STORAGE_SCRIPTS_FOLDER}/2_first/10_tenth.sql`]: 'SELECT 10;',
+            [`${STORAGE_SCRIPTS_FOLDER}/2_first/1_first.sql`]: 'SELECT 1;',
+            [`${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`]: 'SELECT draft;',
+            'cache/result.arrow': 'derived',
+            '.gitignore': 'cache/',
+            'README.md': 'unrelated',
+            'other.sql': 'unrelated SQL',
+        });
+
+        await expect(readNotebookBundleFromZip(zipBlob)).resolves.toEqual({
+            notebook: notebook(),
+            schemaSql: 'CREATE TABLE example(id int);',
+            functionsSql: 'CREATE FUNCTION answer() RETURNS int RETURN 42;',
+            folders: [
+                {
+                    name: '2_first',
+                    scripts: [
+                        { name: '1_first.sql', sql: 'SELECT 1;' },
+                        { name: '10_tenth.sql', sql: 'SELECT 10;' },
+                    ],
+                },
+                { name: '10_later', scripts: [{ name: '2_second.sql', sql: 'SELECT 2;' }] },
+            ],
+            draftSql: 'SELECT draft;',
+        });
+    });
+
+    it('preserves explicitly empty script folders', async () => {
+        const zip = new JSZip();
+        zip.file(STORAGE_NOTEBOOK_FILE, JSON.stringify(notebook()));
+        zip.folder(`${STORAGE_SCRIPTS_FOLDER}/empty`);
+
+        const bundle = await readNotebookBundleFromZip(await zip.generateAsync({ type: 'blob' }));
+
+        expect(bundle.folders).toEqual([{ name: 'empty', scripts: [] }]);
+    });
+
+    it('rejects direct and nested SQL files instead of flattening them', async () => {
+        const direct = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()),
+            [`${STORAGE_SCRIPTS_FOLDER}/query.sql`]: 'SELECT 1;',
+        });
+        const nested = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()),
+            [`${STORAGE_SCRIPTS_FOLDER}/folder/nested/query.sql`]: 'SELECT 1;',
+        });
+
+        await expect(readNotebookBundleFromZip(direct)).rejects.toThrow(
+            'SQL scripts must be directly inside a script folder',
+        );
+        await expect(readNotebookBundleFromZip(nested)).rejects.toThrow(
+            'SQL scripts must be directly inside a script folder',
+        );
+    });
+
+    it('rejects duplicate normalized destinations', async () => {
+        const zipBlob = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()),
+            [`${STORAGE_SCRIPTS_FOLDER}/caf\u00e9/query.sql`]: 'SELECT 1;',
+            [`${STORAGE_SCRIPTS_FOLDER}/cafe\u0301/query.sql`]: 'SELECT 2;',
+        });
+
+        await expect(readNotebookBundleFromZip(zipBlob)).rejects.toThrow('duplicate destination');
+    });
+
+    it('rejects missing, malformed, and invalid source metadata', async () => {
+        const missing = await createZipBlob({ 'README.md': 'nothing' });
+        const malformed = await createZipBlob({ [STORAGE_NOTEBOOK_FILE]: '{' });
+        const invalid = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook({ notebookId: 'not-a-uuid' })),
+        });
+
+        await expect(readNotebookBundleFromZip(missing)).rejects.toThrow(`missing ${STORAGE_NOTEBOOK_FILE}`);
+        await expect(readNotebookBundleFromZip(malformed)).rejects.toThrow(`invalid ${STORAGE_NOTEBOOK_FILE}`);
+        await expect(readNotebookBundleFromZip(invalid)).rejects.toThrow('Invalid notebook id');
+    });
+});
+
 describe('importNotebookFromZip', () => {
-    let mockBackend: StorageBackend;
-    let allocateNotebookId: () => string;
+    let backend: StorageBackend;
 
     beforeEach(() => {
-        mockBackend = {
-            getBackendType: vi.fn(() => StorageBackendType.OPFS),
-            listNotebooks: vi.fn(),
-            loadNotebook: vi.fn(),
-            saveNotebookManifest: vi.fn(),
-            deleteNotebook: vi.fn(),
-            loadNotebookSchema: vi.fn(),
-            saveNotebookSchema: vi.fn(),
-            loadNotebookFunctions: vi.fn(),
-            saveNotebookFunctions: vi.fn(),
-            loadScriptFolders: vi.fn(),
-            createScriptFolder: vi.fn(),
-            deleteScriptFolder: vi.fn(),
-            renameScriptFolder: vi.fn(),
-            loadScript: vi.fn(),
-            saveScript: vi.fn(),
-            deleteScript: vi.fn(),
-            renameScript: vi.fn(),
-            loadScriptDraft: vi.fn(),
-            saveScriptDraft: vi.fn(),
-            loadQueryResultCache: vi.fn().mockResolvedValue(null),
-            saveQueryResultCache: vi.fn(),
-            listQueryResultCache: vi.fn(async () => []),
-            hasCachedQueryResult: vi.fn(),
-            touchQueryResultCacheAccess: vi.fn(),
-            deleteQueryResultCache: vi.fn(),
-            loadAppSettings: vi.fn(),
-            saveAppSettings: vi.fn(),
-        };
-
-        allocateNotebookId = vi.fn(() => NEW_ID);
+        backend = createBackend();
     });
 
-    async function createZipBlob(files: Record<string, string>): Promise<Blob> {
-        const zip = new JSZip();
-        for (const [path, content] of Object.entries(files)) {
-            zip.file(path, content);
-        }
-        return await zip.generateAsync({ type: 'blob' });
-    }
-
-    it('imports a notebook with metadata and script folders', async () => {
-        const notebookData: NotebookData = {
-            notebookId: 'original-uuid',
-            notebookPath: 'original-notebook',
-            name: 'Original Notebook',
-            connectionParams: { hyper: {} } as any,
-            metadata: {
-                originalFileName: 'test.sql',
-                createdAt: '2024-01-01T00:00:00Z',
-            },
-        };
-
+    it('preserves the authoritative source UUID by default and writes every durable file', async () => {
         const zipBlob = await createZipBlob({
-            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebookData),
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/01-script.sql`]: 'SELECT 1;',
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/02-script.sql`]: 'SELECT 2;',
-            [`${STORAGE_SCRIPTS_FOLDER}/page-2/01-script.sql`]: 'SELECT 3;',
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()),
+            [STORAGE_SCRIPT_SCHEMA]: 'schema SQL',
+            [STORAGE_SCRIPT_FUNCTIONS]: 'functions SQL',
+            [`${STORAGE_SCRIPTS_FOLDER}/page/1_query.sql`]: 'SELECT 1;',
+            [`${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`]: 'draft SQL',
         });
 
-        const newNotebookId = await importNotebookFromZip(
-            zipBlob,
-            mockBackend,
-            allocateNotebookId
+        const importedId = await importNotebookFromZip(zipBlob, backend);
+
+        expect(importedId).toBe(SOURCE_ID);
+        expect(backend.saveNotebookManifest).toHaveBeenCalledWith(
+            SOURCE_ID,
+            expect.objectContaining({ notebookId: SOURCE_ID }),
+        );
+        expect(backend.saveNotebookSchema).toHaveBeenCalledWith(SOURCE_ID, 'schema SQL');
+        expect(backend.saveNotebookFunctions).toHaveBeenCalledWith(SOURCE_ID, 'functions SQL');
+        expect(backend.createScriptFolder).toHaveBeenCalledWith(SOURCE_ID, 'page');
+        expect(backend.saveScript).toHaveBeenCalledWith(SOURCE_ID, 'page', '1_query.sql', 'SELECT 1;');
+        expect(backend.saveScriptDraft).toHaveBeenCalledWith(SOURCE_ID, 'draft SQL');
+    });
+
+    it('uses a caller-selected fresh UUID and suffixes only a nonblank name when explicitly requested', async () => {
+        const namedZip = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook({ name: '  Analysis  ' })),
+        });
+
+        const importedId = await importNotebookFromZip(namedZip, backend, {
+            targetNotebookId: NEW_ID,
+            suffixNameWithCopy: true,
+            targetIsFresh: true,
+        });
+
+        expect(importedId).toBe(NEW_ID);
+        expect(backend.saveNotebookManifest).toHaveBeenCalledWith(
+            NEW_ID,
+            expect.objectContaining({ notebookId: NEW_ID, name: 'Analysis (copy)' }),
         );
 
-        // The import returns the freshly-allocated bare UUID.
-        expect(newNotebookId).toBe(NEW_ID);
-        expect(allocateNotebookId).toHaveBeenCalledTimes(1);
-
-        // Verify the notebook was saved keyed by the new UUID, which is also stamped onto the data.
-        expect(mockBackend.saveNotebookManifest).toHaveBeenCalledTimes(1);
-        const savedCall = vi.mocked(mockBackend.saveNotebookManifest).mock.calls[0];
-        expect(savedCall[0]).toBe(NEW_ID);  // First arg is the notebook UUID (routing key)
-        expect(savedCall[1].notebookId).toBe(NEW_ID);
-        expect(savedCall[1].name).toBe('Original Notebook');
-        // The display-only notebookPath is dropped on import; it is reconstructed from the UUID for the UI.
-        expect(savedCall[1].notebookPath).toBeUndefined();
-
-        // Verify pages were created keyed by the new UUID
-        expect(mockBackend.createScriptFolder).toHaveBeenCalledTimes(2);
-        expect(mockBackend.createScriptFolder).toHaveBeenCalledWith(NEW_ID, 'page-1');
-        expect(mockBackend.createScriptFolder).toHaveBeenCalledWith(NEW_ID, 'page-2');
-
-        // Verify scripts were saved
-        expect(mockBackend.saveScript).toHaveBeenCalledTimes(3);
-        expect(mockBackend.saveScript).toHaveBeenCalledWith(NEW_ID, 'page-1', '01-script.sql', 'SELECT 1;');
-        expect(mockBackend.saveScript).toHaveBeenCalledWith(NEW_ID, 'page-1', '02-script.sql', 'SELECT 2;');
-        expect(mockBackend.saveScript).toHaveBeenCalledWith(NEW_ID, 'page-2', '01-script.sql', 'SELECT 3;');
-    });
-
-    it('imports composer script if present', async () => {
-        const notebookData: NotebookData = {
-            notebookId: 'test-uuid',
-            notebookPath: 'test-notebook',
-            name: 'Test Notebook',
-            connectionParams: { hyper: {} } as any,
-            metadata: {},
-        };
-
-        const composerSql = 'SELECT * FROM users;';
-
-        const zipBlob = await createZipBlob({
-            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebookData),
-            [`${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`]: composerSql,
+        vi.clearAllMocks();
+        const blankZip = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook({ name: '   ' })),
         });
-
-        await importNotebookFromZip(zipBlob, mockBackend, allocateNotebookId);
-
-        expect(mockBackend.saveScriptDraft).toHaveBeenCalledWith(NEW_ID, composerSql);
-    });
-
-    it('handles empty notebook', async () => {
-        const notebookData: NotebookData = {
-            notebookId: 'empty-uuid',
-            notebookPath: 'empty-notebook',
-            name: 'Empty Notebook',
-            connectionParams: { hyper: {} } as any,
-            metadata: {},
-        };
-
-        const zipBlob = await createZipBlob({
-            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebookData),
+        await importNotebookFromZip(blankZip, backend, {
+            targetNotebookId: NEW_ID,
+            suffixNameWithCopy: true,
         });
-
-        const newNotebookId = await importNotebookFromZip(
-            zipBlob,
-            mockBackend,
-            allocateNotebookId
+        expect(backend.saveNotebookManifest).toHaveBeenCalledWith(
+            NEW_ID,
+            expect.objectContaining({ name: '   ' }),
         );
-
-        expect(newNotebookId).toBe(NEW_ID);
-        expect(mockBackend.saveNotebookManifest).toHaveBeenCalledTimes(1);
-        expect(mockBackend.createScriptFolder).not.toHaveBeenCalled();
-        expect(mockBackend.saveScript).not.toHaveBeenCalled();
-        expect(mockBackend.saveScriptDraft).not.toHaveBeenCalled();
     });
 
-    it('throws error when notebook file is missing', async () => {
-        const zipBlob = await createZipBlob({
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/01-script.sql`]: 'SELECT 1;',
-        });
+    it('imports under an explicit fresh UUID', async () => {
+        const zipBlob = await createZipBlob({ [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()) });
 
-        await expect(
-            importNotebookFromZip(zipBlob, mockBackend, allocateNotebookId)
-        ).rejects.toThrow(`Invalid ZIP: missing ${STORAGE_NOTEBOOK_FILE}`);
+        await expect(importNotebookFromZip(zipBlob, backend, {
+            targetNotebookId: NEW_ID,
+            targetIsFresh: true,
+        })).resolves.toBe(NEW_ID);
+
+        expect(backend.saveNotebookManifest).toHaveBeenCalledWith(
+            NEW_ID,
+            expect.objectContaining({ notebookId: NEW_ID }),
+        );
     });
 
-    it('removes a partially imported notebook when a script write fails', async () => {
-        const notebookData: NotebookData = {
-            notebookId: 'original-uuid',
-            connectionParams: { hyper: {} } as any,
-            metadata: {},
-        };
-        const zipBlob = await createZipBlob({
-            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebookData),
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/01-script.sql`]: 'SELECT 1;',
+    it('normalizes location metadata for OPFS but not native storage', async () => {
+        const source = notebook({
+            notebookPath: 'fs:///source/notebook',
+            storageType: StorageBackendType.Native,
+            nativePath: '/source/notebook',
         });
-        vi.mocked(mockBackend.saveScript).mockRejectedValueOnce(new Error('write failed'));
+        const zipBlob = await createZipBlob({ [STORAGE_NOTEBOOK_FILE]: JSON.stringify(source) });
 
-        await expect(importNotebookFromZip(zipBlob, mockBackend, allocateNotebookId))
-            .rejects.toThrow('write failed');
+        await importNotebookFromZip(zipBlob, backend);
+        const opfsData = vi.mocked(backend.saveNotebookManifest).mock.calls[0][1];
+        expect(opfsData.notebookPath).toBeUndefined();
+        expect(opfsData.storageType).toBeUndefined();
+        expect(opfsData.nativePath).toBeUndefined();
 
-        expect(mockBackend.deleteNotebook).toHaveBeenCalledWith(NEW_ID);
+        const nativeBackend = createBackend(StorageBackendType.Native);
+        await importNotebookFromZip(zipBlob, nativeBackend);
+        expect(nativeBackend.saveNotebookManifest).toHaveBeenCalledWith(SOURCE_ID, source);
     });
 
-    it('sorts pages by name during import', async () => {
-        const notebookData: NotebookData = {
-            notebookId: 'test-uuid',
-            notebookPath: 'test-notebook',
-            name: 'Test Notebook',
-            connectionParams: { hyper: {} } as any,
-            metadata: {},
-        };
-
-        // Create pages in non-sequential order
-        const zipBlob = await createZipBlob({
-            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebookData),
-            [`${STORAGE_SCRIPTS_FOLDER}/page-3/01-script.sql`]: 'SELECT 3;',
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/01-script.sql`]: 'SELECT 1;',
-            [`${STORAGE_SCRIPTS_FOLDER}/page-2/01-script.sql`]: 'SELECT 2;',
+    it('validates and parses the whole bundle before allocating an ID or writing', async () => {
+        const invalidMetadata = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook({ notebookId: 'invalid' })),
+            [`${STORAGE_SCRIPTS_FOLDER}/page/query.sql`]: 'SELECT 1;',
+        });
+        const invalidScripts = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()),
+            [`${STORAGE_SCRIPTS_FOLDER}/page/nested/query.sql`]: 'SELECT 1;',
         });
 
-        await importNotebookFromZip(zipBlob, mockBackend, allocateNotebookId);
+        await expect(importNotebookFromZip(invalidMetadata, backend, { targetNotebookId: NEW_ID })).rejects.toThrow();
+        await expect(importNotebookFromZip(invalidScripts, backend, { targetNotebookId: NEW_ID })).rejects.toThrow();
 
-        // Pages should be created in sorted order
-        const calls = vi.mocked(mockBackend.createScriptFolder).mock.calls;
-        expect(calls[0]).toEqual([NEW_ID, 'page-1']);
-        expect(calls[1]).toEqual([NEW_ID, 'page-2']);
-        expect(calls[2]).toEqual([NEW_ID, 'page-3']);
+        expect(backend.saveNotebookManifest).not.toHaveBeenCalled();
+        expect(backend.createScriptFolder).not.toHaveBeenCalled();
+        expect(backend.saveScript).not.toHaveBeenCalled();
     });
 
-    it('sorts scripts within pages by name during import', async () => {
-        const notebookData: NotebookData = {
-            notebookId: 'test-uuid',
-            notebookPath: 'test-notebook',
-            name: 'Test Notebook',
-            connectionParams: { hyper: {} } as any,
-            metadata: {},
-        };
-
-        // Create scripts in non-sequential order
+    it('deletes a failed target only when the caller declares it fresh', async () => {
         const zipBlob = await createZipBlob({
-            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebookData),
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/03-script.sql`]: 'SELECT 3;',
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/01-script.sql`]: 'SELECT 1;',
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/02-script.sql`]: 'SELECT 2;',
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()),
+            [`${STORAGE_SCRIPTS_FOLDER}/page/query.sql`]: 'SELECT 1;',
         });
+        vi.mocked(backend.saveScript).mockRejectedValue(new Error('write failed'));
 
-        await importNotebookFromZip(zipBlob, mockBackend, allocateNotebookId);
+        await expect(importNotebookFromZip(zipBlob, backend, {
+            targetNotebookId: NEW_ID,
+            targetIsFresh: true,
+        })).rejects.toThrow('write failed');
+        expect(backend.deleteNotebook).toHaveBeenCalledWith(NEW_ID);
 
-        // Scripts should be saved in sorted order
-        const calls = vi.mocked(mockBackend.saveScript).mock.calls;
-        expect(calls[0]).toEqual([NEW_ID, 'page-1', '01-script.sql', 'SELECT 1;']);
-        expect(calls[1]).toEqual([NEW_ID, 'page-1', '02-script.sql', 'SELECT 2;']);
-        expect(calls[2]).toEqual([NEW_ID, 'page-1', '03-script.sql', 'SELECT 3;']);
+        vi.clearAllMocks();
+        vi.mocked(backend.saveScript).mockRejectedValue(new Error('write failed'));
+        await expect(importNotebookFromZip(zipBlob, backend, {
+            targetNotebookId: SOURCE_ID,
+        })).rejects.toThrow('write failed');
+        expect(backend.deleteNotebook).not.toHaveBeenCalled();
     });
 
-    it('ignores non-SQL files in script folders', async () => {
-        const notebookData: NotebookData = {
-            notebookId: 'test-uuid',
-            notebookPath: 'test-notebook',
-            name: 'Test Notebook',
-            connectionParams: { hyper: {} } as any,
-            metadata: {},
-        };
+    it('requires an explicit target UUID before enabling fresh-target rollback', async () => {
+        const zipBlob = await createZipBlob({ [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()) });
 
-        const zipBlob = await createZipBlob({
-            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebookData),
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/01-script.sql`]: 'SELECT 1;',
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/readme.txt`]: 'Not a SQL file',
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/config.json`]: '{}',
-        });
-
-        await importNotebookFromZip(zipBlob, mockBackend, allocateNotebookId);
-
-        // Only the SQL file should be imported
-        expect(mockBackend.saveScript).toHaveBeenCalledTimes(1);
-        expect(mockBackend.saveScript).toHaveBeenCalledWith(NEW_ID, 'page-1', '01-script.sql', 'SELECT 1;');
-    });
-
-    it('imports all script folders regardless of naming', async () => {
-        const notebookData: NotebookData = {
-            notebookId: 'test-uuid',
-            notebookPath: 'test-notebook',
-            name: 'Test Notebook',
-            connectionParams: { hyper: {} } as any,
-            metadata: {},
-        };
-
-        const zipBlob = await createZipBlob({
-            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebookData),
-            [`${STORAGE_SCRIPTS_FOLDER}/page-1/01-script.sql`]: 'SELECT 1;',
-            [`${STORAGE_SCRIPTS_FOLDER}/invalid/01-script.sql`]: 'SELECT INVALID;',
-            [`${STORAGE_SCRIPTS_FOLDER}/temp/01-script.sql`]: 'SELECT TEMP;',
-        });
-
-        await importNotebookFromZip(zipBlob, mockBackend, allocateNotebookId);
-
-        // All three pages should be created (sorted lexicographically)
-        expect(mockBackend.createScriptFolder).toHaveBeenCalledTimes(3);
-        expect(mockBackend.createScriptFolder).toHaveBeenCalledWith(NEW_ID, 'invalid');
-        expect(mockBackend.createScriptFolder).toHaveBeenCalledWith(NEW_ID, 'page-1');
-        expect(mockBackend.createScriptFolder).toHaveBeenCalledWith(NEW_ID, 'temp');
-
-        // All scripts should be saved
-        expect(mockBackend.saveScript).toHaveBeenCalledTimes(3);
-        expect(mockBackend.saveScript).toHaveBeenCalledWith(NEW_ID, 'invalid', '01-script.sql', 'SELECT INVALID;');
-        expect(mockBackend.saveScript).toHaveBeenCalledWith(NEW_ID, 'page-1', '01-script.sql', 'SELECT 1;');
-        expect(mockBackend.saveScript).toHaveBeenCalledWith(NEW_ID, 'temp', '01-script.sql', 'SELECT TEMP;');
+        await expect(importNotebookFromZip(zipBlob, backend, { targetIsFresh: true }))
+            .rejects.toThrow('targetIsFresh requires an explicit targetNotebookId');
+        expect(backend.saveNotebookManifest).not.toHaveBeenCalled();
+        expect(backend.deleteNotebook).not.toHaveBeenCalled();
     });
 });

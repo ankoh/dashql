@@ -17,9 +17,25 @@ import { type NotebookLocation, locationFromEntry } from './notebook_locator.js'
 import { grantFsScope } from './native_fs_scope.js';
 import { copyNotebook, verifyNotebook } from './storage_migration.js';
 import { validateNotebookData, describeNotebookValidationError } from './notebook_validation.js';
+import {
+    readNotebookBundle,
+    writeNotebookBundle,
+    type NotebookBundle,
+} from './notebook_bundle.js';
 import type { Logger } from '../../../platform/logger/logger.js';
 
 const LOG_CTX = 'composite_storage_backend';
+
+export interface NotebookImportConflict {
+    /// The manifest key, preserving its registered spelling/casing.
+    notebookId: string;
+    location: NotebookLocation;
+}
+
+export interface PreparedNativeNotebook {
+    bundle: NotebookBundle;
+    dir: string;
+}
 
 /// A storage backend that routes by per-notebook location.
 ///
@@ -106,7 +122,6 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
             let native = this.nativeCache.get(notebookId);
             if (!native) {
                 native = new NativeStorageBackend(loc.nativePath);
-                await native.initialize();
                 this.nativeCache.set(notebookId, native);
             }
             return native;
@@ -126,19 +141,21 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
         return this.opfs.saveAppSettings(settings);
     }
 
-    upsertNotebookEntry(entry: NotebookEntry): Promise<void> {
-        // Keep the in-memory location map consistent with what we persist.
+    async upsertNotebookEntry(entry: NotebookEntry): Promise<void> {
+        await this.opfs.upsertNotebookEntry(entry);
         this.locations.set(entry.path, locationFromEntry(entry));
-        return this.opfs.upsertNotebookEntry(entry);
     }
-    removeNotebookEntry(notebookId: string): Promise<void> {
+    async removeNotebookEntry(notebookId: string): Promise<void> {
+        await this.opfs.removeNotebookEntry(notebookId);
         this.locations.delete(notebookId);
-        return this.opfs.removeNotebookEntry(notebookId);
+        this.nativeCache.delete(notebookId);
     }
-    reorderNotebooks(orderedIds: string[]): Promise<void> {
+    async reorderNotebooks(orderedIds: string[]): Promise<void> {
         // Keep the in-memory location map's iteration order (the source of `getNotebookOrder`) in
         // lockstep with what we persist, applying the exact same "listed ids first, unlisted kept at
         // the end in current order" rule the OPFS backend uses.
+        await this.opfs.reorderNotebooks(orderedIds);
+
         const previous = this.locations;
         const reordered = new Map<string, NotebookLocation>();
         for (const id of orderedIds) {
@@ -156,7 +173,6 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
         for (const [id, loc] of reordered) {
             this.locations.set(id, loc);
         }
-        return this.opfs.reorderNotebooks(orderedIds);
     }
 
     /// The user-facing notebook order (the manifest array order), as notebook UUIDs.
@@ -294,6 +310,116 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
         return this.locationOf(notebookId);
     }
 
+    /// Find a registered UUID collision without attempting to read the notebook itself.
+    ///
+    /// The root manifest is authoritative, including entries whose files or metadata are invalid.
+    /// UUID comparison is case-insensitive, but the returned id preserves the actual registry key.
+    async findNotebookImportConflict(notebookId: string): Promise<NotebookImportConflict | null> {
+        const normalizedId = notebookId.toLowerCase();
+        const entries = await this.opfs.listNotebooks(STORAGE_MANIFEST_FILE);
+        const entry = entries.find(candidate => candidate.path.toLowerCase() === normalizedId);
+        return entry == null
+            ? null
+            : { notebookId: entry.path, location: locationFromEntry(entry) };
+    }
+
+    /// Read and validate a selected native folder without creating or modifying anything in it.
+    async prepareNativeNotebook(dir: string): Promise<PreparedNativeNotebook> {
+        await this.ensureScope(dir);
+        const native = new NativeStorageBackend(dir);
+        let notebook: NotebookData;
+        try {
+            notebook = await native.loadNotebook(dir);
+        } catch {
+            throw new Error(`No dashql notebook found in ${dir} (expected ${STORAGE_NOTEBOOK_FILE})`);
+        }
+
+        const validation = validateNotebookData(notebook);
+        if (!validation.ok) {
+            throw new Error(`Notebook in ${dir} is invalid: ${describeNotebookValidationError(validation.error)}`);
+        }
+
+        let bundle: NotebookBundle;
+        try {
+            // Native reads do not require initialize(); avoiding it keeps a missing selected folder
+            // from being created as a side effect of validation.
+            bundle = await readNotebookBundle(dir, native, true);
+        } catch (error) {
+            throw new Error(`Failed to read notebook in ${dir}: ${(error as Error)?.message ?? String(error)}`);
+        }
+        return { bundle, dir };
+    }
+
+    /// Read durable data from the physical location currently registered for a notebook.
+    readNotebookBundle(notebookId: string): Promise<NotebookBundle> {
+        return readNotebookBundle(notebookId, this, true);
+    }
+
+    /// Read durable data explicitly from OPFS, bypassing composite location routing.
+    readPortableNotebookBundle(notebookId: string): Promise<NotebookBundle> {
+        return readNotebookBundle(notebookId, this.opfs, true);
+    }
+
+    /// Write a complete bundle explicitly to OPFS, bypassing a current native route.
+    ///
+    /// `targetIsFresh` enables writeNotebookBundle's whole-notebook rollback. The in-memory route is
+    /// changed only after every durable write succeeds.
+    async writePortableNotebookBundle(
+        bundle: NotebookBundle,
+        targetNotebookId: string,
+        targetIsFresh: boolean,
+    ): Promise<void> {
+        await writeNotebookBundle(bundle, this.opfs, { targetNotebookId, targetIsFresh });
+        this.setLocationAfterPortableWrite(targetNotebookId);
+        this.nativeCache.delete(targetNotebookId);
+    }
+
+    private setLocationAfterPortableWrite(notebookId: string): void {
+        const registeredId = [...this.locations.keys()]
+            .find(candidate => candidate.toLowerCase() === notebookId.toLowerCase());
+        if (registeredId == null || registeredId === notebookId) {
+            this.locations.set(notebookId, { type: StorageBackendType.OPFS });
+            return;
+        }
+
+        // Preserve the manifest key and its list position when the source UUID differs only by case.
+        const reordered = new Map<string, NotebookLocation>();
+        for (const [id, location] of this.locations) {
+            reordered.set(id, id === registeredId ? { type: StorageBackendType.OPFS } : location);
+        }
+        this.locations.clear();
+        for (const [id, location] of reordered) {
+            this.locations.set(id, location);
+        }
+    }
+
+    /// Delete the complete OPFS notebook directory (durable files and derived cache), preserving its
+    /// registry entry and any native folder registered under the same UUID.
+    deletePortableNotebookFiles(notebookId: string): Promise<void> {
+        return this.opfs.deleteNotebookFiles(notebookId);
+    }
+
+    /// Delete an OPFS notebook directory and registry entry. Used for fresh staging UUID cleanup.
+    async deletePortableNotebook(notebookId: string): Promise<void> {
+        await this.opfs.deleteNotebook(notebookId);
+        this.locations.delete(notebookId);
+        this.nativeCache.delete(notebookId);
+    }
+
+    /// Register an already-prepared native folder without writing into it.
+    async registerPreparedNativeNotebook(prepared: PreparedNativeNotebook, notebookId: string): Promise<void> {
+        const validation = validateNotebookData(prepared.bundle.notebook);
+        if (!validation.ok) {
+            throw new Error(`Notebook in ${prepared.dir} is invalid: ${describeNotebookValidationError(validation.error)}`);
+        }
+        await this.upsertNotebookEntry({
+            path: notebookId,
+            storageType: StorageBackendType.Native,
+            nativePath: prepared.dir,
+        });
+        this.nativeCache.set(notebookId, new NativeStorageBackend(prepared.dir));
+    }
+
     /// Relocate a single OPFS notebook's files into a native directory.
     ///
     /// The registry entry stays in OPFS; only the files move. Steps:
@@ -354,47 +480,16 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
     /// metadata is invalid, or a notebook with the same UUID is already registered (we never silently
     /// overwrite an existing entry — the caller surfaces the error).
     async loadNativeNotebook(dir: string): Promise<string> {
-        await this.ensureScope(dir);
-        const native = new NativeStorageBackend(dir);
-        await native.initialize();
-
-        // Read the notebook manifest the directory already contains. File-system and JSON failures
-        // mean this isn't a readable dashql notebook folder. Structurally invalid metadata is handled
-        // by the validation gate below so callers get the actual reason instead of a misleading
-        // "not found" error.
-        let notebookData: NotebookData;
-        try {
-            // The UUID argument is only used for the error message here — the native backend reads
-            // the single notebook file directly from the directory regardless of the id passed.
-            notebookData = await native.loadNotebook(dir);
-        } catch (e: any) {
-            throw new Error(`No dashql notebook found in ${dir} (expected ${STORAGE_NOTEBOOK_FILE})`);
-        }
-
-        // Fail-fast metadata validation, mirroring the loader: refuse a folder whose notebook is
-        // structurally unusable rather than registering an entry that would fail at restore.
-        const validation = validateNotebookData(notebookData);
-        if (!validation.ok) {
-            throw new Error(`Notebook in ${dir} is invalid: ${describeNotebookValidationError(validation.error)}`);
-        }
-
-        // Validation guarantees a syntactically valid UUID; it is the authoritative identity.
-        const uuid = notebookData.notebookId;
+        const prepared = await this.prepareNativeNotebook(dir);
+        const uuid = prepared.bundle.notebook.notebookId;
 
         // Never clobber a notebook that's already registered (same folder added twice, or a UUID
         // collision with an existing OPFS/native notebook).
-        if (this.locations.has(uuid)) {
+        if (await this.findNotebookImportConflict(uuid)) {
             throw new Error(`Notebook ${uuid} is already registered`);
         }
 
-        // Record the native location in the OPFS root manifest and cache the backend/location.
-        await this.opfs.upsertNotebookEntry({
-            path: uuid,
-            storageType: StorageBackendType.Native,
-            nativePath: dir,
-        });
-        this.locations.set(uuid, { type: StorageBackendType.Native, nativePath: dir });
-        this.nativeCache.set(uuid, native);
+        await this.registerPreparedNativeNotebook(prepared, uuid);
 
         this.logger.info('loaded native notebook', { notebookId: uuid, dir }, LOG_CTX);
         return uuid;

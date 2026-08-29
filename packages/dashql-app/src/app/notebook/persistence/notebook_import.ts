@@ -1,135 +1,181 @@
 import JSZip from 'jszip';
-import type { StorageBackend, NotebookData } from './storage_backend.js';
-import { STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
 
-/// Imports a notebook from a ZIP file.
-export async function importNotebookFromZip(
-    zipBlob: Blob,
-    backend: StorageBackend,
-    allocateNotebookId: () => string
-): Promise<string> {
+import type { NotebookData, ScriptData, StorageBackend } from './storage_backend.js';
+import {
+    STORAGE_NOTEBOOK_FILE,
+    STORAGE_SCRIPTS_FOLDER,
+    STORAGE_SCRIPT_DRAFT,
+    STORAGE_SCRIPT_FUNCTIONS,
+    STORAGE_SCRIPT_SCHEMA,
+} from './storage_backend.js';
+import type { NotebookBundle, NotebookBundleWriteOptions } from './notebook_bundle.js';
+import { writeNotebookBundle } from './notebook_bundle.js';
+import { describeNotebookValidationError, validateNotebookData } from './notebook_validation.js';
+
+export interface NotebookZipImportOptions extends NotebookBundleWriteOptions { }
+
+type NotebookZipImportOptionsInput = NotebookZipImportOptions | (() => string);
+
+type ZipObjectWithOriginalName = JSZip.JSZipObject & { unsafeOriginalName?: string };
+
+interface ParsedZipEntry {
+    path: string;
+    file: JSZip.JSZipObject;
+}
+
+const NATURAL_SORT = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+/// Parse and validate a portable notebook ZIP without modifying storage.
+export async function readNotebookBundleFromZip(zipBlob: Blob): Promise<NotebookBundle> {
     const zip = await JSZip.loadAsync(zipBlob);
+    const destinations = new Map<string, ParsedZipEntry>();
+    const scriptFolderNames = new Map<string, string>();
 
-    // Read and parse notebook metadata
-    const manifestFile = zip.file(STORAGE_NOTEBOOK_FILE);
-    if (!manifestFile) {
+    for (const file of Object.values(zip.files)) {
+        const originalPath = (file as ZipObjectWithOriginalName).unsafeOriginalName ?? file.name;
+        const path = normalizeBundlePath(originalPath);
+        if (file.dir) {
+            const parts = path.split('/');
+            if (parts.length === 2 && destinationKey(parts[0]) === destinationKey(STORAGE_SCRIPTS_FOLDER)) {
+                addScriptFolderName(scriptFolderNames, parts[1]);
+            }
+            continue;
+        }
+        if (!isBundleFile(path)) {
+            continue;
+        }
+        const key = destinationKey(path);
+        if (destinations.has(key)) {
+            throw new Error(`Invalid ZIP: duplicate destination ${path}`);
+        }
+        destinations.set(key, { path, file });
+    }
+
+    const manifest = destinations.get(destinationKey(STORAGE_NOTEBOOK_FILE));
+    if (!manifest) {
         throw new Error(`Invalid ZIP: missing ${STORAGE_NOTEBOOK_FILE}`);
     }
 
-    const notebookData: NotebookData = JSON.parse(await manifestFile.async('text'));
-
-    // Always allocate a fresh notebook UUID for imported notebooks to avoid conflicts. The UUID is
-    // the authoritative identity; the imported notebook is implicitly OPFS-backed.
-    const newNotebookId = allocateNotebookId();
-
-    notebookData.notebookId = newNotebookId;
-    delete notebookData.notebookPath;
+    let parsedNotebook: unknown;
     try {
-        await backend.saveNotebookManifest(newNotebookId, notebookData);
-
-        // Import script folders and files
-        const scriptsFolder = zip.folder(STORAGE_SCRIPTS_FOLDER);
-        if (scriptsFolder) {
-            await importScriptsFromZip(scriptsFolder, backend, newNotebookId);
-        }
-    } catch (error) {
-        // The UUID is freshly allocated, so removing it cannot affect an existing notebook. Cleanup
-        // is best-effort: preserve the original import error if rollback itself fails.
-        try {
-            await backend.deleteNotebook(newNotebookId);
-        } catch {
-            // Ignore rollback errors.
-        }
-        throw error;
+        parsedNotebook = JSON.parse(await manifest.file.async('text'));
+    } catch {
+        throw new Error(`Invalid ZIP: invalid ${STORAGE_NOTEBOOK_FILE}`);
+    }
+    if (parsedNotebook == null || typeof parsedNotebook !== 'object' || Array.isArray(parsedNotebook)) {
+        throw new Error(`Invalid ZIP: invalid ${STORAGE_NOTEBOOK_FILE}`);
+    }
+    const notebook = parsedNotebook as NotebookData;
+    const validation = validateNotebookData(notebook);
+    if (!validation.ok) {
+        throw new Error(
+            `Invalid ZIP: invalid ${STORAGE_NOTEBOOK_FILE}: ${describeNotebookValidationError(validation.error)}`,
+        );
     }
 
-    return newNotebookId;
+    const schema = destinations.get(destinationKey(STORAGE_SCRIPT_SCHEMA));
+    const functions = destinations.get(destinationKey(STORAGE_SCRIPT_FUNCTIONS));
+    const draftPath = `${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`;
+    const draft = destinations.get(destinationKey(draftPath));
+    const folders = new Map<string, { name: string; scripts: Array<{ name: string; file: JSZip.JSZipObject }> }>();
+    for (const [key, name] of scriptFolderNames) {
+        folders.set(key, { name, scripts: [] });
+    }
+
+    for (const entry of destinations.values()) {
+        const entryKey = destinationKey(entry.path);
+        if (!entryKey.startsWith(`${destinationKey(STORAGE_SCRIPTS_FOLDER)}/`)
+            || entryKey === destinationKey(draftPath)) {
+            continue;
+        }
+        const parts = entry.path.split('/');
+        if (!entryKey.endsWith('.sql')) {
+            continue;
+        }
+        if (parts.length !== 3) {
+            throw new Error(`Invalid ZIP: SQL scripts must be directly inside a script folder: ${entry.path}`);
+        }
+        const [, folderName, scriptName] = parts;
+        if (destinationKey(scriptName) === destinationKey(STORAGE_SCRIPT_DRAFT)) {
+            throw new Error(`Invalid ZIP: reserved script name outside scripts root: ${entry.path}`);
+        }
+        const folderKey = destinationKey(folderName);
+        let folder = folders.get(folderKey);
+        if (!folder) {
+            folder = { name: folderName, scripts: [] };
+            folders.set(folderKey, folder);
+        } else if (folder.name !== folderName) {
+            throw new Error(`Invalid ZIP: duplicate normalized script folder ${folderName}`);
+        }
+        folder.scripts.push({ name: scriptName, file: entry.file });
+    }
+
+    const parsedFolders = await Promise.all([...folders.values()]
+        .sort((a, b) => NATURAL_SORT.compare(a.name, b.name))
+        .map(async folder => {
+            const scripts: ScriptData[] = await Promise.all(folder.scripts
+                .sort((a, b) => NATURAL_SORT.compare(a.name, b.name))
+                .map(async script => ({ name: script.name, sql: await script.file.async('text') })));
+            return { name: folder.name, scripts };
+        }));
+
+    const [schemaSql, functionsSql, draftSql] = await Promise.all([
+        schema ? schema.file.async('text') : null,
+        functions ? functions.file.async('text') : null,
+        draft ? draft.file.async('text') : null,
+    ]);
+
+    return { notebook, schemaSql, functionsSql, folders: parsedFolders, draftSql };
 }
 
-/**
- * Import all script folders from the ZIP's scripts folder
- */
-async function importScriptsFromZip(
-    scriptsFolder: JSZip,
+/// Import a portable notebook ZIP. By default the source UUID is preserved.
+export async function importNotebookFromZip(
+    zipBlob: Blob,
     backend: StorageBackend,
-    notebookId: string
-): Promise<void> {
-    const pageEntries: Array<{ name: string; folderPath: string }> = [];
-
-    // Collect script folders
-    scriptsFolder.forEach((relativePath, file) => {
-        if (file.dir && relativePath !== '') {
-            // Remove trailing slash for folder name
-            const folderName = relativePath.replace(/\/$/, '');
-            pageEntries.push({ name: folderName, folderPath: relativePath });
-        }
-    });
-
-    // Sort folders lexicographically with numeric components handled naturally.
-    pageEntries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-
-    // Import each folder
-    for (const pageEntry of pageEntries) {
-        await backend.createScriptFolder(notebookId, pageEntry.name);
-        await importScriptsInFolder(scriptsFolder, backend, notebookId, pageEntry.name, pageEntry.folderPath);
-    }
-
-    // Import composer script if present
-    await importComposerScript(scriptsFolder, backend, notebookId);
+    optionsInput: NotebookZipImportOptionsInput = {},
+): Promise<string> {
+    const bundle = await readNotebookBundleFromZip(zipBlob);
+    const options = typeof optionsInput === 'function'
+        ? { targetNotebookId: optionsInput(), targetIsFresh: true }
+        : optionsInput;
+    return await writeNotebookBundle(bundle, backend, options);
 }
 
-/**
- * Import all scripts in a single folder
- */
-async function importScriptsInFolder(
-    scriptsFolder: JSZip,
-    backend: StorageBackend,
-    notebookId: string,
-    folderName: string,
-    folderPath: string
-): Promise<void> {
-    const scriptFiles: Array<{ name: string; path: string }> = [];
-
-    // Collect SQL files directly under this script folder.
-    scriptsFolder.forEach((relativePath, file) => {
-        if (!file.dir && relativePath.startsWith(folderPath) && relativePath.endsWith('.sql')) {
-            const fileName = relativePath.split('/').pop();
-            if (fileName && fileName !== STORAGE_SCRIPT_DRAFT) {
-                scriptFiles.push({ name: fileName, path: relativePath });
-            }
-        }
-    });
-
-    // Sort scripts lexicographically (natural sort for 01-, 02-, etc.)
-    scriptFiles.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-
-    // Load content and save each script
-    for (const scriptMeta of scriptFiles) {
-        const scriptFile = scriptsFolder.file(scriptMeta.path);
-
-        if (scriptFile) {
-            const content = await scriptFile.async('text');
-            await backend.saveScript(
-                notebookId,
-                folderName,
-                scriptMeta.name,
-                content
-            );
-        }
+function normalizeBundlePath(input: string): string {
+    const path = input.replace(/\\/g, '/');
+    if (path.startsWith('/')) {
+        throw new Error(`Invalid ZIP: absolute path ${input}`);
     }
+    const parts: string[] = [];
+    for (const part of path.split('/')) {
+        if (!part || part === '.') {
+            continue;
+        }
+        if (part === '..') {
+            throw new Error(`Invalid ZIP: path traversal ${input}`);
+        }
+        parts.push(part.normalize('NFC'));
+    }
+    return parts.join('/');
 }
 
-/**
- * Import composer script if present
- */
-async function importComposerScript(
-    scriptsFolder: JSZip,
-    backend: StorageBackend,
-    notebookId: string
-): Promise<void> {
-    const composerFile = scriptsFolder.file(STORAGE_SCRIPT_DRAFT);
-    if (composerFile) {
-        const composerSql = await composerFile.async('text');
-        await backend.saveScriptDraft(notebookId, composerSql);
+function destinationKey(path: string): string {
+    return path.normalize('NFC').toLowerCase();
+}
+
+function isBundleFile(path: string): boolean {
+    const key = destinationKey(path);
+    return key === destinationKey(STORAGE_NOTEBOOK_FILE)
+        || key === destinationKey(STORAGE_SCRIPT_SCHEMA)
+        || key === destinationKey(STORAGE_SCRIPT_FUNCTIONS)
+        || (key.startsWith(`${destinationKey(STORAGE_SCRIPTS_FOLDER)}/`) && key.endsWith('.sql'));
+}
+
+function addScriptFolderName(folders: Map<string, string>, name: string): void {
+    const key = destinationKey(name);
+    const existing = folders.get(key);
+    if (existing != null && existing !== name) {
+        throw new Error(`Invalid ZIP: duplicate normalized script folder ${name}`);
     }
+    folders.set(key, name);
 }

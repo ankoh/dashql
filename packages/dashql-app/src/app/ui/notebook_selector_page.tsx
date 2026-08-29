@@ -46,7 +46,6 @@ import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts
 import { displayPath as notebookDisplayPath } from '../notebook/persistence/notebook_locator.js';
 import { StorageBackendType } from '../notebook/persistence/storage_backend.js';
 import { CompositeStorageBackend } from '../notebook/persistence/composite_storage_backend.js';
-import { addNativeNotebookFromFolder } from '../notebook/persistence/storage_migration_flow.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
@@ -59,6 +58,8 @@ import { DELETE_COMPUTATION } from '../../compute/computation_state.js';
 import { useCancelAgentRun } from '../notebook/agent/agent_run_provider.js';
 import { useHyperSetup } from '../notebook/connections/hyper/hyper_connection_setup.js';
 import { HYPER_CONNECTOR } from '../notebook/connections/connector_info.js';
+import { readNotebookBundleFromBrowserFolder } from '../notebook/persistence/browser_notebook_folder.js';
+import { useNotebookImport } from '../notebook/persistence/notebook_import_provider.js';
 
 interface Props {
     connectionRegistry: ConnectionRegistry;
@@ -113,13 +114,14 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const platform = usePlatformType();
     const hyperSetup = useHyperSetup();
+    const notebookImport = useNotebookImport();
+    const folderButtonRef = React.useRef<HTMLButtonElement>(null);
+    const folderInputRef = React.useRef<HTMLInputElement>(null);
     // The manifest notebook order lives in mutable backend state (see storageReader.getNotebookOrder).
     // Bumping this after a drag-persist forces the list to re-read and re-render in the new order.
     const [orderVersion, setOrderVersion] = React.useState(0);
 
-    const canOpenFolder =
-        platform === PlatformType.MACOS &&
-        storageReader.backend instanceof CompositeStorageBackend;
+    const canOpenFolder = storageReader.backend instanceof CompositeStorageBackend;
 
     // Compute the internals button only once to prevent svg flickering
     const internalsButton = React.useMemo(() => {
@@ -295,12 +297,43 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
 
     const handleOpenFolder = React.useCallback(async () => {
         if (!(storageReader.backend instanceof CompositeStorageBackend)) return;
-        try {
-            await addNativeNotebookFromFolder(storageReader.backend, logger);
-        } catch {
-            // The flow already logged the error.
+        if (platform === PlatformType.WEB) {
+            folderInputRef.current?.click();
+            return;
         }
-    }, [storageReader.backend, logger]);
+        const folder = await globalThis.dashqlElectron?.openDirectory('Open an existing notebook folder');
+        if (folder == null) return;
+        try {
+            await notebookImport.importNativeFolder(folder, {
+                mode: 'anchored',
+                anchorRef: folderButtonRef,
+                returnFocusRef: folderButtonRef,
+            });
+        } catch (error) {
+            logger.error('adding native notebook from folder failed', { error: String(error) }, 'notebook_selector');
+        }
+    }, [storageReader.backend, platform, notebookImport, logger]);
+
+    const handleBrowserFolder = React.useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const input = event.currentTarget;
+        const files = input.files;
+        if (files == null || files.length === 0) return;
+        try {
+            const bundle = await readNotebookBundleFromBrowserFolder(files);
+            await notebookImport.importPortableBundle(bundle, {
+                presentation: {
+                    mode: 'anchored',
+                    anchorRef: folderButtonRef,
+                    returnFocusRef: folderButtonRef,
+                },
+                reloadAfterSuccess: true,
+            });
+        } catch (error) {
+            logger.error('adding browser notebook folder failed', { error: String(error) }, 'notebook_selector');
+        } finally {
+            input.value = '';
+        }
+    }, [notebookImport, logger]);
 
     const handleBack = React.useCallback(() => {
         if (configNotebookId) {
@@ -604,13 +637,29 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                             <PlusIcon size={16} />
                                         </IconButton>
                                         {canOpenFolder && (
-                                            <IconButton
-                                                variant={ButtonVariant.Invisible}
-                                                aria-label={"Open notebook folder"}
-                                                onClick={handleOpenFolder}
-                                            >
-                                                <FileDirectoryIcon size={16} />
-                                            </IconButton>
+                                            <>
+                                                <IconButton
+                                                    ref={folderButtonRef}
+                                                    variant={ButtonVariant.Invisible}
+                                                    aria-label={"Open notebook folder"}
+                                                    onClick={handleOpenFolder}
+                                                >
+                                                    <FileDirectoryIcon size={16} />
+                                                </IconButton>
+                                                {platform === PlatformType.WEB && (
+                                                    <input
+                                                        ref={folderInputRef}
+                                                        className={styles.folder_input}
+                                                        type="file"
+                                                        multiple
+                                                        // Chromium and Safari expose directory selection through this attribute.
+                                                        {...({ webkitdirectory: '' } as React.InputHTMLAttributes<HTMLInputElement>)}
+                                                        tabIndex={-1}
+                                                        aria-hidden="true"
+                                                        onChange={handleBrowserFolder}
+                                                    />
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 </div>

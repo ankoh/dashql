@@ -1,0 +1,81 @@
+.dialog {
+    width: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+    background: white;
+    color: hsl(210, 12%, 16%);
+}
+
+.header {
+    min-height: 48px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border_color_primary);
+    background: hsl(210, 29%, 97%);
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.body {
+    padding: 20px;
+}
+
+.description {
+    margin: 0 0 16px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.details {
+    margin: 0;
+    display: grid;
+    row-gap: 10px;
+}
+
+.details > div {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    column-gap: 12px;
+}
+
+.details dt {
+    color: hsl(210, 12%, 45%);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.details dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: 0.85rem;
+}
+
+.uuid {
+    font-family: 'Roboto Mono';
+}
+
+.actions {
+    padding: 8px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid var(--border_color_primary);
+}
+
+@media only screen and (max-width: 520px) {
+    .details > div {
+        grid-template-columns: 1fr;
+        row-gap: 2px;
+    }
+
+    .actions {
+        flex-wrap: wrap;
+    }
+}

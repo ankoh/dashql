@@ -3,7 +3,13 @@ import JSZip from 'jszip';
 import { exportNotebookAsZip, exportNotebookAsSharedZip, exportNotebookAsUrl, NotebookLinkTarget } from './notebook_export.js';
 import { importNotebookFromZip } from './notebook_import.js';
 import { type StorageBackend, type NotebookData, type ScriptFolderData, StorageBackendType } from './storage_backend.js';
-import { STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
+import {
+    STORAGE_NOTEBOOK_FILE,
+    STORAGE_SCRIPTS_FOLDER,
+    STORAGE_SCRIPT_DRAFT,
+    STORAGE_SCRIPT_FUNCTIONS,
+    STORAGE_SCRIPT_SCHEMA,
+} from './storage_backend.js';
 import { BASE64URL_CODEC } from '../../../utils/base64.js';
 
 describe('exportNotebookAsZip', () => {
@@ -39,6 +45,8 @@ describe('exportNotebookAsZip', () => {
             loadAppSettings: vi.fn(),
             saveAppSettings: vi.fn(),
         };
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookFunctions).mockResolvedValue(null);
     });
 
     it('exports a notebook with metadata and script folders', async () => {
@@ -160,6 +168,54 @@ describe('exportNotebookAsZip', () => {
         expect(draftFile).toBeNull();
     });
 
+    it('includes non-null catalog SQL only when withCatalog is enabled', async () => {
+        const notebookData: NotebookData = {
+            notebookId: 'test-uuid-1',
+            name: 'Catalog Notebook',
+            connectionParams: { hyper: {} } as any,
+            metadata: {},
+        };
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue(notebookData);
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue('schema SQL');
+        vi.mocked(mockBackend.loadNotebookFunctions).mockResolvedValue('functions SQL');
+
+        const withoutCatalog = await JSZip.loadAsync(await exportNotebookAsZip('test-notebook', mockBackend));
+        expect(withoutCatalog.file(STORAGE_SCRIPT_SCHEMA)).toBeNull();
+        expect(withoutCatalog.file(STORAGE_SCRIPT_FUNCTIONS)).toBeNull();
+        expect(mockBackend.loadNotebookSchema).not.toHaveBeenCalled();
+        expect(mockBackend.loadNotebookFunctions).not.toHaveBeenCalled();
+
+        const withCatalog = await JSZip.loadAsync(await exportNotebookAsZip(
+            'test-notebook',
+            mockBackend,
+            { withCatalog: true },
+        ));
+        expect(await withCatalog.file(STORAGE_SCRIPT_SCHEMA)!.async('text')).toBe('schema SQL');
+        expect(await withCatalog.file(STORAGE_SCRIPT_FUNCTIONS)!.async('text')).toBe('functions SQL');
+    });
+
+    it('omits individual null catalog files', async () => {
+        vi.mocked(mockBackend.loadNotebook).mockResolvedValue({
+            notebookId: 'test-uuid-1',
+            connectionParams: { hyper: {} } as any,
+            metadata: {},
+        });
+        vi.mocked(mockBackend.loadScriptFolders).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadScriptDraft).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookSchema).mockResolvedValue('schema SQL');
+        vi.mocked(mockBackend.loadNotebookFunctions).mockResolvedValue(null);
+
+        const zip = await JSZip.loadAsync(await exportNotebookAsZip(
+            'test-notebook',
+            mockBackend,
+            { withCatalog: true },
+        ));
+        expect(zip.file(STORAGE_SCRIPT_SCHEMA)).not.toBeNull();
+        expect(zip.file(STORAGE_SCRIPT_FUNCTIONS)).toBeNull();
+    });
+
     it('uses compression for ZIP output', async () => {
         const notebookData: NotebookData = {
             notebookId: 'test-uuid-1',
@@ -271,6 +327,8 @@ describe('exportNotebookAsSharedZip', () => {
         return {
             getBackendType: vi.fn(() => StorageBackendType.OPFS),
             loadNotebook: vi.fn().mockResolvedValue(notebookData),
+            loadNotebookSchema: vi.fn().mockResolvedValue('shared schema'),
+            loadNotebookFunctions: vi.fn().mockResolvedValue('shared functions'),
             loadScriptFolders: vi.fn().mockResolvedValue([]),
             loadScriptDraft: vi.fn().mockResolvedValue(null),
         } as unknown as StorageBackend;
@@ -286,13 +344,13 @@ describe('exportNotebookAsSharedZip', () => {
     const connectionParams = { hyper: {} } as any;
 
     it('carries the stored notebook name through so a shared link restores under the same label', async () => {
-        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1', 'My Analysis'), 'uuid-1', connectionParams);
+        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1', 'My Analysis'), 'uuid-1', connectionParams, { withCatalog: false });
         const notebook = await readNotebookData(zipBlob);
         expect(notebook.name).toBe('My Analysis');
     });
 
     it('omits the name when the stored notebook was never named', async () => {
-        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1'), 'uuid-1', connectionParams);
+        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1'), 'uuid-1', connectionParams, { withCatalog: false });
         const notebook = await readNotebookData(zipBlob);
         expect('name' in notebook).toBe(false);
     });
@@ -307,7 +365,7 @@ describe('exportNotebookAsSharedZip', () => {
                 login: 'user@example.com',
             },
         };
-        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1'), 'uuid-1', sfParams, true);
+        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1'), 'uuid-1', sfParams, { withLoginHint: true, withCatalog: false });
         const notebook = await readNotebookData(zipBlob);
         expect(notebook.connectionParams.salesforce.appConsumerKey).toBe('consumer-key');
         expect(notebook.connectionParams.salesforce.login).toBe('user@example.com');
@@ -324,11 +382,41 @@ describe('exportNotebookAsSharedZip', () => {
                 login: 'user@example.com',
             },
         };
-        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1'), 'uuid-1', sfParams, false);
+        const zipBlob = await exportNotebookAsSharedZip(makeBackend('uuid-1'), 'uuid-1', sfParams, { withLoginHint: false, withCatalog: false });
         const notebook = await readNotebookData(zipBlob);
         expect(notebook.connectionParams.salesforce.appConsumerKey).toBe('consumer-key');
         expect(notebook.connectionParams.salesforce.login).toBe('');
         expect(notebook.connectionParams.salesforce.appConsumerSecret).toBe('');
+    });
+
+    it('threads withCatalog through shared ZIP export', async () => {
+        const backend = makeBackend('uuid-1');
+
+        const withoutCatalog = await JSZip.loadAsync(
+            await exportNotebookAsSharedZip(backend, 'uuid-1', connectionParams, { withCatalog: false }),
+        );
+        expect(withoutCatalog.file(STORAGE_SCRIPT_SCHEMA)).toBeNull();
+        expect(withoutCatalog.file(STORAGE_SCRIPT_FUNCTIONS)).toBeNull();
+
+        const withCatalog = await JSZip.loadAsync(
+            await exportNotebookAsSharedZip(backend, 'uuid-1', connectionParams, { withCatalog: true }),
+        );
+        expect(await withCatalog.file(STORAGE_SCRIPT_SCHEMA)!.async('text')).toBe('shared schema');
+        expect(await withCatalog.file(STORAGE_SCRIPT_FUNCTIONS)!.async('text')).toBe('shared functions');
+    });
+
+    it('threads withCatalog through URL export', async () => {
+        const url = await exportNotebookAsUrl(
+            makeBackend('uuid-1'),
+            'uuid-1',
+            connectionParams,
+            NotebookLinkTarget.NATIVE,
+            { withCatalog: true },
+        );
+        const event = JSON.parse(new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!)));
+        const zip = await JSZip.loadAsync(new Blob([BASE64URL_CODEC.decode(event.notebook)]));
+        expect(zip.file(STORAGE_SCRIPT_SCHEMA)).not.toBeNull();
+        expect(zip.file(STORAGE_SCRIPT_FUNCTIONS)).not.toBeNull();
     });
 
 });

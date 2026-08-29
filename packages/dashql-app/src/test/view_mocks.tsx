@@ -113,7 +113,7 @@ export function fakeQueryExecutorModule() {
             if (activeQueryExecutorMockState == null) throw new Error('Query executor mock state is not configured');
             return activeQueryExecutorMockState.executeQuery;
         },
-        useCancelQuery: () => activeQueryExecutorMockState?.cancelQuery ?? (() => {}),
+        useCancelQuery: () => activeQueryExecutorMockState?.cancelQuery ?? (async () => {}),
         computeQueryCacheKeyForConnection: async (_details: unknown, signature: string) =>
             signature === 'signature:select 1' ? activeQueryExecutorMockState?.cacheKey ?? null : null,
     };

@@ -18,11 +18,16 @@ import { StorageBackend } from '../persistence/storage_backend.js';
 import { IconButton } from '../../../ui/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../../globals.js';
 
-async function packAndCompressFile(backend: StorageBackend, conn: ConnectionState, notebookScripts: NotebookScripts, withLoginHint: boolean): Promise<Uint8Array> {
+async function packAndCompressFile(
+    backend: StorageBackend,
+    conn: ConnectionState,
+    notebookScripts: NotebookScripts,
+    settings: NotebookExportSettings,
+): Promise<Uint8Array> {
     const connectionParams = await import('../connections/connection_params.js').then(m =>
         m.getConnectionParamsFromStateDetails(conn.details)
     );
-    const zipBlob = await exportNotebookAsSharedZip(backend, notebookScripts.notebookId, connectionParams, withLoginHint);
+    const zipBlob = await exportNotebookAsSharedZip(backend, notebookScripts.notebookId, connectionParams, settings);
     const arrayBuffer = await zipBlob.arrayBuffer();
     return new Uint8Array(arrayBuffer);
 }
@@ -58,13 +63,16 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
             return;
         }
         const cancellation = new AbortController();
+        setFileBytes(new Uint8Array());
         const pack = async () => {
-            const fileBytes = await packAndCompressFile(storage.backend, conn, notebookScripts, settings.withLoginHint);
+            const fileBytes = await packAndCompressFile(storage.backend, conn, notebookScripts, settings);
             if (!cancellation.signal.aborted) {
                 setFileBytes(fileBytes);
             }
         };
-        pack();
+        pack().catch(() => {
+            if (!cancellation.signal.aborted) setFileBytes(new Uint8Array());
+        });
         return () => cancellation.abort();
     }, [settings, props.conn, props.notebookScripts, props.isOpen, storage.backend]);
 
@@ -101,6 +109,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
                         <IconButton
                             ref={buttonRef}
                             onClick={downloadFile}
+                            disabled={fileBytes.length === 0}
                             aria-labelledby="save-file"
                             aria-label="Save File"
                         >
