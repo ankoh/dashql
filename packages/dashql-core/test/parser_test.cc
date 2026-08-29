@@ -146,6 +146,36 @@ TEST(ParserTest, ParsesHyperInsertForms) {
     }
 }
 
+TEST(ParserTest, ParsesHyperCreateViewForms) {
+    struct TestCase {
+        std::string_view input;
+        bool or_replace;
+        bool temporary;
+    };
+    constexpr std::array<TestCase, 4> tests = {{
+        {"CREATE VIEW result AS SELECT 1", false, false},
+        {"CREATE OR REPLACE VIEW result AS SELECT 1", true, false},
+        {"CREATE TEMP VIEW result AS SELECT 1", false, true},
+        {"CREATE OR REPLACE TEMP VIEW result AS SELECT 1", true, true},
+    }};
+
+    for (const auto& test : tests) {
+        SCOPED_TRACE(test.input);
+        auto script = ParseString(test.input);
+        ASSERT_TRUE(script->errors.empty())
+            << (script->errors.empty() ? "" : script->errors.front().message);
+        ASSERT_EQ(script->statements.size(), 1u);
+        EXPECT_EQ(script->statements.front().type, buffers::parser::StatementType::CREATE_VIEW);
+        const auto& root = script->nodes[script->statements.front().root];
+        auto children = std::span{script->nodes}.subspan(root.children_begin_or_value(), root.children_count());
+        auto has_attribute = [&](buffers::parser::AttributeKey key) {
+            return std::ranges::any_of(children, [key](const auto& child) { return child.attribute_key() == key; });
+        };
+        EXPECT_EQ(has_attribute(buffers::parser::AttributeKey::SQL_VIEW_OR_REPLACE), test.or_replace);
+        EXPECT_EQ(has_attribute(buffers::parser::AttributeKey::SQL_VIEW_TEMP), test.temporary);
+    }
+}
+
 TEST(ParserTest, RejectsExcludedInsertForms) {
     for (auto input : {
              std::string_view{"insert bulk into target values (1)"},
