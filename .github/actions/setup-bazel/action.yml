@@ -45,10 +45,13 @@ runs:
           common --tls_client_certificate=${{ runner.temp }}/bazel-mtls/client.crt
           common --tls_client_key=${{ runner.temp }}/bazel-mtls/client.key
 
-          # Exclude npm package extraction and symlink tree actions from remote cache.
+          # Exclude npm package extraction, lifecycle, and symlink tree actions from remote cache.
           # NpmPackageExtract re-extracts from the local repository cache (fast).
+          # NpmLifecycleHook outputs may contain nested relative symlinks (for example,
+          # macOS framework bundles) that are not restored reliably from remote cache.
           # UnresolvedSymlink creates node_modules symlinks (trivially fast).
           build --modify_execution_info=NpmPackageExtract=+no-remote-cache
+          build --modify_execution_info=NpmLifecycleHook=+no-remote-cache
           build --modify_execution_info=UnresolvedSymlink=+no-remote-cache
 
           # Exclude local copies from remote cache
