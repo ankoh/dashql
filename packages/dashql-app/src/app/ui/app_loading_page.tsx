@@ -1,20 +1,18 @@
 import * as React from 'react';
 
-import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from '../../ui/banner/banner_page.module.css';
 import * as pageStyles from './app_loading_page.module.css';
 
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AppLoadingStatus } from '../router/app_loading_status.js';
-import { Button, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { Button, ButtonVariant } from '../../ui/foundations/button.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { DASHQL_VERSION } from '../../globals.js';
 import { getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
-import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { useStorageReader } from '../notebook/persistence/storage_provider.js';
 import { AppLoadingProgress } from '../loading/app_loading_progress.js';
+import { ParticleFlowBackground } from '../../ui/particle_flow/particle_flow_background.js';
+import { CompactNavBar } from './navbar.js';
 
 interface Props {
     pauseAfterSetup: boolean;
@@ -28,23 +26,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
     const computeDb = useComputeDatabase();
     const storageReader = useStorageReader();
     const routeContext = useRouteContext();
-
-    // State to hide/show logs
-    const [showInternals, setShowInternals] = React.useState<boolean>(false);
-    // Compute the log button only once to prevent svg flickering
-    const internalsButton = React.useMemo(() => {
-        return (
-            <IconButton
-                variant={ButtonVariant.Invisible}
-                aria-label="Show Internals"
-                onClick={() => setShowInternals(s => !s)}
-            >
-                <svg width="16px" height="16px">
-                    <use xlinkHref={`${symbols}#processor`} />
-                </svg>
-            </IconButton>
-        );
-    }, []);
 
     // Subscribe core setup.
     // Core setup does not have to run to completion, we're skipping past the loader before the wasm setup is done.
@@ -104,19 +85,10 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
     }, [navigate]);
 
     return (
-        <div className={baseStyles.page} data-electron-drag-region>
-            <div className={baseStyles.banner_and_content_container} data-electron-drag-region>
-                <div className={baseStyles.banner_container} data-electron-drag-region>
-                    <div className={baseStyles.banner_logo} data-electron-drag-region>
-                        <svg width="100%" height="100%">
-                            <use xlinkHref={`${symbols}#dashql`} />
-                        </svg>
-                    </div>
-                    <div className={baseStyles.banner_text_container} data-electron-drag-region>
-                        <div className={baseStyles.banner_title} data-electron-drag-region>dashql</div>
-                        <div className={baseStyles.app_version} data-electron-drag-region>version {DASHQL_VERSION}</div>
-                    </div>
-                </div>
+        <div className={`${baseStyles.page} ${pageStyles.page}`} data-electron-drag-region>
+            <ParticleFlowBackground />
+            <CompactNavBar />
+            <div className={`${baseStyles.banner_and_content_container} ${pageStyles.foreground}`} data-electron-drag-region>
                 <div className={baseStyles.content_container} data-electron-drag-region>
                     <div className={baseStyles.card}>
                         <div className={baseStyles.card_header} data-electron-drag-region>
@@ -124,16 +96,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                 <div className={baseStyles.card_header_left_title}>
                                     Setup
                                 </div>
-                            </div>
-                            <div className={baseStyles.card_header_right_container}>
-                                <InternalsViewerOverlay
-                                    isOpen={showInternals}
-                                    onClose={() => setShowInternals(false)}
-                                    renderAnchor={(p: object) => <div {...p}>{internalsButton}</div>}
-                                    side={AnchorSide.OutsideBottom}
-                                    align={AnchorAlignment.End}
-                                    anchorOffset={16}
-                                />
                             </div>
                         </div>
                         <div className={baseStyles.card_section}>

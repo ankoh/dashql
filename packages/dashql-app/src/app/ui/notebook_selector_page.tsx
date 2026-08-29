@@ -22,7 +22,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { DASHQL_VERSION } from '../../globals.js';
 import { SELECT_NOTEBOOK, OPEN_NOTEBOOK, BEGIN_NOTEBOOK_SETUP, CANCEL_NOTEBOOK_SETUP, SKIP_NOTEBOOK_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
 import { NotebookSetupStatus } from '../router/notebook_setup_status.js';
 import { ConnectionRegistry, useDynamicConnectionDispatch } from '../notebook/connections/connection_registry.js';
@@ -50,8 +49,6 @@ import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { useKeyEvents, KeyEventHandler } from '../../utils/key_events.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { InvalidNotebook, describeNotebookValidationError } from '../notebook/persistence/notebook_validation.js';
 import { useComputationRegistry } from '../../compute/computation_registry.js';
 import { DELETE_COMPUTATION } from '../../compute/computation_state.js';
@@ -60,6 +57,8 @@ import { useHyperSetup } from '../notebook/connections/hyper/hyper_connection_se
 import { HYPER_CONNECTOR } from '../notebook/connections/connector_info.js';
 import { readNotebookBundleFromBrowserFolder } from '../notebook/persistence/browser_notebook_folder.js';
 import { useNotebookImport } from '../notebook/persistence/notebook_import_provider.js';
+import { ParticleFlowBackground } from '../../ui/particle_flow/particle_flow_background.js';
+import { CompactNavBar } from './navbar.js';
 
 interface Props {
     connectionRegistry: ConnectionRegistry;
@@ -102,7 +101,6 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const configNotebookId = routeContext.notebookSetupStatus === NotebookSetupStatus.CONFIGURING ? routeContext.notebookId : null;
     const [isEditMode, setIsEditMode] = React.useState(false);
     const [isCopyMode, setIsCopyMode] = React.useState(false);
-    const [showInternals, setShowInternals] = React.useState<boolean>(false);
     const [_registry, connectionDispatch] = useDynamicConnectionDispatch();
     const [, setConnReg] = useConnectionRegistry();
     const [, setNotebookScriptsRegistry] = useNotebookScriptsRegistry();
@@ -122,21 +120,6 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const [orderVersion, setOrderVersion] = React.useState(0);
 
     const canOpenFolder = storageReader.backend instanceof CompositeStorageBackend;
-
-    // Compute the internals button only once to prevent svg flickering
-    const internalsButton = React.useMemo(() => {
-        return (
-            <IconButton
-                variant={ButtonVariant.Invisible}
-                aria-label="Show Internals"
-                onClick={() => setShowInternals(s => !s)}
-            >
-                <svg width="16px" height="16px">
-                    <use xlinkHref={`${symbols}#processor`} />
-                </svg>
-            </IconButton>
-        );
-    }, []);
 
     // Build list of notebooks to display
     const notebooks = React.useMemo(() => {
@@ -517,26 +500,13 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     ]);
 
     return (
-        <div className={baseStyles.page} data-electron-drag-region>
-            <div className={baseStyles.banner_and_content_container} data-electron-drag-region>
-                {!configNotebookId && (
-                    <div className={baseStyles.banner_container} data-electron-drag-region>
-                        <div className={baseStyles.banner_logo} data-electron-drag-region>
-                            <svg width="100%" height="100%">
-                                <use xlinkHref={`${symbols}#dashql`} />
-                            </svg>
-                        </div>
-                        <div className={baseStyles.banner_text_container} data-electron-drag-region>
-                            <div className={baseStyles.banner_title} data-electron-drag-region>dashql</div>
-                            <div className={baseStyles.app_version} data-electron-drag-region>version {DASHQL_VERSION}</div>
-                        </div>
-                    </div>
-                )}
+        <div className={`${baseStyles.page} ${styles.page}`} data-electron-drag-region>
+            <ParticleFlowBackground />
+            <CompactNavBar />
+            <div className={`${baseStyles.banner_and_content_container} ${styles.foreground}`} data-electron-drag-region>
                 <div className={baseStyles.content_container} data-electron-drag-region>
                     {routeContext.notebookSetupStatus === NotebookSetupStatus.OPENING ? (
-                        <div className={`${baseStyles.card} ${styles.card_wrapper}`}>
-                            <div className={baseStyles.card_header} role="status" aria-live="polite">Opening notebook</div>
-                        </div>
+                        <div className={styles.opening_status} role="status">Opening notebook</div>
                     ) : configNotebookId ? (
                         <ConnectionConfigCard
                             notebookId={configNotebookId}
@@ -552,16 +522,6 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                     <div className={baseStyles.card_header_left_title}>
                                         Select Notebook
                                     </div>
-                                </div>
-                                <div className={baseStyles.card_header_right_container}>
-                                    <InternalsViewerOverlay
-                                        isOpen={showInternals}
-                                        onClose={() => setShowInternals(false)}
-                                        renderAnchor={(p: object) => <div {...p}>{internalsButton}</div>}
-                                        side={AnchorSide.OutsideBottom}
-                                        align={AnchorAlignment.End}
-                                        anchorOffset={16}
-                                    />
                                 </div>
                             </div>
                             <div className={baseStyles.card_section}>
