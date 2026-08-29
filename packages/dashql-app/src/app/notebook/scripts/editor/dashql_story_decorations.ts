@@ -40,6 +40,38 @@ export function hasStatementDescriptions(update: core.buffers.editor.EditorUpdat
     return (update?.scriptAnnotations?.statementDescriptions.length ?? 0) > 0;
 }
 
+function statementLabel(type: core.buffers.parser.StatementType): string {
+    switch (type) {
+        case core.buffers.parser.StatementType.CREATE_TABLE:
+        case core.buffers.parser.StatementType.CREATE_TABLE_AS:
+            return 'create table';
+        case core.buffers.parser.StatementType.CREATE_VIEW:
+            return 'create view';
+        case core.buffers.parser.StatementType.SELECT:
+            return 'select';
+        case core.buffers.parser.StatementType.SET:
+            return 'set';
+        case core.buffers.parser.StatementType.VIS_VISUALISE:
+            return 'visualize';
+        case core.buffers.parser.StatementType.CREATE_FUNCTION:
+            return 'create function';
+        case core.buffers.parser.StatementType.EXPLAIN:
+            return 'explain';
+        case core.buffers.parser.StatementType.DROP_TABLE:
+            return 'drop table';
+        case core.buffers.parser.StatementType.DROP_VIEW:
+            return 'drop view';
+        case core.buffers.parser.StatementType.SELECT_INTO:
+            return 'select into';
+        case core.buffers.parser.StatementType.ATTACH_DATABASE:
+            return 'attach database';
+        case core.buffers.parser.StatementType.INSERT:
+            return 'insert into';
+        default:
+            return 'statement';
+    }
+}
+
 function buildStoryModel(update: core.buffers.editor.EditorUpdateT | null, activation: StoryActivation): StoryModel | null {
     if (update == null || update.diagnostics.some(d => d.source !== core.buffers.editor.EditorDiagnosticSource.ANALYZER)) {
         return null;
@@ -57,9 +89,7 @@ function buildStoryModel(update: core.buffers.editor.EditorUpdateT | null, activ
             id: current.statementId,
             from,
             to,
-            label: current.statementType === core.buffers.parser.StatementType.VIS_VISUALISE
-                ? 'visualize statement'
-                : 'select statement',
+            label: statementLabel(current.statementType),
         });
     }
     return statements.length > 0 ? { statements } : null;
