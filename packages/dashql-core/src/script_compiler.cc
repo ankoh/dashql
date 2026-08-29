@@ -112,8 +112,10 @@ flatbuffers::Offset<buffers::execution::ScriptCompilationResult> ScriptCompilati
             builder.CreateString(statement.sql), statement_visualization));
     }
     auto statements_offset = builder.CreateVector(statement_offsets);
+    auto cache_signature_offset = builder.CreateString(cache_signature);
     return buffers::execution::CreateScriptCompilationResult(builder, kind, terminal_statement_id, sql_offset,
-                                                              visualization_offset, errors_offset, statements_offset);
+                                                               visualization_offset, errors_offset, statements_offset,
+                                                               cache_signature_offset, cacheable);
 }
 
 ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::formatting::FormattingConfigT& config,
@@ -150,6 +152,10 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
     }
     auto terminal_statement_id = static_cast<uint32_t>(parsed.statements.size() - 1);
     result.terminal_statement_id = terminal_statement_id;
+    const auto terminal_type = parsed.statements.back().type;
+    result.cacheable = terminal_type == buffers::parser::StatementType::SELECT ||
+                       terminal_type == buffers::parser::StatementType::EXPLAIN ||
+                       terminal_type == buffers::parser::StatementType::VIS_VISUALISE;
 
     auto descriptions = parsed.AssociateDescriptions();
     auto input = parsed.scanned_script->GetInput();
@@ -173,6 +179,7 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
         });
     }
     if (!result.errors.empty()) return result;
+    result.cache_signature = script.ComputeSignature(false);
 
     if ((parsed.feature_flags & execution_features) == 0) {
         result.kind = StatementKind::QUERY;

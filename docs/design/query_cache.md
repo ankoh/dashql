@@ -8,17 +8,19 @@ The cache stores an Arrow IPC stream for a result table. It applies only when th
 
 Notebook user queries opt in, including explicit execution, execute-on-send, agent-triggered visualization re-execution, and reruns. Shell queries never opt in: the notebook shell sets `cacheable: false`, and the standalone shell executes directly against its embedded database connection. Internal catalog, setup, and health-check queries also do not set the flag and therefore never read or write the cache. Merely loading or viewing a notebook does not execute queries or read cached results; a user-triggered execution is required.
 
-The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and query text. Callers must not mark a query cacheable when that assumption does not hold.
+The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and executable script AST. Only scripts whose terminal statement is `SELECT`, `EXPLAIN`, or `VISUALIZE` are cacheable. `CREATE TABLE`, `CREATE VIEW`, and other terminal commands always execute.
 
 ## Cache Key
 
 Each entry is addressed by a lowercase SHA-256 digest:
 
 ```
-SHA-256(stableJson(connectionParamsSignature) + "\n" + queryText)
+SHA-256("dashql-query-cache-v2" + framed(stableJson(connectionParamsSignature), scriptAstSignature))
 ```
 
-`createConnectionParamsSignature` produces the connector-specific signature and excludes transient connection state. Before hashing, `computeQueryResultCacheKey` recursively sorts object keys to make serialization independent of insertion order. The query string is used verbatim, so semantically equivalent SQL with different whitespace or spelling has distinct entries.
+`createConnectionParamsSignature` produces the connector-specific signature and excludes transient connection state. Before hashing, `computeQueryResultCacheKey` recursively sorts object keys to make serialization independent of insertion order. DashQL core derives the script signature from the parser output: statement order, identifiers, literals, operators, and AST structure participate, while whitespace, comments, source offsets, and parser allocation IDs do not. All statements contribute, including commands preceding the terminal result statement. A cache hit skips the complete script.
+
+For a terminal `VISUALIZE`, the signature includes its underlying `SELECT` but excludes the renderer and visualization specification. Result analysis and visualization projection run after cache loading, so visualization-only edits can reuse the same raw Arrow result.
 
 Result analysis and visualization projection are not part of the key. The executor always runs post-processing after either a cache hit or a backend result, allowing the same raw Arrow table to support the relevant analysis flow.
 
@@ -101,7 +103,7 @@ The internals overlay includes a notebook-scoped **Query Cache** tab. It lists p
 
 ## Limits and Correctness
 
-- Cache identity is scoped by the connection signature and exact query text, but not by an explicit cache version, TTL, backend data version, or catalog version.
+- Cache identity is scoped by the connection signature and a versioned semantic AST signature, but not by a TTL, backend data version, or catalog version.
 - The cache may return stale data after a backend changes. Use Refresh to invalidate a visible result, or change the SQL/signature to create a new key.
 - Corrupt or incompatible Arrow bytes are not self-healed by automatic deletion. Decode errors follow the executor's normal failure path; the entry can be removed from Refresh or the cache inspector.
 - A duplicate write for the same hash is safe because both writers represent the same key; last writer wins.

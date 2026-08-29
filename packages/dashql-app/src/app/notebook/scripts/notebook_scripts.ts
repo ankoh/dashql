@@ -1763,14 +1763,20 @@ function deriveScriptAnnotations(
     };
 }
 
-/// Compile a script into executable SQL.
+export interface CompiledNotebookQuery {
+    sql: string;
+    cacheSignature: string;
+    cacheable: boolean;
+}
+
+/// Compile a script into executable SQL and cache metadata.
 ///
 /// Statement classification, executable SQL extraction, and VISUALIZE
 /// source extraction all happen in dashql-core.
-export function compileQuery(
+export function compileNotebookQuery(
     scriptData: ScriptData,
     logger?: LoggerLike,
-): string {
+): CompiledNotebookQuery {
     logger?.debug('Compiling script for query execution', {
         scriptKey: scriptData.scriptKey.toString(),
         folderName: scriptData.folderName,
@@ -1807,10 +1813,18 @@ export function compileQuery(
             scriptKey: scriptData.scriptKey.toString(),
             sqlLength: sql.length.toString(),
         }, LOG_CTX);
-        return sql;
+        return {
+            sql,
+            cacheSignature: reader.cacheSignature() ?? '',
+            cacheable: reader.cacheable(),
+        };
     } finally {
         compiled.destroy();
     }
+}
+
+export function compileQuery(scriptData: ScriptData, logger?: LoggerLike): string {
+    return compileNotebookQuery(scriptData, logger).sql;
 }
 
 export function createScriptExecution(scriptData: ScriptData): core.DashQLScriptExecution {

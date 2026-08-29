@@ -4,8 +4,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iomanip>
 #include <memory>
 #include <optional>
+#include <sstream>
+#include <type_traits>
 #include <unordered_set>
 #include <variant>
 
@@ -20,9 +23,90 @@
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/script_compiler.h"
+#include "dashql/utils/ast_attributes.h"
 #include "dashql/visualize/vegalite.h"
 
 namespace dashql {
+
+namespace {
+
+using AttributeKey = buffers::parser::AttributeKey;
+using Node = buffers::parser::Node;
+using NodeType = buffers::parser::NodeType;
+using StatementType = buffers::parser::StatementType;
+
+constexpr uint8_t SCRIPT_SIGNATURE_VERSION = 1;
+
+bool IsEnumNode(NodeType type) {
+    auto id = static_cast<uint32_t>(type);
+    return (id > static_cast<uint32_t>(NodeType::ENUM_KEYS_) &&
+            id < static_cast<uint32_t>(NodeType::OBJECT_KEYS_)) ||
+           (id >= static_cast<uint32_t>(NodeType::ENUM_VIS_ENCODING_CHANNEL) &&
+            id <= static_cast<uint32_t>(NodeType::ENUM_VIS_SCALE_TYPE));
+}
+
+template <typename T>
+void AppendInteger(std::string& output, T value) {
+    using U = std::make_unsigned_t<T>;
+    auto encoded = static_cast<U>(value);
+    for (size_t i = 0; i < sizeof(U); ++i) {
+        output.push_back(static_cast<char>((encoded >> (i * 8)) & 0xff));
+    }
+}
+
+void AppendText(std::string& output, std::string_view text) {
+    AppendInteger<uint64_t>(output, text.size());
+    output.append(text);
+}
+
+void AppendSignatureNode(const ParsedScript& parsed, const Node& node, std::string& output,
+                         bool normalize_attribute = false) {
+    const auto type = node.node_type();
+    AppendInteger<uint16_t>(output, static_cast<uint16_t>(type));
+    AppendInteger<uint16_t>(output,
+                            normalize_attribute ? 0 : static_cast<uint16_t>(node.attribute_key()));
+
+    switch (type) {
+        case NodeType::NONE:
+        case NodeType::LITERAL_NULL:
+            break;
+        case NodeType::BOOL:
+            AppendInteger<uint8_t>(output, node.children_begin_or_value() != 0);
+            break;
+        case NodeType::NAME:
+            AppendText(output, parsed.scanned_script->name_registry.At(node.children_begin_or_value()).text);
+            break;
+        case NodeType::OPERATOR:
+        case NodeType::LITERAL_INTEGER:
+        case NodeType::LITERAL_FLOAT:
+        case NodeType::LITERAL_STRING:
+        case NodeType::LITERAL_INTERVAL:
+            AppendText(output, parsed.scanned_script->ReadTextAtSymbolSpan(node.symbol_span()));
+            break;
+        case NodeType::ARRAY:
+            AppendInteger<uint32_t>(output, node.children_count());
+            break;
+        default:
+            if (IsEnumNode(type)) {
+                AppendInteger<uint32_t>(output, node.children_begin_or_value());
+            } else {
+                AppendInteger<uint32_t>(output, node.children_count());
+            }
+            break;
+    }
+}
+
+std::array<uint64_t, 2> HashSignatureBytes(std::string_view bytes) {
+    std::array<uint64_t, 2> digest{14695981039346656037ull, 7809847782465536322ull};
+    for (auto byte : bytes) {
+        auto value = static_cast<uint8_t>(byte);
+        digest[0] = (digest[0] ^ value) * 1099511628211ull;
+        digest[1] = (digest[1] ^ static_cast<uint8_t>(value + 0x9d)) * 1099511628211ull;
+    }
+    return digest;
+}
+
+}  // namespace
 
 /// Helper template for static_assert in generic visitor
 template <typename T> constexpr bool always_false = false;
@@ -1334,6 +1418,61 @@ std::string Script::GetStatementText(bool parse_if_outdated) {
         return {};
     }
     return ToString(descriptions.front().statement_span);
+}
+
+std::string Script::ComputeSignature(bool parse_if_outdated) {
+    CheckNotBusy();
+    if (parse_if_outdated &&
+        (parsed_script == nullptr || parsed_script->scanned_script->text_version != text_version)) {
+        Parse();
+    }
+    if (!parsed_script || !parsed_script->scanned_script->errors.empty() || !parsed_script->errors.empty()) {
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    }
+
+    std::string script_bytes;
+    script_bytes.append("DQLSIG", 6);
+    AppendInteger<uint8_t>(script_bytes, SCRIPT_SIGNATURE_VERSION);
+    AppendInteger<uint32_t>(script_bytes, parsed_script->statements.size());
+    for (size_t i = 0; i < parsed_script->statements.size(); ++i) {
+        const auto& statement = parsed_script->statements[i];
+        auto type = statement.type;
+        std::optional<SymbolSpan> included_span;
+        std::optional<NodeID> included_root;
+        if (i + 1 == parsed_script->statements.size() && type == StatementType::VIS_VISUALISE) {
+            const auto& wrapper = parsed_script->nodes[statement.root];
+            auto [source] = LookupAttributes<AttributeKey::VIS_VISUALISE_SELECT>(
+                std::span{parsed_script->nodes}.subspan(wrapper.children_begin_or_value(), wrapper.children_count()));
+            if (!source) throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+            included_span = source->symbol_span();
+            included_root = static_cast<NodeID>(source - parsed_script->nodes.data());
+            type = StatementType::SELECT;
+        }
+
+        std::string statement_bytes;
+        for (size_t node_id = statement.nodes_begin;
+             node_id < statement.nodes_begin + statement.node_count;
+             ++node_id) {
+            const auto& node = parsed_script->nodes[node_id];
+            if (included_span) {
+                const auto span = node.symbol_span();
+                const auto included_end = included_span->offset() + included_span->length();
+                const auto node_end = span.offset() + span.length();
+                if (span.offset() < included_span->offset() || node_end > included_end) continue;
+            }
+            AppendSignatureNode(*parsed_script, node, statement_bytes, included_root == node_id);
+        }
+        const auto statement_digest = HashSignatureBytes(statement_bytes);
+        AppendInteger<uint8_t>(script_bytes, static_cast<uint8_t>(type));
+        AppendInteger<uint64_t>(script_bytes, statement_digest[0]);
+        AppendInteger<uint64_t>(script_bytes, statement_digest[1]);
+    }
+
+    const auto digest = HashSignatureBytes(script_bytes);
+    std::ostringstream output;
+    output << std::hex << std::setfill('0');
+    output << std::setw(16) << digest[0] << std::setw(16) << digest[1];
+    return output.str();
 }
 
 ScriptCompilationResult Script::CompileQuery(const buffers::formatting::FormattingConfigT& config,

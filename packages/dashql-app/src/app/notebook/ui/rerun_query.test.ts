@@ -19,7 +19,12 @@ describe('registerNotebookScriptQuery', () => {
 describe('runNotebookScript', () => {
     it('analyzes an outdated script before compiling and executing it', async () => {
         const compileQuery = vi.fn(() => ({
-            read: () => ({ errorsLength: () => 0, sql: () => 'SELECT 1' }),
+            read: () => ({
+                errorsLength: () => 0,
+                sql: () => 'SELECT 1',
+                cacheSignature: () => 'signature',
+                cacheable: () => true,
+            }),
             destroy: () => { },
         }));
         const scriptExecution = {};
@@ -61,7 +66,8 @@ describe('runNotebookScript', () => {
         expect(executeQuery).toHaveBeenCalledWith('connection', expect.objectContaining({
             query: 'SELECT 1',
             scriptExecution,
-            cacheable: false,
+            cacheable: true,
+            cacheSignature: 'signature',
         }));
         expect(modifyNotebookScripts).toHaveBeenNthCalledWith(2, {
             type: REGISTER_QUERY,

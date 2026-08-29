@@ -174,6 +174,8 @@ function makeScriptData(scriptKey: number, text: string, fileName: string = '', 
                 read: () => ({
                     errorsLength: () => 0,
                     sql: () => text,
+                    cacheSignature: () => `signature:${text}`,
+                    cacheable: () => true,
                 }),
                 destroy: () => { },
             }),
@@ -465,7 +467,8 @@ describe('NotebookFeed', () => {
 
         expect(mockState.executeQuery).toHaveBeenCalledWith('test-connection', expect.objectContaining({
             query: 'select 2',
-            cacheable: false,
+            cacheable: true,
+            cacheSignature: 'signature:select 2',
         }));
         expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [102, 42] });
         expect(modifyNotebookScripts).not.toHaveBeenCalledWith(expect.objectContaining({ type: SELECT_SCRIPT }));

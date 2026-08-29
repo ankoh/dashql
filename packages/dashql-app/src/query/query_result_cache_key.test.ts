@@ -15,7 +15,7 @@ describe('computeQueryResultCacheKey', () => {
         expect(key).toMatch(/^[0-9a-f]{64}$/);
     });
 
-    it('changes when the query text changes', async () => {
+    it('changes when the script signature changes', async () => {
         const a = await computeQueryResultCacheKey(sig, 'SELECT 1');
         const b = await computeQueryResultCacheKey(sig, 'SELECT 2');
         expect(a).not.toBe(b);
@@ -38,5 +38,14 @@ describe('computeQueryResultCacheKey', () => {
         const a = await computeQueryResultCacheKey('ab', 'c');
         const b = await computeQueryResultCacheKey('a', 'bc');
         expect(a).not.toBe(b);
+    });
+
+    it('uses a new namespace from the former query-text key', async () => {
+        const signature = '0123456789abcdef0123456789abcdef';
+        const key = await computeQueryResultCacheKey(sig, signature);
+        const oldInput = `${JSON.stringify(sig)}\n${signature}`;
+        const oldDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(oldInput));
+        const oldKey = Array.from(new Uint8Array(oldDigest), byte => byte.toString(16).padStart(2, '0')).join('');
+        expect(key).not.toBe(oldKey);
     });
 });
