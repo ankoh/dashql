@@ -24,6 +24,7 @@ cp "${WORKSPACE_ROOT}/packages/dashql-native/Entitlements.plist" "${STAGE}/Entit
 cp "${WORKSPACE_ROOT}/misc/logo-dashql-glyphs/app_icons_mac.icns" "${STAGE}/icon.icns"
 cp -R "${WORKSPACE_ROOT}/packages/dashql-app/electron_deploy/." "${STAGE}/renderer/"
 cp "${ADDON_PATH}" "${STAGE}/dashql_native_napi.node"
+chmod -R u+w "${STAGE}"
 ln -s "${WORKSPACE_ROOT}/node_modules" "${STAGE}/node_modules"
 
 BUILDER_ARGS=(--config "${STAGE}/electron-builder.yml")
