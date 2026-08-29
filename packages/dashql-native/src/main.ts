@@ -504,11 +504,11 @@ if (!hasSingleInstanceLock) {
         const target = requirePath(args[0]);
         switch (operation) {
             case "exists": try { await access(target); return true; } catch { return false; }
-            case "mkdir": return await mkdir(target, {recursive: (args[1] as {recursive?: boolean} | undefined)?.recursive});
+            case "mkdir": return await mkdir(target, {recursive: (args[1] as {recursive?: boolean} | undefined)?.recursive ?? false});
             case "readDir": return (await readdir(target, {withFileTypes: true})).map(entry => ({name: entry.name, isFile: entry.isFile(), isDirectory: entry.isDirectory(), isSymlink: entry.isSymbolicLink()}));
             case "readFile": return new Uint8Array(await readFile(target));
             case "readTextFile": return await readFile(target, "utf8");
-            case "remove": return await rm(target, {recursive: (args[1] as {recursive?: boolean} | undefined)?.recursive, force: false});
+            case "remove": return await rm(target, {recursive: (args[1] as {recursive?: boolean} | undefined)?.recursive ?? false, force: false});
             case "rename": return await rename(target, requirePath(args[1]));
             case "stat": { const value = await stat(target); return {size: value.size, mtime: value.mtime.toISOString(), isFile: value.isFile(), isDirectory: value.isDirectory(), isSymlink: value.isSymbolicLink()}; }
             case "writeFile": return await writeFile(target, typeof args[1] === "string" ? args[1] : Buffer.from(args[1] as Uint8Array));
