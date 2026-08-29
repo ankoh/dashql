@@ -6,18 +6,26 @@ import type { EditorView } from '@codemirror/view';
 
 import type { ScriptData } from '../scripts/notebook_scripts.js';
 import { createReadonlyCodeMirrorExtensions } from '../scripts/editor/codemirror.js';
-import { analyzeScript, DashQLScriptBuffers, DashQLUpdateEffect } from '../scripts/editor/dashql_processor.js';
+import { DashQLUpdateEffect } from '../scripts/editor/dashql_processor.js';
 
 interface FormatPreviewResources {
     editorState: EditorState;
     text: string;
-    buffers: DashQLScriptBuffers;
-    script: dashql.DashQLScript;
 }
 
-function releaseResources(resources: FormatPreviewResources | null): void {
-    resources?.buffers.destroy(resources.buffers);
-    resources?.script.ptr.destroy();
+export function projectFormattedText(
+    instance: dashql.DashQL,
+    text: string,
+): dashql.buffers.editor.EditorUpdateT {
+    const catalog = instance.createCatalog();
+    const session = instance.createEditorSession(catalog);
+    try {
+        session.replaceText(0n, text);
+        return session.ensureAnalysis();
+    } finally {
+        session.destroy();
+        catalog.destroy();
+    }
 }
 
 export function useScriptFormatPreview(
@@ -33,7 +41,6 @@ export function useScriptFormatPreview(
     const [formatPending, setFormatPending] = React.useState(false);
 
     const clearPreview = React.useCallback(() => {
-        releaseResources(resourcesRef.current);
         resourcesRef.current = null;
         setFormatPending(false);
     }, []);
@@ -56,16 +63,11 @@ export function useScriptFormatPreview(
 
             const formattedText = formattedScript.toString();
             if (formattedText === editorView.state.doc.toString()) return;
-            formattedScript.parse();
-            const buffers = analyzeScript(formattedScript);
+            const editorUpdate = projectFormattedText(scriptData.editorSession.ptr.api, formattedText);
             const resources = {
                 editorState: editorView.state,
                 text: formattedText,
-                buffers,
-                script: formattedScript,
             };
-            formattedScript = null;
-            releaseResources(resourcesRef.current);
             resourcesRef.current = resources;
 
             editorView.setState(EditorState.create({
@@ -75,10 +77,10 @@ export function useScriptFormatPreview(
             editorView.contentDOM.blur();
             editorView.dispatch({
                 effects: DashQLUpdateEffect.of({
-                    scriptKey: resources.script.getCatalogEntryId(),
+                    scriptKey: scriptData.scriptKey,
                     editorSession: null,
-                    editorUpdate: null,
-                    scriptBuffers: buffers,
+                    editorUpdate,
+                    scriptBuffers: null,
                     scriptCompletion: null,
                     scriptPendingDiff: null,
                     derivedFocus: null,
