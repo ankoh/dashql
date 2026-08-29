@@ -28,6 +28,11 @@ import '../styles/globals.css';
 
 export const Shell: React.FC = () => {
     const [engineVersion, setEngineVersion] = React.useState<string | null>(null);
+    const [shellGeneration, setShellGeneration] = React.useState(0);
+    const resetShell = () => {
+        setEngineVersion(null);
+        setShellGeneration(generation => generation + 1);
+    };
 
     return (
         <BrowserRouter>
@@ -45,11 +50,14 @@ export const Shell: React.FC = () => {
                                                     <DashQLCoreProvider>
                                                         <ComputationRegistry>
                                                             <ConnectionRegistry>
-                                                                <ShellConnectionProvider>
+                                                                <ShellConnectionProvider key={shellGeneration}>
                                                                     <ShellComputeQueryExecutionProvider>
                                                                         <ComputationScheduler />
                                                                         <div className={styles.root}>
-                                                                            <ShellNavBar engineVersion={engineVersion} />
+                                                                            <ShellNavBar
+                                                                                engineVersion={engineVersion}
+                                                                                onReset={resetShell}
+                                                                            />
                                                                             <ShellPage onEngineVersion={setEngineVersion} />
                                                                         </div>
                                                                     </ShellComputeQueryExecutionProvider>

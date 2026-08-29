@@ -12,13 +12,23 @@
     align-items: center;
     min-width: 0;
     margin-left: 20px;
+    padding: 0;
+    border: 0;
     height: 100%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
 }
 
 .brand_logo {
     display: block;
     width: 80px;
     height: 100%;
+}
+
+.brand:focus-visible {
+    outline: 2px solid white;
+    outline-offset: -2px;
 }
 
 .actions {
