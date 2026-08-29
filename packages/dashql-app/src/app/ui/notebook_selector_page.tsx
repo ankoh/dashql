@@ -23,7 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { DASHQL_VERSION } from '../../globals.js';
-import { SELECT_NOTEBOOK, BEGIN_NOTEBOOK_SETUP, CANCEL_NOTEBOOK_SETUP, SKIP_NOTEBOOK_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
+import { SELECT_NOTEBOOK, OPEN_NOTEBOOK, BEGIN_NOTEBOOK_SETUP, CANCEL_NOTEBOOK_SETUP, SKIP_NOTEBOOK_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
 import { NotebookSetupStatus } from '../router/notebook_setup_status.js';
 import { ConnectionRegistry, useDynamicConnectionDispatch } from '../notebook/connections/connection_registry.js';
 import { DELETE_CONNECTION } from '../notebook/connections/connection_state.js';
@@ -57,6 +57,8 @@ import { InvalidNotebook, describeNotebookValidationError } from '../notebook/pe
 import { useComputationRegistry } from '../../compute/computation_registry.js';
 import { DELETE_COMPUTATION } from '../../compute/computation_state.js';
 import { useCancelAgentRun } from '../notebook/agent/agent_run_provider.js';
+import { useHyperSetup } from '../notebook/connections/hyper/hyper_connection_setup.js';
+import { HYPER_CONNECTOR } from '../notebook/connections/connector_info.js';
 
 interface Props {
     connectionRegistry: ConnectionRegistry;
@@ -110,6 +112,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const storageReader = useStorageReader();
     const logger = useLogger();
     const platform = usePlatformType();
+    const hyperSetup = useHyperSetup();
     // The manifest notebook order lives in mutable backend state (see storageReader.getNotebookOrder).
     // Bumping this after a drag-persist forces the list to re-read and re-render in the new order.
     const [orderVersion, setOrderVersion] = React.useState(0);
@@ -261,13 +264,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
             return;
         }
 
-        if (conn.connectionHealth === ConnectionHealth.ONLINE) {
-            navigate({ type: SELECT_NOTEBOOK, value: notebookId });
-            return;
-        }
-
-        // Show the connection card for disconnected notebooks
-        navigate({ type: BEGIN_NOTEBOOK_SETUP, value: notebookId });
+        navigate({ type: OPEN_NOTEBOOK, value: notebookId });
     }, [navigate, props.connectionRegistry]);
 
     const handleCreateNewNotebook = React.useCallback(() => {
@@ -361,6 +358,57 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         navigate({ type: SELECT_NOTEBOOK, value: notebookId });
     }, [navigate, props.connectionRegistry, props.notebookScriptsRegistry, props.setupNotebookScripts]);
 
+    const openingAttempt = React.useRef<{ connectionId: string; abort: AbortController } | null>(null);
+    React.useEffect(() => {
+        if (routeContext.notebookSetupStatus !== NotebookSetupStatus.OPENING || routeContext.notebookId == null) {
+            openingAttempt.current?.abort.abort('notebook opening changed');
+            openingAttempt.current = null;
+            return;
+        }
+
+        const notebookId = routeContext.notebookId;
+        const connectionId = props.connectionRegistry.connectionByNotebook.get(notebookId);
+        if (connectionId == null) return;
+        const conn = props.connectionRegistry.connectionMap.get(connectionId);
+        if (!conn || openingAttempt.current?.connectionId === connectionId) return;
+
+        if (conn.connectionHealth === ConnectionHealth.ONLINE) {
+            handleConnected(notebookId);
+            return;
+        }
+
+        if (conn.details.type !== HYPER_CONNECTOR ||
+            conn.details.value.proto.setupParams?.protocol !== 'WASM' ||
+            conn.connectionHealth !== ConnectionHealth.NOT_STARTED ||
+            !hyperSetup) {
+            navigate({ type: BEGIN_NOTEBOOK_SETUP, value: notebookId });
+            return;
+        }
+        const params = conn.details.value.proto.setupParams;
+
+        openingAttempt.current?.abort.abort('notebook opening changed');
+        const abort = new AbortController();
+        openingAttempt.current = { connectionId, abort };
+        hyperSetup.setup(
+            action => connectionDispatch(connectionId, action),
+            params,
+            abort.signal,
+        ).then(() => {
+            if (!abort.signal.aborted) handleConnected(notebookId);
+        }).catch(() => {
+            if (!abort.signal.aborted) navigate({ type: BEGIN_NOTEBOOK_SETUP, value: notebookId });
+        });
+    }, [
+        routeContext.notebookSetupStatus,
+        routeContext.notebookId,
+        props.connectionRegistry,
+        hyperSetup,
+        connectionDispatch,
+        handleConnected,
+        navigate,
+    ]);
+    React.useEffect(() => () => openingAttempt.current?.abort.abort('notebook selector unmounted'), []);
+
     const handleSkip = React.useCallback(() => {
         navigate({ type: SKIP_NOTEBOOK_SETUP, value: null });
     }, [navigate]);
@@ -452,7 +500,11 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                     </div>
                 )}
                 <div className={baseStyles.content_container} data-electron-drag-region>
-                    {configNotebookId ? (
+                    {routeContext.notebookSetupStatus === NotebookSetupStatus.OPENING ? (
+                        <div className={`${baseStyles.card} ${styles.card_wrapper}`}>
+                            <div className={baseStyles.card_header} role="status" aria-live="polite">Opening notebook</div>
+                        </div>
+                    ) : configNotebookId ? (
                         <ConnectionConfigCard
                             notebookId={configNotebookId}
                             onBack={handleBack}
