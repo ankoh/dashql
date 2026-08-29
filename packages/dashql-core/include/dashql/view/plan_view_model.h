@@ -116,6 +116,19 @@ class PlanViewModel {
                                          StringDictionary& strings) const;
     };
     struct OperatorNode;
+    /// A non-containment relationship between operators.
+    struct OperatorCrossEdge {
+        /// The edge id
+        uint32_t edge_id = 0;
+        /// The referenced producer operator
+        uint32_t source_node = 0;
+        /// The operator containing the reference
+        uint32_t target_node = 0;
+        /// The relationship kind
+        std::string_view kind;
+        /// Additional reference attributes serialized as JSON
+        std::vector<std::pair<std::string_view, std::string>> attributes;
+    };
     /// An operator edge
     struct OperatorEdge {
         /// The edge id
@@ -158,6 +171,10 @@ class PlanViewModel {
         size_t children_count = 0;
         /// The child edges
         std::span<OperatorEdge> child_edges;
+        /// The begin of outgoing cross edges
+        size_t cross_edges_begin = 0;
+        /// The number of outgoing cross edges
+        size_t cross_edge_count = 0;
         /// The layout info
         std::optional<buffers::view::PlanLayoutRect> layout_rect;
 
@@ -187,6 +204,8 @@ class PlanViewModel {
     std::vector<OperatorNode> operators;
     /// The operator edges
     std::vector<OperatorEdge> operator_edges;
+    /// The operator cross edges
+    std::vector<OperatorCrossEdge> operator_cross_edges;
     /// The root operators
     std::vector<uint32_t> root_operators;
     /// The pipelines
@@ -205,6 +224,8 @@ class PlanViewModel {
                           std::vector<std::reference_wrapper<ParsedOperatorNode>>&& roots);
     /// Identify the operators edges
     void IdentifyOperatorEdges(std::span<OperatorNode> ops, size_t child_edge_count);
+    /// Resolve non-containment operator references
+    void IdentifyOperatorCrossEdges();
     /// Identify fragments introduced by federate operators
     void IdentifyFragments();
     /// Read explicit Hyper pipelines. Plans without this field have no pipelines.

@@ -40,6 +40,15 @@ export interface PlanSceneEdge {
     path: string;
 }
 
+export interface PlanSceneCrossEdge {
+    id: bigint;
+    sourceOperator: number;
+    targetOperator: number;
+    kind: string;
+    properties: Record<string, unknown>;
+    path: string;
+}
+
 export interface PlanScenePipeline {
     id: number;
     operatorIds: readonly number[];
@@ -58,6 +67,7 @@ export interface PlanScene {
     layoutConfig: dashql.buffers.view.DerivedPlanLayoutConfigT;
     operators: readonly PlanSceneOperator[];
     edges: readonly PlanSceneEdge[];
+    crossEdges: readonly PlanSceneCrossEdge[];
     fragments: readonly PlanSceneFragment[];
     pipelines: readonly PlanScenePipeline[];
 }
@@ -71,6 +81,28 @@ function readProperties(vm: dashql.buffers.view.PlanViewModel, op: dashql.buffer
     const attribute = new dashql.buffers.view.PlanAttribute();
     for (let i = 0; i < op.attributeCount(); ++i) {
         const value = vm.attributes(op.attributesBegin() + i, attribute);
+        if (value == null) continue;
+        const name = readString(vm, value.name());
+        const json = readString(vm, value.valueJson());
+        if (name == null || json == null) continue;
+        try {
+            properties[name] = JSON.parse(json);
+        } catch {
+            properties[name] = json;
+        }
+    }
+    return properties;
+}
+
+function readAttributeRange(
+    vm: dashql.buffers.view.PlanViewModel,
+    begin: number,
+    count: number,
+): Record<string, unknown> {
+    const properties: Record<string, unknown> = {};
+    const attribute = new dashql.buffers.view.PlanAttribute();
+    for (let i = 0; i < count; ++i) {
+        const value = vm.attributes(begin + i, attribute);
         if (value == null) continue;
         const name = readString(vm, value.name());
         const json = readString(vm, value.valueJson());
@@ -406,6 +438,30 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         });
     }
 
+    const crossEdges: PlanSceneCrossEdge[] = [];
+    const tmpCrossEdge = new dashql.buffers.view.PlanOperatorCrossEdge();
+    for (let i = 0; i < vm.operatorCrossEdgesLength(); ++i) {
+        const edge = vm.operatorCrossEdges(i, tmpCrossEdge)!;
+        const source = operators[edge.sourceNode()];
+        const target = operators[edge.targetNode()];
+        if (source == null || target == null) continue;
+        const properties = readAttributeRange(vm, edge.attributesBegin(), edge.attributeCount());
+        const edgeType = selectVerticalEdgeType(source.rect.x, source.rect.y, target.rect.x, target.rect.y);
+        const path = buildEdgePathBetweenRectangles(
+            new PathBuilder(), edgeType,
+            source.rect.x, source.rect.y, target.rect.x, target.rect.y,
+            source.rect.width, source.rect.height, target.rect.width, target.rect.height, 4, 6,
+        ).render();
+        crossEdges.push({
+            id: edge.edgeId(),
+            sourceOperator: source.id,
+            targetOperator: target.id,
+            kind: typeof properties.kind === 'string' ? properties.kind : 'reference',
+            properties,
+            path,
+        });
+    }
+
     const fragments: PlanSceneFragment[] = [];
     const tmpFragment = new dashql.buffers.view.PlanFragment();
     for (let i = 0; i < vm.fragmentsLength(); ++i) {
@@ -447,6 +503,7 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         layoutConfig,
         operators,
         edges,
+        crossEdges,
         fragments,
         pipelines,
     };

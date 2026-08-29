@@ -29,6 +29,16 @@
     stroke-linejoin: round;
 }
 
+.crossEdge {
+    fill: none;
+    stroke: hsl(309, 45%, 52%);
+    stroke-width: 1.5px;
+    stroke-dasharray: 6 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
 .fragment {
     pointer-events: none;
     fill: hsl(211, 100%, 97%);

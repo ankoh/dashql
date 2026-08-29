@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -95,6 +97,81 @@ TEST(HyperPlanTest, ExplicitPipelinesAndProperties) {
     EXPECT_EQ(plan->pipeline_edges()->Get(0)->child_operator(), 0);
     EXPECT_EQ(plan->pipeline_edges()->Get(0)->parent_operator(), 1);
     EXPECT_GT(plan->operators()->Get(0)->attribute_count(), 0);
+}
+
+TEST(HyperPlanTest, ResolvesOperatorCrossEdges) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"executiontarget","operatorId":1,
+        "input":{"operator":"unionall","operatorId":2,"input":[
+            {"operator":"explicitscan","operatorId":3,
+             "input":{"operator":"groupby","operatorId":4,"input":{"operator":"tablescan","operatorId":5}}},
+            {"operator":"explicitscan","operatorId":6,"input":4},
+            {"operator":"leftouterjoin","operatorId":7,"magic":4,
+             "left":{"operator":"tablescan","operatorId":8,"earlyProbes":[
+                 {"builder":7,"attributes":[0],"type":"lookup"},
+                 {"builder":4,"attributes":[1],"type":"minmaxonly"}
+             ]},
+             "right":{"operator":"earlyprobe","operatorId":9,"builder":7}},
+            {"operator":"iteration","operator-id":10,
+             "input":{"operator":"iterationincrement","operator-id":11,"source":10}}
+        ]}
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_NE(plan->operator_cross_edges(), nullptr);
+    ASSERT_EQ(plan->operator_cross_edges()->size(), 6);
+    ASSERT_NE(plan->attributes(), nullptr);
+
+    std::vector<std::string_view> kinds;
+    std::unordered_map<std::string_view, const buffers::view::PlanOperatorCrossEdge*> edges_by_kind;
+    for (const auto* edge : *plan->operator_cross_edges()) {
+        ASSERT_LT(edge->source_node(), plan->operators()->size());
+        ASSERT_LT(edge->target_node(), plan->operators()->size());
+        ASSERT_GE(edge->attribute_count(), 1);
+        const auto* attribute = plan->attributes()->Get(edge->attributes_begin());
+        EXPECT_EQ(plan->string_dictionary()->Get(attribute->name())->string_view(), "kind");
+        kinds.push_back(plan->string_dictionary()->Get(attribute->value_json())->string_view());
+        edges_by_kind.emplace(kinds.back(), edge);
+    }
+    EXPECT_EQ(std::count(kinds.begin(), kinds.end(), R"("input")"), 1);
+    EXPECT_EQ(std::count(kinds.begin(), kinds.end(), R"("magic")"), 1);
+    EXPECT_EQ(std::count(kinds.begin(), kinds.end(), R"("early-probe")"), 2);
+    EXPECT_EQ(std::count(kinds.begin(), kinds.end(), R"("builder")"), 1);
+    EXPECT_EQ(std::count(kinds.begin(), kinds.end(), R"("source")"), 1);
+    auto source_operator_id = [&](uint32_t operator_id) {
+        const auto* op = plan->operators()->Get(operator_id);
+        for (size_t i = 0; i < op->attribute_count(); ++i) {
+            const auto* attribute = plan->attributes()->Get(op->attributes_begin() + i);
+            auto name = plan->string_dictionary()->Get(attribute->name())->string_view();
+            if (name == "operatorId" || name == "operator-id") {
+                return std::stoull(plan->string_dictionary()->Get(attribute->value_json())->str());
+            }
+        }
+        return uint64_t{0};
+    };
+    EXPECT_EQ(source_operator_id(edges_by_kind.at(R"("input")")->source_node()), 4);
+    EXPECT_EQ(source_operator_id(edges_by_kind.at(R"("input")")->target_node()), 6);
+    EXPECT_EQ(source_operator_id(edges_by_kind.at(R"("source")")->source_node()), 10);
+    EXPECT_EQ(source_operator_id(edges_by_kind.at(R"("source")")->target_node()), 11);
+
+    for (const auto* op : *plan->operators()) {
+        for (size_t i = 0; i < op->cross_edge_count(); ++i) {
+            EXPECT_EQ(plan->operator_cross_edges()->Get(op->cross_edges_begin() + i)->source_node(), op->operator_id());
+        }
+    }
+    EXPECT_EQ(plan->operator_edges()->size(), plan->operators()->size() - 1);
+    EXPECT_EQ(plan->root_operators()->size(), 1);
+}
+
+TEST(HyperPlanTest, IgnoresUnknownAndUnrelatedNumericProperties) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"executiontarget","operatorId":1,"cardinality":42,
+        "input":{"operator":"explicitscan","operatorId":2,"input":999,"relationId":1}
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_NE(plan->operator_cross_edges(), nullptr);
+    EXPECT_EQ(plan->operator_cross_edges()->size(), 0);
 }
 
 TEST(HyperPlanTest, ExecutionTargetCreatesRootFragmentButDoesNotInferPipelines) {

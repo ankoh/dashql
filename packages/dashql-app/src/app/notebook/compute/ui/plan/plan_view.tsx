@@ -68,6 +68,18 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
             : edge.outputCardinalityEstimated)),
         [metric, scene.edges],
     );
+    const describeCrossEdge = React.useCallback((operator: PlanSceneOperator) => {
+        const relationships = scene.crossEdges.flatMap(edge => {
+            if (edge.sourceOperator === operator.id) {
+                return [`provides ${edge.kind} to ${scene.operators[edge.targetOperator]?.label ?? 'operator'}`];
+            }
+            if (edge.targetOperator === operator.id) {
+                return [`uses ${edge.kind} from ${scene.operators[edge.sourceOperator]?.label ?? 'operator'}`];
+            }
+            return [];
+        });
+        return relationships.length > 0 ? `; ${relationships.join('; ')}` : '';
+    }, [scene.crossEdges, scene.operators]);
 
     React.useLayoutEffect(() => {
         controller.reset(scene.operators.length, scene.pipelines.length);
@@ -195,6 +207,16 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                             />
                         ))}
                     </g>
+                    <g aria-hidden="true">
+                        {scene.crossEdges.map(edge => (
+                            <path
+                                key={edge.id.toString()}
+                                className={styles.crossEdge}
+                                data-kind={edge.kind}
+                                d={edge.path}
+                            />
+                        ))}
+                    </g>
                     <g>
                         {scene.operators.map(operator => (
                             <PlanOperatorNode
@@ -204,6 +226,7 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                                 showProgress={showProgress}
                                 selected={selection?.operator.id === operator.id}
                                 controller={controller}
+                                relationshipDescription={describeCrossEdge(operator)}
                                 onSelect={(selected, anchor) => setSelection(current => current?.operator.id === selected.id ? null : { operator: selected, anchor })}
                             />
                         ))}
@@ -268,6 +291,7 @@ function PlanOperatorNode(props: {
     showProgress: boolean;
     selected: boolean;
     controller: PlanExecutionController;
+    relationshipDescription: string;
     onSelect: (operator: PlanSceneOperator, anchor: SVGGElement) => void;
 }) {
     const { operator, scene } = props;
@@ -293,7 +317,7 @@ function PlanOperatorNode(props: {
             transform={`translate(${x}, ${y})`}
             role="button"
             tabIndex={0}
-            aria-label={`${operator.label}, show properties`}
+            aria-label={`${operator.label}${props.relationshipDescription}, show properties`}
             aria-expanded={props.selected}
             onClick={activate}
             onKeyDown={activate}
