@@ -76,12 +76,12 @@ function extractContextAndTraceFields(keyValues: Record<string, string | null | 
 /// Functions that just emit logs (and don't touch buffer/statistics/destroy)
 /// should accept this type so either a raw or traced logger can be passed in.
 export interface LoggerLike {
-    trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void;
-    debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void;
-    info(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void;
-    warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void;
-    error(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void;
-    exception(error: any, pipeToConsole?: boolean): void;
+    trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
+    debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
+    info(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
+    warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
+    error(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void;
+    exception(error: any): void;
 }
 
 export class LoggableException extends Error {
@@ -130,11 +130,6 @@ export abstract class Logger {
     public abstract destroy(): void;
     /// Helper to flush pending records
     protected abstract flushPendingRecords(): void;
-    /// Write a value to the platform console
-    protected pipeToConsole(value: unknown): void {
-        console.log(value);
-    }
-
     /// Access the log buffer
     public get buffer() { return this.outputBuffer; }
     /// Access the log statistics
@@ -152,64 +147,46 @@ export abstract class Logger {
         this.flushPendingRecords();
     }
     /// Log a trace message
-    public trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
         const entry = buildRecord(LogLevel.Trace, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
-        if (pipeToConsole) {
-            this.pipeToConsole(entry);
-        }
     }
     /// Log an debug message
-    public debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
         const entry = buildRecord(LogLevel.Debug, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
-        if (pipeToConsole) {
-            this.pipeToConsole(entry);
-        }
     }
     /// Log an info message
-    public info(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public info(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
         const entry = buildRecord(LogLevel.Info, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
-        if (pipeToConsole) {
-            this.pipeToConsole(entry);
-        }
     }
     /// Log a warning message
-    public warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
         const entry = buildRecord(LogLevel.Warn, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
-        if (pipeToConsole) {
-            this.pipeToConsole(entry);
-        }
     }
     /// Log an error message
-    public error(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public error(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
         const entry = buildRecord(LogLevel.Error, message, target, keyValues);
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
-        if (pipeToConsole) {
-            this.pipeToConsole(entry);
-        }
     }
     /// Log an exception
-    public exception(error: any, pipeToConsole?: boolean) {
+    public exception(error: any) {
         if (error instanceof LoggableException) {
             this.error(error.message, error.keyValues, error.target);
         } else {
             this.error(stringifyError(error), {});
-        }
-        if (pipeToConsole) {
-            this.pipeToConsole(error);
         }
     }
 }
@@ -243,29 +220,26 @@ export class TracedLogger {
         return tagged;
     }
 
-    public trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
-        this.base.trace(message, this.tag(keyValues), target, pipeToConsole);
+    public trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+        this.base.trace(message, this.tag(keyValues), target);
     }
-    public debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
-        this.base.debug(message, this.tag(keyValues), target, pipeToConsole);
+    public debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+        this.base.debug(message, this.tag(keyValues), target);
     }
-    public info(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
-        this.base.info(message, this.tag(keyValues), target, pipeToConsole);
+    public info(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+        this.base.info(message, this.tag(keyValues), target);
     }
-    public warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
-        this.base.warn(message, this.tag(keyValues), target, pipeToConsole);
+    public warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+        this.base.warn(message, this.tag(keyValues), target);
     }
-    public error(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
-        this.base.error(message, this.tag(keyValues), target, pipeToConsole);
+    public error(message: string, keyValues: Record<string, string | null | undefined>, target?: string): void {
+        this.base.error(message, this.tag(keyValues), target);
     }
-    public exception(error: any, pipeToConsole?: boolean) {
+    public exception(error: any) {
         if (error instanceof LoggableException) {
             this.error(error.message, error.keyValues, error.target);
         } else {
             this.error(stringifyError(error), {});
-        }
-        if (pipeToConsole) {
-            console.log(error);
         }
     }
 }

@@ -141,7 +141,7 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
             notebookId: id,
             actionCount: pending.length.toString(),
             actionTypes: pending.map(({ action }) => action.type.description ?? action.type.toString()).join(','),
-        }, LOG_CTX, true);
+        }, LOG_CTX);
 
         setRegistry((reg: NotebookScriptsRegistry) => {
             // Check if the connection is active to gate storage writes
@@ -150,7 +150,7 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
             for (const { action, resolve } of pending) {
                 const prev = reg.notebookScriptsMap.get(id);
                 if (!prev) {
-                    console.warn(`no notebook scripts registered with notebook id ${id}`);
+                    logger.warn('No notebook scripts registered for notebook', { notebookId: id }, LOG_CTX);
                     resolve(null);
                     continue;
                 }
@@ -158,7 +158,7 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
                     notebookId: id,
                     actionType: action.type.description ?? action.type.toString(),
                     uncommittedScriptId: prev.uncommittedScriptId.toString(),
-                }, LOG_CTX, true);
+                }, LOG_CTX);
                 const next = reduceNotebookScripts(prev, action, storageWriter, logger, active);
                 reg.notebookScriptsMap.set(id, next);
                 resolve(next);
@@ -175,7 +175,7 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
                 notebookId: id,
                 actionType: action.type.description ?? action.type.toString(),
                 queueLength: (pendingActionsRef.current.length + 1).toString(),
-            }, LOG_CTX, true);
+            }, LOG_CTX);
             // Queue the action
             pendingActionsRef.current.push({ action, resolve });
 
