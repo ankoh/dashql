@@ -15,6 +15,10 @@ if [[ "${1:-}" == "--renderer-dev-server" ]]; then
     shift
 fi
 
+if [[ -z "${DASHQL_ELECTRON_USER_DATA_DIR:-}" && -n "${TEST_TMPDIR:-}" ]]; then
+    DASHQL_ELECTRON_USER_DATA_DIR="${TEST_TMPDIR}/electron-profile"
+fi
+
 if [[ -n "${DASHQL_ELECTRON_USER_DATA_DIR:-}" ]]; then
     exec "${ELECTRON_PACKAGE}/dist/$(<"${ELECTRON_PACKAGE}/path.txt")" \
         "--user-data-dir=${DASHQL_ELECTRON_USER_DATA_DIR}" \

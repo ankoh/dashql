@@ -163,6 +163,7 @@ sh_test(
         "//packages/dashql-native-napi:addon",
     ],
     target_compatible_with = ["@platforms//os:macos"],
+    tags = ["no-sandbox"],
     visibility = ["//visibility:public"],
 )
 
