@@ -74,7 +74,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const databaseRegistryRef = React.useRef(new OPFSPersistentDatabaseRegistry());
     const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
-    const [status, setStatus] = React.useState('Instantiating database');
+    const [status, setStatus] = React.useState('Instantiating hyperdb-wasm');
     const { resultQuery, showResultQuery, closeResultQuery } = useShellQueryResult(queryExecutions);
 
     React.useEffect(() => {
@@ -86,9 +86,10 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         let controller: BrowserShellController | null = null;
 
         const setup = async () => {
+            setStatus('Instantiating hyperdb-wasm');
             const database = await setupEmbeddedDatabase(LOG_CTX, progress => {
                 if (!cancelled) {
-                    setStatus(`Instantiating database: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
+                    setStatus(`Instantiating hyperdb-wasm: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
                 }
             });
             void database.getVersion()
