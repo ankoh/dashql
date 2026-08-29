@@ -1,0 +1,21 @@
+{
+  "notebookId": "8203c46f-e9bd-4940-acc3-decc5d9d13a3",
+  "name": "Explain",
+  "connectionParams": {
+    "hyper": {
+      "protocol": "WASM",
+      "endpoint": "",
+      "tls": {
+        "clientKeyPath": "",
+        "clientCertPath": "",
+        "caCertsPath": ""
+      },
+      "attachedDatabases": [],
+      "metadata": {},
+      "queryParameters": {}
+    }
+  },
+  "metadata": {
+    "createdAt": "2026-08-29T08:58:04.623Z"
+  }
+}
