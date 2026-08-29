@@ -7,6 +7,27 @@ import type { EditorView } from '@codemirror/view';
 import type { ScriptData } from '../scripts/notebook_scripts.js';
 import { createReadonlyCodeMirrorExtensions } from '../scripts/editor/codemirror.js';
 import { DashQLUpdateEffect } from '../scripts/editor/dashql_processor.js';
+import { createCompactFormattingConfig } from './script_preview_lifecycle.js';
+import { measureScriptPreviewWidthOr } from './script_preview_width.js';
+
+const DEFAULT_FORMAT_WIDTH = 80;
+const DEFAULT_FORMAT_INDENTATION = 4;
+
+export function createScriptFormatConfig(
+    mode: dashql.buffers.formatting.FormattingMode,
+    compactWidth: number | null,
+    debugMode: boolean = false,
+): dashql.buffers.formatting.FormattingConfigT {
+    return mode === dashql.buffers.formatting.FormattingMode.COMPACT
+        ? createCompactFormattingConfig(compactWidth ?? DEFAULT_FORMAT_WIDTH, debugMode)
+        : new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            mode,
+            DEFAULT_FORMAT_WIDTH,
+            DEFAULT_FORMAT_INDENTATION,
+            false,
+        );
+}
 
 interface FormatPreviewResources {
     editorState: EditorState;
@@ -31,6 +52,7 @@ export function projectFormattedText(
 export function useScriptFormatPreview(
     editorView: EditorView | null,
     scriptData: ScriptData | null,
+    debugMode: boolean = false,
 ): {
     formatPending: boolean;
     format: (mode: dashql.buffers.formatting.FormattingMode) => void;
@@ -51,13 +73,10 @@ export function useScriptFormatPreview(
         if (scriptData == null) return;
         let formattedScript: dashql.DashQLScript | null = null;
         try {
-            const config = new dashql.buffers.formatting.FormattingConfigT(
-                dashql.buffers.formatting.FormattingDialect.HYPER,
-                mode,
-                80,
-                4,
-                false,
-            );
+            const compactWidth = mode === dashql.buffers.formatting.FormattingMode.COMPACT && editorView != null
+                ? measureScriptPreviewWidthOr(editorView, DEFAULT_FORMAT_WIDTH)
+                : null;
+            const config = createScriptFormatConfig(mode, compactWidth, debugMode);
             formattedScript = scriptData.scriptSession.format(config, null);
             if (editorView == null) return;
 
@@ -93,7 +112,7 @@ export function useScriptFormatPreview(
         } finally {
             formattedScript?.ptr.destroy();
         }
-    }, [editorView, scriptData]);
+    }, [debugMode, editorView, scriptData]);
 
     const restoreEditor = React.useCallback((accept: boolean) => {
         const resources = resourcesRef.current;
