@@ -5,6 +5,6 @@ load("@aspect_rules_js//js:defs.bzl", "js_binary")
 # json-schema-to-typescript compiler
 js_binary(
     name = "compile_schema",
-    data = ["//:node_modules"],
+    data = ["//:node_modules/json-schema-to-typescript"],
     entry_point = "compile_schema.cjs",
 )
