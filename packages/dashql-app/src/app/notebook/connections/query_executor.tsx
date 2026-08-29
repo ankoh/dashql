@@ -41,7 +41,7 @@ const LOG_CTX = 'query_executor';
 /// null (treat as "not cacheable / a miss").
 export async function computeQueryCacheKeyForConnection(
     details: ConnectionStateDetailsVariant,
-    queryText: string,
+    cacheSignature: string,
 ): Promise<string | null> {
     try {
         const params = getConnectionParamsFromStateDetails(details);
@@ -49,7 +49,7 @@ export async function computeQueryCacheKeyForConnection(
         if (sig == null) {
             return null;
         }
-        return await computeQueryResultCacheKey(sig, queryText);
+        return await computeQueryResultCacheKey(sig, cacheSignature);
     } catch {
         return null;
     }
@@ -127,8 +127,57 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     "text": args.query
                 }, LOG_CTX);
 
+                let cacheHash: string | null = null;
+                if (args.cacheable && args.cacheSignature) {
+                    cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.cacheSignature);
+                }
+                const resultCache = cacheHash == null
+                    ? null
+                    : createNotebookQueryResultCache(storageReader.backend, notebookId);
+
                 if (args.scriptExecution != null) {
                     try {
+                        if (cacheHash != null) {
+                            let cached: CachedQueryResult | null = null;
+                            try {
+                                cached = await resultCache!.load(cacheHash);
+                            } catch (e: any) {
+                                traced.warn("Failed to read query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                            }
+                            initialState.cancellation.signal.throwIfAborted();
+                            if (cached != null) {
+                                let table: arrow.Table;
+                                try {
+                                    table = arrow.tableFromIPC(cached.bytes);
+                                } catch (error) {
+                                    args.scriptExecution.destroy();
+                                    throw error;
+                                }
+                                // executeScriptQuery normally owns this cleanup, but a hit skips it entirely.
+                                args.scriptExecution.destroy();
+                                void resultCache!.touch(cacheHash).catch((e: any) => {
+                                    traced.warn("Failed to record query cache access", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                                });
+                                queryTracker.dispatch({
+                                    type: QUERY_RECEIVED_ALL_BATCHES,
+                                    value: [queryId, table, new Map<string, string>(), createQueryResponseStreamMetrics()],
+                                });
+                                queryTracker.dispatch({
+                                    type: QUERY_CACHE_RECORDED,
+                                    value: [queryId, cacheHash, true, cached.cachedAtMs],
+                                });
+                                if (args.analyzeResults) {
+                                    if (args.replaceComputationId != null && args.replaceComputationId !== queryId) {
+                                        computeDispatch({ type: DELETE_COMPUTATION, value: [args.replaceComputationId] });
+                                    }
+                                    queryTracker.dispatch({ type: QUERY_PROCESSING_RESULTS, value: [queryId] });
+                                    await analyzeTable(queryId, table, computeDispatch, computeDb, traced, args.projection);
+                                    initialState.cancellation.signal.throwIfAborted();
+                                    queryTracker.dispatch({ type: QUERY_PROCESSED_RESULTS, value: [queryId] });
+                                }
+                                return table;
+                            }
+                        }
                         const table = await executeScriptQuery({
                             execution: args.scriptExecution,
                             queryArgs: args,
@@ -186,6 +235,17 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                             initialState.cancellation.signal.throwIfAborted();
                             queryTracker.dispatch({ type: QUERY_PROCESSED_RESULTS, value: [queryId] });
                         }
+                        if (cacheHash != null && table != null) {
+                            const bytes = arrow.tableToIPC(table, 'stream');
+                            void resultCache!.store(cacheHash, bytes).then(() => {
+                                queryTracker.dispatch({
+                                    type: QUERY_CACHE_RECORDED,
+                                    value: [queryId, cacheHash!, false, null],
+                                });
+                            }).catch((e: any) => {
+                                traced.warn("Failed to write query cache", { query: queryId.toString(), error: stringifyError(e) }, LOG_CTX);
+                            });
+                        }
                         return table;
                     } catch (error: any) {
                         const cancelled = initialState.cancellation.signal.aborted || error?.name === 'AbortError' || error?.message === 'AbortError';
@@ -202,14 +262,6 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 // Compute the cache key up front for cacheable queries. This is best-effort: if the
                 // connection has no recoverable params/signature (e.g. before setup completes) we simply skip
                 // caching and execute normally. Never let a cache concern surface into the query path.
-                let cacheHash: string | null = null;
-                if (args.cacheable) {
-                    cacheHash = await computeQueryCacheKeyForConnection(conn.details, args.query);
-                }
-                const resultCache = cacheHash == null
-                    ? null
-                    : createNotebookQueryResultCache(storageReader.backend, notebookId);
-
                 // XXX Add explicit query preparation here later
 
                 // Execute the query and consume the results

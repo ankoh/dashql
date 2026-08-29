@@ -28,6 +28,9 @@ export interface QueryExecutionArgs {
     /// Only user-provided queries should set this; catalog/health-check queries leave it unset so
     /// they never touch the cache. Cache failures are always non-fatal (fall back to execution).
     cacheable?: boolean;
+    /// Versioned semantic AST signature for the complete script. Required for cacheable notebook
+    /// queries so preceding statements affect identity without making formatting or comments do so.
+    cacheSignature?: string;
     /// Reject the execution promise with the original connector error after recording the failed
     /// query state. Most notebook callers use the historical null-on-failure behavior; hosts such
     /// as the shell need the error text to complete their asynchronous effect.

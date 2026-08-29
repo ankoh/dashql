@@ -15,7 +15,7 @@ import type { ConnectionState } from '../../connections/connection_state.js';
 import { queryIsDone } from '../../connections/query_execution_state.js';
 import { computeQueryCacheKeyForConnection, useCancelQuery, useQueryState } from '../../connections/query_executor.js';
 import type { StorageReader } from '../../persistence/storage_provider.js';
-import { compileQuery, getSelectedScriptRefs, type NotebookScripts, type ScriptData } from '../../scripts/notebook_scripts.js';
+import { compileNotebookQuery, getSelectedScriptRefs, type NotebookScripts, type ScriptData } from '../../scripts/notebook_scripts.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
@@ -102,9 +102,13 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
             }
             try {
                 // Compile the query
-                const compiled = compileQuery(props.scriptData);
+                const compiled = compileNotebookQuery(props.scriptData);
+                if (!compiled.cacheable) {
+                    setIsCached(false);
+                    return;
+                }
                 // Compute the query cache key
-                const cacheKey = await computeQueryCacheKeyForConnection(props.connection.details, compiled);
+                const cacheKey = await computeQueryCacheKeyForConnection(props.connection.details, compiled.cacheSignature);
                 // Cache key is null, then clear the cache if required
                 if (cacheKey == null) {
                     if ((wasCached == null || wasCached) && !cancel.signal.aborted) {

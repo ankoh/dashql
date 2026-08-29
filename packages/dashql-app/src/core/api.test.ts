@@ -194,6 +194,8 @@ describe('DashQL editor sessions', () => {
         const compilation = session.compileQuery(config);
         expect(compilation.read().sql()).toBe('select 1 as value');
         expect(compilation.read().errorsLength()).toBe(0);
+        expect(compilation.read().cacheable()).toBe(true);
+        expect(compilation.read().cacheSignature()).toMatch(/^[0-9a-f]{32}$/);
         compilation.destroy();
 
         expect(session.isFullyFormattable(config)).toBe(true);

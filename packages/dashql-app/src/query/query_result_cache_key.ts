@@ -1,9 +1,8 @@
 /// Computes the content hash that keys a query result in the file-based query result cache.
 ///
-/// A result is cached as a pure function of `(connection params signature, query text)`: the same
-/// query text against a connection with the same structural signature yields the same bytes, so the
-/// SHA-256 of those two inputs is the cache key. Post-processing (analyze/UMAP projection) runs after
-/// the cache load, so it deliberately does NOT participate in the key.
+/// A result is cached as a pure function of `(connection params signature, script AST signature)`.
+/// Post-processing (analyze/UMAP projection) runs after the cache load, so it deliberately does NOT
+/// participate in the key.
 
 /// Deterministically serialize a value to JSON with object keys sorted at every level.
 ///
@@ -33,11 +32,11 @@ function toHex(buffer: ArrayBuffer): string {
     return hex;
 }
 
-/// Compute the lowercase SHA-256 hex digest of the canonical connection signature plus the query
-/// text. The two inputs are separated by a newline so distinct (signature, query) pairs cannot
-/// collide by concatenation.
-export async function computeQueryResultCacheKey(paramsSignature: unknown, queryText: string): Promise<string> {
-    const input = `${stableStringify(paramsSignature)}\n${queryText}`;
+/// Compute the lowercase SHA-256 hex digest of the canonical connection signature plus the
+/// versioned semantic signature emitted by dashql-core.
+export async function computeQueryResultCacheKey(paramsSignature: unknown, scriptSignature: string): Promise<string> {
+    const connectionSignature = stableStringify(paramsSignature);
+    const input = `dashql-query-cache-v2\n${connectionSignature.length}:${connectionSignature}${scriptSignature.length}:${scriptSignature}`;
     const encoded = new TextEncoder().encode(input);
     const digest = await crypto.subtle.digest('SHA-256', encoded);
     return toHex(digest);

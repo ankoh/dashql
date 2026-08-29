@@ -463,6 +463,9 @@ class Script {
     std::string ToString(TextSpan span);
     /// Print the first parsed statement without its separator or surrounding trivia.
     std::string GetStatementText(bool parse_if_outdated = true);
+    /// Compute a versioned semantic signature from the parsed statement ASTs.
+    /// Source trivia and a terminal VISUALIZE specification do not participate.
+    std::string ComputeSignature(bool parse_if_outdated = true);
     /// Compile the script into an executable query.
     ScriptCompilationResult CompileQuery(const buffers::formatting::FormattingConfigT& config,
                                          ScriptCompilationOptions options = {});

@@ -114,8 +114,8 @@ export function fakeQueryExecutorModule() {
             return activeQueryExecutorMockState.executeQuery;
         },
         useCancelQuery: () => activeQueryExecutorMockState?.cancelQuery ?? (() => {}),
-        computeQueryCacheKeyForConnection: async (_details: unknown, queryText: string) =>
-            queryText === 'select 1' ? activeQueryExecutorMockState?.cacheKey ?? null : null,
+        computeQueryCacheKeyForConnection: async (_details: unknown, signature: string) =>
+            signature === 'signature:select 1' ? activeQueryExecutorMockState?.cacheKey ?? null : null,
     };
 }
 

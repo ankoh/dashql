@@ -8,7 +8,7 @@ import { useAppConfig } from '../../../config/app_config.js';
 import { List } from 'react-window';
 
 import { ConnectionHealth, ConnectionState } from '../../connections/connection_state.js';
-import { compileQuery, createScriptExecution, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
+import { compileNotebookQuery, createScriptExecution, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
 import { useAIClient } from '../../agent/ai/ai_client_provider.js';
 import { COMPOSE_INPUT_MODE_AI, useComposeInputMode } from '../../scripts/notebook_commands.js';
 import { useLatestAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../agent/agent_run_provider.js';
@@ -213,7 +213,8 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         }
         executedAgentRunRef.current = agentState.runId;
         // Resolve against the current notebookScripts so a freshly rewritten VISUALIZE source is reflected.
-        const queryText = compileQuery(scriptData, logger);
+        const compiled = compileNotebookQuery(scriptData, logger);
+        const queryText = compiled.sql;
         if (queryText.trim().length === 0) {
             return;
         }
@@ -222,7 +223,8 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
              scriptExecution: createScriptExecution(scriptData),
             analyzeResults: true,
             replaceComputationId: scriptData.latestQueryId,
-             cacheable: false,
+            cacheable: compiled.cacheable,
+            cacheSignature: compiled.cacheSignature,
             projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
             metadata: {
                 queryType: QueryType.USER_PROVIDED,
@@ -261,7 +263,8 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         // The compose editor keeps the draft analyzed as it is typed, so the
         // resolved VISUALIZE query / derived annotations are already present (and
         // carried across promotion, which preserves the script key).
-        const queryText = scriptData && execute ? compileQuery(scriptData, logger) : '';
+        const compiled = scriptData && execute ? compileNotebookQuery(scriptData, logger) : null;
+        const queryText = compiled?.sql ?? '';
         props.modifyNotebookScripts({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (execute && !isDisconnected && queryText.trim().length > 0) {
             const [queryId, execution] = executeQuery(props.conn!.connectionId, {
@@ -269,7 +272,8 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                  scriptExecution: createScriptExecution(scriptData),
                 analyzeResults: true,
                 replaceComputationId: scriptData?.latestQueryId,
-                 cacheable: false,
+                cacheable: compiled!.cacheable,
+                cacheSignature: compiled!.cacheSignature,
                 projection: projectionForVisualizeQuery(scriptData?.annotations.visualizeQuery),
                 metadata: {
                     queryType: QueryType.USER_PROVIDED,

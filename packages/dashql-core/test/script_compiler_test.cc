@@ -31,6 +31,8 @@ TEST(ScriptCompilerTest, ReturnsPlainSQLVerbatim) {
     EXPECT_EQ(result.kind, buffers::execution::ScriptCompilationStatementKind::QUERY);
     EXPECT_EQ(result.terminal_statement_id, 0);
     EXPECT_EQ(result.sql, sql);
+    EXPECT_TRUE(result.cacheable);
+    EXPECT_EQ(result.cache_signature.size(), 32);
 }
 
 TEST(ScriptCompilerTest, ClassifiesInsertAsQuery) {
@@ -41,6 +43,47 @@ TEST(ScriptCompilerTest, ClassifiesInsertAsQuery) {
     EXPECT_EQ(result.kind, buffers::execution::ScriptCompilationStatementKind::QUERY);
     EXPECT_EQ(result.terminal_statement_id, 0);
     EXPECT_EQ(result.sql, sql);
+    EXPECT_FALSE(result.cacheable);
+}
+
+TEST(ScriptCompilerTest, ComputesSemanticCacheSignature) {
+    auto compact = Compile("CREATE TABLE t(a INT); SELECT a FROM t WHERE a = 1");
+    auto formatted = Compile("-- setup\ncreate table t ( a int );\n/* query */ select A from T where A=1;");
+    auto different_prefix = Compile("CREATE TABLE t(a BIGINT); SELECT a FROM t WHERE a = 1");
+    auto different_query = Compile("CREATE TABLE t(a INT); SELECT a FROM t WHERE a = 2");
+
+    ASSERT_TRUE(compact.errors.empty());
+    ASSERT_TRUE(formatted.errors.empty());
+    EXPECT_TRUE(compact.cacheable);
+    EXPECT_EQ(compact.cache_signature, formatted.cache_signature);
+    EXPECT_NE(compact.cache_signature, different_prefix.cache_signature);
+    EXPECT_NE(compact.cache_signature, different_query.cache_signature);
+}
+
+TEST(ScriptCompilerTest, ExcludesTerminalVisualizationFromCacheSignature) {
+    auto select = Compile("SELECT value FROM metrics");
+    auto bars = Compile("SELECT value FROM metrics VISUALIZE USING vegalite (mark => bar)");
+    auto lines = Compile("SELECT value FROM metrics VISUALIZE USING vegalite (mark => line)");
+
+    ASSERT_TRUE(select.errors.empty());
+    ASSERT_TRUE(bars.errors.empty());
+    ASSERT_TRUE(lines.errors.empty());
+    EXPECT_TRUE(bars.cacheable);
+    EXPECT_EQ(select.cache_signature, bars.cache_signature);
+    EXPECT_EQ(bars.cache_signature, lines.cache_signature);
+}
+
+TEST(ScriptCompilerTest, CachesExplainButNotCreateStatements) {
+    auto explain = Compile("EXPLAIN CREATE TABLE t(a INT)");
+    auto create_table = Compile("CREATE TABLE t(a INT)");
+    auto create_view = Compile("CREATE VIEW v AS SELECT 1");
+
+    ASSERT_TRUE(explain.errors.empty());
+    ASSERT_TRUE(create_table.errors.empty());
+    ASSERT_TRUE(create_view.errors.empty());
+    EXPECT_TRUE(explain.cacheable);
+    EXPECT_FALSE(create_table.cacheable);
+    EXPECT_FALSE(create_view.cacheable);
 }
 
 TEST(ScriptCompilerTest, CompilesStatementsInOrder) {

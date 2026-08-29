@@ -40,6 +40,8 @@ struct ScriptCompilationResult {
         buffers::execution::ScriptCompilationStatementKind::QUERY;
     uint32_t terminal_statement_id = PROTO_NULL_U32;
     std::string sql;
+    std::string cache_signature;
+    bool cacheable = false;
     std::optional<CompiledVisualization> visualization;
     std::vector<ScriptCompilationError> errors;
     std::vector<CompiledScriptStatement> statements;

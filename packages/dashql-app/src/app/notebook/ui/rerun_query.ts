@@ -1,6 +1,6 @@
 import type { QueryExecutor } from '../connections/query_executor.js';
 import { QueryType } from '../connections/query_execution_state.js';
-import { NotebookScripts, ScriptData, REGISTER_QUERY, compileQuery, createScriptExecution } from '../scripts/notebook_scripts.js';
+import { NotebookScripts, ScriptData, REGISTER_QUERY, compileNotebookQuery, createScriptExecution } from '../scripts/notebook_scripts.js';
 import { ensureNotebookScriptAnalyzed, ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { projectionForVisualizeQuery } from '../scripts/script_types.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';
@@ -62,7 +62,8 @@ function executeNotebookScript(
     modifyNotebookScripts: ModifyNotebookScripts,
     logger: LoggerLike,
 ): void {
-    const queryText = compileQuery(scriptData, logger);
+    const compiled = compileNotebookQuery(scriptData, logger);
+    const queryText = compiled.sql;
     if (queryText.trim().length === 0) {
         logger?.warn('Notebook execution stopped because compiled query is empty', {
             scriptKey: scriptData.scriptKey.toString(),
@@ -74,7 +75,8 @@ function executeNotebookScript(
         scriptExecution: createScriptExecution(scriptData),
         analyzeResults: true,
         replaceComputationId: scriptData.latestQueryId,
-        cacheable: false,
+        cacheable: compiled.cacheable,
+        cacheSignature: compiled.cacheSignature,
         projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
         metadata: {
             queryType: QueryType.USER_PROVIDED,

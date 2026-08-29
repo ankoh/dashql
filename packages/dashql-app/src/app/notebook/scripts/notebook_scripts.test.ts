@@ -19,6 +19,7 @@ import {
     SELECT_SCRIPT_PATH,
     SET_SCRIPT_TEXT,
     destroyNotebookScripts,
+    compileNotebookQuery,
     compileQuery,
     SELECT_NEXT_SCRIPT,
     SELECT_NEXT_SCRIPT_FOLDER,
@@ -1420,6 +1421,19 @@ describe('compileQuery', () => {
         });
 
         expect(compileQuery(next.scripts[scriptKey])).toBe('create table t(a int); select * from t');
+    });
+
+    it('returns semantic cache metadata for a terminal SELECT', () => {
+        const state = buildState();
+        const scriptKey = +Object.keys(state.scripts)[0];
+        const next = reduce(state, {
+            type: SET_SCRIPT_TEXT,
+            value: { scriptKey, text: 'create table t(a int); select * from t' },
+        });
+
+        const compiled = compileNotebookQuery(next.scripts[scriptKey]);
+        expect(compiled.cacheable).toBe(true);
+        expect(compiled.cacheSignature).toMatch(/^[0-9a-f]{32}$/);
     });
 
     it('preserves former relational syntax inside a string', () => {

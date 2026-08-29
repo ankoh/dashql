@@ -53,4 +53,8 @@ table ScriptCompilationResult {
     visualization: CompiledVisualization;
     errors: [ScriptCompilationError];
     statements: [CompiledScriptStatement];
+    // Versioned semantic signature of all executable statement ASTs.
+    cache_signature: string;
+    // True when the terminal statement can produce a reusable cached result.
+    cacheable: bool;
 }
