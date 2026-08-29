@@ -127,9 +127,3 @@
     color: inherit;
     cursor: pointer;
 }
-
-.expand_button:focus-visible,
-.copy_button:focus-visible {
-    outline: 2px solid hsl(211, 100%, 45%);
-    outline-offset: 1px;
-}
