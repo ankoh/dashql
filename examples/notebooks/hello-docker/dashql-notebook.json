@@ -1,6 +1,6 @@
 {
   "notebookId": "81428ffe-ebdd-46d4-a990-be2bed3fbdaa",
-  "name": "Docker",
+  "name": "Hello Docker",
   "connectionParams": {
     "hyper": {
       "protocol": "V3_DOCKER",
