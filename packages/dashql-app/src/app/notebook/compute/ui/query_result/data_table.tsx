@@ -4,7 +4,7 @@ import * as styles from './data_table.module.css';
 
 import { Grid, useGridCallbackRef } from 'react-window';
 
-import { ArrowTableFormatter } from '../../../../../compute/arrow_formatter.js';
+import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '../../../../../compute/arrow_formatter.js';
 import { ComputationAction, TableComputationState } from '../../../../../compute/computation_state.js';
 import { Dispatch } from '../../../../../utils/variant.js';
 import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
@@ -189,29 +189,44 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Cell detail overlay state
     const [cellDetail, setCellDetail] = React.useState<{
+        visibleRow: number;
         dataRow: number;
         fieldId: number;
         formattedValue: string | null;
+        structuredValue: object | null;
         columnName: string | null;
     } | null>(null);
     const onClickCell: React.MouseEventHandler<HTMLDivElement> = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        const visibleRow = Number.parseInt(event.currentTarget.dataset["visibleRow"]!);
         const dataRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
         const fieldId = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
         const field = computationState.dataTable.schema.fields[fieldId];
-        if (field == null || (field.type.typeId !== arrow.Type.Utf8 && field.type.typeId !== arrow.Type.LargeUtf8)) return;
+        if (field == null) return;
+        const isText = field.type.typeId === arrow.Type.Utf8 || field.type.typeId === arrow.Type.LargeUtf8;
+        const isStructured = isArrowStructuredType(field.type);
+        if (!isText && !isStructured) return;
         const formattedValue = tableFormatter.getValue(dataRow, fieldId);
+        const rawValue = isStructured ? dataTable.getChildAt(fieldId)?.get(dataRow) : null;
+        const structuredValue = rawValue == null ? null : arrowValueToJson(rawValue) as object;
         const columnName = field.name ?? null;
-        setCellDetail({ dataRow, fieldId, formattedValue, columnName });
-    }, [tableFormatter, computationState.dataTable]);
+        setCellDetail({ visibleRow, dataRow, fieldId, formattedValue, structuredValue, columnName });
+    }, [tableFormatter, dataTable]);
     const onNavigateCell = React.useCallback((delta: number) => {
         setCellDetail(prev => {
             if (prev == null) return null;
-            const newRow = prev.dataRow + delta;
-            if (newRow < 0 || newRow >= dataRowCount) return prev;
-            const formattedValue = tableFormatter.getValue(newRow, prev.fieldId);
-            return { ...prev, dataRow: newRow, formattedValue };
+            const visibleRow = prev.visibleRow + delta;
+            if (visibleRow < 0 || visibleRow >= dataRowCount) return prev;
+            const dataRow = visibleRowIds == null
+                ? visibleRow
+                : Math.max(Number(visibleRowIds.get(visibleRow)), 1) - 1;
+            const formattedValue = tableFormatter.getValue(dataRow, prev.fieldId);
+            const field = dataTable.schema.fields[prev.fieldId];
+            const isStructured = isArrowStructuredType(field.type);
+            const rawValue = isStructured ? dataTable.getChildAt(prev.fieldId)?.get(dataRow) : null;
+            const structuredValue = rawValue == null ? null : arrowValueToJson(rawValue) as object;
+            return { ...prev, visibleRow, dataRow, formattedValue, structuredValue };
         });
-    }, [tableFormatter, dataRowCount]);
+    }, [tableFormatter, dataTable, dataRowCount, visibleRowIds]);
 
     // Maintain a rendering context for data cells.
     // This context is passed to grid elements as item data.
@@ -387,8 +402,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 isOpen={cellDetail != null}
                 onClose={() => setCellDetail(null)}
                 formattedValue={cellDetail?.formattedValue ?? null}
+                structuredValue={cellDetail?.structuredValue ?? null}
                 columnName={cellDetail?.columnName ?? null}
-                dataRow={cellDetail?.dataRow ?? 0}
+                dataRow={cellDetail?.visibleRow ?? 0}
                 maxRow={dataRowCount - 1}
                 onNavigate={onNavigateCell}
             />

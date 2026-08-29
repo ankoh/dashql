@@ -83,6 +83,44 @@ function formatList(vector: arrow.Vector): string {
     return `[${values.join(', ')}]`;
 }
 
+/// Convert Arrow's nested runtime values (Vectors and row proxies) into values understood by the
+/// JSON tree viewer. BigInts and Dates are intentionally preserved; the viewer renders both.
+export function arrowValueToJson(value: unknown): unknown {
+    if (value instanceof arrow.Vector) {
+        return Array.from(value, item => arrowValueToJson(item));
+    }
+    if (value instanceof Map) {
+        return Object.fromEntries(Array.from(value, ([key, item]) => [String(key), arrowValueToJson(item)]));
+    }
+    if (Array.isArray(value)) {
+        return value.map(item => arrowValueToJson(item));
+    }
+    if (ArrayBuffer.isView(value) && !(value instanceof DataView) && 'length' in value) {
+        return Array.from(value as unknown as ArrayLike<unknown>, item => arrowValueToJson(item));
+    }
+    if (value instanceof Date || value == null || typeof value !== 'object') {
+        return value;
+    }
+
+    const jsonValue = 'toJSON' in value && typeof value.toJSON === 'function'
+        ? value.toJSON()
+        : value;
+    if (jsonValue !== value) {
+        return arrowValueToJson(jsonValue);
+    }
+    return Object.fromEntries(
+        Object.entries(jsonValue).map(([key, item]) => [key, arrowValueToJson(item)]),
+    );
+}
+
+export function isArrowListType(type: arrow.DataType): boolean {
+    return type.typeId === arrow.Type.List || type.typeId === arrow.Type.FixedSizeList;
+}
+
+export function isArrowStructuredType(type: arrow.DataType): boolean {
+    return isArrowListType(type) || type.typeId === arrow.Type.Struct;
+}
+
 /// Format binary data as hex string
 function formatBinary(data: Uint8Array): string {
     if (data == null) return '';

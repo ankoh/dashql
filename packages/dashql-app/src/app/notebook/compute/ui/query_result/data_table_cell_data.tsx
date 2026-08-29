@@ -4,7 +4,7 @@ import * as styles from './data_table.module.css';
 
 import type { CellComponentProps } from 'react-window';
 
-import { ArrowTableFormatter } from '../../../../../compute/arrow_formatter.js';
+import { ArrowTableFormatter, isArrowListType } from '../../../../../compute/arrow_formatter.js';
 import { ColumnGroup } from '../../../../../compute/computation_types.js';
 import { DataTableLayout } from './data_table_layout.js';
 import { peekFormat } from './format_peek.js';
@@ -52,6 +52,7 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
                 style={props.style}
                 data-table-col={fieldId}
                 data-table-row={dataRow}
+                data-visible-row={props.rowIndex}
                 onMouseEnter={props.onMouseEnter}
                 onMouseLeave={props.onMouseLeave}
             />
@@ -99,19 +100,35 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
             className += ` ${styles.data_cell_rightmost}`;
         }
 
-        const hint = !isNull && props.gridLayout.isTextColumn[props.columnIndex] === 1
-            ? peekFormat(formatted)
-            : null;
+        const field = props.table.schema.fields[fieldId];
+        const canOpenDetail = field.type.typeId === arrow.Type.Utf8
+            || field.type.typeId === arrow.Type.LargeUtf8
+            || isArrowListType(field.type)
+            || field.type.typeId === arrow.Type.Struct;
+        const hint = !isNull && isArrowListType(field.type)
+            ? 'array'
+            : (!isNull && field.type.typeId === arrow.Type.Struct
+                ? 'struct'
+                : (props.gridLayout.isTextColumn[props.columnIndex] === 1 ? peekFormat(formatted) : null));
 
         return (
             <div
                 className={className}
                 style={props.style}
+                role="gridcell"
+                tabIndex={canOpenDetail ? 0 : -1}
                 data-table-col={fieldId}
                 data-table-row={dataRow}
+                data-visible-row={props.rowIndex}
                 onMouseEnter={props.onMouseEnter}
                 onMouseLeave={props.onMouseLeave}
                 onClick={props.onClick}
+                onKeyDown={event => {
+                    if (canOpenDetail && (event.key === 'Enter' || event.key === ' ')) {
+                        event.preventDefault();
+                        event.currentTarget.click();
+                    }
+                }}
             >
                 {hint != null ? (
                     <>

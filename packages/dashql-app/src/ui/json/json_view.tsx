@@ -24,6 +24,8 @@ export interface JsonViewProps
     objectSortKeys?: boolean | ((keyA: string, keyB: string, valueA: object, valueB: object) => number);
     /// Set the indent-width for nested objects @default 15
     indentWidth?: number;
+    /// Render arrays incrementally in pages of this size. Set to `0` to render all items. @default 0
+    arrayPageSize?: number;
     /// When set to `true`, `objects` and `arrays` are labeled with size @default true
     displayObjectSize?: boolean;
     /// The user can copy objects and arrays to clipboard by clicking on the clipboard icon. @default true
@@ -72,6 +74,7 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
         keyName: _keyName,
         objectSortKeys,
         indentWidth,
+        arrayPageSize,
         displayObjectSize,
         enableClipboard,
         collapsed,
@@ -90,6 +93,7 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
         value,
         objectSortKeys,
         indentWidth: indentWidth ?? 15,
+        arrayPageSize: arrayPageSize ?? 0,
         shouldExpandNodeInitially: collapsed === true
             ? AlwaysCollapse
             : (shouldExpandNodeInitially ?? AlwaysExpand),

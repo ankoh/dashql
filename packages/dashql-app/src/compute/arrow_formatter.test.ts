@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import { ArrowTableFormatter, ArrowTextColumnFormatter, makeArrowValueFormatter } from './arrow_formatter.js';
+import { arrowValueToJson, ArrowTableFormatter, ArrowTextColumnFormatter, isArrowListType, isArrowStructuredType, makeArrowValueFormatter } from './arrow_formatter.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 
 describe('TableFormatter', () => {
@@ -60,6 +60,14 @@ describe('makeArrowValueFormatter', () => {
         expect(f.format(undefined)).toBeNull();
     });
 
+    it('formats list values as compact previews', () => {
+        const type = new arrow.List(new arrow.Field('item', new arrow.Int32(), true));
+        const values = arrow.vectorFromArray([[1, 2, null, 4, 5, 6]], type);
+        const f = makeArrowValueFormatter(field('items', type));
+
+        expect(f.format(values.get(0))).toBe('[1, 2, null, 4, 5, ... +1 more]');
+    });
+
     it('formats a date', () => {
         const f = makeArrowValueFormatter(field('d', new arrow.DateMillisecond()));
         const out = f.format(Date.UTC(2021, 0, 1));
@@ -87,5 +95,50 @@ describe('makeArrowValueFormatter', () => {
             expect(out).toContain('/21,');
             expect(out).not.toContain('/70,');
         });
+    });
+});
+
+describe('arrowValueToJson', () => {
+    it('converts nested Arrow list vectors without truncating values', () => {
+        const innerType = new arrow.List(new arrow.Field('item', new arrow.Int64(), true));
+        const outerType = new arrow.List(new arrow.Field('item', innerType, true));
+        const values = arrow.vectorFromArray([[[1n, 2n], null, [3n, 4n, 5n, 6n, 7n, 8n]]], outerType);
+
+        expect(arrowValueToJson(values.get(0))).toEqual([
+            [1n, 2n],
+            null,
+            [3n, 4n, 5n, 6n, 7n, 8n],
+        ]);
+    });
+
+    it('converts Arrow struct rows nested in lists to plain objects', () => {
+        const structType = new arrow.Struct([
+            new arrow.Field('name', new arrow.Utf8(), false),
+            new arrow.Field('active', new arrow.Bool(), false),
+        ]);
+        const listType = new arrow.List(new arrow.Field('item', structType, true));
+        const values = arrow.vectorFromArray([[{ name: 'one', active: true }]], listType);
+
+        expect(arrowValueToJson(values.get(0))).toEqual([{ name: 'one', active: true }]);
+    });
+});
+
+describe('isArrowListType', () => {
+    it('recognizes variable and fixed-size lists', () => {
+        const item = new arrow.Field('item', new arrow.Int32(), true);
+
+        expect(isArrowListType(new arrow.List(item))).toBe(true);
+        expect(isArrowListType(new arrow.FixedSizeList(2, item))).toBe(true);
+        expect(isArrowListType(new arrow.Utf8())).toBe(false);
+    });
+});
+
+describe('isArrowStructuredType', () => {
+    it('recognizes list and struct values', () => {
+        const item = new arrow.Field('item', new arrow.Int32(), true);
+
+        expect(isArrowStructuredType(new arrow.List(item))).toBe(true);
+        expect(isArrowStructuredType(new arrow.Struct([item]))).toBe(true);
+        expect(isArrowStructuredType(new arrow.Utf8())).toBe(false);
     });
 });
