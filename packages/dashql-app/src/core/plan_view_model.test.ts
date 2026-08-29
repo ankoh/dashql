@@ -84,6 +84,26 @@ describe('Plan View Model', () => {
             expect(plan.pipelineEdges(0)!.childOperator()).toEqual(0);
             expect(plan.pipelineEdges(0)!.parentOperator()).toEqual(1);
         });
+        it('materializes operator cross edges', () => {
+            const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
+            const planPtr = viewModel.loadHyperPlan(`{
+                "operator":"unionall","operatorId":1,"input":[
+                    {"operator":"join","operatorId":2,"left":{"operator":"tablescan","operatorId":3}},
+                    {"operator":"tablescan","operatorId":4,"earlyProbes":[
+                        {"builder":2,"attributes":[0],"type":"lookup"}
+                    ]}
+                ]
+            }`);
+            const plan = planPtr.read();
+            expect(plan.operatorCrossEdgesLength()).toEqual(1);
+            const edge = plan.operatorCrossEdges(0)!;
+            expect(plan.operators(edge.sourceNode())!.crossEdgeCount()).toEqual(1);
+
+            const sceneEdge = materializePlanScene(planPtr).crossEdges[0];
+            expect(sceneEdge.kind).toEqual('early-probe');
+            expect(sceneEdge.properties).toMatchObject({ type: 'lookup', attributes: [0] });
+            expect(sceneEdge.path).not.toEqual('');
+        });
         it('creates fragments from federate descendants', () => {
             const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
             const planPtr = viewModel.loadHyperPlan(`{

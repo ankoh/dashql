@@ -18,6 +18,7 @@ void PlanViewModel::Reset() {
     root_operators.clear();
     operators.clear();
     operator_edges.clear();
+    operator_cross_edges.clear();
     layout_rect.reset();
     document = {};
     input_buffer.reset();
@@ -148,6 +149,8 @@ PlanViewModel::OperatorNode::OperatorNode(OperatorNode&& other)
       children_begin(other.children_begin),
       children_count(other.children_count),
       child_edges(other.child_edges),
+      cross_edges_begin(other.cross_edges_begin),
+      cross_edge_count(other.cross_edge_count),
       layout_rect(other.layout_rect),
       operator_attributes(std::move(other.operator_attributes)) {}
 
@@ -268,6 +271,8 @@ buffers::view::PlanOperator PlanViewModel::OperatorNode::Pack(
     }
     op.mutate_children_begin(children_begin);
     op.mutate_children_count(children_count);
+    op.mutate_cross_edges_begin(cross_edges_begin);
+    op.mutate_cross_edge_count(cross_edge_count);
     op.mutate_attributes_begin(attributes.size());
     if (std::holds_alternative<std::reference_wrapper<rapidjson::Value>>(source_value)) {
         const auto& source = std::get<std::reference_wrapper<rapidjson::Value>>(source_value).get();
@@ -368,6 +373,33 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
         flat_op_edges.push_back(edge.Pack(builder, *this, dictionary));
     }
 
+    // Pack the plan cross edges and their relationship metadata.
+    std::vector<buffers::view::PlanOperatorCrossEdge> flat_cross_edges;
+    flat_cross_edges.reserve(operator_cross_edges.size());
+    for (const auto& edge : operator_cross_edges) {
+        buffers::view::PlanOperatorCrossEdge flat;
+        flat.mutate_edge_id(edge.edge_id);
+        flat.mutate_source_node(edge.source_node);
+        flat.mutate_target_node(edge.target_node);
+        flat.mutate_pipeline_id(std::numeric_limits<uint32_t>::max());
+        flat.mutate_attributes_begin(flat_attributes.size());
+
+        buffers::view::PlanAttribute kind;
+        kind.mutate_attribute_id(flat_attributes.size());
+        kind.mutate_name(dictionary.Allocate(std::string_view{"kind"}));
+        kind.mutate_value_json(dictionary.Allocate(std::string{"\""} + std::string{edge.kind} + "\""));
+        flat_attributes.push_back(kind);
+        for (const auto& [name, value_json] : edge.attributes) {
+            buffers::view::PlanAttribute attribute;
+            attribute.mutate_attribute_id(flat_attributes.size());
+            attribute.mutate_name(dictionary.Allocate(name));
+            attribute.mutate_value_json(dictionary.Allocate(std::string_view{value_json}));
+            flat_attributes.push_back(attribute);
+        }
+        flat.mutate_attribute_count(flat_attributes.size() - flat.attributes_begin());
+        flat_cross_edges.push_back(flat);
+    }
+
     auto flat_fragments_ofs = builder.CreateVectorOfStructs(flat_fragments);
     auto flat_fragment_operators_ofs = builder.CreateVector(flat_fragment_operators);
     auto flat_pipelines_ofs = builder.CreateVectorOfStructs(flat_pipelines);
@@ -376,6 +408,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     auto flat_ops_ofs = builder.CreateVectorOfStructs(flat_ops);
     auto flat_attributes_ofs = builder.CreateVectorOfStructs(flat_attributes);
     auto flat_edges_ofs = builder.CreateVectorOfStructs(flat_op_edges);
+    auto flat_cross_edges_ofs = builder.CreateVectorOfStructs(flat_cross_edges);
     auto flat_roots_ofs = builder.CreateVector(root_operators);
     auto dictionary_strings = ChunkBuffer<std::string>::Flatten(std::move(dictionary.strings));
     auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary_strings);
@@ -391,6 +424,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     vm.add_operators(flat_ops_ofs);
     vm.add_attributes(flat_attributes_ofs);
     vm.add_operator_edges(flat_edges_ofs);
+    vm.add_operator_cross_edges(flat_cross_edges_ofs);
     vm.add_root_operators(flat_roots_ofs);
     if (layout_rect.has_value()) {
         vm.add_layout_rect(&layout_rect.value());

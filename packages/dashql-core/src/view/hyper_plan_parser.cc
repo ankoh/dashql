@@ -7,6 +7,8 @@
 #include "dashql/view/plan_view_model.h"
 #include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 namespace dashql {
 
@@ -76,6 +78,13 @@ std::optional<std::string_view> InferScanLabel(rapidjson::Value::Object object) 
         relation = candidate;
     }
     return relation;
+}
+
+std::string SerializeReferenceAttribute(const rapidjson::Value& value) {
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    value.Accept(writer);
+    return {buffer.GetString(), buffer.GetSize()};
 }
 
 /// Build an ancestor path
@@ -192,7 +201,8 @@ void PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]
                         pending[current_index].operator_type = operator_type;
                     }
                     // Contains an operator id?
-                    else if (attribute_name == "operatorId" && iter->value.IsUint64()) {
+                    else if ((attribute_name == "operatorId" || attribute_name == "operator-id") &&
+                             iter->value.IsUint64()) {
                         pending[current_index].source_operator_id = iter->value.GetUint64();
                         pending[current_index].attributes.emplace_back(attribute_name, iter->value);
                     }
@@ -256,12 +266,91 @@ void PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]
 
     // Flatten the Hyper operators
     FlattenOperators(std::move(parsed_operators), std::move(root_operators));
+    // Resolve non-containment references between flattened operators
+    IdentifyOperatorCrossEdges();
     // Identify fragments introduced by federates
     IdentifyFragments();
     // Identify the operator edges
     IdentifyOperatorEdges(operators, child_edge_count);
     // Read pipelines if this plan format provides them. Legacy plans render without pipeline overlays.
     ParseHyperPipelines();
+}
+
+void PlanViewModel::IdentifyOperatorCrossEdges() {
+    std::unordered_map<uint64_t, uint32_t> operator_ids;
+    for (const auto& op : operators) {
+        if (op.source_operator_id.has_value()) operator_ids.emplace(*op.source_operator_id, op.operator_id);
+    }
+
+    struct PendingCrossEdge {
+        uint32_t source_node;
+        uint32_t target_node;
+        std::string_view kind;
+        std::vector<std::pair<std::string_view, std::string>> attributes;
+    };
+    std::vector<PendingCrossEdge> pending;
+    auto append = [&](const OperatorNode& target, uint64_t source_id, std::string_view kind,
+                      std::vector<std::pair<std::string_view, std::string>> attributes = {}) {
+        auto source = operator_ids.find(source_id);
+        if (source != operator_ids.end()) {
+            pending.push_back({source->second, target.operator_id, kind, std::move(attributes)});
+        }
+    };
+
+    static constexpr std::string_view JOIN_OPERATORS[] = {
+        "join",          "leftouterjoin",  "rightouterjoin", "fullouterjoin", "leftantijoin",
+        "rightantijoin", "leftsemijoin",   "rightsemijoin",  "leftsinglejoin", "rightsinglejoin",
+        "leftmarkjoin",  "rightmarkjoin",
+    };
+    for (const auto& op : operators) {
+        if (!std::holds_alternative<std::reference_wrapper<rapidjson::Value>>(op.source_value)) continue;
+        const auto& value = std::get<std::reference_wrapper<rapidjson::Value>>(op.source_value).get();
+        if (!value.IsObject()) continue;
+        auto object = value.GetObject();
+        auto append_member = [&](std::string_view name, std::string_view kind) {
+            auto member = object.FindMember(name.data());
+            if (member != object.MemberEnd() && member->value.IsUint64()) append(op, member->value.GetUint64(), kind);
+        };
+
+        if (op.operator_type == "explicitscan") append_member("input", "input");
+        if (op.operator_type == "iterationincrement") append_member("source", "source");
+        if (op.operator_type == "earlyprobe") append_member("builder", "builder");
+        if (op.operator_type.has_value() &&
+            std::find(std::begin(JOIN_OPERATORS), std::end(JOIN_OPERATORS), *op.operator_type) !=
+                std::end(JOIN_OPERATORS)) {
+            append_member("magic", "magic");
+        }
+
+        auto early_probes = object.FindMember("earlyProbes");
+        if (early_probes == object.MemberEnd()) early_probes = object.FindMember("early-probes");
+        if (early_probes == object.MemberEnd() || !early_probes->value.IsArray()) continue;
+        for (const auto& probe : early_probes->value.GetArray()) {
+            if (!probe.IsObject()) continue;
+            auto builder = probe.FindMember("builder");
+            if (builder != probe.MemberEnd() && builder->value.IsUint64()) {
+                std::vector<std::pair<std::string_view, std::string>> attributes;
+                for (const auto& member : probe.GetObject()) {
+                    std::string_view name{member.name.GetString()};
+                    if (name != "builder" && name != "kind") {
+                        attributes.emplace_back(name, SerializeReferenceAttribute(member.value));
+                    }
+                }
+                append(op, builder->value.GetUint64(), "early-probe", std::move(attributes));
+            }
+        }
+    }
+
+    std::stable_sort(pending.begin(), pending.end(), [](const auto& left, const auto& right) {
+        return left.source_node < right.source_node;
+    });
+    operator_cross_edges.reserve(pending.size());
+    for (auto& edge : pending) {
+        auto& source = operators[edge.source_node];
+        if (source.cross_edge_count == 0) source.cross_edges_begin = operator_cross_edges.size();
+        source.cross_edge_count++;
+        operator_cross_edges.push_back({static_cast<uint32_t>(operator_cross_edges.size()), edge.source_node,
+                                        edge.target_node, edge.kind, std::move(edge.attributes)});
+    }
 }
 
 void PlanViewModel::IdentifyFragments() {
