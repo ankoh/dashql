@@ -34,7 +34,12 @@ ts_project(
     transpiler = "tsc",
     validate = False,
     validator = ":tsc_bin",
-    deps = ["//:node_modules"],
+    deps = [
+        "//:node_modules/@types/node",
+        "//:node_modules/electron",
+        "//:node_modules/electron-updater",
+        "//:node_modules/vitest",
+    ],
     visibility = ["//visibility:public"],
 )
 
