@@ -142,9 +142,10 @@ FmtReg Formatter::FormatView(const buffers::parser::Node& node) {
     if (columns && columns->children_count() > 0) {
         parts.push_back(fmt.Parenthesized(Reg(*columns)));
     }
-    parts.push_back(fmt.Text(" as "));
-    parts.push_back(Reg(*statement));
-    return fmt.Concat(std::move(parts));
+    parts.push_back(fmt.Text(" as"));
+    auto header = fmt.Concat(std::move(parts));
+    return fmt.Join(std::vector<FmtReg>{header, Reg(*statement)}, fmt.Text(" "), fmt.Break(),
+                    FormattingJoinPolicy::BreakAllOrNone);
 }
 
 FmtReg Formatter::FormatFunctionParam(const buffers::parser::Node& node) {
