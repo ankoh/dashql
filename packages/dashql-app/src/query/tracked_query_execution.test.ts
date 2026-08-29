@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { QUERY_STATEMENT_STARTED, QueryExecutionStatus, QueryType } from './query_execution_state.js';
+import { QUERY_STATEMENT_STARTED, QUERY_STATEMENT_SUCCEEDED, QueryExecutionStatus, QueryType } from './query_execution_state.js';
 import { allocateQueryId, executeTrackedQuery } from './tracked_query_execution.js';
 import { ShellQueryExecutionTracker } from '../shell/query_execution.js';
 import { createQueryExecutionMetrics, reduceQueryAction, type QueryExecutionHistoryState } from './query_execution_state.js';
@@ -90,6 +90,27 @@ describe('executeTrackedQuery', () => {
         expect(tracker.getSnapshot()[0]).toMatchObject({
             statementIndex: 1,
             statementCount: 2,
+            statementSucceeded: false,
+        });
+    });
+
+    it('records a successfully executed script statement', async () => {
+        const tracker = new ShellQueryExecutionTracker();
+
+        await executeTrackedQuery({
+            query: 'CREATE TABLE t(a INT); SELECT * FROM t',
+            metadata,
+            tracker,
+            execute: async context => {
+                context.dispatch({ type: QUERY_STATEMENT_STARTED, value: [context.queryId, 2, 2] });
+                context.dispatch({ type: QUERY_STATEMENT_SUCCEEDED, value: [context.queryId, 2, 2] });
+            },
+        });
+
+        expect(tracker.getSnapshot()[0]).toMatchObject({
+            statementIndex: 2,
+            statementCount: 2,
+            statementSucceeded: true,
         });
     });
 });

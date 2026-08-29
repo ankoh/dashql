@@ -13,6 +13,7 @@ interface ScriptQueryExecutionCallbacks {
         producesOutput: boolean,
     ) => Promise<arrow.Table | null>;
     onStatementStarted: (index: number, statementCount: number) => void;
+    onStatementSucceeded: (index: number, statementCount: number) => void;
     setResultStream: (stream: QueryExecutionResponseStream | null) => void;
 }
 
@@ -57,6 +58,7 @@ export async function executeScriptQuery(args: ExecuteScriptQueryArgs): Promise<
             };
             const result = await args.callbacks.executeStatement(statementArgs, statement.producesOutput);
             if (statement.producesOutput) table = result;
+            args.callbacks.onStatementSucceeded(statement.index, statement.statementCount);
 
             operation = args.execution.resume(new core.buffers.execution.StatementResultT(
                 statement.id,
