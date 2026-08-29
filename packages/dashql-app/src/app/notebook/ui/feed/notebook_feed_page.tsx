@@ -175,7 +175,7 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
         value: null,
     });
     const fileTree = (closeAfterSelection: boolean) => (
-        <div className={styles.file_navigation}>
+        <div className={styles.file_navigation} data-electron-drag-region>
             <NotebookConnectionSection
                 conn={props.connection}
                 notebookScripts={props.notebookScripts}
