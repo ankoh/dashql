@@ -1,7 +1,7 @@
 #include "dashql/agent/agent_session.h"
 
 #include "dashql/catalog.h"
-#include "dashql/editor/editor_session.h"
+#include "dashql/script_session.h"
 #include "gtest/gtest.h"
 
 using namespace dashql;
@@ -102,7 +102,7 @@ class ApplyDispositionTest : public testing::TestWithParam<ApplyDispositionCase>
 TEST_P(ApplyDispositionTest, CoreChoosesApplyDispositionFromIntentAndTarget) {
     Catalog catalog;
     const auto& param = GetParam();
-    std::optional<editor::EditorSession> target;
+    std::optional<ScriptSession> target;
     if (param.target_kind != AgentTargetKind::NONE) {
         target.emplace(catalog);
         const auto target_script = param.target_kind == AgentTargetKind::VISUALIZATION
@@ -179,7 +179,7 @@ TEST(AgentSessionTest, EmptySqlIsRepairable) {
 
 TEST(AgentSessionTest, VisualizationTranscodesAndVerifiesInsideSession) {
     Catalog catalog;
-    editor::EditorSession target{catalog};
+    ScriptSession target{catalog};
     target.ReplaceText(0, "select 1");
     AgentSession session{catalog, &target};
     auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
@@ -192,7 +192,7 @@ TEST(AgentSessionTest, VisualizationTranscodesAndVerifiesInsideSession) {
 
 TEST(AgentSessionTest, VisualizationCompilesSourceFromFocusedVisualization) {
     Catalog catalog;
-    editor::EditorSession target{catalog};
+    ScriptSession target{catalog};
     target.ReplaceText(0, "select 1 visualize using vegalite (mark => line)");
     AgentSession session{catalog, &target};
     auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);
@@ -206,7 +206,7 @@ TEST(AgentSessionTest, VisualizationCompilesSourceFromFocusedVisualization) {
 
 TEST(AgentSessionTest, VisualizationCandidateIsPrettyFormatted) {
     Catalog catalog;
-    editor::EditorSession target{catalog};
+    ScriptSession target{catalog};
     target.ReplaceText(0,
                        "with source as (select 1 as category, 10 as amount union all select 2 as category, 20 as "
                        "amount) select category, sum(amount) as total from source group by category order by category "
@@ -232,7 +232,7 @@ visualize using vegalite (
 
 TEST(AgentSessionTest, VisualizationCandidateUsesSessionFormattingConfig) {
     Catalog catalog;
-    editor::EditorSession target{catalog};
+    ScriptSession target{catalog};
     target.ReplaceText(0, "select 1 as category, 10 as amount visualize using vegalite (mark => line)");
     auto formatting = DefaultAgentFormattingConfig();
     formatting.mode = buffers::formatting::FormattingMode::COMPACT;
@@ -261,7 +261,7 @@ visualize using vegalite (
 
 TEST(AgentSessionTest, VisualizationFormattingFailurePreservesStitchedCandidate) {
     Catalog catalog;
-    editor::EditorSession target{catalog};
+    ScriptSession target{catalog};
     target.ReplaceText(0, "select default");
     AgentSession session{catalog, &target};
     auto operation = StartWithIntent(session, AgentIntent::VISUALIZE);

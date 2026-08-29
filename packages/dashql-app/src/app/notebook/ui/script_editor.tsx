@@ -15,15 +15,15 @@ import { Logger } from '../../../platform/logger/logger.js';
 const LOG_CTX = "notebook_editor";
 const WRITABLE_SESSION_VIEWS = new WeakMap<object, EditorView>();
 
-function leaseWritableSession(editorSession: object, view: EditorView): () => void {
-    const current = WRITABLE_SESSION_VIEWS.get(editorSession);
+function leaseWritableSession(scriptSession: object, view: EditorView): () => void {
+    const current = WRITABLE_SESSION_VIEWS.get(scriptSession);
     if (current != null && current !== view) {
-        throw new Error('A DashQLEditorSession can only be bound to one writable editor view');
+        throw new Error('A DashQLScriptSession can only be bound to one writable editor view');
     }
-    WRITABLE_SESSION_VIEWS.set(editorSession, view);
+    WRITABLE_SESSION_VIEWS.set(scriptSession, view);
     return () => {
-        if (WRITABLE_SESSION_VIEWS.get(editorSession) === view) {
-            WRITABLE_SESSION_VIEWS.delete(editorSession);
+        if (WRITABLE_SESSION_VIEWS.get(scriptSession) === view) {
+            WRITABLE_SESSION_VIEWS.delete(scriptSession);
         }
     };
 }
@@ -55,8 +55,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const [view, setViewState] = React.useState<EditorView | null>(null);
     React.useEffect(() => {
         if (view == null || scriptData == null) return;
-        return leaseWritableSession(scriptData.editorSession, view);
-    }, [view, scriptData?.editorSession]);
+        return leaseWritableSession(scriptData.scriptSession, view);
+    }, [view, scriptData?.scriptSession]);
     // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
         if (config == null || view == null || scriptData == null || scripts == null) return;
@@ -64,7 +64,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     }, [
         config,
         view,
-        scriptData?.editorSession,
+        scriptData?.scriptSession,
         scriptData?.editorUpdate,
         scriptData?.pendingDiff,
         scripts?.semanticUserFocus,
@@ -98,12 +98,12 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Script does not belong here?
     // Create a new editor state and update the view.
     // XXX Here's the place where we would restore a previous state, if one exists.
-    if (state.editorSession !== scriptData.editorSession) {
+    if (state.scriptSession !== scriptData.scriptSession) {
         logger.debug("Resetting editor for a different native session", {
             notebookId: scripts.notebookId,
             scriptKey: scriptData.scriptKey.toString(),
-            editorHadSession: (state.editorSession != null).toString(),
-            nativeDocumentRevision: scriptData.editorSession.getDocumentRevision().toString(),
+            editorHadSession: (state.scriptSession != null).toString(),
+            nativeDocumentRevision: scriptData.scriptSession.getDocumentRevision().toString(),
             projectedDocumentRevision: scriptData.editorUpdate?.documentRevision.toString(),
         }, LOG_CTX);
         // When that happens we have to reset the editor state.
@@ -118,7 +118,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Only replace if the doc content actually differs — the editor may already have the
     // correct text from its own transaction (e.g. autoclose inserting brackets).
     if (state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision) {
-        const scriptText = scriptData.editorSession.getText();
+        const scriptText = scriptData.scriptSession.getText();
         const editorText = view.state.doc.toString();
         if (scriptText !== editorText) {
             logger.warn("Replacing CodeMirror text from native editor session", {
@@ -142,7 +142,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Never override when the cursor update originated from the editor's own selection changes,
     // as that would collapse an in-progress text selection.
     let selection: EditorSelection | null = null;
-    if (state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision && state.editorSession === scriptData.editorSession) {
+    if (state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision && state.scriptSession === scriptData.scriptSession) {
         const mainSel = view.state.selection.main;
         if (mainSel.empty) {
             const nextCursorOffset = scriptData.editorUpdate?.primaryCursorState?.textOffset == null
@@ -185,7 +185,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     effects.push(
         DashQLUpdateEffect.of({
             scriptKey: scriptData.scriptKey,
-            editorSession: scriptData.editorSession,
+            scriptSession: scriptData.scriptSession,
             editorUpdate: scriptData.editorUpdate,
             scriptBuffers: null,
             scriptCompletion: scriptData.completion,
@@ -193,7 +193,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
 
             derivedFocus: scripts.semanticUserFocus,
 
-            lookupEditorSession: (scriptKey) => scripts.scripts[scriptKey]?.editorSession ?? null,
+            lookupScriptSession: (scriptKey) => scripts.scripts[scriptKey]?.scriptSession ?? null,
             onNavigateToScript,
 
             onUpdate: updateScript,

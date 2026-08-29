@@ -1,0 +1,54 @@
+namespace dashql.buffers.execution;
+
+enum ScriptExecutionProtocolError: uint8 {
+    NONE,
+    INVALID_ARGUMENT,
+    STALE_EFFECT,
+    BUSY,
+    INTERNAL_ERROR,
+}
+
+enum ScriptExecutionPhase: uint8 {
+    IDLE,
+    RUNNING,
+    SUCCEEDED,
+    FAILED,
+    CANCELLED,
+}
+
+enum StatementResultStatus: uint8 {
+    SUCCEEDED,
+    FAILED,
+    CANCELLED,
+}
+
+table PendingStatement {
+    id: uint64;
+    source_statement_id: uint32;
+    index: uint32;
+    statement_count: uint32;
+    sql: string;
+    produces_output: bool;
+}
+
+table StatementResult {
+    pending_statement_id: uint64;
+    status: StatementResultStatus;
+    error: string;
+}
+
+table ScriptExecutionSnapshot {
+    phase: ScriptExecutionPhase = IDLE;
+    document_revision: uint64;
+    statement_index: uint32;
+    statement_count: uint32;
+    output_statement_index: uint32 = 4294967295;
+    error: string;
+}
+
+table ScriptExecutionUpdate {
+    protocol_error: ScriptExecutionProtocolError = NONE;
+    protocol_error_message: string;
+    snapshot: ScriptExecutionSnapshot;
+    pending_statement: PendingStatement;
+}

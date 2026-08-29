@@ -13,9 +13,7 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 
-namespace dashql::editor {
-class EditorSession;
-}
+namespace dashql { class ScriptSession; }
 
 namespace dashql::agent {
 
@@ -34,7 +32,7 @@ class AgentSession {
     using AgentEffectCompletion = buffers::agent::AgentEffectCompletionT;
 
     /// Create an idle session borrowing the catalog and optional focused editor target.
-    explicit AgentSession(Catalog& catalog, editor::EditorSession* target = nullptr,
+    explicit AgentSession(Catalog& catalog, ScriptSession* target = nullptr,
                           buffers::formatting::FormattingConfigT formatting_config = DefaultAgentFormattingConfig());
     /// Destroy the suspended coroutine, if any.
     ~AgentSession();
@@ -203,7 +201,7 @@ class AgentSession {
     /// Catalog borrowed for parser/analyzer verification; must outlive this session.
     Catalog& catalog_;
     /// Focused native editor target, or null when the run creates without a target.
-    editor::EditorSession* target_ = nullptr;
+    ScriptSession* target_ = nullptr;
     /// Formatting policy used for source extraction and final generated candidates.
     buffers::formatting::FormattingConfigT formatting_config_;
     /// Current externally visible phase of the active or most recent run.

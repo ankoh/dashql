@@ -14,10 +14,11 @@
 #include "dashql/catalog.h"
 #include "dashql/catalog_object.h"
 #include "dashql/exception.h"
-#include "dashql/editor/editor_session.h"
+#include "dashql/script_session.h"
 #include "dashql/script_diff.h"
 #include "dashql/script.h"
 #include "dashql/script_compiler.h"
+#include "dashql/script_execution.h"
 #include "dashql/view/plan_view_model.h"
 #include "dashql/visualize/vegalite.h"
 #include "rapidjson/document.h"
@@ -83,6 +84,13 @@ static void packAgentOperation(FFIResult* result, const buffers::agent::AgentOpe
     packBuffer(result, std::make_unique<flatbuffers::DetachedBuffer>(fb.Release()));
 }
 
+static void packScriptExecutionUpdate(FFIResult* result,
+                                      const buffers::execution::ScriptExecutionUpdateT& update) {
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(buffers::execution::ScriptExecutionUpdate::Pack(fb, &update));
+    packBuffer(result, std::make_unique<flatbuffers::DetachedBuffer>(fb.Release()));
+}
+
 static buffers::agent::AgentOperationT invalidAgentOperation(std::string message) {
     buffers::agent::AgentOperationT operation;
     operation.error = buffers::agent::AgentOperationError::INVALID_ARGUMENT;
@@ -91,7 +99,7 @@ static buffers::agent::AgentOperationT invalidAgentOperation(std::string message
     return operation;
 }
 
-static void packInvalidEditorEvent(FFIResult* result, const editor::EditorSession& session) {
+static void packInvalidEditorEvent(FFIResult* result, const ScriptSession& session) {
     auto update = buffers::editor::EditorUpdateT{};
     update.status = buffers::editor::EditorUpdateStatus::INVALID_EVENT;
     update.status_message = "invalid EditorEvent FlatBuffer";
@@ -122,7 +130,7 @@ extern "C" void dashql_delete_owner(void* owner_ptr, void (*owner_deleter)(void*
     }
 }
 
-extern "C" void dashql_agent_session_new(FFIResult* result, Catalog* catalog, editor::EditorSession* target,
+extern "C" void dashql_agent_session_new(FFIResult* result, Catalog* catalog, ScriptSession* target,
                                             size_t dialect, size_t mode, size_t max_width,
                                             size_t indentation_width, bool debug_mode) {
     if (!catalog) throw Exception(buffers::status::StatusCode::CATALOG_NULL);
@@ -168,6 +176,42 @@ extern "C" void dashql_agent_session_cancel(FFIResult* result, agent::AgentSessi
         return;
     }
     packAgentOperation(result, session->Cancel());
+}
+
+extern "C" void dashql_script_execution_new(FFIResult* result, ScriptSession* session,
+                                               size_t dialect, size_t mode, size_t max_width,
+                                               size_t indentation_width, bool debug_mode) {
+    if (!session) throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    auto formatting_config = makeFormattingConfig(dialect, mode, max_width, indentation_width, debug_mode);
+    packPtr(result, std::make_unique<execution::ScriptExecution>(*session, std::move(formatting_config)));
+}
+
+extern "C" void dashql_script_execution_start(FFIResult* result, execution::ScriptExecution* execution) {
+    if (!execution) throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    packScriptExecutionUpdate(result, execution->Start());
+}
+
+extern "C" void dashql_script_execution_resume(FFIResult* result, execution::ScriptExecution* execution,
+                                                  const uint8_t* statement_result_ptr,
+                                                  size_t statement_result_length) {
+    if (!execution || !statement_result_ptr) throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    flatbuffers::Verifier verifier{statement_result_ptr, statement_result_length};
+    if (!verifier.VerifyBuffer<buffers::execution::StatementResult>(nullptr)) {
+        buffers::execution::ScriptExecutionUpdateT update;
+        update.protocol_error = buffers::execution::ScriptExecutionProtocolError::INVALID_ARGUMENT;
+        update.protocol_error_message = "invalid StatementResult FlatBuffer";
+        update.snapshot = std::make_unique<buffers::execution::ScriptExecutionSnapshotT>();
+        packScriptExecutionUpdate(result, update);
+        return;
+    }
+    auto statement_result = std::unique_ptr<buffers::execution::StatementResultT>{
+        flatbuffers::GetRoot<buffers::execution::StatementResult>(statement_result_ptr)->UnPack()};
+    packScriptExecutionUpdate(result, execution->Resume(*statement_result));
+}
+
+extern "C" void dashql_script_execution_cancel(FFIResult* result, execution::ScriptExecution* execution) {
+    if (!execution) throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    packScriptExecutionUpdate(result, execution->Cancel());
 }
 
 /// Create a script
@@ -232,10 +276,9 @@ extern "C" void dashql_script_compile_query(FFIResult* result, Script* script, s
     config.mode = static_cast<buffers::formatting::FormattingMode>(mode);
     config.max_width = max_width;
     config.indentation_width = indentation_width;
-    flatbuffers::FlatBufferBuilder fb;
-    ScriptCompiler::CompileAndPack(fb, *script, config, allow_extensions, parse_if_outdated);
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    packBuffer(result, std::move(detached));
+    auto compiled = ScriptCompiler::Compile(
+        *script, config, {.allow_extensions = allow_extensions, .parse_if_outdated = parse_if_outdated});
+    packFlatBuffer(result, [&](auto& builder) { builder.Finish(compiled.Pack(builder)); });
 }
 
 /// Scan a script
@@ -410,24 +453,24 @@ extern "C" void dashql_script_get_statistics(FFIResult* result, dashql::Script* 
     packBuffer(result, std::move(detached));
 }
 
-extern "C" void dashql_editor_session_new(FFIResult* result, Catalog* catalog, size_t offset_unit) {
+extern "C" void dashql_script_session_new(FFIResult* result, Catalog* catalog, size_t offset_unit) {
     if (!catalog) {
         throw Exception(buffers::status::StatusCode::CATALOG_NULL);
     }
     if (offset_unit > static_cast<size_t>(buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS)) {
         throw std::invalid_argument("invalid editor offset unit");
     }
-    packPtr(result, std::make_unique<editor::EditorSession>(
+    packPtr(result, std::make_unique<ScriptSession>(
                         *catalog, static_cast<buffers::editor::EditorOffsetUnit>(offset_unit)));
 }
 
-extern "C" void dashql_editor_session_destroy(editor::EditorSession* session) { delete session; }
+extern "C" void dashql_script_session_destroy(ScriptSession* session) { delete session; }
 
-extern "C" uint32_t dashql_editor_session_get_catalog_entry_id(editor::EditorSession* session) {
+extern "C" uint32_t dashql_script_session_get_catalog_entry_id(ScriptSession* session) {
     return session->GetCatalogEntryId();
 }
 
-extern "C" void dashql_editor_session_get_text(FFIResult* result, editor::EditorSession* session) {
+extern "C" void dashql_script_session_get_text(FFIResult* result, ScriptSession* session) {
     auto text = std::make_unique<std::string>(session->GetText());
     result->data_ptr = text->data();
     result->data_length = text->length();
@@ -435,19 +478,19 @@ extern "C" void dashql_editor_session_get_text(FFIResult* result, editor::Editor
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
 }
 
-extern "C" uint64_t dashql_editor_session_get_document_revision(editor::EditorSession* session) {
+extern "C" uint64_t dashql_script_session_get_document_revision(ScriptSession* session) {
     return session->GetDocumentRevision();
 }
 
-extern "C" uint64_t dashql_editor_session_get_state_revision(editor::EditorSession* session) {
+extern "C" uint64_t dashql_script_session_get_state_revision(ScriptSession* session) {
     return session->GetStateRevision();
 }
 
-extern "C" uint64_t dashql_editor_session_get_catalog_revision(editor::EditorSession* session) {
+extern "C" uint64_t dashql_script_session_get_catalog_revision(ScriptSession* session) {
     return session->GetCatalogRevision();
 }
 
-extern "C" void dashql_editor_session_replace_text(FFIResult* result, editor::EditorSession* session,
+extern "C" void dashql_script_session_replace_text(FFIResult* result, ScriptSession* session,
                                                      uint64_t expected_document_revision, const char* text_ptr,
                                                      size_t text_length) {
     std::unique_ptr<const std::byte[]> text_buffer{reinterpret_cast<const std::byte*>(text_ptr)};
@@ -455,7 +498,7 @@ extern "C" void dashql_editor_session_replace_text(FFIResult* result, editor::Ed
     packEditorUpdate(result, session->ReplaceText(expected_document_revision, text));
 }
 
-extern "C" void dashql_editor_session_apply(FFIResult* result, editor::EditorSession* session,
+extern "C" void dashql_script_session_apply(FFIResult* result, ScriptSession* session,
                                               const uint8_t* event_ptr, size_t event_length) {
     if (!event_ptr) {
         packInvalidEditorEvent(result, *session);
@@ -471,38 +514,39 @@ extern "C" void dashql_editor_session_apply(FFIResult* result, editor::EditorSes
     packEditorUpdate(result, session->Apply(*event));
 }
 
-extern "C" void dashql_editor_session_set_primary_cursor(FFIResult* result, editor::EditorSession* session,
+extern "C" void dashql_script_session_set_primary_cursor(FFIResult* result, ScriptSession* session,
                                                            uint64_t expected_document_revision, uint64_t offset) {
     packEditorUpdate(result, session->SetPrimaryCursor(expected_document_revision, offset));
 }
 
-extern "C" void dashql_editor_session_ensure_analysis(FFIResult* result, editor::EditorSession* session) {
+extern "C" void dashql_script_session_ensure_analysis(FFIResult* result, ScriptSession* session) {
     packEditorUpdate(result, session->EnsureSynchronousAnalysis());
 }
 
-extern "C" void dashql_editor_session_complete_at_cursor(FFIResult* result, editor::EditorSession* session,
-                                                            size_t limit) {
-    packFlatBuffer(result, [&](auto& builder) { session->PackCompletion(builder, limit); });
+extern "C" void dashql_script_session_complete_at_cursor(FFIResult* result, ScriptSession* session,
+                                                             size_t limit) {
+    packFlatBuffer(result, [&](auto& builder) { builder.Finish(session->PackCompletion(builder, limit)); });
 }
 
-extern "C" void dashql_editor_session_compile_query(FFIResult* result, editor::EditorSession* session,
+extern "C" void dashql_script_session_compile_query(FFIResult* result, ScriptSession* session,
                                                       size_t dialect, size_t mode, size_t max_width,
                                                       size_t indentation_width, bool allow_extensions,
                                                       bool parse_if_outdated) {
     auto config = makeFormattingConfig(dialect, mode, max_width, indentation_width);
+    auto compiled = session->CompileQuery(config, allow_extensions, parse_if_outdated);
     packFlatBuffer(result, [&](auto& builder) {
-        session->CompileQuery(builder, config, allow_extensions, parse_if_outdated);
+        builder.Finish(compiled.Pack(builder));
     });
 }
 
-extern "C" void dashql_editor_session_format(FFIResult* result, editor::EditorSession* session, size_t dialect,
+extern "C" void dashql_script_session_format(FFIResult* result, ScriptSession* session, size_t dialect,
                                                size_t mode, size_t max_width, size_t indentation_width,
                                                bool debug_mode, bool parse_if_outdated, Catalog* catalog) {
     auto config = makeFormattingConfig(dialect, mode, max_width, indentation_width, debug_mode);
     packPtr(result, session->Format(config, parse_if_outdated, catalog));
 }
 
-extern "C" uint32_t dashql_editor_session_is_fully_formattable(editor::EditorSession* session, size_t dialect,
+extern "C" uint32_t dashql_script_session_is_fully_formattable(ScriptSession* session, size_t dialect,
                                                                  size_t mode, size_t max_width,
                                                                  size_t indentation_width, bool debug_mode,
                                                                  bool parse_if_outdated) {
@@ -510,16 +554,16 @@ extern "C" uint32_t dashql_editor_session_is_fully_formattable(editor::EditorSes
     return session->IsFullyFormattable(config, parse_if_outdated) ? 1 : 0;
 }
 
-extern "C" void dashql_editor_session_compute_diff(FFIResult* result, editor::EditorSession* session,
-                                                     Script* target) {
-    packFlatBuffer(result, [&](auto& builder) { session->ComputeDiff(builder, *target); });
+extern "C" void dashql_script_session_compute_diff(FFIResult* result, ScriptSession* session,
+                                                      Script* target) {
+    packFlatBuffer(result, [&](auto& builder) { builder.Finish(session->PackDiff(builder, *target)); });
 }
 
-extern "C" void dashql_editor_session_load_into_catalog(editor::EditorSession* session, size_t rank) {
+extern "C" void dashql_script_session_load_into_catalog(ScriptSession* session, size_t rank) {
     session->LoadIntoCatalog(static_cast<CatalogEntry::Rank>(rank));
 }
 
-extern "C" void dashql_editor_session_drop_from_catalog(editor::EditorSession* session) {
+extern "C" void dashql_script_session_drop_from_catalog(ScriptSession* session) {
     session->DropFromCatalog();
 }
 

@@ -6,7 +6,7 @@ import type { ConnectionState } from '../connections/connection_state.js';
 import type { ConnectionRegistry } from '../connections/connection_registry.js';
 import type { NotebookScripts, ScriptData } from '../scripts/notebook_scripts.js';
 import type { NotebookScriptsRegistry } from '../scripts/notebook_scripts_registry.js';
-import { createEmptyScriptData, destroyNotebookScripts, replaceEditorSessionText, sortScriptFolderNamesNumerically } from '../scripts/notebook_scripts.js';
+import { createEmptyScriptData, destroyNotebookScripts, replaceScriptSessionText, sortScriptFolderNamesNumerically } from '../scripts/notebook_scripts.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../connections/connection_import.js';
 import { CONNECTOR_TYPES, ConnectorType, type ConnectorInfo } from '../connections/connector_info.js';
 import type { StorageBackend, NotebookEntry, NotebookData, ScriptFolderData } from './storage_backend.js';
@@ -97,7 +97,7 @@ async function restoreNotebookScripts(
                 scripts[scriptKey] = scriptData;
 
                 // Set SQL content. Ordinary notebook scripts remain outdated until first use.
-                replaceEditorSessionText(scriptData.editorSession, scriptFile.sql);
+                replaceScriptSessionText(scriptData.scriptSession, scriptFile.sql);
 
                 // Create page script reference
                 pageScripts[scriptFile.name] = {
@@ -131,7 +131,7 @@ async function restoreNotebookScripts(
                 notebookId,
                 draftLength: draftSql.length.toString()
             }, LOG_CTX);
-            replaceEditorSessionText(uncommittedData.editorSession, draftSql);
+            replaceScriptSessionText(uncommittedData.scriptSession, draftSql);
             uncommittedData.analysisOutdated = true;
         } else {
             logger.info("No draft script found", { notebookId }, LOG_CTX);
@@ -165,7 +165,7 @@ async function restoreNotebookScripts(
         for (const scriptData of Object.values(scripts)) {
             scriptData.completion?.buffer.destroy();
             scriptData.pendingDiff?.diffBuffer.destroy();
-            scriptData.editorSession.destroy();
+            scriptData.scriptSession.destroy();
         }
         throw error;
     }

@@ -3,7 +3,7 @@
 #include "dashql/async_analysis.h"
 #include "dashql/catalog.h"
 #include "dashql/exception.h"
-#include "dashql/editor/editor_session.h"
+#include "dashql/script_session.h"
 #include "gtest/gtest.h"
 
 #include <chrono>
@@ -203,13 +203,13 @@ TEST(ApiTest, AsyncAnalysisContainsWorkerExceptions) {
     dashql_script_analysis_job_release(ready);
 }
 
-TEST(ApiTest, FailedAsyncCatalogAnalysisDoesNotBlockEditorSessions) {
+TEST(ApiTest, FailedAsyncCatalogAnalysisDoesNotBlockScriptSessions) {
     Catalog catalog;
     Script invalid{catalog};
     auto failed = dashql_script_analyze_async(&invalid, false);
     EXPECT_EQ(WaitForJob(failed), static_cast<uint32_t>(AsyncAnalysisJobState::FAILED));
 
-    editor::EditorSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
     auto replaced = session.ReplaceText(0, "select 1");
     EXPECT_EQ(replaced.status, buffers::editor::EditorUpdateStatus::OK);
     auto analyzed = session.EnsureSynchronousAnalysis();

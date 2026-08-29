@@ -22,9 +22,10 @@ describe('runNotebookScript', () => {
             read: () => ({ errorsLength: () => 0, sql: () => 'SELECT 1' }),
             destroy: () => { },
         }));
+        const scriptExecution = {};
         const outdated = {
             scriptKey: 7,
-            editorSession: { compileQuery },
+            scriptSession: { compileQuery, startExecution: () => scriptExecution },
             analysisOutdated: true,
             annotations: { visualizeQuery: null },
             latestQueryId: null,
@@ -59,7 +60,8 @@ describe('runNotebookScript', () => {
         expect(compileQuery).toHaveBeenCalledOnce();
         expect(executeQuery).toHaveBeenCalledWith('connection', expect.objectContaining({
             query: 'SELECT 1',
-            cacheable: true,
+            scriptExecution,
+            cacheable: false,
         }));
         expect(modifyNotebookScripts).toHaveBeenNthCalledWith(2, {
             type: REGISTER_QUERY,

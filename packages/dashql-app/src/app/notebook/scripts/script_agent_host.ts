@@ -47,7 +47,7 @@ export function createNotebookScriptsAgentHost(params: NotebookScriptsAgentHostP
         createAgentSession() {
             return notebookScripts.instance.createAgentSession(
                 notebookScripts.connectionCatalog,
-                contextScriptData?.editorSession ?? null,
+                contextScriptData?.scriptSession ?? null,
                 new core.buffers.formatting.FormattingConfigT(
                     core.buffers.formatting.FormattingDialect.HYPER,
                     core.buffers.formatting.FormattingMode.PRETTY,

@@ -66,11 +66,11 @@ function snapshotMatchesCompletedWrite(
     if (notebookScripts) {
         memoryFiles.set(
             `${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`,
-            notebookScripts.scripts[notebookScripts.uncommittedScriptId]?.editorSession.getText() ?? '',
+            notebookScripts.scripts[notebookScripts.uncommittedScriptId]?.scriptSession.getText() ?? '',
         );
         for (const script of Object.values(notebookScripts.scripts)) {
             if (script.folderName && script.fileName) {
-                memoryFiles.set(`${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${script.folderName}/${script.fileName}`, script.editorSession.getText());
+                memoryFiles.set(`${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${script.folderName}/${script.fileName}`, script.scriptSession.getText());
             }
         }
     }

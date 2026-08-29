@@ -43,6 +43,48 @@ TEST(ScriptCompilerTest, ClassifiesInsertAsQuery) {
     EXPECT_EQ(result.sql, sql);
 }
 
+TEST(ScriptCompilerTest, CompilesStatementsInOrder) {
+    auto result = Compile("CREATE TABLE t (v INT); INSERT INTO t VALUES (1); SELECT * FROM t;");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    ASSERT_EQ(result.statements.size(), 3);
+    EXPECT_EQ(result.statements[0].kind, buffers::execution::CompiledScriptStatementKind::COMMAND);
+    EXPECT_EQ(result.statements[0].sql, "CREATE TABLE t (v INT);");
+    EXPECT_EQ(result.statements[1].sql, "INSERT INTO t VALUES (1);");
+    EXPECT_EQ(result.statements[2].kind, buffers::execution::CompiledScriptStatementKind::OUTPUT);
+    EXPECT_EQ(result.statements[2].sql, "SELECT * FROM t;");
+}
+
+TEST(ScriptCompilerTest, RejectsOutputStatementBeforeEnd) {
+    auto result = Compile("SELECT 1; CREATE TABLE t (v INT);");
+
+    ASSERT_EQ(result.errors.size(), 1);
+    EXPECT_EQ(result.errors.front().code,
+              buffers::execution::ScriptCompilationErrorCode::OUTPUT_STATEMENT_NOT_LAST);
+    EXPECT_EQ(result.errors.front().statement_id, 0);
+}
+
+TEST(ScriptCompilerTest, AllowsCommandOnlyScript) {
+    auto result = Compile("SET x = 1; CREATE TABLE t (v INT);");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    ASSERT_EQ(result.statements.size(), 2);
+    EXPECT_EQ(result.statements[1].kind, buffers::execution::CompiledScriptStatementKind::COMMAND);
+}
+
+TEST(ScriptCompilerTest, TreatsInsertReturningAndSelectIntoAsOutput) {
+    auto insert = Compile("INSERT INTO t VALUES (1) RETURNING *;");
+    ASSERT_TRUE(insert.errors.empty()) << (insert.errors.empty() ? "" : insert.errors.front().message);
+    ASSERT_EQ(insert.statements.size(), 1);
+    EXPECT_EQ(insert.statements[0].kind, buffers::execution::CompiledScriptStatementKind::OUTPUT);
+
+    auto select_into = Compile("SELECT 1 INTO t;");
+    ASSERT_TRUE(select_into.errors.empty())
+        << (select_into.errors.empty() ? "" : select_into.errors.front().message);
+    ASSERT_EQ(select_into.statements.size(), 1);
+    EXPECT_EQ(select_into.statements[0].kind, buffers::execution::CompiledScriptStatementKind::OUTPUT);
+}
+
 TEST(ScriptCompilerTest, CompilesTrailingVisualization) {
     auto result = Compile(R"SQL(
 WITH source AS (SELECT category, amount FROM sales)
@@ -70,6 +112,8 @@ VISUALIZE USING vegalite (
     ASSERT_TRUE(result.visualization.has_value());
     EXPECT_EQ(result.visualization->renderer, "vegalite");
     EXPECT_FALSE(result.visualization->vegalite_spec.empty());
+    ASSERT_EQ(result.statements.size(), 1);
+    EXPECT_EQ(result.statements[0].kind, buffers::execution::CompiledScriptStatementKind::VISUALIZE);
 }
 
 TEST(ScriptCompilerTest, CompilesUmapVisualization) {

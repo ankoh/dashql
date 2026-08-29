@@ -167,8 +167,9 @@ function createOnlineConnection(activeQueryIds: number[] = []): ConnectionState 
 function makeScriptData(scriptKey: number, text: string, fileName: string = '', folderName: string = '') {
     return {
         scriptKey,
-        editorSession: {
+        scriptSession: {
             getText: () => text,
+            startExecution: () => ({}),
             compileQuery: () => ({
                 read: () => ({
                     errorsLength: () => 0,
@@ -464,7 +465,7 @@ describe('NotebookFeed', () => {
 
         expect(mockState.executeQuery).toHaveBeenCalledWith('test-connection', expect.objectContaining({
             query: 'select 2',
-            cacheable: true,
+            cacheable: false,
         }));
         expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [102, 42] });
         expect(modifyNotebookScripts).not.toHaveBeenCalledWith(expect.objectContaining({ type: SELECT_SCRIPT }));

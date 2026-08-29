@@ -99,8 +99,8 @@ describe('releasePreviewSnapshot', () => {
 describe('unformatted script preview', () => {
     it('analyzes restored scripts without an editor projection', () => {
         const catalog = dql!.createCatalog();
-        const editorSession = dql!.createEditorSession(catalog);
-        editorSession.replaceText(0n, JSON_TABLE_SCRIPT);
+        const scriptSession = dql!.createScriptSession(catalog);
+        scriptSession.replaceText(0n, JSON_TABLE_SCRIPT);
         const logger = { warn: vi.fn() };
         const formattingConfig = new core.buffers.formatting.FormattingConfigT(
             core.buffers.formatting.FormattingDialect.HYPER,
@@ -110,11 +110,11 @@ describe('unformatted script preview', () => {
             false,
         );
 
-        expect(editorSession.isFullyFormattable(formattingConfig, true)).toBe(false);
+        expect(scriptSession.isFullyFormattable(formattingConfig, true)).toBe(false);
 
         const snapshot = buildUnformattedPreview(dql!, {
-            scriptKey: editorSession.getCatalogEntryId(),
-            editorSession,
+            scriptKey: scriptSession.getCatalogEntryId(),
+            scriptSession,
             editorUpdate: null,
         } as any, logger as any);
 
@@ -138,7 +138,7 @@ describe('unformatted script preview', () => {
         expect(functionNode?.className).not.toBe('');
         expect(commentNode?.className).not.toBe('');
         view.destroy();
-        editorSession.destroy();
+        scriptSession.destroy();
         catalog.destroy();
     });
 });

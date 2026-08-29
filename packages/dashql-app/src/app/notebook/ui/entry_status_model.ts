@@ -28,7 +28,14 @@ export interface EntryStatus {
 
 /// Human-readable label for a query execution status. Shared by the feed status bar and the Details
 /// query status panel so both stay in sync.
-export function getQueryStatusText(status: QueryExecutionStatus): string {
+export function getQueryStatusText(
+    status: QueryExecutionStatus,
+    statementIndex: number | null = null,
+    statementCount: number | null = null,
+): string {
+    if (statementIndex != null && statementCount != null && !queryIsDone(status)) {
+        return `Executing statement ${statementIndex} of ${statementCount}`;
+    }
     switch (status) {
         case QueryExecutionStatus.REQUESTED:
             return 'Requested query';
@@ -86,7 +93,7 @@ export function deriveEntryStatus(
         return {
             kind: EntryStatusKind.Query,
             indicator: IndicatorStatus.Running,
-            message: getQueryStatusText(query.status),
+            message: getQueryStatusText(query.status, query.statementIndex, query.statementCount),
             traceId: query.traceId,
             errorDetail: null,
         };

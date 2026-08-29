@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ConnectionState } from '../connections/connection_state.js';
-import { ScriptData, NotebookScripts, createEmptyScriptData, replaceEditorSessionText } from './notebook_scripts.js';
+import { ScriptData, NotebookScripts, createEmptyScriptData, replaceScriptSessionText } from './notebook_scripts.js';
 import { useNotebookScriptsAllocator } from './notebook_scripts_registry.js';
 import { createEmptyMetadata, createScriptRef, generateScriptFileName } from './script_types.js';
 
@@ -13,7 +13,7 @@ export function useNotebookScriptsSetup(): NotebookScriptsSetup {
         const folderName = 'main';
         const fileName = generateScriptFileName({});
         const [, mainScriptData]: [number, ScriptData] = createEmptyScriptData(conn.instance, conn.catalog, fileName, folderName);
-        replaceEditorSessionText(mainScriptData.editorSession, conn.connectorInfo.helloWorldScript);
+        replaceScriptSessionText(mainScriptData.scriptSession, conn.connectorInfo.helloWorldScript);
 
         const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
         const defaultPage = {

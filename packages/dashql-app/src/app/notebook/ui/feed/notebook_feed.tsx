@@ -8,7 +8,7 @@ import { useAppConfig } from '../../../config/app_config.js';
 import { List } from 'react-window';
 
 import { ConnectionHealth, ConnectionState } from '../../connections/connection_state.js';
-import { compileQuery, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
+import { compileQuery, createScriptExecution, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
 import { useAIClient } from '../../agent/ai/ai_client_provider.js';
 import { COMPOSE_INPUT_MODE_AI, useComposeInputMode } from '../../scripts/notebook_commands.js';
 import { useLatestAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../agent/agent_run_provider.js';
@@ -218,10 +218,11 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             return;
         }
         const [queryId, execution] = executeQuery(props.conn!.connectionId, {
-            query: queryText,
+             query: queryText,
+             scriptExecution: createScriptExecution(scriptData),
             analyzeResults: true,
             replaceComputationId: scriptData.latestQueryId,
-            cacheable: true,
+             cacheable: false,
             projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
             metadata: {
                 queryType: QueryType.USER_PROVIDED,
@@ -240,7 +241,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         const scriptKey = notebookScripts.uncommittedScriptId;
         const scriptData = notebookScripts.scripts[scriptKey];
         const editorTextLength = composeEditorView?.state?.doc?.length ?? -1;
-        const nativeTextLength = scriptData?.editorSession.getText().length ?? -1;
+        const nativeTextLength = scriptData?.scriptSession.getText().length ?? -1;
         logger?.info("Draft action requested", {
             notebookId: notebookScripts.notebookId,
             action: execute ? 'execute' : 'save',
@@ -252,7 +253,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             nativeTextLength: nativeTextLength.toString(),
             textLengthsMatch: (editorTextLength === nativeTextLength).toString(),
             editorDocumentRevision: scriptData?.editorUpdate?.documentRevision.toString(),
-            nativeDocumentRevision: scriptData?.editorSession.getDocumentRevision?.().toString(),
+            nativeDocumentRevision: scriptData?.scriptSession.getDocumentRevision?.().toString(),
             analysisOutdated: scriptData?.analysisOutdated.toString(),
             analysisAvailable: scriptData?.editorUpdate?.analysisAvailable.toString(),
         }, 'notebook_feed');
@@ -264,10 +265,11 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         props.modifyNotebookScripts({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         if (execute && !isDisconnected && queryText.trim().length > 0) {
             const [queryId, execution] = executeQuery(props.conn!.connectionId, {
-                query: queryText,
+                 query: queryText,
+                 scriptExecution: createScriptExecution(scriptData),
                 analyzeResults: true,
                 replaceComputationId: scriptData?.latestQueryId,
-                cacheable: true,
+                 cacheable: false,
                 projection: projectionForVisualizeQuery(scriptData?.annotations.visualizeQuery),
                 metadata: {
                     queryType: QueryType.USER_PROVIDED,

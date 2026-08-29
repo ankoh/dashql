@@ -4,12 +4,15 @@
 #include <cstdint>
 
 #include "dashql/catalog.h"
-#include "dashql/editor/editor_session.h"
+#include "dashql/script_session.h"
 #include "dashql/script.h"
 #include "dashql/view/plan_view_model.h"
 
 namespace dashql::agent {
 class AgentSession;
+}
+namespace dashql::execution {
+class ScriptExecution;
 }
 
 namespace console {
@@ -45,7 +48,7 @@ extern "C" void dashql_delete_owner(void* owner_ptr, void (*owner_deleter)(void*
 /// Create an agent session borrowing the catalog and optional focused editor target.
 /// Destroy it before destroying either borrowed object.
 extern "C" void dashql_agent_session_new(FFIResult* result, dashql::Catalog* catalog,
-                                            dashql::editor::EditorSession* target,
+                                             dashql::ScriptSession* target,
                                             size_t dialect, size_t mode, size_t max_width,
                                             size_t indentation_width, bool debug_mode);
 /// Start an agent session from a serialized AgentStartRequest.
@@ -56,6 +59,16 @@ extern "C" void dashql_agent_session_complete_effect(FFIResult* result, dashql::
                                                       const uint8_t* completion_ptr, size_t completion_length);
 /// Cancel the active agent operation.
 extern "C" void dashql_agent_session_cancel(FFIResult* result, dashql::agent::AgentSession* session);
+
+extern "C" void dashql_script_execution_new(FFIResult* result, dashql::ScriptSession* session,
+                                               size_t dialect, size_t mode, size_t max_width,
+                                               size_t indentation_width, bool debug_mode);
+extern "C" void dashql_script_execution_start(FFIResult* result, dashql::execution::ScriptExecution* execution);
+extern "C" void dashql_script_execution_resume(FFIResult* result,
+                                                  dashql::execution::ScriptExecution* execution,
+                                                  const uint8_t* statement_result_ptr,
+                                                  size_t statement_result_length);
+extern "C" void dashql_script_execution_cancel(FFIResult* result, dashql::execution::ScriptExecution* execution);
 
 // -----------------------------------------------------------------------------
 
@@ -128,53 +141,53 @@ extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Scri
 // -----------------------------------------------------------------------------
 
 /// Create an editor session borrowing the catalog. Destroy it before destroying the catalog.
-extern "C" void dashql_editor_session_new(FFIResult* result, dashql::Catalog* catalog, size_t offset_unit);
+extern "C" void dashql_script_session_new(FFIResult* result, dashql::Catalog* catalog, size_t offset_unit);
 /// Destroy an editor session.
-extern "C" void dashql_editor_session_destroy(dashql::editor::EditorSession* session);
+extern "C" void dashql_script_session_destroy(dashql::ScriptSession* session);
 /// Get the owned script's catalog entry id.
-extern "C" uint32_t dashql_editor_session_get_catalog_entry_id(dashql::editor::EditorSession* session);
+extern "C" uint32_t dashql_script_session_get_catalog_entry_id(dashql::ScriptSession* session);
 /// Get the current document as UTF-8 text.
-extern "C" void dashql_editor_session_get_text(FFIResult* result, dashql::editor::EditorSession* session);
+extern "C" void dashql_script_session_get_text(FFIResult* result, dashql::ScriptSession* session);
 /// Get revisions directly.
-extern "C" uint64_t dashql_editor_session_get_document_revision(dashql::editor::EditorSession* session);
-extern "C" uint64_t dashql_editor_session_get_state_revision(dashql::editor::EditorSession* session);
-extern "C" uint64_t dashql_editor_session_get_catalog_revision(dashql::editor::EditorSession* session);
+extern "C" uint64_t dashql_script_session_get_document_revision(dashql::ScriptSession* session);
+extern "C" uint64_t dashql_script_session_get_state_revision(dashql::ScriptSession* session);
+extern "C" uint64_t dashql_script_session_get_catalog_revision(dashql::ScriptSession* session);
 /// Replace all UTF-8 text and return an owned EditorUpdate FlatBuffer.
 /// Takes ownership of text_ptr, which must be null or allocated by dashql_malloc.
-extern "C" void dashql_editor_session_replace_text(FFIResult* result, dashql::editor::EditorSession* session,
+extern "C" void dashql_script_session_replace_text(FFIResult* result, dashql::ScriptSession* session,
                                                     uint64_t expected_document_revision, const char* text_ptr,
                                                     size_t text_length);
 /// Apply a serialized EditorEvent and return an owned EditorUpdate FlatBuffer.
-extern "C" void dashql_editor_session_apply(FFIResult* result, dashql::editor::EditorSession* session,
+extern "C" void dashql_script_session_apply(FFIResult* result, dashql::ScriptSession* session,
                                              const uint8_t* event_ptr, size_t event_length);
 /// Set a collapsed primary selection and return an owned EditorUpdate FlatBuffer.
-extern "C" void dashql_editor_session_set_primary_cursor(FFIResult* result, dashql::editor::EditorSession* session,
+extern "C" void dashql_script_session_set_primary_cursor(FFIResult* result, dashql::ScriptSession* session,
                                                           uint64_t expected_document_revision, uint64_t offset);
 /// Analyze and publish the session script synchronously, returning an owned EditorUpdate FlatBuffer.
-extern "C" void dashql_editor_session_ensure_analysis(FFIResult* result, dashql::editor::EditorSession* session);
-extern "C" void dashql_editor_session_complete_at_cursor(FFIResult* result,
-                                                          dashql::editor::EditorSession* session, size_t limit);
+extern "C" void dashql_script_session_ensure_analysis(FFIResult* result, dashql::ScriptSession* session);
+extern "C" void dashql_script_session_complete_at_cursor(FFIResult* result,
+                                                           dashql::ScriptSession* session, size_t limit);
 /// Compile the session script into an executable query FlatBuffer.
-extern "C" void dashql_editor_session_compile_query(FFIResult* result, dashql::editor::EditorSession* session,
+extern "C" void dashql_script_session_compile_query(FFIResult* result, dashql::ScriptSession* session,
                                                       size_t dialect, size_t mode, size_t max_width,
                                                       size_t indentation_width, bool allow_extensions,
                                                       bool parse_if_outdated);
 /// Format the session into a separately owned normal Script.
-extern "C" void dashql_editor_session_format(FFIResult* result, dashql::editor::EditorSession* session,
+extern "C" void dashql_script_session_format(FFIResult* result, dashql::ScriptSession* session,
                                                size_t dialect, size_t mode, size_t max_width,
                                                size_t indentation_width, bool debug_mode, bool parse_if_outdated,
                                                dashql::Catalog* catalog);
 /// Whether formatting the session can complete without placeholders.
-extern "C" uint32_t dashql_editor_session_is_fully_formattable(dashql::editor::EditorSession* session,
+extern "C" uint32_t dashql_script_session_is_fully_formattable(dashql::ScriptSession* session,
                                                                  size_t dialect, size_t mode, size_t max_width,
                                                                  size_t indentation_width, bool debug_mode,
                                                                  bool parse_if_outdated);
 /// Compute a semantic diff from the session to a parsed normal Script target.
-extern "C" void dashql_editor_session_compute_diff(FFIResult* result, dashql::editor::EditorSession* session,
+extern "C" void dashql_script_session_compute_diff(FFIResult* result, dashql::ScriptSession* session,
                                                      dashql::Script* target);
 /// Publish or remove the session-owned script in its borrowed catalog.
-extern "C" void dashql_editor_session_load_into_catalog(dashql::editor::EditorSession* session, size_t rank);
-extern "C" void dashql_editor_session_drop_from_catalog(dashql::editor::EditorSession* session);
+extern "C" void dashql_script_session_load_into_catalog(dashql::ScriptSession* session, size_t rank);
+extern "C" void dashql_script_session_drop_from_catalog(dashql::ScriptSession* session);
 
 // -----------------------------------------------------------------------------
 

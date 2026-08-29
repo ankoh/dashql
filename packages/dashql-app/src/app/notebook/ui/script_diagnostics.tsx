@@ -39,7 +39,7 @@ function formattingDetails(scriptData: ScriptData): Record<string, unknown> {
             maxWidth: 80,
             indentationWidth: 4,
         };
-        details.fullyFormattable = scriptData.editorSession.isFullyFormattable(config, true);
+        details.fullyFormattable = scriptData.scriptSession.isFullyFormattable(config, true);
     } catch (error) {
         details.inspectionError = error instanceof Error ? error.message : String(error);
     }

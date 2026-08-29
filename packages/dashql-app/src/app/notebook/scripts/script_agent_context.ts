@@ -49,7 +49,7 @@ export const focusedScriptContributor: AgentContextContributor = (input) => {
     if (input.intent !== 'sql') return null;
     const data = input.contextScriptData;
     if (data == null) return null;
-    const text = data.editorSession.getText().trim();
+    const text = data.scriptSession.getText().trim();
     if (text.length === 0) return null;
     return `Current script:\n${text}`;
 };

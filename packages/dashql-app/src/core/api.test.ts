@@ -103,7 +103,7 @@ describe('DashQL editor sessions', () => {
 
     it('owns and destroys the native session', () => {
         const catalog = dql!.createCatalog();
-        const session = dql!.createEditorSession(catalog);
+        const session = dql!.createScriptSession(catalog);
 
         expect(session.getText()).toBe('');
         expect(session.getCatalogEntryId()).toBe(session.catalog_entry_id);
@@ -125,7 +125,7 @@ describe('DashQL editor sessions', () => {
 
     it('applies a Unicode batch in pre-change UTF-16 offsets', () => {
         const catalog = dql!.createCatalog();
-        const session = dql!.createEditorSession(catalog);
+        const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 'aéz');
         const event = new dashql.buffers.editor.EditorEventT(
             1n,
@@ -153,7 +153,7 @@ describe('DashQL editor sessions', () => {
 
     it('publishes portable analysis and cursor state', () => {
         const catalog = dql!.createCatalog();
-        const session = dql!.createEditorSession(catalog);
+        const session = dql!.createScriptSession(catalog);
         const text = 'create table items (id int); select * from items;';
         session.replaceText(0n, text);
         const cursorUpdate = session.setCursor(1n, BigInt(text.length));
@@ -174,7 +174,7 @@ describe('DashQL editor sessions', () => {
 
     it('completes at the session cursor', () => {
         const catalog = dql!.createCatalog();
-        const session = dql!.createEditorSession(catalog);
+        const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 's');
         session.setCursor(1n, 1n);
         session.ensureAnalysis();
@@ -186,7 +186,7 @@ describe('DashQL editor sessions', () => {
 
     it('compiles, formats, and diffs the session script', () => {
         const catalog = dql!.createCatalog();
-        const session = dql!.createEditorSession(catalog);
+        const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 'select 1 as value');
         session.ensureAnalysis();
 
@@ -226,7 +226,7 @@ describe('DashQL editor sessions', () => {
 
         try {
             const catalog = dql!.createCatalog();
-            const session = dql!.createEditorSession(catalog);
+            const session = dql!.createScriptSession(catalog);
             session.replaceText(0n, 'select 1 as value');
             session.ensureAnalysis();
             const compilation = session.compileQuery(formattingConfig());
@@ -242,7 +242,7 @@ describe('DashQL editor sessions', () => {
 
     it('loads and drops the session-owned script from its catalog', () => {
         const catalog = dql!.createCatalog();
-        const session = dql!.createEditorSession(catalog);
+        const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 'create table items (id int)');
         session.ensureAnalysis();
 

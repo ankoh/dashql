@@ -3,10 +3,13 @@ import { HyperDatabaseChannel } from "./hyper/hyperdb_grpc_client.js";
 import { QueryMetadata } from "./query_execution_state.js";
 import { SalesforceDatabaseChannel } from "./salesforce/salesforce_api_client.js";
 import { TrinoChannelInterface } from "./trino/trino_channel.js";
+import type { DashQLScriptExecution } from '../../../core/api.js';
 
 /// The query executor args
 export interface QueryExecutionArgs {
     query: string;
+    /// Core-owned execution workflow for a multi-statement notebook script.
+    scriptExecution?: DashQLScriptExecution;
     /// Optional caller-owned cancellation signal. The executor links this to its
     /// own query cancellation controller without taking ownership of it.
     abortSignal?: AbortSignal;

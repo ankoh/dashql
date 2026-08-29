@@ -22,6 +22,7 @@ import {
     QUERY_CANCELLED,
     QUERY_FAILED,
     QUERY_PROGRESS_UPDATED,
+    QUERY_STATEMENT_STARTED,
     QUERY_RECEIVED_BATCH,
     QUERY_RUNNING,
     QUERY_RECEIVED_ALL_BATCHES,
@@ -265,6 +266,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
         case QUERY_RUNNING:
         case QUERY_SENDING:
         case QUERY_PROGRESS_UPDATED:
+        case QUERY_STATEMENT_STARTED:
         case QUERY_RECEIVED_BATCH:
         case QUERY_RECEIVED_ALL_BATCHES:
         case QUERY_PROCESSING_RESULTS:
