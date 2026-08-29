@@ -27,6 +27,10 @@ cp "${ADDON_PATH}" "${STAGE}/dashql_native_napi.node"
 ln -s "${WORKSPACE_ROOT}/node_modules" "${STAGE}/node_modules"
 
 BUILDER_ARGS=(--config "${STAGE}/electron-builder.yml")
+BUILDER_ARGS+=(
+    --config.mac.entitlements="${STAGE}/Entitlements.plist"
+    --config.mac.entitlementsInherit="${STAGE}/Entitlements.plist"
+)
 if [[ -z "${CSC_LINK:-}" && -z "${CSC_NAME:-}" ]]; then
     unset CSC_LINK CSC_NAME CSC_KEY_PASSWORD
     export CSC_IDENTITY_AUTO_DISCOVERY=false
