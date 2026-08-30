@@ -133,6 +133,16 @@ export enum CatalogSource {
     Unknown = 4,
 }
 
+export function generateCatalogScriptHeaderForSource(source: string, updatedAt: Date = new Date()): string {
+    return `-- DashQL Connection Relations.
+-- This file is auto-generated and can only be updated through a catalog refresh.
+--
+-- Catalog Source: ${source}
+-- Last Refresh: ${updatedAt.toISOString()}
+
+`;
+}
+
 /// Generates a SQL comment header for catalog scripts with the update timestamp and method.
 export function generateCatalogScriptHeader(method: CatalogSource, updatedAt: Date = new Date()): string {
     let methodStr: string;
@@ -143,13 +153,7 @@ export function generateCatalogScriptHeader(method: CatalogSource, updatedAt: Da
         case CatalogSource.Hyper: methodStr = 'Hyper attached databases'; break;
         default: methodStr = '-'; break;
     }
-    return `-- DashQL Connection Relations.
--- This file is auto-generated and can only be updated through a catalog refresh.
---
--- Catalog Source: ${methodStr}
--- Last Refresh: ${updatedAt.toISOString()}
-
-`;
+    return generateCatalogScriptHeaderForSource(methodStr, updatedAt);
 }
 
 /// Generates SQL for multiple schemas.

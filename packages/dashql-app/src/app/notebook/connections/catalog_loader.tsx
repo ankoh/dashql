@@ -148,6 +148,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                         conn.instance,
                         conn.catalogRelationScript,
                         conn.catalogFunctionScript,
+                        conn.details.value.proto.setupParams?.protocol === 'WASM',
                         abortController.signal,
                     );
                     if (result.failures.length > 0) {

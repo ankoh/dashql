@@ -29,6 +29,16 @@ export function generateFunctionsSQL(databaseName: string | null | undefined, fu
     return sorted.map(fn => generateCreateFunctionSQL(databaseName, fn) + ';').join('\n');
 }
 
+export function generateFunctionScriptHeaderForSource(source: string, updatedAt: Date = new Date()): string {
+    return `-- DashQL Connection Functions.
+-- This file is auto-generated and can only be updated through a catalog refresh.
+--
+-- Catalog Source: ${source}
+-- Last Refresh: ${updatedAt.toISOString()}
+
+`;
+}
+
 export function generateFunctionScriptHeader(method: CatalogSource, updatedAt: Date = new Date()): string {
     let methodStr: string;
     switch (method) {
@@ -38,11 +48,5 @@ export function generateFunctionScriptHeader(method: CatalogSource, updatedAt: D
         case CatalogSource.Hyper: methodStr = 'Bundled Hyper function catalog'; break;
         default: methodStr = '-'; break;
     }
-    return `-- DashQL Connection Functions.
--- This file is auto-generated and can only be updated through a catalog refresh.
---
--- Catalog Source: ${methodStr}
--- Last Refresh: ${updatedAt.toISOString()}
-
-`;
+    return generateFunctionScriptHeaderForSource(methodStr, updatedAt);
 }
