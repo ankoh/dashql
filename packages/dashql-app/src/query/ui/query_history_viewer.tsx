@@ -10,21 +10,19 @@ import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { JsonView } from '../../ui/json/json_view.js';
-import { QueryExecutionState, QueryExecutionStatus, QueryType } from '../query_execution_state.js';
+import { QueryExecutionState, QueryExecutionStatus } from '../query_execution_state.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { useKeyEvents } from '../../utils/key_events.js';
 
 export const ROW_HEIGHT = 32;
 
 export enum QueryTarget {
-    LOCAL = 'Local',
-    REMOTE = 'Remote',
+    CONNECTION = 'Connection',
+    MEMORY = 'Memory',
 }
 
 export function getQueryTarget(query: QueryExecutionState): QueryTarget {
-    return query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
-        ? QueryTarget.LOCAL
-        : QueryTarget.REMOTE;
+    return query.queryMetadata.userProvided ? QueryTarget.CONNECTION : QueryTarget.MEMORY;
 }
 
 export interface QueryEntry {
