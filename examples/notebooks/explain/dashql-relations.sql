@@ -2,15 +2,15 @@
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: Hyper attached databases
--- Last Refresh: 2026-08-30T19:27:30.524Z
+-- Last Refresh: 2026-08-30T19:50:40.730Z
 
--- DashQL Hyper Catalog Section: "default"
-CREATE TABLE "default"."pg_catalog"."hyper_attached_database" (
+-- DashQL Hyper Catalog Section: "hyper"
+CREATE TABLE "hyper"."pg_catalog"."hyper_attached_database" (
     "database_name" VARCHAR,
     "database_alias" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."hyper_database" (
+CREATE TABLE "hyper"."pg_catalog"."hyper_database" (
     "datname" VARCHAR,
     "last_file_write_timestamp" TIMESTAMP,
     "database_version" VARCHAR,
@@ -21,11 +21,11 @@ CREATE TABLE "default"."pg_catalog"."hyper_database" (
     "type" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."hyper_event_logs" (
+CREATE TABLE "hyper"."pg_catalog"."hyper_event_logs" (
     "log_file_name" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."hyper_load" (
+CREATE TABLE "hyper"."pg_catalog"."hyper_load" (
     "load" FLOAT,
     "scheduler_load" FLOAT,
     "memory_load" FLOAT,
@@ -34,7 +34,7 @@ CREATE TABLE "default"."pg_catalog"."hyper_load" (
     "memory_buckets_load" FLOAT
 );
 
-CREATE TABLE "default"."pg_catalog"."hyper_memory_usage" (
+CREATE TABLE "hyper"."pg_catalog"."hyper_memory_usage" (
     "timestamp" TIMESTAMP,
     "total_virtual_memory" INTEGER,
     "total_virtual_memory_used" INTEGER,
@@ -45,18 +45,18 @@ CREATE TABLE "default"."pg_catalog"."hyper_memory_usage" (
     "total_memory_limit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."hyper_thread_usage" (
+CREATE TABLE "hyper"."pg_catalog"."hyper_thread_usage" (
     "total_threads_active" INTEGER,
     "total_threads_idle" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."hyper_threads" (
+CREATE TABLE "hyper"."pg_catalog"."hyper_threads" (
     "thread_id" INTEGER,
     "type" VARCHAR,
     "state" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_aggregate" (
+CREATE TABLE "hyper"."pg_catalog"."pg_aggregate" (
     "aggfnoid" VARCHAR,
     "aggtransfn" VARCHAR,
     "aggfinalfn" VARCHAR,
@@ -65,7 +65,7 @@ CREATE TABLE "default"."pg_catalog"."pg_aggregate" (
     "agginitval" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_am" (
+CREATE TABLE "hyper"."pg_catalog"."pg_am" (
     "amname" VARCHAR,
     "amstrategies" INTEGER,
     "amsupport" INTEGER,
@@ -96,7 +96,7 @@ CREATE TABLE "default"."pg_catalog"."pg_am" (
     "amoptions" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_amop" (
+CREATE TABLE "hyper"."pg_catalog"."pg_amop" (
     "amopfamily" VARCHAR,
     "amoplefttype" VARCHAR,
     "amoprighttype" VARCHAR,
@@ -107,7 +107,7 @@ CREATE TABLE "default"."pg_catalog"."pg_amop" (
     "amopsortfamily" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_amproc" (
+CREATE TABLE "hyper"."pg_catalog"."pg_amproc" (
     "amprocfamily" VARCHAR,
     "amproclefttype" VARCHAR,
     "amprocrighttype" VARCHAR,
@@ -115,14 +115,14 @@ CREATE TABLE "default"."pg_catalog"."pg_amproc" (
     "amproc" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_attrdef" (
+CREATE TABLE "hyper"."pg_catalog"."pg_attrdef" (
     "adrelid" VARCHAR,
     "adnum" INTEGER,
     "adbin" VARCHAR,
     "adsrc" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_attribute" (
+CREATE TABLE "hyper"."pg_catalog"."pg_attribute" (
     "attrelid" VARCHAR,
     "attname" VARCHAR,
     "atttypid" VARCHAR,
@@ -145,14 +145,14 @@ CREATE TABLE "default"."pg_catalog"."pg_attribute" (
     "attoptions" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_auth_members" (
+CREATE TABLE "hyper"."pg_catalog"."pg_auth_members" (
     "roleid" VARCHAR,
     "member" VARCHAR,
     "grantor" VARCHAR,
     "admin_option" BOOLEAN
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_authid" (
+CREATE TABLE "hyper"."pg_catalog"."pg_authid" (
     "rolname" VARCHAR,
     "rolsuper" BOOLEAN,
     "rolinherit" BOOLEAN,
@@ -166,7 +166,7 @@ CREATE TABLE "default"."pg_catalog"."pg_authid" (
     "rolvaliduntil" TIMESTAMP
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_available_extension_versions" (
+CREATE TABLE "hyper"."pg_catalog"."pg_available_extension_versions" (
     "name" VARCHAR,
     "version" VARCHAR,
     "installed" BOOLEAN,
@@ -177,14 +177,14 @@ CREATE TABLE "default"."pg_catalog"."pg_available_extension_versions" (
     "comment" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_available_extensions" (
+CREATE TABLE "hyper"."pg_catalog"."pg_available_extensions" (
     "name" VARCHAR,
     "default_version" VARCHAR,
     "installed_version" VARCHAR,
     "comment" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_cast" (
+CREATE TABLE "hyper"."pg_catalog"."pg_cast" (
     "castsource" VARCHAR,
     "casttarget" VARCHAR,
     "castfunc" VARCHAR,
@@ -192,7 +192,7 @@ CREATE TABLE "default"."pg_catalog"."pg_cast" (
     "castmethod" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_class" (
+CREATE TABLE "hyper"."pg_catalog"."pg_class" (
     "relname" VARCHAR,
     "relnamespace" VARCHAR,
     "reltype" VARCHAR,
@@ -221,7 +221,7 @@ CREATE TABLE "default"."pg_catalog"."pg_class" (
     "reloptions" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_collation" (
+CREATE TABLE "hyper"."pg_catalog"."pg_collation" (
     "collname" VARCHAR,
     "collnamespace" VARCHAR,
     "collowner" VARCHAR,
@@ -230,7 +230,7 @@ CREATE TABLE "default"."pg_catalog"."pg_collation" (
     "collctype" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_constraint" (
+CREATE TABLE "hyper"."pg_catalog"."pg_constraint" (
     "conname" VARCHAR,
     "connamespace" VARCHAR,
     "contype" VARCHAR,
@@ -256,7 +256,7 @@ CREATE TABLE "default"."pg_catalog"."pg_constraint" (
     "consrc" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_conversion" (
+CREATE TABLE "hyper"."pg_catalog"."pg_conversion" (
     "conname" VARCHAR,
     "connamespace" VARCHAR,
     "conowner" VARCHAR,
@@ -266,7 +266,7 @@ CREATE TABLE "default"."pg_catalog"."pg_conversion" (
     "condefault" BOOLEAN
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_cursors" (
+CREATE TABLE "hyper"."pg_catalog"."pg_cursors" (
     "name" VARCHAR,
     "statement" VARCHAR,
     "is_holdable" BOOLEAN,
@@ -275,7 +275,7 @@ CREATE TABLE "default"."pg_catalog"."pg_cursors" (
     "creation_time" TIMESTAMP
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_database" (
+CREATE TABLE "hyper"."pg_catalog"."pg_database" (
     "datname" VARCHAR,
     "datdba" VARCHAR,
     "encoding" INTEGER,
@@ -290,20 +290,20 @@ CREATE TABLE "default"."pg_catalog"."pg_database" (
     "datacl" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_db_role_setting" (
+CREATE TABLE "hyper"."pg_catalog"."pg_db_role_setting" (
     "setdatabase" VARCHAR,
     "setrole" VARCHAR,
     "setconfig" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_default_acl" (
+CREATE TABLE "hyper"."pg_catalog"."pg_default_acl" (
     "defaclrole" VARCHAR,
     "defaclnamespace" VARCHAR,
     "defaclobjtype" VARCHAR,
     "defaclacl" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_depend" (
+CREATE TABLE "hyper"."pg_catalog"."pg_depend" (
     "classid" VARCHAR,
     "objid" VARCHAR,
     "objsubid" INTEGER,
@@ -313,20 +313,20 @@ CREATE TABLE "default"."pg_catalog"."pg_depend" (
     "deptype" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_description" (
+CREATE TABLE "hyper"."pg_catalog"."pg_description" (
     "objoid" VARCHAR,
     "classoid" VARCHAR,
     "objsubid" INTEGER,
     "description" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_enum" (
+CREATE TABLE "hyper"."pg_catalog"."pg_enum" (
     "enumtypid" VARCHAR,
     "enumsortorder" FLOAT,
     "enumlabel" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_extension" (
+CREATE TABLE "hyper"."pg_catalog"."pg_extension" (
     "extname" VARCHAR,
     "extowner" VARCHAR,
     "extnamespace" VARCHAR,
@@ -336,7 +336,7 @@ CREATE TABLE "default"."pg_catalog"."pg_extension" (
     "extcondition" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_foreign_data_wrapper" (
+CREATE TABLE "hyper"."pg_catalog"."pg_foreign_data_wrapper" (
     "fdwname" VARCHAR,
     "fdwowner" VARCHAR,
     "fdwhandler" VARCHAR,
@@ -345,7 +345,7 @@ CREATE TABLE "default"."pg_catalog"."pg_foreign_data_wrapper" (
     "fdwoptions" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_foreign_server" (
+CREATE TABLE "hyper"."pg_catalog"."pg_foreign_server" (
     "srvname" VARCHAR,
     "srvowner" VARCHAR,
     "srvfdw" VARCHAR,
@@ -355,19 +355,19 @@ CREATE TABLE "default"."pg_catalog"."pg_foreign_server" (
     "srvoptions" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_foreign_table" (
+CREATE TABLE "hyper"."pg_catalog"."pg_foreign_table" (
     "ftrelid" VARCHAR,
     "ftserver" VARCHAR,
     "ftoptions" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_group" (
+CREATE TABLE "hyper"."pg_catalog"."pg_group" (
     "groname" VARCHAR,
     "grosysid" VARCHAR,
     "grolist" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_index" (
+CREATE TABLE "hyper"."pg_catalog"."pg_index" (
     "indexrelid" VARCHAR,
     "indrelid" VARCHAR,
     "indnatts" INTEGER,
@@ -387,7 +387,7 @@ CREATE TABLE "default"."pg_catalog"."pg_index" (
     "indpred" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_indexes" (
+CREATE TABLE "hyper"."pg_catalog"."pg_indexes" (
     "schemaname" VARCHAR,
     "tablename" VARCHAR,
     "indexname" VARCHAR,
@@ -395,13 +395,13 @@ CREATE TABLE "default"."pg_catalog"."pg_indexes" (
     "indexdef" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_inherits" (
+CREATE TABLE "hyper"."pg_catalog"."pg_inherits" (
     "inhrelid" VARCHAR,
     "inhparent" VARCHAR,
     "inhseqno" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_language" (
+CREATE TABLE "hyper"."pg_catalog"."pg_language" (
     "lanname" VARCHAR,
     "lanowner" VARCHAR,
     "lanispl" BOOLEAN,
@@ -412,18 +412,18 @@ CREATE TABLE "default"."pg_catalog"."pg_language" (
     "lanacl" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_largeobject" (
+CREATE TABLE "hyper"."pg_catalog"."pg_largeobject" (
     "loid" VARCHAR,
     "pageno" INTEGER,
     "data" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_largeobject_metadata" (
+CREATE TABLE "hyper"."pg_catalog"."pg_largeobject_metadata" (
     "lomowner" VARCHAR,
     "lomacl" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_locks" (
+CREATE TABLE "hyper"."pg_catalog"."pg_locks" (
     "locktype" VARCHAR,
     "database" VARCHAR,
     "relation" VARCHAR,
@@ -440,13 +440,13 @@ CREATE TABLE "default"."pg_catalog"."pg_locks" (
     "granted" BOOLEAN
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_namespace" (
+CREATE TABLE "hyper"."pg_catalog"."pg_namespace" (
     "nspname" VARCHAR,
     "nspowner" VARCHAR,
     "nspacl" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_opclass" (
+CREATE TABLE "hyper"."pg_catalog"."pg_opclass" (
     "opcmethod" VARCHAR,
     "opcname" VARCHAR,
     "opcnamespace" VARCHAR,
@@ -457,7 +457,7 @@ CREATE TABLE "default"."pg_catalog"."pg_opclass" (
     "opckeytype" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_operator" (
+CREATE TABLE "hyper"."pg_catalog"."pg_operator" (
     "oprname" VARCHAR,
     "oprnamespace" VARCHAR,
     "oprowner" VARCHAR,
@@ -474,14 +474,14 @@ CREATE TABLE "default"."pg_catalog"."pg_operator" (
     "oprjoin" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_opfamily" (
+CREATE TABLE "hyper"."pg_catalog"."pg_opfamily" (
     "opfmethod" VARCHAR,
     "opfname" VARCHAR,
     "opfnamespace" VARCHAR,
     "opfowner" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_pltemplate" (
+CREATE TABLE "hyper"."pg_catalog"."pg_pltemplate" (
     "tmplname" VARCHAR,
     "tmpltrusted" BOOLEAN,
     "tmpldbacreate" BOOLEAN,
@@ -492,7 +492,7 @@ CREATE TABLE "default"."pg_catalog"."pg_pltemplate" (
     "tmplacl" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_prepared_statements" (
+CREATE TABLE "hyper"."pg_catalog"."pg_prepared_statements" (
     "name" VARCHAR,
     "statement" VARCHAR,
     "prepare_time" TIMESTAMP,
@@ -500,7 +500,7 @@ CREATE TABLE "default"."pg_catalog"."pg_prepared_statements" (
     "from_sql" BOOLEAN
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_prepared_xacts" (
+CREATE TABLE "hyper"."pg_catalog"."pg_prepared_xacts" (
     "transaction" INTEGER,
     "gid" VARCHAR,
     "prepared" TIMESTAMP,
@@ -508,7 +508,7 @@ CREATE TABLE "default"."pg_catalog"."pg_prepared_xacts" (
     "database" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_proc" (
+CREATE TABLE "hyper"."pg_catalog"."pg_proc" (
     "proname" VARCHAR,
     "pronamespace" VARCHAR,
     "proowner" VARCHAR,
@@ -540,7 +540,7 @@ CREATE TABLE "default"."pg_catalog"."pg_proc" (
     "proacl" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_rewrite" (
+CREATE TABLE "hyper"."pg_catalog"."pg_rewrite" (
     "rulename" VARCHAR,
     "ev_class" VARCHAR,
     "ev_attr" INTEGER,
@@ -551,7 +551,7 @@ CREATE TABLE "default"."pg_catalog"."pg_rewrite" (
     "ev_action" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_roles" (
+CREATE TABLE "hyper"."pg_catalog"."pg_roles" (
     "rolname" VARCHAR,
     "rolsuper" BOOLEAN,
     "rolinherit" BOOLEAN,
@@ -567,14 +567,14 @@ CREATE TABLE "default"."pg_catalog"."pg_roles" (
     "oid" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_rules" (
+CREATE TABLE "hyper"."pg_catalog"."pg_rules" (
     "schemaname" VARCHAR,
     "tablename" VARCHAR,
     "rulename" VARCHAR,
     "definition" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_seclabel" (
+CREATE TABLE "hyper"."pg_catalog"."pg_seclabel" (
     "objoid" VARCHAR,
     "classoid" VARCHAR,
     "objsubid" INTEGER,
@@ -582,7 +582,7 @@ CREATE TABLE "default"."pg_catalog"."pg_seclabel" (
     "label" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_seclabels" (
+CREATE TABLE "hyper"."pg_catalog"."pg_seclabels" (
     "objoid" VARCHAR,
     "classoid" VARCHAR,
     "objsubid" INTEGER,
@@ -593,7 +593,7 @@ CREATE TABLE "default"."pg_catalog"."pg_seclabels" (
     "label" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_settings" (
+CREATE TABLE "hyper"."pg_catalog"."pg_settings" (
     "name" VARCHAR,
     "setting" VARCHAR,
     "unit" VARCHAR,
@@ -612,7 +612,7 @@ CREATE TABLE "default"."pg_catalog"."pg_settings" (
     "sourceline" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_shadow" (
+CREATE TABLE "hyper"."pg_catalog"."pg_shadow" (
     "usename" VARCHAR,
     "usesysid" VARCHAR,
     "usecreatedb" BOOLEAN,
@@ -623,7 +623,7 @@ CREATE TABLE "default"."pg_catalog"."pg_shadow" (
     "useconfig" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_shdepend" (
+CREATE TABLE "hyper"."pg_catalog"."pg_shdepend" (
     "dbid" VARCHAR,
     "classid" VARCHAR,
     "objid" VARCHAR,
@@ -633,13 +633,13 @@ CREATE TABLE "default"."pg_catalog"."pg_shdepend" (
     "deptype" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_shdescription" (
+CREATE TABLE "hyper"."pg_catalog"."pg_shdescription" (
     "objoid" VARCHAR,
     "classoid" VARCHAR,
     "description" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_activity" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_activity" (
     "datid" VARCHAR,
     "datname" VARCHAR,
     "procpid" INTEGER,
@@ -660,7 +660,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_activity" (
     "current_query" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_all_indexes" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_all_indexes" (
     "relid" VARCHAR,
     "indexrelid" VARCHAR,
     "schemaname" VARCHAR,
@@ -671,7 +671,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_all_indexes" (
     "idx_tup_fetch" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_all_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_all_tables" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -696,7 +696,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_all_tables" (
     "autoanalyze_count" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_bgwriter" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_bgwriter" (
     "checkpoints_timed" INTEGER,
     "checkpoints_req" INTEGER,
     "checkpoint_write_time" FLOAT,
@@ -710,7 +710,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_bgwriter" (
     "stats_reset" TIMESTAMP
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_database" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_database" (
     "datid" VARCHAR,
     "datname" VARCHAR,
     "numbackends" INTEGER,
@@ -732,7 +732,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_database" (
     "stats_reset" TIMESTAMP
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_database_conflicts" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_database_conflicts" (
     "datid" VARCHAR,
     "datname" VARCHAR,
     "confl_tablespace" INTEGER,
@@ -742,7 +742,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_database_conflicts" (
     "confl_deadlock" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_replication" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_replication" (
     "procpid" INTEGER,
     "usesysid" VARCHAR,
     "usename" VARCHAR,
@@ -761,7 +761,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_replication" (
     "sync_state" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_sys_indexes" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_sys_indexes" (
     "relid" VARCHAR,
     "indexrelid" VARCHAR,
     "schemaname" VARCHAR,
@@ -772,7 +772,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_sys_indexes" (
     "idx_tup_fetch" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_sys_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_sys_tables" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -797,7 +797,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_sys_tables" (
     "autoanalyze_count" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_user_functions" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_user_functions" (
     "funcid" VARCHAR,
     "schemaname" VARCHAR,
     "funcname" VARCHAR,
@@ -806,7 +806,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_user_functions" (
     "self_time" FLOAT
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_user_indexes" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_user_indexes" (
     "relid" VARCHAR,
     "indexrelid" VARCHAR,
     "schemaname" VARCHAR,
@@ -817,7 +817,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_user_indexes" (
     "idx_tup_fetch" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_user_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_user_tables" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -842,7 +842,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_user_tables" (
     "autoanalyze_count" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_xact_all_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_xact_all_tables" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -856,7 +856,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_xact_all_tables" (
     "n_tup_hot_upd" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_xact_sys_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_xact_sys_tables" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -870,7 +870,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_xact_sys_tables" (
     "n_tup_hot_upd" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_xact_user_functions" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_xact_user_functions" (
     "funcid" VARCHAR,
     "schemaname" VARCHAR,
     "funcname" VARCHAR,
@@ -879,7 +879,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_xact_user_functions" (
     "self_time" FLOAT
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stat_xact_user_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stat_xact_user_tables" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -893,7 +893,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stat_xact_user_tables" (
     "n_tup_hot_upd" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statio_all_sequences" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statio_all_sequences" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -901,7 +901,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statio_all_sequences" (
     "blks_hit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statio_all_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statio_all_tables" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -915,7 +915,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statio_all_tables" (
     "tidx_blks_hit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statio_sys_indexes" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statio_sys_indexes" (
     "relid" VARCHAR,
     "indexrelid" VARCHAR,
     "schemaname" VARCHAR,
@@ -925,7 +925,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statio_sys_indexes" (
     "idx_blks_hit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statio_sys_sequences" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statio_sys_sequences" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -933,7 +933,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statio_sys_sequences" (
     "blks_hit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statio_sys_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statio_sys_tables" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -947,7 +947,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statio_sys_tables" (
     "tidx_blks_hit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statio_user_indexes" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statio_user_indexes" (
     "relid" VARCHAR,
     "indexrelid" VARCHAR,
     "schemaname" VARCHAR,
@@ -957,7 +957,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statio_user_indexes" (
     "idx_blks_hit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statio_user_sequences" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statio_user_sequences" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -965,7 +965,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statio_user_sequences" (
     "blks_hit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statio_user_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statio_user_tables" (
     "relid" VARCHAR,
     "schemaname" VARCHAR,
     "relname" VARCHAR,
@@ -979,7 +979,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statio_user_tables" (
     "tidx_blks_hit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statioio_all_indexes" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statioio_all_indexes" (
     "relid" VARCHAR,
     "indexrelid" VARCHAR,
     "schemaname" VARCHAR,
@@ -989,7 +989,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statioio_all_indexes" (
     "idx_blks_hit" INTEGER
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_statistic" (
+CREATE TABLE "hyper"."pg_catalog"."pg_statistic" (
     "starelid" VARCHAR,
     "staattnum" INTEGER,
     "stainherit" BOOLEAN,
@@ -1018,7 +1018,7 @@ CREATE TABLE "default"."pg_catalog"."pg_statistic" (
     "stavalues5" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_stats" (
+CREATE TABLE "hyper"."pg_catalog"."pg_stats" (
     "schemaname" VARCHAR,
     "tablename" VARCHAR,
     "attname" VARCHAR,
@@ -1032,7 +1032,7 @@ CREATE TABLE "default"."pg_catalog"."pg_stats" (
     "correlation" FLOAT
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_tables" (
+CREATE TABLE "hyper"."pg_catalog"."pg_tables" (
     "schemaname" VARCHAR,
     "tablename" VARCHAR,
     "tableowner" VARCHAR,
@@ -1042,7 +1042,7 @@ CREATE TABLE "default"."pg_catalog"."pg_tables" (
     "hastriggers" BOOLEAN
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_tablespace" (
+CREATE TABLE "hyper"."pg_catalog"."pg_tablespace" (
     "spcname" VARCHAR,
     "spcowner" VARCHAR,
     "spclocation" VARCHAR,
@@ -1050,20 +1050,20 @@ CREATE TABLE "default"."pg_catalog"."pg_tablespace" (
     "spcoptions" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_timezone_abbrevs" (
+CREATE TABLE "hyper"."pg_catalog"."pg_timezone_abbrevs" (
     "abbrev" VARCHAR,
     "utc_offset" INTEGER,
     "is_dst" BOOLEAN
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_timezone_names" (
+CREATE TABLE "hyper"."pg_catalog"."pg_timezone_names" (
     "name" VARCHAR,
     "abbrev" VARCHAR,
     "utc_offset" INTEGER,
     "is_dst" BOOLEAN
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_trigger" (
+CREATE TABLE "hyper"."pg_catalog"."pg_trigger" (
     "tgrelid" VARCHAR,
     "tgname" VARCHAR,
     "tgfoid" VARCHAR,
@@ -1081,21 +1081,21 @@ CREATE TABLE "default"."pg_catalog"."pg_trigger" (
     "tgqual" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_ts_config" (
+CREATE TABLE "hyper"."pg_catalog"."pg_ts_config" (
     "cfgname" VARCHAR,
     "cfgnamespace" VARCHAR,
     "cfgowner" VARCHAR,
     "cfgparser" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_ts_config_map" (
+CREATE TABLE "hyper"."pg_catalog"."pg_ts_config_map" (
     "mapcfg" VARCHAR,
     "maptokentype" INTEGER,
     "mapseqno" INTEGER,
     "mapdict" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_ts_dict" (
+CREATE TABLE "hyper"."pg_catalog"."pg_ts_dict" (
     "dictname" VARCHAR,
     "dictnamespace" VARCHAR,
     "dictowner" VARCHAR,
@@ -1103,7 +1103,7 @@ CREATE TABLE "default"."pg_catalog"."pg_ts_dict" (
     "dictinitoption" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_ts_parser" (
+CREATE TABLE "hyper"."pg_catalog"."pg_ts_parser" (
     "prsname" VARCHAR,
     "prsnamespace" VARCHAR,
     "prsstart" VARCHAR,
@@ -1113,14 +1113,14 @@ CREATE TABLE "default"."pg_catalog"."pg_ts_parser" (
     "prslextype" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_ts_template" (
+CREATE TABLE "hyper"."pg_catalog"."pg_ts_template" (
     "tmplname" VARCHAR,
     "tmplnamespace" VARCHAR,
     "tmplinit" VARCHAR,
     "tmpllexize" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_type" (
+CREATE TABLE "hyper"."pg_catalog"."pg_type" (
     "typname" VARCHAR,
     "typnamespace" VARCHAR,
     "typowner" VARCHAR,
@@ -1152,7 +1152,7 @@ CREATE TABLE "default"."pg_catalog"."pg_type" (
     "typdefault" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_user" (
+CREATE TABLE "hyper"."pg_catalog"."pg_user" (
     "usename" VARCHAR,
     "usesysid" VARCHAR,
     "usecreatedb" BOOLEAN,
@@ -1164,13 +1164,13 @@ CREATE TABLE "default"."pg_catalog"."pg_user" (
     "useconfig" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_user_mapping" (
+CREATE TABLE "hyper"."pg_catalog"."pg_user_mapping" (
     "umuser" VARCHAR,
     "umserver" VARCHAR,
     "umoptions" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_user_mappings" (
+CREATE TABLE "hyper"."pg_catalog"."pg_user_mappings" (
     "umid" VARCHAR,
     "srvid" VARCHAR,
     "srvname" VARCHAR,
@@ -1179,7 +1179,7 @@ CREATE TABLE "default"."pg_catalog"."pg_user_mappings" (
     "umoptions" VARCHAR
 );
 
-CREATE TABLE "default"."pg_catalog"."pg_views" (
+CREATE TABLE "hyper"."pg_catalog"."pg_views" (
     "schemaname" VARCHAR,
     "viewname" VARCHAR,
     "viewowner" VARCHAR,

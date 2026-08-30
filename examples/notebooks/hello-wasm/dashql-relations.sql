@@ -2,7 +2,7 @@
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: Hyper attached databases
--- Last Refresh: 2026-08-30T19:50:57.136Z
+-- Last Refresh: 2026-08-30T19:51:03.855Z
 
 -- DashQL Hyper Catalog Section: "hyper"
 CREATE TABLE "hyper"."pg_catalog"."hyper_attached_database" (
@@ -30,7 +30,8 @@ CREATE TABLE "hyper"."pg_catalog"."hyper_load" (
     "scheduler_load" FLOAT,
     "memory_load" FLOAT,
     "machine_cpu_load" FLOAT,
-    "workspace_load" FLOAT
+    "workspace_load" FLOAT,
+    "memory_buckets_load" FLOAT
 );
 
 CREATE TABLE "hyper"."pg_catalog"."hyper_memory_usage" (

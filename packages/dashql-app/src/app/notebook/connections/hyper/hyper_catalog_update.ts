@@ -11,9 +11,10 @@ import { QueryExecutor } from '../query_executor.js';
 import { QueryType } from '../query_execution_state.js';
 import type { LoggerLike } from '../../../../platform/logger/logger.js';
 import type { AttachedDatabase } from './hyperdb_grpc_client.js';
-import { loadPrefetchedHyperFunctions, PREFETCHED_HYPER_FUNCTIONS_SQL } from '../prefetched_hyper_functions.js';
+import { loadPrefetchedHyperFunctions, qualifyPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
 
 const LOG_CTX = 'hyper_catalog';
+const DEFAULT_HYPER_DATABASE = 'hyper';
 const SECTION_BEGIN = '-- DashQL Hyper Catalog Section: ';
 const SECTION_END = '-- DashQL Hyper Catalog Section End';
 
@@ -52,7 +53,7 @@ function summarizeFailures(message: string, failures: HyperCatalogUpdateFailure[
 
 function buildCatalogTargets(attachedDatabases: AttachedDatabase[]): CatalogTarget[] {
     if (attachedDatabases.length === 0) {
-        return [{ key: 'default', databaseName: 'default', queryDatabaseName: null, path: '' }];
+        return [{ key: DEFAULT_HYPER_DATABASE, databaseName: DEFAULT_HYPER_DATABASE, queryDatabaseName: null, path: '' }];
     }
     return attachedDatabases.map(database => ({
         key: database.alias ?? '',
@@ -296,18 +297,12 @@ export async function updateHyperCatalog(
         value: [updateId],
     });
     const tableCount = replaceCatalogScript(dql, catalog, catalogRelationScript, nextText);
-    let functionCount = 0;
-    if (catalogFunctionScript.toString().trimStart().startsWith('-- DashQL Connection Functions.')) {
-        functionCount = catalogFunctionScript.getParsed().read().statementsLength();
-    }
-    if (functionCount === 0) {
-        functionCount = loadPrefetchedHyperFunctions(
-            dql,
-            catalog,
-            catalogFunctionScript,
-            PREFETCHED_HYPER_FUNCTIONS_SQL,
-        );
-    }
+    const functionCount = loadPrefetchedHyperFunctions(
+        dql,
+        catalog,
+        catalogFunctionScript,
+        qualifyPrefetchedHyperFunctions(DEFAULT_HYPER_DATABASE),
+    );
     logger.info('Updated Hyper catalog relations', {
         updateId: updateId.toString(),
         databasesUpdated: successful.length.toString(),

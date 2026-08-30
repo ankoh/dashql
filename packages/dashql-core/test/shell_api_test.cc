@@ -1583,7 +1583,7 @@ TEST(ShellApiTest, NarrowCompletionListKeepsLeftAndRightAsCursorKeys) {
 TEST(ShellApiTest, DoesNotAutoQualifyDefaultDatabaseTable) {
     dashql::Catalog catalog;
     dashql::Script schema{catalog};
-    schema.InsertTextAt(0, "CREATE TABLE pg_catalog.public.orders(id BIGINT);");
+    schema.InsertTextAt(0, "CREATE TABLE hyper.public.orders(id BIGINT);");
     schema.Analyze();
     ASSERT_NO_THROW(catalog.LoadScript(schema, 0));
 
@@ -1597,7 +1597,7 @@ TEST(ShellApiTest, DoesNotAutoQualifyDefaultDatabaseTable) {
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "select * from ord"), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
     ASSERT_LT(SelectTerminalCompletion(shell, "orders", &output), 50u);
-    EXPECT_EQ(TerminalData(output).find("pg_catalog.public."), std::string_view::npos) << TerminalData(output);
+    EXPECT_EQ(TerminalData(output).find("hyper.public."), std::string_view::npos) << TerminalData(output);
     dashql_shell_terminal_result_destroy(&output);
 
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TAB, &output), DASHQL_SHELL_OK);

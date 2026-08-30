@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import * as dashql from '../../../core/index.js';
-import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from './prefetched_hyper_functions.js';
+import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions, qualifyPrefetchedHyperFunctions } from './prefetched_hyper_functions.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -35,6 +35,13 @@ describe('prefetched Hyper functions', () => {
         await expect(fetchPrefetchedHyperFunctions()).resolves.toContain(
             'CREATE FUNCTION "default"."pg_catalog"."abs"() RETURNS any;',
         );
+    });
+
+    it('qualifies functions for the user-facing Hyper database', () => {
+        const sql = qualifyPrefetchedHyperFunctions('hyper');
+
+        expect(sql).toContain('CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;');
+        expect(sql).not.toContain('"default"."pg_catalog"');
     });
 
     it('rejects invalid SQL before replacing the function script', () => {

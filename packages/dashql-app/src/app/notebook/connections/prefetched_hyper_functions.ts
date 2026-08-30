@@ -6,6 +6,11 @@ import prefetchedHyperFunctionsSql from '../../../../static/catalog/hyper/dashql
 
 export const PREFETCHED_HYPER_FUNCTIONS_SQL = prefetchedHyperFunctionsSql;
 
+export function qualifyPrefetchedHyperFunctions(databaseName: string): string {
+    const quotedDatabase = `"${databaseName.replace(/"/g, '""')}"`;
+    return PREFETCHED_HYPER_FUNCTIONS_SQL.replace(/"default"\."pg_catalog"/g, `${quotedDatabase}."pg_catalog"`);
+}
+
 export async function fetchPrefetchedHyperFunctions(signal?: AbortSignal): Promise<string> {
     signal?.throwIfAborted();
     return PREFETCHED_HYPER_FUNCTIONS_SQL;

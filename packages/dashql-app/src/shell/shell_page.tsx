@@ -99,7 +99,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 .catch(error => {
                     logger.warn('Failed to load engine version', { error: stringifyError(error) }, LOG_CTX);
                 });
-            const nextConnection = await database.connect({ defaultDatabase: 'pg_catalog' });
+            const nextConnection = await database.connect({ defaultDatabase: 'hyper' });
             if (cancelled) {
                 await nextConnection.close();
                 return;

@@ -60,7 +60,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
         if (params.protocol === 'WASM') {
             const database = await setupEmbeddedDatabase('hyper_wasm_connector');
             channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(
-                await database.connect({ defaultDatabase: 'pg_catalog' }),
+                await database.connect({ defaultDatabase: 'hyper' }),
             ));
         } else {
             const client = resolveClient(params.protocol, grpcClient, httpClient);
