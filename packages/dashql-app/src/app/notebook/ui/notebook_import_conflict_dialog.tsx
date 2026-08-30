@@ -2,9 +2,10 @@ import * as React from 'react';
 
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
-import { Button, ButtonVariant } from '../../../ui/foundations/button.js';
-import { useFocusTrap } from '../../../ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../../../ui/foundations/overlay.js';
+import { Button } from '../../../ui/foundations/button.js';
+import { OverlaySize } from '../../../ui/foundations/overlay.js';
+import { AlertIcon } from '../../../ui/foundations/symbol_icon.js';
+import { NotebookImportCard, NotebookImportDetail, NotebookImportDetails } from './notebook_import_card.js';
 
 import * as styles from './notebook_import_conflict_dialog.module.css';
 
@@ -12,6 +13,9 @@ interface NotebookImportConflictDialogBaseProps {
     notebookName: string;
     notebookUuid: string;
     existingDisplayLocation: string;
+    existingIsNative: boolean;
+    folderCount: number;
+    scriptCount: number;
     busy: boolean;
     onReplace: () => void;
     onCreateNew: () => void;
@@ -34,7 +38,6 @@ export type NotebookImportConflictDialogProps =
 
 interface DialogContentProps extends NotebookImportConflictDialogBaseProps {
     dialogRef: React.RefObject<HTMLElement | null>;
-    createNewButtonRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 function DialogContent(props: DialogContentProps) {
@@ -50,6 +53,7 @@ function DialogContent(props: DialogContentProps) {
             aria-labelledby={titleId}
             aria-describedby={descriptionId}
             aria-busy={props.busy}
+            tabIndex={-1}
         >
             <header className={styles.header}>
                 <h2 id={titleId}>Notebook already exists</h2>
@@ -69,22 +73,20 @@ function DialogContent(props: DialogContentProps) {
                     </div>
                     <div>
                         <dt>Existing location</dt>
-                        <dd>{props.existingDisplayLocation}</dd>
+                        <dd className={styles.path}>{props.existingDisplayLocation}</dd>
                     </div>
                 </dl>
             </div>
             <footer className={styles.actions}>
                 <Button disabled={props.busy} onClick={props.onCancel}>Cancel</Button>
+                <Button disabled={props.busy} onClick={props.onReplace}>
+                    Replace
+                </Button>
                 <Button
-                    ref={props.createNewButtonRef}
                     disabled={props.busy}
-                    variant={ButtonVariant.Primary}
                     onClick={props.onCreateNew}
                 >
-                    Create new
-                </Button>
-                <Button disabled={props.busy} variant={ButtonVariant.Danger} onClick={props.onReplace}>
-                    Replace
+                    Create New
                 </Button>
             </footer>
         </section>
@@ -92,8 +94,50 @@ function DialogContent(props: DialogContentProps) {
 }
 
 export function NotebookImportConflictDialog(props: NotebookImportConflictDialogProps) {
+    return props.mode === 'centered'
+        ? <CenteredConflictCard {...props} />
+        : <AnchoredConflictDialog {...props} />;
+}
+
+function CenteredConflictCard(props: CenteredNotebookImportConflictDialogProps) {
+    return (
+        <NotebookImportCard
+            title="Import Notebook"
+            busy={props.busy}
+            closeDisabled={props.busy}
+            onClose={props.onCancel}
+            actions={
+                <>
+                    <Button disabled={props.busy} onClick={props.onReplace}>
+                        Replace
+                    </Button>
+                    <Button disabled={props.busy} onClick={props.onCreateNew}>
+                        Create New
+                    </Button>
+                </>
+            }
+        >
+            <div className={styles.warning} role="status">
+                <AlertIcon size={16} aria-hidden="true" />
+                <span>
+                    A notebook with this UUID already exists. Replace it, or create a new notebook with a different UUID.
+                    {props.existingIsNative && ' Replacing removes the old notebook without overwriting existing native files.'}
+                </span>
+            </div>
+            <NotebookImportDetails>
+                <NotebookImportDetail label="Notebook">{props.notebookName}</NotebookImportDetail>
+                <NotebookImportDetail label="UUID" mono>{props.notebookUuid}</NotebookImportDetail>
+                <NotebookImportDetail label="Scripts">
+                    {props.scriptCount} {props.scriptCount === 1 ? 'script' : 'scripts'} in {props.folderCount} {props.folderCount === 1 ? 'folder' : 'folders'}
+                </NotebookImportDetail>
+                <NotebookImportDetail label="Existing" mono>{props.existingDisplayLocation}</NotebookImportDetail>
+            </NotebookImportDetails>
+        </NotebookImportCard>
+    );
+}
+
+function AnchoredConflictDialog(props: AnchoredNotebookImportConflictDialogProps) {
     const dialogRef = React.useRef<HTMLElement>(null);
-    const createNewButtonRef = React.useRef<HTMLButtonElement>(null);
     const cancel = React.useCallback(() => {
         if (!props.busy) props.onCancel();
     }, [props.busy, props.onCancel]);
@@ -101,67 +145,26 @@ export function NotebookImportConflictDialog(props: NotebookImportConflictDialog
         <DialogContent
             {...props}
             dialogRef={dialogRef}
-            createNewButtonRef={createNewButtonRef}
         />
     );
 
-    if (props.mode === 'anchored') {
-        return (
-            <AnchoredOverlay
-                renderAnchor={null}
-                anchorRef={props.anchorRef}
-                returnFocusRef={props.returnFocusRef}
-                open
-                onClose={cancel}
-                side={AnchorSide.OutsideBottom}
-                align={AnchorAlignment.End}
-                width={OverlaySize.L}
-                overlayProps={{ initialFocusRef: createNewButtonRef }}
-                focusTrapSettings={{
-                    initialFocusRef: createNewButtonRef as React.RefObject<HTMLElement>,
-                    returnFocusRef: props.returnFocusRef as React.RefObject<HTMLElement>,
-                }}
-            >
-                {content}
-            </AnchoredOverlay>
-        );
-    }
-
     return (
-        <CenteredDialog
-            dialogRef={dialogRef}
-            createNewButtonRef={createNewButtonRef}
-            onCancel={cancel}
+        <AnchoredOverlay
+            renderAnchor={null}
+            anchorRef={props.anchorRef}
+            returnFocusRef={props.returnFocusRef}
+            open
+            onClose={cancel}
+            side={AnchorSide.OutsideBottom}
+            align={AnchorAlignment.End}
+            width={OverlaySize.L}
+            overlayProps={{ initialFocusRef: dialogRef }}
+            focusTrapSettings={{
+                initialFocusRef: dialogRef as React.RefObject<HTMLElement>,
+                returnFocusRef: props.returnFocusRef as React.RefObject<HTMLElement>,
+            }}
         >
             {content}
-        </CenteredDialog>
-    );
-}
-
-interface CenteredDialogProps {
-    dialogRef: React.RefObject<HTMLElement | null>;
-    createNewButtonRef: React.RefObject<HTMLButtonElement | null>;
-    onCancel: () => void;
-    children: React.ReactNode;
-}
-
-function CenteredDialog(props: CenteredDialogProps) {
-    useFocusTrap({
-        containerRef: props.dialogRef as React.RefObject<HTMLElement>,
-        initialFocusRef: props.createNewButtonRef as React.RefObject<HTMLElement>,
-        restoreFocusOnCleanUp: true,
-    });
-
-    return (
-        <Overlay
-            centered
-            width={OverlaySize.L}
-            height={OverlaySize.AUTO}
-            preventFocusOnOpen
-            onEscape={props.onCancel}
-            onClickOutside={props.onCancel}
-        >
-            {props.children}
-        </Overlay>
+        </AnchoredOverlay>
     );
 }

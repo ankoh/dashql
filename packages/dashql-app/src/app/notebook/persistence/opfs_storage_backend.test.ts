@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import type { NotebookData } from './storage_backend.js';
-import { STORAGE_MANIFEST_FILE, STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
+import { STORAGE_MANIFEST_FILE, STORAGE_NOTEBOOK_FILE, STORAGE_NOTEBOOK_INDEX_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
 
 /// When true, mock file handles expose a `move()` method (as Chromium does); when false they don't,
 /// so the OPFS backend takes its copy+delete fallback (the WKWebView/Firefox path). Default false so
@@ -218,6 +218,9 @@ describe('OPFSStorageBackend', () => {
                 .toBe(JSON.stringify(notebookData, null, 2));
             expect(storage.get('notebooks/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/scripts/1_main/1_query.sql'))
                 .toBe('SELECT 1;');
+            expect(JSON.parse(storage.get(`notebooks/${notebookId}/${STORAGE_NOTEBOOK_INDEX_FILE}`)!)).toEqual({
+                folders: [{ name: '1_main', scripts: [{ name: '1_query.sql' }] }],
+            });
             expect(storage.has('sessions/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/dashql-session.json')).toBe(false);
             expect(storage.has('sessions/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/notebook/1_main/1_query.sql')).toBe(false);
         });
@@ -348,6 +351,23 @@ describe('OPFSStorageBackend', () => {
                 metadata: {},
             };
             await backend.saveNotebookManifest('test-notebook', notebookData);
+        });
+
+        it('backfills a missing index without overwriting an existing one', async () => {
+            await backend.createScriptFolder('test-notebook', 'page-1');
+            await backend.saveScript('test-notebook', 'page-1', '01-script.sql', 'SELECT 1;');
+            const indexPath = `notebooks/test-notebook/${STORAGE_NOTEBOOK_INDEX_FILE}`;
+            storage.delete(indexPath);
+            structure.get('notebooks/test-notebook')?.delete(STORAGE_NOTEBOOK_INDEX_FILE);
+
+            await backend.ensureNotebookIndex('test-notebook');
+            expect(JSON.parse(storage.get(indexPath)!)).toEqual({
+                folders: [{ name: 'page-1', scripts: [{ name: '01-script.sql' }] }],
+            });
+
+            storage.set(indexPath, 'keep-me');
+            await backend.ensureNotebookIndex('test-notebook');
+            expect(storage.get(indexPath)).toBe('keep-me');
         });
 
         it('creates script folders', async () => {

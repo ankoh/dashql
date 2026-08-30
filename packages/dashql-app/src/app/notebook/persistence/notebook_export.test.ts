@@ -293,6 +293,7 @@ describe('exportNotebookAsZip', () => {
         const zipBlob = new Blob([BASE64URL_CODEC.decode(event.notebook)], { type: 'application/zip' });
         const zip = await JSZip.loadAsync(zipBlob);
         expect(zip.file('dashql-notebook.json')).not.toBeNull();
+        expect(zip.file('dashql-notebook-index.json')).toBeNull();
         expect(zip.file('scripts/1_main/1_query.sql')).not.toBeNull();
         expect(zip.file('dashql-session.json')).toBeNull();
         expect(zip.file('notebook/1_main/1_query.sql')).toBeNull();

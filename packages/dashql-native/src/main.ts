@@ -466,8 +466,8 @@ if (!hasSingleInstanceLock) {
             throw new Error("Rejected deep-link request from an untrusted frame");
         }
         const sender = event.sender;
-        const initial = deepLinks.attach((data) => {
-            if (!sender.isDestroyed()) sender.send("dashql:deep-link", data);
+        const initial = deepLinks.attach((link) => {
+            if (!sender.isDestroyed()) sender.send("dashql:deep-link", link);
         });
         if (deepLinkSender !== sender) {
             deepLinkSender = sender;

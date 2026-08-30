@@ -1,0 +1,81 @@
+{
+  "folders": [
+    {
+      "name": "1_main",
+      "scripts": [
+        { "name": "1_cosmic_dolphin.sql" },
+        { "name": "2_polished_marmot.sql" }
+      ]
+    },
+    {
+      "name": "2_explain",
+      "scripts": [
+        { "name": "1_script.sql" },
+        { "name": "2_snowy_leopard.sql" },
+        { "name": "3_rugged_narwhal.sql" },
+        { "name": "4_emerald_heron.sql" }
+      ]
+    },
+    {
+      "name": "3_transforms",
+      "scripts": [
+        { "name": "1_json_table.sql" }
+      ]
+    },
+    {
+      "name": "4_vis_data",
+      "scripts": [
+        { "name": "1_random.sql" },
+        { "name": "2_vega_cars.sql" }
+      ]
+    },
+    {
+      "name": "5_vis_vegalite",
+      "scripts": [
+        { "name": "1_lucky_badger.sql" },
+        { "name": "2_keen_cobra.sql" }
+      ]
+    },
+    {
+      "name": "6_vis_umap",
+      "scripts": [
+        { "name": "1_vis_publications.sql" },
+        { "name": "2_embedding_scatter.sql" }
+      ]
+    },
+    {
+      "name": "7_tpch",
+      "scripts": [
+        { "name": "02_q01.sql" },
+        { "name": "03_q02.sql" },
+        { "name": "04_q03.sql" },
+        { "name": "05_q04.sql" },
+        { "name": "06_q05.sql" },
+        { "name": "07_q06.sql" },
+        { "name": "08_q07.sql" },
+        { "name": "09_q08.sql" },
+        { "name": "10_q09.sql" },
+        { "name": "11_q10.sql" },
+        { "name": "12_q11.sql" },
+        { "name": "13_q12.sql" },
+        { "name": "14_q13.sql" },
+        { "name": "15_q14.sql" },
+        { "name": "16_q15.sql" },
+        { "name": "17_q16.sql" },
+        { "name": "18_q17.sql" },
+        { "name": "19_q18.sql" },
+        { "name": "20_q19.sql" },
+        { "name": "21_q20.sql" },
+        { "name": "22_q21.sql" },
+        { "name": "23_q22.sql" }
+      ]
+    },
+    {
+      "name": "8_ci",
+      "scripts": [
+        { "name": "1_preagg_exec.sql" },
+        { "name": "2_preagg_explain.sql" }
+      ]
+    }
+  ]
+}

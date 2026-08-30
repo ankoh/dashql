@@ -23,6 +23,8 @@ import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useCancelAgentRun } from '../agent/agent_run_provider.js';
 import { useCancelQuery } from '../connections/query_executor.js';
 import { NotebookImportConflictDialog } from '../ui/notebook_import_conflict_dialog.js';
+import { StorageBackendType } from './storage_backend.js';
+import { AppHost, getAppHost } from '../../../platform/native_globals.js';
 
 type ImportPresentation =
     | { mode: 'centered' }
@@ -38,6 +40,8 @@ export interface PortableNotebookImportOptions {
 }
 
 interface NotebookImportContextValue {
+    findPortableBundleConflict(bundle: NotebookBundle): Promise<{ displayLocation: string; isNative: boolean } | null>;
+    importPortableBundleWithChoice(bundle: NotebookBundle, choice: ConflictChoice): Promise<string>;
     importPortableBundle(bundle: NotebookBundle, options: PortableNotebookImportOptions): Promise<string | null>;
     importNativeFolder(dir: string, presentation: ImportPresentation): Promise<string | null>;
 }
@@ -185,6 +189,37 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
         );
     }, [backend, requestConflictChoice, restoreFreshPortable, stopNotebookWork, writer]);
 
+    const findPortableBundleConflict = React.useCallback(async (bundle: NotebookBundle): Promise<{ displayLocation: string; isNative: boolean } | null> => {
+        if (backend == null) throw new Error('Notebook imports require composite storage');
+        const conflict = await findNotebookImportConflict(backend, bundle.notebook.notebookId);
+        return conflict == null ? null : {
+            displayLocation: displayPath(conflict.notebookId, conflict.location),
+            isNative: conflict.location.type === StorageBackendType.Native,
+        };
+    }, [backend]);
+
+    const importPortableBundleWithChoice = React.useCallback(async (
+        bundle: NotebookBundle,
+        choice: ConflictChoice,
+    ): Promise<string> => {
+        if (backend == null) throw new Error('Notebook imports require composite storage');
+        const conflict = await findNotebookImportConflict(backend, bundle.notebook.notebookId);
+        if (conflict == null) return await restoreFreshPortable(bundle, bundle.notebook.notebookId, false);
+        if (choice === 'create-new') {
+            const notebookId = crypto.randomUUID();
+            return await restoreFreshPortable(bundle, notebookId, true);
+        }
+        await stopNotebookWork(conflict.notebookId);
+        try {
+            const notebookId = await replaceNotebookWithPortableBundle(backend, bundle, conflict);
+            globalThis.location.reload();
+            return notebookId;
+        } catch (error) {
+            writer.resume();
+            throw error;
+        }
+    }, [backend, restoreFreshPortable, stopNotebookWork, writer]);
+
     const importNativeFolder = React.useCallback(async (
         dir: string,
         presentation: ImportPresentation,
@@ -225,14 +260,22 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
     }, [dialog]);
 
     const value = React.useMemo<NotebookImportContextValue>(() => ({
+        findPortableBundleConflict,
+        importPortableBundleWithChoice,
         importPortableBundle,
         importNativeFolder,
-    }), [importNativeFolder, importPortableBundle]);
+    }), [findPortableBundleConflict, importNativeFolder, importPortableBundle, importPortableBundleWithChoice]);
 
     return (
         <NOTEBOOK_IMPORT_CTX.Provider value={value}>
-            {props.children}
-            {dialog && renderConflictDialog(dialog, handleChoice, cancelDialog)}
+            <div
+                aria-hidden={dialog?.presentation.mode === 'centered' || undefined}
+                style={{ display: dialog?.presentation.mode === 'centered' ? 'none' : 'contents' }}
+            >
+                {props.children}
+            </div>
+            {dialog?.presentation.mode === 'centered' && renderConflictDialog(dialog, handleChoice, cancelDialog)}
+            {dialog?.presentation.mode === 'anchored' && renderConflictDialog(dialog, handleChoice, cancelDialog)}
         </NOTEBOOK_IMPORT_CTX.Provider>
     );
 }
@@ -291,7 +334,10 @@ function renderConflictDialog(
             || dialog.bundle.notebook.metadata.originalFileName
             || 'Unnamed notebook',
         notebookUuid: dialog.bundle.notebook.notebookId,
+        folderCount: dialog.bundle.folders.length,
+        scriptCount: dialog.bundle.folders.reduce((count, folder) => count + folder.scripts.length, 0),
         existingDisplayLocation: dialog.existingDisplayLocation,
+        existingIsNative: getAppHost() === AppHost.ELECTRON && dialog.existingDisplayLocation.startsWith('fs://'),
         busy: dialog.busy,
         onReplace: () => void handleChoice('replace'),
         onCreateNew: () => void handleChoice('create-new'),

@@ -445,7 +445,7 @@ export class StorageWriter {
 
                 // For now, create minimal notebook metadata
                 const notebookMetadata: StorageNotebookMetadata = {
-                    originalFileName: undefined,
+                    ...existingNotebook?.metadata,
                     createdAt: existingNotebook?.metadata?.createdAt ?? new Date().toISOString(),
                 };
 
@@ -562,17 +562,20 @@ export class StorageWriter {
                 // whole manifest from notebook scripts, which carry no name, so we must carry over
                 // whatever the user already set on disk.
                 let existingName: string | undefined;
+                let existingMetadata: StorageNotebookMetadata | undefined;
                 try {
                     const existingNotebook = await this.backend.loadNotebook(notebookId);
                     connectionParams = existingNotebook.connectionParams;
                     createdAt = existingNotebook.metadata?.createdAt ?? new Date().toISOString();
                     existingName = existingNotebook.name;
+                    existingMetadata = existingNotebook.metadata;
                 } catch {
                     connectionParams = createDefaultConnectionParamsForConnector(notebookScripts.connectorInfo);
                     createdAt = new Date().toISOString();
                 }
 
                 const notebookMetadata: StorageNotebookMetadata = {
+                    ...existingMetadata,
                     originalFileName: notebookScripts.notebookMetadata.originalFileName,
                     createdAt,
                 };

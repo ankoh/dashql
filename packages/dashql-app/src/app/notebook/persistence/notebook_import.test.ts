@@ -78,6 +78,7 @@ describe('readNotebookBundleFromZip', () => {
             'cache/result.arrow': 'derived',
             '.gitignore': 'cache/',
             'README.md': 'unrelated',
+            'dashql-notebook-index.json': '{"folders":[]}',
             'other.sql': 'unrelated SQL',
         });
 

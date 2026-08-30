@@ -11,7 +11,7 @@ import { usePlatformEventListener } from '../../platform/events/event_listener_p
 import { useNotebookScriptsSetup } from '../notebook/scripts/notebook_scripts_setup.js';
 import { AppLoadingPage } from '../ui/app_loading_page.js';
 import { NotebookSelectorPage } from '../ui/notebook_selector_page.js';
-import { SETUP_NOTEBOOK, SetupEventVariant } from '../../platform/events/event.js';
+import { SETUP_NOTEBOOK, SETUP_NOTEBOOK_URL, SetupEventVariant } from '../../platform/events/event.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '../../utils/progress.js';
 import { loadApp } from './app_loading_logic.js';
@@ -20,9 +20,18 @@ import { useStorage } from '../notebook/persistence/storage_provider.js';
 import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts_registry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { InvalidNotebook } from '../notebook/persistence/notebook_validation.js';
-import { getAppHost } from '../../platform/native_globals.js';
+import { AppHost, getAppHost } from '../../platform/native_globals.js';
 import { readNotebookBundleFromZip } from '../notebook/persistence/notebook_import.js';
 import { useNotebookImport } from '../notebook/persistence/notebook_import_provider.js';
+import { useHttpClient } from '../../platform/http/http_client_provider.js';
+import {
+    readNotebookBundleFromHttp,
+    type HttpNotebookLoadProgress,
+    type HttpNotebookLoadResult,
+} from '../notebook/persistence/http_notebook_bundle.js';
+import { stringifyError } from '../../platform/logger/logger.js';
+import { NotebookLoadedCard } from '../notebook/ui/notebook_loaded_card.js';
+import { NotebookLoadingCard } from '../notebook/ui/notebook_loading_card.js';
 
 async function loadFonts(): Promise<void> {
     await Promise.all([
@@ -53,7 +62,19 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
     const appEvents = usePlatformEventListener();
     const notebookImport = useNotebookImport();
+    const httpClient = useHttpClient();
     const [loadedCore, setLoadedCore] = React.useState<any>(null);
+    const [loadedNotebook, setLoadedNotebook] = React.useState<HttpNotebookLoadResult | null>(null);
+    const [loadedNotebookConflict, setLoadedNotebookConflict] = React.useState<{
+        displayLocation: string;
+        isNative: boolean;
+    } | null>(null);
+    const [loadedNotebookBusy, setLoadedNotebookBusy] = React.useState(false);
+    const [remoteNotebookLoading, setRemoteNotebookLoading] = React.useState<{
+        sourceUrl: string;
+        progress: HttpNotebookLoadProgress;
+    } | null>(null);
+    const remoteNotebookAbortRef = React.useRef<AbortController | null>(null);
     // Notebooks whose metadata was refused a load. Surfaced (marked invalid, blocked, deletable) in
     // the notebook selector instead of being silently dropped.
     const [invalidNotebooks, setInvalidNotebooks] = React.useState<Map<string, InvalidNotebook>>(() => new Map());
@@ -79,10 +100,34 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         const traced = logger.withTrace(createTrace());
         traced.debug("Consuming setup event", { "event_type": String(data.type) }, "app_loader");
 
-        // Wait for core to be ready before the importer restores a fresh notebook.
-        await setupCore("app_setup");
-        // Wait for the initial application restore to finish.
-        await setupDone;
+        let remoteAbort: AbortController | null = null;
+        let remoteLoad: Promise<HttpNotebookLoadResult> | null = null;
+        if (data.type === SETUP_NOTEBOOK_URL) {
+            remoteNotebookAbortRef.current?.abort();
+            remoteAbort = new AbortController();
+            remoteNotebookAbortRef.current = remoteAbort;
+            setRemoteNotebookLoading({ sourceUrl: data.value, progress: { phase: 'preparing' } });
+            setLoadedNotebook(null);
+            setLoadedNotebookConflict(null);
+            traced.info('Loading shared notebook', { sourceUrl: data.value }, 'app_loader');
+            remoteLoad = readNotebookBundleFromHttp(
+                new URL(data.value),
+                httpClient,
+                remoteAbort.signal,
+                progress => {
+                    if (remoteNotebookAbortRef.current === remoteAbort) {
+                        setRemoteNotebookLoading({ sourceUrl: data.value, progress });
+                    }
+                },
+            );
+        }
+
+        // Remote notebook I/O can proceed while the application initializes. Import and conflict
+        // detection still wait for setup because they use the initialized storage registry.
+        const setup = Promise.all([setupCore("app_setup"), setupDone]);
+        const remoteResult = remoteLoad == null ? null : await remoteLoad;
+        await setup;
+        remoteAbort?.signal.throwIfAborted();
         if (data.type === SETUP_NOTEBOOK) {
             const zipBlob = new Blob([data.value.buffer as ArrayBuffer], { type: 'application/zip' });
             const bundle = await readNotebookBundleFromZip(zipBlob);
@@ -93,14 +138,83 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 traced.debug("Finished link setup", { notebookId }, "app_loader");
                 navigate({ type: OPEN_LINK_NOTEBOOK, value: notebookId });
             }
+        } else if (data.type === SETUP_NOTEBOOK_URL) {
+            const result = remoteResult!;
+            if (remoteNotebookAbortRef.current === remoteAbort) {
+                traced.info('Loaded shared notebook', {
+                    notebookId: result.bundle.notebook.notebookId,
+                    loadedScriptCount: String(result.loadedScriptCount),
+                    indexedScriptCount: String(result.indexedScriptCount),
+                    incomplete: String(result.incomplete),
+                }, 'app_loader');
+                const conflictLocation = await notebookImport.findPortableBundleConflict(result.bundle);
+                remoteAbort!.signal.throwIfAborted();
+                if (remoteNotebookAbortRef.current !== remoteAbort) return;
+                traced.info('Checked shared notebook import conflict', {
+                    notebookId: result.bundle.notebook.notebookId,
+                    conflict: String(conflictLocation != null),
+                    existingLocation: conflictLocation?.displayLocation ?? '',
+                }, 'app_loader');
+                remoteNotebookAbortRef.current = null;
+                setRemoteNotebookLoading(null);
+                setLoadedNotebookConflict(conflictLocation);
+                setLoadedNotebook(result);
+            }
         }
+    });
+
+    const cancelRemoteNotebookLoad = React.useCallback(() => {
+        remoteNotebookAbortRef.current?.abort();
+        remoteNotebookAbortRef.current = null;
+        setRemoteNotebookLoading(null);
+    }, []);
+
+    const importLoadedNotebook = React.useCallback((choice?: 'replace' | 'create-new') => {
+        if (loadedNotebook == null || loadedNotebookBusy) return;
+        setLoadedNotebookBusy(true);
+        const result = loadedNotebook;
+        const importChoice = choice ?? 'import';
+        logger.info('Importing shared notebook', {
+            notebookId: result.bundle.notebook.notebookId,
+            choice: importChoice,
+        }, 'app_loader');
+        const importPromise = choice == null
+            ? notebookImport.importPortableBundleWithChoice(result.bundle, 'create-new')
+            : notebookImport.importPortableBundleWithChoice(result.bundle, choice);
+        void importPromise.then(notebookId => {
+            logger.info('Imported shared notebook', {
+                sourceNotebookId: result.bundle.notebook.notebookId,
+                notebookId,
+                choice: importChoice,
+            }, 'app_loader');
+            setLoadedNotebook(null);
+            setLoadedNotebookConflict(null);
+            navigate({ type: OPEN_LINK_NOTEBOOK, value: notebookId });
+        }).catch(error => {
+            logger.error('Failed to import loaded notebook', { error: stringifyError(error) }, 'app_loader');
+        }).finally(() => setLoadedNotebookBusy(false));
+    }, [loadedNotebook, loadedNotebookBusy, logger, navigate, notebookImport]);
+
+    const cancelLoadedNotebook = React.useCallback(() => {
+        if (loadedNotebookBusy) return;
+        setLoadedNotebook(null);
+        setLoadedNotebookConflict(null);
+    }, [loadedNotebookBusy]);
+
+    const handleSetupEvent = React.useEffectEvent((data: SetupEventVariant) => {
+        void consumeSetupEvent(data).catch(error => {
+            if ((error as Error)?.name === 'AbortError') return;
+            remoteNotebookAbortRef.current = null;
+            setRemoteNotebookLoading(null);
+            logger.error('Failed to open shared notebook', { error: stringifyError(error) }, 'app_loader');
+        });
     });
 
     // Effect Events are non-reactive. Depending on consumeSetupEvent would resubscribe after every
     // render even though it always reads the latest callback state.
     React.useEffect(() => {
-        appEvents.subscribeSetupEvents(consumeSetupEvent);
-        return () => appEvents.unsubscribeSetupEvents(consumeSetupEvent);
+        appEvents.subscribeSetupEvents(handleSetupEvent);
+        return () => appEvents.unsubscribeSetupEvents(handleSetupEvent);
     }, [appEvents]);
 
     // Effect to run the initial setup once at the beginning.
@@ -109,7 +223,10 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     // on unmount so an in-flight setup is not cancelled by an unrelated config update.
     const hasStartedSetup = React.useRef(false);
     const setupAbortRef = React.useRef<AbortController | null>(null);
-    React.useEffect(() => () => setupAbortRef.current?.abort(), []);
+    React.useEffect(() => () => {
+        setupAbortRef.current?.abort();
+        remoteNotebookAbortRef.current?.abort();
+    }, []);
     React.useEffect(() => {
         if (config == null || hasStartedSetup.current) {
             return;
@@ -206,6 +323,26 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             return next;
         });
     }, [storageWriter, logger]);
+
+    if (remoteNotebookLoading != null) {
+        return <NotebookLoadingCard
+            sourceUrl={remoteNotebookLoading.sourceUrl}
+            progress={remoteNotebookLoading.progress}
+            onCancel={cancelRemoteNotebookLoad}
+        />;
+    }
+    if (loadedNotebook != null) {
+        return <NotebookLoadedCard
+            result={loadedNotebook}
+            conflictLocation={loadedNotebookConflict?.displayLocation ?? null}
+            conflictIsNative={getAppHost() === AppHost.ELECTRON && (loadedNotebookConflict?.isNative ?? false)}
+            busy={loadedNotebookBusy}
+            onImport={() => importLoadedNotebook()}
+            onReplace={() => importLoadedNotebook('replace')}
+            onCreateNew={() => importLoadedNotebook('create-new')}
+            onCancel={cancelLoadedNotebook}
+        />;
+    }
 
     // Setup done but no notebook selected, or notebook setup in progress? Show notebook selector
     if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE &&

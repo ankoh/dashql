@@ -602,6 +602,17 @@ export async function restoreAppState(
                     progressConsumer
                 );
 
+                try {
+                    await backend.ensureNotebookIndex?.(notebookEntry.path);
+                } catch (error) {
+                    // The index is a derived publication sidecar. A failure to backfill it must not
+                    // prevent an otherwise valid notebook from loading.
+                    logger.warn("Failed to ensure notebook index", {
+                        notebookId: notebookEntry.path,
+                        error: stringifyError(error),
+                    }, LOG_CTX);
+                }
+
                 const notebookDuration = performance.now() - notebookStartTime;
                 logger.info("Notebook restored", {
                     index: `${i + 1}/${notebookEntries.length}`,

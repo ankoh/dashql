@@ -213,6 +213,14 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
         }
     }
 
+    async regenerateNotebookIndex(notebookId: string): Promise<void> {
+        await (await this.backendFor(notebookId)).regenerateNotebookIndex?.(notebookId);
+    }
+
+    async ensureNotebookIndex(notebookId: string): Promise<void> {
+        await (await this.backendFor(notebookId)).ensureNotebookIndex?.(notebookId);
+    }
+
     async deleteNotebook(notebookId: string): Promise<void> {
         const loc = this.locationOf(notebookId);
         if (loc.type === StorageBackendType.Native) {
@@ -406,18 +414,20 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
         this.nativeCache.delete(notebookId);
     }
 
-    /// Register an already-prepared native folder without writing into it.
+    /// Register an already-prepared native folder and refresh its derived publication index.
     async registerPreparedNativeNotebook(prepared: PreparedNativeNotebook, notebookId: string): Promise<void> {
         const validation = validateNotebookData(prepared.bundle.notebook);
         if (!validation.ok) {
             throw new Error(`Notebook in ${prepared.dir} is invalid: ${describeNotebookValidationError(validation.error)}`);
         }
+        const native = new NativeStorageBackend(prepared.dir);
+        await native.regenerateNotebookIndex(notebookId);
         await this.upsertNotebookEntry({
             path: notebookId,
             storageType: StorageBackendType.Native,
             nativePath: prepared.dir,
         });
-        this.nativeCache.set(notebookId, new NativeStorageBackend(prepared.dir));
+        this.nativeCache.set(notebookId, native);
     }
 
     /// Relocate a single OPFS notebook's files into a native directory.

@@ -12,13 +12,17 @@ export class ElectronPlatformEventListener extends WebPlatformEventListener {
             return;
         }
 
-        const dispatch = (data: string, source: string) => {
-            const event = this.readAppEvent(data, source);
+        const dispatch = (link: { type: "event" | "notebook"; value: string }, source: string) => {
+            if (link.type === "notebook") {
+                this.dispatchNotebookUrl(link.value);
+                return;
+            }
+            const event = this.readAppEvent(link.value, source);
             if (event !== null) super.dispatchAppEvent(event);
         };
-        bridge.onDeepLink((data) => dispatch(data, "Electron deep link"));
-        for (const data of await bridge.getInitialDeepLinks()) {
-            dispatch(data, "initial Electron deep link");
+        bridge.onDeepLink((link) => dispatch(link, "Electron deep link"));
+        for (const link of await bridge.getInitialDeepLinks()) {
+            dispatch(link, "initial Electron deep link");
         }
     }
 }

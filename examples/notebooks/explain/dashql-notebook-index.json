@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "name": "1_main",
+      "scripts": [
+        {
+          "name": "1_brave_otter.sql"
+        }
+      ]
+    },
+    {
+      "name": "2_referenced_tables",
+      "scripts": [
+        {
+          "name": "1_test_data.sql"
+        },
+        {
+          "name": "2_sturdy_bison.sql"
+        }
+      ]
+    }
+  ]
+}

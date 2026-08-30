@@ -1,5 +1,6 @@
-import { type NotebookRegistryBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type StorageManifest, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_NOTEBOOKS_FOLDER, STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX, STORAGE_SHELL_FOLDER } from './storage_backend.js';
+import { type NotebookRegistryBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type StorageManifest, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_NOTEBOOKS_FOLDER, STORAGE_NOTEBOOK_FILE, STORAGE_NOTEBOOK_INDEX_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX, STORAGE_SHELL_FOLDER } from './storage_backend.js';
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
+import { serializeNotebookIndex } from './notebook_index.js';
 
 /// Origin Private File System storage backend.
 ///
@@ -114,6 +115,25 @@ export class OPFSStorageBackend implements NotebookRegistryBackend {
         await writable.close();
 
         await this.upsertNotebookEntry({ path: notebookId, storageType: StorageBackendType.OPFS });
+        await this.regenerateNotebookIndex(notebookId);
+    }
+
+    async regenerateNotebookIndex(notebookId: string): Promise<void> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), true);
+        const indexFile = await notebookDir.getFileHandle(STORAGE_NOTEBOOK_INDEX_FILE, { create: true });
+        const writable = await indexFile.createWritable();
+        await writable.write(serializeNotebookIndex(await this.loadScriptFolders(notebookId)));
+        await writable.close();
+    }
+
+    async ensureNotebookIndex(notebookId: string): Promise<void> {
+        const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), false);
+        try {
+            await notebookDir.getFileHandle(STORAGE_NOTEBOOK_INDEX_FILE, { create: false });
+        } catch (error) {
+            if ((error as any).name !== 'NotFoundError') throw error;
+            await this.regenerateNotebookIndex(notebookId);
+        }
     }
 
     async deleteNotebook(notebookId: string): Promise<void> {
@@ -231,12 +251,14 @@ export class OPFSStorageBackend implements NotebookRegistryBackend {
         const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), true);
         const scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: true });
         await scriptsDir.getDirectoryHandle(folderName, { create: true });
+        await this.regenerateNotebookIndex(notebookId);
     }
 
     async deleteScriptFolder(notebookId: string, folderName: string): Promise<void> {
         const notebookDir = await this.getNotebookDir(this.notebookRelPath(notebookId), false);
         const scriptsDir = await notebookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER);
         await scriptsDir.removeEntry(folderName, { recursive: true });
+        await this.regenerateNotebookIndex(notebookId);
     }
 
     async renameScriptFolder(notebookId: string, oldFolderName: string, newFolderName: string): Promise<void> {
@@ -272,6 +294,7 @@ export class OPFSStorageBackend implements NotebookRegistryBackend {
             await this.moveFile(oldDir, name, newDir, name);
         }
         await scriptsDir.removeEntry(oldFolderName, { recursive: true });
+        await this.regenerateNotebookIndex(notebookId);
     }
 
     /// Move a single file between (or within) OPFS directories, preserving its contents byte-for-byte.
@@ -326,15 +349,26 @@ export class OPFSStorageBackend implements NotebookRegistryBackend {
         sql: string
     ): Promise<void> {
         const folderDir = await this.getFolderDir(this.notebookRelPath(notebookId), folderName, true);
+        let isNew = false;
+        try {
+            await folderDir.getFileHandle(scriptName, { create: false });
+        } catch (error) {
+            if ((error as any).name !== 'NotFoundError') throw error;
+            isNew = true;
+        }
         const fileHandle = await folderDir.getFileHandle(scriptName, { create: true });
         const writable = await fileHandle.createWritable();
         await writable.write(sql);
         await writable.close();
+        if (isNew) {
+            await this.regenerateNotebookIndex(notebookId);
+        }
     }
 
     async deleteScript(notebookId: string, folderName: string, scriptName: string): Promise<void> {
         const folderDir = await this.getFolderDir(this.notebookRelPath(notebookId), folderName, false);
         await folderDir.removeEntry(scriptName);
+        await this.regenerateNotebookIndex(notebookId);
     }
 
     async renameScript(notebookId: string, folderName: string, oldScriptName: string, newScriptName: string): Promise<void> {
@@ -358,6 +392,7 @@ export class OPFSStorageBackend implements NotebookRegistryBackend {
             throw error;
         }
         await this.moveFile(folderDir, oldScriptName, folderDir, newScriptName);
+        await this.regenerateNotebookIndex(notebookId);
     }
 
     async loadScriptDraft(notebookId: string): Promise<string | null> {

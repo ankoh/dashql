@@ -47,7 +47,9 @@ export function isAppEventPostMessage(msg: any): msg is AppEventPostMessage {
 }
 
 export const SETUP_NOTEBOOK = Symbol("SETUP_NOTEBOOK");
+export const SETUP_NOTEBOOK_URL = Symbol("SETUP_NOTEBOOK_URL");
 
 export type SetupEventVariant =
     | VariantKind<typeof SETUP_NOTEBOOK, Uint8Array>  // Notebook ZIP bytes
+    | VariantKind<typeof SETUP_NOTEBOOK_URL, string>  // Public dashql-notebook.json URL
     ;

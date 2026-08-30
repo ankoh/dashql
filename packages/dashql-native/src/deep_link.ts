@@ -1,7 +1,11 @@
 export const MAX_DEEP_LINK_DATA_LENGTH = 64 * 1024;
 
-export function parseDeepLink(link: string): string | null {
-    if (link.length > MAX_DEEP_LINK_DATA_LENGTH * 3 || !link.startsWith("dashql://")) return null;
+export type DeepLink =
+    | {type: "event", value: string}
+    | {type: "notebook", value: string};
+
+export function parseDeepLink(link: string): DeepLink | null {
+    if (link.length > MAX_DEEP_LINK_DATA_LENGTH * 3) return null;
 
     let url: URL;
     try {
@@ -9,20 +13,25 @@ export function parseDeepLink(link: string): string | null {
     } catch {
         return null;
     }
-    if (url.protocol !== "dashql:" || url.hostname !== "localhost" || url.username !== "" ||
-        url.password !== "" || url.port !== "" || (url.pathname !== "" && url.pathname !== "/") ||
-        url.hash !== "") {
+    const isDashQLLink = url.protocol === "dashql:" && url.hostname === "localhost" && url.port === "";
+    const isProductionLink = url.protocol === "https:" && url.hostname === "dashql.app" && url.port === "";
+    const isDevelopmentLink = url.protocol === "http:" && url.hostname === "localhost" && url.port === "9002";
+    if ((!isDashQLLink && !isProductionLink && !isDevelopmentLink) || url.username !== "" ||
+        url.password !== "" || (url.pathname !== "" && url.pathname !== "/") || url.hash !== "") {
         return null;
     }
 
     const parameters = [...url.searchParams.entries()];
-    if (parameters.length !== 1 || parameters[0]?.[0] !== "data") return null;
-    const data = parameters[0][1];
-    return data.length > 0 && data.length <= MAX_DEEP_LINK_DATA_LENGTH ? data : null;
+    if (parameters.length !== 1) return null;
+    const [name, value] = parameters[0];
+    if ((name !== "data" && name !== "notebook") || value.length === 0 || value.length > MAX_DEEP_LINK_DATA_LENGTH) {
+        return null;
+    }
+    return {type: name === "data" ? "event" : "notebook", value};
 }
 
-export function parseDeepLinksFromCommandLine(commandLine: readonly string[]): string[] {
-    const links: string[] = [];
+export function parseDeepLinksFromCommandLine(commandLine: readonly string[]): DeepLink[] {
+    const links: DeepLink[] = [];
     for (const argument of commandLine) {
         const data = parseDeepLink(argument);
         if (data !== null) links.push(data);
@@ -31,15 +40,15 @@ export function parseDeepLinksFromCommandLine(commandLine: readonly string[]): s
 }
 
 export class DeepLinkQueue {
-    private readonly pending: string[] = [];
-    private receiver: ((data: string) => void) | null = null;
+    private readonly pending: DeepLink[] = [];
+    private receiver: ((data: DeepLink) => void) | null = null;
 
-    push(data: string): void {
+    push(data: DeepLink): void {
         if (this.receiver === null) this.pending.push(data);
         else this.receiver(data);
     }
 
-    attach(receiver: (data: string) => void): string[] {
+    attach(receiver: (data: DeepLink) => void): DeepLink[] {
         this.receiver = receiver;
         return this.pending.splice(0);
     }

@@ -215,34 +215,24 @@ export class NativeHttpClient implements HttpClient {
         this.encoder = new TextEncoder();
     }
 
-    public async fetch(input: URL, init?: RequestInit): Promise<HttpFetchResult> {
+    public async fetch(input: URL | Request | string, init?: RequestInit): Promise<HttpFetchResult> {
+        const inputUrl = input instanceof URL ? input : new URL(input instanceof Request ? input.url : input);
+        if (inputUrl.protocol === 'app:') {
+            return await fetch(input, init);
+        }
         const url = new URL(this.endpoint.proxyEndpoint);
         url.pathname = `/http/streams`;
-        const remote = `${input.protocol}//${input.host}`;
+        const remote = `${inputUrl.protocol}//${inputUrl.host}`;
 
         const headers = new Headers(init?.headers);
         headers.set(HEADER_NAME_METHOD, init?.method ?? "GET");
         headers.set(HEADER_NAME_ENDPOINT, remote);
-        headers.set(HEADER_NAME_PATH, input.pathname);
-        headers.set(HEADER_NAME_SEARCH_PARAMS, input.searchParams.toString());
+        headers.set(HEADER_NAME_PATH, inputUrl.pathname);
+        headers.set(HEADER_NAME_SEARCH_PARAMS, inputUrl.searchParams.toString());
         headers.set(HEADER_NAME_BATCH_TIMEOUT, "1000");
         headers.set(HEADER_NAME_READ_TIMEOUT, "10000");
 
-        this.logger.debug(`Fetching http stream`, { "remote": remote, "path": input?.toString() }, "native_http_client");
-
-        const body: any = init?.body;
-        let bodyBuffer: ArrayBuffer | Uint8Array;
-        if (init?.body) {
-            if (init.body instanceof ArrayBuffer) {
-                bodyBuffer = init.body;
-            } else if (init.body instanceof URLSearchParams) {
-                bodyBuffer = new TextEncoder().encode(body.toString());
-            } else if (typeof init.body == "string") {
-                bodyBuffer = new TextEncoder().encode(body);
-            } else {
-                throw Error("Fetched body is of unexpected type");
-            }
-        }
+        this.logger.debug(`Fetching http stream`, { "remote": remote, "path": inputUrl.toString() }, "native_http_client");
 
         const request = new Request(url, {
             method: 'POST',
