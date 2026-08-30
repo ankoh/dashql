@@ -104,18 +104,6 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
     React.useEffect(() => {
         if (!tooltipElRef.current || !triggerRef.current) return
 
-        // If the tooltip is used for labelling the interactive element, the trigger element or any of its children should not have aria-label
-        if (props.type === 'label') {
-            const hasAriaLabel = triggerRef.current.hasAttribute('aria-label')
-            const hasAriaLabelInChildren = Array.from(triggerRef.current.childNodes).some(
-                child => child instanceof HTMLElement && child.hasAttribute('aria-label'),
-            )
-            if (hasAriaLabel || hasAriaLabelInChildren) {
-                console.warn(
-                    'The label type `Tooltip` is going to be used here to label the trigger element. Please remove the aria-label from the trigger element.',
-                );
-            }
-        }
         const tooltip = tooltipElRef.current
         tooltip.setAttribute('popover', 'auto')
     }, [tooltipElRef, triggerRef, props.direction, props.type])
@@ -144,7 +132,9 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
                         // If it is a type description, we use tooltip to describe the trigger
                         'aria-describedby': props.type === 'description' ? tooltipId : (child.props ? child.props['aria-describedby'] : undefined),
                         // If it is a label type, we use tooltip to label the trigger
-                        'aria-labelledby': props.type === 'label' ? tooltipId : (child.props ? child.props['aria-labelledby'] : undefined),
+                        'aria-labelledby': props.type === 'label' && child.props?.['aria-label'] == null
+                            ? tooltipId
+                            : child.props?.['aria-labelledby'],
                         onBlur: (event: React.FocusEvent) => {
                             closeTooltip()
                             child.props?.onBlur?.(event)
