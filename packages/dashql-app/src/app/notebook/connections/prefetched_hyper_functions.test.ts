@@ -38,8 +38,11 @@ describe('prefetched Hyper functions', () => {
     });
 
     it('qualifies functions for the user-facing Hyper database', () => {
-        const sql = qualifyPrefetchedHyperFunctions('hyper');
+        const sql = qualifyPrefetchedHyperFunctions('hyper', new Date('2026-08-30T12:34:56.789Z'));
 
+        expect(sql).toMatch(/^-- DashQL Connection Functions\./);
+        expect(sql).toContain('-- Catalog Source: Bundled Hyper function catalog');
+        expect(sql).toContain('-- Last Refresh: 2026-08-30T12:34:56.789Z');
         expect(sql).toContain('CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;');
         expect(sql).not.toContain('"default"."pg_catalog"');
     });
