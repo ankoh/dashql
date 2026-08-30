@@ -4,7 +4,7 @@ import * as dashql from '../../../../core/index.js';
 import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
 import { DynamicConnectionDispatch } from '../connection_registry.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../catalog_update_state.js';
-import { CatalogSource, generateCatalogScriptHeader, generateSchemaSQL, quoteIdentifier, type ColumnMetadata } from '../catalog_sql_generator.js';
+import { CatalogSource, generateCatalogScriptHeader, generateCatalogScriptHeaderForSource, generateSchemaSQL, quoteIdentifier, type ColumnMetadata } from '../catalog_sql_generator.js';
 import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, generateCatalogSQLFromPgAttribute } from '../catalog_query_pg_attribute.js';
 import { QueryExecutionArgs } from '../query_execution_args.js';
 import { QueryExecutor } from '../query_executor.js';
@@ -12,6 +12,8 @@ import { QueryType } from '../query_execution_state.js';
 import type { LoggerLike } from '../../../../platform/logger/logger.js';
 import type { AttachedDatabase } from './hyperdb_grpc_client.js';
 import { loadPrefetchedHyperFunctions, qualifyPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
+import { generateFunctionScriptHeaderForSource } from '../catalog_function_sql_generator.js';
+import { generateCatalogSQLFromPgProc, queryPgProc } from '../catalog_query_pg_proc.js';
 
 const LOG_CTX = 'hyper_catalog';
 const DEFAULT_HYPER_DATABASE = 'hyper';
@@ -179,11 +181,14 @@ function parseCatalogSections(script: string): Map<string, string> {
     return sections;
 }
 
-function renderCatalogSections(sections: Map<string, string>, targetOrder: string[]): string {
+function renderCatalogSections(sections: Map<string, string>, targetOrder: string[], source: string | null): string {
     const rendered = targetOrder
         .filter((key, index) => targetOrder.indexOf(key) === index && sections.has(key))
         .map(key => `${SECTION_BEGIN}${JSON.stringify(key)}\n${sections.get(key)}\n${SECTION_END}`);
-    return `${generateCatalogScriptHeader(CatalogSource.Hyper)}${rendered.join('\n\n')}\n`;
+    const header = source == null
+        ? generateCatalogScriptHeader(CatalogSource.Hyper)
+        : generateCatalogScriptHeaderForSource(source);
+    return `${header}${rendered.join('\n\n')}\n`;
 }
 
 function replaceCatalogScript(
@@ -225,6 +230,7 @@ export async function updateHyperCatalog(
     dql: dashql.DashQL,
     catalogRelationScript: dashql.DashQLScript,
     catalogFunctionScript: dashql.DashQLScript,
+    resolveLiveFunctionCatalog: boolean,
     abortSignal: AbortSignal,
 ): Promise<HyperCatalogUpdateResult> {
     const targets = buildCatalogTargets(attachedDatabases);
@@ -284,6 +290,27 @@ export async function updateHyperCatalog(
         throw summarizeFailures('Failed to refresh every attached database', failures);
     }
 
+    let functionSQL: string;
+    if (resolveLiveFunctionCatalog) {
+        const functionResult = await queryPgProc(
+            connectionId,
+            connectionDispatch,
+            updateId,
+            executor,
+            abortSignal,
+        );
+        if (functionResult == null || functionResult.numRows === 0) {
+            throw new Error('pg_proc returned no Hyper functions');
+        }
+        const functions = generateCatalogSQLFromPgProc(functionResult, DEFAULT_HYPER_DATABASE);
+        if (!functions.trim()) {
+            throw new Error('pg_proc returned no usable Hyper functions');
+        }
+        functionSQL = `${generateFunctionScriptHeaderForSource('HyperDB WASM pg_proc')}${functions}`;
+    } else {
+        functionSQL = qualifyPrefetchedHyperFunctions(DEFAULT_HYPER_DATABASE);
+    }
+
     const sections = parseCatalogSections(catalogRelationScript.toString());
     const desiredKeys = targets.map(target => target.key);
     for (const key of [...sections.keys()]) {
@@ -291,7 +318,11 @@ export async function updateHyperCatalog(
     }
     for (const result of successful) sections.set(result.target.key, result.sql!);
 
-    const nextText = renderCatalogSections(sections, desiredKeys);
+    const nextText = renderCatalogSections(
+        sections,
+        desiredKeys,
+        resolveLiveFunctionCatalog ? 'HyperDB WASM pg_class' : null,
+    );
     connectionDispatch(connectionId, {
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId],
@@ -301,7 +332,7 @@ export async function updateHyperCatalog(
         dql,
         catalog,
         catalogFunctionScript,
-        qualifyPrefetchedHyperFunctions(DEFAULT_HYPER_DATABASE),
+        functionSQL,
     );
     logger.info('Updated Hyper catalog relations', {
         updateId: updateId.toString(),

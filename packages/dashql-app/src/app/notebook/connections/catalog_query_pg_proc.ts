@@ -7,6 +7,8 @@ import { CATALOG_UPDATE_REGISTER_QUERY } from "./connection_state.js";
 import { QueryType } from './query_execution_state.js';
 import { type FunctionMetadata, generateFunctionsSQL } from './catalog_function_sql_generator.js';
 
+const CATALOG_QUERY_READ_TIMEOUT_MS = 60_000;
+
 export type PgProcTable = arrow.Table<{
     function_schema: arrow.Utf8;
     function_name: arrow.Utf8;
@@ -28,7 +30,7 @@ export function generateCatalogSQLFromPgProc(result: PgProcTable, databaseName: 
         for (let i = 0; i < batch.numRows; ++i) {
             const schemaName = colSchema.at(i);
             const functionName = colName.at(i);
-            const args = colArgs.at(i) ?? '';
+            const args = (colArgs.at(i) ?? '').trim();
             const returnType = colReturn.at(i);
             const kind = colKind.at(i);
 
@@ -38,7 +40,7 @@ export function generateCatalogSQLFromPgProc(result: PgProcTable, databaseName: 
             functions.push({
                 schemaName,
                 functionName,
-                arguments: args,
+                arguments: args ? `args ${args}` : '',
                 returnType,
                 isAggregate: kind === 'a',
             });
@@ -52,7 +54,8 @@ export async function queryPgProc(
     connectionId: string,
     connectionDispatch: DynamicConnectionDispatch,
     updateId: number,
-    executor: QueryExecutor
+    executor: QueryExecutor,
+    abortSignal?: AbortSignal,
 ): Promise<PgProcTable | null> {
     const query = `
         SELECT
@@ -69,6 +72,9 @@ export async function queryPgProc(
 
     const args: QueryExecutionArgs = {
         query: query,
+        abortSignal,
+        readTimeoutMs: CATALOG_QUERY_READ_TIMEOUT_MS,
+        throwOnError: true,
         metadata: {
             queryType: QueryType.CATALOG_QUERY_PG_PROC,
             title: "Query Postgres Functions",

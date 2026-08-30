@@ -155,6 +155,26 @@ describe('HyperDB embedded database integration', () => {
         await connection.close();
     });
 
+    it('exposes function signatures through pg_proc introspection', async () => {
+        const connection = await database!.connect({ defaultDatabase: 'hyper' });
+        const result = await connection.query(`
+            SELECT
+                n.nspname AS function_schema,
+                p.proname AS function_name,
+                pg_catalog.pg_get_function_arguments(p.oid) AS function_arguments,
+                pg_catalog.pg_get_function_result(p.oid) AS return_type,
+                p.prokind AS function_kind
+            FROM pg_proc p
+            JOIN pg_namespace n ON n.oid = p.pronamespace
+            WHERE p.prokind IN ('f', 'a', 'w', 'p')
+            ORDER BY n.nspname, p.proname
+        `);
+
+        expect(result.numRows).toBeGreaterThan(0);
+        expect(toPlainObjects(result).find(row => row.function_name === 'abs')).toBeDefined();
+        await connection.close();
+    });
+
     it('returns no Arrow IPC chunks for successful DDL', async () => {
         const connection = await database!.connect();
 

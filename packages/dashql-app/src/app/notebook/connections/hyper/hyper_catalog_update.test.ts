@@ -42,6 +42,16 @@ function cloudResult(databaseName = 'Cloud Database') {
     });
 }
 
+function functionResult() {
+    return arrow.tableFromArrays({
+        function_schema: ['pg_catalog'],
+        function_name: ['wasm_catalog_function'],
+        function_arguments: ['integer'],
+        return_type: ['bigint'],
+        function_kind: ['f'],
+    });
+}
+
 describe('Hyper catalog query generation', () => {
     it('qualifies Hyper Cloud metadata tables without projecting UUIDs', () => {
         const query = buildHyperCloudCatalogQuery('cloud"catalog');
@@ -91,6 +101,7 @@ describe('updateHyperCatalog', () => {
             dql,
             script,
             functionScript,
+            false,
             new AbortController().signal,
         );
 
@@ -106,12 +117,15 @@ describe('updateHyperCatalog', () => {
         expect(functionScript.toString()).toContain('CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;');
     });
 
-    it('uses the unqualified default database when there are no attachments', async () => {
+    it('uses the unqualified default database and live function catalog for Hyper WASM', async () => {
         const catalog = dql.createCatalog();
         const script = dql.createScript(catalog);
         const functionScript = dql.createScript(catalog);
         let query = '';
         const executor = vi.fn<QueryExecutor>((_connectionId, args) => {
+            if (args.query.includes('FROM pg_proc p')) {
+                return [2, Promise.resolve(functionResult())];
+            }
             query = args.query;
             return [1, Promise.resolve(pgResult('default_table'))];
         });
@@ -127,12 +141,20 @@ describe('updateHyperCatalog', () => {
             dql,
             script,
             functionScript,
+            true,
             new AbortController().signal,
         );
 
         expect(query).toContain('FROM pg_catalog.pg_class c');
         expect(query).not.toContain('"hyper"."pg_catalog"');
+        expect(script.toString()).toContain('-- Catalog Source: HyperDB WASM pg_class');
         expect(script.toString()).toContain('CREATE TABLE "hyper"."public"."default_table"');
+        expect(functionScript.toString()).toContain('-- Catalog Source: HyperDB WASM pg_proc');
+        expect(functionScript.toString()).toContain(
+            'CREATE FUNCTION "hyper"."pg_catalog"."wasm_catalog_function"(args integer) RETURNS bigint;',
+        );
+        expect(functionScript.toString()).not.toContain('CREATE FUNCTION "hyper"."pg_catalog"."abs"');
+        expect(executor.mock.calls[1]?.[1].readTimeoutMs).toBe(CATALOG_QUERY_READ_TIMEOUT_MS);
     });
 
     it('retains a failed database section while committing a successful database', async () => {
@@ -164,6 +186,7 @@ describe('updateHyperCatalog', () => {
             dql,
             script,
             functionScript,
+            false,
             new AbortController().signal,
         );
         revision = 2;
@@ -180,6 +203,7 @@ describe('updateHyperCatalog', () => {
             dql,
             script,
             functionScript,
+            false,
             new AbortController().signal,
         );
 
@@ -209,6 +233,7 @@ describe('updateHyperCatalog', () => {
             dql,
             script,
             functionScript,
+            false,
             new AbortController().signal,
         )).rejects.toThrow('Failed to refresh every attached database');
 
