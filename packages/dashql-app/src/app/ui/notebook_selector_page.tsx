@@ -92,7 +92,6 @@ interface NotebookItemData {
 }
 
 const LIST_MAX_HEIGHT = 400; // Max height of the scrollable list before it scrolls
-const LIST_WIDTH = 400; // Width of the list to accommodate long paths
 const DuplicateIcon = SymbolIcon('duplicate_16');
 
 export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
@@ -528,7 +527,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                 {notebooks.length > 0 ? (
                                     <div
                                         className={styles.notebook_list_container}
-                                        style={{ width: LIST_WIDTH, maxHeight: LIST_MAX_HEIGHT }}
+                                        style={{ maxHeight: LIST_MAX_HEIGHT }}
                                     >
                                         <DndContext
                                             sensors={dndSensors}
