@@ -72,6 +72,8 @@ describe('setupWebHyperDB', () => {
                 experimental_persisted_view_creation: true,
                 experimental_hyper_introspection_functions: true,
                 experimental_data_type_persistence: true,
+                experimental_external_http_location: true,
+                http_location_allowlist: ['*'],
                 log_json_export: true,
                 log_file_size_limit: '1M',
                 log_file_max_count: 10,

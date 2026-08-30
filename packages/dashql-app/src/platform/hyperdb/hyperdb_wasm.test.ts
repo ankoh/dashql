@@ -238,11 +238,12 @@ describe('HyperDB embedded database adapter', () => {
         await HyperDB.create(client, {
             'global.experimental_view_creation': true,
             'global.experimental_persisted_view_creation': true,
+            'global.http_location_allowlist': ['*'],
         });
 
         expect(client.calls).toEqual([
             'ready',
-            'initialize:{"global.experimental_view_creation":true,"global.experimental_persisted_view_creation":true}',
+            'initialize:{"global.experimental_view_creation":true,"global.experimental_persisted_view_creation":true,"global.http_location_allowlist":["*"]}',
             'create-database:__dashql_compute:false',
             'create-database:pg_catalog:false',
         ]);
