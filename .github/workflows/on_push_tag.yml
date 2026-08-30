@@ -19,9 +19,9 @@ jobs:
         uses: ./.github/workflows/publish.yml
         with:
             commit: ${{ github.sha }}
+            publish_pages: false
         needs:
             - build
         secrets: inherit
         permissions:
             contents: read
-            deployments: write
