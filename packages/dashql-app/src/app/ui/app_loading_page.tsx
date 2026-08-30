@@ -7,7 +7,6 @@ import { AppLoadingStatus } from '../router/app_loading_status.js';
 import { Button, ButtonVariant } from '../../ui/foundations/button.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router/router.js';
 import { getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
-import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { useStorageReader } from '../notebook/persistence/storage_provider.js';
 import { AppLoadingProgress } from '../loading/app_loading_progress.js';
@@ -17,13 +16,13 @@ import { CompactNavBar } from './navbar.js';
 interface Props {
     pauseAfterSetup: boolean;
     progress: AppLoadingProgress;
+    embeddedDatabaseStatus: IndicatorStatus;
 }
 
 
 export const AppLoadingPage: React.FC<Props> = (props: Props) => {
     const navigate = useRouterNavigate();
     const coreSetup = useDashQLCoreSetup();
-    const computeDb = useComputeDatabase();
     const storageReader = useStorageReader();
     const routeContext = useRouteContext();
 
@@ -46,15 +45,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
         run();
         return () => abort.abort();
     }, []);
-
-    const [computeStatus, setComputeStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
-    React.useEffect(() => {
-        if (computeDb != null) {
-            setComputeStatus(IndicatorStatus.Succeeded);
-        } else {
-            setComputeStatus(IndicatorStatus.Running);
-        }
-    }, [computeDb]);
 
     // Subscribe initial state restore
     const [storageStatus, setStorageStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
@@ -122,7 +112,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             fill="black"
                                             width={"14px"}
                                             height={"14px"}
-                                            status={computeStatus}
+                                            status={props.embeddedDatabaseStatus}
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>

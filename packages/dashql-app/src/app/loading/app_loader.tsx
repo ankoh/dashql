@@ -31,6 +31,7 @@ import {
 } from '../notebook/persistence/http_notebook_bundle.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import { NotebookImportCard } from '../notebook/ui/notebook_import_card.js';
+import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 
 async function loadFonts(): Promise<void> {
     await Promise.all([
@@ -63,6 +64,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const notebookImport = useNotebookImport();
     const httpClient = useHttpClient();
     const [loadedCore, setLoadedCore] = React.useState<any>(null);
+    const [embeddedDatabaseStatus, setEmbeddedDatabaseStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
     const [loadedNotebook, setLoadedNotebook] = React.useState<HttpNotebookLoadResult | null>(null);
     const [loadedNotebookConflict, setLoadedNotebookConflict] = React.useState<{
         displayLocation: string;
@@ -233,6 +235,15 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         hasStartedSetup.current = true;
         const abort = new AbortController();
         setupAbortRef.current = abort;
+        let failedComponent: string | null = null;
+        const trackInitialization = async <T,>(name: string, promise: Promise<T>): Promise<T> => {
+            try {
+                return await promise;
+            } catch (error) {
+                failedComponent ??= name;
+                throw error;
+            }
+        };
 
         const run = async () => {
             // Start trace for app loading
@@ -244,12 +255,20 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             traced.info("Initializing Core and embedded database", {}, "app_loader");
             const coreStartTime = performance.now();
 
-            const corePromise = setupCore("app_setup");
-            const embeddedDatabasePromise = setupEmbeddedDatabase("app_setup").catch(error => {
-                traced.warn("Embedded database initialization failed", { error: String(error) }, "app_loader");
-                return null;
-            });
-            const [core, embeddedDatabase] = await Promise.all([corePromise, embeddedDatabasePromise, loadFonts()]);
+            const corePromise = trackInitialization("Core", setupCore("app_setup"));
+            setEmbeddedDatabaseStatus(IndicatorStatus.Running);
+            const embeddedDatabasePromise = trackInitialization(
+                "HyperDB",
+                setupEmbeddedDatabase("app_setup").then(database => {
+                    setEmbeddedDatabaseStatus(IndicatorStatus.Succeeded);
+                    return database;
+                }).catch(error => {
+                    setEmbeddedDatabaseStatus(IndicatorStatus.Failed);
+                    throw error;
+                }),
+            );
+            const fontsPromise = trackInitialization("Fonts", loadFonts());
+            const [core] = await Promise.all([corePromise, embeddedDatabasePromise, fontsPromise]);
 
             const coreDuration = performance.now() - coreStartTime;
             traced.info("Core and embedded database ready", {
@@ -261,7 +280,10 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
             // Load the app
             traced.info("Loading application state and notebooks", {}, "app_loader");
-            const loaded = await loadApp(traced, core, storageReader, setConnReg, setNotebookScriptsRegistry, setLoadingProgress);
+            const loaded = await trackInitialization(
+                "Application state",
+                loadApp(traced, core, storageReader, setConnReg, setNotebookScriptsRegistry, setLoadingProgress),
+            );
 
             // Surface any notebooks that were refused a load in the selector. This is just an
             // aggregate count for the log — each refused notebook already logs a WARN with its path
@@ -290,9 +312,9 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 value: null
             });
             globalThis.__DASHQL_STARTUP__ = {
-                embeddedDatabase: embeddedDatabase == null ? null : 'hyperdb-wasm',
+                embeddedDatabase: 'hyperdb-wasm',
                 host: getAppHost(),
-                status: embeddedDatabase == null ? 'degraded' : 'ready',
+                status: 'ready',
             };
         };
         run().catch(error => {
@@ -302,7 +324,9 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 host: getAppHost(),
                 status: 'failed',
             };
-            logger.error("Application initialization failed", { error: String(error) }, "app_loader");
+            logger.error("Application initialization failed", {
+                component: failedComponent ?? "Unknown",
+            }, "app_loader");
         });
     }, [config]);
 
@@ -367,6 +391,10 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         return props.children;
     } else {
         // Otherwise show the app loading page
-        return <AppLoadingPage pauseAfterSetup={config?.settings?.pauseAfterAppSetup ?? false} progress={loadingProgress} />;
+        return <AppLoadingPage
+            pauseAfterSetup={config?.settings?.pauseAfterAppSetup ?? false}
+            progress={loadingProgress}
+            embeddedDatabaseStatus={embeddedDatabaseStatus}
+        />;
     }
 };
