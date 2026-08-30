@@ -6,6 +6,7 @@ export const HYPERDB_WASM_ENGINE_SETTINGS = Object.freeze({
     experimental_data_type_persistence: true,
     experimental_multidimensional_arrays: true,
     experimental_external_http_location: true,
+    raw_sql_format_table_scan: true,
     http_location_allowlist: ['*'],
     log_json_export: true,
     log_file_size_limit: '1M',

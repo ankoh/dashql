@@ -7,10 +7,7 @@
           "name": "1_version.sql"
         },
         {
-          "name": "2_test_tables.sql"
-        },
-        {
-          "name": "3_test_views.sql"
+          "name": "3_test_tables.sql"
         }
       ]
     },
@@ -40,13 +37,13 @@
       "name": "4_aggregation",
       "scripts": [
         {
-          "name": "2_tpch_q1.sql"
+          "name": "1_tpch_q1.sql"
+        },
+        {
+          "name": "2_schema_preagg.sql"
         },
         {
           "name": "3_limitation_sort.sql"
-        },
-        {
-          "name": "4_schema_preagg.sql"
         }
       ]
     },
@@ -55,6 +52,14 @@
       "scripts": [
         {
           "name": "2_text_tree.sql"
+        }
+      ]
+    },
+    {
+      "name": "6_sql_spark",
+      "scripts": [
+        {
+          "name": "1_nimble_meerkat.sql"
         }
       ]
     }
