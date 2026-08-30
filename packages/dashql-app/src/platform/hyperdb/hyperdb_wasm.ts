@@ -22,7 +22,10 @@ export type HyperDBResult =
     | { state: 'error'; error: string }
     | { state: 'busy'; error: string };
 
-export type HyperDBSettings = Readonly<Record<string, string | number | boolean | null>>;
+type HyperDBSettingValue = string | number | boolean | null | readonly HyperDBSettingValue[] | {
+    readonly [key: string]: HyperDBSettingValue;
+};
+export type HyperDBSettings = Readonly<Record<string, HyperDBSettingValue>>;
 
 export interface HyperDBEngineClient {
     ready(): Promise<void>;
