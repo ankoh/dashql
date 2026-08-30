@@ -1,7 +1,7 @@
 import * as dashql from '../../../../core/index.js';
 import { Text } from '@codemirror/state';
 
-import { deriveCompletionHints } from './dashql_completion_hint.js';
+import { deriveCompletionHints, InsertPatchWidget } from './dashql_completion_hint.js';
 import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_processor.js';
 import { PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor, computePatches } from './dashql_completion_patches.js';
 
@@ -18,6 +18,18 @@ afterEach(async () => {
 });
 
 describe('Completion Hint', () => {
+    it('does not increase the line height for an inline recommendation', () => {
+        class TestInsertPatchWidget extends InsertPatchWidget {
+            constructor() {
+                super('select', 'completion-hint');
+            }
+        }
+
+        const widget = new TestInsertPatchWidget();
+        expect(widget.estimatedHeight).toBe(0);
+        expect(widget.toDOM().style.lineHeight).toBe('0');
+    });
+
     it('candidate hint quoting', async () => {
         const catalog = dql!.createCatalog();
         const schemaScriptPtr = dql!.createScript(catalog);

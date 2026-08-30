@@ -129,6 +129,7 @@ export const PlugIcon = createIcon({ 16: 'plug_16', 24: 'plug_24' });
 export const PlusIcon = createIcon({ 16: 'plus_16', 24: 'plus_24' });
 export const ProjectIcon = createIcon({ 16: 'project_16' });
 export const RowsIcon = createIcon({ 16: 'rows_16', 24: 'rows' });
+export const SaveIcon = createIcon({ 16: 'save_16' });
 export const ScreenFullIcon = createIcon({ 16: 'screen_full_16', 24: 'screen_full_24' });
 export const SparklesFillIcon = createIcon({ 16: 'sparkles_fill_16', 24: 'sparkles_fill_24' });
 export const SquareFillIcon = createIcon({ 16: 'square_fill_16' });

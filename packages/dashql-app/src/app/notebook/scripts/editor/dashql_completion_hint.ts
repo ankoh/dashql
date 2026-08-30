@@ -96,7 +96,7 @@ function getDeleteClassNameForCategory(category: CompletionPatchTarget): string 
     return DELETE_CLASSNAMES[category as number - 1];
 }
 
-class InsertPatchWidget extends WidgetType {
+export class InsertPatchWidget extends WidgetType {
     constructor(
         protected text: string,
         protected className: string
@@ -110,10 +110,12 @@ class InsertPatchWidget extends WidgetType {
         const span = document.createElement('span');
         span.className = this.className;
         span.textContent = this.text;
+        span.style.lineHeight = '0';
         return span;
     }
     get estimatedHeight(): number {
-        return -1; // Use line height
+        // Inline hints must not make an otherwise empty editor line taller.
+        return 0;
     }
 }
 

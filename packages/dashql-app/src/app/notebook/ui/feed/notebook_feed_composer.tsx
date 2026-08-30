@@ -2,10 +2,9 @@ import * as React from 'react';
 import * as styles from './notebook_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
-import { CodeIcon, ComposeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon, XIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { CodeIcon, PaperAirplaneIcon, SaveIcon, SparklesFillIcon, SquareFillIcon, XIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
-import { ButtonGroup } from '../../../../ui/foundations/button_group.js';
 import { SegmentedControl, SegmentedControlSize } from '../../../../ui/foundations/segmented_control.js';
 import { IndicatorStatus, StatusIndicator } from '../../../../ui/foundations/status_indicator.js';
 import { COMPOSE_INPUT_MODE_AI } from '../../scripts/notebook_commands.js';
@@ -110,25 +109,27 @@ export const NotebookFeedComposer: React.FC<NotebookFeedComposerProps> = (props)
                         </IconButton>
                     </>
                 ) : props.inputMode !== COMPOSE_INPUT_MODE_AI ? (
-                    <ButtonGroup aria-label="Draft actions">
+                    <>
                         <IconButton
                             variant={ButtonVariant.Default}
                             size={ButtonSize.Small}
+                            className={styles.compose_send_button}
                             aria-label="Save"
                             onClick={props.onSave}
                         >
-                            <ComposeIcon />
+                            <SaveIcon />
                         </IconButton>
                         <IconButton
                             variant={ButtonVariant.Default}
                             size={ButtonSize.Small}
+                            className={styles.compose_send_button}
                             aria-label="Execute"
                             disabled={props.disconnected}
                             onClick={props.onSend}
                         >
                             <PaperAirplaneIcon />
                         </IconButton>
-                    </ButtonGroup>
+                    </>
                 ) : (
                     <IconButton
                         variant={ButtonVariant.Default}

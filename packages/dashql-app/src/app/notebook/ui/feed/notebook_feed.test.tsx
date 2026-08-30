@@ -780,8 +780,11 @@ describe('NotebookFeed', () => {
             scrollTarget: null,
         });
 
+        expect(container.querySelector('[aria-label="Draft actions"]')).toBeNull();
         const saveButton = container.querySelector('[aria-label="Save"]') as HTMLButtonElement;
         expect(saveButton).not.toBeNull();
+        expect(saveButton.querySelector('[data-symbol="save_16"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Execute"]')).not.toBeNull();
 
         act(() => {
             saveButton.click();
@@ -809,7 +812,7 @@ describe('NotebookFeed', () => {
         expect(mockState.executeQuery).toHaveBeenCalledOnce();
     });
 
-    it('keeps Save available and disables Execute while disconnected', () => {
+    it('keeps Save available while Execute is unavailable offline', () => {
         renderFeed({
             notebookScripts: createNotebookScripts(),
             modifyNotebookScripts: vi.fn(),
@@ -817,10 +820,11 @@ describe('NotebookFeed', () => {
             conn: null,
         });
 
-        const saveButton = container.querySelector('[aria-label="Save"]') as HTMLButtonElement;
         const executeButton = container.querySelector('[aria-label="Execute"]') as HTMLButtonElement;
-        expect(saveButton.disabled).toBe(false);
         expect(executeButton.disabled).toBe(true);
+
+        const saveButton = container.querySelector('[aria-label="Save"]') as HTMLButtonElement;
+        expect(saveButton.disabled).toBe(false);
     });
 
     it('dispatches PROMOTE_UNCOMMITTED_SCRIPT on Ctrl+Enter when the compose editor is focused', () => {
