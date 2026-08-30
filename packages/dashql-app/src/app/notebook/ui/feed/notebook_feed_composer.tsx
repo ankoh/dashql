@@ -51,26 +51,27 @@ export const NotebookFeedComposer: React.FC<NotebookFeedComposerProps> = (props)
         )}
         <div className={styles.compose_action_bar}>
             <div className={styles.compose_mode_group}>
-                <SegmentedControl
-                    aria-label="Input mode"
-                    size={SegmentedControlSize.Small}
-                    onChange={props.setInputMode}
-                >
-                    <SegmentedControl.Button
-                        leadingVisual={CodeIcon}
-                        selected={props.inputMode !== COMPOSE_INPUT_MODE_AI}
+                {props.aiAvailable && (
+                    <SegmentedControl
+                        aria-label="Input mode"
+                        size={SegmentedControlSize.Small}
+                        onChange={props.setInputMode}
                     >
-                        SQL
-                    </SegmentedControl.Button>
-                    <SegmentedControl.Button
-                        leadingVisual={SparklesFillIcon}
-                        selected={props.inputMode === COMPOSE_INPUT_MODE_AI}
-                        disabled={!props.aiAvailable}
-                        title={props.aiAvailable ? 'Ctrl + M to toggle' : 'Configure an AI provider in settings'}
-                    >
-                        AI
-                    </SegmentedControl.Button>
-                </SegmentedControl>
+                        <SegmentedControl.Button
+                            leadingVisual={CodeIcon}
+                            selected={props.inputMode !== COMPOSE_INPUT_MODE_AI}
+                        >
+                            SQL
+                        </SegmentedControl.Button>
+                        <SegmentedControl.Button
+                            leadingVisual={SparklesFillIcon}
+                            selected={props.inputMode === COMPOSE_INPUT_MODE_AI}
+                            title="Ctrl + M to toggle"
+                        >
+                            AI
+                        </SegmentedControl.Button>
+                    </SegmentedControl>
+                )}
                 {props.inputMode === COMPOSE_INPUT_MODE_AI && props.aiContextName != null && (
                     <button
                         type="button"

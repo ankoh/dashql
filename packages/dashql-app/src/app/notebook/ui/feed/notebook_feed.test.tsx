@@ -48,6 +48,7 @@ const mockState = vi.hoisted(() => ({
     startAgentRun: vi.fn(),
     cancelAgentRun: vi.fn(),
     cancelQuery: vi.fn(),
+    aiClient: {} as object | null,
     storageBackend: {
         deleteQueryResultCache: vi.fn(),
         hasCachedQueryResult: vi.fn(async (_notebookId: string, _cacheKey: string) => false),
@@ -59,7 +60,7 @@ const mockState = vi.hoisted(() => ({
     previewFormattable: true,
 }));
 vi.mock('../../../config/app_config.js', () => ({ useAppConfig: () => ({ settings: {} }) }));
-vi.mock('../../agent/ai/ai_client_provider.js', () => ({ useAIClient: () => ({}) }));
+vi.mock('../../agent/ai/ai_client_provider.js', () => ({ useAIClient: () => mockState.aiClient }));
 vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), mockState.scrollToRowMock));
 vi.mock('../script_editor.js', async () => fakeScriptEditorModule(await import('react'), mockState));
 vi.mock('../prompt_editor.js', async () => {
@@ -298,6 +299,7 @@ describe('NotebookFeed', () => {
         mockState.startAgentRun.mockReset();
         mockState.cancelAgentRun.mockReset();
         mockState.cancelQuery.mockReset();
+        mockState.aiClient = {};
         mockState.storageBackend.deleteQueryResultCache.mockReset();
         mockState.storageBackend.hasCachedQueryResult.mockReset();
         mockState.storageBackend.hasCachedQueryResult.mockImplementation(async (_notebookId: string, cacheKey: string) =>
@@ -401,6 +403,15 @@ describe('NotebookFeed', () => {
         expect(executeButtons[1].hasAttribute('aria-current')).toBe(false);
         expect(container.querySelectorAll('[aria-label="Use script as AI context"]')).toHaveLength(2);
         expect(container.querySelector('[aria-label^="Open script"]')).toBeNull();
+    });
+
+    it('hides AI controls when no AI client is available', () => {
+        mockState.aiClient = null;
+        renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
+
+        expect(container.querySelector('[aria-label="Input mode"]')).toBeNull();
+        expect(container.querySelectorAll('[aria-label$="as AI context"]')).toHaveLength(0);
+        expect(container.querySelector('[data-testid="script-editor"]')).not.toBeNull();
     });
 
     it('moves the formatting warning into the card header diagnostics overlay', () => {

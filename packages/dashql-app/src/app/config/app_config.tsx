@@ -13,6 +13,7 @@ export interface AIProviderHeader {
 }
 
 export interface AIProviderSettings {
+    enabled?: boolean;
     endpointUrl?: string;
     model?: string;
     headers?: AIProviderHeader[];

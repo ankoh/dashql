@@ -4,6 +4,7 @@ import * as styles from './ai_settings_view.module.css';
 import { XIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { ToggleSwitch } from '../../../ui/foundations/toggle_switch.js';
 import { TextField } from '../../../ui/foundations/text_field.js';
 import { KeyValueListBuilder, KeyValueListElement } from '../../../ui/foundations/keyvalue_list.js';
 import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status_indicator.js';
@@ -66,15 +67,20 @@ export function AISettingsView(props: { onClose: () => void; }) {
     const logger = useLogger();
 
     const stored = config?.settings?.aiProvider;
+    const enabled = stored?.enabled === true;
     const endpointUrl = stored?.endpointUrl ?? DEFAULT_AI_ENDPOINT_URL;
     const model = stored?.model ?? DEFAULT_AI_MODEL;
     const providerHeaders = stored?.headers ?? [];
-    const provider: AIProviderSettings = { endpointUrl, model, headers: providerHeaders };
+    const provider: AIProviderSettings = { enabled, endpointUrl, model, headers: providerHeaders };
 
     const [testState, setTestState] = React.useState<TestState>(INITIAL_TEST_STATE);
     const abortRef = React.useRef<AbortController | null>(null);
 
     React.useEffect(() => () => abortRef.current?.abort(), []);
+
+    const toggleEnabled = () => {
+        setProvider(reconfigure, { ...provider, enabled: !enabled });
+    };
 
     const onChangeEndpoint = (e: React.ChangeEvent<HTMLInputElement>) => {
         setProvider(reconfigure, { ...provider, endpointUrl: e.target.value });
@@ -122,6 +128,13 @@ export function AISettingsView(props: { onClose: () => void; }) {
                     <div className={styles.title}>AI Provider Settings</div>
                 </div>
                 <div className={styles.header_right_container}>
+                    <ToggleSwitch
+                        size="medium"
+                        checked={enabled}
+                        onClick={toggleEnabled}
+                        disabled={config == null}
+                        aria-label="Enable AI features"
+                    />
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         aria-label="close-overlay"
@@ -151,7 +164,7 @@ export function AISettingsView(props: { onClose: () => void; }) {
                             variant={ButtonVariant.Primary}
                             size={ButtonSize.Small}
                             onClick={runTest}
-                            disabled={httpClient == null || testState.status === IndicatorStatus.Running}
+                            disabled={!enabled || httpClient == null || testState.status === IndicatorStatus.Running}
                         >
                             Test
                         </Button>
@@ -167,6 +180,7 @@ export function AISettingsView(props: { onClose: () => void; }) {
                             placeholder="http://localhost:11434"
                             leadingVisual={UrlIcon}
                             onChange={onChangeEndpoint}
+                            disabled={!enabled}
                             logContext={LOG_CTX}
                         />
                         <TextField
@@ -176,6 +190,7 @@ export function AISettingsView(props: { onClose: () => void; }) {
                             placeholder="llama3"
                             leadingVisual={ModelIcon}
                             onChange={onChangeModel}
+                            disabled={!enabled}
                             logContext={LOG_CTX}
                         />
                         <KeyValueListBuilder
@@ -187,6 +202,7 @@ export function AISettingsView(props: { onClose: () => void; }) {
                             addButtonLabel="Add Header"
                             elements={headersToKeyValueList(providerHeaders)}
                             modifyElements={modifyHeaders}
+                            disabled={!enabled}
                         />
                     </div>
                 </div>
