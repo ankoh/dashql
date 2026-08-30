@@ -388,10 +388,14 @@ describe('SELECT_SCRIPT_PATH', () => {
     it('is a no-op for a file outside the named folder', () => {
         const s0 = buildState();
         const s1 = reduce(s0, { type: CREATE_SCRIPT_FOLDER, value: null });
-        const [firstFolder, secondFolder] = folderNames(s1);
-        const secondFile = getSortedScriptFileNames(s1.scriptFolders[secondFolder])[0];
-        const next = reduce(s1, { type: SELECT_SCRIPT_PATH, value: { folderName: firstFolder, fileName: secondFile } });
-        expect(next).toBe(s1);
+        const s2 = reduce(s1, { type: CREATE_SCRIPT, value: null });
+        const [firstFolder, secondFolder] = folderNames(s2);
+        const secondFile = getSortedScriptFileNames(s2.scriptFolders[secondFolder])
+            .find(fileName => !s2.scriptFolders[firstFolder].scripts[fileName])!;
+        expect(s2.scriptFolders[firstFolder].scripts[secondFile]).toBeUndefined();
+
+        const next = reduce(s2, { type: SELECT_SCRIPT_PATH, value: { folderName: firstFolder, fileName: secondFile } });
+        expect(next).toBe(s2);
     });
 });
 
