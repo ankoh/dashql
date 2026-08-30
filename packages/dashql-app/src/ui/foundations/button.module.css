@@ -12,6 +12,7 @@
     font-weight: 500;
     font-size: 14px;
     cursor: pointer;
+    -webkit-appearance: none;
     appearance: none;
     user-select: none;
     text-decoration: none;
@@ -207,7 +208,8 @@
     background-color: #1a7f37;
 }
 .button_variant_primary:focus-visible:not(.disabled) {
-    box-shadow: inset 0 0 0 3px;
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.2);
 }
 .button_variant_primary:active:not(.disabled):not(.data-inactive) {
     background-color: hsla(137,66%,28%,1);
@@ -242,7 +244,8 @@
     background-color: #a40e26;
 }
 .button_variant_danger:focus-visible:not(.disabled) {
-    box-shadow: inset 0 0 0 3px;
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.2);
 }
 .button_variant_danger:active:not(.disabled):not(.inactive) {
     background-color: hsla(356,72%,44%,1);
@@ -268,6 +271,7 @@
 /* --------------------------------------------------------------------- */
 
 .button_variant_invisible {
+    color: inherit;
     background-color: transparent;
     border-color: transparent;
     box-shadow: none;

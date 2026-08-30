@@ -61,6 +61,10 @@ textarea,
     -webkit-app-region: no-drag;
 }
 
+button {
+    color: inherit;
+}
+
 html {
     width: 100%;
     height: 100%;
