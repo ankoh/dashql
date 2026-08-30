@@ -1,3 +1,9 @@
+-- DashQL Connection Functions.
+-- This file is auto-generated and can only be updated through a catalog refresh.
+--
+-- Catalog Source: Bundled Hyper function catalog
+-- Last Refresh: 2026-08-30T19:57:49.869Z
+
 CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;
 CREATE FUNCTION "hyper"."pg_catalog"."acos"() RETURNS any;
 CREATE FUNCTION "hyper"."pg_catalog"."age"() RETURNS any;
