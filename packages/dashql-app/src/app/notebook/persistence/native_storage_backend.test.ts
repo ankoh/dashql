@@ -14,6 +14,7 @@ vi.mock('../../../platform/electron_fs.js', async () => ({
 // Import after the mocks are registered.
 import { fsStore, resetFsStore } from './test_fs_mock.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
+import { STORAGE_NOTEBOOK_INDEX_FILE } from './storage_backend.js';
 
 // The directory that backs the single notebook under test. Files land *directly* here.
 const DIR = '/Users/test/my-notebook';
@@ -121,6 +122,21 @@ describe('NativeStorageBackend (one-dir-one-notebook)', () => {
     });
 
     describe('Script Folders', () => {
+        it('backfills a missing index without overwriting an existing one', async () => {
+            await backend.createScriptFolder(SID, 'page-1');
+            await backend.saveScript(SID, 'page-1', '01-script.sql', 'SELECT 1;');
+            fsStore.files.delete(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`);
+
+            await backend.ensureNotebookIndex(SID);
+            expect(JSON.parse(fsStore.files.get(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`)!)).toEqual({
+                folders: [{ name: 'page-1', scripts: [{ name: '01-script.sql' }] }],
+            });
+
+            fsStore.files.set(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`, 'keep-me');
+            await backend.ensureNotebookIndex(SID);
+            expect(fsStore.files.get(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`)).toBe('keep-me');
+        });
+
         it('creates script folders under the notebook folder', async () => {
             await backend.createScriptFolder(SID, 'page-1');
             await backend.createScriptFolder(SID, 'page-2');
@@ -150,6 +166,13 @@ describe('NativeStorageBackend (one-dir-one-notebook)', () => {
 
             const pages = await backend.loadScriptFolders(SID);
             expect(pages.map(p => p.name)).toEqual(['page-1', 'page-2', 'page-10']);
+            expect(JSON.parse(fsStore.files.get(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`)!)).toEqual({
+                folders: [
+                    { name: 'page-1', scripts: [] },
+                    { name: 'page-2', scripts: [] },
+                    { name: 'page-10', scripts: [] },
+                ],
+            });
         });
 
         it('returns an empty array when the notebook folder does not exist', async () => {
@@ -213,6 +236,16 @@ describe('NativeStorageBackend (one-dir-one-notebook)', () => {
 
             const pages = await backend.loadScriptFolders(SID);
             expect(pages[0].scripts.map(s => s.name)).toEqual(['01-script.sql', '02-script.sql', '10-script.sql']);
+            expect(JSON.parse(fsStore.files.get(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`)!)).toEqual({
+                folders: [{
+                    name: 'page-1',
+                    scripts: [
+                        { name: '01-script.sql' },
+                        { name: '02-script.sql' },
+                        { name: '10-script.sql' },
+                    ],
+                }],
+            });
         });
 
         it('renames a script atomically, preserving its contents', async () => {

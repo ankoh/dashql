@@ -2,11 +2,37 @@ import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../../utils/base64.js';
-import { Logger, stringifyError } from '../logger/logger.js';
-import { PlatformDragDropEventVariant, SETUP_NOTEBOOK, SetupEventVariant } from './event.js';
+import { Logger } from '../logger/logger.js';
+import { PlatformDragDropEventVariant, SETUP_NOTEBOOK, SETUP_NOTEBOOK_URL, SetupEventVariant } from './event.js';
 
 const LOG_CTX = "event_listener";
 export const EVENT_QUERY_PARAMETER = "data";
+export const NOTEBOOK_QUERY_PARAMETER = "notebook";
+
+type ClipboardSetup =
+    | { type: "event", value: string }
+    | { type: "notebook", value: string };
+
+export function parseClipboardSetup(text: string): ClipboardSetup | null {
+    let url: URL;
+    try {
+        url = new URL(text.trim());
+    } catch {
+        return null;
+    }
+
+    const isDashQLLink = url.protocol === "dashql:" && url.hostname === "localhost";
+    const isProductionLink = url.protocol === "https:" && url.hostname === "dashql.app" && url.port === "";
+    const isDevelopmentLink = url.protocol === "http:" && url.hostname === "localhost" && url.port === "9002";
+    if ((!isDashQLLink && !isProductionLink && !isDevelopmentLink) || url.username !== "" || url.password !== "") {
+        return null;
+    }
+
+    const eventData = url.searchParams.get(EVENT_QUERY_PARAMETER);
+    if (eventData) return { type: "event", value: eventData };
+    const notebookUrl = url.searchParams.get(NOTEBOOK_QUERY_PARAMETER);
+    return notebookUrl ? { type: "notebook", value: notebookUrl } : null;
+}
 
 // An oauth subscriber
 interface OAuthSubscriber {
@@ -71,6 +97,10 @@ export abstract class PlatformEventListener {
             };
             this.dispatchSetup(setupEvent);
         }
+    }
+
+    public dispatchNotebookUrl(url: string): void {
+        this.dispatchSetup({ type: SETUP_NOTEBOOK_URL, value: url });
     }
 
     /// Received navigation event
@@ -221,26 +251,21 @@ export abstract class PlatformEventListener {
 
     /// Helper to process a clipboard event
     private processClipboardEvent(event: ClipboardEvent) {
-        const pastedText = event.clipboardData?.getData("text/plain") ?? null;
+        const pastedText = event.clipboardData?.getData("text/plain").trim() ?? null;
         if (pastedText == null) return;
 
+        const setup = parseClipboardSetup(pastedText);
         let eventData: string | null = null;
-        if (pastedText.startsWith("dashql://")) {
-            // Deep link format: dashql://localhost?data=<base64>
-            try {
-                const deepLink = new URL(pastedText);
-                eventData = deepLink.searchParams.get(EVENT_QUERY_PARAMETER);
-                if (!eventData) {
-                    this.logger.warn("Deep link lacks the data query parameter", {}, LOG_CTX);
-                    return;
-                }
-            } catch (e: any) {
-                this.logger.warn("Failed to parse deep link", { "error": stringifyError(e) }, LOG_CTX);
-                return;
-            }
-        } else if (BASE64URL_CODEC.isValidBase64(pastedText.trim())) {
+        if (setup?.type === "event") {
+            eventData = setup.value;
+        } else if (setup?.type === "notebook") {
+            event.preventDefault();
+            event.stopPropagation();
+            this.dispatchNotebookUrl(setup.value);
+            return;
+        } else if (BASE64URL_CODEC.isValidBase64(pastedText)) {
             // Raw base64 event data pasted directly (web opener flow fallback)
-            eventData = pastedText.trim();
+            eventData = pastedText;
         } else {
             return;
         }

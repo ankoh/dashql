@@ -9,12 +9,29 @@ import {
 
 describe("parseDeepLink", () => {
     it("extracts the single event payload", () => {
-        expect(parseDeepLink("dashql://localhost?data=eyJub3RlYm9vayI6ImFiYyJ9")).toBe("eyJub3RlYm9vayI6ImFiYyJ9");
+        expect(parseDeepLink("dashql://localhost?data=eyJub3RlYm9vayI6ImFiYyJ9")).toEqual({
+            type: "event",
+            value: "eyJub3RlYm9vayI6ImFiYyJ9",
+        });
+    });
+
+    it.each([
+        "dashql://localhost?notebook=https%3A%2F%2Fexample.com%2Fdashql-notebook.json",
+        "https://dashql.app/?notebook=https%3A%2F%2Fexample.com%2Fdashql-notebook.json",
+        "http://localhost:9002/?notebook=https%3A%2F%2Fexample.com%2Fdashql-notebook.json",
+    ])("extracts notebook payloads from supported links: %s", (link) => {
+        expect(parseDeepLink(link)).toEqual({
+            type: "notebook",
+            value: "https://example.com/dashql-notebook.json",
+        });
     });
 
     it.each([
         "not a URL",
         "https://localhost?data=abc",
+        "https://example.com?data=abc",
+        "http://dashql.app?data=abc",
+        "http://localhost:9003?data=abc",
         "dashql://remote?data=abc",
         "dashql://user@localhost?data=abc",
         "dashql://localhost:443?data=abc",
@@ -36,26 +53,32 @@ describe("parseDeepLink", () => {
             "dashql://localhost?data=first",
             "dashql://remote?data=ignored",
             "dashql://localhost?data=second",
-        ])).toEqual(["first", "second"]);
+        ])).toEqual([
+            {type: "event", value: "first"},
+            {type: "event", value: "second"},
+        ]);
     });
 });
 
 describe("DeepLinkQueue", () => {
     it("buffers cold-start links and delivers later links immediately", () => {
         const queue = new DeepLinkQueue();
-        queue.push("initial");
+        const initial = {type: "event", value: "initial"} as const;
+        const running = {type: "notebook", value: "https://example.com/dashql-notebook.json"} as const;
+        queue.push(initial);
         const receiver = vi.fn();
 
-        expect(queue.attach(receiver)).toEqual(["initial"]);
-        queue.push("running");
-        expect(receiver).toHaveBeenCalledWith("running");
+        expect(queue.attach(receiver)).toEqual([initial]);
+        queue.push(running);
+        expect(receiver).toHaveBeenCalledWith(running);
     });
 
     it("resumes buffering while the renderer is unavailable", () => {
         const queue = new DeepLinkQueue();
         queue.attach(vi.fn());
         queue.detach();
-        queue.push("after-reload");
-        expect(queue.attach(vi.fn())).toEqual(["after-reload"]);
+        const link = {type: "event", value: "after-reload"} as const;
+        queue.push(link);
+        expect(queue.attach(vi.fn())).toEqual([link]);
     });
 });

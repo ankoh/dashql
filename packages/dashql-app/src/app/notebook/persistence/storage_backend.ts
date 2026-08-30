@@ -9,6 +9,7 @@ export type { CachedQueryResult } from '../../../query/query_result_cache.js';
 export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';
 export const STORAGE_NOTEBOOKS_FOLDER = 'notebooks';
 export const STORAGE_NOTEBOOK_FILE = 'dashql-notebook.json';
+export const STORAGE_NOTEBOOK_INDEX_FILE = 'dashql-notebook-index.json';
 export const STORAGE_SCRIPTS_FOLDER = 'scripts';
 export const STORAGE_CACHE_FOLDER = 'cache';
 export const STORAGE_CACHE_EXTENSION = '.arrow';
@@ -24,6 +25,19 @@ export const STORAGE_SCRIPT_SCHEMA = 'dashql-relations.sql';
 export const STORAGE_SCRIPT_FUNCTIONS = 'dashql-functions.sql';
 export const STORAGE_SCRIPT_DRAFT = 'dashql-draft.sql';
 export const STORAGE_SCRIPT_EXTENSION = '.sql';
+
+export interface NotebookIndexScript {
+    name: string;
+}
+
+export interface NotebookIndexFolder {
+    name: string;
+    scripts: NotebookIndexScript[];
+}
+
+export interface NotebookIndexData {
+    folders: NotebookIndexFolder[];
+}
 
 // Re-export JSON Schema types
 export type NotebookEntry = app_manifest.NotebookEntry;
@@ -68,6 +82,10 @@ export interface StorageBackend {
     loadNotebook(notebookId: string): Promise<NotebookData>;
     /// Save a notebook
     saveNotebookManifest(notebookId: string, data: NotebookData): Promise<void>;
+    /// Create the derived HTTP publication index only when it is missing.
+    ensureNotebookIndex?(notebookId: string): Promise<void>;
+    /// Rewrite the derived HTTP publication index from the authoritative script tree.
+    regenerateNotebookIndex?(notebookId: string): Promise<void>;
     /// Delete a notebook
     deleteNotebook(notebookId: string): Promise<void>;
 

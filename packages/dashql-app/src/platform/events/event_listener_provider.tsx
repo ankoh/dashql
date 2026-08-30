@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useLocation } from 'react-router-dom';
 
-import { PlatformEventListener, EVENT_QUERY_PARAMETER } from './event_listener.js';
+import { PlatformEventListener, EVENT_QUERY_PARAMETER, NOTEBOOK_QUERY_PARAMETER } from './event_listener.js';
 import { WebPlatformEventListener } from './web_event_listener.js';
 import { ElectronPlatformEventListener } from './electron_event_listener.js';
 import { AppHost, getAppHost } from '../native_globals.js';
@@ -20,6 +20,9 @@ type Props = {
 export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const location = useLocation();
+    // HashRouter excludes the outer document query from its location. Setup links belong to the
+    // document URL, so read them from window.location in both browser and packaged-app modes.
+    const documentSearch = globalThis.location.search;
 
     // Construct the event listener
     const listener = React.useMemo<PlatformEventListener>(() => {
@@ -33,24 +36,35 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
 
     // Search for app events passed via the url parameter
     React.useEffect(() => {
-        const searchParams = new URLSearchParams(location.search);
+        const searchParams = new URLSearchParams(documentSearch);
         const data = searchParams.get(EVENT_QUERY_PARAMETER);
+        const notebookUrl = searchParams.get(NOTEBOOK_QUERY_PARAMETER);
 
-        if (!data || location.state == SKIP_EVENT_LISTENER) {
+        if ((!data && !notebookUrl) || location.state == SKIP_EVENT_LISTENER) {
             return;
         }
 
-        const event = listener.readAppEvent(data, "event_listener");
-        if (event != null) {
-            listener.dispatchAppEvent(event);
+        let consumed = false;
+        if (data) {
+            const event = listener.readAppEvent(data, "event_listener");
+            if (event != null) {
+                listener.dispatchAppEvent(event);
+                consumed = true;
+            }
+        } else if (notebookUrl) {
+            listener.dispatchNotebookUrl(notebookUrl);
+            consumed = true;
+        }
+        if (consumed) {
             // Consume the event before an import can trigger a reload. Leaving `data` in the address
             // would dispatch the same notebook again and immediately reopen the conflict dialog.
             searchParams.delete(EVENT_QUERY_PARAMETER);
+            searchParams.delete(NOTEBOOK_QUERY_PARAMETER);
             const search = searchParams.toString();
             const nextUrl = `${location.pathname}${search ? `?${search}` : ''}${location.hash}`;
             globalThis.history.replaceState(globalThis.history.state, '', nextUrl);
         }
-    }, [location.search]);
+    }, [documentSearch, location.state, listener]);
 
     return (
         <LISTENER_CTX.Provider value={listener}>

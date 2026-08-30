@@ -15,6 +15,18 @@ exports_files([
     "tsconfig.json",
 ])
 
+filegroup(
+    name = "example_notebooks",
+    srcs = glob(
+        ["examples/notebooks/**"],
+        exclude = [
+            "examples/notebooks/**/.DS_Store",
+            "examples/notebooks/**/cache/**",
+        ],
+        allow_empty = False,
+    ),
+)
+
 # Wrapper so other packages (e.g. //packages/dashql-core/api) can use root tsconfig in data.
 js_library(
     name = "tsconfig_json",

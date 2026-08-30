@@ -1,0 +1,11 @@
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    font-size: 0.9rem;
+}
+
+.status > span:first-child {
+    display: inline-flex;
+}

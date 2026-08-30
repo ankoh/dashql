@@ -9,6 +9,8 @@ vi.stubGlobal('ResizeObserver', class {
     unobserve() { }
     disconnect() { }
 });
+vi.mock('../../ui/navbar.js', () => ({ CompactNavBar: () => null }));
+vi.mock('../../../ui/particle_flow/particle_flow_background.js', () => ({ ParticleFlowBackground: () => null }));
 
 import { NotebookImportConflictDialog, type NotebookImportConflictDialogProps } from './notebook_import_conflict_dialog.js';
 
@@ -16,6 +18,9 @@ const DETAILS = {
     notebookName: 'Quarterly pipeline',
     notebookUuid: '4f741f53-d76f-4a6d-b1d8-c22aa85bd449',
     existingDisplayLocation: 'Local notebooks / Sales',
+    existingIsNative: false,
+    folderCount: 2,
+    scriptCount: 4,
 };
 
 function button(name: string): HTMLButtonElement {
@@ -62,68 +67,50 @@ describe('NotebookImportConflictDialog', () => {
         ));
     }
 
-    it('renders a named and described modal dialog with conflict details', () => {
+    it('renders a page-level conflict card with notebook details', () => {
         render();
 
-        const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
-        const title = document.getElementById(dialog.getAttribute('aria-labelledby')!);
-        const description = document.getElementById(dialog.getAttribute('aria-describedby')!);
-
-        expect(dialog.getAttribute('aria-modal')).toBe('true');
-        expect(title?.textContent).toBe('Notebook already exists');
-        expect(description?.textContent).toContain('different UUID');
-        expect(dialog.textContent).toContain(DETAILS.notebookName);
-        expect(dialog.textContent).toContain(DETAILS.notebookUuid);
-        expect(dialog.textContent).toContain(DETAILS.existingDisplayLocation);
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+        expect(document.querySelector('h1')?.textContent).toBe('Import Notebook');
+        expect(container.textContent).toContain('different UUID');
+        expect(container.textContent).toContain(DETAILS.notebookName);
+        expect(container.textContent).toContain(DETAILS.notebookUuid);
+        expect(container.textContent).toContain(DETAILS.existingDisplayLocation);
+        expect(container.textContent).toContain('4 scripts in 2 folders');
         expect(button('Replace')).toBeInstanceOf(HTMLButtonElement);
-        expect(button('Create new')).toBeInstanceOf(HTMLButtonElement);
-        expect(button('Cancel')).toBeInstanceOf(HTMLButtonElement);
+        expect(button('Create New')).toBeInstanceOf(HTMLButtonElement);
+        expect(document.querySelector('button[aria-label="Close"]')).toBeInstanceOf(HTMLButtonElement);
     });
 
-    it('focuses Create new and invokes each action', () => {
+    it('does not auto-focus an action and invokes each action', () => {
         render();
 
-        expect(document.activeElement).toBe(button('Create new'));
+        expect(document.activeElement).toBe(document.body);
         act(() => button('Replace').click());
-        act(() => button('Create new').click());
-        act(() => button('Cancel').click());
+        act(() => button('Create New').click());
+        act(() => (document.querySelector('button[aria-label="Close"]') as HTMLButtonElement).click());
 
         expect(onReplace).toHaveBeenCalledOnce();
         expect(onCreateNew).toHaveBeenCalledOnce();
         expect(onCancel).toHaveBeenCalledOnce();
     });
 
-    it('cancels on Escape and outside click', () => {
+    it('does not behave like a dismissible modal', () => {
         render();
 
         act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
         act(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })));
 
-        expect(onCancel).toHaveBeenCalledTimes(2);
+        expect(onCancel).not.toHaveBeenCalled();
     });
 
-    it('restores focus after a centered dialog unmounts', () => {
-        const previous = document.createElement('button');
-        document.body.append(previous);
-        previous.focus();
-        render();
-        expect(document.activeElement).toBe(button('Create new'));
-
-        act(() => root.unmount());
-        mounted = false;
-
-        expect(document.activeElement).toBe(previous);
-        previous.remove();
-    });
-
-    it('marks the dialog busy, disables actions, and blocks dismissal', () => {
+    it('disables actions while busy', () => {
         render({ busy: true });
 
-        const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
-        expect(dialog.getAttribute('aria-busy')).toBe('true');
+        expect(container.querySelector('section')?.getAttribute('aria-busy')).toBe('true');
         expect(button('Replace').disabled).toBe(true);
-        expect(button('Create new').disabled).toBe(true);
-        expect(button('Cancel').disabled).toBe(true);
+        expect(button('Create New').disabled).toBe(true);
+        expect((document.querySelector('button[aria-label="Close"]') as HTMLButtonElement).disabled).toBe(true);
 
         act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
         act(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })));
@@ -154,7 +141,7 @@ describe('NotebookImportConflictDialog', () => {
         ));
 
         expect(document.querySelector('[role="dialog"]')).not.toBeNull();
-        expect(document.activeElement).toBe(button('Create new'));
+        expect(document.activeElement).not.toBe(button('Create New'));
 
         act(() => root.unmount());
         expect(document.activeElement).toBe(returnFocus);

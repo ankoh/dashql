@@ -782,16 +782,20 @@ describe('CompositeStorageBackend', () => {
             expect(opfs.manifest.map(entry => entry.path)).toEqual([OPFS_ID]);
         });
 
-        it('prepares and registers a native folder without modifying it', async () => {
+        it('prepares and registers a native folder while refreshing its derived index', async () => {
             const bundle = notebookBundle(NATIVE_ID, 'Native Source');
             await writeBundleToDir(bundle, NATIVE_DIR);
-            const filesBefore = new Map(fsStore.files);
+            const filesBefore = new Map(
+                [...fsStore.files].filter(([path]) => !path.endsWith('dashql-notebook-index.json')),
+            );
             await composite.initialize();
 
             const prepared = await prepareNativeNotebookImport(composite, NATIVE_DIR);
             await expect(registerNativeNotebook(composite, prepared)).resolves.toBe(NATIVE_ID);
 
-            expect(fsStore.files).toEqual(filesBefore);
+            expect(new Map([...fsStore.files].filter(([path]) => !path.endsWith('dashql-notebook-index.json'))))
+                .toEqual(filesBefore);
+            expect(fsStore.files.has(`${NATIVE_DIR}/dashql-notebook-index.json`)).toBe(true);
             expect(composite.getNotebookLocation(NATIVE_ID)).toEqual({
                 type: StorageBackendType.Native,
                 nativePath: NATIVE_DIR,

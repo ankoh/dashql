@@ -1,5 +1,6 @@
-import { type StorageBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_NOTEBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
+import { type StorageBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_NOTEBOOK_FILE, STORAGE_NOTEBOOK_INDEX_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
+import { serializeNotebookIndex } from './notebook_index.js';
 
 import { exists, join, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile } from '../../../platform/electron_fs.js';
 
@@ -86,6 +87,19 @@ export class NativeStorageBackend implements StorageBackend {
         await this.ensureDir('');
         const metaFile = await this.abs(STORAGE_NOTEBOOK_FILE);
         await writeTextFile(metaFile, JSON.stringify(data, null, 2));
+        await this.regenerateNotebookIndex(_notebookId);
+    }
+
+    async regenerateNotebookIndex(notebookId: string): Promise<void> {
+        const indexFile = await this.abs(STORAGE_NOTEBOOK_INDEX_FILE);
+        await writeTextFile(indexFile, serializeNotebookIndex(await this.loadScriptFolders(notebookId)));
+    }
+
+    async ensureNotebookIndex(notebookId: string): Promise<void> {
+        const indexFile = await this.abs(STORAGE_NOTEBOOK_INDEX_FILE);
+        if (!(await exists(indexFile))) {
+            await this.regenerateNotebookIndex(notebookId);
+        }
     }
 
     async deleteNotebook(_notebookId: string): Promise<void> {
@@ -161,12 +175,14 @@ export class NativeStorageBackend implements StorageBackend {
 
     async createScriptFolder(_notebookId: string, folderName: string): Promise<void> {
         await this.ensureDir(`${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
+        await this.regenerateNotebookIndex(_notebookId);
     }
 
     async deleteScriptFolder(_notebookId: string, folderName: string): Promise<void> {
         const folderDir = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
         if (await exists(folderDir)) {
             await remove(folderDir, { recursive: true });
+            await this.regenerateNotebookIndex(_notebookId);
         }
     }
 
@@ -188,6 +204,7 @@ export class NativeStorageBackend implements StorageBackend {
         // pass's destinations are the next pass's sources, so every destination has already been
         // vacated by the time its rename runs.
         await rename(oldDir, newDir);
+        await this.regenerateNotebookIndex(_notebookId);
     }
 
     async loadScript(notebookId: string, folderName: string, scriptName: string): Promise<ScriptData> {
@@ -207,13 +224,18 @@ export class NativeStorageBackend implements StorageBackend {
     ): Promise<void> {
         await this.ensureDir(`${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${scriptName}`);
+        const isNew = !(await exists(scriptFile));
         await writeTextFile(scriptFile, sql);
+        if (isNew) {
+            await this.regenerateNotebookIndex(_notebookId);
+        }
     }
 
     async deleteScript(_notebookId: string, folderName: string, scriptName: string): Promise<void> {
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${scriptName}`);
         if (await exists(scriptFile)) {
             await remove(scriptFile);
+            await this.regenerateNotebookIndex(_notebookId);
         }
     }
 
@@ -231,6 +253,7 @@ export class NativeStorageBackend implements StorageBackend {
         // Atomic file rename. The new clean base is disambiguated unique within the folder, so the
         // destination is free.
         await rename(oldFile, newFile);
+        await this.regenerateNotebookIndex(_notebookId);
     }
 
     async loadScriptDraft(_notebookId: string): Promise<string | null> {

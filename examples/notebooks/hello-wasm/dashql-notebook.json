@@ -1,6 +1,6 @@
 {
   "notebookId": "92a09cb7-5f7d-4f8e-8c78-0dc39d8fff36",
-  "name": "Hello Wasm",
+  "name": "Hello WASM",
   "connectionParams": {
     "hyper": {
       "protocol": "WASM",

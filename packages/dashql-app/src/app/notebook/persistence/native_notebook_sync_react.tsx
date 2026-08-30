@@ -162,6 +162,7 @@ export const NativeNotebookSync: React.FC = () => {
             if (decision.discardPendingWrites) {
                 writer.cancelPendingWritesForNotebook(notebookId, isReloadedKey);
             }
+            await reader.backend.regenerateNotebookIndex?.(notebookId);
             const latestConnectionId = connectionRegistryRef.current.connectionByNotebook.get(notebookId);
             const latestConnection = latestConnectionId == null ? null : connectionRegistryRef.current.connectionMap.get(latestConnectionId);
             const latestNotebookScripts = notebookScriptsRegistryRef.current.notebookScriptsMap.get(notebookId);

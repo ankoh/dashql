@@ -59,6 +59,7 @@ import { readNotebookBundleFromBrowserFolder } from '../notebook/persistence/bro
 import { useNotebookImport } from '../notebook/persistence/notebook_import_provider.js';
 import { ParticleFlowBackground } from '../../ui/particle_flow/particle_flow_background.js';
 import { CompactNavBar } from './navbar.js';
+import { BundledNotebooksOverlay } from './bundled_notebooks_overlay.js';
 
 interface Props {
     connectionRegistry: ConnectionRegistry;
@@ -232,7 +233,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         // order without waiting on the write. A bare (test) backend has no reorder support — skip.
         const backend = storageReader.backend;
         if ('reorderNotebooks' in backend) {
-            (backend as {reorderNotebooks(ids: string[]): Promise<void>}).reorderNotebooks(reordered).catch(e =>
+            (backend as { reorderNotebooks(ids: string[]): Promise<void> }).reorderNotebooks(reordered).catch(e =>
                 logger.warn('failed to persist notebook order', { error: String(e) }, 'notebook_selector')
             );
             setOrderVersion(v => v + 1);
@@ -556,6 +557,9 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                 )}
                                 <div className={baseStyles.card_actions}>
                                     <div className={baseStyles.card_actions_left}>
+                                        <BundledNotebooksOverlay />
+                                    </div>
+                                    <div className={baseStyles.card_actions_right}>
                                         <IconButton
                                             variant={isCopyMode ? ButtonVariant.Default : ButtonVariant.Invisible}
                                             aria-label={isCopyMode ? 'Done duplicating' : 'Duplicate notebooks'}
@@ -570,30 +574,6 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                                 ? <CircleSlashIcon size={16} />
                                                 : <DuplicateIcon size={16} />
                                             }
-                                        </IconButton>
-                                    </div>
-                                    <div className={baseStyles.card_actions_right}>
-                                        <IconButton
-                                            variant={isEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
-                                            aria-label={isEditMode ? 'Done removing' : 'Remove notebooks'}
-                                            aria-pressed={isEditMode}
-                                            disabled={!canRemoveNotebooks}
-                                            onClick={() => {
-                                                setIsEditMode(!isEditMode);
-                                                setIsCopyMode(false);
-                                            }}
-                                        >
-                                            {isEditMode
-                                                ? <CircleSlashIcon size={16} />
-                                                : <DashIcon size={16} />
-                                            }
-                                        </IconButton>
-                                        <IconButton
-                                            variant={ButtonVariant.Invisible}
-                                            aria-label={"Add notebook"}
-                                            onClick={handleCreateNewNotebook}
-                                        >
-                                            <PlusIcon size={16} />
                                         </IconButton>
                                         {canOpenFolder && (
                                             <>
@@ -620,6 +600,28 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
                                                 )}
                                             </>
                                         )}
+                                        <IconButton
+                                            variant={isEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
+                                            aria-label={isEditMode ? 'Done removing' : 'Remove notebooks'}
+                                            aria-pressed={isEditMode}
+                                            disabled={!canRemoveNotebooks}
+                                            onClick={() => {
+                                                setIsEditMode(!isEditMode);
+                                                setIsCopyMode(false);
+                                            }}
+                                        >
+                                            {isEditMode
+                                                ? <CircleSlashIcon size={16} />
+                                                : <DashIcon size={16} />
+                                            }
+                                        </IconButton>
+                                        <IconButton
+                                            variant={ButtonVariant.Invisible}
+                                            aria-label={"Add notebook"}
+                                            onClick={handleCreateNewNotebook}
+                                        >
+                                            <PlusIcon size={16} />
+                                        </IconButton>
                                     </div>
                                 </div>
                             </div>

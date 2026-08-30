@@ -1,0 +1,17 @@
+.warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid hsl(39, 72%, 63%);
+    border-radius: var(--border_radius);
+    background: hsl(43, 100%, 96%);
+    color: hsl(32, 72%, 25%);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.warning svg {
+    flex: none;
+    margin-top: 1px;
+}

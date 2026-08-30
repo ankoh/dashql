@@ -171,6 +171,7 @@ describe('readNotebookBundleFromBrowserFolder', () => {
             file('selected/cache/result.arrow', 'derived'),
             file('selected/.gitignore', 'cache/'),
             file('selected/README.md', 'unrelated'),
+            file('selected/dashql-notebook-index.json', '{"folders":[]}'),
             file('selected/other.sql', 'unrelated SQL'),
             file('selected/scripts/main/notes.txt', 'not a script'),
         ];

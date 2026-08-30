@@ -36,13 +36,16 @@ extensionless URL because OAuth providers and the token exchange require the reg
 `packages/dashql-app/_headers` is included in the Bazel `//packages/dashql-app:pages` output. It
 defines the cross-origin isolation headers and browser cache policy:
 
-- Web assets use Pages' deployment-aware default (`max-age=0, must-revalidate`). Do not override
-  `/static/*` with an immutable browser TTL: header rules match the requested URL, so a temporary
-  404 for a fingerprinted URL would inherit that TTL too.
+- Vite-fingerprinted assets under `/static/assets/`, `/static/css/`, `/static/fonts/`,
+  `/static/img/`, `/static/js/`, `/static/scripts/`, and `/static/wasm/`: one year, immutable.
+  Mutable files such as `/static/config.json` are intentionally excluded and retain Pages'
+  deployment-aware default (`max-age=0, must-revalidate`).
 - `/releases/*`: one year, immutable.
 - Uncompressed WASM under `/static/wasm/*.wasm`: `Content-Type: application/wasm`.
 - Brotli-compressed WASM under `/static/assets/*.br`: `Content-Encoding: br` and
   `Content-Type: application/wasm`.
+- Published notebook source under `/static/examples/notebooks/*`: `no-store`, so every open fetches the
+  current manifest, generated index, and SQL files.
 - HTML entrypoints: stored with mandatory revalidation.
 
 Release manifests such as `canary.json` and `stable.json`, along with updater routes, remain on

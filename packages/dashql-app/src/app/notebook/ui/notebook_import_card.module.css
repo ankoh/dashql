@@ -1,0 +1,55 @@
+.page {
+    position: relative;
+    isolation: isolate;
+}
+
+.foreground {
+    position: relative;
+    z-index: 1;
+}
+
+.card {
+    width: min(520px, 90vw);
+}
+
+.title {
+    margin-block: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.details {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 10px;
+}
+
+.details dt {
+    color: hsl(210, 12%, 45%);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.details dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: 0.85rem;
+}
+
+.mono {
+    font-family: 'Roboto Mono';
+}
+
+@media only screen and (max-width: 520px) {
+    .details {
+        grid-template-columns: 1fr;
+        row-gap: 2px;
+    }
+
+    .details dd:not(:last-child) {
+        margin-bottom: 8px;
+    }
+}

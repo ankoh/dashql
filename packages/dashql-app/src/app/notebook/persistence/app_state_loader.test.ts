@@ -45,6 +45,7 @@ describe('restoreAppState', () => {
             listNotebooks: vi.fn(),
             loadNotebook: vi.fn(),
             saveNotebookManifest: vi.fn(),
+            ensureNotebookIndex: vi.fn(),
             deleteNotebook: vi.fn(),
             loadNotebookSchema: vi.fn(),
             saveNotebookSchema: vi.fn(),
@@ -186,6 +187,7 @@ describe('restoreAppState', () => {
         expect(result.connectionStates.has(connectionId)).toBe(true);
         expect(result.notebookScripts.size).toBe(1);
         expect(result.notebookScripts.has(HYPER_ID)).toBe(true);
+        expect(mockBackend.ensureNotebookIndex).toHaveBeenCalledWith(HYPER_ID);
 
         const connection = result.connectionStates.get(connectionId)!;
         expect(connection.notebookId).toBe(HYPER_ID);

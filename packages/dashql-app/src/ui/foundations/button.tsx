@@ -152,6 +152,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>((
         >
             <button
                 {...rest}
+                aria-label={ariaLabel}
                 className={classNames(styles.button, styles.icon_button, variantStyle, sizeStyle, {
                     [styles.inactive]: inactive,
                     [styles.disabled]: disabled,

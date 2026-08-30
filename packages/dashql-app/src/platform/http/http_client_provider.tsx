@@ -15,16 +15,9 @@ export const useHttpClient = () => React.useContext(CLIENT_CTX)!;
 
 export const HttpClientProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const [client, setClient] = React.useState<HttpClient | null>(null);
-    React.useEffect(() => {
-        let client: HttpClient;
-        if (isNativePlatform()) {
-            client = new NativeHttpClient({ proxyEndpoint: new URL("dashql-native://localhost") }, logger);
-        } else {
-            client = new WebHttpClient(logger);
-        }
-        setClient(client);
-    }, []);
+    const client = React.useMemo<HttpClient>(() => isNativePlatform()
+        ? new NativeHttpClient({ proxyEndpoint: new URL("dashql-native://localhost") }, logger)
+        : new WebHttpClient(logger), [logger]);
     return (
         <CLIENT_CTX.Provider value={client}>{props.children}</CLIENT_CTX.Provider>
     );
