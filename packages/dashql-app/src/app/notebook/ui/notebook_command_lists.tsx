@@ -15,6 +15,7 @@ import { CONNECTION_HEALTH_COLORS } from '../connections/ui/connection_status.js
 import { isCatalogRefreshRunning } from '../connections/catalog_update_state.js';
 import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status_indicator.js';
 import type { NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
+import { getHyperConnectionDetails } from '../connections/hyper/hyper_connection_state.js';
 
 export const ConnectionCommandList: React.FC<{
     conn: ConnectionState | null;
@@ -30,7 +31,9 @@ export const ConnectionCommandList: React.FC<{
     const connectorIcon = props.conn?.connectorInfo.icons.outlines;
     const health = props.conn?.connectionHealth ?? 0;
     const statusColor = CONNECTION_HEALTH_COLORS[health];
-    const showHealthCheck = props.conn?.connectorInfo.features.healthChecks ?? false;
+    const isEmbedded = props.conn?.details != null &&
+        getHyperConnectionDetails(props.conn)?.proto.setupParams?.protocol === 'WASM';
+    const showHealthCheck = (props.conn?.connectorInfo.features.healthChecks ?? false) && !isEmbedded;
     const isRefreshing = isCatalogRefreshRunning(props.conn);
     return (
         <>
