@@ -4,7 +4,7 @@
       "name": "1_main",
       "scripts": [
         {
-          "name": "1_brave_otter.sql"
+          "name": "1_version.sql"
         }
       ]
     },
@@ -12,10 +12,16 @@
       "name": "2_referenced_tables",
       "scripts": [
         {
-          "name": "1_test_data.sql"
+          "name": "1_test_tables.sql"
         },
         {
-          "name": "2_sturdy_bison.sql"
+          "name": "2_test_views.sql"
+        },
+        {
+          "name": "4_expand_views_false.sql"
+        },
+        {
+          "name": "5_expand_views_true.sql"
         }
       ]
     }

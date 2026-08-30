@@ -5,9 +5,9 @@ import { EditorView } from '@codemirror/view';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DashQLScannerDecorationUpdateEffect, DashQLStandaloneScannerDecorationPlugin } from '../scripts/editor/dashql_decorations_standalone.js';
-import { xcodeLight } from '../scripts/editor/themes/xcode.js';
 import { releaseAppliedPreviewSnapshot, releasePreviewSnapshot, type PreviewSnapshot } from './script_preview.js';
 import { buildUnformattedPreview } from './script_preview_lifecycle.js';
+import { xcodeLight } from '../scripts/editor/themes/xcode.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -136,7 +136,7 @@ describe('unformatted script preview', () => {
         const functionNode = spans.find(node => node.textContent === 'json_array_elements');
         const commentNode = spans.find(node => node.textContent?.startsWith('/*'));
         expect(functionNode?.className).not.toBe('');
-        expect(commentNode?.className).not.toBe('');
+        expect(commentNode?.classList.contains('dashql-comment')).toBe(true);
         view.destroy();
         scriptSession.destroy();
         catalog.destroy();
