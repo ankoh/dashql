@@ -4,8 +4,7 @@ import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { Button } from '../../../ui/foundations/button.js';
 import { OverlaySize } from '../../../ui/foundations/overlay.js';
-import { AlertIcon } from '../../../ui/foundations/symbol_icon.js';
-import { NotebookImportCard, NotebookImportDetail, NotebookImportDetails } from './notebook_import_card.js';
+import { NotebookImportCard } from './notebook_import_card.js';
 
 import * as styles from './notebook_import_conflict_dialog.module.css';
 
@@ -102,37 +101,18 @@ export function NotebookImportConflictDialog(props: NotebookImportConflictDialog
 function CenteredConflictCard(props: CenteredNotebookImportConflictDialogProps) {
     return (
         <NotebookImportCard
-            title="Import Notebook"
+            phase="conflict"
+            notebookName={props.notebookName}
+            notebookUuid={props.notebookUuid}
+            existingLocation={props.existingDisplayLocation}
+            existingIsNative={props.existingIsNative}
+            folderCount={props.folderCount}
+            scriptCount={props.scriptCount}
             busy={props.busy}
-            closeDisabled={props.busy}
             onClose={props.onCancel}
-            actions={
-                <>
-                    <Button disabled={props.busy} onClick={props.onReplace}>
-                        Replace
-                    </Button>
-                    <Button disabled={props.busy} onClick={props.onCreateNew}>
-                        Create New
-                    </Button>
-                </>
-            }
-        >
-            <div className={styles.warning} role="status">
-                <AlertIcon size={16} aria-hidden="true" />
-                <span>
-                    A notebook with this UUID already exists. Replace it, or create a new notebook with a different UUID.
-                    {props.existingIsNative && ' Replacing removes the old notebook without overwriting existing native files.'}
-                </span>
-            </div>
-            <NotebookImportDetails>
-                <NotebookImportDetail label="Notebook">{props.notebookName}</NotebookImportDetail>
-                <NotebookImportDetail label="UUID" mono>{props.notebookUuid}</NotebookImportDetail>
-                <NotebookImportDetail label="Scripts">
-                    {props.scriptCount} {props.scriptCount === 1 ? 'script' : 'scripts'} in {props.folderCount} {props.folderCount === 1 ? 'folder' : 'folders'}
-                </NotebookImportDetail>
-                <NotebookImportDetail label="Existing" mono>{props.existingDisplayLocation}</NotebookImportDetail>
-            </NotebookImportDetails>
-        </NotebookImportCard>
+            onReplace={props.onReplace}
+            onCreateNew={props.onCreateNew}
+        />
     );
 }
 

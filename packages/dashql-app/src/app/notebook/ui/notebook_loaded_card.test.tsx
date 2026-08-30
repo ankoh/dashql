@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HttpNotebookLoadResult } from '../persistence/http_notebook_bundle.js';
-import { NotebookLoadedCard } from './notebook_loaded_card.js';
+import { NotebookImportCard } from './notebook_import_card.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.mock('../../ui/navbar.js', () => ({ CompactNavBar: () => null }));
@@ -31,7 +31,7 @@ const RESULT: HttpNotebookLoadResult = {
     incomplete: false,
 };
 
-describe('NotebookLoadedCard', () => {
+describe('NotebookImportCard ready state', () => {
     let container: HTMLDivElement;
     let root: Root;
 
@@ -49,7 +49,8 @@ describe('NotebookLoadedCard', () => {
     it('shows the notebook summary and imports', () => {
         const onImport = vi.fn();
         act(() => root.render(
-            <NotebookLoadedCard
+            <NotebookImportCard
+                phase="ready"
                 result={RESULT}
                 conflictLocation={null}
                 conflictIsNative={false}
@@ -57,7 +58,7 @@ describe('NotebookLoadedCard', () => {
                 onImport={onImport}
                 onReplace={() => {}}
                 onCreateNew={() => {}}
-                onCancel={() => {}}
+                onClose={() => {}}
             />,
         ));
 
@@ -77,7 +78,8 @@ describe('NotebookLoadedCard', () => {
     it('warns when indexed scripts are unresolved', () => {
         const result = { ...RESULT, indexedScriptCount: 3, incomplete: true };
         act(() => root.render(
-            <NotebookLoadedCard
+            <NotebookImportCard
+                phase="ready"
                 result={result}
                 conflictLocation={null}
                 conflictIsNative={false}
@@ -85,7 +87,7 @@ describe('NotebookLoadedCard', () => {
                 onImport={() => {}}
                 onReplace={() => {}}
                 onCreateNew={() => {}}
-                onCancel={() => {}}
+                onClose={() => {}}
             />,
         ));
 
@@ -95,7 +97,8 @@ describe('NotebookLoadedCard', () => {
 
     it('shows conflict choices immediately on the import card', () => {
         act(() => root.render(
-            <NotebookLoadedCard
+            <NotebookImportCard
+                phase="ready"
                 result={RESULT}
                 conflictLocation="Local notebooks / Sales"
                 conflictIsNative={false}
@@ -103,7 +106,7 @@ describe('NotebookLoadedCard', () => {
                 onImport={() => {}}
                 onReplace={() => {}}
                 onCreateNew={() => {}}
-                onCancel={() => {}}
+                onClose={() => {}}
             />,
         ));
 
@@ -118,7 +121,8 @@ describe('NotebookLoadedCard', () => {
 
     it('clarifies that replacing a native collision preserves its files', () => {
         act(() => root.render(
-            <NotebookLoadedCard
+            <NotebookImportCard
+                phase="ready"
                 result={RESULT}
                 conflictLocation="fs:///Users/test/notebook"
                 conflictIsNative
@@ -126,7 +130,7 @@ describe('NotebookLoadedCard', () => {
                 onImport={() => {}}
                 onReplace={() => {}}
                 onCreateNew={() => {}}
-                onCancel={() => {}}
+                onClose={() => {}}
             />,
         ));
 
