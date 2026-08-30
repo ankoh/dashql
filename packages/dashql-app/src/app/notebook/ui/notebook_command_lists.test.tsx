@@ -23,6 +23,7 @@ vi.mock('../../../ui/foundations/status_indicator.js', async () => {
 });
 
 import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../connections/connector_info.js';
 import { ConnectionCommandList } from './notebook_command_lists.js';
 
 function createConnection(currentFullRefresh: number | null, runningTaskIds: number[]): ConnectionState {
@@ -86,6 +87,24 @@ describe('ConnectionCommandList', () => {
         expect(executeButton?.textContent).toContain('Ctrl + E');
         act(() => executeButton?.click());
         expect(commandDispatch).toHaveBeenCalledWith(1);
+    });
+
+    it('hides connection health for the embedded connection', () => {
+        const connection = createConnection(null, []);
+        connection.connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
+        connection.details = {
+            type: HYPER_CONNECTOR,
+            value: {
+                proto: { setupParams: { protocol: 'WASM' } },
+                channel: null,
+            },
+        } as ConnectionState['details'];
+
+        renderConnection(connection);
+
+        const editConnection = Array.from(container.querySelectorAll('button'))
+            .find(button => button.textContent?.includes('Edit Connection'))!;
+        expect(editConnection.querySelector('circle')).toBeNull();
     });
 
     it('shows a disabled loading indicator without changing the label while refreshing', () => {
