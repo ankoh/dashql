@@ -5,4 +5,4 @@ allowBuilds:
   electron: true
   electron-winstaller: true
 minimumReleaseAgeExclude:
-  - hyperdb-wasm@0.0.26305-dev.wasm.gdf59cd37 || 0.0.26306-dev.wasm.g0f7bea54 || 0.0.26308-dev.wasm.gae25030d || 0.0.26311-dev.wasm.gbee0ee3d || 0.0.26312-dev.wasm.g57edd738 || 0.0.26312-dev.wasm.g913ac019 || 0.0.26313-dev.wasm.g630768ec || 0.0.26314-dev.wasm.g698c9427 || 0.0.26315-dev.wasm.g14ecf9e0 || 0.0.26488-dev.wasm.g022dea1a
+  - hyperdb-wasm@0.0.26305-dev.wasm.gdf59cd37 || 0.0.26306-dev.wasm.g0f7bea54 || 0.0.26308-dev.wasm.gae25030d || 0.0.26311-dev.wasm.gbee0ee3d || 0.0.26312-dev.wasm.g57edd738 || 0.0.26312-dev.wasm.g913ac019 || 0.0.26313-dev.wasm.g630768ec || 0.0.26314-dev.wasm.g698c9427 || 0.0.26315-dev.wasm.g14ecf9e0 || 0.0.26488-dev.wasm.g022dea1a || 0.0.26500-dev.wasm.gc3a423ec
