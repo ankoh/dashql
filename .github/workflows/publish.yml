@@ -53,16 +53,26 @@ jobs:
               run: |
                   ARM64="${{ runner.temp }}/artifacts/electron/arm64"
                   X64="${{ runner.temp }}/artifacts/electron/x64"
+                  ARM64_MANIFESTS=("$ARM64"/*-mac.yml)
+                  X64_MANIFESTS=("$X64"/*-mac.yml)
+                  if [[ ${#ARM64_MANIFESTS[@]} -ne 1 || ! -f "${ARM64_MANIFESTS[0]}" ]]; then
+                      printf 'expected one arm64 update manifest, found: %s\n' "${ARM64_MANIFESTS[*]}" >&2
+                      exit 1
+                  fi
+                  if [[ ${#X64_MANIFESTS[@]} -ne 1 || ! -f "${X64_MANIFESTS[0]}" ]]; then
+                      printf 'expected one x64 update manifest, found: %s\n' "${X64_MANIFESTS[*]}" >&2
+                      exit 1
+                  fi
                   bazel run --config=release //packages/dashql-pack:pack -- publish \
                       --source-dir "${{ github.workspace }}" \
                       --macos-arm64-dmg-path "$ARM64"/DashQL-*-arm64.dmg \
                       --macos-arm64-zip-path "$ARM64"/DashQL-*-arm64.zip \
                       --macos-arm64-zip-blockmap-path "$ARM64"/DashQL-*-arm64.zip.blockmap \
-                      --macos-arm64-update-manifest-path "$ARM64"/latest-mac.yml \
+                      --macos-arm64-update-manifest-path "${ARM64_MANIFESTS[0]}" \
                       --macos-x64-dmg-path "$X64"/DashQL-*-x64.dmg \
                       --macos-x64-zip-path "$X64"/DashQL-*-x64.zip \
                       --macos-x64-zip-blockmap-path "$X64"/DashQL-*-x64.zip.blockmap \
-                      --macos-x64-update-manifest-path "$X64"/latest-mac.yml
+                      --macos-x64-update-manifest-path "${X64_MANIFESTS[0]}"
 
             - name: Remove expired Electron releases from R2
               shell: bash
