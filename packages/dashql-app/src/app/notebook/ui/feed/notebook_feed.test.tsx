@@ -1300,7 +1300,7 @@ describe('NotebookFeed', () => {
         });
 
         const statusBar = container.querySelector('[aria-label^="Show log"]');
-        expect(statusBar!.textContent).toContain('Statement 2 executed successfully');
+        expect(statusBar!.textContent).toContain('Statement 2 of 3 executed successfully');
     });
 
     it('keeps the status bar once a query succeeds', () => {
@@ -1336,7 +1336,7 @@ describe('NotebookFeed', () => {
         });
 
         const statusBar = container.querySelector('[aria-label^="Show log"]');
-        expect(statusBar!.textContent).toContain('All statements executed successfully');
+        expect(statusBar!.textContent).toContain('Statement 2 of 2 executed successfully');
     });
 
     it('shows that a successful query result was loaded from cache', () => {

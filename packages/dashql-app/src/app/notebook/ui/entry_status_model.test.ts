@@ -1,0 +1,59 @@
+import { describe, expect, it } from 'vitest';
+
+import { QueryExecutionStatus } from '../connections/query_execution_state.js';
+import { deriveEntryStatus, getQueryStatusText } from './entry_status_model.js';
+
+describe('getQueryStatusText', () => {
+    it.each([
+        [QueryExecutionStatus.REQUESTED, 'Requested statement 2 of 3'],
+        [QueryExecutionStatus.PREPARING, 'Preparing statement 2 of 3'],
+        [QueryExecutionStatus.SENDING, 'Sending statement 2 of 3'],
+        [QueryExecutionStatus.QUEUED, 'Statement 2 of 3 queued'],
+        [QueryExecutionStatus.RUNNING, 'Executing statement 2 of 3'],
+        [QueryExecutionStatus.RECEIVED_FIRST_BATCH, 'Executing statement 2 of 3, fetching results'],
+        [QueryExecutionStatus.RECEIVED_ALL_BATCHES, 'Executing statement 2 of 3, received all results'],
+        [QueryExecutionStatus.PROCESSING_RESULTS, 'Processing results for statement 2 of 3'],
+        [QueryExecutionStatus.PROCESSED_RESULTS, 'Processed results for statement 2 of 3'],
+        [QueryExecutionStatus.FAILED, 'Statement 2 of 3 execution failed'],
+        [QueryExecutionStatus.CANCELLED, 'Statement 2 of 3 execution was cancelled'],
+        [QueryExecutionStatus.SUCCEEDED, 'Statement 2 of 3 executed successfully'],
+    ])('includes the statement position for status %s', (status, expected) => {
+        expect(getQueryStatusText(status, 2, 3)).toBe(expected);
+    });
+
+    it('includes the statement count when the latest statement succeeded before the script completed', () => {
+        expect(getQueryStatusText(QueryExecutionStatus.RUNNING, 2, 3, true))
+            .toBe('Statement 2 of 3 executed successfully');
+    });
+
+    it('keeps single-statement status messages concise', () => {
+        expect(getQueryStatusText(QueryExecutionStatus.RUNNING, 1, 1)).toBe('Executing query');
+        expect(getQueryStatusText(QueryExecutionStatus.SUCCEEDED, 1, 1)).toBe('Statement executed successfully');
+    });
+
+    it('includes the statement position in a custom failure message', () => {
+        const status = deriveEntryStatus(null, {
+            status: QueryExecutionStatus.FAILED,
+            statementIndex: 2,
+            statementCount: 3,
+            error: { message: 'relation does not exist', keyValues: {} },
+            metrics: null,
+            traceId: 42,
+        } as any);
+
+        expect(status.message).toBe('Statement 2 of 3: relation does not exist');
+    });
+
+    it('includes the statement position in a cached result message when available', () => {
+        const status = deriveEntryStatus(null, {
+            status: QueryExecutionStatus.SUCCEEDED,
+            statementIndex: 3,
+            statementCount: 3,
+            servedFromCache: true,
+            metrics: null,
+            traceId: 42,
+        } as any);
+
+        expect(status.message).toBe('Statement 3 of 3: Result loaded from cache');
+    });
+});
