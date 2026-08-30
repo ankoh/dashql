@@ -20,18 +20,28 @@
     border: 0;
 }
 
-/* Card width for notebook selector */
+/* Card width for notebook selector. Narrower by default; stretch a bit on wide screens
+   so long notebook names and paths have more room before they ellipsize. */
 .card_wrapper {
+    width: 400px;
     max-width: 900px;
+}
+
+@media only screen and (min-width: 1000px) {
+    .card_wrapper {
+        width: 560px;
+    }
 }
 
 @media only screen and (max-width: 950px) {
     .card_wrapper {
+        width: min(400px, 90vw);
         max-width: 90vw;
     }
 }
 
 .notebook_list_container {
+    width: 100%;
     padding: 4px;
     margin: 0;
     overflow-y: auto;
