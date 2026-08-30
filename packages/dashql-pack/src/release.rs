@@ -14,6 +14,8 @@ use crate::{
     remote_paths::{derive_remote_paths, electron_channel_manifest},
 };
 
+const CANARY_BADGE_PATH: &str = "channels/canary/badge.svg";
+
 #[derive(Debug)]
 pub struct FileUpload {
     pub source_path: PathBuf,
@@ -30,6 +32,7 @@ pub struct Release {
     pub channel_metadata_paths: Vec<&'static str>,
     pub channel_update_manifest_paths: Vec<&'static str>,
     pub electron_channel_manifests: Vec<(String, Vec<u8>)>,
+    pub canary_badge: Vec<u8>,
 }
 
 pub struct ReleaseArgs {
@@ -79,6 +82,7 @@ impl Release {
         release.release_update_manifest.version = args.release_version.version.clone();
         release.release_update_manifest.pub_date = pub_date;
         release.release_update_manifest.notes = "".to_string(); // XXX Get from commit info
+        release.canary_badge = build_version_badge(&args.release_version.version.to_string()).into_bytes();
 
         // Prepare channel paths
         release.channel_metadata_paths = remote_paths.channel_metadata.clone();
@@ -224,6 +228,7 @@ impl Release {
         for (path, manifest) in &self.electron_channel_manifests {
             pending_uploads.push((path.clone(), manifest));
         }
+        pending_uploads.push((CANARY_BADGE_PATH.to_string(), &self.canary_badge));
         for (path, metadata) in pending_uploads.drain(..) {
             let path = path.clone();
             let bytes = ByteStream::from(metadata.to_vec());
@@ -235,7 +240,7 @@ impl Release {
                     .bucket("dashql-get")
                     .key(&path)
                     .body(bytes)
-                    .content_type("application/json")
+                    .content_type(content_type(&path))
                     // Channel pointers (stable.json/canary.json + update manifests) are mutable.
                     // Force revalidation on every load so clients never serve a stale channel
                     // manifest from heuristic browser caching (revalidates cheaply via ETag).
@@ -267,6 +272,71 @@ impl Release {
             return Err(error);
         }
         Ok(())
+    }
+}
+
+fn content_type(path: &str) -> &'static str {
+    if path.ends_with(".svg") {
+        "image/svg+xml"
+    } else if path.ends_with(".yml") {
+        "application/yaml"
+    } else {
+        "application/json"
+    }
+}
+
+fn build_version_badge(version: &str) -> String {
+    const LABEL: &str = "version";
+    const LABEL_WIDTH: usize = 51;
+    const CHARACTER_WIDTH: usize = 7;
+    const VALUE_PADDING: usize = 10;
+
+    let escaped_version = version
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;");
+    let value_width = version.chars().count() * CHARACTER_WIDTH + VALUE_PADDING;
+    let width = LABEL_WIDTH + value_width;
+    let label_center = LABEL_WIDTH * 5;
+    let value_center = (LABEL_WIDTH + value_width / 2) * 10;
+    let label_text_length = 410;
+    let value_text_length = (value_width - VALUE_PADDING) * 10;
+    let title = format!("{LABEL}: {escaped_version}");
+
+    format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="20" role="img" aria-label="{title}"><title>{title}</title><linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient><clipPath id="r"><rect width="{width}" height="20" rx="3" fill="#fff"/></clipPath><g clip-path="url(#r)"><rect width="{LABEL_WIDTH}" height="20" fill="#555"/><rect x="{LABEL_WIDTH}" width="{value_width}" height="20" fill="#007ec6"/><rect width="{width}" height="20" fill="url(#s)"/></g><g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110"><text aria-hidden="true" x="{label_center}" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="{label_text_length}">{LABEL}</text><text x="{label_center}" y="140" transform="scale(.1)" fill="#fff" textLength="{label_text_length}">{LABEL}</text><text aria-hidden="true" x="{value_center}" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="{value_text_length}">{escaped_version}</text><text x="{value_center}" y="140" transform="scale(.1)" fill="#fff" textLength="{value_text_length}">{escaped_version}</text></g></svg>"##
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_version_badge() {
+        let badge = build_version_badge("0.0.7-dev.6");
+
+        assert!(badge.contains("width=\"138\""));
+        assert!(badge.contains("aria-label=\"version: 0.0.7-dev.6\""));
+        assert!(badge.contains(">version</text>"));
+        assert_eq!(badge.matches(">0.0.7-dev.6</text>").count(), 2);
+    }
+
+    #[test]
+    fn escapes_version_badge_text() {
+        let badge = build_version_badge("1<&\"'>");
+
+        assert!(badge.contains("version: 1&lt;&amp;&quot;&apos;&gt;"));
+        assert!(!badge.contains("version: 1<&\"'>"));
+    }
+
+    #[test]
+    fn detects_upload_content_type() {
+        assert_eq!(content_type("channels/canary/badge.svg"), "image/svg+xml");
+        assert_eq!(content_type("latest-mac.yml"), "application/yaml");
+        assert_eq!(content_type("canary.json"), "application/json");
     }
 }
 
