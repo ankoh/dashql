@@ -2,7 +2,7 @@
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: Hyper attached databases
--- Last Refresh: 2026-08-30T19:50:40.730Z
+-- Last Refresh: 2026-08-30T19:53:23.226Z
 
 -- DashQL Hyper Catalog Section: "hyper"
 CREATE TABLE "hyper"."pg_catalog"."hyper_attached_database" (

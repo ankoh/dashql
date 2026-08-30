@@ -1,14 +1,20 @@
 import * as dashql from '../../../core/index.js';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
+import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
+import { CatalogSource } from './catalog_sql_generator.js';
 
 import prefetchedHyperFunctionsSql from '../../../../static/catalog/hyper/dashql-functions.sql?raw';
 
 export const PREFETCHED_HYPER_FUNCTIONS_SQL = prefetchedHyperFunctionsSql;
 
-export function qualifyPrefetchedHyperFunctions(databaseName: string): string {
+export function qualifyPrefetchedHyperFunctions(databaseName: string, updatedAt: Date = new Date()): string {
     const quotedDatabase = `"${databaseName.replace(/"/g, '""')}"`;
-    return PREFETCHED_HYPER_FUNCTIONS_SQL.replace(/"default"\."pg_catalog"/g, `${quotedDatabase}."pg_catalog"`);
+    const functions = PREFETCHED_HYPER_FUNCTIONS_SQL.replace(
+        /"default"\."pg_catalog"/g,
+        `${quotedDatabase}."pg_catalog"`,
+    );
+    return `${generateFunctionScriptHeader(CatalogSource.Hyper, updatedAt)}${functions}`;
 }
 
 export async function fetchPrefetchedHyperFunctions(signal?: AbortSignal): Promise<string> {
