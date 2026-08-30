@@ -30,8 +30,7 @@ import {
     type HttpNotebookLoadResult,
 } from '../notebook/persistence/http_notebook_bundle.js';
 import { stringifyError } from '../../platform/logger/logger.js';
-import { NotebookLoadedCard } from '../notebook/ui/notebook_loaded_card.js';
-import { NotebookLoadingCard } from '../notebook/ui/notebook_loading_card.js';
+import { NotebookImportCard } from '../notebook/ui/notebook_import_card.js';
 
 async function loadFonts(): Promise<void> {
     await Promise.all([
@@ -325,14 +324,16 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     }, [storageWriter, logger]);
 
     if (remoteNotebookLoading != null) {
-        return <NotebookLoadingCard
+        return <NotebookImportCard
+            phase="loading"
             sourceUrl={remoteNotebookLoading.sourceUrl}
             progress={remoteNotebookLoading.progress}
-            onCancel={cancelRemoteNotebookLoad}
+            onClose={cancelRemoteNotebookLoad}
         />;
     }
     if (loadedNotebook != null) {
-        return <NotebookLoadedCard
+        return <NotebookImportCard
+            phase="ready"
             result={loadedNotebook}
             conflictLocation={loadedNotebookConflict?.displayLocation ?? null}
             conflictIsNative={getAppHost() === AppHost.ELECTRON && (loadedNotebookConflict?.isNative ?? false)}
@@ -340,7 +341,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             onImport={() => importLoadedNotebook()}
             onReplace={() => importLoadedNotebook('replace')}
             onCreateNew={() => importLoadedNotebook('create-new')}
-            onCancel={cancelLoadedNotebook}
+            onClose={cancelLoadedNotebook}
         />;
     }
 

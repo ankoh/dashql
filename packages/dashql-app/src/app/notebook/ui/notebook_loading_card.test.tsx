@@ -3,13 +3,13 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { NotebookLoadingCard } from './notebook_loading_card.js';
+import { NotebookImportCard } from './notebook_import_card.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.mock('../../ui/navbar.js', () => ({ CompactNavBar: () => null }));
 vi.mock('../../../ui/particle_flow/particle_flow_background.js', () => ({ ParticleFlowBackground: () => null }));
 
-describe('NotebookLoadingCard', () => {
+describe('NotebookImportCard loading state', () => {
     let container: HTMLDivElement;
     let root: Root;
 
@@ -27,10 +27,11 @@ describe('NotebookLoadingCard', () => {
     it('shows indeterminate manifest loading and cancels', () => {
         const onCancel = vi.fn();
         act(() => root.render(
-            <NotebookLoadingCard
+            <NotebookImportCard
+                phase="loading"
                 sourceUrl="https://example.com/dashql-notebook.json"
                 progress={{ phase: 'manifest' }}
-                onCancel={onCancel}
+                onClose={onCancel}
             />,
         ));
 
@@ -46,7 +47,8 @@ describe('NotebookLoadingCard', () => {
 
     it('shows determinate file and script progress after discovery', () => {
         act(() => root.render(
-            <NotebookLoadingCard
+            <NotebookImportCard
+                phase="loading"
                 sourceUrl="https://example.com/dashql-notebook.json"
                 progress={{
                     phase: 'files',
@@ -57,7 +59,7 @@ describe('NotebookLoadingCard', () => {
                     completedScriptCount: 2,
                     totalScriptCount: 4,
                 }}
-                onCancel={() => { }}
+                onClose={() => { }}
             />,
         ));
 

@@ -43,6 +43,36 @@
     font-family: 'Roboto Mono';
 }
 
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    font-size: 0.9rem;
+}
+
+.status > span:first-child {
+    display: inline-flex;
+}
+
+.warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid hsl(39, 72%, 63%);
+    border-radius: var(--border_radius);
+    background: hsl(43, 100%, 96%);
+    color: hsl(32, 72%, 25%);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.warning svg {
+    flex: none;
+    margin-top: 1px;
+}
+
 @media only screen and (max-width: 520px) {
     .details {
         grid-template-columns: 1fr;
