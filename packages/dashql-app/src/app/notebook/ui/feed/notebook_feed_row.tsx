@@ -257,17 +257,16 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                                 isFormattable={isCompactFormattable}
                             />
                         )}
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            size={ButtonSize.Small}
-                            aria-label={`Use ${displayName} as AI context`}
-                            disabled={!props.canUseAI || props.scriptData == null}
-                            onClick={() => {
-                                if (props.scriptData != null) props.onUseAIContext(props.scriptData.scriptKey);
-                            }}
-                        >
-                            <SparklesFillIcon size={16} />
-                        </IconButton>
+                        {props.canUseAI && props.scriptData != null && (
+                            <IconButton
+                                variant={ButtonVariant.Invisible}
+                                size={ButtonSize.Small}
+                                aria-label={`Use ${displayName} as AI context`}
+                                onClick={() => props.onUseAIContext(props.scriptData!.scriptKey)}
+                            >
+                                <SparklesFillIcon size={16} />
+                            </IconButton>
+                        )}
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             onClick={(event) => { event.stopPropagation(); props.onMoveUp(props.scriptFileName); }}

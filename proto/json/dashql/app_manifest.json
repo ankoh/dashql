@@ -72,6 +72,10 @@
       "type": "object",
       "description": "Configuration for an OpenAI-compatible AI provider (Ollama, OpenAI, vLLM, etc.)",
       "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether AI features are enabled"
+        },
         "endpointUrl": {
           "type": "string",
           "description": "Base URL of the OpenAI-compatible server (e.g. http://localhost:11434)"
