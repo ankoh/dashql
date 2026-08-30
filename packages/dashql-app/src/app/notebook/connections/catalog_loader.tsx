@@ -147,6 +147,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                         conn.catalog,
                         conn.instance,
                         conn.catalogRelationScript,
+                        conn.catalogFunctionScript,
                         abortController.signal,
                     );
                     if (result.failures.length > 0) {

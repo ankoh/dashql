@@ -1,3 +1,4 @@
+import type { DashQL, FlatBufferPtr, buffers } from '../../../core/index.js';
 import type { NotebookData, ScriptFolderData, StorageBackend } from './storage_backend.js';
 import { StorageBackendType } from './storage_backend.js';
 import {
@@ -14,6 +15,53 @@ export interface NotebookBundle {
     functionsSql: string | null;
     folders: ScriptFolderData[];
     draftSql: string | null;
+}
+
+export interface NotebookCatalogValidationResult {
+    bundle: NotebookBundle;
+    invalidFiles: Array<'dashql-relations.sql' | 'dashql-functions.sql'>;
+}
+
+/// Parse catalog files on scratch scripts and omit malformed SQL before it can reach storage.
+/// Analysis is intentionally excluded: imported catalogs may reference types or objects that are
+/// only available once their connection has been restored.
+export function filterInvalidNotebookCatalogs(
+    core: DashQL,
+    bundle: NotebookBundle,
+): NotebookCatalogValidationResult {
+    const invalidFiles: NotebookCatalogValidationResult['invalidFiles'] = [];
+    const validate = (sql: string | null, fileName: NotebookCatalogValidationResult['invalidFiles'][number]) => {
+        if (sql == null || parsesWithoutErrors(core, sql)) return sql;
+        invalidFiles.push(fileName);
+        return null;
+    };
+    const schemaSql = validate(bundle.schemaSql, 'dashql-relations.sql');
+    const functionsSql = validate(bundle.functionsSql, 'dashql-functions.sql');
+    return {
+        bundle: schemaSql === bundle.schemaSql && functionsSql === bundle.functionsSql
+            ? bundle
+            : { ...bundle, schemaSql, functionsSql },
+        invalidFiles,
+    };
+}
+
+function parsesWithoutErrors(core: DashQL, sql: string): boolean {
+    const catalog = core.createCatalog();
+    const script = core.createScript(catalog);
+    let parsed: FlatBufferPtr<buffers.parser.ParsedScript> | null = null;
+    try {
+        script.replaceText(sql);
+        script.parse();
+        parsed = script.getParsed();
+        const reader = parsed.read();
+        return reader.scannerErrorsLength() === 0 && reader.parserErrorsLength() === 0;
+    } catch {
+        return false;
+    } finally {
+        parsed?.destroy();
+        script.destroy();
+        catalog.destroy();
+    }
 }
 
 export interface NotebookBundleWriteOptions {
@@ -80,9 +128,7 @@ export async function writeNotebookBundle(
         if (bundle.schemaSql != null) {
             await backend.saveNotebookSchema(notebookId, bundle.schemaSql);
         }
-        if (bundle.functionsSql != null) {
-            await backend.saveNotebookFunctions(notebookId, bundle.functionsSql);
-        }
+        await backend.saveNotebookFunctions(notebookId, bundle.functionsSql ?? '');
         for (const folder of bundle.folders) {
             await backend.createScriptFolder(notebookId, folder.name);
             for (const script of folder.scripts) {

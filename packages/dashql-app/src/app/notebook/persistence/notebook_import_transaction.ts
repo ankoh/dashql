@@ -208,7 +208,7 @@ function normalizePortableBundle(bundle: NotebookBundle, notebookId: string): No
     return {
         notebook,
         schemaSql: bundle.schemaSql,
-        functionsSql: bundle.functionsSql,
+        functionsSql: bundle.functionsSql ?? '',
         folders: bundle.folders,
         draftSql: bundle.draftSql,
     };

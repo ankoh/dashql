@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { NotebookBundle } from './notebook_bundle.js';
+import { filterInvalidNotebookCatalogs, type NotebookBundle } from './notebook_bundle.js';
 import type { PreparedNativeNotebook } from './composite_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 import {
@@ -77,6 +77,18 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
 
     const backend = reader.backend instanceof CompositeStorageBackend ? reader.backend : null;
 
+    const validatePortableBundle = React.useCallback(async (bundle: NotebookBundle): Promise<NotebookBundle> => {
+        const core = await setupCore('notebook_import_validation');
+        const validation = filterInvalidNotebookCatalogs(core, bundle);
+        if (validation.invalidFiles.length > 0) {
+            logger.warn('ignored malformed notebook catalog files', {
+                notebookId: bundle.notebook.notebookId,
+                files: validation.invalidFiles.join(', '),
+            }, 'notebook_import');
+        }
+        return validation.bundle;
+    }, [logger, setupCore]);
+
     const stopNotebookWork = React.useCallback(async (notebookId: string) => {
         const connectionId = connections.connectionByNotebook.get(notebookId);
         const connection = connectionId == null ? null : connections.connectionMap.get(connectionId);
@@ -150,6 +162,7 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
         options: PortableNotebookImportOptions,
     ): Promise<string | null> => {
         if (backend == null) throw new Error('Notebook imports require composite storage');
+        bundle = await validatePortableBundle(bundle);
         const conflict = await findNotebookImportConflict(backend, bundle.notebook.notebookId);
         if (conflict == null) {
             const notebookId = bundle.notebook.notebookId;
@@ -187,7 +200,7 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
                 }
             },
         );
-    }, [backend, requestConflictChoice, restoreFreshPortable, stopNotebookWork, writer]);
+    }, [backend, requestConflictChoice, restoreFreshPortable, stopNotebookWork, validatePortableBundle, writer]);
 
     const findPortableBundleConflict = React.useCallback(async (bundle: NotebookBundle): Promise<{ displayLocation: string; isNative: boolean } | null> => {
         if (backend == null) throw new Error('Notebook imports require composite storage');
@@ -203,6 +216,7 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
         choice: ConflictChoice,
     ): Promise<string> => {
         if (backend == null) throw new Error('Notebook imports require composite storage');
+        bundle = await validatePortableBundle(bundle);
         const conflict = await findNotebookImportConflict(backend, bundle.notebook.notebookId);
         if (conflict == null) return await restoreFreshPortable(bundle, bundle.notebook.notebookId, false);
         if (choice === 'create-new') {
@@ -218,7 +232,7 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
             writer.resume();
             throw error;
         }
-    }, [backend, restoreFreshPortable, stopNotebookWork, writer]);
+    }, [backend, restoreFreshPortable, stopNotebookWork, validatePortableBundle, writer]);
 
     const importNativeFolder = React.useCallback(async (
         dir: string,

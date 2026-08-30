@@ -11,6 +11,7 @@ import { QueryExecutor } from '../query_executor.js';
 import { QueryType } from '../query_execution_state.js';
 import type { LoggerLike } from '../../../../platform/logger/logger.js';
 import type { AttachedDatabase } from './hyperdb_grpc_client.js';
+import { loadPrefetchedHyperFunctions, PREFETCHED_HYPER_FUNCTIONS_SQL } from '../prefetched_hyper_functions.js';
 
 const LOG_CTX = 'hyper_catalog';
 const SECTION_BEGIN = '-- DashQL Hyper Catalog Section: ';
@@ -222,6 +223,7 @@ export async function updateHyperCatalog(
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
     catalogRelationScript: dashql.DashQLScript,
+    catalogFunctionScript: dashql.DashQLScript,
     abortSignal: AbortSignal,
 ): Promise<HyperCatalogUpdateResult> {
     const targets = buildCatalogTargets(attachedDatabases);
@@ -294,11 +296,24 @@ export async function updateHyperCatalog(
         value: [updateId],
     });
     const tableCount = replaceCatalogScript(dql, catalog, catalogRelationScript, nextText);
+    let functionCount = 0;
+    if (catalogFunctionScript.toString().trimStart().startsWith('-- DashQL Connection Functions.')) {
+        functionCount = catalogFunctionScript.getParsed().read().statementsLength();
+    }
+    if (functionCount === 0) {
+        functionCount = loadPrefetchedHyperFunctions(
+            dql,
+            catalog,
+            catalogFunctionScript,
+            PREFETCHED_HYPER_FUNCTIONS_SQL,
+        );
+    }
     logger.info('Updated Hyper catalog relations', {
         updateId: updateId.toString(),
         databasesUpdated: successful.length.toString(),
         databasesFailed: failures.length.toString(),
         tables: tableCount.toString(),
+        functions: functionCount.toString(),
     }, LOG_CTX);
     return {
         updatedDatabases: successful.map(result => result.target.key),
