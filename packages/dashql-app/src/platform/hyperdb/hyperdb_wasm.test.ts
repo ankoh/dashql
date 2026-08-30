@@ -245,22 +245,22 @@ describe('HyperDB embedded database adapter', () => {
             'ready',
             'initialize:{"global.experimental_view_creation":true,"global.experimental_persisted_view_creation":true,"global.http_location_allowlist":["*"]}',
             'create-database:__dashql_compute:false',
-            'create-database:pg_catalog:false',
+            'create-database:hyper:false',
         ]);
     });
 
-    it('attaches pg_catalog as the separate user-facing database', async () => {
+    it('attaches hyper as the separate user-facing database', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await HyperDB.create(client);
 
-        const connection = await database.connect({ defaultDatabase: 'pg_catalog' });
+        const connection = await database.connect({ defaultDatabase: 'hyper' });
 
-        expect(client.calls).toContain('attach:7:pg_catalog:pg_catalog');
+        expect(client.calls).toContain('attach:7:hyper:hyper');
 
         await connection.close();
         await database.terminate();
 
-        expect(client.calls).toContain('detach:7:pg_catalog');
+        expect(client.calls).toContain('detach:7:hyper');
     });
 
     it('creates shared Arrow tables in the attached database', async () => {

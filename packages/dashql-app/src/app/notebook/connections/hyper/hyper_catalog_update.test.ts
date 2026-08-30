@@ -103,7 +103,7 @@ describe('updateHyperCatalog', () => {
         expect(script.toString()).toContain('CREATE TABLE "cloud"."sales"."orders"');
         expect(script.toString()).not.toContain('CREATE TABLE "Cloud Database"');
         expect(script.getAnalyzed().read().tablesLength()).toBe(2);
-        expect(functionScript.toString()).toContain('CREATE FUNCTION "default"."pg_catalog"."abs"() RETURNS any;');
+        expect(functionScript.toString()).toContain('CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;');
     });
 
     it('uses the unqualified default database when there are no attachments', async () => {
@@ -131,8 +131,8 @@ describe('updateHyperCatalog', () => {
         );
 
         expect(query).toContain('FROM pg_catalog.pg_class c');
-        expect(query).not.toContain('"default"."pg_catalog"');
-        expect(script.toString()).toContain('CREATE TABLE "default"."public"."default_table"');
+        expect(query).not.toContain('"hyper"."pg_catalog"');
+        expect(script.toString()).toContain('CREATE TABLE "hyper"."public"."default_table"');
     });
 
     it('retains a failed database section while committing a successful database', async () => {

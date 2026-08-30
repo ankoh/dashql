@@ -11,7 +11,7 @@ import type {
 } from '../database/embedded_database.js';
 
 const COMPUTE_DATABASE_NAME = '__dashql_compute';
-const DEFAULT_DATABASE_NAME = 'pg_catalog';
+const DEFAULT_DATABASE_NAME = 'hyper';
 const DATABASE_SCHEMA = 'public';
 
 export type HyperDBResult =
@@ -177,7 +177,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
         }
 
         const connectionHandle = readHandle(await this.client.connect(), 'connect');
-        const databaseName = options.defaultDatabase === 'pg_catalog' ? DEFAULT_DATABASE_NAME : COMPUTE_DATABASE_NAME;
+        const databaseName = options.defaultDatabase === 'hyper' ? DEFAULT_DATABASE_NAME : COMPUTE_DATABASE_NAME;
         try {
             expectOK(
                 await this.client.attachDatabase(connectionHandle, databaseName, databaseName),

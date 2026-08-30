@@ -16,7 +16,7 @@
 namespace dashql::shell {
 namespace {
 
-constexpr std::string_view DEFAULT_DATABASE_NAME = "pg_catalog";
+constexpr std::string_view DEFAULT_DATABASE_NAME = "hyper";
 
 using ScannerTokenType = buffers::parser::ScannerTokenType;
 
