@@ -85,6 +85,7 @@ export function fakeSymbolIconModule(React: typeof import('react')) {
         PlusIcon: 'plus_16',
         ProjectIcon: 'project_16',
         RowsIcon: 'rows_16',
+        SaveIcon: 'save_16',
         ScreenFullIcon: 'screen_full_16',
         SparklesFillIcon: 'sparkles_fill_16',
         SquareFillIcon: 'square_fill_16',
