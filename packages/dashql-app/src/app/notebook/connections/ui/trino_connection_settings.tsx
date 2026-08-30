@@ -5,14 +5,7 @@ import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
 import * as style from './connection_settings.module.css';
 
-import {
-    BookIcon,
-    KeyIcon,
-    PlugIcon,
-    XIcon,
-    PersonIcon,
-    ShieldLockIcon,
-} from '@primer/octicons-react';
+import { BookIcon, KeyIcon, PlugIcon, XIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonVariant } from '../../../../ui/foundations/button.js';
 import { ConnectionHealth } from '../connection_state.js';

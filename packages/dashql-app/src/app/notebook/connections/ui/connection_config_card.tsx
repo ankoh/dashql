@@ -3,7 +3,7 @@ import * as React from 'react';
 import * as baseStyles from '../../../../ui/banner/banner_page.module.css';
 import * as styles from './connection_config_card.module.css';
 
-import { ChevronLeftIcon } from '@primer/octicons-react';
+import { ChevronLeftIcon } from '../../../../ui/foundations/symbol_icon.js';
 import { Button, IconButton, ButtonVariant } from '../../../../ui/foundations/button.js';
 import { ConnectorConfigTabs } from './connector_config_tabs.js';
 import { ConnectorType } from '../connector_info.js';

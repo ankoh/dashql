@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ZoomInIcon, ZoomOutIcon, ScreenFullIcon } from '@primer/octicons-react';
+import { ZoomInIcon, ZoomOutIcon, ScreenFullIcon } from '../../../../../../ui/foundations/symbol_icon.js';
 
 import { EmbeddingRendererWebGPU } from './renderer/webgpu_renderer/renderer.js';
 import { EmbeddingRendererWebGL2 } from './renderer/webgl2_renderer/renderer.js';

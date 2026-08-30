@@ -3,7 +3,7 @@ import * as detailStyles from './script_details.module.css';
 import * as styles from './catalog_schema_view.module.css';
 
 import { EditorView } from '@codemirror/view';
-import { LockIcon, XIcon } from '@primer/octicons-react';
+import { LockIcon, XIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../scripts/editor/codemirror.js';
 import { DashQLUpdateEffect, analyzeScript, DashQLScriptBuffers } from '../scripts/editor/dashql_processor.js';

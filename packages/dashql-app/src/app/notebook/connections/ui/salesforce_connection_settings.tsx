@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as style from './connection_settings.module.css';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { KeyIcon, PersonIcon } from '@primer/octicons-react';
+import { KeyIcon, PersonIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { useConnectionState } from '../connection_registry.js';
 import { ConnectionHealth, ConnectionStatus } from '../connection_state.js';

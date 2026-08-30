@@ -2,20 +2,7 @@ import * as React from 'react';
 import * as ActionList from '../../../ui/foundations/action_list.js'
 import * as styles from './ui_demo.module.css';
 
-import {
-    ChecklistIcon,
-    CopyIcon,
-    EyeIcon,
-    HeartIcon,
-    PaperAirplaneIcon,
-    TriangleDownIcon,
-    ListUnorderedIcon,
-    TableIcon,
-    ProjectIcon,
-    CodeIcon,
-    FileIcon,
-    GraphIcon,
-} from '@primer/octicons-react';
+import { ChecklistIcon, CopyIcon, EyeIcon, HeartIcon, PaperAirplaneIcon, TriangleDownIcon, ListUnorderedIcon, TableIcon, ProjectIcon, CodeIcon, FileIcon, GraphIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { TextInput, TextInputValidationStatus } from '../../../ui/foundations/text_input.js';
 import { TextInputAction } from '../../../ui/foundations/text_input_action.js';

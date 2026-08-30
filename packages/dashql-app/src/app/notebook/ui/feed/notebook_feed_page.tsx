@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_feed_page.module.css';
 
-import { ThreeBarsIcon } from '@primer/octicons-react';
+import { ThreeBarsIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import type { ConnectionState } from '../../connections/connection_state.js';
 import {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { XIcon } from '@primer/octicons-react';
+import { XIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { Portal } from '../../../ui/foundations/portal.js';
 import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';

@@ -1,6 +1,7 @@
 import * as React from 'react';
 
-import { CheckIcon, CopyIcon, Icon } from '@primer/octicons-react';
+import { CheckIcon, CopyIcon } from '../ui/foundations/symbol_icon.js';
+import type { Icon } from '../ui/foundations/symbol_icon.js';
 
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';

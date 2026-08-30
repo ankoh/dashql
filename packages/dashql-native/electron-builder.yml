@@ -6,6 +6,7 @@ asarUnpack:
   - resources/dashql_native_napi.node
 files:
   - dist/**
+  - NOTICE
   - preload.cjs
   - package.json
 extraResources:

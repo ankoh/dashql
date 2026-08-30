@@ -3,7 +3,7 @@ import * as styles from './cell_detail_overlay.module.css';
 import * as dashql from '../../../../../core/index.js';
 
 import { EditorView } from '@codemirror/view';
-import { XIcon, ChevronUpIcon, ChevronDownIcon } from '@primer/octicons-react';
+import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../../../../../ui/foundations/symbol_icon.js';
 
 import { ButtonSize, IconButton, ButtonVariant } from '../../../../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../../../../ui/foundations/segmented_control.js';

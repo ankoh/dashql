@@ -51,9 +51,6 @@ importers:
       '@primer/behaviors':
         specifier: ^1.10.3
         version: 1.10.3
-      '@primer/octicons-react':
-        specifier: ^19.27.0
-        version: 19.27.0(react@19.2.8)
       '@react-hook/resize-observer':
         specifier: ^2.0.2
         version: 2.0.2(react@19.2.8)
@@ -627,12 +624,6 @@ packages:
 
   '@primer/behaviors@1.10.3':
     resolution: {integrity: sha512-cxxWDeR5IE7vdL0Ca0RAAAuPVrU+Bo8CSP1WfawGo4rEP1sZTi7hwl5i7TT0jCTCR0C9IfnQBfSPAkz0oznxUw==}
-
-  '@primer/octicons-react@19.27.0':
-    resolution: {integrity: sha512-9bm6DPfMlRMPnAfbqKhRIk9aaYbEw89DHqE9L0k2Xph0AjR+OxCy59of5X0G0epuplMBGFCnkaNhR2HmeJnNJw==}
-    engines: {node: '>=8'}
-    peerDependencies:
-      react: '>=16.3'
 
   '@react-hook/latest@1.0.3':
     resolution: {integrity: sha512-dy6duzl+JnAZcDbNTfmaP3xHiKtbXYOaz3G51MGVljh548Y8MWzTr+PHLOfvpypEVW9zwvl+VyKjbWKEVbV1Rg==}
@@ -3628,10 +3619,6 @@ snapshots:
       webcrypto-core: 1.9.2
 
   '@primer/behaviors@1.10.3': {}
-
-  '@primer/octicons-react@19.27.0(react@19.2.8)':
-    dependencies:
-      react: 19.2.8
 
   '@react-hook/latest@1.0.3(react@19.2.8)':
     dependencies:

@@ -3,7 +3,7 @@ import * as styles from './query_cache_view.module.css';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, TrashIcon, SyncIcon } from '@primer/octicons-react';
+import { XIcon, TrashIcon, SyncIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { ButtonVariant, ButtonSize, IconButton } from '../../../../ui/foundations/button.js';
 import { CacheFileStat } from '../query_result_cache_eviction.js';

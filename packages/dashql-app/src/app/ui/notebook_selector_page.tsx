@@ -26,7 +26,7 @@ import { SELECT_NOTEBOOK, OPEN_NOTEBOOK, BEGIN_NOTEBOOK_SETUP, CANCEL_NOTEBOOK_S
 import { NotebookSetupStatus } from '../router/notebook_setup_status.js';
 import { ConnectionRegistry, useDynamicConnectionDispatch } from '../notebook/connections/connection_registry.js';
 import { DELETE_CONNECTION } from '../notebook/connections/connection_state.js';
-import { TrashIcon, CircleSlashIcon, DashIcon, PlusIcon, AlertIcon, FileDirectoryIcon, UnlinkIcon } from '@primer/octicons-react';
+import { TrashIcon, CircleSlashIcon, DashIcon, PlusIcon, AlertIcon, FileDirectoryIcon, UnlinkIcon } from '../../ui/foundations/symbol_icon.js';
 import { NotebookScriptsRegistry, useNotebookScriptsDeletion } from '../notebook/scripts/notebook_scripts_registry.js';
 import { ConnectionState, ConnectionStateWithoutId, ConnectionHealth } from '../notebook/connections/connection_state.js';
 import {

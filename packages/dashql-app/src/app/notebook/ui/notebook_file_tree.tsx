@@ -14,7 +14,7 @@ import {
     arrayMove,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { DatabaseIcon } from '@primer/octicons-react';
+import { DatabaseIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import {
     REORDER_SCRIPTS,

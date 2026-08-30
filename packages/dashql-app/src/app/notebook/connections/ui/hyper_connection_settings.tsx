@@ -4,15 +4,7 @@ import * as buf from '@bufbuild/protobuf';
 import * as pb from '../../../../proto.js';
 import * as style from './connection_settings.module.css';
 
-import {
-    ChecklistIcon,
-    CircleSlashIcon,
-    DashIcon,
-    DatabaseIcon,
-    FileBadgeIcon,
-    KeyIcon,
-    PlusIcon,
-} from '@primer/octicons-react';
+import { ChecklistIcon, CircleSlashIcon, DashIcon, DatabaseIcon, FileBadgeIcon, KeyIcon, PlusIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 

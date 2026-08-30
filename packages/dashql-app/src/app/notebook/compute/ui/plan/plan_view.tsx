@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { GraphIcon, RowsIcon, ScreenFullIcon, ZoomInIcon, ZoomOutIcon } from '@primer/octicons-react';
+import { GraphIcon, RowsIcon, ScreenFullIcon, ZoomInIcon, ZoomOutIcon } from '../../../../../ui/foundations/symbol_icon.js';
 import { select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
 
 import * as dashql from '../../../../../core/index.js';

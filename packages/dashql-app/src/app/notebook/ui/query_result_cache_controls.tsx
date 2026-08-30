@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './query_result_cache_controls.module.css';
 
-import { SyncIcon } from '@primer/octicons-react';
+import { SyncIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { QueryExecutionState, QueryExecutionStatus } from '../connections/query_execution_state.js';
 import { useRelativeTime } from '../../../utils/time_format.js';
