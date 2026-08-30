@@ -110,6 +110,11 @@
     padding: 0;
 }
 
+.body > .structured_view {
+    max-height: none;
+    overflow: visible;
+}
+
 .plan_container {
     width: 100%;
 }

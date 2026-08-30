@@ -225,6 +225,7 @@ function SqlTextView(props: SqlTextViewProps) {
 function StructuredValueView(props: { value: object }) {
     return (
         <JsonView
+            className={styles.structured_view}
             value={props.value}
             collapsed={2}
             shortenTextAfterLength={100}
