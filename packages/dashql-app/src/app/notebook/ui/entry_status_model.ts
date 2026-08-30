@@ -26,6 +26,12 @@ export interface EntryStatus {
     errorDetail: Record<string, string | null | undefined> | null;
 }
 
+function getStatementStatusText(message: string, statementIndex: number | null, statementCount: number | null): string {
+    return statementIndex != null && statementCount != null && statementCount > 1
+        ? `Statement ${statementIndex} of ${statementCount}: ${message}`
+        : message;
+}
+
 /// Human-readable label for a query execution status. Shared by the feed status bar and the Details
 /// query status panel so both stay in sync.
 export function getQueryStatusText(
@@ -34,37 +40,58 @@ export function getQueryStatusText(
     statementCount: number | null = null,
     statementSucceeded: boolean = false,
 ): string {
-    if (statementIndex != null && statementCount != null && !queryIsDone(status)) {
-        return statementSucceeded
-            ? `Statement ${statementIndex} executed successfully`
-            : `Executing statement ${statementIndex} of ${statementCount}`;
+    const hasMultipleStatements = statementIndex != null && statementCount != null && statementCount > 1;
+    if (hasMultipleStatements && statementSucceeded && !queryIsDone(status)) {
+        return `Statement ${statementIndex} of ${statementCount} executed successfully`;
     }
     switch (status) {
         case QueryExecutionStatus.REQUESTED:
-            return 'Requested query';
+            return hasMultipleStatements
+                ? `Requested statement ${statementIndex} of ${statementCount}`
+                : 'Requested query';
         case QueryExecutionStatus.PREPARING:
-            return 'Preparing query';
+            return hasMultipleStatements
+                ? `Preparing statement ${statementIndex} of ${statementCount}`
+                : 'Preparing query';
         case QueryExecutionStatus.SENDING:
-            return 'Sending query';
+            return hasMultipleStatements
+                ? `Sending statement ${statementIndex} of ${statementCount}`
+                : 'Sending query';
         case QueryExecutionStatus.QUEUED:
-            return 'Queued query';
+            return hasMultipleStatements
+                ? `Statement ${statementIndex} of ${statementCount} queued`
+                : 'Queued query';
         case QueryExecutionStatus.RUNNING:
-            return 'Executing query';
+            return hasMultipleStatements
+                ? `Executing statement ${statementIndex} of ${statementCount}`
+                : 'Executing query';
         case QueryExecutionStatus.RECEIVED_FIRST_BATCH:
-            return 'Executing query, fetching results';
+            return hasMultipleStatements
+                ? `Executing statement ${statementIndex} of ${statementCount}, fetching results`
+                : 'Executing query, fetching results';
         case QueryExecutionStatus.RECEIVED_ALL_BATCHES:
-            return 'Executing query, received all results';
+            return hasMultipleStatements
+                ? `Executing statement ${statementIndex} of ${statementCount}, received all results`
+                : 'Executing query, received all results';
         case QueryExecutionStatus.PROCESSING_RESULTS:
-            return 'Processing results';
+            return hasMultipleStatements
+                ? `Processing results for statement ${statementIndex} of ${statementCount}`
+                : 'Processing results';
         case QueryExecutionStatus.PROCESSED_RESULTS:
-            return 'Processed results';
+            return hasMultipleStatements
+                ? `Processed results for statement ${statementIndex} of ${statementCount}`
+                : 'Processed results';
         case QueryExecutionStatus.FAILED:
-            return 'Statement execution failed';
+            return hasMultipleStatements
+                ? `Statement ${statementIndex} of ${statementCount} execution failed`
+                : 'Statement execution failed';
         case QueryExecutionStatus.CANCELLED:
-            return 'Statement execution was cancelled';
+            return hasMultipleStatements
+                ? `Statement ${statementIndex} of ${statementCount} execution was cancelled`
+                : 'Statement execution was cancelled';
         case QueryExecutionStatus.SUCCEEDED:
-            return statementCount != null && statementCount > 1
-                ? 'All statements executed successfully'
+            return hasMultipleStatements
+                ? `Statement ${statementIndex} of ${statementCount} executed successfully`
                 : 'Statement executed successfully';
     }
 }
@@ -122,7 +149,9 @@ export function deriveEntryStatus(
             return {
                 kind: EntryStatusKind.Query,
                 indicator: IndicatorStatus.Failed,
-                message: query.error?.message ?? getQueryStatusText(query.status),
+                message: query.error?.message != null
+                    ? getStatementStatusText(query.error.message, query.statementIndex, query.statementCount)
+                    : getQueryStatusText(query.status, query.statementIndex, query.statementCount),
                 traceId: query.traceId,
                 errorDetail,
             };
@@ -138,7 +167,7 @@ export function deriveEntryStatus(
                 kind: EntryStatusKind.Query,
                 indicator: IndicatorStatus.Succeeded,
                 message: query.status === QueryExecutionStatus.SUCCEEDED && query.servedFromCache
-                    ? 'Result loaded from cache'
+                    ? getStatementStatusText('Result loaded from cache', query.statementIndex, query.statementCount)
                     : getQueryStatusText(query.status, query.statementIndex, query.statementCount),
                 traceId: query.traceId,
                 errorDetail: null,
