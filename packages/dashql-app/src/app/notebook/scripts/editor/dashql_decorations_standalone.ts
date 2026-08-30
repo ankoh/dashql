@@ -34,10 +34,13 @@ for (const [_token, tag] of PROTO_TAG_MAPPING) {
 function buildTagDecorations(state: EditorState): Map<Tag, Decoration> {
     const decorations: Map<Tag, Decoration> = new Map();
     for (const tag of CODEMIRROR_TAGS_USED) {
+        const highlightClass = highlightingFor(state, [tag]) ?? '';
         decorations.set(
             tag,
             Decoration.mark({
-                class: highlightingFor(state, [tag]) ?? '',
+                class: tag === commentTag
+                    ? `${highlightClass} dashql-comment`.trim()
+                    : highlightClass,
             }),
         );
     }

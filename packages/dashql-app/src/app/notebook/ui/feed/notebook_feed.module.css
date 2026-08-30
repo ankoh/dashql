@@ -433,6 +433,10 @@
     font-size: 0.85rem;
 }
 
+.script_preview_editor :global(.dashql-comment) {
+    border-radius: 2px;
+}
+
 .script_preview_editor :global(.cm-scroller) {
     overflow-y: auto;
     padding: 0;

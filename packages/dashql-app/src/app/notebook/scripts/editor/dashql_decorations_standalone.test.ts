@@ -41,7 +41,7 @@ describe('scanner decorations', () => {
             0,
             text.length,
             (from, to, value) => {
-                if (value.spec.class === 'comment') ranges.push({ from, to });
+                if (value.spec.class.split(' ').includes('comment')) ranges.push({ from, to });
             },
         );
 
