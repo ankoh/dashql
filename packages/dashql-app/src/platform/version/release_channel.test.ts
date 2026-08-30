@@ -1,4 +1,16 @@
-import { compareReleaseVersions, detectReleaseChannel } from './web_version_check.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { Logger } from '../logger/logger.js';
+import { compareReleaseVersions, detectReleaseChannel, loadReleaseManifest } from './web_version_check.js';
+
+class NullLogger extends Logger {
+    public destroy(): void { }
+    protected flushPendingRecords(): void { }
+}
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
 
 describe('detectReleaseChannel', () => {
     it('classifies plain semver versions as stable', () => {
@@ -37,5 +49,26 @@ describe('compareReleaseVersions', () => {
         expect(compareReleaseVersions('0.0.2', '0.0.3-dev.5')).toBeLessThan(0);
         // The canary of the next core version is an upgrade over the current stable
         expect(compareReleaseVersions('0.0.3-dev.5', '0.0.2')).toBeGreaterThan(0);
+    });
+});
+
+describe('loadReleaseManifest', () => {
+    it('bypasses the browser cache for mutable channel manifests', async () => {
+        const manifest = {
+            release_id: 'release-id',
+            pub_date: '2026-08-30T12:26:06Z',
+            version: '0.0.8',
+            git_commit_hash: 'e0e35fe',
+            git_commit_url: 'https://github.com/ankoh/dashql/tree/e0e35fe',
+            update_manifest_url: 'https://get.dashql.app/releases/0.0.8/update.json',
+            bundles: [],
+        };
+        const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(manifest)));
+        vi.stubGlobal('fetch', fetch);
+        const url = new URL('https://get.dashql.app/stable.json');
+
+        await loadReleaseManifest('stable', url, new NullLogger());
+
+        expect(fetch).toHaveBeenCalledWith(url, {cache: 'no-store'});
     });
 });
