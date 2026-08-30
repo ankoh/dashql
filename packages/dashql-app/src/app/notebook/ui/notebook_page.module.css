@@ -7,9 +7,16 @@
 }
 
 .shell_loading {
-    display: grid;
-    width: 100%;
-    height: 100%;
-    place-items: center;
+    width: calc(100% - 8px);
+    height: calc(100% - 4px);
+    padding: 12px 8px;
+    margin: 0 4px 4px;
+    overflow: hidden;
+    border-radius: 12px;
+    color: #e6edf3;
     font-family: 'Roboto Mono';
+    font-size: 13px;
+    line-height: 1.2;
+    background: var(--shell_background_color);
+    white-space: pre-wrap;
 }

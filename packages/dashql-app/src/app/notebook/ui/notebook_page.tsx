@@ -77,7 +77,11 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     openConnectionOverlay={openConnectionOverlay}
                 />
             ) : (
-                <React.Suspense fallback={<div className={styles.shellLoading}>Loading shell...</div>}>
+                <React.Suspense fallback={(
+                    <div className={styles.shellLoading} role="status">
+                        <strong>[ RUN ]</strong> Loading shell
+                    </div>
+                )}>
                     <NotebookShellPage connection={conn ?? null} active />
                 </React.Suspense>
             )}
