@@ -270,37 +270,6 @@
     border-radius: var(--border_radius) 10px 10px var(--border_radius);
 }
 
-@media (hover: hover) and (pointer: fine) {
-    .feed_entry_card_server {
-        transition: opacity 120ms ease-out;
-    }
-
-    .feed_entry_card_server[data-unfocused="true"] {
-        opacity: 0.6;
-    }
-
-    .feed_entry_card_server[data-unfocused="true"]:focus-within {
-        opacity: 1;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .feed_entry_card_server {
-        transition: none;
-    }
-}
-
-.feed_entry_card_server_idle {
-    width: fit-content;
-    max-width: 100%;
-    background-color: hsl(210, 29%, 98%);
-}
-
-/* When the entry has never run, the status bar is the complete server card. Its normal divider
-   would sit directly above the card's own bottom border and read as a double rule. */
-.feed_entry_card_server > :only-child {
-    border-bottom: none;
-}
 
 .feed_entry_avatar_script,
 .feed_entry_avatar_server {

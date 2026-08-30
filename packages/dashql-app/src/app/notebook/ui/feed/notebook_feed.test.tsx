@@ -439,7 +439,12 @@ describe('NotebookFeed', () => {
     });
 
     it('marks only unfocused result cards for pointer-device fading', () => {
-        renderFeed({ notebookScripts: createNotebookScripts(), modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
+        mockState.queryStates.set(42, { traceId: 100, status: 9 /* SUCCEEDED */ });
+        mockState.queryStates.set(43, { traceId: 101, status: 9 /* SUCCEEDED */ });
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[101] = { ...notebookScripts.scripts[101], latestQueryId: 42 };
+        notebookScripts.scripts[102] = { ...notebookScripts.scripts[102], latestQueryId: 43 };
+        renderFeed({ notebookScripts, modifyNotebookScripts: vi.fn(), showDetails: vi.fn() });
 
         const resultCards = container.querySelectorAll('[data-result-card]');
         expect(resultCards).toHaveLength(2);
@@ -746,9 +751,7 @@ describe('NotebookFeed', () => {
         });
 
         expect(container.querySelector('[aria-label="Stop query"]')).toBeNull();
-        // Every server card now has a status indicator: one running query and one neutral
-        // "Not run yet" entry in this fixture.
-        expect(container.querySelectorAll('[data-testid="status-indicator"]').length).toBe(2);
+        expect(container.querySelectorAll('[data-testid="status-indicator"]')).toHaveLength(1);
         const execute = container.querySelector('[aria-label="Execute"]') as HTMLButtonElement;
         expect(execute).not.toBeNull();
         act(() => execute.click());
@@ -1149,11 +1152,12 @@ describe('NotebookFeed', () => {
         });
         const viewers = container.querySelectorAll('[data-testid="trace-log-viewer"]');
         expect(viewers.length).toBe(0);
-        expect(container.textContent).toContain('Not run yet');
+        expect(container.textContent).not.toContain('Not run yet');
+        expect(container.querySelector('[data-result-card]')).toBeNull();
         expect(container.textContent).not.toContain('Result is cached');
     });
 
-    it('renders a script and server card for every notebookScripts entry', () => {
+    it('renders only the script card before an entry has run', () => {
         renderFeed({
             notebookScripts: createNotebookScripts(),
             modifyNotebookScripts: vi.fn(),
@@ -1161,7 +1165,8 @@ describe('NotebookFeed', () => {
         });
 
         expect(container.querySelectorAll('[data-testid="script-preview"]')).toHaveLength(2);
-        expect(container.textContent?.match(/Not run yet/g)).toHaveLength(2);
+        expect(container.querySelectorAll('[data-result-card]')).toHaveLength(0);
+        expect(container.textContent).not.toContain('Not run yet');
     });
 
     it('does not execute statements when cards render', () => {
@@ -1179,8 +1184,9 @@ describe('NotebookFeed', () => {
 
         await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
 
-        expect(container.textContent?.match(/Cached/g)).toHaveLength(1);
-        expect(container.textContent?.match(/Not run yet/g)).toHaveLength(2);
+        expect(container.textContent).not.toContain('Cached');
+        expect(container.textContent).not.toContain('Not run yet');
+        expect(container.querySelectorAll('[data-result-card]')).toHaveLength(0);
         expect(container.textContent).not.toContain('Result is cached');
         expect(mockState.executeQuery).not.toHaveBeenCalled();
     });

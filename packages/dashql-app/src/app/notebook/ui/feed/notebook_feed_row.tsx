@@ -130,9 +130,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
     // The status bar above the body generalizes the former "AI bar": while any work is in flight —
     // an agent run *or* a query execution — it's a compact strip (spinner + latest log line / query
     // status) instead of yanking the user to the raw trace. The body keeps rendering the current
-    // output; the user opts into the full trace by clicking the bar. The bar persists across idle,
-    // running, and terminal states. A staged rewrite doesn't feed it — Accept/Reject controls live on the
-    // body overlay — so the bar stays free to show the rewritten statement's re-execution status.
+    // output; the user opts into the full trace by clicking the bar. The server message only appears
+    // after execution starts and persists in terminal states. A staged rewrite doesn't feed it —
+    // Accept/Reject controls live on the body overlay — so the bar stays free to show the rewritten
+    // statement's re-execution status.
     const entryStatus = deriveEntryStatus(agentRunState, queryState);
     const cancelEntryOperation = React.useCallback(() => {
         if (entryStatus?.kind === EntryStatusKind.Agent) {
@@ -331,48 +332,50 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                     <PersonIcon size={16} />
                 </div>
             </div>
-            <div className={styles.feed_entry_message_server}>
-                <div className={styles.feed_entry_avatar_server} aria-hidden="true">
-                    <svg width="16" height="16">
-                        <use xlinkHref={`${symbols}#${connectorIcon}`} />
-                    </svg>
-                </div>
-                <div
-                    className={`${styles.feed_entry_card_server} ${entryStatus.kind === EntryStatusKind.Idle ? styles.feed_entry_card_server_idle : ''}`}
-                    data-result-card
-                    data-unfocused={props.isFocused ? undefined : 'true'}
-                >
-                    <EntryStatusBar
-                        status={entryStatus}
-                        onClick={entryStatus.traceId != null ? () => showLog(entryStatus.traceId) : undefined}
-                        onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
-                        cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
-                        actions={
-                            <>
-                                {isCached && <CachedResultBean />}
-                                <QueryResultCacheLabel query={queryState} />
-                                <QueryResultRerunButton
-                                    query={queryState}
-                                    onRerun={(cacheKey) => props.onRerun(props.scriptFileName, cacheKey)}
-                                />
-                            </>
-                        }
-                    />
-                    {(queryState != null || agentTraceId != null) ? (
-                        <FeedEntryFooter
-                            notebookId={props.notebookId}
-                            queryState={queryState}
-                            agentTraceId={agentTraceId}
-                            visualizeQuery={props.scriptData?.annotations.visualizeQuery ?? null}
-                            logRequest={logRequest}
-                            onShowStatus={() => props.onShowStatus(props.scriptFileName)}
-                            onShowAgentStatus={() => props.onShowAgentStatus(props.scriptFileName)}
-                            onShowTable={() => props.onShowTable(props.scriptFileName)}
-                            onShowVisualization={() => props.onShowVisualization(props.scriptFileName)}
+            {entryStatus.kind !== EntryStatusKind.Idle && (
+                <div className={styles.feed_entry_message_server}>
+                    <div className={styles.feed_entry_avatar_server} aria-hidden="true">
+                        <svg width="16" height="16">
+                            <use xlinkHref={`${symbols}#${connectorIcon}`} />
+                        </svg>
+                    </div>
+                    <div
+                        className={styles.feed_entry_card_server}
+                        data-result-card
+                        data-unfocused={props.isFocused ? undefined : 'true'}
+                    >
+                        <EntryStatusBar
+                            status={entryStatus}
+                            onClick={entryStatus.traceId != null ? () => showLog(entryStatus.traceId) : undefined}
+                            onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
+                            cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
+                            actions={
+                                <>
+                                    {isCached && <CachedResultBean />}
+                                    <QueryResultCacheLabel query={queryState} />
+                                    <QueryResultRerunButton
+                                        query={queryState}
+                                        onRerun={(cacheKey) => props.onRerun(props.scriptFileName, cacheKey)}
+                                    />
+                                </>
+                            }
                         />
-                    ) : null}
+                        {(queryState != null || agentTraceId != null) ? (
+                            <FeedEntryFooter
+                                notebookId={props.notebookId}
+                                queryState={queryState}
+                                agentTraceId={agentTraceId}
+                                visualizeQuery={props.scriptData?.annotations.visualizeQuery ?? null}
+                                logRequest={logRequest}
+                                onShowStatus={() => props.onShowStatus(props.scriptFileName)}
+                                onShowAgentStatus={() => props.onShowAgentStatus(props.scriptFileName)}
+                                onShowTable={() => props.onShowTable(props.scriptFileName)}
+                                onShowVisualization={() => props.onShowVisualization(props.scriptFileName)}
+                            />
+                        ) : null}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
