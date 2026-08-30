@@ -3,7 +3,7 @@ import * as styles from './log_viewer.module.css';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, DownloadIcon } from '@primer/octicons-react';
+import { XIcon, DownloadIcon } from '../foundations/symbol_icon.js';
 
 import { getLogLevelName, LogRecord } from '../../platform/logger/log_buffer.js';
 import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';

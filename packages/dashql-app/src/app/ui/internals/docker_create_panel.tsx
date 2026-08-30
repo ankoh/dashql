@@ -4,7 +4,7 @@ import icons from '@ankoh/dashql-svg-symbols';
 
 import { List } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from '@primer/octicons-react';
+import { ChevronLeftIcon, ChevronRightIcon, XIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { TextField } from '../../../ui/foundations/text_field.js';

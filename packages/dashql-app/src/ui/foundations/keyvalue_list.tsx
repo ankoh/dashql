@@ -3,7 +3,7 @@ import * as React from 'react';
 import * as styles from './keyvalue_list.module.css';
 
 import { Dispatch } from '../../utils/variant.js';
-import { PlusIcon, XIcon } from '@primer/octicons-react';
+import { PlusIcon, XIcon } from './symbol_icon.js';
 import { classNames } from '../../utils/classnames.js';
 import { TextInput } from './text_input.js';
 import { TextInputAction } from './text_input_action.js';

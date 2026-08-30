@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from '../../../ui/internals/docker_manager.module.css';
 
-import { TrashIcon, XIcon } from '@primer/octicons-react';
+import { TrashIcon, XIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { AnchoredOverlay } from '../../../../ui/foundations/anchored_overlay.js';

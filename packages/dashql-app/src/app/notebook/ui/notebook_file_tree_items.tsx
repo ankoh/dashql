@@ -14,12 +14,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
-    DatabaseIcon,
-    FileDirectoryFillIcon,
-    FileDirectoryOpenFillIcon,
-    GraphIcon,
-} from '@primer/octicons-react';
+import { DatabaseIcon, FileDirectoryFillIcon, FileDirectoryOpenFillIcon, GraphIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { normalizeScriptFolderName, scriptDisplayName } from '../scripts/script_types.js';
 import { classNames } from '../../../utils/classnames.js';

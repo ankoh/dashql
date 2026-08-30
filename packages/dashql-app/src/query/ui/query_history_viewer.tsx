@@ -3,7 +3,7 @@ import * as styles from './query_history_viewer.module.css';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, ChevronUpIcon, ChevronDownIcon } from '@primer/octicons-react';
+import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';
 
 import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';

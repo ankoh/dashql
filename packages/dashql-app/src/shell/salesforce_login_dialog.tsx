@@ -12,7 +12,7 @@ import type { SalesforceLoginHistoryEntry } from './salesforce_login_history.js'
 import * as styles from './salesforce_login_dialog.module.css';
 
 import symbols from '@ankoh/dashql-svg-symbols';
-import { HistoryIcon, TrashIcon } from '@primer/octicons-react';
+import { HistoryIcon, TrashIcon } from '../ui/foundations/symbol_icon.js';
 
 export interface SalesforceLoginFormValues {
     alias: string;

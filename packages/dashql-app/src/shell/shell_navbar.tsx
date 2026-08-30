@@ -6,7 +6,7 @@ import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { ShellInternals } from './internals.js';
 
-import { XIcon } from '@primer/octicons-react';
+import { XIcon } from '../ui/foundations/symbol_icon.js';
 import symbols from '@ankoh/dashql-svg-symbols';
 import * as styles from './shell_navbar.module.css';
 

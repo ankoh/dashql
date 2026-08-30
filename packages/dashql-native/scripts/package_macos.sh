@@ -14,6 +14,7 @@ trap 'chmod -R u+w "${STAGE}" 2>/dev/null || true; rm -rf "${STAGE}"' EXIT
 
 mkdir -p "${STAGE}/dist" "${STAGE}/renderer"
 cp -R "${WORKSPACE_ROOT}/packages/dashql-native/dist/." "${STAGE}/dist/"
+cp "${WORKSPACE_ROOT}/NOTICE" "${STAGE}/NOTICE"
 cp "${WORKSPACE_ROOT}/packages/dashql-native/src/preload.cjs" "${STAGE}/preload.cjs"
 VERSION_ENV="${RUNFILES_ROOT}/+dashql_app_version_ext+dashql_app_version/version.env"
 VERSION="$(awk -F= '$1=="DASHQL_VERSION_TEXT"{print $2}' "${VERSION_ENV}")"

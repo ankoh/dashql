@@ -2,8 +2,8 @@ import * as React from 'react';
 import * as styles from './script_details.module.css';
 
 import type { EditorView } from '@codemirror/view';
-import type { Icon } from '@primer/octicons-react';
-import { PaperAirplaneIcon } from '@primer/octicons-react';
+import type { Icon } from '../../../ui/foundations/symbol_icon.js';
+import { PaperAirplaneIcon } from '../../../ui/foundations/symbol_icon.js';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import type { AgentRunState } from '../agent/agent_run_state.js';

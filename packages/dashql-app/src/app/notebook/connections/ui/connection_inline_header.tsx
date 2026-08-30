@@ -4,11 +4,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import * as style from './connection_inline_header.module.css';
 
-import {
-    PlugIcon,
-    XIcon,
-    XCircleIcon,
-} from '@primer/octicons-react';
+import { PlugIcon, XIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../connection_state.js';

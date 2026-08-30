@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_storage_overlay.module.css';
 
-import { XIcon, FileDirectoryIcon } from '@primer/octicons-react';
+import { XIcon, FileDirectoryIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../../../ui/foundations/anchored_overlay.js';

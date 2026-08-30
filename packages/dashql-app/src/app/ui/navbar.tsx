@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './navbar.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
-import { XIcon } from '@primer/octicons-react';
+import { XIcon } from '../../ui/foundations/symbol_icon.js';
 
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { HoverMode, NavBarButton, NavBarButtonWithRef } from './navbar_button.js';

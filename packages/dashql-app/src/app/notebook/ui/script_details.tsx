@@ -4,7 +4,7 @@ import * as dashql from '../../../core/index.js';
 import { EditorView } from '@codemirror/view';
 import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from '../scripts/editor/dashql_processor.js';
 
-import type { Icon } from '@primer/octicons-react';
+import type { Icon } from '../../../ui/foundations/symbol_icon.js';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';

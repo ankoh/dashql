@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './value_list.module.css';
 
-import { PlusIcon, XIcon } from '@primer/octicons-react';
+import { PlusIcon, XIcon } from './symbol_icon.js';
 
 import { Dispatch } from '../../utils/variant.js';
 import { classNames } from '../../utils/classnames.js';

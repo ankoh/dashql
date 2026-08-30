@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './notebook_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
-import { CodeIcon, ComposeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon, XIcon } from '@primer/octicons-react';
+import { CodeIcon, ComposeIcon, PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon, XIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { ButtonGroup } from '../../../../ui/foundations/button_group.js';

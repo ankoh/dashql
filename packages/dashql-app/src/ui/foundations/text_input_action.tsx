@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as styles from './text_input_action.module.css';
 
-import type { IconProps } from '@primer/octicons-react';
 import { Tooltip } from './tooltip.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { ButtonSize, ButtonVariant, IconButton } from './button.js';

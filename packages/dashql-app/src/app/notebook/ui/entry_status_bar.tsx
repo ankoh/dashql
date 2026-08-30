@@ -7,7 +7,7 @@ import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
-import { ChevronDownIcon, ChevronRightIcon } from '@primer/octicons-react';
+import { ChevronDownIcon, ChevronRightIcon } from '../../../ui/foundations/symbol_icon.js';
 import { classNames } from '../../../utils/classnames.js';
 
 interface EntryStatusBarProps {

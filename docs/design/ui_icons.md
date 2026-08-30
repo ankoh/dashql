@@ -156,20 +156,25 @@ Some component APIs, such as vertical-tab properties, carry the complete referen
 const icon = `${symbols}#table_24`;
 ```
 
-### Primer-Compatible Components
+### Icon Components
 
-When a DashQL symbol must be passed where Primer expects an Octicon `Icon`, use `SymbolIcon` from
-`src/ui/foundations/symbol_icon.tsx`:
+Use the named icon components from `src/ui/foundations/symbol_icon.tsx` when rendering a standard
+application icon or passing one to a component property such as `leadingVisual`:
 
 ```tsx
-const CheckIcon = SymbolIcon('check_16');
+import { CheckIcon } from './ui/foundations/symbol_icon.js';
 
 <Button leadingVisual={CheckIcon}>Apply</Button>
 ```
 
-`SymbolIcon` caches a component per symbol id and maps Primer sizes to square SVG viewports:
-`small` to 16 pixels, `medium` to 24 pixels, and `large` to 32 pixels. A numeric `size` is used
-directly. The helper does not verify that the symbol exists.
+Named components choose the closest natural symbol variant that does not exceed the displayed size.
+Use `SymbolIcon('symbol_id')` for dynamic symbols or symbols that do not need a named export. It
+caches a component per symbol id but does not verify that the symbol exists.
+
+Icon components accept numeric sizes and the named sizes `small`, `medium`, and `large`, which map to
+16, 32, and 64 pixel square viewports. They forward standard SVG properties. Unlabelled icons are
+decorative and hidden from assistive technologies by default; an explicit `aria-label` or
+`aria-labelledby` exposes the SVG with an image role.
 
 ### Imperative DOM Code
 

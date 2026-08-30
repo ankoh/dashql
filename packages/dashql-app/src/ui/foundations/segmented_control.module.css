@@ -44,7 +44,7 @@
 }
 
 /* Sizes below Tiny, for cramped hosts like the notebook grid cards. Each shrinks the segment box,
-   the inset/radius, and the octicon SVG (which otherwise keeps its intrinsic 16px). */
+   the inset/radius, and the icon SVG (which otherwise keeps its intrinsic 16px). */
 .segmented_control.size_xsmall {
     --segmented-control-icon-width: 20px;
     --segmented-control-button-inner-padding: 6px;

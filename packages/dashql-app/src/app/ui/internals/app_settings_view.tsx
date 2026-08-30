@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './app_settings_view.module.css';
 
-import { XIcon } from '@primer/octicons-react';
+import { XIcon } from '../../../ui/foundations/symbol_icon.js';
 import { Button, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { ToggleSwitch } from '../../../ui/foundations/toggle_switch.js';
 import { SegmentedControl } from '../../../ui/foundations/segmented_control.js';

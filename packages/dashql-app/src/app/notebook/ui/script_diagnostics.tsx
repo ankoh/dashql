@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as dashql from '../../../core/index.js';
 import * as styles from './script_diagnostics.module.css';
 
-import { AlertIcon, XCircleFillIcon, XIcon } from '@primer/octicons-react';
+import { AlertIcon, XCircleFillIcon, XIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import type { ScriptData } from '../scripts/notebook_scripts.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';

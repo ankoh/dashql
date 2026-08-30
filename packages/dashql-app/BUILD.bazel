@@ -306,7 +306,6 @@ _vite_web_deps = [
     "//:node_modules/@dnd-kit/utilities",
     "//:node_modules/@lezer/highlight",
     "//:node_modules/@primer/behaviors",
-    "//:node_modules/@primer/octicons-react",
     "//:node_modules/@react-hook/resize-observer",
     "//:node_modules/@vitejs/plugin-react",
     "//:node_modules/@xterm/addon-fit",
@@ -356,10 +355,12 @@ copy_to_directory(
     srcs = [
         ":electron",
         "static/config.json",
+        "//:NOTICE",
     ],
     out = "electron_deploy",
     replace_prefixes = {
         "electron": "",
+        "NOTICE": "NOTICE",
         "packages/dashql-app/static/config.json": "static/config.json",
     },
     visibility = ["//visibility:public"],
@@ -378,6 +379,7 @@ copy_to_directory(
     name = "pages",
     srcs = [
         ":pages_vite",
+        "//:NOTICE",
         "_headers",
         "_redirects",
         "static/404.html",
@@ -386,6 +388,7 @@ copy_to_directory(
     out = "pages_deploy",
     replace_prefixes = {
         "pages": "",
+        "NOTICE": "NOTICE",
         "packages/dashql-app/_headers": "_headers",
         "packages/dashql-app/_redirects": "_redirects",
         "packages/dashql-app/static": "static",

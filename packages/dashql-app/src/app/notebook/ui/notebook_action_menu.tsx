@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ThreeBarsIcon } from '@primer/octicons-react';
+import { ThreeBarsIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import type { ConnectionState } from '../connections/connection_state.js';
 import type { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';

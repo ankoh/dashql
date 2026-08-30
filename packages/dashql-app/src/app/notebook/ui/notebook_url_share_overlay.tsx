@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import * as styles from './notebook_url_share_overlay.module.css';
 
-import { CheckIcon, PaperclipIcon } from '@primer/octicons-react';
+import { CheckIcon, PaperclipIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { AnchorAlignment } from '../../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';

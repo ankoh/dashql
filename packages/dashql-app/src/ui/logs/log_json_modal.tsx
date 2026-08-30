@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './log_viewer.module.css';
 
-import { XIcon, ChevronUpIcon, ChevronDownIcon } from '@primer/octicons-react';
+import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../foundations/symbol_icon.js';
 
 import { LogRecord } from '../../platform/logger/log_buffer.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';

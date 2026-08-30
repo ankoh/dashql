@@ -3,7 +3,7 @@ import * as styles from './docker_manager.module.css';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, TrashIcon, PlusIcon, DownloadIcon, DashIcon, CircleSlashIcon } from '@primer/octicons-react';
+import { XIcon, TrashIcon, PlusIcon, DownloadIcon, DashIcon, CircleSlashIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';

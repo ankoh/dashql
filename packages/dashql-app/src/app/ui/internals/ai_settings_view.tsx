@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './ai_settings_view.module.css';
 
-import { XIcon } from '@primer/octicons-react';
+import { XIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { TextField } from '../../../ui/foundations/text_field.js';

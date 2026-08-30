@@ -1,7 +1,7 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 import * as ActionList from '../../../ui/foundations/action_list.js';
-import { LinkIcon, PaperAirplaneIcon, SyncIcon } from '@primer/octicons-react';
+import { LinkIcon, PaperAirplaneIcon, SyncIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../../globals.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../scripts/notebook_commands.js';

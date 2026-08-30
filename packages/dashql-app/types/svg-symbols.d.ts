@@ -1,4 +1,4 @@
 declare module '@ankoh/dashql-svg-symbols' {
-    const value: any;
+    const value: string;
     export default value;
 }
