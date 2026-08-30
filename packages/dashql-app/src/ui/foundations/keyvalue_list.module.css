@@ -1,6 +1,8 @@
 .list {
     display: grid;
     column-gap: 8px;
+    container-type: inline-size;
+    container-name: key-value-list;
 }
 .list_name {
     grid-row: 1;
@@ -59,4 +61,11 @@
     border-bottom: 1px solid var(--border_color_primary);
     border-left: 1px solid var(--border_color_primary);
     border-bottom-left-radius: 6px;
+}
+
+@container key-value-list (min-width: 640px) {
+    .list_elements {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 16px;
+    }
 }

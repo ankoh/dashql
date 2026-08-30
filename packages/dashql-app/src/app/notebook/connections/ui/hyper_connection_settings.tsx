@@ -31,8 +31,16 @@ import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
 import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { HyperDockerPanelMode, HyperDockerSettingsPanel } from './hyper_docker_settings.js';
+import { HYPERDB_WASM_ENGINE_SETTINGS } from '../../../../platform/hyperdb/hyperdb_settings.js';
 
 const LOG_CTX = "hyper_connector";
+
+export const HYPERDB_WASM_ENGINE_SETTING_ELEMENTS: readonly KeyValueListElement[] = Object.freeze(
+    Object.entries(HYPERDB_WASM_ENGINE_SETTINGS).map(([key, value]) => Object.freeze({
+        key,
+        value: String(value),
+    })),
+);
 
 export interface HyperConnectionPageState {
     protocol: connection.HyperProtocol;
@@ -297,105 +305,114 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                     />
                 </div>
             ) : protocol === 'WASM' ? (
-            <div className={style.body_container}>
-                <div className={style.section}>
-                    <div className={`${style.section_layout} ${style.body_section_layout}`}>
-                        <div className={`${style.grid_column_1_span_2} ${style.embedded_description}`}>
-                            Hyper runs locally in this browser using WebAssembly.
+                <div className={style.body_container}>
+                    <div className={style.section}>
+                        <div className={`${style.section_layout} ${style.body_section_layout}`}>
+                            <KeyValueListBuilder
+                                className={style.grid_column_1_span_2}
+                                title="Engine Settings"
+                                caption="Settings used to initialize the embedded Hyper engine"
+                                keyIcon={() => <div>Name</div>}
+                                valueIcon={() => <div>Value</div>}
+                                addButtonLabel="Add Setting"
+                                elements={HYPERDB_WASM_ENGINE_SETTING_ELEMENTS}
+                                modifyElements={() => { }}
+                                disabled
+                                readOnly
+                            />
                         </div>
                     </div>
                 </div>
-            </div>
             ) : (
-            <div className={style.body_container}>
-                <div className={style.section}>
-                    <div className={classNames(style.section_layout, style.body_section_layout)}>
-                        <TextField
-                            name={isGrpc ? "gRPC Endpoint" : "HTTP Endpoint"}
-                            caption={isGrpc
-                                ? "Endpoint of the gRPC service as 'https://host:port'"
-                                : "Endpoint of the HTTP service as 'https://host:port'"
-                            }
-                            value={pageState.endpoint}
-                            placeholder={isGrpc ? "gRPC endpoint url" : "HTTP endpoint url"}
-                            leadingVisual={() => <div>URL</div>}
-                            onChange={(e) => setEndpoint(e.target.value)}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                            validation={endpointValidation}
-                            logContext={LOG_CTX}
-                        />
-                        {isGrpc && <KeyValueTextField
-                            className={style.grid_column_1}
-                            name="mTLS Client Key"
-                            caption="Paths to client key and client certificate"
-                            k={pageState.mTlsKeyPath}
-                            v={pageState.mTlsPubPath}
-                            keyPlaceholder="client.key"
-                            valuePlaceholder="client.pem"
-                            keyIcon={KeyIcon}
-                            valueIcon={FileBadgeIcon}
-                            onChangeKey={(e) => setMTLSKeyPath(e.target.value)}
-                            onChangeValue={(e) => setMTLSPubPath(e.target.value)}
-                            keyAriaLabel='mTLS Client Key'
-                            valueAriaLabel='mTLS Client Certificate'
-                            logContext={LOG_CTX}
-                            validation={clientIdentityValidation}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                        />}
-                        {isGrpc && <TextField
-                            name="mTLS CA certificates"
-                            caption="Path to certificate authority (CA) certificates"
-                            value={pageState.mTlsCaPath}
-                            placeholder="cacerts.pem"
-                            leadingVisual={ChecklistIcon}
-                            onChange={(e) => setMTLSCaPath(e.target.value)}
-                            logContext={LOG_CTX}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                        />}
+                <div className={style.body_container}>
+                    <div className={style.section}>
+                        <div className={classNames(style.section_layout, style.body_section_layout)}>
+                            <TextField
+                                name={isGrpc ? "gRPC Endpoint" : "HTTP Endpoint"}
+                                caption={isGrpc
+                                    ? "Endpoint of the gRPC service as 'https://host:port'"
+                                    : "Endpoint of the HTTP service as 'https://host:port'"
+                                }
+                                value={pageState.endpoint}
+                                placeholder={isGrpc ? "gRPC endpoint url" : "HTTP endpoint url"}
+                                leadingVisual={() => <div>URL</div>}
+                                onChange={(e) => setEndpoint(e.target.value)}
+                                disabled={freezeInput}
+                                readOnly={freezeInput}
+                                validation={endpointValidation}
+                                logContext={LOG_CTX}
+                            />
+                            {isGrpc && <KeyValueTextField
+                                className={style.grid_column_1}
+                                name="mTLS Client Key"
+                                caption="Paths to client key and client certificate"
+                                k={pageState.mTlsKeyPath}
+                                v={pageState.mTlsPubPath}
+                                keyPlaceholder="client.key"
+                                valuePlaceholder="client.pem"
+                                keyIcon={KeyIcon}
+                                valueIcon={FileBadgeIcon}
+                                onChangeKey={(e) => setMTLSKeyPath(e.target.value)}
+                                onChangeValue={(e) => setMTLSPubPath(e.target.value)}
+                                keyAriaLabel='mTLS Client Key'
+                                valueAriaLabel='mTLS Client Certificate'
+                                logContext={LOG_CTX}
+                                validation={clientIdentityValidation}
+                                disabled={freezeInput}
+                                readOnly={freezeInput}
+                            />}
+                            {isGrpc && <TextField
+                                name="mTLS CA certificates"
+                                caption="Path to certificate authority (CA) certificates"
+                                value={pageState.mTlsCaPath}
+                                placeholder="cacerts.pem"
+                                leadingVisual={ChecklistIcon}
+                                onChange={(e) => setMTLSCaPath(e.target.value)}
+                                logContext={LOG_CTX}
+                                disabled={freezeInput}
+                                readOnly={freezeInput}
+                            />}
+                        </div>
+                    </div>
+                    <div className={style.section}>
+                        <div className={classNames(style.section_layout, style.body_section_layout)}>
+                            <KeyValueListBuilder
+                                className={style.grid_column_1}
+                                title="Attached Databases"
+                                caption="Databases that are attached for every query"
+                                keyIcon={DatabaseIcon}
+                                valueIcon={() => <div>ID</div>}
+                                addButtonLabel="Add Database"
+                                elements={pageState.attachedDatabases}
+                                modifyElements={modifyAttachedDbs}
+                                disabled={freezeInput}
+                                readOnly={freezeInput}
+                            />
+                            <KeyValueListBuilder
+                                title={isGrpc ? "gRPC Metadata" : "HTTP Headers"}
+                                caption="Extra HTTP headers that are added to each request"
+                                keyIcon={() => <div>Header</div>}
+                                valueIcon={() => <div>Value</div>}
+                                addButtonLabel="Add Header"
+                                elements={pageState.gRPCMetadata}
+                                modifyElements={modifyGrpcMetadata}
+                                disabled={freezeInput}
+                                readOnly={freezeInput}
+                            />
+                            <KeyValueListBuilder
+                                title="Query Parameters"
+                                caption="Connection settings that are added to every query"
+                                keyIcon={() => <div>Name</div>}
+                                valueIcon={() => <div>Value</div>}
+                                addButtonLabel="Add Parameter"
+                                elements={pageState.queryParameters}
+                                modifyElements={modifyQueryParameters}
+                                disabled={freezeInput}
+                                readOnly={freezeInput}
+                            />
+                        </div>
                     </div>
                 </div>
-                <div className={style.section}>
-                    <div className={classNames(style.section_layout, style.body_section_layout)}>
-                        <KeyValueListBuilder
-                            className={style.grid_column_1}
-                            title="Attached Databases"
-                            caption="Databases that are attached for every query"
-                            keyIcon={DatabaseIcon}
-                            valueIcon={() => <div>ID</div>}
-                            addButtonLabel="Add Database"
-                            elements={pageState.attachedDatabases}
-                            modifyElements={modifyAttachedDbs}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                        />
-                        <KeyValueListBuilder
-                            title={isGrpc ? "gRPC Metadata" : "HTTP Headers"}
-                            caption="Extra HTTP headers that are added to each request"
-                            keyIcon={() => <div>Header</div>}
-                            valueIcon={() => <div>Value</div>}
-                            addButtonLabel="Add Header"
-                            elements={pageState.gRPCMetadata}
-                            modifyElements={modifyGrpcMetadata}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                        />
-                        <KeyValueListBuilder
-                            title="Query Parameters"
-                            caption="Connection settings that are added to every query"
-                            keyIcon={() => <div>Name</div>}
-                            valueIcon={() => <div>Value</div>}
-                            addButtonLabel="Add Parameter"
-                            elements={pageState.queryParameters}
-                            modifyElements={modifyQueryParameters}
-                            disabled={freezeInput}
-                            readOnly={freezeInput}
-                        />
-                    </div>
-                </div>
-            </div>
             )}
         </ div>
     );
