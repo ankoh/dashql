@@ -12,7 +12,6 @@ export * from '../../../../query/ui/query_history_viewer.js';
 
 export function QueryViewer(props: {
     onClose: () => void;
-    getTarget?: typeof getQueryTarget;
 }) {
     const [connReg] = useConnectionRegistry();
     const entries = React.useMemo(() => {
@@ -29,7 +28,7 @@ export function QueryViewer(props: {
                     next.push({
                         connectionId,
                         sourceName,
-                        target: props.getTarget?.(query) ?? getQueryTarget(query),
+                        target: getQueryTarget(query),
                         queryId,
                         query,
                     });
@@ -37,7 +36,7 @@ export function QueryViewer(props: {
             }
         }
         return next;
-    }, [connReg, props.getTarget]);
+    }, [connReg]);
 
     return <QueryHistoryViewer entries={entries} onClose={props.onClose} />;
 }

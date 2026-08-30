@@ -9,9 +9,14 @@ vi.mock('react-window', async () => fakeReactWindowModule(await import('react'),
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 import { createQueryExecutionState, QueryType } from '../query_execution_state.js';
-import { getQueryTarget, QueryHistoryViewer, QueryTarget, type QueryEntry } from './query_viewer.js';
+import {
+    getQueryTarget,
+    QueryHistoryViewer,
+    QueryTarget,
+    type QueryEntry,
+} from './query_viewer.js';
 
-function createExecution(queryType: QueryType) {
+function createExecution(queryType: QueryType, userProvided: boolean) {
     return createQueryExecutionState(
         1,
         1,
@@ -21,7 +26,7 @@ function createExecution(queryType: QueryType) {
             title: 'Shell Query',
             description: null,
             issuer: 'DashQL Shell',
-            userProvided: true,
+            userProvided,
         },
         new AbortController(),
     );
@@ -42,17 +47,17 @@ describe('QueryHistoryViewer', () => {
         container.remove();
     });
 
-    it('classifies local and remote query targets', () => {
-        expect(getQueryTarget(createExecution(QueryType.INTERNAL_SQLFRAME))).toBe(QueryTarget.LOCAL);
-        expect(getQueryTarget(createExecution(QueryType.USER_PROVIDED))).toBe(QueryTarget.REMOTE);
+    it('classifies connection and memory query targets', () => {
+        expect(getQueryTarget(createExecution(QueryType.USER_PROVIDED, true))).toBe(QueryTarget.CONNECTION);
+        expect(getQueryTarget(createExecution(QueryType.INTERNAL_SQLFRAME, false))).toBe(QueryTarget.MEMORY);
     });
 
-    it('shows query sources and targets in separate columns', () => {
-        const query = createExecution(QueryType.INTERNAL_SQLFRAME);
+    it('shows query targets', () => {
+        const query = createExecution(QueryType.INTERNAL_SQLFRAME, false);
         const entries: QueryEntry[] = [{
             connectionId: 'shell',
             sourceName: 'Hyper',
-            target: QueryTarget.LOCAL,
+            target: QueryTarget.MEMORY,
             queryId: query.queryId,
             query,
         }];
@@ -62,7 +67,7 @@ describe('QueryHistoryViewer', () => {
         expect(container.textContent).toContain('Source');
         expect(container.textContent).toContain('Target');
         expect(container.textContent).toContain('Hyper');
-        expect(container.textContent).toContain('Local');
+        expect(container.textContent).toContain('Memory');
         expect(container.textContent).toContain('Title');
         expect(container.textContent).toContain('Shell Query');
     });
