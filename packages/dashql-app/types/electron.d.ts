@@ -2,7 +2,7 @@ interface DashQLStartupResult {
     embeddedDatabase: 'hyperdb-wasm' | null;
     error?: string;
     host: 'electron' | 'web';
-    status: 'degraded' | 'failed' | 'ready';
+    status: 'failed' | 'ready';
 }
 
 interface DashQLElectronBridge {
