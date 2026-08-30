@@ -118,7 +118,7 @@ export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, log
     traced.info(`Fetching release manifest`, { "channel": channel }, LOG_CTX);
     try {
         // Fetch the release manifest
-        const manifestRequest = await fetch(url);
+        const manifestRequest = await fetch(url, {cache: "no-store"});
         const manifestRaw = (await manifestRequest.json());
         const manifest = parseReleaseManifest(manifestRaw);
         // Set release manifest
