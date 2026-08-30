@@ -23,7 +23,7 @@ interface Props {
     keyIcon: React.ElementType;
     valueIcon: React.ElementType;
     addButtonLabel: string;
-    elements: KeyValueListElement[];
+    elements: readonly KeyValueListElement[];
     modifyElements: Dispatch<UpdateKeyValueList>;
     disabled?: boolean;
     readOnly?: boolean;
@@ -56,25 +56,28 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
             <div className={styles.list_caption}>
                 {props.caption}
             </div>
-            <IconButton
-                className={styles.add_button}
-                aria-label="Add Entry"
-                onClick={appendElement}
-                disabled={props.disabled}
-                size={ButtonSize.Small}
-            >
-                <PlusIcon />
-            </IconButton>
-            <div className={styles.list_elements}>
+            {!props.readOnly && (
+                <IconButton
+                    className={styles.add_button}
+                    aria-label={props.addButtonLabel}
+                    onClick={appendElement}
+                    disabled={props.disabled}
+                    size={ButtonSize.Small}
+                >
+                    <PlusIcon />
+                </IconButton>
+            )}
+            <div className={styles.list_elements} role="list">
                 {props.elements.map((elem, i) => (
-                    <div key={i} className={styles.element}>
+                    <div key={i} className={styles.element} role="listitem">
                         <TextInput
                             block
                             className={styles.path}
                             value={elem.key}
                             onChange={(ev: any) => modifyElement(i, ev.target.value, elem.value)}
+                            aria-label={`${props.title} name ${i + 1}`}
                             leadingVisual={props.keyIcon}
-                            trailingAction={
+                            trailingAction={!props.readOnly ? (
                                 <TextInputAction
                                     aria-label="Clear input"
                                     aria-labelledby=""
@@ -82,9 +85,9 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
                                 >
                                     <XIcon />
                                 </TextInputAction>
-                            }
+                            ) : undefined}
                             disabled={props.disabled}
-                            readOnly={props.disabled}
+                            readOnly={props.readOnly || props.disabled}
                         />
                         <div className={styles.aliaslink} />
                         <TextInput
@@ -92,9 +95,10 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
                             className={styles.alias}
                             value={elem.value}
                             onChange={(ev: any) => modifyElement(i, elem.key, ev.target.value)}
+                            aria-label={`${props.title} value ${i + 1}`}
                             leadingVisual={props.valueIcon}
                             disabled={props.disabled}
-                            readOnly={props.disabled}
+                            readOnly={props.readOnly || props.disabled}
                         />
                     </div>))}
             </div>

@@ -86,8 +86,3 @@
 .grid_column_1_span_2 {
     grid-column: 1 / span 2;
 }
-
-.embedded_description {
-    font-size: 0.9rem;
-    color: #59636e;
-}

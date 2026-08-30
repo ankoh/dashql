@@ -3,6 +3,7 @@ import { stringifyError } from '../logger/logger.js';
 import type { SetupProgress } from '../database/embedded_database_provider.js';
 
 import { HyperDB } from './hyperdb_wasm.js';
+import { HYPERDB_WASM_ENGINE_SETTINGS } from './hyperdb_settings.js';
 
 // eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite
 import engineUrl from '@dashql/hyperdb-wasm-js?url';
@@ -14,17 +15,6 @@ import wasmUrl from '@dashql/hyperdb-wasm?url';
 const HYPERDB_ENGINE_URL = new URL(engineUrl as string, import.meta.url);
 const HYPERDB_WORKER_URL = new URL(workerUrl as string, import.meta.url);
 const HYPERDB_WASM_URL = new URL(wasmUrl as string, import.meta.url);
-
-const HYPERDB_SETTINGS = {
-    identifier_resolution: 'case_insensitive',
-    experimental_view_creation: true,
-    experimental_persisted_view_creation: true,
-    experimental_hyper_introspection_functions: true,
-    experimental_data_type_persistence: true,
-    log_json_export: true,
-    log_file_size_limit: '1M',
-    log_file_max_count: 10,
-} as const;
 
 function createEngineScript(): { url: string; revoke: () => void } {
     const source = `self.HYPERDB_WASM_MODULE=self.Module??{};self.HYPERDB_WASM_MODULE.locateFile=(path,prefix)=>path==='hyperdb-wasm.wasm'?${JSON.stringify(HYPERDB_WASM_URL.href)}:prefix+path;importScripts(${JSON.stringify(HYPERDB_ENGINE_URL.href)});`;
@@ -56,7 +46,7 @@ export async function setupWebHyperDB(
                     wasmUrl: HYPERDB_WASM_URL,
                     onSetupProgress,
                 }),
-                HYPERDB_SETTINGS,
+                HYPERDB_WASM_ENGINE_SETTINGS,
             );
             const terminate = database.terminate.bind(database);
             database.terminate = async () => {
