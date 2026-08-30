@@ -12,9 +12,13 @@ describe('Hyper connection settings', () => {
         expect(HYPERDB_WASM_ENGINE_SETTING_ELEMENTS).toEqual(
             Object.entries(HYPERDB_WASM_ENGINE_SETTINGS).map(([key, value]) => ({
                 key,
-                value: String(value),
+                value: typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value),
             })),
         );
+        expect(HYPERDB_WASM_ENGINE_SETTING_ELEMENTS).toContainEqual({
+            key: 'http_location_allowlist',
+            value: '["*"]',
+        });
         expect(Object.isFrozen(HYPERDB_WASM_ENGINE_SETTINGS)).toBe(true);
         expect(Object.isFrozen(HYPERDB_WASM_ENGINE_SETTING_ELEMENTS)).toBe(true);
         expect(HYPERDB_WASM_ENGINE_SETTING_ELEMENTS.every(Object.isFrozen)).toBe(true);

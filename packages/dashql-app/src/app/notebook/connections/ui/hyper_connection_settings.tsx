@@ -38,7 +38,7 @@ const LOG_CTX = "hyper_connector";
 export const HYPERDB_WASM_ENGINE_SETTING_ELEMENTS: readonly KeyValueListElement[] = Object.freeze(
     Object.entries(HYPERDB_WASM_ENGINE_SETTINGS).map(([key, value]) => Object.freeze({
         key,
-        value: String(value),
+        value: typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value),
     })),
 );
 
