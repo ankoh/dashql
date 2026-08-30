@@ -54,11 +54,11 @@ jobs:
                       --macos-arm64-dmg-path "$ARM64"/DashQL-*-arm64.dmg \
                       --macos-arm64-zip-path "$ARM64"/DashQL-*-arm64.zip \
                       --macos-arm64-zip-blockmap-path "$ARM64"/DashQL-*-arm64.zip.blockmap \
-                      --macos-arm64-update-manifest-path "$ARM64"/dev-mac.yml \
+                      --macos-arm64-update-manifest-path "$ARM64"/latest-mac.yml \
                       --macos-x64-dmg-path "$X64"/DashQL-*-x64.dmg \
                       --macos-x64-zip-path "$X64"/DashQL-*-x64.zip \
                       --macos-x64-zip-blockmap-path "$X64"/DashQL-*-x64.zip.blockmap \
-                      --macos-x64-update-manifest-path "$X64"/dev-mac.yml
+                      --macos-x64-update-manifest-path "$X64"/latest-mac.yml
 
             - name: Remove expired Electron releases from R2
               shell: bash
