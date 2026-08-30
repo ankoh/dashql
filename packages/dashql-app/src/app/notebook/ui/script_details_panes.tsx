@@ -4,6 +4,7 @@ import * as styles from './script_details.module.css';
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
 import { PaperAirplaneIcon } from '@primer/octicons-react';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import type { AgentRunState } from '../agent/agent_run_state.js';
 import type { QueryExecutionState } from '../connections/query_execution_state.js';
@@ -34,6 +35,7 @@ interface ScriptDetailsEditorPaneProps {
     CheckIcon: Icon;
     CancelIcon: Icon;
     CollapseIcon: Icon;
+    PersonIcon: Icon;
     formatMenu: React.ReactNode;
     onExecute: () => void;
     onHide: () => void;
@@ -50,7 +52,7 @@ interface ScriptDetailsEditorPaneProps {
 }
 
 export const ScriptDetailsEditorPane: React.FC<ScriptDetailsEditorPaneProps> = (props) => (
-    <div className={styles.entry_message_single}>
+    <div className={styles.entry_message_script}>
         <div className={styles.entry_script_card}>
             <div className={styles.entry_card_action_bar}>
                 <IconButton
@@ -140,6 +142,9 @@ export const ScriptDetailsEditorPane: React.FC<ScriptDetailsEditorPaneProps> = (
                 </div>
             </div>
         </div>
+        <div className={styles.entry_avatar_script} data-script-details-avatar="script" aria-hidden="true">
+            <props.PersonIcon size={16} />
+        </div>
     </div>
 );
 
@@ -149,15 +154,24 @@ interface ScriptDetailsOutputPaneProps {
     visualizeQuery: ResolvedVisualizeQuery | null;
     initialTab?: ScriptDetailsTab;
     tableDebugMode: boolean;
+    connectorIcon: string;
     statusActions: React.ReactNode;
     onCancelQuery?: () => void;
     onCancelAgent: () => void;
-    onClose: () => void;
+    expanded: boolean;
+    onToggleExpanded: () => void;
+    contentId: string;
 }
 
 export const ScriptDetailsOutputPane: React.FC<ScriptDetailsOutputPaneProps> = (props) => (
-    <div className={styles.entry_message_single}>
+    <div className={styles.entry_message_server}>
+        <div className={styles.entry_avatar_server} data-script-details-avatar="server" aria-hidden="true">
+            <svg width="16" height="16">
+                <use xlinkHref={`${symbols}#${props.connectorIcon}`} />
+            </svg>
+        </div>
         <ScriptOutputDetails
+            className={styles.entry_server_card}
             query={props.query}
             agentRun={props.agentRun}
             visualizeQuery={props.visualizeQuery}
@@ -165,7 +179,9 @@ export const ScriptDetailsOutputPane: React.FC<ScriptDetailsOutputPaneProps> = (
             tableDebugMode={props.tableDebugMode}
             onCancelQuery={props.onCancelQuery}
             onCancelAgent={props.onCancelAgent}
-            onClose={props.onClose}
+            expanded={props.expanded}
+            onToggleExpanded={props.onToggleExpanded}
+            contentId={props.contentId}
             statusActions={props.statusActions}
         />
     </div>

@@ -12,7 +12,7 @@ import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js'
 import { SymbolIcon } from '../../../../ui/foundations/symbol_icon.js';
 import { useAgentRunState, useCancelAgentRun } from '../../agent/agent_run_provider.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
-import { queryIsDone } from '../../connections/query_execution_state.js';
+import { QueryExecutionStatus, queryIsDone } from '../../connections/query_execution_state.js';
 import { computeQueryCacheKeyForConnection, useCancelQuery, useQueryState } from '../../connections/query_executor.js';
 import type { StorageReader } from '../../persistence/storage_provider.js';
 import { compileNotebookQuery, getSelectedScriptRefs, type NotebookScripts, type ScriptData } from '../../scripts/notebook_scripts.js';
@@ -58,6 +58,10 @@ export interface ScriptCardProps {
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
+    resultExpanded: boolean;
+    onToggleResultExpanded: (scriptKey: number) => void;
+    onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
+    onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
     onPreviewReady: () => void;
     initialPreviewText: string;
     onFormattedText: (scriptText: string) => void;
@@ -127,14 +131,18 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
         return () => cancel.abort();
     }, [props.scriptData, props.connection?.details, props.notebookId]);
 
-    // The status bar above the body generalizes the former "AI bar": while any work is in flight —
-    // an agent run *or* a query execution — it's a compact strip (spinner + latest log line / query
-    // status) instead of yanking the user to the raw trace. The body keeps rendering the current
-    // output; the user opts into the full trace by clicking the bar. The server message only appears
-    // after execution starts and persists in terminal states. A staged rewrite doesn't feed it —
-    // Accept/Reject controls live on the body overlay — so the bar stays free to show the rewritten
-    // statement's re-execution status.
+    // The result header persists for active and terminal execution states. It can collapse the
+    // result body without affecting its cancel, cache, and rerun actions.
     const entryStatus = deriveEntryStatus(agentRunState, queryState);
+    const scriptKey = props.scriptData?.scriptKey ?? null;
+    React.useEffect(() => {
+        if (scriptKey == null) return;
+        if (queryState?.status !== QueryExecutionStatus.SUCCEEDED || queryState.resultTable !== null) {
+            props.onResetAutoCollapsedResult(scriptKey, queryState?.queryId ?? props.scriptData?.latestQueryId ?? null);
+            return;
+        }
+        props.onAutoCollapseResult(scriptKey, queryState.queryId);
+    }, [props.onAutoCollapseResult, props.onResetAutoCollapsedResult, props.scriptData?.latestQueryId, queryState, scriptKey]);
     const cancelEntryOperation = React.useCallback(() => {
         if (entryStatus?.kind === EntryStatusKind.Agent) {
             cancelAgentRun(props.notebookId);
@@ -143,12 +151,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
         }
     }, [cancelAgentRun, cancelQuery, entryStatus?.kind, props.scriptData?.latestQueryId, props.notebookId]);
 
-    // A monotonic nonce handed to the footer: bumped when the user clicks the status bar so the
-    // footer reveals the matching trace's Log tab on demand (work no longer auto-switches it). The
-    // clicked source (query vs agent) rides along so the footer reveals the right trace.
-    const [logRequest, setLogRequest] = React.useState<{ nonce: number; traceId: number | null }>({ nonce: 0, traceId: null });
-    const showLog = React.useCallback((traceId: number | null) => setLogRequest(prev => ({ nonce: prev.nonce + 1, traceId })), []);
-    const scriptKey = props.scriptData?.scriptKey ?? null;
     const acceptDiff = React.useCallback(() => {
         if (scriptKey != null) props.onAcceptDiff(scriptKey);
     }, [scriptKey, props.onAcceptDiff]);
@@ -198,6 +200,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
 
 
     const connectorIcon = props.connection?.connectorInfo?.icons?.outlines ?? 'database_16';
+    const resultContentId = props.scriptData != null ? `feed-result-${props.scriptData.scriptKey}` : undefined;
     return (
         <div
             className={styles.feed_entry_pair}
@@ -346,7 +349,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                     >
                         <EntryStatusBar
                             status={entryStatus}
-                            onClick={entryStatus.traceId != null ? () => showLog(entryStatus.traceId) : undefined}
+                            onToggleExpanded={() => {
+                                if (scriptKey != null) props.onToggleResultExpanded(scriptKey);
+                            }}
+                            expanded={props.resultExpanded}
+                            controls={resultContentId}
                             onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
                             cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
                             actions={
@@ -361,17 +368,18 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                             }
                         />
                         {(queryState != null || agentTraceId != null) ? (
-                            <FeedEntryFooter
-                                notebookId={props.notebookId}
-                                queryState={queryState}
-                                agentTraceId={agentTraceId}
-                                visualizeQuery={props.scriptData?.annotations.visualizeQuery ?? null}
-                                logRequest={logRequest}
-                                onShowStatus={() => props.onShowStatus(props.scriptFileName)}
-                                onShowAgentStatus={() => props.onShowAgentStatus(props.scriptFileName)}
-                                onShowTable={() => props.onShowTable(props.scriptFileName)}
-                                onShowVisualization={() => props.onShowVisualization(props.scriptFileName)}
-                            />
+                            <div id={resultContentId} hidden={!props.resultExpanded}>
+                                <FeedEntryFooter
+                                    notebookId={props.notebookId}
+                                    queryState={queryState}
+                                    agentTraceId={agentTraceId}
+                                    visualizeQuery={props.scriptData?.annotations.visualizeQuery ?? null}
+                                    onShowStatus={() => props.onShowStatus(props.scriptFileName)}
+                                    onShowAgentStatus={() => props.onShowAgentStatus(props.scriptFileName)}
+                                    onShowTable={() => props.onShowTable(props.scriptFileName)}
+                                    onShowVisualization={() => props.onShowVisualization(props.scriptFileName)}
+                                />
+                            </div>
                         ) : null}
                     </div>
                 </div>
@@ -406,6 +414,10 @@ export interface ScriptFeedRowProps {
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
+    collapsedResults: ReadonlyMap<number, number | null>;
+    onToggleResultExpanded: (scriptKey: number) => void;
+    onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
+    onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
     previewHints: ReadonlyMap<number, ScriptPreviewHint>;
     onHeightMeasured: (scriptId: number, height: number) => void;
     onFormattedText: (scriptId: number, scriptText: string) => void;
@@ -509,6 +521,10 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onRerun={props.onRerun}
                     onAcceptDiff={props.onAcceptDiff}
                     onRejectDiff={props.onRejectDiff}
+                    resultExpanded={scriptData == null || !props.collapsedResults.has(scriptData.scriptKey)}
+                    onToggleResultExpanded={props.onToggleResultExpanded}
+                    onAutoCollapseResult={props.onAutoCollapseResult}
+                    onResetAutoCollapsedResult={props.onResetAutoCollapsedResult}
                     onPreviewReady={handlePreviewReady}
                     initialPreviewText={previewHint?.formattedText ?? ''}
                     onFormattedText={handleFormattedText}

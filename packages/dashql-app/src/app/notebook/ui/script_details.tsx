@@ -10,6 +10,7 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/b
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
 import { ConnectionHealth, ConnectionState } from '../connections/connection_state.js';
 import { useCancelQuery, useQueryState, useQueryExecutor } from '../connections/query_executor.js';
+import { QueryExecutionStatus } from '../connections/query_execution_state.js';
 import { useAgentRunState, useCancelAgentRun } from '../agent/agent_run_provider.js';
 import { ScriptDetailsTab } from './script_output_details.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
@@ -37,6 +38,7 @@ import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../../../ui/foundations/overlay.js';
 import { useScriptFormatPreview } from './script_format_preview.js';
 import { ScriptDetailsEditorPane, ScriptDetailsOutputPane } from './script_details_panes.js';
+import { VerticalSplit } from '../../../ui/foundations/vertical_split.js';
 
 export { ScriptDetailsTab as TabKey };
 
@@ -112,9 +114,9 @@ const ScriptFormatMenu: React.FC<ScriptFormatMenuProps> = (props) => {
 export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const config = useAppConfig();
     const logger = useLogger();
-    const showServerDetails = props.initialTab != null && props.initialTab !== ScriptDetailsTab.Editor;
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     const [isFormattable, setIsFormattable] = React.useState(true);
+    const [resultExpanded, setResultExpanded] = React.useState(true);
 
     const selectedPage = getSelectedScriptFolder(props.notebookScripts);
     const notebookEntry = props.scriptId != null
@@ -163,6 +165,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
 
     React.useEffect(() => {
         setIsEditingName(false);
+        setResultExpanded(true);
     }, [notebookEntry?.scriptId]);
 
     React.useEffect(() => {
@@ -225,6 +228,24 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebookScripts?.notebookId ?? null, activeQueryId);
+    const autoCollapsedQueryIdRef = React.useRef<number | null>(null);
+    React.useEffect(() => {
+        const queryId = activeQueryState?.queryId ?? activeQueryId;
+        if (activeQueryState?.status === QueryExecutionStatus.SUCCEEDED
+            && activeQueryState.resultTable === null) {
+            if (autoCollapsedQueryIdRef.current === queryId) return;
+            autoCollapsedQueryIdRef.current = queryId;
+            setResultExpanded(false);
+            return;
+        }
+        if (autoCollapsedQueryIdRef.current != null && autoCollapsedQueryIdRef.current !== queryId) {
+            autoCollapsedQueryIdRef.current = null;
+            setResultExpanded(true);
+        }
+    }, [activeQueryId, activeQueryState]);
+    const handleToggleResultExpanded = React.useCallback(() => {
+        setResultExpanded(expanded => !expanded);
+    }, []);
     const cancelQuery = useCancelQuery();
     const cancelAgentRun = useCancelAgentRun();
 
@@ -233,13 +254,12 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     // current result was served from cache.
     const executeQuery = useQueryExecutor();
     const storageReader = useStorageReader();
-    const handleExecuteAndHide = React.useCallback(() => {
-        props.hideDetails();
+    const handleExecute = React.useCallback(() => {
         if (scriptData == null || props.connection?.connectionHealth !== ConnectionHealth.ONLINE) {
             return;
         }
         runNotebookScript(props.connection.connectionId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
-    }, [props.hideDetails, props.connection?.connectionHealth, props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, logger]);
+    }, [props.connection?.connectionHealth, props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, logger]);
     const handleRerun = React.useCallback(async (cacheKey: string | null) => {
         if (scriptData == null) {
             return;
@@ -268,7 +288,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 callback: (event) => {
                     event.preventDefault();
                     event.stopImmediatePropagation();
-                    handleExecuteAndHide();
+                    handleExecute();
                 },
             },
             {
@@ -294,19 +314,19 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 },
             },
         ],
-        [props.hideDetails, isEditingName, cancelNameEdit, editorView, handleExecuteAndHide],
+        [props.hideDetails, isEditingName, cancelNameEdit, editorView, handleExecute],
     );
     useKeyEvents(keyHandlers);
 
     React.useEffect(() => {
-        if (editorView == null) {
+        if (editorView == null || (props.initialTab != null && props.initialTab !== ScriptDetailsTab.Editor)) {
             return;
         }
         const handle = requestAnimationFrame(() => {
             editorView.focus();
         });
         return () => cancelAnimationFrame(handle);
-    }, [editorView]);
+    }, [editorView, props.initialTab]);
 
 
     if (notebookEntry == null || scriptData == null) {
@@ -314,71 +334,85 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     }
 
     const ScreenNormalIcon: Icon = SymbolIcon('screen_normal_16');
+    const PersonIcon: Icon = SymbolIcon('person_16');
+    const connectorIcon = props.connection?.connectorInfo?.icons?.outlines ?? 'database_16';
     const tableDebugMode = config?.settings?.tableDebugMode ?? false;
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
-    // Script-card activation opens the editor (no initial tab). Any explicit output tab comes from
-    // the server card and opens a response-only Details view.
     return (
         <div className={styles.entry_body_container}>
             <div
                 key={notebookEntry?.scriptId}
                 className={styles.entry_single}
             >
-                {!showServerDetails ? (
-                    <ScriptDetailsEditorPane
-                        notebookId={props.notebookScripts.notebookId}
-                        scriptData={scriptData}
-                        folderName={folderName}
-                        scriptDisplay={scriptDisplay}
-                        scriptDebugMode={scriptDebugMode}
-                        executeDisabled={props.connection?.connectionHealth !== ConnectionHealth.ONLINE}
-                        isEditingName={isEditingName}
-                        draftFileName={draftFileName}
-                        editInputRef={editInputRef}
-                        isFormattable={isFormattable}
-                        formatPending={formatPending}
-                        hasPendingDiff={hasPendingDiff}
-                        PencilIcon={PencilIcon}
-                        CheckIcon={CheckIcon}
-                        CancelIcon={FormatXIcon}
-                        CollapseIcon={ScreenNormalIcon}
-                        formatMenu={<ScriptFormatMenu disabled={formatPending || hasPendingDiff} onFormat={handleFormat} />}
-                        onExecute={handleExecuteAndHide}
-                        onHide={props.hideDetails}
-                        onStartEditingName={startEditingName}
-                        onDraftFileNameChange={setDraftFileName}
-                        onSaveName={saveNameEdit}
-                        onCancelName={cancelNameEdit}
-                        onEditorView={setEditorView}
-                        onNavigateToScript={navigateToScript}
-                        onAcceptDiff={handleAcceptDiff}
-                        onRejectDiff={handleRejectDiff}
-                        onAcceptFormat={handleFormatAccept}
-                        onCancelFormat={handleFormatCancel}
-                    />
-                ) : (
-                    <ScriptDetailsOutputPane
-                        query={activeQueryState}
-                        agentRun={agentRunState}
-                        visualizeQuery={visualizeQuery}
-                        initialTab={props.initialTab}
-                        tableDebugMode={tableDebugMode}
-                        onCancelQuery={activeQueryId != null
-                            ? () => props.connection && cancelQuery(props.connection.connectionId, activeQueryId)
-                            : undefined}
-                        onCancelAgent={() => cancelAgentRun(props.notebookScripts.notebookId)}
-                        onClose={props.hideDetails}
-                        statusActions={(
-                            <>
-                                <QueryResultCacheLabel query={activeQueryState} />
-                                <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
-                                <IconButton variant={ButtonVariant.Invisible} onClick={props.hideDetails} aria-label="Collapse">
-                                    <ScreenNormalIcon size={16} />
-                                </IconButton>
-                            </>
-                        )}
-                    />
-                )}
+                <VerticalSplit
+                    className={styles.entry_split}
+                    defaultRatio={0.4}
+                    minFirstSize={160}
+                    minSecondSize={120}
+                    secondCollapsed={!resultExpanded}
+                    collapsedSecondSize={40}
+                    separatorLabel="Resize script editor and result"
+                    first={(
+                        <ScriptDetailsEditorPane
+                            notebookId={props.notebookScripts.notebookId}
+                            scriptData={scriptData}
+                            folderName={folderName}
+                            scriptDisplay={scriptDisplay}
+                            scriptDebugMode={scriptDebugMode}
+                            executeDisabled={props.connection?.connectionHealth !== ConnectionHealth.ONLINE}
+                            isEditingName={isEditingName}
+                            draftFileName={draftFileName}
+                            editInputRef={editInputRef}
+                            isFormattable={isFormattable}
+                            formatPending={formatPending}
+                            hasPendingDiff={hasPendingDiff}
+                            PencilIcon={PencilIcon}
+                            CheckIcon={CheckIcon}
+                            CancelIcon={FormatXIcon}
+                            CollapseIcon={ScreenNormalIcon}
+                            PersonIcon={PersonIcon}
+                            formatMenu={<ScriptFormatMenu disabled={formatPending || hasPendingDiff} onFormat={handleFormat} />}
+                            onExecute={handleExecute}
+                            onHide={props.hideDetails}
+                            onStartEditingName={startEditingName}
+                            onDraftFileNameChange={setDraftFileName}
+                            onSaveName={saveNameEdit}
+                            onCancelName={cancelNameEdit}
+                            onEditorView={setEditorView}
+                            onNavigateToScript={navigateToScript}
+                            onAcceptDiff={handleAcceptDiff}
+                            onRejectDiff={handleRejectDiff}
+                            onAcceptFormat={handleFormatAccept}
+                            onCancelFormat={handleFormatCancel}
+                        />
+                    )}
+                    second={(
+                        <ScriptDetailsOutputPane
+                            query={activeQueryState}
+                            agentRun={agentRunState}
+                            visualizeQuery={visualizeQuery}
+                            initialTab={props.initialTab}
+                            tableDebugMode={tableDebugMode}
+                            connectorIcon={connectorIcon}
+                            expanded={resultExpanded}
+                            onToggleExpanded={handleToggleResultExpanded}
+                            contentId={`script-result-${scriptData.scriptKey}`}
+                            onCancelQuery={activeQueryId != null
+                                ? () => props.connection && cancelQuery(props.connection.connectionId, activeQueryId)
+                                : undefined}
+                            onCancelAgent={() => cancelAgentRun(props.notebookScripts.notebookId)}
+                            statusActions={(
+                                <>
+                                    <QueryResultCacheLabel query={activeQueryState} />
+                                    <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
+                                    <IconButton variant={ButtonVariant.Invisible} onClick={props.hideDetails} aria-label="Close script details">
+                                        <ScreenNormalIcon size={16} />
+                                    </IconButton>
+                                </>
+                            )}
+                        />
+                    )}
+                />
             </div>
         </div>
     );
