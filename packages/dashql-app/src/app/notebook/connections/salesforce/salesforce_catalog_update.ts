@@ -102,6 +102,7 @@ export async function updateSalesforceCatalog(
     }
     catalog.loadScript(catalogRelationScript, SALESFORCE_CATALOG_RANK);
     const functionCount = loadPrefetchedHyperFunctions(
+        dql,
         catalog,
         catalogFunctionScript,
         functionsSQL,

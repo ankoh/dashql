@@ -67,6 +67,7 @@ describe('updateHyperCatalog', () => {
     it('queries standard and cloud attachments independently and merges their catalogs', async () => {
         const catalog = dql.createCatalog();
         const script = dql.createScript(catalog);
+        const functionScript = dql.createScript(catalog);
         const queries: string[] = [];
         const executor = vi.fn<QueryExecutor>((_connectionId, args) => {
             queries.push(args.query);
@@ -89,6 +90,7 @@ describe('updateHyperCatalog', () => {
             catalog,
             dql,
             script,
+            functionScript,
             new AbortController().signal,
         );
 
@@ -101,11 +103,13 @@ describe('updateHyperCatalog', () => {
         expect(script.toString()).toContain('CREATE TABLE "cloud"."sales"."orders"');
         expect(script.toString()).not.toContain('CREATE TABLE "Cloud Database"');
         expect(script.getAnalyzed().read().tablesLength()).toBe(2);
+        expect(functionScript.toString()).toContain('CREATE FUNCTION "default"."pg_catalog"."abs"() RETURNS any;');
     });
 
     it('uses the unqualified default database when there are no attachments', async () => {
         const catalog = dql.createCatalog();
         const script = dql.createScript(catalog);
+        const functionScript = dql.createScript(catalog);
         let query = '';
         const executor = vi.fn<QueryExecutor>((_connectionId, args) => {
             query = args.query;
@@ -122,6 +126,7 @@ describe('updateHyperCatalog', () => {
             catalog,
             dql,
             script,
+            functionScript,
             new AbortController().signal,
         );
 
@@ -133,6 +138,7 @@ describe('updateHyperCatalog', () => {
     it('retains a failed database section while committing a successful database', async () => {
         const catalog = dql.createCatalog();
         const script = dql.createScript(catalog);
+        const functionScript = dql.createScript(catalog);
         const attachments = [
             { path: 'lakehouse:first', alias: 'first' },
             { path: 'lakehouse:second', alias: 'second' },
@@ -157,6 +163,7 @@ describe('updateHyperCatalog', () => {
             catalog,
             dql,
             script,
+            functionScript,
             new AbortController().signal,
         );
         revision = 2;
@@ -172,6 +179,7 @@ describe('updateHyperCatalog', () => {
             catalog,
             dql,
             script,
+            functionScript,
             new AbortController().signal,
         );
 
@@ -186,6 +194,7 @@ describe('updateHyperCatalog', () => {
     it('leaves the script untouched when every attachment fails validation', async () => {
         const catalog = dql.createCatalog();
         const script = dql.createScript(catalog);
+        const functionScript = dql.createScript(catalog);
         script.replaceText('legacy catalog text');
         const executor = vi.fn<QueryExecutor>();
 
@@ -199,6 +208,7 @@ describe('updateHyperCatalog', () => {
             catalog,
             dql,
             script,
+            functionScript,
             new AbortController().signal,
         )).rejects.toThrow('Failed to refresh every attached database');
 

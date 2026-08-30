@@ -2,11 +2,18 @@ import * as React from 'react';
 
 import { ANALYZE_OUTDATED_SCRIPT, NotebookScripts, NotebookScriptsAction, ScriptData, destroyNotebookScripts, reduceNotebookScripts } from './notebook_scripts.js';
 import { Dispatch } from '../../../utils/variant.js';
+import type { DashQLScript } from '../../../core/index.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connections/connector_info.js';
 import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { useStorageWriter } from '../persistence/storage_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
-import { REPLACE_NOTEBOOK_SCRIPTS, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites } from "../persistence/storage_writer.js";
+import {
+    REPLACE_NOTEBOOK_SCRIPTS,
+    DEBOUNCE_DURATION_NOTEBOOK_WRITE,
+    groupNotebookFunctionWrites,
+    groupNotebookWrites,
+    WRITE_NOTEBOOK_FUNCTION_SCRIPT,
+} from "../persistence/storage_writer.js";
 
 const LOG_CTX = 'notebook_scripts_registry';
 
@@ -26,7 +33,10 @@ export interface NotebookScriptsRegistry {
 
 export type NotebookScriptsInput = NotebookScripts;
 export type SetNotebookScriptsRegistryAction = React.SetStateAction<NotebookScriptsRegistry>;
-export type NotebookScriptsAllocator = (scripts: NotebookScriptsInput) => [string, NotebookScripts];
+export type NotebookScriptsAllocator = (
+    scripts: NotebookScriptsInput,
+    catalogFunctionScript: DashQLScript,
+) => [string, NotebookScripts];
 export type ModifyNotebookScripts = (action: NotebookScriptsAction) => Promise<NotebookScripts | null> | void;
 export type ModifyConnectionNotebookScripts = (conn: string, action: NotebookScriptsAction) => void;
 
@@ -54,7 +64,7 @@ export function useNotebookScriptsRegistry(): [NotebookScriptsRegistry, Dispatch
 export function useNotebookScriptsAllocator(): NotebookScriptsAllocator {
     const storage = useStorageWriter();
     const [_reg, setReg] = React.useContext(NOTEBOOK_SCRIPTS_REGISTRY_CTX)!;
-    return React.useCallback((state: NotebookScriptsInput) => {
+    return React.useCallback((state: NotebookScriptsInput, catalogFunctionScript: DashQLScript) => {
         const notebookId = state.notebookId;
         const scripts: NotebookScripts = { ...state };
 
@@ -73,6 +83,10 @@ export function useNotebookScriptsAllocator(): NotebookScriptsAllocator {
         storage.write(groupNotebookWrites(scripts.notebookId), {
             type: REPLACE_NOTEBOOK_SCRIPTS,
             value: scripts
+        }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+        storage.write(groupNotebookFunctionWrites(scripts.notebookId), {
+            type: WRITE_NOTEBOOK_FUNCTION_SCRIPT,
+            value: [scripts.notebookId, catalogFunctionScript]
         }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
         return [notebookId, scripts];
     }, [setReg, storage]);

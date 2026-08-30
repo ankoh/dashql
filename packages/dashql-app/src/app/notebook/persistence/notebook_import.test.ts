@@ -1,6 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import JSZip from 'jszip';
 
+import * as core from '../../../core/index.js';
+import { filterInvalidNotebookCatalogs } from './notebook_bundle.js';
 import { importNotebookFromZip, readNotebookBundleFromZip } from './notebook_import.js';
 import type { NotebookData, StorageBackend } from './storage_backend.js';
 import {
@@ -14,6 +16,16 @@ import {
 
 const SOURCE_ID = '11111111-2222-3333-4444-555555555555';
 const NEW_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+
+beforeAll(async () => {
+    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+});
+
+afterEach(() => {
+    dql.resetUnsafe();
+});
 
 function notebook(overrides: Partial<NotebookData> = {}): NotebookData {
     return {
@@ -151,6 +163,35 @@ describe('readNotebookBundleFromZip', () => {
     });
 });
 
+describe('filterInvalidNotebookCatalogs', () => {
+    it('drops malformed relation and function catalogs using the parser', () => {
+        const bundle = {
+            notebook: notebook(),
+            schemaSql: '<html><body>DashQL</body></html>',
+            functionsSql: '<!doctype html><html></html>',
+            folders: [],
+            draftSql: null,
+        };
+
+        expect(filterInvalidNotebookCatalogs(dql, bundle)).toEqual({
+            bundle: { ...bundle, schemaSql: null, functionsSql: null },
+            invalidFiles: ['dashql-relations.sql', 'dashql-functions.sql'],
+        });
+    });
+
+    it('retains parseable relation and function catalogs', () => {
+        const bundle = {
+            notebook: notebook(),
+            schemaSql: 'CREATE TABLE "default"."public"."answer" ("value" BIGINT);',
+            functionsSql: 'CREATE FUNCTION "default"."public"."answer"() RETURNS BIGINT;',
+            folders: [],
+            draftSql: null,
+        };
+
+        expect(filterInvalidNotebookCatalogs(dql, bundle)).toEqual({ bundle, invalidFiles: [] });
+    });
+});
+
 describe('importNotebookFromZip', () => {
     let backend: StorageBackend;
 
@@ -210,6 +251,16 @@ describe('importNotebookFromZip', () => {
             NEW_ID,
             expect.objectContaining({ name: '   ' }),
         );
+    });
+
+    it('creates dashql-functions.sql when the imported bundle has no function catalog', async () => {
+        const zipBlob = await createZipBlob({
+            [STORAGE_NOTEBOOK_FILE]: JSON.stringify(notebook()),
+        });
+
+        await importNotebookFromZip(zipBlob, backend);
+
+        expect(backend.saveNotebookFunctions).toHaveBeenCalledWith(SOURCE_ID, '');
     });
 
     it('imports under an explicit fresh UUID', async () => {

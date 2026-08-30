@@ -35,7 +35,7 @@ export function useNotebookScriptsSetup(): NotebookScriptsSetup {
             uncommittedScriptId: uncommittedKey,
             scriptFocus: { folderName, fileName, interactionCounter: 0 },
             semanticUserFocus: null,
-        });
+        }, conn.catalogFunctionScript);
         return notebookScripts;
     }, [allocateNotebookScripts]);
 }
