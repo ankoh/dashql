@@ -7,13 +7,16 @@ import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
+import { ChevronDownIcon, ChevronRightIcon } from '@primer/octicons-react';
+import { classNames } from '../../../utils/classnames.js';
 
 interface EntryStatusBarProps {
     /// The derived status to show. When null the caller shouldn't render the bar at all.
     status: EntryStatus;
-    /// Reveal the underlying trace log (footer / status panel). When set, the bar becomes a
-    /// clickable strip.
-    onClick?: () => void;
+    /// Toggle the result content below this status header.
+    onToggleExpanded?: () => void;
+    expanded?: boolean;
+    controls?: string;
     /// Cancel the in-flight work represented by this status. When set, a visible Cancel button is
     /// rendered at the right edge without making the whole bar a nested button.
     onCancel?: () => void;
@@ -52,12 +55,10 @@ const ErrorDetailCard: React.FC<{
     );
 };
 
-/// The status bar shown between an entry's action bar and its body. A single strip that generalizes
-/// the former "AI bar": it renders a spinner (or check/cross) plus a one-line message for whatever
-/// work is in flight — an agent run or a query execution. Purely presentational; contents come from
-/// `deriveEntryStatus`. A failed query's key-values are revealed on hover over the message (see
-/// ErrorDetailOverlay).
-export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick, onCancel, cancelLabel = 'Cancel operation', actions }) => {
+/// The result-card header: it renders a spinner (or check/cross) plus a one-line status message and
+/// optionally toggles the result content below it. A failed query's key-values are available from a
+/// separate control so the toggle never contains nested interactive elements.
+export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggleExpanded, expanded, controls, onCancel, cancelLabel = 'Cancel operation', actions }) => {
     const [showDetail, setShowDetail] = React.useState(false);
     const hasErrorDetail = status.errorDetail != null;
     const CancelIcon = SymbolIcon('x_16');
@@ -106,14 +107,19 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onClick,
     );
 
     return (
-        <div className={styles.status_bar}>
-            {onClick != null ? (
+        <div className={classNames(styles.status_bar, {
+            [styles.status_bar_collapsed]: expanded === false,
+        })}>
+            {onToggleExpanded != null ? (
                 <button
                     type="button"
                     className={styles.status_bar_log_button}
-                    onClick={onClick}
-                    aria-label={`Show log: ${status.message}`}
+                    onClick={onToggleExpanded}
+                    aria-label={`${expanded ? 'Collapse' : 'Expand'} result: ${status.message}`}
+                    aria-expanded={expanded}
+                    aria-controls={controls}
                 >
+                    {expanded ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
                     {indicator}
                     {message}
                 </button>

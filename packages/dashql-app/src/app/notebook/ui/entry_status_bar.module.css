@@ -1,8 +1,5 @@
-/* The entry status bar sits between the action bar and the body. Two shapes share the same
-   footprint: `.status_bar_clickable` (a clickable strip: spinner + latest log line, reveals the
-   trace log) while work is in flight, and `.status_bar` (label + Accept/Reject) once a rewrite is
-   staged. Generalized from the former "AI bar" so query execution progress uses the same affordance
-   as agent runs. */
+/* The entry status bar is the persistent header for a result card. Its main button toggles the
+   result content while cancel, cache, and error-detail controls remain separate siblings. */
 .status_bar {
     display: flex;
     align-items: center;
@@ -12,9 +9,11 @@
     color: hsl(210, 12%, 36%);
 }
 
-/* The clickable strip is a full-width button — reset the default button chrome so it reads as a bar.
-   font-size is set explicitly (not just inherited) so the label matches the staged-rewrite bar's
-   label exactly rather than picking up the button user-agent size. */
+.status_bar_collapsed {
+    border-bottom-color: transparent;
+}
+
+/* Reset the main toggle's default button chrome so the entire status region reads as one header. */
 .status_bar_log_button,
 .status_bar_content {
     padding: 0px 16px 0 12px;

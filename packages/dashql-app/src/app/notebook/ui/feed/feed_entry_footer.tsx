@@ -34,11 +34,6 @@ interface FeedEntryFooterProps {
     /// The latest agent-run trace id for this script (null if no agent run has happened).
     agentTraceId: number | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
-    /// A log-reveal request from the card's status bar: whenever `nonce` advances, jump to the Log
-    /// tab and select the source matching `traceId` (query vs agent). Bumped when the user clicks the
-    /// status bar, so the footer reveals the trace on demand instead of auto-hijacking the tab the
-    /// moment work starts.
-    logRequest?: { nonce: number; traceId: number | null };
     onShowStatus?: () => void;
     onShowAgentStatus?: () => void;
     onShowTable?: () => void;
@@ -69,20 +64,6 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         }
         prevHasResult.current = hasResult;
     }, [hasResult, hasVisualization, queryTraceId]);
-
-    const requestNonce = props.logRequest?.nonce;
-    const requestTraceId = props.logRequest?.traceId ?? null;
-    const previousRequestNonce = React.useRef(requestNonce);
-    React.useEffect(() => {
-        if (requestNonce != null && requestNonce !== previousRequestNonce.current) {
-            if (requestTraceId != null && requestTraceId === agentTraceId) {
-                setSelectedTab(FooterTab.AgentLog);
-            } else if (queryTraceId != null) {
-                setSelectedTab(FooterTab.ExecutionLog);
-            }
-        }
-        previousRequestNonce.current = requestNonce;
-    }, [requestNonce, requestTraceId, queryTraceId, agentTraceId]);
 
     const tabProps = React.useMemo<Record<FooterTab, VerticalTabProps>>(() => ({
         [FooterTab.ExecutionLog]: {

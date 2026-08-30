@@ -17,6 +17,7 @@ import { deriveEntryStatus, EntryStatusKind } from './entry_status_model.js';
 import { TabHeader, formatRowCountDetail, useResultRowCount } from './tab_header.js';
 import { TraceLogPanel } from './trace_log_panel.js';
 import * as styles from './script_output_details.module.css';
+import { classNames } from '../../../utils/classnames.js';
 
 export enum ScriptDetailsTab {
     Editor = 0,
@@ -27,6 +28,7 @@ export enum ScriptDetailsTab {
 }
 
 interface Props {
+    className?: string;
     query: QueryExecutionState | null;
     agentRun?: AgentRunState | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
@@ -35,7 +37,9 @@ interface Props {
     statusActions?: React.ReactNode;
     onCancelQuery?: () => void;
     onCancelAgent?: () => void;
-    onClose: () => void;
+    expanded?: boolean;
+    onToggleExpanded?: () => void;
+    contentId?: string;
 }
 
 export const ScriptOutputDetails: React.FC<Props> = (props) => {
@@ -138,15 +142,7 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
                 return enabledTabs[(currentIndex + 1) % enabledTabs.length];
             });
         },
-    }, {
-        key: 'Escape',
-        ctrlKey: false,
-        capture: true,
-        callback: event => {
-            props.onClose();
-            event.stopImmediatePropagation();
-        },
-    }], [enabledTabs, props.onClose]);
+    }], [enabledTabs]);
     useKeyEvents(keyHandlers);
 
     const cancel = entryStatus.kind === EntryStatusKind.Agent
@@ -180,27 +176,29 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
     }), [agentTraceId, props.query, props.tableDebugMode, props.visualizeQuery, queryTraceId, totalRows]);
 
     return (
-        <div className={styles.card}>
+        <div className={classNames(styles.card, props.className)}>
             <EntryStatusBar
                 status={entryStatus}
-                onClick={entryStatus.traceId != null ? () => selectTab(
-                    entryStatus.kind === EntryStatusKind.Agent
-                        ? ScriptDetailsTab.AgentStatusPanel
-                        : ScriptDetailsTab.QueryStatusPanel,
-                ) : undefined}
+                onToggleExpanded={props.onToggleExpanded}
+                expanded={props.expanded}
+                controls={props.contentId}
                 onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancel : undefined}
                 cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
                 actions={props.statusActions}
             />
-            <VerticalTabs
-                className={styles.tabs}
-                variant={VerticalTabVariant.Stacked}
-                selectedTab={selectedTab}
-                selectTab={tab => selectTab(tab as ScriptDetailsTab)}
-                tabProps={tabProps}
-                tabKeys={tabKeys}
-                tabRenderers={tabRenderers}
-            />
+            <div id={props.contentId} className={styles.content} hidden={props.expanded === false}>
+                {enabledTabs.length > 0 && (
+                    <VerticalTabs
+                        className={styles.tabs}
+                        variant={VerticalTabVariant.Stacked}
+                        selectedTab={selectedTab}
+                        selectTab={tab => selectTab(tab as ScriptDetailsTab)}
+                        tabProps={tabProps}
+                        tabKeys={tabKeys}
+                        tabRenderers={tabRenderers}
+                    />
+                )}
+            </div>
         </div>
     );
 };

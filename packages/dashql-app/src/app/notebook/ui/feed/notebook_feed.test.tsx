@@ -36,6 +36,8 @@ const mockState = vi.hoisted(() => ({
         statementIndex?: number;
         statementCount?: number;
         statementSucceeded?: boolean;
+        queryId?: number;
+        resultTable?: unknown;
     }>(),
     agentRuns: new Map<number, { traceId: number; phase?: number; log?: Array<{ message: string }> }>(),
     latestAgentRunId: null as number | null,
@@ -1220,6 +1222,70 @@ describe('NotebookFeed', () => {
         expect(viewers.length).toBe(1);
     });
 
+    it('collapses and restores a result card from its status header', () => {
+        mockState.queryStates.set(42, { traceId: 100, status: 9 /* SUCCEEDED */ });
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[101] = { ...notebookScripts.scripts[101], latestQueryId: 42 };
+        renderFeed({
+            notebookScripts,
+            modifyNotebookScripts: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        let statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Collapse result"]')!;
+        expect(statusHeader.getAttribute('aria-expanded')).toBe('true');
+        expect(container.querySelector('[data-testid="trace-log-viewer"]')).not.toBeNull();
+
+        act(() => statusHeader.click());
+        statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Expand result"]')!;
+        expect(statusHeader.getAttribute('aria-expanded')).toBe('false');
+        expect(container.querySelector('[data-testid="trace-log-viewer"]')?.parentElement?.hidden).toBe(true);
+
+        renderFeed({
+            notebookScripts,
+            modifyNotebookScripts: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Expand result"]')!;
+        expect(statusHeader.getAttribute('aria-expanded')).toBe('false');
+
+        act(() => statusHeader.click());
+        expect(container.querySelector('[aria-label^="Collapse result"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="trace-log-viewer"]')?.parentElement?.hidden).toBe(false);
+    });
+
+    it('initially collapses a successful execution without a visible result', () => {
+        mockState.queryStates.set(42, {
+            queryId: 42,
+            traceId: 100,
+            status: 9 /* SUCCEEDED */,
+            resultTable: null,
+        });
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[101] = { ...notebookScripts.scripts[101], latestQueryId: 42 };
+
+        renderFeed({
+            notebookScripts,
+            modifyNotebookScripts: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+
+        expect(container.querySelector('[aria-label^="Expand result"]')?.getAttribute('aria-expanded')).toBe('false');
+
+        const statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Expand result"]')!;
+        act(() => statusHeader.click());
+        renderFeed({
+            notebookScripts,
+            modifyNotebookScripts: vi.fn(),
+            showDetails: vi.fn(),
+            scrollTarget: null,
+        });
+        expect(container.querySelector('[aria-label^="Collapse result"]')?.getAttribute('aria-expanded')).toBe('true');
+    });
+
     it('shows execution footer for an agent run without a query', () => {
         // The script references a run by id; the run (resolved from the registry) carries the trace.
         // Terminal phase (SUCCEEDED) so the in-flight AI bar isn't what surfaces the footer here.
@@ -1253,7 +1319,7 @@ describe('NotebookFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Collapse result"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Generating a SQL query from your request');
         expect(container.querySelector('[aria-label="Cancel agent run"]')).not.toBeNull();
@@ -1273,7 +1339,7 @@ describe('NotebookFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Collapse result"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Executing query');
         const cancel = container.querySelector('[aria-label="Cancel query"]') as HTMLButtonElement;
@@ -1299,7 +1365,7 @@ describe('NotebookFeed', () => {
             scrollTarget: null,
         });
 
-        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Collapse result"]');
         expect(statusBar!.textContent).toContain('Statement 2 of 3 executed successfully');
     });
 
@@ -1313,7 +1379,7 @@ describe('NotebookFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Collapse result"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Statement executed successfully');
     });
@@ -1335,7 +1401,7 @@ describe('NotebookFeed', () => {
             scrollTarget: null,
         });
 
-        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Collapse result"]');
         expect(statusBar!.textContent).toContain('Statement 2 of 2 executed successfully');
     });
 
@@ -1349,7 +1415,7 @@ describe('NotebookFeed', () => {
             showDetails: vi.fn(),
             scrollTarget: null,
         });
-        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Collapse result"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Result loaded from cache');
     });
@@ -1372,7 +1438,7 @@ describe('NotebookFeed', () => {
         expect(container.querySelector('[aria-label="Accept rewrite"]')).not.toBeNull();
         expect(container.querySelector('[aria-label="Reject rewrite"]')).not.toBeNull();
         // The completed agent run remains available as the server card status.
-        expect(container.querySelector('[aria-label^="Show log"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label^="Collapse result"]')).not.toBeNull();
     });
 
     it('shows the query status bar when a re-execution runs over a staged diff', () => {
@@ -1388,7 +1454,7 @@ describe('NotebookFeed', () => {
             scrollTarget: null,
         });
         // The bar is the clickable execution strip showing the running query...
-        const statusBar = container.querySelector('[aria-label^="Show log"]');
+        const statusBar = container.querySelector('[aria-label^="Collapse result"]');
         expect(statusBar).not.toBeNull();
         expect(statusBar!.textContent).toContain('Executing query');
         // ...and Accept/Reject stay reachable on the body overlay throughout.

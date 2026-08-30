@@ -71,6 +71,9 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
 
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
+    // Presence means collapsed. A query id marks an automatic no-result collapse; null marks a
+    // manual collapse, which must not be reset when a later query starts.
+    const [collapsedResults, setCollapsedResults] = React.useState<ReadonlyMap<number, number | null>>(() => new Map());
     const [aiContextScriptKey, setAIContextScriptKey] = React.useState<number | null>(null);
 
     // The SQL/AI input mode is hoisted into the command context so the "Switch Mode" command
@@ -426,6 +429,31 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const handleRejectDiff = React.useCallback((scriptKey: number) => {
         props.modifyNotebookScripts({ type: REJECT_PENDING_DIFF, value: scriptKey });
     }, [props.modifyNotebookScripts]);
+    const handleToggleResultExpanded = React.useCallback((scriptKey: number) => {
+        setCollapsedResults(current => {
+            const next = new Map(current);
+            if (next.has(scriptKey)) next.delete(scriptKey);
+            else next.set(scriptKey, null);
+            return next;
+        });
+    }, []);
+    const handleAutoCollapseResult = React.useCallback((scriptKey: number, queryId: number) => {
+        setCollapsedResults(current => {
+            if (current.has(scriptKey)) return current;
+            const next = new Map(current);
+            next.set(scriptKey, queryId);
+            return next;
+        });
+    }, []);
+    const handleResetAutoCollapsedResult = React.useCallback((scriptKey: number, queryId: number | null) => {
+        setCollapsedResults(current => {
+            const autoCollapsedQueryId = current.get(scriptKey);
+            if (autoCollapsedQueryId == null || autoCollapsedQueryId === queryId) return current;
+            const next = new Map(current);
+            next.delete(scriptKey);
+            return next;
+        });
+    }, []);
 
     // The feed stays mounted (just hidden) while the catalog/details overlay is open, so its global
     // key handlers would otherwise keep firing behind the overlay. Gate them all on the active flag.
@@ -552,12 +580,16 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onRerun: handleRerunEntry,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
+        collapsedResults,
+        onToggleResultExpanded: handleToggleResultExpanded,
+        onAutoCollapseResult: handleAutoCollapseResult,
+        onResetAutoCollapsedResult: handleResetAutoCollapsedResult,
         previewHints: feedLayout.previewHints,
         onHeightMeasured: feedLayout.onHeightMeasured,
         onFormattedText: feedLayout.onFormattedText,
         topPadding: feedLayout.topPadding,
         heightsVersion: feedLayout.heightsVersion,
-    }), [entries, props.notebookScripts.scripts, props.notebookScripts.connectorInfo.icons?.outlines, props.notebookScripts.scriptFocus.fileName, folderName, scriptDebugMode, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, feedLayout.previewHints, feedLayout.onHeightMeasured, feedLayout.onFormattedText, feedLayout.topPadding, feedLayout.heightsVersion]);
+    }), [entries, props.notebookScripts.scripts, props.notebookScripts.connectorInfo.icons?.outlines, props.notebookScripts.scriptFocus.fileName, folderName, scriptDebugMode, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, feedLayout.previewHints, feedLayout.onHeightMeasured, feedLayout.onFormattedText, feedLayout.topPadding, feedLayout.heightsVersion]);
 
     return (
         <div

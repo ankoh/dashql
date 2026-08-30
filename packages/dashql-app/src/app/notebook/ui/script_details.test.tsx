@@ -23,6 +23,7 @@ const mockState = vi.hoisted(() => ({
     formatCompiledScript: vi.fn(),
     formatScript: vi.fn(),
     isFormattable: true,
+    queryStates: new Map<number, any>(),
     keyHandlers: [] as Array<{
         key: string;
         ctrlKey?: boolean;
@@ -56,8 +57,13 @@ vi.mock('../agent/agent_run_provider.js', () => ({
 vi.mock('../persistence/storage_provider.js', () => ({
     useStorageReader: () => ({ backend: { deleteQueryResultCache: vi.fn() } }),
 }));
-vi.mock('../../../compute/computation_registry.js', () => ({
-    useComputationRegistry: () => [{ tableComputations: {} }, vi.fn()],
+vi.mock('./trace_log_panel.js', async () => {
+    const React = await import('react');
+    return { TraceLogPanel: () => React.createElement('div', { 'data-testid': 'trace-log-panel' }) };
+});
+vi.mock('./tab_header.js', async (importOriginal) => ({
+    ...await importOriginal<typeof import('./tab_header.js')>(),
+    useResultRowCount: () => ({ hasResult: false, totalRows: null }),
 }));
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
@@ -140,6 +146,7 @@ describe('ScriptDetails', () => {
         root = createRoot(container);
         mockState.keyHandlers = [];
         mockState.executeQuery.mockReset();
+        mockState.queryStates.clear();
         mockState.executeQuery.mockReturnValue([42, Promise.resolve(null)]);
         mockState.compileQuery.mockReset();
         mockState.compileQuery.mockReturnValue({});
@@ -163,7 +170,7 @@ describe('ScriptDetails', () => {
         container.remove();
     });
 
-    it('returns to the feed and executes the pinned card on Ctrl+E', () => {
+    it('executes the pinned card on Ctrl+E without leaving details', () => {
         const notebookScripts = createNotebookScripts();
         const modifyNotebookScripts = vi.fn();
         const hideDetails = vi.fn();
@@ -191,7 +198,7 @@ describe('ScriptDetails', () => {
         } as unknown as KeyboardEvent;
         act(() => handler!.callback(event));
 
-        expect(hideDetails).toHaveBeenCalledOnce();
+        expect(hideDetails).not.toHaveBeenCalled();
         expect(mockState.executeQuery).toHaveBeenCalledWith('test-connection', expect.objectContaining({
             query: 'select 2',
             cacheable: true,
@@ -200,7 +207,7 @@ describe('ScriptDetails', () => {
         expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [102, 42] });
     });
 
-    it('returns to the feed and executes the pinned card from the paper-airplane button', () => {
+    it('executes the pinned card from the paper-airplane button without leaving details', () => {
         const notebookScripts = createNotebookScripts();
         const modifyNotebookScripts = vi.fn();
         const hideDetails = vi.fn();
@@ -222,13 +229,94 @@ describe('ScriptDetails', () => {
         expect(executeButton).not.toBeNull();
         act(() => executeButton.click());
 
-        expect(hideDetails).toHaveBeenCalledOnce();
+        expect(hideDetails).not.toHaveBeenCalled();
         expect(mockState.executeQuery).toHaveBeenCalledWith('test-connection', expect.objectContaining({
             query: 'select 2',
             cacheable: true,
             cacheSignature: 'signature',
         }));
         expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [102, 42] });
+    });
+
+    it('shows the editor and idle result together as a resizable prompt-response pair', () => {
+        act(() => {
+            root.render(
+                <ScriptDetails
+                    notebookScripts={createNotebookScripts()}
+                    modifyNotebookScripts={vi.fn()}
+                    connection={null}
+                    hideDetails={vi.fn()}
+                    scriptId={102}
+                />,
+            );
+        });
+
+        expect(container.querySelector('[data-testid="script-editor"]')).not.toBeNull();
+        expect(container.textContent).toContain('Not run yet');
+        const separator = container.querySelector('[role="separator"]');
+        expect(separator?.getAttribute('aria-label')).toBe('Resize script editor and result');
+        expect(separator?.getAttribute('aria-orientation')).toBe('horizontal');
+        expect(separator?.getAttribute('aria-valuemin')).toBe('40');
+        expect(separator?.getAttribute('aria-valuemax')).toBe('40');
+        expect(separator?.getAttribute('aria-valuenow')).toBe('40');
+        expect(container.querySelectorAll('[data-script-details-avatar][aria-hidden="true"]')).toHaveLength(2);
+    });
+
+    it('collapses the result to its status header and restores the split', () => {
+        act(() => {
+            root.render(
+                <ScriptDetails
+                    notebookScripts={createNotebookScripts()}
+                    modifyNotebookScripts={vi.fn()}
+                    connection={null}
+                    hideDetails={vi.fn()}
+                    scriptId={102}
+                />,
+            );
+        });
+
+        let statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Collapse result"]')!;
+        expect(statusHeader.getAttribute('aria-expanded')).toBe('true');
+        expect(container.querySelector('[role="separator"]')).not.toBeNull();
+
+        act(() => statusHeader.click());
+        statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Expand result"]')!;
+        expect(statusHeader.getAttribute('aria-expanded')).toBe('false');
+        expect(container.querySelector('[role="separator"]')).toBeNull();
+
+        act(() => statusHeader.click());
+        expect(container.querySelector('[aria-label^="Collapse result"]')).not.toBeNull();
+        expect(container.querySelector('[role="separator"]')?.getAttribute('aria-valuenow')).toBe('40');
+    });
+
+    it('initially collapses a successful execution without a visible result', () => {
+        const notebookScripts = createNotebookScripts();
+        notebookScripts.scripts[102] = { ...notebookScripts.scripts[102], latestQueryId: 42 };
+        mockState.queryStates.set(42, {
+            queryId: 42,
+            traceId: 100,
+            status: 9,
+            resultTable: null,
+        });
+
+        act(() => {
+            root.render(
+                <ScriptDetails
+                    notebookScripts={notebookScripts}
+                    modifyNotebookScripts={vi.fn()}
+                    connection={null}
+                    hideDetails={vi.fn()}
+                    scriptId={102}
+                />,
+            );
+        });
+
+        expect(container.querySelector('[aria-label^="Expand result"]')?.getAttribute('aria-expanded')).toBe('false');
+        expect(container.querySelector('[role="separator"]')).toBeNull();
+
+        const statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Expand result"]')!;
+        act(() => statusHeader.click());
+        expect(container.querySelector('[aria-label^="Collapse result"]')?.getAttribute('aria-expanded')).toBe('true');
     });
 
     it('shows formatting warnings from the details card header', () => {

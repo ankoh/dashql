@@ -43,12 +43,12 @@ export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, ac
 /// Whether the query produced a materialized result, and its total row count. Shared so the footer's
 /// preview and the Details tabs derive the "N rows" detail identically.
 export function useResultRowCount(queryState: QueryExecutionState | null): { hasResult: boolean; totalRows: number | null } {
-    const [computationState] = useComputationRegistry();
+    const computationState = useComputationRegistry()?.[0];
     const hasResult = queryState != null
         && queryState.status === QueryExecutionStatus.SUCCEEDED
-        && computationState.tableComputations[queryState.queryId] != null;
+        && computationState?.tableComputations[queryState.queryId] != null;
     const totalRows = hasResult
-        ? (computationState.tableComputations[queryState!.queryId]?.dataTable.numRows ?? null)
+        ? (computationState?.tableComputations[queryState!.queryId]?.dataTable.numRows ?? null)
         : null;
     return { hasResult, totalRows };
 }
