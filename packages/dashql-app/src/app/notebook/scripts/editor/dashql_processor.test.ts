@@ -74,6 +74,71 @@ describe('CodeMirror portable editor events', () => {
         expect(editorState.field(DashQLProcessorPlugin).editorUpdate?.analysisAvailable).toBe(true);
     });
 
+    it('does not warn when projecting a read-only editor update', () => {
+        const catalog = dql!.createCatalog();
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, 'select 1');
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            let editorState = EditorState.create({
+                extensions: [DashQLProcessorPlugin],
+            });
+
+            editorState = editorState.update({
+                changes: { from: 0, insert: 'select 1' },
+                effects: DashQLUpdateEffect.of({
+                    scriptKey: 1,
+                    scriptSession: null,
+                    editorUpdate,
+                    scriptBuffers: null,
+                    scriptCompletion: null,
+                    scriptPendingDiff: null,
+                    derivedFocus: null,
+                    onUpdate: () => {},
+                }),
+            }).state;
+
+            expect(editorState.doc.toString()).toBe('select 1');
+            expect(editorState.field(DashQLProcessorPlugin).editorUpdate).toBe(editorUpdate);
+            expect(warn).not.toHaveBeenCalled();
+        } finally {
+            warn.mockRestore();
+            scriptSession.destroy();
+            catalog.destroy();
+        }
+    });
+
+    it('warns when an unconfigured editor changes without a projection', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const editorState = EditorState.create({
+                extensions: [DashQLProcessorPlugin],
+            }).update({
+                changes: { from: 0, insert: 'select 1' },
+            }).state;
+
+            expect(editorState.doc.toString()).toBe('select 1');
+            expect(warn).toHaveBeenCalledOnce();
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    it('does not warn for changes in an unconfigured read-only editor', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const editorState = EditorState.create({
+                extensions: [EditorState.readOnly.of(true), DashQLProcessorPlugin],
+            }).update({
+                changes: { from: 0, insert: 'select 1' },
+            }).state;
+
+            expect(editorState.doc.toString()).toBe('select 1');
+            expect(warn).not.toHaveBeenCalled();
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
     it('keeps highlighting when the catalog changes before a cursor move', () => {
         const catalog = dql!.createCatalog();
         const text = 'select value from items';

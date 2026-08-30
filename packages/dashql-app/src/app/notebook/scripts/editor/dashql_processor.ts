@@ -1,6 +1,6 @@
 import * as dashql from '../../../../core/index.js';
 
-import { StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
+import { EditorState, StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
 import { deriveFocusFromEditorUpdate, SemanticUserFocus } from '../focus.js';
 import { CompletionPatch, computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
@@ -284,7 +284,11 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         // No editor session at all?
         // Then abort early, nothing to do here
         if (state.scriptSession == null) {
-            if (transaction.docChanged || selectionChanged) {
+            const hasProjectedEditorUpdate = transaction.effects.some(effect =>
+                effect.is(DashQLUpdateEffect) && effect.value.editorUpdate != null
+            );
+            const isReadOnly = transaction.startState.facet(EditorState.readOnly);
+            if ((transaction.docChanged || selectionChanged) && !hasProjectedEditorUpdate && !isReadOnly) {
                 console.warn(`${LOG_PREFIX} ignored CodeMirror transaction without editor session`, {
                     scriptKey: state.scriptKey,
                     docChanged: transaction.docChanged,
