@@ -40,16 +40,22 @@
           "name": "1_tpch_q1.sql"
         },
         {
-          "name": "2_schema_preagg.sql"
+          "name": "2_preagg_schema.sql"
         },
         {
-          "name": "3_limitation_sort.sql"
+          "name": "3_preagg_sql.sql"
         },
         {
-          "name": "4_limitation_static.sql"
+          "name": "4_postagg_schema.sql"
         },
         {
-          "name": "5_limitation_windows.sql"
+          "name": "5_limitation_sort.sql"
+        },
+        {
+          "name": "6_limitation_static.sql"
+        },
+        {
+          "name": "7_limitation_windows.sql"
         }
       ]
     },

@@ -1,4 +1,5 @@
-explain (format schema, preaggregation)
+-- Explain sql preaggregation returns the preaggregation schema
+explain (format sql_stages, sql_dialect internal_spark_2025_12, preaggregation)
 select l_returnflag,
     l_linestatus,
     sum(l_quantity) as sum_qty,
