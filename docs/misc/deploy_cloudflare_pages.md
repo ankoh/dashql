@@ -27,7 +27,11 @@ Cloudflare Pages treats a deployment without a top-level `404.html` as a single-
 paths are served by `index.html`, while uploaded files and everything under `/static/` are served
 directly. A directory-local `static/404.html` ensures missing static assets return a real 404 instead
 of the SPA shell without disabling top-level SPA routing. The Pages artifact also copies the runtime
-`static/config.json` alongside Vite's generated assets. `packages/dashql-app/_redirects` internally
+`static/config.json` alongside Vite's generated assets. During a Pages build, Vite generates
+`_redirects` with a temporary redirect from `/static/links/dashql_core.wasm` to the emitted
+fingerprinted Core WASM asset under `/static/wasm/`. This provides a stable public URL without
+duplicating the module and keeps the alias outside the immutable `/static/wasm/*` cache rule. The
+generated file also includes the rules from `packages/dashql-app/_redirects`, which internally
 rewrites `/oauth.html` to Pages' canonical
 `/oauth` asset without changing the browser URL. This avoids Pages' default redirect to an
 extensionless URL because OAuth providers and the token exchange require the registered
@@ -67,6 +71,7 @@ After switching the custom domain, verify the production responses:
 ```bash
 curl -I https://dashql.app/
 curl -I https://dashql.app/oauth.html
+curl -I https://dashql.app/static/links/dashql_core.wasm
 curl -I https://dashql.app/static/assets/<fingerprinted-wasm>.br
 curl -I https://dashql.app/a/client/side/route
 curl -I https://hyperdb.sh/
@@ -75,4 +80,5 @@ curl -I https://hyperdb.sh/
 The responses should include `Cross-Origin-Embedder-Policy: require-corp`,
 `Cross-Origin-Opener-Policy: same-origin`, and `Access-Control-Allow-Origin: *`. The unknown client
 route should return the app HTML, entrypoints should require revalidation, and fingerprinted
-static assets should be immutable.
+static assets should be immutable. The stable Core WASM URL should temporarily redirect to the
+current fingerprinted `/static/wasm/` asset without inheriting its immutable cache policy.
