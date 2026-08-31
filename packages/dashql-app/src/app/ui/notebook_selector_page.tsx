@@ -15,7 +15,6 @@ import {
 } from '@dnd-kit/core';
 import {
     SortableContext,
-    arrayMove,
     verticalListSortingStrategy,
     sortableKeyboardCoordinates,
     useSortable,
@@ -95,6 +94,17 @@ interface NotebookItemData {
 const LIST_MAX_HEIGHT = 400; // Max height of the scrollable list before it scrolls
 const DuplicateIcon = SymbolIcon('duplicate_16');
 
+export function reorderNotebookIds(ids: string[], activeId: string, overId: string): string[] {
+    const fromIndex = ids.indexOf(activeId);
+    const toIndex = ids.indexOf(overId);
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return ids;
+
+    const reordered = [...ids];
+    const [active] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, active);
+    return reordered;
+}
+
 export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
@@ -115,9 +125,9 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const notebookImport = useNotebookImport();
     const folderButtonRef = React.useRef<HTMLButtonElement>(null);
     const folderInputRef = React.useRef<HTMLInputElement>(null);
-    // The manifest notebook order lives in mutable backend state (see storageReader.getNotebookOrder).
-    // Bumping this after a drag-persist forces the list to re-read and re-render in the new order.
-    const [orderVersion, setOrderVersion] = React.useState(0);
+    const [notebookOrder, setNotebookOrder] = React.useState(() => storageReader.getNotebookOrder());
+    const notebookOrderRef = React.useRef(notebookOrder);
+    const reorderWriteRef = React.useRef(Promise.resolve());
 
     const canOpenFolder = storageReader.backend instanceof CompositeStorageBackend;
 
@@ -162,8 +172,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         // Order by the manifest (the user-facing, drag-reorderable order). Notebooks present in the
         // manifest lead, in manifest order; any not yet registered there (e.g. a just-created notebook
         // whose first write hasn't landed) are appended in their registry iteration order.
-        const manifestOrder = storageReader.getNotebookOrder();
-        const rank = new Map(manifestOrder.map((id, i) => [id, i]));
+        const rank = new Map(notebookOrder.map((id, i) => [id, i]));
         result.sort((a, b) => {
             const ra = rank.get(a.notebookId) ?? Number.MAX_SAFE_INTEGER;
             const rb = rank.get(b.notebookId) ?? Number.MAX_SAFE_INTEGER;
@@ -196,9 +205,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         invalid.sort((a, b) => a.displayPath.localeCompare(b.displayPath));
 
         return [...result, ...invalid];
-        // orderVersion is a dep because getNotebookOrder() reads mutable backend state that a drag
-        // reorder mutates in place; bumping it re-runs this memo against the new manifest order.
-    }, [props.connectionRegistry, props.notebookScriptsRegistry, props.invalidNotebooks, storageReader, orderVersion]);
+    }, [props.connectionRegistry, props.notebookScriptsRegistry, props.invalidNotebooks, storageReader, notebookOrder]);
 
     // The ids that participate in drag reordering: the valid (registered) notebooks, in display
     // order. Invalid notebooks are always pinned at the end and never reorderable.
@@ -206,6 +213,7 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
         () => notebooks.filter(n => n.invalidReason == null).map(n => n.notebookId),
         [notebooks],
     );
+    notebookOrderRef.current = sortableIds;
     const canRemoveNotebooks = notebooks.length > 0;
     const canCloneNotebooks = sortableIds.length > 0;
 
@@ -223,22 +231,20 @@ export const NotebookSelectorPage: React.FC<Props> = (props: Props) => {
     const handleNotebookDragEnd = React.useCallback((event: DragEndEvent) => {
         const { active, over } = event;
         if (over == null || active.id === over.id) return;
-        const fromIndex = sortableIds.indexOf(String(active.id));
-        const toIndex = sortableIds.indexOf(String(over.id));
-        if (fromIndex < 0 || toIndex < 0) return;
-        const reordered = arrayMove(sortableIds, fromIndex, toIndex);
+        const reordered = reorderNotebookIds(notebookOrderRef.current, String(active.id), String(over.id));
+        if (reordered === notebookOrderRef.current) return;
+        notebookOrderRef.current = reordered;
+        setNotebookOrder(reordered);
 
-        // Persist the new order to the manifest. The composite backend applies it to its in-memory
-        // order synchronously, so bumping orderVersion right after re-renders the list in the new
-        // order without waiting on the write. A bare (test) backend has no reorder support — skip.
+        // Serialize manifest writes so a slower earlier drag cannot overwrite a later one.
         const backend = storageReader.backend;
         if ('reorderNotebooks' in backend) {
-            (backend as { reorderNotebooks(ids: string[]): Promise<void> }).reorderNotebooks(reordered).catch(e =>
-                logger.warn('failed to persist notebook order', { error: String(e) }, 'notebook_selector')
-            );
-            setOrderVersion(v => v + 1);
+            reorderWriteRef.current = reorderWriteRef.current
+                .catch(() => {})
+                .then(() => (backend as { reorderNotebooks(ids: string[]): Promise<void> }).reorderNotebooks(reordered))
+                .catch(e => logger.warn('failed to persist notebook order', { error: String(e) }, 'notebook_selector'));
         }
-    }, [sortableIds, storageReader.backend, logger]);
+    }, [storageReader.backend, logger]);
 
     const onNotebookClick = React.useCallback((notebookId: string) => {
         const connectionId = props.connectionRegistry.connectionByNotebook.get(notebookId);
