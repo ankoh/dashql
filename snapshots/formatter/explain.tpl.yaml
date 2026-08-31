@@ -4,6 +4,19 @@ formatter-snapshots:
     input: explain select 1
     dialects:
       hyper:
+        formatted:
+          - mode: compact
+            expected: |
+              explain (format sql_expressions, sql_dialect internal_spark_2025_12, columns descriptor(a integer))
+              expressions (
+                1 + 2 + 3,
+                3 + a);
+          - mode: pretty
+            expected: |
+              explain (format sql_expressions, sql_dialect internal_spark_2025_12, columns descriptor(a integer))
+              expressions (
+                1 + 2 + 3,
+                3 + a);
   # Explain with analyze option
   - name: explain_with_analyze
     input: explain (analyze) select 1

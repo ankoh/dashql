@@ -33,7 +33,8 @@ FmtReg Formatter::FormatExplainExpressions(const buffers::parser::Node& node) {
 
     auto expressions_reg = Reg(*expressions);
     if (expressions_reg == 0) return FormatUnimplemented(node);
-    return fmt.Concat({fmt.Text("expressions "), fmt.Parenthesized(expressions_reg)});
+    auto lines = std::array{fmt.Text("expressions ("), fmt.Concat({fmt.Indented(expressions_reg), fmt.Text(")")})};
+    return fmt.Join(lines, fmt.Empty(), fmt.Break(), FormattingJoinPolicy::ForceBreak);
 }
 
 }  // namespace dashql
