@@ -5,7 +5,7 @@ import { EntryStatus } from './entry_status_model.js';
 import { StatusIndicator } from '../../../ui/foundations/status_indicator.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
-import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { JsonView } from '../../../ui/json/json_view.js';
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { ChevronDownIcon, ChevronRightIcon } from '../../../ui/foundations/symbol_icon.js';
@@ -29,17 +29,31 @@ interface EntryStatusBarProps {
 
 const ErrorDetailCard: React.FC<{
     detail: Record<string, unknown>;
-}> = ({ detail }) => (
-    <section className={styles.error_detail_card} role="dialog" aria-label="Query error details">
-        <h2 className={styles.error_detail_title}>Query error details</h2>
-        <JsonView
-            className={styles.error_detail_json}
-            value={detail}
-            collapsed={2}
-            shortenTextAfterLength={100}
-        />
-    </section>
-);
+    onClose: () => void;
+}> = ({ detail, onClose }) => {
+    const CloseIcon = SymbolIcon('x_16');
+    return (
+        <section className={styles.error_detail_card} role="dialog" aria-label="Query error details">
+            <header className={styles.error_detail_header}>
+                <h2 className={styles.error_detail_title}>Query error details</h2>
+                <IconButton
+                    variant={ButtonVariant.Invisible}
+                    size={ButtonSize.Small}
+                    onClick={onClose}
+                    aria-label="Close query error details"
+                >
+                    <CloseIcon size={16} />
+                </IconButton>
+            </header>
+            <JsonView
+                className={styles.error_detail_json}
+                value={detail}
+                collapsed={2}
+                shortenTextAfterLength={100}
+            />
+        </section>
+    );
+};
 
 /// The result-card header: it renders a spinner (or check/cross) plus a one-line status message and
 /// optionally toggles the result content below it. Failed-query details are available from a
@@ -79,7 +93,7 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
                 );
             }}
         >
-            <ErrorDetailCard detail={status.errorDetail!} />
+            <ErrorDetailCard detail={status.errorDetail!} onClose={() => setShowDetail(false)} />
         </AnchoredOverlay>
     ) : null;
     const indicator = (

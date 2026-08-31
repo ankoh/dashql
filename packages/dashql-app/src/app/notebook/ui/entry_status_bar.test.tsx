@@ -76,6 +76,14 @@ describe('EntryStatusBar', () => {
         expect(dialog!.textContent).toContain('relation does not exist');
         expect(dialog!.textContent).toContain('42P01');
         expect(trigger.getAttribute('aria-expanded')).toBe('true');
+
+        const closeButton = dialog!.querySelector<HTMLButtonElement>('[aria-label="Close query error details"]');
+        expect(closeButton).not.toBeNull();
+
+        act(() => closeButton!.click());
+
+        expect(container.querySelector('[role="dialog"][aria-label="Query error details"]')).toBeNull();
+        expect(trigger.getAttribute('aria-expanded')).toBe('false');
     });
 
     it('does not show the error detail button for non-error statuses', () => {
