@@ -21,9 +21,29 @@ export interface EntryStatus {
     message: string;
     /// The trace to reveal in the footer log when the bar is clicked.
     traceId: number | null;
-    /// Structured error detail for a failed/cancelled query, surfaced on hover over the bar's
-    /// message (the one-line bar can't carry the key-values inline). Null when there's no error.
-    errorDetail: Record<string, string | null | undefined> | null;
+    /// Everything known about a failed query, shown in the status bar's error-details overlay.
+    /// Null for non-error statuses.
+    errorDetail: Record<string, unknown> | null;
+}
+
+function compactObject(value: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry != null));
+}
+
+function getQueryErrorDetail(query: QueryExecutionState, message: string): Record<string, unknown> {
+    const error = query.error;
+    return compactObject({
+        status: query.status === QueryExecutionStatus.FAILED ? 'failed' : 'cancelled',
+        message,
+        target: error?.target,
+        queryId: query.queryId,
+        traceId: query.traceId,
+        statementIndex: query.statementIndex,
+        statementCount: query.statementCount,
+        query: query.queryText,
+        metadata: query.queryMetadata,
+        details: error != null && Object.keys(error.keyValues).length > 0 ? error.keyValues : undefined,
+    });
 }
 
 function getStatementStatusText(message: string, statementIndex: number | null, statementCount: number | null): string {
@@ -136,24 +156,20 @@ export function deriveEntryStatus(
         };
     }
     if (query != null && (query.status === QueryExecutionStatus.FAILED || query.status === QueryExecutionStatus.CANCELLED)) {
-        // Carry the error's key-values so the bar can reveal them on hover (a failed query's detail
-        // no longer lives in a dedicated status panel — the message is the one-liner, the rest is
-        // in the overlay). Empty object → null so the bar skips the hover affordance.
-        const keyValues = query.error?.keyValues ?? {};
-        const errorDetail = Object.keys(keyValues).length > 0 ? keyValues : null;
         const queryUpdatedAt = query.metrics?.lastUpdatedAt?.getTime() ?? 0;
         const agentUpdatedAt = agentRun != null && agentRun.log.length > 0
             ? agentRun.log[agentRun.log.length - 1].timestamp
             : 0;
         if (agentRun == null || agentUpdatedAt <= queryUpdatedAt) {
+            const message = query.error?.message != null
+                ? getStatementStatusText(query.error.message, query.statementIndex, query.statementCount)
+                : getQueryStatusText(query.status, query.statementIndex, query.statementCount);
             return {
                 kind: EntryStatusKind.Query,
                 indicator: IndicatorStatus.Failed,
-                message: query.error?.message != null
-                    ? getStatementStatusText(query.error.message, query.statementIndex, query.statementCount)
-                    : getQueryStatusText(query.status, query.statementIndex, query.statementCount),
+                message,
                 traceId: query.traceId,
-                errorDetail,
+                errorDetail: getQueryErrorDetail(query, message),
             };
         }
     }

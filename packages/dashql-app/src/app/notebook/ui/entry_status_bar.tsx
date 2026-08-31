@@ -6,6 +6,7 @@ import { StatusIndicator } from '../../../ui/foundations/status_indicator.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { JsonView } from '../../../ui/json/json_view.js';
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { ChevronDownIcon, ChevronRightIcon } from '../../../ui/foundations/symbol_icon.js';
 import { classNames } from '../../../utils/classnames.js';
@@ -26,37 +27,22 @@ interface EntryStatusBarProps {
     actions?: React.ReactNode;
 }
 
-/// The white-card contents of the error-detail overlay: the full error message plus a key/value
-/// grid for the structured detail (SQLSTATE, hint, position, …). Mirrors the shared
-/// ErrorDetailsViewer look so error surfaces stay consistent across the app.
 const ErrorDetailCard: React.FC<{
-    message: string;
-    detail: Record<string, string | null | undefined>;
-}> = ({ message, detail }) => {
-    const entries = Object.entries(detail);
-    return (
-        <div className={styles.error_detail_card}>
-            <span className={styles.error_detail_message_label}>Message</span>
-            <span className={styles.error_detail_message_text}>{message}</span>
-            {entries.length > 0 && (
-                <>
-                    <span className={styles.error_detail_label}>Details</span>
-                    <div className={styles.error_detail_grid}>
-                        {entries.map(([k, v], i) => (
-                            <React.Fragment key={i}>
-                                <span className={styles.error_detail_key}>{k}</span>
-                                <span className={styles.error_detail_value}>{v ?? ''}</span>
-                            </React.Fragment>
-                        ))}
-                    </div>
-                </>
-            )}
-        </div>
-    );
-};
+    detail: Record<string, unknown>;
+}> = ({ detail }) => (
+    <section className={styles.error_detail_card} role="dialog" aria-label="Query error details">
+        <h2 className={styles.error_detail_title}>Query error details</h2>
+        <JsonView
+            className={styles.error_detail_json}
+            value={detail}
+            collapsed={2}
+            shortenTextAfterLength={100}
+        />
+    </section>
+);
 
 /// The result-card header: it renders a spinner (or check/cross) plus a one-line status message and
-/// optionally toggles the result content below it. A failed query's key-values are available from a
+/// optionally toggles the result content below it. Failed-query details are available from a
 /// separate control so the toggle never contains nested interactive elements.
 export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggleExpanded, expanded, controls, onCancel, cancelLabel = 'Cancel operation', actions }) => {
     const [showDetail, setShowDetail] = React.useState(false);
@@ -77,7 +63,7 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
             onOpen={() => setShowDetail(true)}
             onClose={() => setShowDetail(false)}
             side={AnchorSide.OutsideBottom}
-            align={AnchorAlignment.Start}
+            align={AnchorAlignment.End}
             anchorOffset={4}
             renderAnchor={(p: object) => {
                 const anchorProps = p as React.ButtonHTMLAttributes<HTMLButtonElement>;
@@ -93,7 +79,7 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
                 );
             }}
         >
-            <ErrorDetailCard message={status.message} detail={status.errorDetail!} />
+            <ErrorDetailCard detail={status.errorDetail!} />
         </AnchoredOverlay>
     ) : null;
     const indicator = (

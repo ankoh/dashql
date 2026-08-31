@@ -67,50 +67,23 @@
     color: inherit;
 }
 
-/* The white-card contents of the error-detail overlay. The card chrome (background, border,
-   radius, shadow) comes from the shared Overlay foundation; this styles the inner layout to match
-   the ErrorDetailsViewer. */
+/* The card chrome comes from the shared Overlay foundation. */
 .error_detail_card {
-    padding: 12px 16px;
-    font-size: 0.85rem;
-    width: min(480px, calc(100vw - 32px));
-    max-width: 640px;
+    width: min(640px, calc(100vw - 32px));
+    max-height: min(480px, calc(100vh - 32px));
     display: flex;
     flex-direction: column;
 }
 
-.error_detail_message_label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #656d76;
+.error_detail_title {
+    margin: 0;
+    padding: 12px 16px 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border_color_primary);
 }
 
-.error_detail_message_text {
-    word-break: break-word;
-}
-
-.error_detail_label {
-    margin-top: 12px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #656d76;
-}
-
-.error_detail_grid {
-    margin-top: 4px;
-    margin-left: 8px;
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    column-gap: 16px;
-    row-gap: 2px;
-    word-break: break-word;
-}
-
-.error_detail_key {
-    grid-column: 1;
-    color: #656d76;
-}
-
-.error_detail_value {
-    grid-column: 2;
+.error_detail_json {
+    padding: 12px 16px 16px;
+    max-height: none;
 }
