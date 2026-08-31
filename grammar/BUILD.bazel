@@ -27,7 +27,6 @@ filegroup(
     name = "keyword_lists",
     srcs = [
         "lists/sql_column_name_keywords.list",
-        "lists/sql_join_keywords.list",
         "lists/sql_reserved_keywords.list",
         "lists/sql_type_func_keywords.list",
         "lists/sql_unreserved_keywords.list",
@@ -163,7 +162,6 @@ genrule(
     name = "grammar_lists",
     srcs = [
         "lists/sql_column_name_keywords.list",
-        "lists/sql_join_keywords.list",
         "lists/sql_reserved_keywords.list",
         "lists/sql_type_func_keywords.list",
         "lists/sql_unreserved_keywords.list",
@@ -171,7 +169,6 @@ genrule(
     ],
     outs = [
         "grammar_lists/sql_column_name_keywords.list",
-        "grammar_lists/sql_join_keywords.list",
         "grammar_lists/sql_reserved_keywords.list",
         "grammar_lists/sql_type_func_keywords.list",
         "grammar_lists/sql_unreserved_keywords.list",
@@ -180,7 +177,6 @@ genrule(
     cmd = (
         "mkdir -p $(@D)/grammar_lists && " +
         "cp $(location lists/sql_column_name_keywords.list) $(location grammar_lists/sql_column_name_keywords.list) && " +
-        "cp $(location lists/sql_join_keywords.list) $(location grammar_lists/sql_join_keywords.list) && " +
         "cp $(location lists/sql_reserved_keywords.list) $(location grammar_lists/sql_reserved_keywords.list) && " +
         "cp $(location lists/sql_type_func_keywords.list) $(location grammar_lists/sql_type_func_keywords.list) && " +
         "cp $(location lists/sql_unreserved_keywords.list) $(location grammar_lists/sql_unreserved_keywords.list) && " +
