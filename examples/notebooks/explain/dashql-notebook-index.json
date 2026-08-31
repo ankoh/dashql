@@ -1,7 +1,7 @@
 {
   "folders": [
     {
-      "name": "1_main",
+      "name": "1_setup",
       "scripts": [
         {
           "name": "1_version.sql"
