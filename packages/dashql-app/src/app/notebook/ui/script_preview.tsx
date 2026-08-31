@@ -36,9 +36,6 @@ export interface ScriptPreviewProps {
     /// Story controls expand inline in the feed and open Details from the fixed overview cards.
     storyActivation?: 'toggle' | 'open';
     onStoryActivate?: () => void;
-    /// Enable story controls. Toggle previews show fold arrows for every statement; the overview
-    /// retains description-only activation controls.
-    showStoryControls?: boolean;
     /// The feed always shows line numbers (and story fold arrows); compact grid cards do not.
     showStoryGutter?: boolean;
     /// Last formatted text retained by the parent feed across virtual row unmounts.
@@ -47,7 +44,7 @@ export interface ScriptPreviewProps {
     onFormattingStatus?: (formattable: boolean) => void;
 }
 
-export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, notebookId, scriptData, onReady, storyActivation = 'toggle', onStoryActivate, showStoryControls = true, showStoryGutter = true, initialTextHint = '', onFormattedText, onFormattingStatus }) => {
+export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, notebookId, scriptData, onReady, storyActivation = 'toggle', onStoryActivate, showStoryGutter = true, initialTextHint = '', onFormattedText, onFormattingStatus }) => {
     const config = useAppConfig();
     const logger = useLogger();
     // Reach the core instance (mirrors ScriptEditor) so a staged rewrite can be diffed against its
@@ -57,15 +54,13 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
     const [view, setView] = React.useState<EditorView | null>(null);
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const maxWidthChars = useScriptPreviewWidth(view);
-    const { previewSnapshot, descriptionPreview } = usePreviewSnapshot({
+    const previewSnapshot = usePreviewSnapshot({
         instance,
         scriptData,
-        showStoryControls,
         initialTextHint,
         maxWidthChars,
         formattingDebugMode,
         logger,
-        onReady,
         onFormattedText,
         onFormattingStatus,
     });
@@ -84,12 +79,11 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, noteboo
         }).extensions,
     ], [onStoryActivate, showStoryGutter, storyActivation]);
 
-    useApplyPreviewSnapshot(view, previewSnapshot, descriptionPreview, onReady);
+    useApplyPreviewSnapshot(view, previewSnapshot, onReady);
 
     return (
         <div className={className}>
             <CodeMirror
-                key={descriptionPreview != null ? `description-${storyActivation}` : 'compact'}
                 extensions={previewExtensions}
                 initialDoc={initialTextHint}
                 ref={setView}

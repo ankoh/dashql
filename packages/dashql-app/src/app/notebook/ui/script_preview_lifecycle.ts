@@ -8,7 +8,7 @@ import { Logger, stringifyError } from '../../../platform/logger/logger.js';
 import type { ScriptData } from '../scripts/notebook_scripts.js';
 import { DashQLScannerDecorationUpdateEffect } from '../scripts/editor/dashql_decorations_standalone.js';
 import { DashQLDiffDecorationUpdateEffect } from '../scripts/editor/dashql_diff_decorations.js';
-import { DashQLStoryUpdateEffect, hasStatementDescriptions } from '../scripts/editor/dashql_story_decorations.js';
+import { DashQLStoryUpdateEffect } from '../scripts/editor/dashql_story_decorations.js';
 import type { DashQLPendingDiff } from '../scripts/editor/dashql_processor.js';
 
 const LOG_CTX = 'script_preview';
@@ -55,17 +55,6 @@ export function releaseAppliedPreviewSnapshot(
     const isApplied = applied?.snapshot === snapshot;
     releasePreviewSnapshot(snapshot, isApplied ? applied.view : null);
     return isApplied ? null : applied;
-}
-
-/// Description previews retain raw source text because their parser spans index the source directly.
-function buildDescriptionPreview(scriptData: ScriptData): PreviewSnapshot | null {
-    const text = scriptData.scriptSession.getText();
-    if (!hasStatementDescriptions(scriptData.editorUpdate)) return null;
-    return {
-        scriptText: text,
-        editorUpdate: scriptData.editorUpdate ?? null,
-        diff: null,
-    };
 }
 
 function projectPreviewText(instance: core.DashQL, scriptText: string): core.buffers.editor.EditorUpdateT | null {
@@ -233,12 +222,10 @@ function formatPreviewScript(
 interface PreviewSnapshotOptions {
     instance: core.DashQL | null;
     scriptData: ScriptData;
-    showStoryControls: boolean;
     initialTextHint: string;
     maxWidthChars: number | null;
     formattingDebugMode: boolean;
     logger: Logger;
-    onReady?: (ready: boolean) => void;
     onFormattedText?: (scriptText: string) => void;
     onFormattingStatus?: (formattable: boolean) => void;
 }
@@ -246,37 +233,21 @@ interface PreviewSnapshotOptions {
 export function usePreviewSnapshot({
     instance,
     scriptData,
-    showStoryControls,
     initialTextHint,
     maxWidthChars,
     formattingDebugMode,
     logger,
-    onReady,
     onFormattedText,
     onFormattingStatus,
-}: PreviewSnapshotOptions): {
-    previewSnapshot: PreviewSnapshot;
-    descriptionPreview: PreviewSnapshot | null;
-} {
+}: PreviewSnapshotOptions): PreviewSnapshot {
     const [previewSnapshot, setPreviewSnapshot] = React.useState<PreviewSnapshot>(() => ({
         scriptText: initialTextHint,
         editorUpdate: null,
         diff: null,
     }));
     const pendingDiff = scriptData.pendingDiff;
-    const descriptionPreview = React.useMemo(
-        () => showStoryControls && pendingDiff == null ? buildDescriptionPreview(scriptData) : null,
-        [pendingDiff, scriptData, scriptData.editorUpdate, showStoryControls],
-    );
 
     React.useEffect(() => {
-        // Story previews retain raw source offsets and do not need width-dependent formatting.
-        if (descriptionPreview != null) {
-            setPreviewSnapshot(descriptionPreview);
-            onFormattedText?.(descriptionPreview.scriptText);
-            onFormattingStatus?.(true);
-            return;
-        }
         // Don't format until we have measured the actual width and the core instance is available.
         if (maxWidthChars == null || instance == null) {
             return;
@@ -314,23 +285,20 @@ export function usePreviewSnapshot({
         // A staged rewrite appearing/clearing must recompute the compact diff overlay. Width
         // changes recompute too (via maxWidthChars) since compact offsets shift with the layout.
         pendingDiff,
-        onReady,
         onFormattedText,
         onFormattingStatus,
-        descriptionPreview,
     ]);
 
-    return { previewSnapshot, descriptionPreview };
+    return previewSnapshot;
 }
 
 export function useApplyPreviewSnapshot(
     view: EditorView | null,
     previewSnapshot: PreviewSnapshot,
-    descriptionPreview: PreviewSnapshot | null,
     onReady?: (ready: boolean) => void,
 ): void {
     const appliedPreviewRef = React.useRef<AppliedPreview | null>(null);
-    const appliedDescriptionRef = React.useRef<{
+    const appliedStoryRef = React.useRef<{
         view: EditorView;
         update: core.buffers.editor.EditorUpdateT | null;
     } | null>(null);
@@ -354,11 +322,11 @@ export function useApplyPreviewSnapshot(
         ];
         // Width changes refresh compact statement offsets. Only replace story decorations when the
         // projected analysis changes, preserving user fold state across unrelated renders.
-        const descriptionUpdate = previewSnapshot.editorUpdate;
-        const appliedDescription = appliedDescriptionRef.current;
-        if (appliedDescription?.view !== view || appliedDescription.update !== descriptionUpdate) {
-            effects.push(DashQLStoryUpdateEffect.of(descriptionUpdate));
-            appliedDescriptionRef.current = { view, update: descriptionUpdate };
+        const storyUpdate = previewSnapshot.editorUpdate;
+        const appliedStory = appliedStoryRef.current;
+        if (appliedStory?.view !== view || appliedStory.update !== storyUpdate) {
+            effects.push(DashQLStoryUpdateEffect.of(storyUpdate));
+            appliedStoryRef.current = { view, update: storyUpdate };
         }
         view.dispatch({
             changes: {
