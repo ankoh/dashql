@@ -491,3 +491,172 @@ parser-snapshots:
         - text: [145,146]
         - text: [147,148]
       comments: []
+
+  - name: explain_streaming_options
+    input: |-
+      explain (
+        format sql,
+        sql_dialect internal_spark,
+        streaming_table orders,
+        change_data_feed orders_cdf,
+        streaming_key_columns (id),
+        streaming_actions_column _action,
+        change_data_feed_record_type_column _record_type,
+        change_data_feed_columns descriptor(_record_type text)
+      )
+      select * from orders;
+    expected:
+      statements:
+        - type: EXPLAIN
+          ast-begin: 0
+          ast-size: 41
+          description:
+            text: "explain (\n..om orders;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_EXT_EXPLAIN
+            text: "explain (\n..rom orders"
+            children:
+              - key: EXT_EXPLAIN_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select * f..rom orders"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "*"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "from orders"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "orders"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "orders"
+                            children:
+                              - type: NAME
+                                text: "orders"
+              - key: EXT_EXPLAIN_OPTIONS
+                type: ARRAY
+                text: "(\n  format..pe text)\n)"
+                children:
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "format sql"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "format"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: NAME
+                        text: "sql"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "sql_dialec..rnal_spark"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "sql_dialect"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: NAME
+                        text: "internal_spark"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "streaming_..ble orders"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "streaming_table"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: NAME
+                        text: "orders"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "change_dat..orders_cdf"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "change_data_feed"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: NAME
+                        text: "orders_cdf"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "streaming_..lumns (id)"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "streaming_..ey_columns"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: ARRAY
+                        text: "(id)"
+                        children:
+                          - type: NAME
+                            text: "id"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "streaming_..mn _action"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "streaming_..ons_column"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: NAME
+                        text: "_action"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "change_dat..ecord_type"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "change_dat..ype_column"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: NAME
+                        text: "_record_type"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "change_dat..type text)"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "change_dat..ed_columns"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: OBJECT_SQL_DESCRIPTOR
+                        text: "descriptor..type text)"
+                        children:
+                          - key: SQL_DESCRIPTOR_COLUMNS
+                            type: ARRAY
+                            text: "_record_type text"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_DEF
+                                text: "_record_type text"
+                                children:
+                                  - key: SQL_COLUMN_DEF_NAME
+                                    type: NAME
+                                    text: "_record_type"
+                                  - key: SQL_COLUMN_DEF_TYPE
+                                    type: OBJECT_SQL_TYPENAME
+                                    text: "text"
+                                    children:
+                                      - key: SQL_TYPENAME_TYPE
+                                        type: OBJECT_SQL_GENERIC_TYPE
+                                        text: "text"
+                                        children:
+                                          - key: SQL_GENERIC_TYPE_NAME
+                                            type: NAME
+                                            text: "text"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [9,10]
+        - text: [23,24]
+        - text: [53,54]
+        - text: [79,80]
+        - text: [110,111]
+        - text: [140,141]
+        - text: [176,177]
+        - text: [228,229]
+        - text: [285,286]
+        - text: [287,288]
+      comments: []

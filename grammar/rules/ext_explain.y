@@ -79,6 +79,8 @@ explain_option_arg:
     TRUE_P                      { $$ = Bool(@1, true); }
   | FALSE_P                     { $$ = Bool(@1, false); }
   | ON                          { $$ = Bool(@1, true); }
+  | LRB sql_name_list RRB       { $$ = ctx.Array(@$, std::move($2)); }
+  | sql_descriptor_arg          { $$ = std::move($1); }
   | sql_col_id                  { $$ = std::move($1); }
   | sql_type_func_keywords      { $$ = ctx.NameFromKeyword(@1, $1); }
   | ICONST                      { $$ = Const(@1, buffers::parser::AConstType::INTEGER); }
