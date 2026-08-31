@@ -33,15 +33,56 @@ describe('getQueryStatusText', () => {
 
     it('includes the statement position in a custom failure message', () => {
         const status = deriveEntryStatus(null, {
+            queryId: 7,
             status: QueryExecutionStatus.FAILED,
             statementIndex: 2,
             statementCount: 3,
-            error: { message: 'relation does not exist', keyValues: {} },
+            queryText: 'select * from missing',
+            queryMetadata: { title: 'Missing relation' },
+            error: {
+                message: 'relation does not exist',
+                keyValues: { sqlState: '42P01', hint: 'Check the table name' },
+                target: 'trino',
+            },
             metrics: null,
             traceId: 42,
         } as any);
 
         expect(status.message).toBe('Statement 2 of 3: relation does not exist');
+        expect(status.errorDetail).toEqual({
+            status: 'failed',
+            message: 'Statement 2 of 3: relation does not exist',
+            target: 'trino',
+            queryId: 7,
+            traceId: 42,
+            statementIndex: 2,
+            statementCount: 3,
+            query: 'select * from missing',
+            metadata: { title: 'Missing relation' },
+            details: { sqlState: '42P01', hint: 'Check the table name' },
+        });
+    });
+
+    it('provides error details even when the connector only supplies a message', () => {
+        const status = deriveEntryStatus(null, {
+            queryId: 7,
+            status: QueryExecutionStatus.FAILED,
+            statementIndex: null,
+            statementCount: null,
+            queryText: 'select 1',
+            queryMetadata: null,
+            error: { message: 'connection lost', keyValues: {} },
+            metrics: null,
+            traceId: 42,
+        } as any);
+
+        expect(status.errorDetail).toEqual({
+            status: 'failed',
+            message: 'connection lost',
+            queryId: 7,
+            traceId: 42,
+            query: 'select 1',
+        });
     });
 
     it('includes the statement position in a cached result message when available', () => {
