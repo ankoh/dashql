@@ -8,6 +8,7 @@ describe('bundled notebooks', () => {
             resolveBundledNotebookUrl(notebook, new URL('https://dashql.app/notebooks')).toString(),
         )).toEqual([
             'https://dashql.app/static/examples/notebooks/explain/dashql-notebook.json',
+            'https://dashql.app/static/examples/notebooks/property-graphs/dashql-notebook.json',
             'https://dashql.app/static/examples/notebooks/hello-docker/dashql-notebook.json',
             'https://dashql.app/static/examples/notebooks/hello-wasm/dashql-notebook.json',
         ]);

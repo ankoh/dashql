@@ -44,7 +44,8 @@ describe('BundledNotebooksOverlay', () => {
         act(() => root.render(<BundledNotebooksOverlay />));
         act(() => (container.querySelector('[aria-label="Example notebooks"]') as HTMLButtonElement).click());
 
-        expect(document.querySelectorAll('[role="dialog"] li')).toHaveLength(3);
+        expect(document.querySelectorAll('[role="dialog"] li')).toHaveLength(4);
+        expect(document.querySelector('[aria-label="Add Property Graphs notebook"]')).toBeInstanceOf(HTMLButtonElement);
         expect(document.querySelector('[aria-label="Close example notebooks"]')).toBeInstanceOf(HTMLButtonElement);
         await act(async () => {
             (document.querySelector('[aria-label="Copy Explain notebook link"]') as HTMLButtonElement).click();
