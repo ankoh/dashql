@@ -5,7 +5,6 @@ import * as styles from './histogram_cell.module.css';
 import { observeSize } from '../../../../../ui/foundations/size_observer.js';
 import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '../../../../../compute/computation_types.js';
 import { dataTypeToString } from '../../../../../compute/arrow_formatter.js';
-import { BIN_COUNT } from '../../../../../compute/computation_logic.js';
 import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 import { HistogramBars, HistogramNullBar, NULL_SYMBOL } from './histogram_bars.js';
 import { useHistogramBrush } from './histogram_brush.js';
@@ -33,6 +32,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const inputNullable = props.columnAggregate.columnEntry.inputFieldNullable;
     const countNull = props.columnAggregate.columnAnalysis.countNull;
     const binCounts = props.columnAggregate.columnAnalysis.binValueCounts;
+    const binCount = props.columnAggregate.columnAnalysis.binCount;
 
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = observeSize(svgContainer);
@@ -50,7 +50,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     // Compute d3 scales - fixed dependencies to include data that affects the scales
     const [histXScale, histYScale, nullsXScale, nullsYScale, nullsXWidth] = React.useMemo(() => {
         const xValues: string[] = [];
-        for (let i = 0; i < BIN_COUNT; ++i) {
+        for (let i = 0; i < binCount; ++i) {
             xValues.push(i.toString());
         }
         let yMin = BigInt(0);
@@ -78,7 +78,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             .domain(yDomain);
 
         return [histXScale, histYScale, nullsXScale, nullsYScale, nullsXWidth];
-    }, [histWidth, height, binCounts, countNull]);
+    }, [histWidth, height, binCount, binCounts, countNull]);
 
     // Listen for brush events
     const onBrushUpdate = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
@@ -174,10 +174,10 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         const relativeX = elem.clientX - boundingBox.left;
         const innerX = Math.max(relativeX, paddingOuter) - paddingOuter;
         const binWidth = histXScale.bandwidth() + paddingInner;
-        const bin = Math.min(Math.floor(innerX / binWidth), BIN_COUNT - 1);
+        const bin = Math.min(Math.floor(innerX / binWidth), binCount - 1);
 
         setFocusedBin(bin);
-    }, [histXScale]);
+    }, [histXScale, binCount]);
     const onPointerOutBin = React.useCallback((_elem: React.MouseEvent<SVGGElement>) => {
         setFocusedBin(null);
     }, []);

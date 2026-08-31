@@ -14,6 +14,7 @@ export interface BinningConfig {
     statsMinField: string;
     statsMaxField: string;
     binCount: number;
+    minBinWidth?: number;
     outputAlias: string;
     toNumericFn?: string;
 }
@@ -27,6 +28,7 @@ export interface GroupByKey {
 export interface GroupByKeyBinning {
     preBinnedFieldName?: string;
     binCount: number;
+    minBinWidth?: number;
     statsTable: string;
     statsMinField: string;
     statsMaxField: string;
@@ -72,6 +74,11 @@ function quoteIdent(name: string): string {
 
 function formatLiteral(value: number): string {
     return value.toString();
+}
+
+function binWidthExpression(range: string, binCount: number, minBinWidth?: number): string {
+    const minimum = minBinWidth ?? 1e-15;
+    return `GREATEST(${range} / ${binCount}, ${minimum})`;
 }
 
 function toNumeric(expr: string, fn?: string): string {
@@ -208,7 +215,7 @@ export class SQLFrame {
                 const sub =
                     `SELECT ` +
                     `${toNumeric(quoteIdent(b.statsMinField), fn)} AS __min, ` +
-                    `GREATEST(ABS(${toNumeric(quoteIdent(b.statsMaxField), fn)} - ${toNumeric(quoteIdent(b.statsMinField), fn)}) / ${b.binCount}, 1e-15) AS __bin_width ` +
+                    `${binWidthExpression(`ABS(${toNumeric(quoteIdent(b.statsMaxField), fn)} - ${toNumeric(quoteIdent(b.statsMinField), fn)})`, b.binCount, b.minBinWidth)} AS __bin_width ` +
                     `FROM ${quoteIdent(b.statsTable)}`;
                 statsJoins.push(`CROSS JOIN (${sub}) ${alias}`);
                 binExprs.push(
@@ -318,11 +325,11 @@ export class SQLFrame {
         const statsSql = isTemporal
             ? `SELECT ` +
               `${minField} AS __min, ` +
-              `GREATEST(ABS(${toNumeric(maxField, fn)} - ${toNumeric(minField, fn)}) / ${binCount}, 1e-15) AS __bin_width ` +
+              `${binWidthExpression(`ABS(${toNumeric(maxField, fn)} - ${toNumeric(minField, fn)})`, binCount, binning.minBinWidth)} AS __bin_width ` +
               `FROM ${quoteIdent(binning.statsTable)}`
             : `SELECT ` +
               `${toNumeric(minField, fn)} AS __min, ` +
-              `GREATEST(ABS(${toNumeric(maxField, fn)} - ${toNumeric(minField, fn)}) / ${binCount}, 1e-15) AS __bin_width ` +
+              `${binWidthExpression(`ABS(${toNumeric(maxField, fn)} - ${toNumeric(minField, fn)})`, binCount, binning.minBinWidth)} AS __bin_width ` +
               `FROM ${quoteIdent(binning.statsTable)}`;
         ctes.push(`${statsCteName} AS (\n    ${statsSql}\n  )`);
 

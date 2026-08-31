@@ -361,6 +361,44 @@ describe('SQLFrame execution', () => {
         expect(rows[7].bin_ub).toBeCloseTo(28054, 1);
     });
 
+    it('uses unit-width bins for small integer domains', async () => {
+        const table = arrow.tableFromArrays({
+            value: new Int32Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        });
+        const statsTable = arrow.tableFromArrays({
+            min_value: new Int32Array([0]),
+            max_value: new Int32Array([9]),
+        });
+        await conn.insertArrowTable(table, { name: 'input', create: true });
+        await conn.insertArrowTable(statsTable, { name: 'stats', create: true });
+
+        const sql = SQLFrame.from("input")
+            .groupBy({
+                keys: [{
+                    fieldName: "value",
+                    outputAlias: "bin",
+                    binning: {
+                        binCount: 10,
+                        minBinWidth: 1,
+                        statsTable: "stats",
+                        statsMinField: "min_value",
+                        statsMaxField: "max_value",
+                        outputBinWidthAlias: "bin_width",
+                        outputBinLbAlias: "bin_lb",
+                        outputBinUbAlias: "bin_ub",
+                    },
+                }],
+                aggregates: [{ func: "count_star", outputAlias: "count" }],
+            })
+            .orderBy([{ field: "bin", ascending: true }])
+            .toSQL();
+        const rows = toPlainObjects(await conn.query(sql));
+
+        expect(rows).toHaveLength(10);
+        expect(rows.map(row => row.count)).toEqual(Array(10).fill(1n));
+        expect(rows.map(row => row.bin_lb)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    });
+
     it('groups pre-binned boolean values', async () => {
         await conn.query(`CREATE TABLE input (email_opt_out BOOLEAN, value_bin DOUBLE PRECISION)`);
         await conn.query(`INSERT INTO input VALUES (FALSE, 0), (TRUE, 16), (NULL, NULL)`);

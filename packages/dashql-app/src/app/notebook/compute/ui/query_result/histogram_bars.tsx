@@ -1,8 +1,6 @@
 import * as React from 'react';
 import * as d3 from 'd3';
 
-import { BIN_COUNT } from '../../../../../compute/computation_logic.js';
-
 export const NULL_SYMBOL = "∅";
 
 interface BarGeometry {
@@ -42,7 +40,7 @@ interface HistogramBarsProps {
 
 export function HistogramBars(props: HistogramBarsProps): React.ReactElement {
     const filteredBinCounts = props.filteredBinCounts;
-    const totalBars = Array.from({ length: BIN_COUNT }, (_, bin) => {
+    const totalBars = Array.from({ length: props.binCounts.length }, (_, bin) => {
         const geometry = getBarGeometry(bin, props.binCounts[bin], props.xScale, props.yScale, props.height);
         return geometry == null ? null : <rect key={bin} {...geometry} fill={props.totalBarColor} />;
     });
@@ -51,7 +49,7 @@ export function HistogramBars(props: HistogramBarsProps): React.ReactElement {
         : getBarGeometry(props.focusedBin, props.binCounts[props.focusedBin], props.xScale, props.yScale, props.height);
     const filteredBars = filteredBinCounts == null
         ? null
-        : Array.from({ length: BIN_COUNT }, (_, bin) => {
+        : Array.from({ length: filteredBinCounts.length }, (_, bin) => {
             const geometry = getBarGeometry(bin, filteredBinCounts[bin], props.xScale, props.yScale, props.height);
             return geometry == null ? null : <rect key={`filtered-${bin}`} {...geometry} fill={props.filteredBarColor} />;
         });

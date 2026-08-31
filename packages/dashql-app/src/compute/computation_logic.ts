@@ -51,6 +51,35 @@ function getToNumericFn(typeId: arrow.Type): string | undefined {
     return typeId === arrow.Type.Bool ? "BOOLEAN" : undefined;
 }
 
+function isIntegerType(typeId: arrow.Type): boolean {
+    switch (typeId) {
+        case arrow.Type.Int:
+        case arrow.Type.Int8:
+        case arrow.Type.Int16:
+        case arrow.Type.Int32:
+        case arrow.Type.Int64:
+        case arrow.Type.Uint8:
+        case arrow.Type.Uint16:
+        case arrow.Type.Uint32:
+        case arrow.Type.Uint64:
+            return true;
+        default:
+            return false;
+    }
+}
+
+function getSmallIntegerDomainSize(minValue: unknown, maxValue: unknown, maxSize: number): number | null {
+    if (typeof minValue === 'bigint' && typeof maxValue === 'bigint') {
+        const size = maxValue - minValue + 1n;
+        return size > 0n && size <= BigInt(maxSize) ? Number(size) : null;
+    }
+    if (typeof minValue === 'number' && typeof maxValue === 'number' && Number.isInteger(minValue) && Number.isInteger(maxValue)) {
+        const size = maxValue - minValue + 1;
+        return size > 0 && size <= maxSize ? size : null;
+    }
+    return null;
+}
+
 /// Analyze a table.
 ///
 /// This function computes multiple summaries for displaying the data in the table grid component.
@@ -410,6 +439,7 @@ function buildSystemColumnSQLFrame(schema: arrow.Schema, columns: ColumnGroup[],
                     statsMinField: column.value.statsFields!.minAggregateFieldName!,
                     statsMaxField: column.value.statsFields!.maxAggregateFieldName!,
                     binCount: column.value.binCount,
+                    minBinWidth: isIntegerType(column.value.inputFieldType.typeId) ? 1 : undefined,
                     outputAlias: binFieldName,
                     toNumericFn: getToNumericFn(column.value.inputFieldType.typeId),
                 });
@@ -704,6 +734,22 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
         const statsTableFields = createArrowFieldIndex(statsTable);
         const statsTableFormatter = new ArrowTableFormatter(statsTable.schema, statsTable.batches, logger);
 
+        for (let i = 0; i < columnEntries.length; ++i) {
+            const entry = columnEntries[i];
+            if (entry.type != ORDINAL_COLUMN || !isIntegerType(entry.value.inputFieldType.typeId)) {
+                continue;
+            }
+            const minValue = statsTable.getChild(entry.value.statsFields!.minAggregateFieldName!)?.get(0);
+            const maxValue = statsTable.getChild(entry.value.statsFields!.maxAggregateFieldName!)?.get(0);
+            const domainSize = getSmallIntegerDomainSize(minValue, maxValue, entry.value.binCount);
+            if (domainSize != null) {
+                columnEntries[i] = {
+                    type: ORDINAL_COLUMN,
+                    value: { ...entry.value, binCount: domainSize },
+                };
+            }
+        }
+
         const summary: TableAggregation = {
             table: statsTable,
             tableFormatter: statsTableFormatter,
@@ -816,15 +862,15 @@ function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: Ordin
 
     const nullBinRowIdx = binnedValues.numRows - 1;
     const nullBinId = Number(binIdVector.get(nullBinRowIdx) ?? -1);
-    assert(binnedValues.numRows === (BIN_COUNT + 1));
-    assert(nullBinId === BIN_COUNT);
+    assert(binnedValues.numRows === (columnEntry.binCount + 1));
+    assert(nullBinId === columnEntry.binCount);
 
     const countNull = Number(binCountVector.get(nullBinRowIdx) ?? BigInt(0));
     const countNotNull = filteredTotalCount == null
         ? totalCount - countNull
         : unfilteredTotalCount - countNull;
 
-    const regularBinCount = BIN_COUNT;
+    const regularBinCount = columnEntry.binCount;
     const binLowerBounds: string[] = [];
     const binPercentages = new Float64Array(regularBinCount);
     const regularBinValueCounts = new BigInt64Array(regularBinCount);
@@ -1036,7 +1082,8 @@ function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: [Filte
                         statsTable: task.tableAggregate.dataFrame.tableName,
                         statsMinField: minField,
                         statsMaxField: maxField,
-                        binCount: BIN_COUNT,
+                        binCount: task.columnEntry.value.binCount,
+                        minBinWidth: isIntegerType(task.columnEntry.value.inputFieldType.typeId) ? 1 : undefined,
                         outputBinWidthAlias: "binWidth",
                         outputBinLbAlias: "binLowerBound",
                         outputBinUbAlias: "binUpperBound",
