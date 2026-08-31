@@ -1,8 +1,8 @@
 -- DashQL Connection Relations.
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
--- Catalog Source: Hyper attached databases
--- Last Refresh: 2026-08-30T20:48:43.191Z
+-- Catalog Source: HyperDB WASM pg_class
+-- Last Refresh: 2026-08-31T07:55:33.144Z
 
 -- DashQL Hyper Catalog Section: "hyper"
 CREATE TABLE "hyper"."pg_catalog"."hyper_attached_database" (
@@ -1184,5 +1184,90 @@ CREATE TABLE "hyper"."pg_catalog"."pg_views" (
     "viewname" VARCHAR,
     "viewowner" VARCHAR,
     "definition" VARCHAR
+);
+
+CREATE TABLE "hyper"."public"."customers" (
+    "c_custkey" INTEGER,
+    "c_name" VARCHAR,
+    "c_address" VARCHAR,
+    "c_nationkey" INTEGER,
+    "c_phone" VARCHAR,
+    "c_acctbal" FLOAT,
+    "c_mktsegment" VARCHAR,
+    "c_comment" VARCHAR
+);
+
+CREATE TABLE "hyper"."public"."lineitem" (
+    "l_orderkey" INTEGER,
+    "l_partkey" INTEGER,
+    "l_suppkey" INTEGER,
+    "l_linenumber" INTEGER,
+    "l_quantity" FLOAT,
+    "l_extendedprice" FLOAT,
+    "l_discount" FLOAT,
+    "l_tax" FLOAT,
+    "l_returnflag" VARCHAR,
+    "l_linestatus" VARCHAR,
+    "l_shipdate" DATE,
+    "l_commitdate" DATE,
+    "l_receiptdate" DATE,
+    "l_shipinstruct" VARCHAR,
+    "l_shipmode" VARCHAR,
+    "l_comment" VARCHAR
+);
+
+CREATE TABLE "hyper"."public"."nation" (
+    "n_nationkey" INTEGER,
+    "n_name" VARCHAR,
+    "n_regionkey" INTEGER,
+    "n_comment" VARCHAR
+);
+
+CREATE TABLE "hyper"."public"."orders" (
+    "o_orderkey" INTEGER,
+    "o_custkey" INTEGER,
+    "o_orderstatus" VARCHAR,
+    "o_totalprice" FLOAT,
+    "o_orderdate" DATE,
+    "o_orderpriority" VARCHAR,
+    "o_clerk" VARCHAR,
+    "o_shippriority" INTEGER,
+    "o_comment" VARCHAR
+);
+
+CREATE TABLE "hyper"."public"."part" (
+    "p_partkey" INTEGER,
+    "p_name" VARCHAR,
+    "p_mfgr" VARCHAR,
+    "p_brand" VARCHAR,
+    "p_type" VARCHAR,
+    "p_size" INTEGER,
+    "p_container" VARCHAR,
+    "p_retailprice" FLOAT,
+    "p_comment" VARCHAR
+);
+
+CREATE TABLE "hyper"."public"."partsupp" (
+    "ps_partkey" INTEGER,
+    "ps_suppkey" INTEGER,
+    "ps_availqty" INTEGER,
+    "ps_supplycost" FLOAT,
+    "ps_comment" VARCHAR
+);
+
+CREATE TABLE "hyper"."public"."region" (
+    "r_regionkey" INTEGER,
+    "r_name" VARCHAR,
+    "r_comment" VARCHAR
+);
+
+CREATE TABLE "hyper"."public"."supplier" (
+    "s_suppkey" INTEGER,
+    "s_name" VARCHAR,
+    "s_address" VARCHAR,
+    "s_nationkey" INTEGER,
+    "s_phone" VARCHAR,
+    "s_acctbal" FLOAT,
+    "s_comment" VARCHAR
 );
 -- DashQL Hyper Catalog Section End

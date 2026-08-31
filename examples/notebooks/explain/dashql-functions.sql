@@ -2,7 +2,7 @@
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: HyperDB WASM pg_proc
--- Last Refresh: 2026-08-30T20:48:43.191Z
+-- Last Refresh: 2026-08-31T07:55:33.144Z
 
 CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;
 CREATE FUNCTION "hyper"."pg_catalog"."acos"() RETURNS any;
