@@ -13,3 +13,12 @@ create table if not exists nation as (
 create table if not exists lineitem as (
 	select * from external('https://data.dashql.app/tpch-0.01/v1/lineitem.parquet', format => 'parquet')
 );
+create table if not exists supplier as (
+	select * from external('https://data.dashql.app/tpch-0.01/v1/supplier.parquet', format => 'parquet')
+);
+create table if not exists part as (
+	select * from external('https://data.dashql.app/tpch-0.01/v1/part.parquet', format => 'parquet')
+);
+create table if not exists partsupp as (
+	select * from external('https://data.dashql.app/tpch-0.01/v1/partsupp.parquet', format => 'parquet')
+);
