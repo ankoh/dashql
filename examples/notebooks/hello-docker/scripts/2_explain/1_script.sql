@@ -1,1 +1,0 @@
-explain (format json) select 1

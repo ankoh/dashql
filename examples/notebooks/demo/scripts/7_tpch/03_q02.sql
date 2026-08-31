@@ -1,8 +1,3 @@
-with part as (select * from external('/mnt/home/Desktop/data/tpch-1/v1/part.parquet', format => 'parquet')),
-partsupp as (select * from external('/mnt/home/Desktop/data/tpch-1/v1/partsupp.parquet', format => 'parquet')),
-nation as (select * from external('/mnt/home/Desktop/data/tpch-1/v1/nation.parquet', format => 'parquet')),
-supplier as (select * from external('/mnt/home/Desktop/data/tpch-1/v1/supplier.parquet', format => 'parquet')),
-region as (select * from external('/mnt/home/Desktop/data/tpch-1/v1/region.parquet', format => 'parquet'))
 select s_acctbal,
     s_name,
     n_name,
