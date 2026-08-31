@@ -515,7 +515,7 @@ FmtReg Formatter::FormatUnimplemented(const buffers::parser::Node& node) {
     return fmt.Concat({fmt.Text("'<"), fmt.Text(type_name), fmt.Text(">'")});
 }
 
-FmtReg Formatter::FormatCommaList(const buffers::parser::Node& node) {
+FmtReg Formatter::FormatCommaList(const buffers::parser::Node& node, bool indent_after_breaks) {
     auto children = GetArrayStates(node);
     std::vector<FmtReg> parts;
     parts.reserve(children.size());
@@ -524,7 +524,7 @@ FmtReg Formatter::FormatCommaList(const buffers::parser::Node& node) {
     }
     auto inline_separator = fmt.Text(", ");
     auto break_separator = fmt.Concat({fmt.Text(","), fmt.Break()});
-    return fmt.Join(parts, inline_separator, break_separator, std::nullopt, true);
+    return fmt.Join(parts, inline_separator, break_separator, std::nullopt, indent_after_breaks);
 }
 
 FmtReg Formatter::FormatQualifiedName(const buffers::parser::Node& node) {
@@ -586,7 +586,6 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
         case AttributeKey::SQL_NUMERIC_TYPE_MODIFIERS:
-        case AttributeKey::EXT_EXPLAIN_OPTIONS:
         case AttributeKey::SQL_ATTACH_DATABASE_OPTIONS:
         case AttributeKey::SQL_INSERT_COLUMNS:
         case AttributeKey::SQL_INSERT_RETURNING:
@@ -602,6 +601,8 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_GRAPH_TABLE_COLUMNS:
         case AttributeKey::SQL_RESULT_TARGET_EXCLUDE:
             return FormatCommaList(node);
+        case AttributeKey::EXT_EXPLAIN_OPTIONS:
+            return FormatCommaList(node, false);
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
         case AttributeKey::SQL_GENERIC_OPTION_VALUE:
             return fmt.Parenthesized(FormatCommaList(node));
