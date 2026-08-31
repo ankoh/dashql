@@ -103,7 +103,8 @@ describe('unformatted script preview', () => {
     it('analyzes restored scripts without an editor projection', () => {
         const catalog = dql!.createCatalog();
         const scriptSession = dql!.createScriptSession(catalog);
-        scriptSession.replaceText(0n, JSON_TABLE_SCRIPT);
+        const source = '/* unsupported type */\nselect cast(json_array_elements(payload) as bit)';
+        scriptSession.replaceText(0n, source);
         const logger = { warn: vi.fn() };
         const formattingConfig = new core.buffers.formatting.FormattingConfigT(
             core.buffers.formatting.FormattingDialect.HYPER,
@@ -121,7 +122,7 @@ describe('unformatted script preview', () => {
             editorUpdate: null,
         } as any, logger as any);
 
-        expect(snapshot.scriptText).toBe(JSON_TABLE_SCRIPT);
+        expect(snapshot.scriptText).toBe(source);
         expect(snapshot.editorUpdate?.syntaxSpans.length).toBeGreaterThan(0);
         expect(snapshot.editorUpdate?.syntaxSpans.some(span =>
             span.tokenType === core.buffers.parser.ScannerTokenType.COMMENT,
@@ -147,6 +148,24 @@ describe('unformatted script preview', () => {
 });
 
 describe('compact script preview', () => {
+    it('formats CTE column lists used by JSON array expansion scripts', () => {
+        const catalog = dql!.createCatalog();
+        const scriptSession = dql!.createScriptSession(catalog);
+        scriptSession.replaceText(0n, JSON_TABLE_SCRIPT);
+        const formattingConfig = new core.buffers.formatting.FormattingConfigT(
+            core.buffers.formatting.FormattingDialect.HYPER,
+            core.buffers.formatting.FormattingMode.COMPACT,
+            80,
+            2,
+            false,
+        );
+
+        expect(scriptSession.isFullyFormattable(formattingConfig, true)).toBe(true);
+
+        scriptSession.destroy();
+        catalog.destroy();
+    });
+
     it('stays compact when analysis discovers statement descriptions', () => {
         const source = [
             '-- Existing line comments are treated as one block and reflowed to the configured width.',

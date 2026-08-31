@@ -130,7 +130,7 @@ formatter-snapshots:
               select *
               from t;
 
-  - name: select_with_values
+  - name: coverage_select_with_values
     input: |-
       with source(id, tag) as (values (1, 'test-order-1'), (2, 'test-order-2')) select * from source
     dialects:

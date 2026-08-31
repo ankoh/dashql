@@ -589,6 +589,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_ATTACH_DATABASE_OPTIONS:
         case AttributeKey::SQL_INSERT_COLUMNS:
         case AttributeKey::SQL_INSERT_RETURNING:
+        case AttributeKey::SQL_CTE_COLUMNS:
         case AttributeKey::SQL_GRAPH_ELEMENT_TABLE_LABELS:
         case AttributeKey::SQL_GRAPH_MATCH_PATTERNS:
         case AttributeKey::SQL_RESULT_TARGET_EXCLUDE:
@@ -2172,7 +2173,8 @@ FmtReg Formatter::FormatCTE(const buffers::parser::Node& node) {
                         : (secure ? fmt.Text(" as secure ") : fmt.Text(" as "));
     FmtReg result;
     if (columns && columns->node_type() == NodeType::ARRAY && columns->children_count() > 0) {
-        auto cols_reg = FormatCommaList(*columns);
+        auto cols_reg = Reg(*columns);
+        if (cols_reg == 0) return FormatUnimplemented(*columns);
         result = fmt.Concat({name_reg, fmt.Text(" "), fmt.Parenthesized(cols_reg), as_reg, body});
     } else {
         result = fmt.Concat({name_reg, as_reg, body});
