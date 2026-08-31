@@ -110,6 +110,7 @@ describe('NotebookFileTree', () => {
 
         expect(container.querySelector('nav')?.getAttribute('aria-label')).toBe('Notebook files');
         expect(container.querySelector('nav')?.hasAttribute('data-notebookscripts-file-tree')).toBe(true);
+        expect(container.querySelector('nav > div')?.getAttribute('data-electron-drag-region')).toBe('false');
         expect(container.textContent?.indexOf('Relations')).toBeGreaterThan(container.textContent!.indexOf('archive'));
         expect(container.textContent).toContain('query');
         expect(container.textContent).toContain('report');

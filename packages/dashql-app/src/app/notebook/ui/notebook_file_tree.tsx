@@ -98,7 +98,7 @@ export const NotebookFileTree: React.FC<NotebookFileTreeProps> = (props) => {
             aria-label="Notebook files"
             data-notebookscripts-file-tree
         >
-            <div className={styles.pages_container}>
+            <div className={styles.pages_container} data-electron-drag-region="false">
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
