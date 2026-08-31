@@ -96,7 +96,6 @@ export const NotebookFeedComposer: React.FC<NotebookFeedComposerProps> = (props)
                             status={IndicatorStatus.Running}
                             width="16px"
                             height="16px"
-                            fill="currentColor"
                         />
                         <IconButton
                             variant={ButtonVariant.Default}

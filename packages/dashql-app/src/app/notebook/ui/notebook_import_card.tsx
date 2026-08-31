@@ -61,7 +61,7 @@ function LoadingCard({ state }: { state: LoadingState }): React.ReactElement {
         <CardShell title="Loading Notebook" busy onClose={state.onClose}>
             <div className={styles.status} role="status" aria-live="polite">
                 <span aria-hidden="true">
-                    <StatusIndicator status={IndicatorStatus.Running} width="18px" height="18px" fill="currentColor" />
+                    <StatusIndicator status={IndicatorStatus.Running} width="18px" height="18px" />
                 </span>
                 <span>{details.status}</span>
             </div>

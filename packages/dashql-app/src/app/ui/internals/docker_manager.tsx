@@ -273,7 +273,6 @@ const ContainerCard: React.FC<ContainerCardProps> = (props) => {
                         online={isRunning}
                         width="14px"
                         height="14px"
-                        fill="black"
                     />
                 </div>
                 <div className={styles.container_meta}>

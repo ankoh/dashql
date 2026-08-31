@@ -161,7 +161,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     {!props.embedded && (
                         <div className={style.status_left}>
                             <div className={style.status_indicator}>
-                                <StatusIndicator status={indicatorStatus} fill="black" />
+                                <StatusIndicator status={indicatorStatus} />
                             </div>
                             <div className={style.status_text}>
                                 {statusText}

@@ -76,7 +76,7 @@ export const ConnectionCommandList: React.FC<{
             >
                 <ActionList.Leading>
                     {isRefreshing
-                        ? <StatusIndicator status={IndicatorStatus.Running} width="16px" height="16px" fill="currentColor" />
+                        ? <StatusIndicator status={IndicatorStatus.Running} width="16px" height="16px" />
                         : <SyncIcon />}
                 </ActionList.Leading>
                 <ActionList.ItemText>

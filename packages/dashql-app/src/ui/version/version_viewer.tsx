@@ -88,7 +88,7 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
                             status = <ProgressBar className={styles.update_channel_action_progress} progress={progress * 100} />;
                         } else {
                             status = (
-                                <StatusIndicator width="16px" height="16px" fill="black" status={IndicatorStatus.Succeeded} />
+                                <StatusIndicator width="16px" height="16px" status={IndicatorStatus.Succeeded} />
                             );
                         }
                     } else {

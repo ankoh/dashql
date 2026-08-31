@@ -20,9 +20,9 @@ export const CONNECTION_HEALTH_NAMES: string[] = [
 ]
 
 export const CONNECTION_HEALTH_COLORS: string[] = [
-    "#cf222e",
+    "#6e7781",
     "#9a6700",
-    "#cf222e",
+    "#6e7781",
     "#1f883d",
     "#cf222e",
 ];

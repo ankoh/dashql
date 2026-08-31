@@ -97,7 +97,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
                                             className={pageStyles.loading_status_indicator}
-                                            fill="black"
                                             width={"14px"}
                                             height={"14px"}
                                             status={coreStatus}
@@ -109,7 +108,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
                                             className={pageStyles.loading_status_indicator}
-                                            fill="black"
                                             width={"14px"}
                                             height={"14px"}
                                             status={props.embeddedDatabaseStatus}
@@ -121,7 +119,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
                                             className={pageStyles.loading_status_indicator}
-                                            fill="black"
                                             width={"14px"}
                                             height={"14px"}
                                             status={getStatusFromProgressCounter(props.progress.restoreConnections)}
@@ -133,7 +130,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
                                             className={pageStyles.loading_status_indicator}
-                                            fill="black"
                                             width={"14px"}
                                             height={"14px"}
                                             status={getStatusFromProgressCounter(props.progress.restoreNotebookScripts)}

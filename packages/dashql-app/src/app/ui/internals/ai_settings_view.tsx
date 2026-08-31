@@ -152,7 +152,6 @@ export function AISettingsView(props: { onClose: () => void; }) {
                                 <StatusIndicator
                                     className={styles.status_indicator_spinner}
                                     status={testState.status}
-                                    fill="black"
                                 />
                             </div>
                             <div className={styles.status_text}>{testState.text}</div>

@@ -14,6 +14,24 @@ export enum IndicatorStatus {
     Skip,
 }
 
+const STATUS_COLOR_IN_PROGRESS = '#9a6700';
+const STATUS_COLOR_SUCCESS = '#1f883d';
+const STATUS_COLOR_FAILED = '#cf222e';
+const STATUS_COLOR_OTHER = '#6e7781';
+
+function getIndicatorColor(status: IndicatorStatus): string {
+    switch (status) {
+        case IndicatorStatus.Running:
+            return STATUS_COLOR_IN_PROGRESS;
+        case IndicatorStatus.Succeeded:
+            return STATUS_COLOR_SUCCESS;
+        case IndicatorStatus.Failed:
+            return STATUS_COLOR_FAILED;
+        default:
+            return STATUS_COLOR_OTHER;
+    }
+}
+
 export function getStatusFromProgressCounter(counter: ProgressCounter): IndicatorStatus {
     if (counter.total == null) {
         return IndicatorStatus.None;
@@ -65,6 +83,7 @@ export interface StatusIndicatorProps {
 }
 
 export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusIndicatorProps) => {
+    const fill = props.fill || getIndicatorColor(props.status);
     let element = <div />;
     switch (props.status) {
         case IndicatorStatus.Running:
@@ -75,17 +94,18 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                     height={props.height || '24px'}
                     viewBox="-8 -8 16 16"
                     fill="none"
-                    stroke={props.fill || 'white'}
+                    stroke={fill}
                     strokeWidth="2"
                 >
                     <g fill="none" fillRule="evenodd">
                         <circle cx="0" cy="0" r="7" opacity=".5"></circle>
-                        <circle cx="0" cy="0" r="4" strokeWidth="0" fill={props.fill || 'white'}></circle>
+                        <circle cx="0" cy="0" r="4" strokeWidth="0" fill={fill}></circle>
                         <circle cx="0" cy="0" r="7" strokeDasharray="12, 88" className={styles.status_running_spinner} />
                     </g>
                 </svg>
             );
             break;
+        case IndicatorStatus.Blocked:
         case IndicatorStatus.None:
             element = (
                 <svg
@@ -94,11 +114,11 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                     height={props.height || '24px'}
                     viewBox="-8 -8 16 16"
                     fill="none"
-                    stroke={props.fill || 'white'}
+                    stroke={fill}
                     strokeWidth="2"
                 >
                     <g fill="none" fillRule="evenodd">
-                        <circle cx="0" cy="0" r="4" opacity=".5" strokeWidth="0" fill={props.fill || 'white'}></circle>
+                        <circle cx="0" cy="0" r="4" opacity=".5" strokeWidth="0" fill={fill}></circle>
                     </g>
                 </svg>
             );
@@ -115,7 +135,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                 >
                     <g fill="none" fillRule="evenodd">
                         <path
-                            fill={props.fill || 'white'}
+                            fill={fill}
                             fillRule="evenodd"
                             d="M2.343 13.657A8 8 0 1113.657 2.343 8 8 0 012.343 13.657zM6.03 4.97a.75.75 0 00-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 101.06 1.06L8 9.06l1.97 1.97a.75.75 0 101.06-1.06L9.06 8l1.97-1.97a.75.75 0 10-1.06-1.06L8 6.94 6.03 4.97z"
                         ></path>
@@ -135,7 +155,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                 >
                     <g fill="none" fillRule="evenodd">
                         <path
-                            fill={props.fill || 'white'}
+                            fill={fill}
                             fillRule="evenodd"
                             d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z"
                         ></path>
@@ -155,7 +175,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                 >
                     <g fill="none" fillRule="evenodd">
                         <path
-                            fill={props.fill || 'white'}
+                            fill={fill}
                             fillRule="evenodd"
                             d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.333-2.167a.825.825 0 0 0-1.166-1.166l-5.5 5.5a.825.825 0 0 0 1.166 1.166Z"
                         ></path>
@@ -176,7 +196,7 @@ export interface BinaryStatusIndicatorProps {
 }
 
 export const BinaryStatusIndicator: React.FC<BinaryStatusIndicatorProps> = (props: BinaryStatusIndicatorProps) => {
-    const fill = props.fill || 'white';
+    const fill = props.fill || (props.online ? STATUS_COLOR_SUCCESS : STATUS_COLOR_OTHER);
     return (
         <svg
             className={classNames(props.className)}
