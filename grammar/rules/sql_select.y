@@ -661,6 +661,18 @@ sql_joined_table:
             Attr(Key::SQL_JOIN_INPUT, ctx.Array(@$, { std::move($1), std::move($4) })),
         });
     }
+  | sql_table_ref SEMI JOIN sql_table_ref sql_join_qual {
+        $$ = Concat(std::move($5), {
+            Attr(Key::SQL_JOIN_TYPE, Enum(Loc({@2, @3}), buffers::parser::JoinType::SEMI)),
+            Attr(Key::SQL_JOIN_INPUT, ctx.Array(@$, { std::move($1), std::move($4) })),
+        });
+    }
+  | sql_table_ref ANTI JOIN sql_table_ref sql_join_qual {
+        $$ = Concat(std::move($5), {
+            Attr(Key::SQL_JOIN_TYPE, Enum(Loc({@2, @3}), buffers::parser::JoinType::ANTI)),
+            Attr(Key::SQL_JOIN_INPUT, ctx.Array(@$, { std::move($1), std::move($4) })),
+        });
+    }
   | sql_table_ref JOIN sql_table_ref sql_join_qual {
         $$ = Concat(std::move($4), {
             Attr(Key::SQL_JOIN_TYPE, Enum(@2, buffers::parser::JoinType::INNER)),

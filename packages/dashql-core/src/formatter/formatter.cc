@@ -827,6 +827,12 @@ FmtReg Formatter::FormatJoinedTable(const buffers::parser::Node& node) {
         case JoinType::OUTER_FULL:
             join_text = "full join";
             break;
+        case JoinType::SEMI:
+            join_text = "semi join";
+            break;
+        case JoinType::ANTI:
+            join_text = "anti join";
+            break;
         case JoinType::NATURAL_INNER:
             join_text = "natural join";
             break;

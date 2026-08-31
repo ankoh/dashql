@@ -10103,6 +10103,633 @@ parser-snapshots:
       line-breaks: []
       comments: []
 
+  - name: select_join_anti
+    input: |-
+      SELECT * FROM a ANTI JOIN b ON a.id = b.id
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 26
+          description:
+            text: "SELECT * F...id = b.id"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F...id = b.id"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM a ANT...id = b.id"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a ANTI JOI...id = b.id"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a ANTI JOI...id = b.id"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "a.id = b.id"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "a.id = b.id"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "a.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a.id"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                                          - type: NAME
+                                            text: "id"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "b.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "b.id"
+                                        children:
+                                          - type: NAME
+                                            text: "b"
+                                          - type: NAME
+                                            text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: ANTI
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a ANTI JOI...id = b.id"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "b"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_join_semi
+    input: |-
+      SELECT * FROM a SEMI JOIN b ON a.id = b.id
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 26
+          description:
+            text: "SELECT * F...id = b.id"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F...id = b.id"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM a SEM...id = b.id"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a SEMI JOI...id = b.id"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a SEMI JOI...id = b.id"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "a.id = b.id"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "a.id = b.id"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "a.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a.id"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                                          - type: NAME
+                                            text: "id"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "b.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "b.id"
+                                        children:
+                                          - type: NAME
+                                            text: "b"
+                                          - type: NAME
+                                            text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: SEMI
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a SEMI JOI...id = b.id"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "b"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_join_anti_semi_cte_union
+    input: |-
+      WITH `cte_table_6` AS (
+        SELECT `o_orderkey`, `_record_type` FROM `orders_cdf`
+        WHERE (`_record_type` IN ('DELETE','UPDATE_PREIMAGE'))
+      ),
+      `cte_table_12` AS (
+        SELECT `o_orderkey`, `_record_type` FROM `orders_cdf`
+        WHERE (`_record_type` IN ('INSERT','UPDATE_POSTIMAGE'))
+      )
+      SELECT * FROM ((
+        SELECT * FROM `cte_table_6` AS `before`
+        ANTI JOIN `cte_table_12` AS `after`
+        ON (`before`.`o_orderkey` = `after`.`o_orderkey`)
+      ) UNION ALL (
+        SELECT * FROM `cte_table_12` AS `after`
+        SEMI JOIN `cte_table_6` AS `before`
+        ON (`after`.`o_orderkey` = `before`.`o_orderkey`)
+      )) AS `union_2`
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 118
+          description:
+            text: "WITH `cte_.. `union_2`"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "WITH `cte_.. `union_2`"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "`cte_table..IMAGE'))\n)"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "`cte_table..IMAGE'))\n)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "`cte_table_6`"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "SELECT `o_..REIMAGE'))"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "`o_orderke..cord_type`"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "`o_orderkey`"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "`o_orderkey`"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "`o_orderkey`"
+                                        children:
+                                          - type: NAME
+                                            text: "`o_orderkey`"
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "`_record_type`"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "`_record_type`"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "`_record_type`"
+                                        children:
+                                          - type: NAME
+                                            text: "`_record_type`"
+                          - key: SQL_SELECT_FROM
+                            type: ARRAY
+                            text: "FROM `orders_cdf`"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "`orders_cdf`"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "`orders_cdf`"
+                                    children:
+                                      - type: NAME
+                                        text: "`orders_cdf`"
+                          - key: SQL_SELECT_WHERE
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "`_record_t..PREIMAGE')"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: IN
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "`_record_t..PREIMAGE')"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "`_record_type`"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "`_record_type`"
+                                        children:
+                                          - type: NAME
+                                            text: "`_record_type`"
+                                  - type: ARRAY
+                                    text: "('DELETE',..PREIMAGE')"
+                                    children:
+                                      - type: LITERAL_STRING
+                                        text: "'DELETE'"
+                                      - type: LITERAL_STRING
+                                        text: "'UPDATE_PREIMAGE'"
+                  - type: OBJECT_SQL_CTE
+                    text: "`cte_table..IMAGE'))\n)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "`cte_table_12`"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "SELECT `o_..STIMAGE'))"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "`o_orderke..cord_type`"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "`o_orderkey`"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "`o_orderkey`"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "`o_orderkey`"
+                                        children:
+                                          - type: NAME
+                                            text: "`o_orderkey`"
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "`_record_type`"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "`_record_type`"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "`_record_type`"
+                                        children:
+                                          - type: NAME
+                                            text: "`_record_type`"
+                          - key: SQL_SELECT_FROM
+                            type: ARRAY
+                            text: "FROM `orders_cdf`"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "`orders_cdf`"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "`orders_cdf`"
+                                    children:
+                                      - type: NAME
+                                        text: "`orders_cdf`"
+                          - key: SQL_SELECT_WHERE
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "`_record_t..OSTIMAGE')"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: IN
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "`_record_t..OSTIMAGE')"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "`_record_type`"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "`_record_type`"
+                                        children:
+                                          - type: NAME
+                                            text: "`_record_type`"
+                                  - type: ARRAY
+                                    text: "('INSERT',..OSTIMAGE')"
+                                    children:
+                                      - type: LITERAL_STRING
+                                        text: "'INSERT'"
+                                      - type: LITERAL_STRING
+                                        text: "'UPDATE_POSTIMAGE'"
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM ((\n  .. `union_2`"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "((\n  SELEC.. `union_2`"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "`union_2`"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_SELECT
+                        text: "((\n  SELEC..erkey`)\n))"
+                        children:
+                          - key: SQL_COMBINE_OPERATION
+                            type: ENUM_SQL_COMBINE_OPERATION
+                            value: UNION
+                          - key: SQL_COMBINE_MODIFIER
+                            type: ENUM_SQL_COMBINE_MODIFIER
+                            value: ALL
+                          - key: SQL_COMBINE_INPUT
+                            type: ARRAY
+                            text: "(\n  SELECT..derkey`)\n)"
+                            children:
+                              - type: OBJECT_SQL_SELECT
+                                text: "(\n  SELECT..derkey`)\n)"
+                                children:
+                                  - key: SQL_SELECT_TARGETS
+                                    type: ARRAY
+                                    text: "*"
+                                    children:
+                                      - type: OBJECT_SQL_RESULT_TARGET
+                                        text: "*"
+                                        children:
+                                          - key: SQL_RESULT_TARGET_STAR
+                                            type: BOOL
+                                            value: 1
+                                  - key: SQL_SELECT_FROM
+                                    type: ARRAY
+                                    text: "FROM `cte_..orderkey`)"
+                                    children:
+                                      - type: OBJECT_SQL_TABLEREF
+                                        text: "`cte_table..orderkey`)"
+                                        children:
+                                          - key: SQL_TABLEREF_TABLE
+                                            type: OBJECT_SQL_JOINED_TABLE
+                                            text: "`cte_table..orderkey`)"
+                                            children:
+                                              - key: SQL_JOIN_ON
+                                                type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "`before`.`.._orderkey`"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "`before`.`.._orderkey`"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "`before`.`.._orderkey`"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "`before`.`.._orderkey`"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "`before`"
+                                                              - type: NAME
+                                                                text: "`o_orderkey`"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "`after`.`o.._orderkey`"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "`after`.`o.._orderkey`"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "`after`"
+                                                              - type: NAME
+                                                                text: "`o_orderkey`"
+                                              - key: SQL_JOIN_TYPE
+                                                type: ENUM_SQL_JOIN_TYPE
+                                                value: ANTI
+                                              - key: SQL_JOIN_INPUT
+                                                type: ARRAY
+                                                text: "`cte_table..orderkey`)"
+                                                children:
+                                                  - type: OBJECT_SQL_TABLEREF
+                                                    text: "`cte_table..S `before`"
+                                                    children:
+                                                      - key: SQL_TABLEREF_NAME
+                                                        type: ARRAY
+                                                        text: "`cte_table_6`"
+                                                        children:
+                                                          - type: NAME
+                                                            text: "`cte_table_6`"
+                                                      - key: SQL_TABLEREF_ALIAS
+                                                        type: NAME
+                                                        text: "`before`"
+                                                  - type: OBJECT_SQL_TABLEREF
+                                                    text: "`cte_table..AS `after`"
+                                                    children:
+                                                      - key: SQL_TABLEREF_NAME
+                                                        type: ARRAY
+                                                        text: "`cte_table_12`"
+                                                        children:
+                                                          - type: NAME
+                                                            text: "`cte_table_12`"
+                                                      - key: SQL_TABLEREF_ALIAS
+                                                        type: NAME
+                                                        text: "`after`"
+                              - type: OBJECT_SQL_SELECT
+                                text: "(\n  SELECT..derkey`)\n)"
+                                children:
+                                  - key: SQL_SELECT_TARGETS
+                                    type: ARRAY
+                                    text: "*"
+                                    children:
+                                      - type: OBJECT_SQL_RESULT_TARGET
+                                        text: "*"
+                                        children:
+                                          - key: SQL_RESULT_TARGET_STAR
+                                            type: BOOL
+                                            value: 1
+                                  - key: SQL_SELECT_FROM
+                                    type: ARRAY
+                                    text: "FROM `cte_..orderkey`)"
+                                    children:
+                                      - type: OBJECT_SQL_TABLEREF
+                                        text: "`cte_table..orderkey`)"
+                                        children:
+                                          - key: SQL_TABLEREF_TABLE
+                                            type: OBJECT_SQL_JOINED_TABLE
+                                            text: "`cte_table..orderkey`)"
+                                            children:
+                                              - key: SQL_JOIN_ON
+                                                type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "`after`.`o.._orderkey`"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "`after`.`o.._orderkey`"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "`after`.`o.._orderkey`"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "`after`.`o.._orderkey`"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "`after`"
+                                                              - type: NAME
+                                                                text: "`o_orderkey`"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "`before`.`.._orderkey`"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "`before`.`.._orderkey`"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "`before`"
+                                                              - type: NAME
+                                                                text: "`o_orderkey`"
+                                              - key: SQL_JOIN_TYPE
+                                                type: ENUM_SQL_JOIN_TYPE
+                                                value: SEMI
+                                              - key: SQL_JOIN_INPUT
+                                                type: ARRAY
+                                                text: "`cte_table..orderkey`)"
+                                                children:
+                                                  - type: OBJECT_SQL_TABLEREF
+                                                    text: "`cte_table..AS `after`"
+                                                    children:
+                                                      - key: SQL_TABLEREF_NAME
+                                                        type: ARRAY
+                                                        text: "`cte_table_12`"
+                                                        children:
+                                                          - type: NAME
+                                                            text: "`cte_table_12`"
+                                                      - key: SQL_TABLEREF_ALIAS
+                                                        type: NAME
+                                                        text: "`after`"
+                                                  - type: OBJECT_SQL_TABLEREF
+                                                    text: "`cte_table..S `before`"
+                                                    children:
+                                                      - key: SQL_TABLEREF_NAME
+                                                        type: ARRAY
+                                                        text: "`cte_table_6`"
+                                                        children:
+                                                          - type: NAME
+                                                            text: "`cte_table_6`"
+                                                      - key: SQL_TABLEREF_ALIAS
+                                                        type: NAME
+                                                        text: "`before`"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [23,24]
+        - text: [79,80]
+        - text: [136,137]
+        - text: [139,140]
+        - text: [159,160]
+        - text: [215,216]
+        - text: [273,274]
+        - text: [275,276]
+        - text: [292,293]
+        - text: [334,335]
+        - text: [372,373]
+        - text: [424,425]
+        - text: [438,439]
+        - text: [480,481]
+        - text: [518,519]
+        - text: [570,571]
+      comments: []
+
   - name: select_row_locking_1
     input: |-
       SELECT * FROM (SELECT * FROM mytable FOR UPDATE) ss WHERE col1 = 5;
