@@ -87,3 +87,45 @@ formatter-snapshots:
               explain (format sql, sql_dialect internal_spark_2025_12)
               select *
               from raw_sql_subquery(descriptor(foo integer), 'bar');
+
+  - name: explain_streaming_options
+    input: |-
+      explain (
+        format sql,
+        sql_dialect internal_spark,
+        streaming_table orders,
+        change_data_feed orders_cdf,
+        streaming_key_columns (id),
+        streaming_actions_column _action,
+        change_data_feed_record_type_column _record_type,
+        change_data_feed_columns descriptor(_record_type text)
+      )
+      select * from orders;
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain (format sql, sql_dialect internal_spark, streaming_table orders, change_data_feed orders_cdf, streaming_key_columns (id), streaming_actions_column _action, change_data_feed_record_type_column _record_type, change_data_feed_columns descriptor(_record_type text)) select * from orders;
+          - mode: compact
+            expected: |-
+              explain (
+                format sql, sql_dialect internal_spark, streaming_table orders, change_data_feed orders_cdf,
+                  streaming_key_columns (id), streaming_actions_column _action, change_data_feed_record_type_column _record_type,
+                  change_data_feed_columns descriptor(_record_type text)
+              )
+              select * from orders;
+          - mode: pretty
+            expected: |-
+              explain (
+                format sql,
+                  sql_dialect internal_spark,
+                  streaming_table orders,
+                  change_data_feed orders_cdf,
+                  streaming_key_columns (id),
+                  streaming_actions_column _action,
+                  change_data_feed_record_type_column _record_type,
+                  change_data_feed_columns descriptor(_record_type text)
+              )
+              select *
+              from orders;

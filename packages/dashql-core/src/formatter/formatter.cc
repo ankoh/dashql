@@ -603,6 +603,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_RESULT_TARGET_EXCLUDE:
             return FormatCommaList(node);
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
+        case AttributeKey::SQL_GENERIC_OPTION_VALUE:
             return fmt.Parenthesized(FormatCommaList(node));
         case AttributeKey::SQL_WINDOW_FRAME_BOUNDS: {
             auto bounds = GetArrayStates(node);
