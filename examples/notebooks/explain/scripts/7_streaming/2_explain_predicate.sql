@@ -9,4 +9,5 @@ explain (
     CHANGE_DATA_FEED_COLUMNS descriptor(_record_type TEXT)
 )
 select o_orderkey, o_orderstatus
-from orders o;
+from orders o
+where o_orderpriority = '1-URGENT';
