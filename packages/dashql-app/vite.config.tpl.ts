@@ -60,6 +60,13 @@ export default vite.defineConfig(({ mode, command }) => {
                     if (coreWasmAssets.length !== 1) {
                         this.error(`Expected one fingerprinted DashQL Core WASM asset, found ${coreWasmAssets.length}`);
                     }
+                    const hyperdbWasmAssets = Object.values(bundle).filter(output =>
+                        output.type === 'asset' &&
+                        /^static\/assets\/hyperdb-wasm\.wasm\.[^/]+\.br$/.test(output.fileName)
+                    );
+                    if (hyperdbWasmAssets.length !== 1) {
+                        this.error(`Expected one fingerprinted HyperDB WASM asset, found ${hyperdbWasmAssets.length}`);
+                    }
 
                     const redirects = nodeFs.readFileSync(REDIRECTS_PATH, 'utf8').trimEnd();
                     this.emitFile({
@@ -67,6 +74,7 @@ export default vite.defineConfig(({ mode, command }) => {
                         fileName: '_redirects',
                         source: [
                             `/static/links/dashql_core.wasm /${coreWasmAssets[0].fileName} 302`,
+                            `/static/links/hyperdb.wasm /${hyperdbWasmAssets[0].fileName} 302`,
                             redirects,
                             '',
                         ].join('\n'),
