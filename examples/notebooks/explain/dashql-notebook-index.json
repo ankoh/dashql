@@ -44,6 +44,12 @@
         },
         {
           "name": "3_limitation_sort.sql"
+        },
+        {
+          "name": "4_limitation_static.sql"
+        },
+        {
+          "name": "5_limitation_windows.sql"
         }
       ]
     },
@@ -60,6 +66,14 @@
       "scripts": [
         {
           "name": "1_nimble_meerkat.sql"
+        }
+      ]
+    },
+    {
+      "name": "7_streaming",
+      "scripts": [
+        {
+          "name": "1_explain_options.sql"
         }
       ]
     }
