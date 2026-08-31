@@ -152,7 +152,7 @@ struct Formatter {
     FmtReg FormatLeaf(const buffers::parser::Node& node);
     FmtReg FormatUnimplemented(const buffers::parser::Node& node);
 
-    FmtReg FormatCommaList(const buffers::parser::Node& node);
+    FmtReg FormatCommaList(const buffers::parser::Node& node, bool indent_after_breaks = true);
     FmtReg FormatQualifiedName(const buffers::parser::Node& node);
 
     std::string WriteOutput() const;
