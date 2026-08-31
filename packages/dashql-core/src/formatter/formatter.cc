@@ -604,8 +604,14 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
             return FormatCommaList(node, false);
         case AttributeKey::EXT_EXPLAIN_OPTIONS:
             return FormatCommaList(node, false);
-        case AttributeKey::EXT_EXPLAIN_EXPRESSIONS:
-            return FormatCommaList(node);
+        case AttributeKey::EXT_EXPLAIN_EXPRESSIONS: {
+            auto expressions = GetArrayStates(node);
+            std::vector<FmtReg> parts;
+            parts.reserve(expressions.size());
+            for (auto& expression : expressions) parts.push_back(expression.reg);
+            return fmt.Join(parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
+                            FormattingJoinPolicy::ForceBreak);
+        }
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
         case AttributeKey::SQL_GENERIC_OPTION_VALUE:
             return fmt.Parenthesized(FormatCommaList(node));
