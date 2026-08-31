@@ -80,6 +80,9 @@
       "scripts": [
         {
           "name": "1_explain_options.sql"
+        },
+        {
+          "name": "2_eager_salmon.sql"
         }
       ]
     }
