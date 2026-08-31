@@ -1,24 +1,29 @@
 sql_drop_table_stmt:
-    DROP TABLE sql_opt_if_exists sql_qualified_name {
+    DROP TABLE sql_qualified_name {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_DROP_TABLE, {
-            Attr(Key::SQL_DROP_IF_EXISTS, $3),
-            Attr(Key::SQL_DROP_NAME, std::move($4)),
+            Attr(Key::SQL_DROP_NAME, std::move($3)),
+        });
+    }
+  | DROP TABLE IF_P EXISTS sql_qualified_name {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_DROP_TABLE, {
+            Attr(Key::SQL_DROP_IF_EXISTS, Bool(Loc({@3, @4}), true)),
+            Attr(Key::SQL_DROP_NAME, std::move($5)),
         });
     }
     ;
 
 sql_drop_view_stmt:
-    DROP VIEW sql_opt_if_exists sql_qualified_name {
+    DROP VIEW sql_qualified_name {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_DROP_VIEW, {
-            Attr(Key::SQL_DROP_IF_EXISTS, $3),
-            Attr(Key::SQL_DROP_NAME, std::move($4)),
+            Attr(Key::SQL_DROP_NAME, std::move($3)),
         });
     }
-    ;
-
-sql_opt_if_exists:
-    IF_P EXISTS     { $$ = Bool(@$, true); }
-  | %empty          { $$ = Null(); }
+  | DROP VIEW IF_P EXISTS sql_qualified_name {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_DROP_VIEW, {
+            Attr(Key::SQL_DROP_IF_EXISTS, Bool(Loc({@3, @4}), true)),
+            Attr(Key::SQL_DROP_NAME, std::move($5)),
+        });
+    }
     ;
 
 sql_attach_database_stmt:

@@ -37,6 +37,7 @@ static const buffers::parser::ScannerTokenType MapToken(parser::Parser::symbol_t
         case parser::Parser::symbol_kind_type::S_NOT_EQUALS:
             return buffers::parser::ScannerTokenType::OPERATOR;
         case parser::Parser::symbol_kind_type::S_DOT:
+        case parser::Parser::symbol_kind_type::S_DOT_STAR_LA:
             return buffers::parser::ScannerTokenType::DOT;
         case parser::Parser::symbol_kind_type::S_DOT_TRAILING:
             return buffers::parser::ScannerTokenType::DOT_TRAILING;

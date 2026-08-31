@@ -42,6 +42,16 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  - name: coverage_pgq_wildcard_exclude
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)
+        COLUMNS (scope.a.* EXCLUDE (scope.a.secret, scope.a.internal_id))
+      ) gt
+    dialects:
+      hyper:
+
   - name: coverage_pgq_element_table_alias
     input: |-
       WITH pg AS PROPERTY GRAPH (

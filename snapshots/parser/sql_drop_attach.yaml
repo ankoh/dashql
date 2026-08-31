@@ -61,6 +61,33 @@ parser-snapshots:
       line-breaks: []
       comments: []
 
+  - name: drop_table_named_if
+    input: |-
+      drop table if
+    expected:
+      statements:
+        - type: DROP_TABLE
+          ast-begin: 0
+          ast-size: 3
+          description:
+            text: "drop table if"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DROP_TABLE
+            text: "drop table if"
+            children:
+              - key: SQL_DROP_NAME
+                type: ARRAY
+                text: "if"
+                children:
+                  - type: NAME
+                    text: "if"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
   - name: drop_view
     input: |-
       drop view analytics.results
@@ -117,6 +144,33 @@ parser-snapshots:
                     text: "analytics"
                   - type: NAME
                     text: "results"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: drop_view_named_if
+    input: |-
+      drop view if
+    expected:
+      statements:
+        - type: DROP_VIEW
+          ast-begin: 0
+          ast-size: 3
+          description:
+            text: "drop view if"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DROP_VIEW
+            text: "drop view if"
+            children:
+              - key: SQL_DROP_NAME
+                type: ARRAY
+                text: "if"
+                children:
+                  - type: NAME
+                    text: "if"
       scanner-errors: []
       parser-errors: []
       line-breaks: []

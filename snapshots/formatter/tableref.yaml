@@ -395,6 +395,26 @@ formatter-snapshots:
               from a
                 semi join b on a.x = b.x;
 
+  - name: coverage_tableref_join_mixed_chain
+    input: |-
+      select * from a cross join b semi join c on b.x = c.x anti join d on c.x = d.x
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from a cross join b semi join c on b.x = c.x anti join d on c.x = d.x;
+          - mode: compact
+            expected: |-
+              select * from a cross join b semi join c on b.x = c.x anti join d on c.x = d.x;
+          - mode: pretty
+            expected: |-
+              select *
+              from a
+                cross join b
+                semi join c on b.x = c.x
+                anti join d on c.x = d.x;
+
   - name: tableref_join_using
     input: |-
       select * from a join b using (x)

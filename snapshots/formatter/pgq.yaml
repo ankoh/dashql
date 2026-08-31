@@ -119,6 +119,33 @@ formatter-snapshots:
                   columns (a.name as source_name)
               ) gt;
 
+  - name: coverage_pgq_wildcard_exclude
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)
+        COLUMNS (scope.a.* EXCLUDE (scope.a.secret, scope.a.internal_id))
+      ) gt
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with pg as property graph () select * from graph_table(pg match (a) columns (scope.a.* exclude (scope.a.secret, scope.a.internal_id))) gt;
+          - mode: compact
+            expected: |-
+              with pg as property graph ()
+              select * from graph_table(pg match (a) columns (scope.a.* exclude (scope.a.secret, scope.a.internal_id))) gt;
+          - mode: pretty
+            expected: |-
+              with pg as property graph ()
+              select *
+              from graph_table(
+                pg
+                  match (a)
+                  columns (scope.a.* exclude (scope.a.secret, scope.a.internal_id))
+              ) gt;
+
   - name: coverage_pgq_element_table_alias
     input: |-
       WITH pg AS PROPERTY GRAPH (

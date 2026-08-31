@@ -701,6 +701,25 @@ parser-snapshots:
   - name: select_join_semi
     input: |
       SELECT * FROM a SEMI JOIN b ON a.id = b.id
+  # Mixed join chains remain left-associative with SEMI and ANTI joins
+  - name: select_join_cross_semi_chain
+    input: |
+      SELECT * FROM a CROSS JOIN b SEMI JOIN c ON b.id = c.id
+  - name: select_join_cross_anti_chain
+    input: |
+      SELECT * FROM a CROSS JOIN b ANTI JOIN c ON b.id = c.id
+  - name: select_join_natural_semi_chain
+    input: |
+      SELECT * FROM a NATURAL JOIN b SEMI JOIN c ON b.id = c.id
+  - name: select_join_natural_anti_chain
+    input: |
+      SELECT * FROM a NATURAL JOIN b ANTI JOIN c ON b.id = c.id
+  - name: select_join_natural_left_semi_chain
+    input: |
+      SELECT * FROM a NATURAL LEFT JOIN b SEMI JOIN c ON b.id = c.id
+  - name: select_join_natural_left_anti_chain
+    input: |
+      SELECT * FROM a NATURAL LEFT JOIN b ANTI JOIN c ON b.id = c.id
   # Parse nested ANTI and SEMI joins in CTE-backed UNION branches
   - name: select_join_anti_semi_cte_union
     input: |

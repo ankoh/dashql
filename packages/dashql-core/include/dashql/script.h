@@ -120,7 +120,10 @@ class ScannedScript {
             : symbol_id(symbol_id), symbol(symbol), text_offset(text_offset), relative_pos(rel) {}
 
         /// Is the symbol a dot?
-        bool symbolIsDot() const { return symbol.kind_ == parser::Parser::symbol_kind_type::S_DOT; }
+        bool symbolIsDot() const {
+            return symbol.kind_ == parser::Parser::symbol_kind_type::S_DOT ||
+                   symbol.kind_ == parser::Parser::symbol_kind_type::S_DOT_STAR_LA;
+        }
         /// Is the symbol a dot + space?
         bool symbolIsTrailingDot() const { return symbol.kind_ == parser::Parser::symbol_kind_type::S_DOT_TRAILING; }
     };

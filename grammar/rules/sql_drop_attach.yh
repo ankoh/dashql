@@ -8,4 +8,3 @@
 %type <buffers::parser::Node> sql_attach_database_value;
 %type <buffers::parser::Node> sql_drop_table_stmt;
 %type <buffers::parser::Node> sql_drop_view_stmt;
-%type <buffers::parser::Node> sql_opt_if_exists;

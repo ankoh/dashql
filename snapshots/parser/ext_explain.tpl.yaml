@@ -23,6 +23,14 @@ parser-snapshots:
   - name: explain_select_from
     input: |
       explain select a, b from t where a > 1
+  # Parenthesized VALUES is a query, not an option named "values"
+  - name: explain_parenthesized_values
+    input: |
+      explain (values (1))
+  # VALUES remains available as an option name when it has no list argument
+  - name: explain_values_option_without_arg
+    input: |
+      explain (values) select 1
   # Explain internal SQL with a descriptor-valued function argument
   - name: explain_raw_sql_subquery_descriptor
     input: |

@@ -103,6 +103,6 @@ using namespace dashql::parser;
  * NOT_LA exists so that productions such as NOT LIKE can be given the same
  * precedence as LIKE; otherwise they'd effectively have the same precedence
  * as NOT, at least with respect to their left-hand subexpression.
- * NULLS_LA and WITH_LA are needed to make the grammar LALR(1).
+ * NULLS_LA, WITH_LA, and DOT_STAR_LA are needed to make the grammar LALR(1).
  */
-%token        NOT_LA NULLS_LA WITH_LA
+%token        NOT_LA NULLS_LA WITH_LA DOT_STAR_LA

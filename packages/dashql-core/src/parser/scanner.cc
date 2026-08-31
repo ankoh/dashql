@@ -131,6 +131,7 @@ std::shared_ptr<ScannedScript> Scanner::Scan(const rope::Rope& text, TextVersion
             case Parser::symbol_kind::S_NOT:
             case Parser::symbol_kind::S_NULLS_P:
             case Parser::symbol_kind::S_WITH:
+            case Parser::symbol_kind::S_DOT:
             case Parser::symbol_kind::S_VISUALISE:
             case Parser::symbol_kind::S_VISUALIZE:
                 break;
@@ -177,6 +178,12 @@ std::shared_ptr<ScannedScript> Scanner::Scan(const rope::Rope& text, TextVersion
                         return Parser::make_WITH_LA(current_symbol.location);
                     default:
                         break;
+                }
+                break;
+            case Parser::symbol_kind::S_DOT:
+                // Separate qualified wildcards from ordinary dotted indirection.
+                if (next_symbol_kind == Parser::symbol_kind::S_STAR) {
+                    return Parser::make_DOT_STAR_LA(current_symbol.location);
                 }
                 break;
             case Parser::symbol_kind::S_VISUALISE:

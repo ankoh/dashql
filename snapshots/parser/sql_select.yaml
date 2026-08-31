@@ -10303,6 +10303,744 @@ parser-snapshots:
       line-breaks: []
       comments: []
 
+  - name: select_join_cross_semi_chain
+    input: |-
+      SELECT * FROM a CROSS JOIN b SEMI JOIN c ON b.id = c.id
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 33
+          description:
+            text: "SELECT * F...id = c.id"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F...id = c.id"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM a CRO...id = c.id"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a CROSS JO...id = c.id"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a CROSS JO...id = c.id"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "b.id = c.id"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "b.id = c.id"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "b.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "b.id"
+                                        children:
+                                          - type: NAME
+                                            text: "b"
+                                          - type: NAME
+                                            text: "id"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "c.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "c.id"
+                                        children:
+                                          - type: NAME
+                                            text: "c"
+                                          - type: NAME
+                                            text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: SEMI
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a CROSS JO...id = c.id"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a CROSS JOIN b"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "a CROSS JOIN b"
+                                    children:
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: NONE
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "a CROSS JOIN b"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "a"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "a"
+                                                children:
+                                                  - type: NAME
+                                                    text: "a"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "b"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "b"
+                                                children:
+                                                  - type: NAME
+                                                    text: "b"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "c"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_join_cross_anti_chain
+    input: |-
+      SELECT * FROM a CROSS JOIN b ANTI JOIN c ON b.id = c.id
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 33
+          description:
+            text: "SELECT * F...id = c.id"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F...id = c.id"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM a CRO...id = c.id"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a CROSS JO...id = c.id"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a CROSS JO...id = c.id"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "b.id = c.id"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "b.id = c.id"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "b.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "b.id"
+                                        children:
+                                          - type: NAME
+                                            text: "b"
+                                          - type: NAME
+                                            text: "id"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "c.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "c.id"
+                                        children:
+                                          - type: NAME
+                                            text: "c"
+                                          - type: NAME
+                                            text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: ANTI
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a CROSS JO...id = c.id"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a CROSS JOIN b"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "a CROSS JOIN b"
+                                    children:
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: NONE
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "a CROSS JOIN b"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "a"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "a"
+                                                children:
+                                                  - type: NAME
+                                                    text: "a"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "b"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "b"
+                                                children:
+                                                  - type: NAME
+                                                    text: "b"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "c"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_join_natural_semi_chain
+    input: |-
+      SELECT * FROM a NATURAL JOIN b SEMI JOIN c ON b.id = c.id
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 33
+          description:
+            text: "SELECT * F...id = c.id"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F...id = c.id"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM a NAT...id = c.id"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a NATURAL ...id = c.id"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a NATURAL ...id = c.id"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "b.id = c.id"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "b.id = c.id"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "b.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "b.id"
+                                        children:
+                                          - type: NAME
+                                            text: "b"
+                                          - type: NAME
+                                            text: "id"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "c.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "c.id"
+                                        children:
+                                          - type: NAME
+                                            text: "c"
+                                          - type: NAME
+                                            text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: SEMI
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a NATURAL ...id = c.id"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a NATURAL JOIN b"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "a NATURAL JOIN b"
+                                    children:
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: NATURAL_INNER
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "a NATURAL JOIN b"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "a"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "a"
+                                                children:
+                                                  - type: NAME
+                                                    text: "a"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "b"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "b"
+                                                children:
+                                                  - type: NAME
+                                                    text: "b"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "c"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_join_natural_anti_chain
+    input: |-
+      SELECT * FROM a NATURAL JOIN b ANTI JOIN c ON b.id = c.id
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 33
+          description:
+            text: "SELECT * F...id = c.id"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F...id = c.id"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM a NAT...id = c.id"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a NATURAL ...id = c.id"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a NATURAL ...id = c.id"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "b.id = c.id"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "b.id = c.id"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "b.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "b.id"
+                                        children:
+                                          - type: NAME
+                                            text: "b"
+                                          - type: NAME
+                                            text: "id"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "c.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "c.id"
+                                        children:
+                                          - type: NAME
+                                            text: "c"
+                                          - type: NAME
+                                            text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: ANTI
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a NATURAL ...id = c.id"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a NATURAL JOIN b"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "a NATURAL JOIN b"
+                                    children:
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: NATURAL_INNER
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "a NATURAL JOIN b"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "a"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "a"
+                                                children:
+                                                  - type: NAME
+                                                    text: "a"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "b"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "b"
+                                                children:
+                                                  - type: NAME
+                                                    text: "b"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "c"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_join_natural_left_semi_chain
+    input: |-
+      SELECT * FROM a NATURAL LEFT JOIN b SEMI JOIN c ON b.id = c.id
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 33
+          description:
+            text: "SELECT * F...id = c.id"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F...id = c.id"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM a NAT...id = c.id"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a NATURAL ...id = c.id"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a NATURAL ...id = c.id"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "b.id = c.id"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "b.id = c.id"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "b.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "b.id"
+                                        children:
+                                          - type: NAME
+                                            text: "b"
+                                          - type: NAME
+                                            text: "id"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "c.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "c.id"
+                                        children:
+                                          - type: NAME
+                                            text: "c"
+                                          - type: NAME
+                                            text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: SEMI
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a NATURAL ...id = c.id"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a NATURAL ..EFT JOIN b"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "a NATURAL ..EFT JOIN b"
+                                    children:
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: NATURAL_LEFT
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "a NATURAL ..EFT JOIN b"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "a"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "a"
+                                                children:
+                                                  - type: NAME
+                                                    text: "a"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "b"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "b"
+                                                children:
+                                                  - type: NAME
+                                                    text: "b"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "c"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_join_natural_left_anti_chain
+    input: |-
+      SELECT * FROM a NATURAL LEFT JOIN b ANTI JOIN c ON b.id = c.id
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 33
+          description:
+            text: "SELECT * F...id = c.id"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F...id = c.id"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM a NAT...id = c.id"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a NATURAL ...id = c.id"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a NATURAL ...id = c.id"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "b.id = c.id"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "b.id = c.id"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "b.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "b.id"
+                                        children:
+                                          - type: NAME
+                                            text: "b"
+                                          - type: NAME
+                                            text: "id"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "c.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "c.id"
+                                        children:
+                                          - type: NAME
+                                            text: "c"
+                                          - type: NAME
+                                            text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: ANTI
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a NATURAL ...id = c.id"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a NATURAL ..EFT JOIN b"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "a NATURAL ..EFT JOIN b"
+                                    children:
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: NATURAL_LEFT
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "a NATURAL ..EFT JOIN b"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "a"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "a"
+                                                children:
+                                                  - type: NAME
+                                                    text: "a"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "b"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "b"
+                                                children:
+                                                  - type: NAME
+                                                    text: "b"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "c"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
   - name: select_join_anti_semi_cte_union
     input: |-
       WITH `cte_table_6` AS (

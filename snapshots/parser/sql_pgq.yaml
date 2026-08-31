@@ -683,3 +683,546 @@ parser-snapshots:
         - text: [124,125]
         - text: [158,159]
       comments: []
+
+  - name: pgq_graph_table_optional_clauses
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)
+      ) gt
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 20
+          description:
+            text: "WITH pg AS..H (a)\n) gt"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "WITH pg AS..H (a)\n) gt"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "pg AS PROP..Y GRAPH ()"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "pg AS PROP..Y GRAPH ()"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "pg"
+                      - key: SQL_CTE_PROPERTY_GRAPH
+                        type: OBJECT_SQL_PROPERTY_GRAPH
+                        text: "pg AS PROP..Y GRAPH ()"
+                        children: []
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM GRAPH..H (a)\n) gt"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "GRAPH_TABL..H (a)\n) gt"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "gt"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_GRAPH_TABLE
+                        text: "GRAPH_TABL..ATCH (a)\n)"
+                        children:
+                          - key: SQL_GRAPH_TABLE_GRAPH
+                            type: ARRAY
+                            text: "pg"
+                            children:
+                              - type: NAME
+                                text: "pg"
+                          - key: SQL_GRAPH_TABLE_MATCH
+                            type: OBJECT_SQL_GRAPH_MATCH
+                            text: "(a)"
+                            children:
+                              - key: SQL_GRAPH_MATCH_PATTERNS
+                                type: ARRAY
+                                text: "(a)"
+                                children:
+                                  - type: ARRAY
+                                    text: "(a)"
+                                    children:
+                                      - type: OBJECT_SQL_GRAPH_PATH_ELEMENT
+                                        text: "(a)"
+                                        children:
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VERTEX
+                                            type: BOOL
+                                            value: 1
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VARIABLE
+                                            type: NAME
+                                            text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [28,29]
+        - text: [55,56]
+        - text: [70,71]
+      comments: []
+
+  - name: pgq_graph_table_where_rows_columns
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)-[e]->(b) WHERE one AND columns
+        ONE ROW PER STEP (source, edge, destination)
+        COLUMNS (one AS first_value, columns AS column_value)
+      ) gt
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 51
+          description:
+            text: "WITH pg AS..alue)\n) gt"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "WITH pg AS..alue)\n) gt"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "pg AS PROP..Y GRAPH ()"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "pg AS PROP..Y GRAPH ()"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "pg"
+                      - key: SQL_CTE_PROPERTY_GRAPH
+                        type: OBJECT_SQL_PROPERTY_GRAPH
+                        text: "pg AS PROP..Y GRAPH ()"
+                        children: []
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM GRAPH..alue)\n) gt"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "GRAPH_TABL..alue)\n) gt"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "gt"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_GRAPH_TABLE
+                        text: "GRAPH_TABL..n_value)\n)"
+                        children:
+                          - key: SQL_GRAPH_TABLE_GRAPH
+                            type: ARRAY
+                            text: "pg"
+                            children:
+                              - type: NAME
+                                text: "pg"
+                          - key: SQL_GRAPH_TABLE_MATCH
+                            type: OBJECT_SQL_GRAPH_MATCH
+                            text: "(a)-[e]->(..ND columns"
+                            children:
+                              - key: SQL_GRAPH_MATCH_PATTERNS
+                                type: ARRAY
+                                text: "(a)-[e]->(b)"
+                                children:
+                                  - type: ARRAY
+                                    text: "(a)-[e]->(b)"
+                                    children:
+                                      - type: OBJECT_SQL_GRAPH_PATH_ELEMENT
+                                        text: "(a)"
+                                        children:
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VERTEX
+                                            type: BOOL
+                                            value: 1
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VARIABLE
+                                            type: NAME
+                                            text: "a"
+                                      - type: OBJECT_SQL_GRAPH_PATH_ELEMENT
+                                        text: "-[e]->"
+                                        children:
+                                          - key: SQL_GRAPH_PATH_ELEMENT_EDGE_RIGHT
+                                            type: BOOL
+                                            value: 1
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VARIABLE
+                                            type: NAME
+                                            text: "e"
+                                      - type: OBJECT_SQL_GRAPH_PATH_ELEMENT
+                                        text: "(b)"
+                                        children:
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VERTEX
+                                            type: BOOL
+                                            value: 1
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VARIABLE
+                                            type: NAME
+                                            text: "b"
+                              - key: SQL_GRAPH_MATCH_WHERE
+                                type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "one AND columns"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: AND
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "one AND columns"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "one"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "one"
+                                            children:
+                                              - type: NAME
+                                                text: "one"
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "columns"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "columns"
+                                            children:
+                                              - type: NAME
+                                                text: "columns"
+                          - key: SQL_GRAPH_TABLE_ROWS
+                            type: OBJECT_SQL_GRAPH_ROWS
+                            text: "ONE ROW PE..stination)"
+                            children:
+                              - key: SQL_GRAPH_ROWS_PER_STEP
+                                type: BOOL
+                                value: 1
+                              - key: SQL_GRAPH_ROWS_SOURCE
+                                type: NAME
+                                text: "source"
+                              - key: SQL_GRAPH_ROWS_EDGE
+                                type: NAME
+                                text: "edge"
+                              - key: SQL_GRAPH_ROWS_DESTINATION
+                                type: NAME
+                                text: "destination"
+                          - key: SQL_GRAPH_TABLE_COLUMNS
+                            type: ARRAY
+                            text: "COLUMNS (o..umn_value)"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "one AS first_value"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "one"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "one"
+                                        children:
+                                          - type: NAME
+                                            text: "one"
+                                  - key: SQL_RESULT_TARGET_NAME
+                                    type: NAME
+                                    text: "first_value"
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "columns AS..lumn_value"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "columns"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "columns"
+                                        children:
+                                          - type: NAME
+                                            text: "columns"
+                                  - key: SQL_RESULT_TARGET_NAME
+                                    type: NAME
+                                    text: "column_value"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [28,29]
+        - text: [55,56]
+        - text: [101,102]
+        - text: [148,149]
+        - text: [204,205]
+      comments: []
+
+  - name: pgq_graph_table_wildcard
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)
+        COLUMNS (a.*)
+      ) gt
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 26
+          description:
+            text: "WITH pg AS..(a.*)\n) gt"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "WITH pg AS..(a.*)\n) gt"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "pg AS PROP..Y GRAPH ()"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "pg AS PROP..Y GRAPH ()"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "pg"
+                      - key: SQL_CTE_PROPERTY_GRAPH
+                        type: OBJECT_SQL_PROPERTY_GRAPH
+                        text: "pg AS PROP..Y GRAPH ()"
+                        children: []
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM GRAPH..(a.*)\n) gt"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "GRAPH_TABL..(a.*)\n) gt"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "gt"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_GRAPH_TABLE
+                        text: "GRAPH_TABL..NS (a.*)\n)"
+                        children:
+                          - key: SQL_GRAPH_TABLE_GRAPH
+                            type: ARRAY
+                            text: "pg"
+                            children:
+                              - type: NAME
+                                text: "pg"
+                          - key: SQL_GRAPH_TABLE_MATCH
+                            type: OBJECT_SQL_GRAPH_MATCH
+                            text: "(a)"
+                            children:
+                              - key: SQL_GRAPH_MATCH_PATTERNS
+                                type: ARRAY
+                                text: "(a)"
+                                children:
+                                  - type: ARRAY
+                                    text: "(a)"
+                                    children:
+                                      - type: OBJECT_SQL_GRAPH_PATH_ELEMENT
+                                        text: "(a)"
+                                        children:
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VERTEX
+                                            type: BOOL
+                                            value: 1
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VARIABLE
+                                            type: NAME
+                                            text: "a"
+                          - key: SQL_GRAPH_TABLE_COLUMNS
+                            type: ARRAY
+                            text: "COLUMNS (a.*)"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "a.*"
+                                children:
+                                  - key: SQL_RESULT_TARGET_STAR
+                                    type: BOOL
+                                    value: 1
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [28,29]
+        - text: [55,56]
+        - text: [70,71]
+        - text: [86,87]
+      comments: []
+
+  - name: pgq_graph_table_wildcard_exclude
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)
+        COLUMNS (scope.a.* EXCLUDE (scope.a.secret, scope.a.internal_id))
+      ) gt
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 38
+          description:
+            text: "WITH pg AS.._id))\n) gt"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "WITH pg AS.._id))\n) gt"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "pg AS PROP..Y GRAPH ()"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "pg AS PROP..Y GRAPH ()"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "pg"
+                      - key: SQL_CTE_PROPERTY_GRAPH
+                        type: OBJECT_SQL_PROPERTY_GRAPH
+                        text: "pg AS PROP..Y GRAPH ()"
+                        children: []
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM GRAPH.._id))\n) gt"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "GRAPH_TABL.._id))\n) gt"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "gt"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_GRAPH_TABLE
+                        text: "GRAPH_TABL..nal_id))\n)"
+                        children:
+                          - key: SQL_GRAPH_TABLE_GRAPH
+                            type: ARRAY
+                            text: "pg"
+                            children:
+                              - type: NAME
+                                text: "pg"
+                          - key: SQL_GRAPH_TABLE_MATCH
+                            type: OBJECT_SQL_GRAPH_MATCH
+                            text: "(a)"
+                            children:
+                              - key: SQL_GRAPH_MATCH_PATTERNS
+                                type: ARRAY
+                                text: "(a)"
+                                children:
+                                  - type: ARRAY
+                                    text: "(a)"
+                                    children:
+                                      - type: OBJECT_SQL_GRAPH_PATH_ELEMENT
+                                        text: "(a)"
+                                        children:
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VERTEX
+                                            type: BOOL
+                                            value: 1
+                                          - key: SQL_GRAPH_PATH_ELEMENT_VARIABLE
+                                            type: NAME
+                                            text: "a"
+                          - key: SQL_GRAPH_TABLE_COLUMNS
+                            type: ARRAY
+                            text: "COLUMNS (s..ernal_id))"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "scope.a.* ..ternal_id)"
+                                children:
+                                  - key: SQL_RESULT_TARGET_STAR
+                                    type: BOOL
+                                    value: 1
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "scope.a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "scope.a"
+                                        children:
+                                          - type: NAME
+                                            text: "scope"
+                                          - type: NAME
+                                            text: "a"
+                                  - key: SQL_RESULT_TARGET_EXCLUDE
+                                    type: ARRAY
+                                    text: "EXCLUDE (s..ternal_id)"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "scope.a.secret"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "scope.a.secret"
+                                            children:
+                                              - type: NAME
+                                                text: "scope"
+                                              - type: NAME
+                                                text: "a"
+                                              - type: NAME
+                                                text: "secret"
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "scope.a.internal_id"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "scope.a.internal_id"
+                                            children:
+                                              - type: NAME
+                                                text: "scope"
+                                              - type: NAME
+                                                text: "a"
+                                              - type: NAME
+                                                text: "internal_id"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [28,29]
+        - text: [55,56]
+        - text: [70,71]
+        - text: [138,139]
+      comments: []

@@ -166,6 +166,11 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  - name: coverage_tableref_join_mixed_chain
+    input: select * from a cross join b semi join c on b.x = c.x anti join d on c.x = d.x
+    dialects:
+      hyper:
+
   - name: tableref_join_using
     input: select * from a join b using (x)
     dialects:

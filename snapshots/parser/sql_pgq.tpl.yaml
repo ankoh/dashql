@@ -36,3 +36,35 @@ parser-snapshots:
         ONE ROW PER MATCH
         COLUMNS (a.name AS source_name)
       ) gt
+
+  - name: pgq_graph_table_optional_clauses
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)
+      ) gt
+
+  - name: pgq_graph_table_where_rows_columns
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)-[e]->(b) WHERE one AND columns
+        ONE ROW PER STEP (source, edge, destination)
+        COLUMNS (one AS first_value, columns AS column_value)
+      ) gt
+
+  - name: pgq_graph_table_wildcard
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)
+        COLUMNS (a.*)
+      ) gt
+
+  - name: pgq_graph_table_wildcard_exclude
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a)
+        COLUMNS (scope.a.* EXCLUDE (scope.a.secret, scope.a.internal_id))
+      ) gt

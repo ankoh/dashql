@@ -304,6 +304,7 @@ bool Completion::IsSymbolKindCompletable(parser::Parser::symbol_kind_type kind) 
         case parser::Parser::symbol_kind_type::S_LESS_EQUALS:
         case parser::Parser::symbol_kind_type::S_GREATER_EQUALS:
         case parser::Parser::symbol_kind_type::S_NOT_EQUALS:
+        case parser::Parser::symbol_kind_type::S_DOT_STAR_LA:
             return false;
         default:
             return true;

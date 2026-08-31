@@ -5,12 +5,18 @@ parser-snapshots:
   - name: drop_table_if_exists
     input: |
       drop table if exists analytics.results
+  - name: drop_table_named_if
+    input: |
+      drop table if
   - name: drop_view
     input: |
       drop view analytics.results
   - name: drop_view_if_exists
     input: |
       drop view if exists analytics.results
+  - name: drop_view_named_if
+    input: |
+      drop view if
   - name: attach_database
     input: |
       attach database "path/to/source.hyper" as source

@@ -286,12 +286,17 @@ sql_graph_table_ref:
     ;
 
 sql_graph_match:
-    sql_graph_path_pattern_list sql_where_clause {
+    sql_graph_path_pattern_list sql_graph_where_clause {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_GRAPH_MATCH, {
             Attr(Key::SQL_GRAPH_MATCH_PATTERNS, ctx.Array(@1, std::move($1))),
             Attr(Key::SQL_GRAPH_MATCH_WHERE, $2),
         });
     }
+    ;
+
+sql_graph_where_clause:
+    WHERE sql_a_expr { $$ = ctx.Expression(std::move($2)); }
+  | %empty           { $$ = Null(); }
     ;
 
 sql_graph_path_pattern_list:
@@ -476,7 +481,7 @@ sql_graph_column:
   | sql_a_expr { $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_RESULT_TARGET, {
         Attr(Key::SQL_RESULT_TARGET_VALUE, ctx.Expression(std::move($1))),
     }); }
-  | sql_columnref DOT STAR sql_opt_graph_star_exclude {
+  | sql_columnref DOT_STAR_LA STAR sql_opt_graph_star_exclude {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_RESULT_TARGET, {
             Attr(Key::SQL_RESULT_TARGET_STAR, Bool(@3, true)),
             Attr(Key::SQL_RESULT_TARGET_VALUE, $1),

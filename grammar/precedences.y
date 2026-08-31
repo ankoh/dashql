@@ -38,7 +38,7 @@
  * blame any funny behavior of UNBOUNDED on the SQL standard, though.
  */
 %nonassoc   UNBOUNDED        /* ideally should have same precedence as IDENT */
-%nonassoc   IDENT GENERATED NULL_P PARTITION RANGE ROWS PRECEDING FOLLOWING CUBE ROLLUP
+%nonassoc   IDENT GENERATED NULL_P PARTITION RANGE ROWS PRECEDING FOLLOWING CUBE ROLLUP VALUES ONE COLUMNS
 %left       Op OPERATOR AMPERSAND PIPE EXCLAMATION_MARK /* multi-character ops and user-defined operators */
 %left       PLUS MINUS
 %left       STAR DIVIDE MODULO
@@ -59,6 +59,6 @@
  * They wouldn't be given a precedence at all, were it not that we need
  * left-associativity among the JOIN rules themselves.
  */
-%left       JOIN CROSS LEFT FULL RIGHT INNER_P NATURAL
+%left       JOIN CROSS LEFT FULL RIGHT INNER_P NATURAL SEMI ANTI
 /* kluge to keep from causing shift/reduce conflicts */
 %right      PRESERVE STRIP_P
