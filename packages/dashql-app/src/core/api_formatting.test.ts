@@ -60,7 +60,7 @@ describe('DashQL formatting', () => {
     it('formats SQL/PGQ through WebAssembly', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);
-        script.insertTextAt(0, `WITH pg AS PROPERTY GRAPH (VERTEX TABLES (people KEY (id))) SELECT * FROM GRAPH_TABLE(pg MATCH (p:Person) COLUMNS (p.name AS name))`);
+        script.insertTextAt(0, `WITH pg AS PROPERTY GRAPH (VERTEX TABLES (customers KEY (customer_id), orders KEY (order_id)) EDGE TABLES (orders AS placed_order KEY (order_id) SOURCE KEY (customer_id) REFERENCES customers DESTINATION KEY (order_id) REFERENCES orders)) SELECT * FROM GRAPH_TABLE(pg MATCH (:customers)-[:placed_order]->(:orders) COLUMNS (1 AS matched)) AS matches`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
             dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
@@ -72,6 +72,7 @@ describe('DashQL formatting', () => {
         const formatted = script.format(config, catalog);
 
         expect(formatted.toString()).toContain('with pg as property graph');
+        expect(formatted.toString()).toContain('orders as placed_order');
         expect(formatted.toString()).toContain('graph_table');
 
         formatted.destroy();

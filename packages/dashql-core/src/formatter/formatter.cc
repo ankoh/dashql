@@ -589,18 +589,19 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_ATTACH_DATABASE_OPTIONS:
         case AttributeKey::SQL_INSERT_COLUMNS:
         case AttributeKey::SQL_INSERT_RETURNING:
+        case AttributeKey::SQL_GRAPH_ELEMENT_TABLE_LABELS:
+        case AttributeKey::SQL_GRAPH_MATCH_PATTERNS:
+        case AttributeKey::SQL_RESULT_TARGET_EXCLUDE:
+            return FormatCommaList(node);
         case AttributeKey::SQL_PROPERTY_GRAPH_VERTEX_TABLES:
         case AttributeKey::SQL_PROPERTY_GRAPH_EDGE_TABLES:
         case AttributeKey::SQL_GRAPH_ELEMENT_TABLE_KEY:
-        case AttributeKey::SQL_GRAPH_ELEMENT_TABLE_LABELS:
         case AttributeKey::SQL_GRAPH_VERTEX_REFERENCE_KEY:
         case AttributeKey::SQL_GRAPH_VERTEX_REFERENCE_COLUMNS:
         case AttributeKey::SQL_GRAPH_PROPERTIES_COLUMNS:
         case AttributeKey::SQL_GRAPH_PROPERTIES_EXCLUDE:
-        case AttributeKey::SQL_GRAPH_MATCH_PATTERNS:
         case AttributeKey::SQL_GRAPH_TABLE_COLUMNS:
-        case AttributeKey::SQL_RESULT_TARGET_EXCLUDE:
-            return FormatCommaList(node);
+            return FormatCommaList(node, false);
         case AttributeKey::EXT_EXPLAIN_OPTIONS:
             return FormatCommaList(node, false);
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
