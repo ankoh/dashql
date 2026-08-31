@@ -1,0 +1,22 @@
+{
+  "notebookId": "8e63246c-9ab9-4c9c-aa7a-f268adf3fe7b",
+  "name": "Calculated Insights",
+  "connectionParams": {
+    "hyper": {
+      "protocol": "WASM",
+      "endpoint": "",
+      "tls": {
+        "clientKeyPath": "",
+        "clientCertPath": "",
+        "caCertsPath": ""
+      },
+      "attachedDatabases": [],
+      "metadata": {},
+      "queryParameters": {}
+    }
+  },
+  "metadata": {
+    "createdAt": "2026-08-31T16:24:50.817Z",
+    "originalFileName": "hyper"
+  }
+}

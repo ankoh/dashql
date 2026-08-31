@@ -8,9 +8,9 @@ const writeText = vi.fn<() => Promise<void>>(() => Promise.resolve());
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe() { }
+    unobserve() { }
+    disconnect() { }
 });
 vi.mock('../../platform/events/event_listener_provider.js', () => ({
     usePlatformEventListener: () => ({ dispatchNotebookUrl }),
@@ -44,7 +44,7 @@ describe('BundledNotebooksOverlay', () => {
         act(() => root.render(<BundledNotebooksOverlay />));
         act(() => (container.querySelector('[aria-label="Example notebooks"]') as HTMLButtonElement).click());
 
-        expect(document.querySelectorAll('[role="dialog"] li')).toHaveLength(4);
+        expect(document.querySelectorAll('[role="dialog"] li')).toHaveLength(5);
         expect(document.querySelector('[aria-label="Add Property Graphs notebook"]')).toBeInstanceOf(HTMLButtonElement);
         expect(document.querySelector('[aria-label="Close example notebooks"]')).toBeInstanceOf(HTMLButtonElement);
         await act(async () => {
