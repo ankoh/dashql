@@ -58,6 +58,40 @@ static std::shared_ptr<ParsedScript> ParseString(std::string_view text) {
     return Parser::Parse(scanned);
 }
 
+TEST(ParserTest, ParsesSemiAndAntiJoins) {
+    for (auto input : {
+             "select * from a anti join b on a.id = b.id",
+             "select * from a semi join b on a.id = b.id",
+         }) {
+        auto script = ParseString(input);
+        ASSERT_TRUE(script->errors.empty())
+            << input << ": " << (script->errors.empty() ? "" : script->errors.front().message);
+    }
+}
+
+TEST(ParserTest, ParsesSemiAndAntiJoinsInCteUnion) {
+    constexpr std::string_view input = R"SQL(WITH `cte_table_6` AS (
+  SELECT `o_orderkey`, `_record_type` FROM `orders_cdf`
+  WHERE (`_record_type` IN ('DELETE','UPDATE_PREIMAGE'))
+),
+`cte_table_12` AS (
+  SELECT `o_orderkey`, `_record_type` FROM `orders_cdf`
+  WHERE (`_record_type` IN ('INSERT','UPDATE_POSTIMAGE'))
+)
+SELECT * FROM ((
+  SELECT * FROM `cte_table_6` AS `before`
+  ANTI JOIN `cte_table_12` AS `after`
+  ON (`before`.`o_orderkey` = `after`.`o_orderkey`)
+) UNION ALL (
+  SELECT * FROM `cte_table_12` AS `after`
+  SEMI JOIN `cte_table_6` AS `before`
+  ON (`after`.`o_orderkey` = `before`.`o_orderkey`)
+)) AS `union_2`)SQL";
+
+    auto script = ParseString(input);
+    ASSERT_TRUE(script->errors.empty()) << (script->errors.empty() ? "" : script->errors.front().message);
+}
+
 TEST(ParserTest, ExposesNormalizedStatementMetadata) {
     struct TestCase {
         std::string_view input;

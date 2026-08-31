@@ -232,6 +232,8 @@ enum JoinType: uint8 {
     FULL = 2,
     LEFT = 3,
     RIGHT = 4,
+    SEMI = 5,
+    ANTI = 6,
 
     // v | 64
     OUTER_ = 64,
@@ -388,4 +390,3 @@ enum VisScaleType: uint8 {
     BIN_ORDINAL,
     DIVERGING,
 }
-

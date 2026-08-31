@@ -1,0 +1,2 @@
+X(SQL_RESERVED, "anti", ANTI)
+X(SQL_RESERVED, "semi", SEMI)
