@@ -1,12 +1,15 @@
+import * as React from 'react';
 import * as core from '../../../core/index.js';
 
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DashQLScannerDecorationUpdateEffect, DashQLStandaloneScannerDecorationPlugin } from '../scripts/editor/dashql_decorations_standalone.js';
 import { releaseAppliedPreviewSnapshot, releasePreviewSnapshot, type PreviewSnapshot } from './script_preview.js';
-import { buildUnformattedPreview } from './script_preview_lifecycle.js';
+import { buildUnformattedPreview, usePreviewSnapshot } from './script_preview_lifecycle.js';
 import { xcodeLight } from '../scripts/editor/themes/xcode.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -140,5 +143,61 @@ describe('unformatted script preview', () => {
         view.destroy();
         scriptSession.destroy();
         catalog.destroy();
+    });
+});
+
+describe('compact script preview', () => {
+    it('stays compact when analysis discovers statement descriptions', () => {
+        const source = [
+            '-- Existing line comments are treated as one block and reflowed to the configured width.',
+            '-- Their original line endings do not constrain the formatted output.',
+            'select 1',
+        ].join('\n');
+        const expected = [
+            '-- Existing line comments are',
+            '-- treated as one block and reflowed',
+            '-- to the configured width. Their',
+            '-- original line endings do not',
+            '-- constrain the formatted output.',
+            'select 1;',
+        ].join('\n');
+        const catalog = dql!.createCatalog();
+        const scriptSession = dql!.createScriptSession(catalog);
+        scriptSession.replaceText(0n, source);
+        const analyzed = scriptSession.analyze();
+        expect(analyzed.scriptAnnotations?.statementDescriptions).toHaveLength(1);
+
+        let snapshot!: PreviewSnapshot;
+        const logger = { warn: vi.fn() };
+        const container = document.createElement('div');
+        let root: Root | null = createRoot(container);
+        const Harness = () => {
+            snapshot = usePreviewSnapshot({
+                instance: dql,
+                scriptData: {
+                    scriptKey: scriptSession.getCatalogEntryId(),
+                    scriptSession,
+                    editorUpdate: analyzed,
+                    pendingDiff: null,
+                } as any,
+                initialTextHint: '',
+                maxWidthChars: 36,
+                formattingDebugMode: false,
+                logger: logger as any,
+            });
+            return null;
+        };
+
+        try {
+            act(() => root!.render(React.createElement(Harness)));
+            expect(snapshot.scriptText).toBe(expected);
+            expect(snapshot.scriptText).not.toBe(source);
+            expect(logger.warn).not.toHaveBeenCalled();
+        } finally {
+            act(() => root?.unmount());
+            root = null;
+            scriptSession.destroy();
+            catalog.destroy();
+        }
     });
 });
