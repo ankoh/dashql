@@ -238,7 +238,7 @@ describe('ScriptDetails', () => {
         expect(modifyNotebookScripts).toHaveBeenCalledWith({ type: REGISTER_QUERY, value: [102, 42] });
     });
 
-    it('shows the editor and idle result together as a resizable prompt-response pair', () => {
+    it('shows an idle result as a compact status row', () => {
         act(() => {
             root.render(
                 <ScriptDetails
@@ -253,16 +253,12 @@ describe('ScriptDetails', () => {
 
         expect(container.querySelector('[data-testid="script-editor"]')).not.toBeNull();
         expect(container.textContent).toContain('Not run yet');
-        const separator = container.querySelector('[role="separator"]');
-        expect(separator?.getAttribute('aria-label')).toBe('Resize script editor and result');
-        expect(separator?.getAttribute('aria-orientation')).toBe('horizontal');
-        expect(separator?.getAttribute('aria-valuemin')).toBe('40');
-        expect(separator?.getAttribute('aria-valuemax')).toBe('40');
-        expect(separator?.getAttribute('aria-valuenow')).toBe('40');
+        expect(container.querySelector('[aria-label^="Expand result"]')?.getAttribute('aria-expanded')).toBe('false');
+        expect(container.querySelector('[role="separator"]')).toBeNull();
         expect(container.querySelectorAll('[data-script-details-avatar][aria-hidden="true"]')).toHaveLength(2);
     });
 
-    it('collapses the result to its status header and restores the split', () => {
+    it('expands the idle result from its status header and restores the compact row', () => {
         act(() => {
             root.render(
                 <ScriptDetails
@@ -275,18 +271,18 @@ describe('ScriptDetails', () => {
             );
         });
 
-        let statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Collapse result"]')!;
-        expect(statusHeader.getAttribute('aria-expanded')).toBe('true');
-        expect(container.querySelector('[role="separator"]')).not.toBeNull();
-
-        act(() => statusHeader.click());
-        statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Expand result"]')!;
+        let statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Expand result"]')!;
         expect(statusHeader.getAttribute('aria-expanded')).toBe('false');
         expect(container.querySelector('[role="separator"]')).toBeNull();
 
         act(() => statusHeader.click());
-        expect(container.querySelector('[aria-label^="Collapse result"]')).not.toBeNull();
+        statusHeader = container.querySelector<HTMLButtonElement>('[aria-label^="Collapse result"]')!;
+        expect(statusHeader.getAttribute('aria-expanded')).toBe('true');
         expect(container.querySelector('[role="separator"]')?.getAttribute('aria-valuenow')).toBe('40');
+
+        act(() => statusHeader.click());
+        expect(container.querySelector('[aria-label^="Expand result"]')).not.toBeNull();
+        expect(container.querySelector('[role="separator"]')).toBeNull();
     });
 
     it('initially collapses a successful execution without a visible result', () => {

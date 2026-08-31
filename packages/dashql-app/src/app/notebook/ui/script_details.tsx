@@ -116,13 +116,14 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const logger = useLogger();
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     const [isFormattable, setIsFormattable] = React.useState(true);
-    const [resultExpanded, setResultExpanded] = React.useState(true);
 
     const selectedPage = getSelectedScriptFolder(props.notebookScripts);
     const notebookEntry = props.scriptId != null
         ? Object.values(selectedPage?.scripts ?? {}).find(entry => entry.scriptId === props.scriptId)
         : getSelectedScriptRef(props.notebookScripts);
     const scriptData = notebookEntry != null ? props.notebookScripts.scripts[notebookEntry.scriptId] : null;
+    const hasExecution = scriptData?.latestQueryId != null || scriptData?.latestAgentRunId != null;
+    const [resultExpanded, setResultExpanded] = React.useState(hasExecution);
 
     // Get folder name and script file name (display-only: strip the on-disk ordering prefix). The
     // raw scriptFileName stays the rename identity; the label and draft use the clean display name
@@ -165,8 +166,8 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
 
     React.useEffect(() => {
         setIsEditingName(false);
-        setResultExpanded(true);
-    }, [notebookEntry?.scriptId]);
+        setResultExpanded(hasExecution);
+    }, [notebookEntry?.scriptId, hasExecution]);
 
     React.useEffect(() => {
         if (scriptData == null) {
