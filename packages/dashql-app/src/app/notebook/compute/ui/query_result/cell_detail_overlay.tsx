@@ -210,8 +210,10 @@ function SqlTextView(props: SqlTextViewProps) {
             {props.formattedText != null && (
                 <div className={styles.pretty_toggle}>
                     <IconButton
+                        className={styles.pretty_toggle_button}
                         variant={pretty ? ButtonVariant.Default : ButtonVariant.Invisible}
                         aria-label="Pretty format"
+                        aria-pressed={pretty}
                         onClick={() => setPretty(p => !p)}
                     >
                         <PencilAIIcon />
