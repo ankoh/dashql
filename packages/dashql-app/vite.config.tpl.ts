@@ -72,7 +72,7 @@ export default vite.defineConfig(({ mode, command }) => {
                         ].join('\n'),
                     });
                 },
-            }] : []),
+            } satisfies vite.Plugin] : []),
         ],
         root: rootDir,
         publicDir: PUBLIC_DIR,
