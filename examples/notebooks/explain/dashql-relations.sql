@@ -2,7 +2,7 @@
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: HyperDB WASM pg_class
--- Last Refresh: 2026-08-31T07:55:33.144Z
+-- Last Refresh: 2026-08-31T11:36:46.844Z
 
 -- DashQL Hyper Catalog Section: "hyper"
 CREATE TABLE "hyper"."pg_catalog"."hyper_attached_database" (
@@ -1269,5 +1269,12 @@ CREATE TABLE "hyper"."public"."supplier" (
     "s_phone" VARCHAR,
     "s_acctbal" FLOAT,
     "s_comment" VARCHAR
+);
+
+CREATE TABLE "hyper"."public"."view_over_nation" (
+    "n_nationkey" INTEGER,
+    "n_name" VARCHAR,
+    "n_regionkey" INTEGER,
+    "n_comment" VARCHAR
 );
 -- DashQL Hyper Catalog Section End

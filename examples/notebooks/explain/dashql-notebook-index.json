@@ -68,15 +68,41 @@
       ]
     },
     {
-      "name": "6_sql_spark",
+      "name": "6_sql",
       "scripts": [
         {
-          "name": "1_nimble_meerkat.sql"
+          "name": "1_dialect.sql"
+        },
+        {
+          "name": "2_obfuscation.sql"
+        },
+        {
+          "name": "3_regexp_like.sql"
+        },
+        {
+          "name": "4_dialect_check_lenient.sql"
+        },
+        {
+          "name": "5_dialect_check_strict.sql"
+        },
+        {
+          "name": "6_expand_views_false.sql"
+        },
+        {
+          "name": "7_expand_views_true.sql"
         }
       ]
     },
     {
-      "name": "7_streaming",
+      "name": "7_sql_expressions",
+      "scripts": [
+        {
+          "name": "1_hidden_orca.sql"
+        }
+      ]
+    },
+    {
+      "name": "8_streaming",
       "scripts": [
         {
           "name": "1_explain_options.sql"
