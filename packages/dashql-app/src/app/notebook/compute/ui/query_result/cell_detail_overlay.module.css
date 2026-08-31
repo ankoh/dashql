@@ -136,8 +136,16 @@
 .pretty_toggle {
     position: absolute;
     top: 8px;
-    right: 8px;
+    right: 24px;
     z-index: 10;
+}
+
+.pretty_toggle_button[aria-pressed='false']:hover:not(:disabled) {
+    background-color: #f0f2f4;
+}
+
+.pretty_toggle_button[aria-pressed='false']:active:not(:disabled) {
+    background-color: #e8ecef;
 }
 
 .codemirror_container :global(.cm-editor) {
