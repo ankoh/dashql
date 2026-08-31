@@ -15,7 +15,6 @@ export default vite.defineConfig(({ mode, command }) => {
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
     const PUBLIC_DIR = path.resolve(rootDir, "__PUBLIC_DIR__");
-    const REDIRECTS_PATH = path.resolve(rootDir, "__REDIRECTS_PATH__");
     const FLATBUF_PATH = path.resolve(rootDir, "__FLATBUF_PATH__");
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
@@ -50,37 +49,6 @@ export default vite.defineConfig(({ mode, command }) => {
                 enableBuild: false,
                 typescript: true,
             })]),
-            ...(mode === 'pages' ? [{
-                name: 'cloudflare-pages-redirects',
-                generateBundle(_options, bundle) {
-                    const coreWasmAssets = Object.values(bundle).filter(output =>
-                        output.type === 'asset' &&
-                        /^static\/wasm\/dashql_core\.[^/]+\.wasm$/.test(output.fileName)
-                    );
-                    if (coreWasmAssets.length !== 1) {
-                        this.error(`Expected one fingerprinted DashQL Core WASM asset, found ${coreWasmAssets.length}`);
-                    }
-                    const hyperdbWasmAssets = Object.values(bundle).filter(output =>
-                        output.type === 'asset' &&
-                        /^static\/assets\/hyperdb-wasm\.wasm\.[^/]+\.br$/.test(output.fileName)
-                    );
-                    if (hyperdbWasmAssets.length !== 1) {
-                        this.error(`Expected one fingerprinted HyperDB WASM asset, found ${hyperdbWasmAssets.length}`);
-                    }
-
-                    const redirects = nodeFs.readFileSync(REDIRECTS_PATH, 'utf8').trimEnd();
-                    this.emitFile({
-                        type: 'asset',
-                        fileName: '_redirects',
-                        source: [
-                            `/static/links/dashql_core.wasm /${coreWasmAssets[0].fileName} 302`,
-                            `/static/links/hyperdb.wasm /${hyperdbWasmAssets[0].fileName} 302`,
-                            redirects,
-                            '',
-                        ].join('\n'),
-                    });
-                },
-            } satisfies vite.Plugin] : []),
         ],
         root: rootDir,
         publicDir: PUBLIC_DIR,

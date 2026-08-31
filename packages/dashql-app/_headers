@@ -8,8 +8,8 @@
   Cache-Control: no-store, max-age=0, must-revalidate
 
 # Vite fingerprints files in these output directories. Their URLs change with their contents, so
-# browsers can retain successful responses across deployments. Keep mutable static/config.json,
-# published notebooks, and stable links under /static/links/ outside these rules.
+# browsers can retain successful responses across deployments. Keep mutable static/config.json and
+# published notebooks outside these rules.
 /static/assets/*
   Cache-Control: public, max-age=31536000, immutable
 

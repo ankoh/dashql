@@ -178,7 +178,6 @@ genrule(
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
 
         sed -e "s|__PUBLIC_DIR__|./public|g" \\
-            -e "s|__REDIRECTS_PATH__|./_redirects|g" \\
             -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
             -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
             -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
@@ -211,7 +210,6 @@ genrule(
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
 
         sed -e "s|__PUBLIC_DIR__|../../bazel-bin/packages/dashql-app/public|g" \
-            -e "s|__REDIRECTS_PATH__|./_redirects|g" \
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \
@@ -399,6 +397,7 @@ copy_to_directory(
         ":pages_vite",
         "//:NOTICE",
         "_headers",
+        "_redirects",
         "static/404.html",
         "static/config.json",
     ],
@@ -407,6 +406,7 @@ copy_to_directory(
         "pages": "",
         "NOTICE": "NOTICE",
         "packages/dashql-app/_headers": "_headers",
+        "packages/dashql-app/_redirects": "_redirects",
         "packages/dashql-app/static": "static",
     },
     visibility = ["//visibility:public"],
