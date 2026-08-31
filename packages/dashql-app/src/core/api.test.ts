@@ -151,6 +151,24 @@ describe('DashQL editor sessions', () => {
         expect(session.getDocumentRevision()).toBe(2n);
     });
 
+    it('clamps an insertion past the document end', () => {
+        const catalog = dql!.createCatalog();
+        const session = dql!.createScriptSession(catalog);
+        session.replaceText(0n, 'a😀');
+        const event = new dashql.buffers.editor.EditorEventT(
+            1n,
+            [new dashql.buffers.editor.EditorTextChangeT(100n, 100n, '!')],
+            null,
+            dashql.buffers.editor.EditorEventOrigin.USER,
+            dashql.buffers.editor.EditorEventIntent.EDIT,
+            dashql.buffers.editor.EditorEventAction.PASTE,
+            false,
+        );
+
+        expect(session.apply(event).status).toBe(dashql.buffers.editor.EditorUpdateStatus.OK);
+        expect(session.getText()).toBe('a😀!');
+    });
+
     it('publishes portable analysis and cursor state', () => {
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);

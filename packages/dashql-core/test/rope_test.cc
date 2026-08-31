@@ -39,6 +39,10 @@ TEST_F(RopeTest, LeafByteOps) {
     EXPECT_EQ(right.GetStringView(), "nananana");
 }
 
+TEST_F(RopeTest, RejectsCodepointIndexPastBuffer) {
+    EXPECT_THROW(utf8::codepointToByteIdx(asBytes("abc"), 4), std::out_of_range);
+}
+
 TEST_F(RopeTest, LeafPushBytesAndSplit) {
     rope::NodePage left_page{128};
     rope::NodePage right_page{128};

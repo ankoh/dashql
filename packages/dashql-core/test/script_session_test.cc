@@ -114,6 +114,19 @@ TEST(ScriptSessionTest, PreservesInputOrderForInsertionsAtSameOffset) {
     EXPECT_EQ(session.GetText(), "aXYb");
 }
 
+TEST(ScriptSessionTest, ClampsInsertionPastDocumentEnd) {
+    Catalog catalog;
+    ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    ASSERT_EQ(session.ReplaceText(0, "a\xF0\x9F\x98\x80").status, EditorUpdateStatus::OK);
+
+    ScriptSession::EditorEvent event;
+    event.expected_document_revision = 1;
+    event.changes.push_back(Change(100, 100, "!"));
+
+    EXPECT_EQ(session.Apply(event).status, EditorUpdateStatus::OK);
+    EXPECT_EQ(session.GetText(), "a\xF0\x9F\x98\x80!");
+}
+
 TEST(ScriptSessionTest, RejectsWholeOverlappingOrStaleBatch) {
     Catalog catalog;
     ScriptSession session{catalog};

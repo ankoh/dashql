@@ -583,6 +583,9 @@ ScriptSession::EditorUpdate ScriptSession::Apply(const EditorEvent& event) {
     }
 
     auto current_text = script_.ToString();
+    const auto document_end = offset_unit_ == buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS
+                                  ? script_.text.GetStats().utf16_code_units
+                                  : script_.text.GetStats().text_bytes;
     std::vector<PreparedChange> changes;
     changes.reserve(event.changes.size());
     for (size_t i = 0; i < event.changes.size(); ++i) {
@@ -597,8 +600,11 @@ ScriptSession::EditorUpdate ScriptSession::Apply(const EditorEvent& event) {
             update.status_message = "inserted text is not valid UTF-8";
             return FinalizeUpdate(std::move(update));
         }
-        auto from = ResolveOffset(script_.text, change->from);
-        auto to = ResolveOffset(script_.text, change->to);
+        const bool insert_past_end = change->from == change->to && change->from > document_end;
+        const auto from_offset = insert_past_end ? document_end : change->from;
+        const auto to_offset = insert_past_end ? document_end : change->to;
+        auto from = ResolveOffset(script_.text, from_offset);
+        auto to = ResolveOffset(script_.text, to_offset);
         if (change->from > change->to || !from || !to) {
             update.status = EditorUpdateStatus::INVALID_RANGE;
             update.status_message = "text change range is not on codepoint boundaries in the session offset unit";
