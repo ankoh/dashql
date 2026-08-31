@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <stdexcept>
 
 #include "utf8proc/utf8proc.hpp"
 
@@ -57,18 +58,21 @@ constexpr size_t findCodepoint(std::span<const std::byte> buffer, size_t pos, bo
         return (next < buffer.size()) ? next : prev;
     }
 }
-/// Find the byte index of a character index that is guaranteed to be in the buffer.
+/// Find the byte index of a codepoint index.
 inline static size_t codepointToByteIdx(std::span<const std::byte> buffer, size_t char_idx) {
-    if (char_idx == 0) return 0;
-    auto reader_base = reinterpret_cast<const char*>(buffer.data());
-    auto reader = reader_base;
+    size_t byte_idx = 0;
     for (size_t i = 0; i < char_idx; ++i) {
-        assert(reader <= reader_base + buffer.size());
+        if (byte_idx >= buffer.size()) {
+            throw std::out_of_range{"UTF-8 codepoint index exceeds buffer"};
+        }
         int n = 0;
-        utf8proc_codepoint(reader, n);
-        reader += n;
+        utf8proc_codepoint(reinterpret_cast<const char*>(buffer.data() + byte_idx), n);
+        if (n <= 0 || static_cast<size_t>(n) > buffer.size() - byte_idx) {
+            throw std::invalid_argument{"invalid UTF-8 while resolving codepoint index"};
+        }
+        byte_idx += static_cast<size_t>(n);
     }
-    return reader - reader_base;
+    return byte_idx;
 }
 
 }  // namespace dashql::utf8
