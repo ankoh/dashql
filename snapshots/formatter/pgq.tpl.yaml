@@ -41,3 +41,65 @@ formatter-snapshots:
       ) gt
     dialects:
       hyper:
+
+  - name: coverage_pgq_element_table_alias
+    input: |-
+      WITH pg AS PROPERTY GRAPH (
+        VERTEX TABLES (
+          customers KEY (customer_id),
+          orders KEY (order_id)
+        )
+        EDGE TABLES (
+          orders AS placed_order KEY (order_id)
+            SOURCE KEY (customer_id) REFERENCES customers
+            DESTINATION KEY (order_id) REFERENCES orders
+        )
+      )
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (:customers)-[:placed_order]->(:orders)
+        COLUMNS (1 AS matched)
+      ) AS matches
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table customers (customer_id integer);
+            create table orders (order_id integer, customer_id integer);
+
+  - name: coverage_pgq_multiple_element_tables
+    input: |-
+      WITH pg AS PROPERTY GRAPH (
+        VERTEX TABLES (
+          region KEY (region_id) LABEL Entity PROPERTIES (
+            region_id AS entity_id,
+            'Region ' || region_id::text || ': ' || name AS entity_name
+          ),
+          nation KEY (nation_id) LABEL Entity PROPERTIES (nation_id AS entity_id, name AS entity_name),
+          customer KEY (customer_id) LABEL Entity PROPERTIES (customer_id AS entity_id, name AS entity_name)
+        )
+        EDGE TABLES (
+          nation AS in_region KEY (nation_id)
+            SOURCE KEY (nation_id) REFERENCES nation
+            DESTINATION KEY (region_id) REFERENCES region
+            LABEL Relationship PROPERTIES ('IN_REGION' AS relationship_type),
+          customer AS in_nation KEY (customer_id)
+            SOURCE KEY (customer_id) REFERENCES customer
+            DESTINATION KEY (nation_id) REFERENCES nation
+            LABEL Relationship PROPERTIES ('IN_NATION' AS relationship_type)
+        )
+      )
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (source:Entity)-[edge:Relationship]->(destination:Entity)
+        COLUMNS (
+          source.entity_name AS source_name,
+          edge.relationship_type AS relationship_type,
+          destination.entity_name AS destination_name
+        )
+      ) AS matches
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table region (region_id integer, name text);
+            create table nation (nation_id integer, region_id integer, name text);
+            create table customer (customer_id integer, nation_id integer, name text);

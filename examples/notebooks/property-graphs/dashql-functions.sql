@@ -1,0 +1,5 @@
+-- DashQL Connection Functions.
+-- This file is auto-generated and can only be updated through a catalog refresh.
+--
+-- Catalog Source: -
+-- Last Refresh: 2026-08-31T08:19:52.592Z

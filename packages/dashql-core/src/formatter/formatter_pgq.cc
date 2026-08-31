@@ -40,7 +40,20 @@ FmtReg Formatter::FormatGraphElementTable(const buffers::parser::Node& node) {
                       AttributeKey::SQL_GRAPH_ELEMENT_TABLE_DESTINATION,
                       AttributeKey::SQL_GRAPH_ELEMENT_TABLE_LABELS>(node);
     if (!table) return FormatUnimplemented(node);
-    std::vector<FmtReg> parts{Reg(*table)};
+    auto [table_name, table_alias, table_query] =
+        GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS,
+                      AttributeKey::SQL_TABLEREF_TABLE>(*table);
+    FmtReg table_reg = Reg(*table);
+    if (table_alias) {
+        FmtReg base_reg = table_name ? Reg(*table_name) : table_query ? Reg(*table_query) : 0;
+        FmtReg alias_reg = Reg(*table_alias);
+        if (base_reg == 0 || alias_reg == 0) return FormatUnimplemented(node);
+        if (table_query && table_query->node_type() == NodeType::OBJECT_SQL_SELECT) {
+            base_reg = fmt.Parenthesized(base_reg);
+        }
+        table_reg = fmt.Concat({base_reg, fmt.Text(" as "), alias_reg});
+    }
+    std::vector<FmtReg> parts{table_reg};
     if (key) parts.push_back(fmt.Concat({fmt.Text("key "), fmt.Parenthesized(Reg(*key))}));
     if (source) parts.push_back(fmt.Concat({fmt.Text("source "), Reg(*source)}));
     if (destination) parts.push_back(fmt.Concat({fmt.Text("destination "), Reg(*destination)}));
@@ -135,7 +148,7 @@ FmtReg Formatter::FormatGraphPathElement(const buffers::parser::Node& node) {
     if (variable) body_parts.push_back(Reg(*variable));
     if (label) body_parts.push_back(fmt.Concat({fmt.Text(":"), Reg(*label)}));
     if (where) body_parts.push_back(fmt.Concat({fmt.Text("where "), Reg(*where)}));
-    auto body = fmt.Join(body_parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
+    auto body = fmt.Join(body_parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow);
     FmtReg result;
     if (IsTrue(vertex)) {
         result = body == 0 ? fmt.Text("()") : fmt.Concat({fmt.Text("("), body, fmt.Text(")")});

@@ -1,0 +1,24 @@
+{
+  "notebookId": "f52ad067-c479-4c03-a07a-8edb0cb79711",
+  "name": "Property Graphs",
+  "connectionParams": {
+    "hyper": {
+      "protocol": "WASM",
+      "endpoint": "",
+      "tls": {
+        "clientKeyPath": "",
+        "clientCertPath": "",
+        "caCertsPath": ""
+      },
+      "attachedDatabases": [],
+      "metadata": {},
+      "queryParameters": {}
+    }
+  },
+  "metadata": {
+    "createdAt": "2026-08-31T08:19:54.844Z",
+    "originalFileName": "hyper"
+  },
+  "storageType": "native",
+  "nativePath": "/Users/andre.kohn/Repositories/dashql/examples/notebooks/property-graphs"
+}

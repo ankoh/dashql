@@ -63,11 +63,11 @@ formatter-snapshots:
               with pg as property graph (
                 vertex tables (
                   people
-                      key (id)
-                      label Person properties (id, name),
-                    companies
-                      key (id)
-                      label Company properties are all columns
+                    key (id)
+                    label Person properties (id, name),
+                  companies
+                    key (id)
+                    label Company properties are all columns
                 )
                 edge tables (
                   works_at
@@ -118,3 +118,172 @@ formatter-snapshots:
                   one row per match
                   columns (a.name as source_name)
               ) gt;
+
+  - name: coverage_pgq_element_table_alias
+    input: |-
+      WITH pg AS PROPERTY GRAPH (
+        VERTEX TABLES (
+          customers KEY (customer_id),
+          orders KEY (order_id)
+        )
+        EDGE TABLES (
+          orders AS placed_order KEY (order_id)
+            SOURCE KEY (customer_id) REFERENCES customers
+            DESTINATION KEY (order_id) REFERENCES orders
+        )
+      )
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (:customers)-[:placed_order]->(:orders)
+        COLUMNS (1 AS matched)
+      ) AS matches
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with pg as property graph (vertex tables (customers key (customer_id) default label properties are all columns, orders key (order_id) default label properties are all columns) edge tables (orders as placed_order key (order_id) source key (customer_id) references customers destination key (order_id) references orders default label properties are all columns)) select * from graph_table(pg match (:customers)-[:placed_order]->(:orders) columns (1 as matched)) matches;
+          - mode: compact
+            expected: |-
+              with pg as property graph (
+                vertex tables (
+                  customers key (customer_id) default label properties are all columns,
+                  orders key (order_id) default label properties are all columns
+                )
+                edge tables (
+                  orders as placed_order key (order_id) source key (customer_id) references customers
+                    destination key (order_id) references orders default label properties are all columns
+                )
+              )
+              select * from graph_table(pg match (:customers)-[:placed_order]->(:orders) columns (1 as matched)) matches;
+          - mode: pretty
+            expected: |-
+              with pg as property graph (
+                vertex tables (
+                  customers
+                    key (customer_id)
+                    default label properties are all columns,
+                  orders
+                    key (order_id)
+                    default label properties are all columns
+                )
+                edge tables (
+                  orders as placed_order
+                    key (order_id)
+                    source key (customer_id) references customers
+                    destination key (order_id) references orders
+                    default label properties are all columns
+                )
+              )
+              select *
+              from graph_table(
+                pg
+                  match (:customers)-[:placed_order]->(:orders)
+                  columns (1 as matched)
+              ) matches;
+        validation:
+          setup: |-
+            create table customers (customer_id integer);
+            create table orders (order_id integer, customer_id integer);
+
+  - name: coverage_pgq_multiple_element_tables
+    input: |-
+      WITH pg AS PROPERTY GRAPH (
+        VERTEX TABLES (
+          region KEY (region_id) LABEL Entity PROPERTIES (
+            region_id AS entity_id,
+            'Region ' || region_id::text || ': ' || name AS entity_name
+          ),
+          nation KEY (nation_id) LABEL Entity PROPERTIES (nation_id AS entity_id, name AS entity_name),
+          customer KEY (customer_id) LABEL Entity PROPERTIES (customer_id AS entity_id, name AS entity_name)
+        )
+        EDGE TABLES (
+          nation AS in_region KEY (nation_id)
+            SOURCE KEY (nation_id) REFERENCES nation
+            DESTINATION KEY (region_id) REFERENCES region
+            LABEL Relationship PROPERTIES ('IN_REGION' AS relationship_type),
+          customer AS in_nation KEY (customer_id)
+            SOURCE KEY (customer_id) REFERENCES customer
+            DESTINATION KEY (nation_id) REFERENCES nation
+            LABEL Relationship PROPERTIES ('IN_NATION' AS relationship_type)
+        )
+      )
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (source:Entity)-[edge:Relationship]->(destination:Entity)
+        COLUMNS (
+          source.entity_name AS source_name,
+          edge.relationship_type AS relationship_type,
+          destination.entity_name AS destination_name
+        )
+      ) AS matches
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with pg as property graph (vertex tables (region key (region_id) label Entity properties (region_id as entity_id, 'Region ' || region_id::text || ': ' || name as entity_name), nation key (nation_id) label Entity properties (nation_id as entity_id, name as entity_name), customer key (customer_id) label Entity properties (customer_id as entity_id, name as entity_name)) edge tables (nation as in_region key (nation_id) source key (nation_id) references nation destination key (region_id) references region label Relationship properties ('IN_REGION' as relationship_type), customer as in_nation key (customer_id) source key (customer_id) references customer destination key (nation_id) references nation label Relationship properties ('IN_NATION' as relationship_type))) select * from graph_table(pg match (source :Entity)-[edge :Relationship]->(destination :Entity) columns (source.entity_name as source_name, edge.relationship_type as relationship_type, destination.entity_name as destination_name)) matches;
+          - mode: compact
+            expected: |-
+              with pg as property graph (
+                vertex tables (
+                  region key (region_id)
+                    label Entity properties (region_id as entity_id, 'Region ' || region_id::text || ': ' || name as entity_name),
+                  nation key (nation_id) label Entity properties (nation_id as entity_id, name as entity_name),
+                  customer key (customer_id) label Entity properties (customer_id as entity_id, name as entity_name)
+                )
+                edge tables (
+                  nation as in_region key (nation_id) source key (nation_id) references nation
+                    destination key (region_id) references region label Relationship properties ('IN_REGION' as relationship_type),
+                  customer as in_nation key (customer_id) source key (customer_id) references customer
+                    destination key (nation_id) references nation label Relationship properties ('IN_NATION' as relationship_type)
+                )
+              )
+              select *
+              from graph_table(
+                pg match (source :Entity)-[edge :Relationship]->(destination :Entity)
+                  columns (
+                    source.entity_name as source_name, edge.relationship_type as relationship_type,
+                    destination.entity_name as destination_name
+                  )
+              ) matches;
+          - mode: pretty
+            expected: |-
+              with pg as property graph (
+                vertex tables (
+                  region
+                    key (region_id)
+                    label Entity properties (region_id as entity_id, 'Region ' || region_id::text || ': ' || name as entity_name),
+                  nation
+                    key (nation_id)
+                    label Entity properties (nation_id as entity_id, name as entity_name),
+                  customer
+                    key (customer_id)
+                    label Entity properties (customer_id as entity_id, name as entity_name)
+                )
+                edge tables (
+                  nation as in_region
+                    key (nation_id)
+                    source key (nation_id) references nation
+                    destination key (region_id) references region
+                    label Relationship properties ('IN_REGION' as relationship_type),
+                  customer as in_nation
+                    key (customer_id)
+                    source key (customer_id) references customer
+                    destination key (nation_id) references nation
+                    label Relationship properties ('IN_NATION' as relationship_type)
+                )
+              )
+              select *
+              from graph_table(
+                pg
+                  match (source :Entity)-[edge :Relationship]->(destination :Entity)
+                  columns (
+                    source.entity_name as source_name,
+                    edge.relationship_type as relationship_type,
+                    destination.entity_name as destination_name
+                  )
+              ) matches;
+        validation:
+          setup: |-
+            create table region (region_id integer, name text);
+            create table nation (nation_id integer, region_id integer, name text);
+            create table customer (customer_id integer, nation_id integer, name text);
