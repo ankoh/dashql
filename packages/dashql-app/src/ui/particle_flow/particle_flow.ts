@@ -243,8 +243,8 @@ export class ParticleFlow {
         this.container.append(this.renderer.domElement);
 
         this.geometry = this.createGeometry();
-        this.glowMaterial = this.createMaterial(2.4, 0.06);
-        this.material = this.createMaterial(1, 0.1);
+        this.glowMaterial = this.createMaterial(2.4, 0.08);
+        this.material = this.createMaterial(1, 0.2);
         const glow = new THREE.Mesh(this.geometry, this.glowMaterial);
         const filaments = new THREE.Mesh(this.geometry, this.material);
         glow.renderOrder = 0;
