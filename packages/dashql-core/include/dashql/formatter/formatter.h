@@ -71,6 +71,7 @@ struct Formatter {
     FmtReg FormatSet(const buffers::parser::Node& node);
     FmtReg FormatVarargField(const buffers::parser::Node& node);
     FmtReg FormatExplain(size_t node_id);
+    FmtReg FormatExplainExpressions(const buffers::parser::Node& node);
     FmtReg FormatResultTarget(const buffers::parser::Node& node);
     FmtReg FormatTableRef(const buffers::parser::Node& node);
     FmtReg FormatJoinedTable(const buffers::parser::Node& node);

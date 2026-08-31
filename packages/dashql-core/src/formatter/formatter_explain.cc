@@ -27,4 +27,13 @@ FmtReg Formatter::FormatExplain(size_t node_id) {
     return fmt.Concat({fmt.Text("explain "), stmt_reg});
 }
 
+FmtReg Formatter::FormatExplainExpressions(const buffers::parser::Node& node) {
+    auto [expressions] = GetAttributes<AttributeKey::EXT_EXPLAIN_EXPRESSIONS>(node);
+    if (!expressions) return FormatUnimplemented(node);
+
+    auto expressions_reg = Reg(*expressions);
+    if (expressions_reg == 0) return FormatUnimplemented(node);
+    return fmt.Concat({fmt.Text("expressions "), fmt.Parenthesized(expressions_reg)});
+}
+
 }  // namespace dashql

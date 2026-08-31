@@ -660,3 +660,136 @@ parser-snapshots:
         - text: [285,286]
         - text: [287,288]
       comments: []
+
+  - name: explain_sql_expressions
+    input: |-
+      explain (format sql_expressions, sql_dialect internal_spark_2025_12, columns descriptor(a int))
+      expressions (
+        1 + 2 + 3,
+        3 + a
+      )
+    expected:
+      statements:
+        - type: EXPLAIN
+          ast-begin: 0
+          ast-size: 34
+          description:
+            text: "explain (f..\n  3 + a\n)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_EXT_EXPLAIN
+            text: "explain (f..\n  3 + a\n)"
+            children:
+              - key: EXT_EXPLAIN_STATEMENT
+                type: OBJECT_EXT_EXPLAIN_EXPRESSIONS
+                text: "expression..\n  3 + a\n)"
+                children:
+                  - key: EXT_EXPLAIN_EXPRESSIONS
+                    type: ARRAY
+                    text: "1 + 2 + 3,\n  3 + a"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "1 + 2 + 3"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: PLUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "1 + 2 + 3"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "1 + 2"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: PLUS
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "1 + 2"
+                                    children:
+                                      - type: LITERAL_INTEGER
+                                        text: "1"
+                                      - type: LITERAL_INTEGER
+                                        text: "2"
+                              - type: LITERAL_INTEGER
+                                text: "3"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "3 + a"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: PLUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "3 + a"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "3"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+              - key: EXT_EXPLAIN_OPTIONS
+                type: ARRAY
+                text: "(format sq..or(a int))"
+                children:
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "format sql..xpressions"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "format"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: NAME
+                        text: "sql_expressions"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "sql_dialec..rk_2025_12"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "sql_dialect"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: NAME
+                        text: "internal_s..rk_2025_12"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "columns de..tor(a int)"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "columns"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: OBJECT_SQL_DESCRIPTOR
+                        text: "descriptor(a int)"
+                        children:
+                          - key: SQL_DESCRIPTOR_COLUMNS
+                            type: ARRAY
+                            text: "a int"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_DEF
+                                text: "a int"
+                                children:
+                                  - key: SQL_COLUMN_DEF_NAME
+                                    type: NAME
+                                    text: "a"
+                                  - key: SQL_COLUMN_DEF_TYPE
+                                    type: OBJECT_SQL_TYPENAME
+                                    text: "int"
+                                    children:
+                                      - key: SQL_TYPENAME_TYPE
+                                        type: ENUM_SQL_NUMERIC_TYPE
+                                        value: INT4
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [95,96]
+        - text: [109,110]
+        - text: [122,123]
+        - text: [130,131]
+      comments: []

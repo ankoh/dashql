@@ -604,6 +604,8 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
             return FormatCommaList(node, false);
         case AttributeKey::EXT_EXPLAIN_OPTIONS:
             return FormatCommaList(node, false);
+        case AttributeKey::EXT_EXPLAIN_EXPRESSIONS:
+            return FormatCommaList(node);
         case AttributeKey::EXT_VARARG_FIELD_VALUE:
         case AttributeKey::SQL_GENERIC_OPTION_VALUE:
             return fmt.Parenthesized(FormatCommaList(node));
@@ -2376,6 +2378,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatVarargField(node);
         case NodeType::OBJECT_EXT_EXPLAIN:
             return FormatExplain(node_id);
+        case NodeType::OBJECT_EXT_EXPLAIN_EXPRESSIONS:
+            return FormatExplainExpressions(node);
         case NodeType::OBJECT_SQL_TABLEREF:
             return FormatTableRef(node);
         case NodeType::OBJECT_SQL_JOINED_TABLE:

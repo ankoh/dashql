@@ -42,3 +42,13 @@ formatter-snapshots:
       select * from orders;
     dialects:
       hyper:
+  # Explain a list of SQL expressions against descriptor columns
+  - name: explain_sql_expressions
+    input: |
+      explain (format sql_expressions, sql_dialect internal_spark_2025_12, columns descriptor(a int))
+      expressions (
+        1 + 2 + 3,
+        3 + a
+      )
+    dialects:
+      hyper:
