@@ -5,10 +5,11 @@ export interface BundledNotebook {
 }
 
 export const BUNDLED_NOTEBOOKS = [
+    { id: 'demo', name: 'Demo', manifestPath: '/static/examples/notebooks/demo/dashql-notebook.json' },
     { id: 'explain', name: 'Explain', manifestPath: '/static/examples/notebooks/explain/dashql-notebook.json' },
     { id: 'property-graphs', name: 'Property Graphs', manifestPath: '/static/examples/notebooks/property-graphs/dashql-notebook.json' },
-    { id: 'hello-docker', name: 'Hello Docker', manifestPath: '/static/examples/notebooks/hello-docker/dashql-notebook.json' },
-    { id: 'hello-wasm', name: 'Hello WASM', manifestPath: '/static/examples/notebooks/hello-wasm/dashql-notebook.json' },
+    { id: 'calculated-insights', name: 'Calculated Insights', manifestPath: '/static/examples/notebooks/calculated-insights/dashql-notebook.json' },
+    { id: 'transforms', name: 'Transforms', manifestPath: '/static/examples/notebooks/transforms/dashql-notebook.json' },
 ] as const satisfies readonly BundledNotebook[];
 
 export function resolveBundledNotebookUrl(notebook: BundledNotebook, baseUrl: URL): URL {
