@@ -349,6 +349,7 @@ const HyperContainerCard: React.FC<HyperContainerCardProps> = (props) => {
                         online={isRunning}
                         width="14px"
                         height="14px"
+                        fill="#6e7781"
                     />
                 </div>
                 <div className={styles.container_meta}>
