@@ -4,11 +4,13 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { SalesforceApiClientInterface, type SalesforceMetadataProgress } from './salesforce_api_client.js';
 import { getSalesforceDataSpace } from './salesforce_api_client.js';
 import { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
-import { generateUnqualifiedSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from '../catalog_sql_generator.js';
+import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from '../catalog_sql_generator.js';
 import { LoggerLike } from '../../../../platform/logger/logger.js';
 import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
 
 const SALESFORCE_CATALOG_RANK = 100;
+const SALESFORCE_CATALOG_DATABASE = 'sf';
+const SALESFORCE_CATALOG_SCHEMA = 'public';
 
 export interface ResolvedSalesforceCatalog {
     tables: Map<string, ColumnMetadata[]>;
@@ -82,7 +84,7 @@ export async function updateSalesforceCatalog(
 
     // Generate SQL from metadata
     const header = generateCatalogScriptHeader(CatalogSource.SalesforceMetadataApi);
-    const catalogSQL = generateUnqualifiedSchemaSQL(tables);
+    const catalogSQL = generateSchemaSQL(SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA, tables);
     logger.info("Generated Salesforce catalog script", {
         dataSpace,
         tables: tables.size.toString(),
