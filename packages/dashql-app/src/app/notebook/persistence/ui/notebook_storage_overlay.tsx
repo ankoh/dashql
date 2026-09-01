@@ -62,33 +62,44 @@ function ParamRow(props: { label: string; value: string }) {
     );
 }
 
-/// An editable notebook-name row. Local draft state edits freely; the commit (blur or Enter)
-/// dispatches RENAME_NOTEBOOK, which normalises blank input to "no name" (falls back to the path).
+/// An editable notebook-name row. The input owns its draft so typing does not rerender the storage
+/// view; blur or Enter dispatches RENAME_NOTEBOOK, which normalises blank input to "no name".
 function NameRow(props: { name: string | null; onCommit: (name: string) => void }) {
-    const [draft, setDraft] = React.useState<string>(props.name ?? '');
+    const inputRef = React.useRef<HTMLInputElement>(null);
+    const cancelBlurRef = React.useRef(false);
     // Re-sync the draft when the persisted name changes (e.g. a rename from elsewhere, or switching
     // notebooks while the overlay stays mounted).
-    React.useEffect(() => { setDraft(props.name ?? ''); }, [props.name]);
+    React.useEffect(() => {
+        if (inputRef.current != null) inputRef.current.value = props.name ?? '';
+    }, [props.name]);
 
-    const commit = React.useCallback(() => props.onCommit(draft), [props.onCommit, draft]);
+    const commit = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+        if (cancelBlurRef.current) {
+            cancelBlurRef.current = false;
+            return;
+        }
+        props.onCommit(e.currentTarget.value);
+    }, [props.onCommit]);
     const onKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.currentTarget.blur();
         } else if (e.key === 'Escape') {
             // Abandon the edit: restore the persisted value and drop focus.
-            setDraft(props.name ?? '');
+            cancelBlurRef.current = true;
+            e.currentTarget.value = props.name ?? '';
             e.currentTarget.blur();
         }
     }, [props.name]);
 
     return (
         <input
+            ref={inputRef}
             className={styles.name_input}
             type="text"
-            value={draft}
+            aria-label="Notebook name"
+            defaultValue={props.name ?? ''}
             placeholder="Name this notebook"
             spellCheck={false}
-            onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={onKeyDown}
         />
