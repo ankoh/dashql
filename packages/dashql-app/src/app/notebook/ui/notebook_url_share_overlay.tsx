@@ -23,6 +23,7 @@ const COPY_CHECKMARK_DURATION_MS = 1000;
 interface Props {
     className?: string;
     isOpen: boolean;
+    notebookId?: string;
     setIsOpen: (v: boolean) => void;
 }
 
@@ -39,7 +40,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
 
-    const [notebookScripts] = useNotebookScripts(route.notebookId ?? null);
+    const [notebookScripts] = useNotebookScripts(props.notebookId ?? route.notebookId ?? null);
     const [connection, _modifyConnection] = useAttachedDatabaseState(notebookScripts?.notebookId ?? null);
     const [databaseRegistry] = useAttachedDatabaseRegistry();
     const storage = useStorageReader();

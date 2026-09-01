@@ -35,6 +35,7 @@ import {
     DatabaseIcon,
     DownloadIcon,
     FileDirectoryIcon,
+    LinkIcon,
     PlusIcon,
     SyncIcon,
     TableIcon,
@@ -98,6 +99,7 @@ import { useNotebookScriptsSetup } from '../scripts/notebook_scripts_setup.js';
 import { BundledNotebooksOverlay } from '../../ui/bundled_notebooks_overlay.js';
 import { attachedDatabaseLabel, isHyperWasmAttachedDatabase } from './attached_database_label.js';
 import { canRefreshAttachedDatabase } from './attached_database_refresh.js';
+import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { isCatalogRefreshRunning } from '../connections/catalog_update_state.js';
 import * as styles from './notebook_workbench_sidebar.module.css';
 import * as actionMenuStyles from './action_menu.module.css';
@@ -434,6 +436,7 @@ interface NotebookRowMenuProps {
 
 const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, onDelete }) => {
     const [open, setOpen] = React.useState(false);
+    const [shareOpen, setShareOpen] = React.useState(false);
     const [storageOpen, setStorageOpen] = React.useState(false);
     const [exporting, setExporting] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
@@ -514,6 +517,20 @@ const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, on
                             </ActionList.ListItem>
                         )}
                     />
+                    <ActionList.ListItem onClick={(event) => {
+                        event.stopPropagation();
+                        setShareOpen(value => !value);
+                    }}>
+                        <ActionList.Leading><LinkIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>
+                            Share as URL
+                            <NotebookURLShareOverlay
+                                notebookId={item.notebookId}
+                                isOpen={shareOpen}
+                                setIsOpen={setShareOpen}
+                            />
+                        </ActionList.ItemText>
+                    </ActionList.ListItem>
                     <ActionList.ListItem disabled={exporting} aria-busy={exporting} onClick={exportNotebook}>
                         <ActionList.Leading><DownloadIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>{exporting ? 'Exporting...' : `Export .${DASHQL_ARCHIVE_FILENAME_EXT}`}</ActionList.ItemText>
