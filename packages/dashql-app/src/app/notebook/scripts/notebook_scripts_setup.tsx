@@ -4,12 +4,12 @@ import { ScriptData, NotebookScripts, createEmptyScriptData, replaceScriptSessio
 import { useNotebookScriptsAllocator } from './notebook_scripts_registry.js';
 import { createEmptyMetadata, createScriptRef, generateScriptFileName } from './script_types.js';
 
-export type NotebookScriptsSetup = (notebookId: string, database: AttachedDatabaseState, abort?: AbortSignal) => NotebookScripts;
+export type NotebookScriptsSetup = (notebookId: string, database: AttachedDatabaseState, name?: string) => NotebookScripts;
 
 export function useNotebookScriptsSetup(): NotebookScriptsSetup {
     const allocateNotebookScripts = useNotebookScriptsAllocator();
 
-    return React.useCallback((notebookId: string, database: AttachedDatabaseState) => {
+    return React.useCallback((notebookId: string, database: AttachedDatabaseState, name?: string) => {
         const fileName = generateScriptFileName({});
         const [, mainScriptData]: [number, ScriptData] = createEmptyScriptData(database.instance, database.catalog, fileName);
         replaceScriptSessionText(mainScriptData.scriptSession, database.connectorInfo.helloWorldScript);
@@ -19,7 +19,7 @@ export function useNotebookScriptsSetup(): NotebookScriptsSetup {
             instance: database.instance,
             connectorInfo: database.connectorInfo,
             notebookId,
-            name: null,
+            name: name ?? null,
             databaseId: database.databaseId,
             connectionCatalog: database.catalog,
             scripts: {

@@ -360,7 +360,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                     notebookId,
                     createDefaultHyperWasmAttachedDatabaseState(core, connReg.attachedDatabasesBySignature),
                 );
-                setupNotebookScripts(notebookId, database);
+                setupNotebookScripts(notebookId, database, 'Default');
             }
             navigate({
                 type: OPEN_LINK_NOTEBOOK,
