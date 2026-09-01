@@ -27,7 +27,10 @@ vi.mock('../script_diagnostics.js', async () => {
 vi.mock('../script_statistics_bar.js', () => ({ ScriptStatisticsBar: () => null }));
 vi.mock('../script_format.js', () => ({
     isScriptFormattable: () => true,
-    formatScriptEditor: state.formatScriptEditor,
+    formatScriptEditor: (...args: any[]) => {
+        state.formatScriptEditor(...args);
+        args[3]('SELECT 1;');
+    },
 }));
 vi.mock('../query_result_cache_controls.js', () => ({ CachedResultBean: () => null, QueryResultCacheLabel: () => null, QueryResultRerunButton: () => null }));
 vi.mock('../entry_status_bar.js', async () => {
@@ -64,7 +67,7 @@ function baseProps() {
         focusedFileName: '01_alpha.sql', canDelete: true, active: true, onFocus: vi.fn(), onDelete: vi.fn(),
         onRename: vi.fn(), onMoveUp: vi.fn(), onMoveDown: vi.fn(), onExecute: vi.fn(), onShowStatus: vi.fn(),
         onShowAgentStatus: vi.fn(), onShowTable: vi.fn(), onShowVisualization: vi.fn(), onShowDetails: vi.fn(), onRerun: vi.fn(),
-        onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
+        onFormat: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
         onAutoCollapseResult: vi.fn(), onResetAutoCollapsedResult: vi.fn(), topPadding: 16,
         onCreate: vi.fn(), onEditorView: vi.fn(), onRowHeightChange: vi.fn(),
     };
@@ -113,8 +116,14 @@ describe('V2 notebook feed rows', () => {
             expect.anything(),
             props.scripts[1],
             dashql.buffers.formatting.FormattingMode.COMPACT,
+            expect.any(Function),
             false,
         );
+        expect(props.onFormat).toHaveBeenCalledWith(1, 'SELECT 1;');
+        props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        expect(container.querySelector('[aria-label="Accept rewrite"]')).not.toBeNull();
+        expect(container.querySelector('[aria-label="Reject rewrite"]')).not.toBeNull();
         const expandButton = container.querySelector('[aria-label="Expand alpha script details"]') as HTMLButtonElement;
         const moveUpButton = container.querySelector('[aria-label="Move script up"]') as HTMLButtonElement;
         const moveDownButton = container.querySelector('[aria-label="Move script down"]') as HTMLButtonElement;

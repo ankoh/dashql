@@ -138,7 +138,7 @@ function buildDiffDecorations(pending: DashQLPendingDiff | null, doc: Text): Dif
 
 /// Build the staged-rewrite decorations for the writable editor.
 function createDiffDecorationExtension(): Extension {
-    /// Decorations for a pending, staged rewrite (agent suggestion) shown as an in-place diff.
+    /// Decorations for a pending, staged rewrite shown as an in-place diff.
     const field: StateField<DiffDecorationState> = StateField.define<DiffDecorationState>({
         create: () => ({ pendingDiff: null, decorations: Decoration.none, deleteLines: new Set() }),
         update: (state: DiffDecorationState, transaction: Transaction) => {

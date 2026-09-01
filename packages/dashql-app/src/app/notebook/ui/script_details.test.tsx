@@ -29,25 +29,31 @@ vi.mock('./script_editor.js', async () => {
 vi.mock('./script_details_panes.js', async () => {
     const React = await import('react');
     return {
-        ScriptDetailsEditorPane: (props: any) => React.createElement('div', null,
-            React.createElement('button', { 'aria-label': 'Rename script', onClick: props.onStartEditingName }, 'rename'),
-            React.createElement('button', { 'aria-label': 'Shrink script details', onClick: props.onHide }, 'shrink'),
-            props.formatMenu,
-            props.isEditingName ? React.createElement('input', {
-                ref: props.editInputRef,
-                value: props.draftFileName,
-                onChange: (event: any) => props.onDraftFileNameChange(event.target.value),
-                onKeyDown: (event: any) => event.key === 'Enter' && props.onSaveName(),
-            }) : null,
-            React.createElement('div', { 'data-testid': 'details-editor' }, props.scriptDisplay),
-        ),
+        ScriptDetailsEditorPane: (props: any) => {
+            React.useEffect(() => props.onEditorView({}), [props.onEditorView]);
+            return React.createElement('div', null,
+                React.createElement('button', { 'aria-label': 'Rename script', onClick: props.onStartEditingName }, 'rename'),
+                React.createElement('button', { 'aria-label': 'Shrink script details', onClick: props.onHide }, 'shrink'),
+                props.formatMenu,
+                props.isEditingName ? React.createElement('input', {
+                    ref: props.editInputRef,
+                    value: props.draftFileName,
+                    onChange: (event: any) => props.onDraftFileNameChange(event.target.value),
+                    onKeyDown: (event: any) => event.key === 'Enter' && props.onSaveName(),
+                }) : null,
+                React.createElement('div', { 'data-testid': 'details-editor' }, props.scriptDisplay),
+            );
+        },
         ScriptDetailsOutputPane: () => React.createElement('div', { 'data-testid': 'output-pane' }),
     };
 });
 vi.mock('./script_diagnostics.js', () => ({ ScriptDiagnosticsButton: () => null }));
 vi.mock('./script_format.js', () => ({
     isScriptFormattable: () => true,
-    formatScriptEditor: state.formatScriptEditor,
+    formatScriptEditor: (...args: any[]) => {
+        state.formatScriptEditor(...args);
+        args[3]('SELECT 2;');
+    },
 }));
 vi.mock('./rerun_query.js', () => ({ runNotebookScript: (_databaseId: string, _scripts: unknown, script: any, execute: any) => execute('database', { query: script.scriptSession.getText() }) }));
 vi.mock('../../../ui/foundations/vertical_split.js', async () => {
@@ -56,7 +62,7 @@ vi.mock('../../../ui/foundations/vertical_split.js', async () => {
 });
 
 import { ConnectionHealth } from '../connections/attached_database_state.js';
-import { DELETE_SCRIPT, RENAME_SCRIPT, type NotebookScripts } from '../scripts/notebook_scripts.js';
+import { DELETE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_TEXT, type NotebookScripts } from '../scripts/notebook_scripts.js';
 import { ScriptDetails } from './script_details.js';
 
 function scripts(): NotebookScripts {
@@ -120,7 +126,8 @@ describe('ScriptDetails V2 flat scripts', () => {
     });
 
     it('offers pretty and compact formatting modes', () => {
-        act(() => root.render(<ScriptDetails notebookScripts={scripts()} modifyNotebookScripts={vi.fn()}
+        const modify = vi.fn();
+        act(() => root.render(<ScriptDetails notebookScripts={scripts()} modifyNotebookScripts={modify}
             connection={null} hideDetails={() => {}} scriptId={2} />));
 
         act(() => (container.querySelector('[aria-label="More actions for second script"]') as HTMLButtonElement).click());
@@ -128,6 +135,13 @@ describe('ScriptDetails V2 flat scripts', () => {
         expect(labels).toContain('Format Pretty');
         expect(labels).toContain('Format Compact');
         expect(labels).toContain('Delete');
+
+        const formatButton = Array.from(document.querySelectorAll('button')).find(button => button.textContent === 'Format Pretty') as HTMLButtonElement;
+        act(() => formatButton.click());
+        expect(modify).toHaveBeenCalledWith({
+            type: SET_SCRIPT_TEXT,
+            value: { scriptKey: 2, text: 'SELECT 2;', withDiff: true },
+        });
     });
 
     it('deletes the script from the more menu and returns to the feed', () => {

@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 
 import { ConnectionHealth, AttachedDatabaseState } from '../../connections/attached_database_state.js';
-import { compileNotebookQuery, createScriptExecution, getSelectedScriptRef, getSelectedScriptRefs, getSortedScriptFileNames, NotebookScripts, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
+import { compileNotebookQuery, createScriptExecution, getSelectedScriptRef, getSelectedScriptRefs, getSortedScriptFileNames, NotebookScripts, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
 import { useLatestAgentRunState } from '../../agent/agent_run_provider.js';
 import { AgentRunPhase } from '../../agent/agent_run_state.js';
 import { QueryType } from '../../connections/query_execution_state.js';
@@ -242,9 +242,15 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         });
     }, [entries, props.modifyNotebookScripts, scriptRefs]);
 
-    // Accept / reject a staged agent rewrite from the feed. These dispatch notebookScripts actions (the
-    // feed shows the diff on the read-only preview, so there's no editor to drive the editor-effect
-    // path). Accept keeps the new text; reject restores the prior text and re-analyzes.
+    const handleFormat = React.useCallback((scriptKey: number, text: string) => {
+        props.modifyNotebookScripts({
+            type: SET_SCRIPT_TEXT,
+            value: { scriptKey, text, withDiff: true },
+        });
+    }, [props.modifyNotebookScripts]);
+
+    // Accept / reject a staged rewrite from the feed. Accept keeps the new text; reject restores the
+    // prior text and re-analyzes.
     const handleAcceptDiff = React.useCallback((scriptKey: number) => {
         props.modifyNotebookScripts({ type: ACCEPT_PENDING_DIFF, value: scriptKey });
     }, [props.modifyNotebookScripts]);
@@ -282,7 +288,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const feedActive = props.active;
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
         {
-            // Plain Enter, while browsing the feed with nothing focused, accepts a staged agent
+            // Plain Enter, while browsing the feed with nothing focused, accepts a staged
             // rewrite (matching the status bar's "Accept ⏎" hint). It intentionally does nothing for
             // ordinary scripts; Details is opened only through an explicit pointer action.
             key: 'Enter',
@@ -381,6 +387,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onShowVisualization: handleShowVisualization,
         onShowDetails: handleShowDetails,
         onRerun: handleRerunEntry,
+        onFormat: handleFormat,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
         collapsedResults,
@@ -391,7 +398,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
 
     return (
         <div

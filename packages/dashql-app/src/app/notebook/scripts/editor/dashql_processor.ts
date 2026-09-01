@@ -29,7 +29,7 @@ export enum DashQLCompletionStatus {
     SELECTED_CATALOG_OBJECT,
 }
 
-/// A pending, staged script rewrite (e.g. an agent suggestion) shown as an in-place diff.
+/// A pending, staged script rewrite (e.g. an agent suggestion or formatting) shown as an in-place diff.
 ///
 /// The editor already holds the *new* (target) text; `priorText` is the verbatim text that was in
 /// the script before the rewrite, restored on reject. `diffBuffer` is the statement-level semantic

@@ -21,6 +21,7 @@ import {
     REJECT_PENDING_DIFF,
     RENAME_SCRIPT,
     SELECT_SCRIPT,
+    SET_SCRIPT_TEXT,
 } from '../scripts/notebook_scripts.js';
 import { runNotebookScript } from './rerun_query.js';
 import { useStorageReader } from '../persistence/storage_provider.js';
@@ -109,14 +110,20 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         [scriptData?.scriptSession, scriptData?.editorUpdate?.stateRevision],
     );
     const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
-        formatScriptEditor(editorView, scriptData, mode, formattingDebugMode);
-    }, [editorView, formattingDebugMode, scriptData]);
+        formatScriptEditor(editorView, scriptData, mode, (text) => {
+            if (scriptData == null) return;
+            props.modifyNotebookScripts({
+                type: SET_SCRIPT_TEXT,
+                value: { scriptKey: scriptData.scriptKey, text, withDiff: true },
+            });
+        }, formattingDebugMode);
+    }, [editorView, formattingDebugMode, props.modifyNotebookScripts, scriptData]);
     const handleDelete = React.useCallback(() => {
         props.modifyNotebookScripts({ type: DELETE_SCRIPT, value: scriptFileName });
         props.hideDetails();
     }, [props.modifyNotebookScripts, props.hideDetails, scriptFileName]);
 
-    // A staged agent rewrite is shown as an in-place diff on the editable editor here (the diff
+    // A staged rewrite is shown as an in-place diff on the editable editor here (the diff
     // decorations + ⏎/⎋ keymap come from the editor's DashQL extensions). Surface visible controls
     // too, mirroring the feed's status bar. Both drive the editor-effect accept/reject path, which
     // round-trips through UPDATE_FROM_PROCESSOR to clear the pending diff.

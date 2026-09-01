@@ -59,6 +59,7 @@ export interface ScriptCardProps {
     onShowVisualization: (fileName: string) => void;
     onShowDetails: (fileName: string) => void;
     onRerun: (fileName: string, cacheKey: string | null) => void;
+    onFormat: (scriptKey: number, text: string) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     resultExpanded: boolean;
@@ -86,7 +87,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
     const agentRunState = useAgentRunState(props.scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
 
-    // A staged agent rewrite waiting to be accepted/rejected. The editable editor renders the
+    // A staged rewrite waiting to be accepted/rejected. The editable editor renders the
     // in-place diff and these actions provide the same explicit accept/reject alternatives.
     const hasPendingDiff = props.scriptData?.pendingDiff != null;
 
@@ -172,9 +173,12 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
             editorView,
             props.scriptData ?? null,
             mode,
+            (text) => {
+                if (props.scriptData != null) props.onFormat(props.scriptData.scriptKey, text);
+            },
             props.formattingDebugMode,
         );
-    }, [editorView, props.formattingDebugMode, props.scriptData]);
+    }, [editorView, props.formattingDebugMode, props.onFormat, props.scriptData]);
 
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
     // the raw scriptFileName remains the identity passed to handlers and to RENAME_SCRIPT.
@@ -401,6 +405,7 @@ export interface ScriptFeedRowProps {
     onShowVisualization: (fileName: string) => void;
     onShowDetails: (fileName: string) => void;
     onRerun: (fileName: string, cacheKey: string | null) => void;
+    onFormat: (scriptKey: number, text: string) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     collapsedResults: ReadonlyMap<number, number | null>;
@@ -529,6 +534,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onShowVisualization={props.onShowVisualization}
                     onShowDetails={props.onShowDetails}
                     onRerun={props.onRerun}
+                    onFormat={props.onFormat}
                     onAcceptDiff={props.onAcceptDiff}
                     onRejectDiff={props.onRejectDiff}
                     resultExpanded={scriptData == null || !props.collapsedResults.has(scriptData.scriptKey)}

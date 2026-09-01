@@ -61,7 +61,7 @@ describe('script formatting', () => {
     it('applies pretty formatting as an edit to the writable editor', () => {
         const catalog = dql.createCatalog();
         const session = dql.createScriptSession(catalog);
-        const dispatch = vi.fn();
+        const onFormattedText = vi.fn();
         const focus = vi.fn();
         try {
             session.replaceText(0n, 'select count(*) from items where value > 1');
@@ -70,19 +70,12 @@ describe('script formatting', () => {
                 state: { doc: { length: text.length, toString: () => text } },
                 defaultCharacterWidth: 8,
                 scrollDOM: { clientWidth: 320 },
-                dispatch,
                 focus,
             } as any;
 
             expect(formatScriptEditor(editorView, { scriptSession: session } as any,
-                dashql.buffers.formatting.FormattingMode.PRETTY)).toBe(true);
-            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-                changes: {
-                    from: 0,
-                    to: text.length,
-                    insert: 'select count(*)\nfrom items\nwhere value > 1;',
-                },
-            }));
+                dashql.buffers.formatting.FormattingMode.PRETTY, onFormattedText)).toBe(true);
+            expect(onFormattedText).toHaveBeenCalledWith('select count(*)\nfrom items\nwhere value > 1;');
             expect(focus).toHaveBeenCalledOnce();
         } finally {
             session.destroy();
@@ -91,7 +84,7 @@ describe('script formatting', () => {
     });
 
     it('passes the current editor width to the formatter', () => {
-        const dispatch = vi.fn();
+        const onFormattedText = vi.fn();
         const focus = vi.fn();
         const destroy = vi.fn();
         const format = vi.fn((config: dashql.buffers.formatting.FormattingConfigT) => {
@@ -102,13 +95,13 @@ describe('script formatting', () => {
             state: { doc: { length: 8, toString: () => 'select 1' } },
             defaultCharacterWidth: 8,
             scrollDOM: { clientWidth: 600 },
-            dispatch,
             focus,
         } as any;
 
         expect(formatScriptEditor(editorView, { scriptSession: { format } } as any,
-            dashql.buffers.formatting.FormattingMode.PRETTY)).toBe(true);
+            dashql.buffers.formatting.FormattingMode.PRETTY, onFormattedText)).toBe(true);
         expect(format).toHaveBeenCalledOnce();
+        expect(onFormattedText).toHaveBeenCalledWith('select 1;');
         expect(destroy).toHaveBeenCalledOnce();
     });
 

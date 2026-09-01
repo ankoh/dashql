@@ -34,9 +34,8 @@ export function rejectPendingDiff(view: EditorView): boolean {
 /// diff is pending, and defer to an active completion via lower precedence than the completion
 /// keymap (which is registered at Prec.highest).
 ///
-/// The Accept/Reject *buttons* live in the feed entry's AI bar (above the editor), not in a panel
-/// inside the editor — see `feed/notebook_feed.tsx`. This keymap keeps the ⏎/⎋ shortcuts working
-/// while the diff editor holds focus (the AI bar buttons echo the same shortcut hints).
+/// The Accept/Reject *buttons* live in the card body, not in a panel inside the editor. This keymap
+/// keeps the Enter/Escape shortcuts working while the diff editor holds focus.
 const KEYBINDINGS: KeyBinding[] = [
     { key: 'Enter', run: acceptPendingDiff },
     { key: 'Escape', run: rejectPendingDiff },

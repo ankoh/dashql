@@ -101,8 +101,8 @@ export interface ScriptData {
     statistics: Immutable.List<core.buffers.editor.EditorProcessingStatisticsT>;
     /// The completion state.
     completion: DashQLCompletionState | null;
-    /// A pending, staged rewrite (agent suggestion) shown as an in-place diff.
-    /// Set by SET_SCRIPT_TEXT for agent edits; cleared once the user accepts/rejects it in the
+    /// A pending, staged rewrite (agent suggestion or formatting) shown as an in-place diff.
+    /// Set by SET_SCRIPT_TEXT; cleared once the user accepts/rejects it in the
     /// editor (which round-trips back through UPDATE_FROM_PROCESSOR).
     pendingDiff: DashQLPendingDiff | null;
     /// The latest query id

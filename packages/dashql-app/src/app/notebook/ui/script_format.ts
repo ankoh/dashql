@@ -1,6 +1,5 @@
 import * as dashql from '../../../core/index.js';
 
-import { Transaction } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 
 import type { ScriptData } from '../scripts/notebook_scripts.js';
@@ -48,6 +47,7 @@ export function formatScriptEditor(
     editorView: EditorView | null,
     scriptData: ScriptData | null,
     mode: dashql.buffers.formatting.FormattingMode,
+    onFormattedText: (text: string) => void,
     debugMode: boolean = false,
 ): boolean {
     if (editorView == null || scriptData == null) return false;
@@ -61,10 +61,7 @@ export function formatScriptEditor(
         );
         const formattedText = formattedScript.toString();
         if (formattedText === editorView.state.doc.toString()) return false;
-        editorView.dispatch({
-            changes: { from: 0, to: editorView.state.doc.length, insert: formattedText },
-            annotations: Transaction.userEvent.of('input.format'),
-        });
+        onFormattedText(formattedText);
         editorView.focus();
         return true;
     } catch {
