@@ -50,6 +50,7 @@ describe('QueryHistoryViewer', () => {
     it('classifies connection and memory query targets', () => {
         expect(getQueryTarget(createExecution(QueryType.USER_PROVIDED, true))).toBe(QueryTarget.CONNECTION);
         expect(getQueryTarget(createExecution(QueryType.INTERNAL_SQLFRAME, false))).toBe(QueryTarget.MEMORY);
+        expect(QueryTarget.CONNECTION).toBe('Attached');
     });
 
     it('shows query targets', () => {
