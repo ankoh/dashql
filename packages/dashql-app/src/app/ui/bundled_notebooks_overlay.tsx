@@ -17,7 +17,7 @@ import * as styles from './bundled_notebooks_overlay.module.css';
 
 const BeakerIcon = SymbolIcon('beaker');
 
-interface BundledNotebooksOverlayProps {
+export interface BundledNotebooksOverlayProps {
     side?: AnchorSide;
     align?: AnchorAlignment;
     triggerSize?: ButtonSize;
