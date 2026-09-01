@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AttachedDatabaseState } from '../connections/attached_database_state.js';
 
+vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+
 const state = vi.hoisted(() => ({
     navigate: vi.fn(),
     dispatchDatabase: vi.fn(),

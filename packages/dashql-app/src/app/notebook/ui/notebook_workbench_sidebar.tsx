@@ -129,7 +129,7 @@ interface AttachedDatabaseListRow {
 
 type AttachedDatabaseTreeRow = AttachedDatabaseListRow | CatalogRow;
 
-const ATTACHED_DATABASE_ROW_HEIGHT = 40;
+const ATTACHED_DATABASE_ROW_HEIGHT = 38;
 const CATALOG_ROW_HEIGHT = 34;
 
 export function isVisibleCatalogNode(kind: CatalogNode['kind'], name: string): boolean {
@@ -261,6 +261,55 @@ function catalogIcon(kind: CatalogNode['kind']): React.ReactElement {
     }
 }
 
+interface AttachedDatabaseTreeEntryProps {
+    name: string;
+    icon: React.ReactNode;
+    depth: number;
+    expanded?: boolean;
+    onToggle?: () => void;
+    children?: React.ReactNode;
+    className?: string;
+}
+
+const AttachedDatabaseTreeEntry: React.FC<AttachedDatabaseTreeEntryProps> = ({
+    name,
+    icon,
+    depth,
+    expanded,
+    onToggle,
+    children,
+    className,
+}) => {
+    const collapsible = onToggle != null;
+    return (
+        <div
+            className={classNames(styles.entry_surface, collapsible && styles.entry_interactive, styles.tree_entry, className)}
+            style={{ paddingLeft: `${8 + depth * 16}px` }}
+        >
+            {collapsible ? (
+                <button
+                    type="button"
+                    className={classNames(styles.tree_entry_main, styles.tree_entry_toggle)}
+                    aria-expanded={expanded}
+                    aria-label={`${expanded ? 'Collapse' : 'Expand'} ${name}`}
+                    onClick={onToggle}
+                >
+                    {expanded ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />}
+                    <span className={styles.tree_entry_icon} aria-hidden="true">{icon}</span>
+                    <span className={styles.tree_entry_name}>{name}</span>
+                </button>
+            ) : (
+                <div className={styles.tree_entry_main}>
+                    <span className={styles.tree_entry_spacer} />
+                    <span className={styles.tree_entry_icon} aria-hidden="true">{icon}</span>
+                    <span className={styles.tree_entry_name}>{name}</span>
+                </div>
+            )}
+            {children != null && <span className={styles.tree_entry_children}>{children}</span>}
+        </div>
+    );
+};
+
 interface AttachedDatabaseTreeRowProps {
     rows: AttachedDatabaseTreeRow[];
     expanded: ReadonlySet<string>;
@@ -270,7 +319,7 @@ interface AttachedDatabaseTreeRowProps {
 
 export function attachedDatabaseTreeRowHeight(index: number, props: AttachedDatabaseTreeRowProps): number {
     return props.rows[index]?.type === 'attached-database'
-        ? ATTACHED_DATABASE_ROW_HEIGHT + (index === 0 ? 6 : 0)
+        ? ATTACHED_DATABASE_ROW_HEIGHT + (index === 0 ? 8 : 0)
         : CATALOG_ROW_HEIGHT;
 }
 
@@ -283,29 +332,31 @@ const AttachedDatabaseTreeRow = (props: RowComponentProps<AttachedDatabaseTreeRo
         return (
             <div
                 style={props.style}
-                className={classNames(styles.database_row_container, props.index === 0 && styles.database_row_container_first)}
+                className={classNames(
+                    styles.tree_row_container,
+                    styles.database_row_container,
+                    props.index === 0 && styles.database_row_container_first,
+                )}
             >
-                <div className={styles.database_row}>
-                    <button
-                        type="button"
-                        className={styles.database_toggle}
-                        aria-expanded={expanded}
-                        aria-label={`${expanded ? 'Collapse' : 'Expand'} ${label}`}
-                        onClick={() => props.onToggle(row.key)}
-                    >
-                        {expanded ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />}
-                        <svg className={styles.database_connector_icon} width="14" height="14" aria-hidden="true">
+                <AttachedDatabaseTreeEntry
+                    className={styles.database_row}
+                    name={label}
+                    depth={0}
+                    expanded={expanded}
+                    onToggle={() => props.onToggle(row.key)}
+                    icon={(
+                        <svg width="14" height="14">
                             <use xlinkHref={`${symbols}#${row.database.connectorInfo.icons.colored}`} />
                         </svg>
-                        <span className={styles.database_name}>{label}</span>
-                    </button>
+                    )}
+                >
                     <AttachedDatabaseRefreshButton database={row.database} label={label} />
                     <AttachedDatabaseRowMenu
                         database={row.database}
                         label={label}
                         onOpenSettings={anchor => props.onOpenSettings(row.database.databaseId, anchor)}
                     />
-                </div>
+                </AttachedDatabaseTreeEntry>
             </div>
         );
     }
@@ -313,27 +364,17 @@ const AttachedDatabaseTreeRow = (props: RowComponentProps<AttachedDatabaseTreeRo
     const expandable = node.childCount > 0;
     const expanded = props.expanded.has(node.key);
     return (
-        <div style={props.style}>
-            {expandable ? (
-                <button
-                    type="button"
-                    className={styles.catalog_node}
-                    style={{ paddingLeft: `${16 + node.depth * 16}px` }}
-                    aria-expanded={expanded}
-                    onClick={() => props.onToggle(node.key)}
-                >
-                    {expanded ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />}
-                    <span className={styles.catalog_node_icon} aria-hidden="true">{catalogIcon(node.kind)}</span>
-                    <span className={styles.catalog_node_name}>{node.name || 'Unnamed'}</span>
-                    <span className={styles.catalog_node_kind}>{node.kind}</span>
-                </button>
-            ) : (
-                <div className={styles.catalog_leaf} style={{ paddingLeft: `${32 + node.depth * 16}px` }}>
-                    <span className={styles.catalog_node_icon} aria-hidden="true">{catalogIcon(node.kind)}</span>
-                    <span className={styles.catalog_node_name}>{node.name || 'Unnamed'}</span>
-                    <span className={styles.catalog_node_kind}>{node.kind}</span>
-                </div>
-            )}
+        <div style={props.style} className={styles.tree_row_container}>
+            <AttachedDatabaseTreeEntry
+                className={styles.catalog_row}
+                name={node.name || 'Unnamed'}
+                icon={catalogIcon(node.kind)}
+                depth={node.depth + 1}
+                expanded={expanded}
+                onToggle={expandable ? () => props.onToggle(node.key) : undefined}
+            >
+                <span className={styles.catalog_node_kind}>{node.kind}</span>
+            </AttachedDatabaseTreeEntry>
         </div>
     );
 };
@@ -661,14 +702,22 @@ const NotebookRow: React.FC<NotebookRowProps> = ({ item, selected, onOpen, onDup
     return (
         <li
             ref={setNodeRef}
-            className={classNames(styles.notebook_row, { [styles.notebook_row_dragging]: isDragging })}
+            className={classNames(
+                styles.entry_surface,
+                styles.entry_interactive,
+                styles.notebook_row,
+                {
+                    [styles.entry_selected]: selected,
+                    [styles.notebook_row_dragging]: isDragging,
+                },
+            )}
             style={{ transform: CSS.Translate.toString(transform), transition }}
             {...attributes}
             {...listeners}
         >
             <button
                 type="button"
-                className={classNames(styles.notebook_button, { [styles.notebook_button_selected]: selected })}
+                className={styles.notebook_button}
                 aria-current={selected ? 'page' : undefined}
                 title={item.path}
                 onClick={onOpen}
@@ -682,7 +731,7 @@ const NotebookRow: React.FC<NotebookRowProps> = ({ item, selected, onOpen, onDup
 };
 
 const InvalidNotebookRow: React.FC<{ item: InvalidNotebookItem; onDelete: () => void }> = ({ item, onDelete }) => (
-    <li className={styles.notebook_row}>
+    <li className={classNames(styles.entry_surface, styles.notebook_row)}>
         <div
             className={classNames(styles.notebook_button, styles.notebook_button_invalid)}
             title={item.invalidReason}
