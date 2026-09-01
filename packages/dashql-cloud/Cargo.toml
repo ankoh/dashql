@@ -29,15 +29,15 @@ rsa = "0.9.10"
 sha2 = { version = "0.10", features = ["oid"] }
 hmac = "0.12"
 base64 = "0.22.1"
-# WASM randomness for API-key generation. `getrandom`'s `js` feature routes to Web Crypto.
-getrandom = { version = "0.4.3", features = ["js"] }
+# WASM randomness for API-key generation. `getrandom`'s `wasm_js` feature routes to Web Crypto.
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
 hex = "0.4.3"
 # AI Gateway routing: `worker` 0.8's `Ai::run` binding has no third `options` argument (where
 # `{ gateway }` lives), so `ai.rs` re-declares the JS `Ai.run` method via `#[wasm_bindgen]`. All
 # three crates are already in the tree transitively via `worker`; declaring them directly just lets
 # our FFI shim name them. Versions kept loose so Cargo unifies to whatever `worker` resolves.
-wasm-bindgen = "0.2"
-js-sys = "0.3"
+wasm-bindgen = "0.2.127"
+js-sys = "0.3.104"
 serde-wasm-bindgen = "0.6.5"
 
 [profile.release]
