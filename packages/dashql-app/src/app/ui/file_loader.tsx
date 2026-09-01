@@ -91,7 +91,7 @@ export function FileLoader(props: Props) {
     const { file, onDone } = props;
     const navigate = useRouterNavigate();
     const { importPortableBundle } = useNotebookImport();
-    const abortController = React.useMemo(() => new AbortController(), []);
+    const activeImport = React.useRef<AbortController | null>(null);
 
     const [error, setError] = React.useState<Error | null>(null);
     const [progress, setProgress] = React.useState<ProgressState>({
@@ -107,6 +107,8 @@ export function FileLoader(props: Props) {
 
     // Load the file
     React.useEffect(() => {
+        const abortController = new AbortController();
+        activeImport.current = abortController;
         (async () => {
             try {
                 const zipBlob = await loadNotebookFromFile(
@@ -134,14 +136,17 @@ export function FileLoader(props: Props) {
                 setError(e);
             }
         })();
-        return () => abortController.abort();
-    }, [file, onDone, importPortableBundle, abortController, navigate]);
+        return () => {
+            abortController.abort();
+            if (activeImport.current === abortController) activeImport.current = null;
+        };
+    }, [file, onDone, importPortableBundle, navigate]);
 
     // Close button
     const close = React.useCallback(() => {
-        abortController.abort();
+        activeImport.current?.abort();
         onDone();
-    }, [abortController, onDone]);
+    }, [onDone]);
 
     // Determine the status
     let status = IndicatorStatus.Running;
