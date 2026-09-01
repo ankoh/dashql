@@ -62,7 +62,41 @@ describe('updateSalesforceCatalog', () => {
             new AbortController(),
         );
 
-        expect(relationScript.toString()).toContain('CREATE TABLE "Account__dlm"');
+        expect(relationScript.toString()).toContain('CREATE TABLE "sf"."public"."Account__dlm"');
+        const catalogSnapshot = catalog.createSnapshot().read();
+        const findEntry = (
+            begin: number,
+            count: number,
+            readEntry: (index: number, entry: dashql.buffers.catalog.FlatCatalogEntry) => dashql.buffers.catalog.FlatCatalogEntry | null,
+            name: string,
+        ) => {
+            for (let index = begin; index < begin + count; ++index) {
+                const entry = readEntry(index, new dashql.buffers.catalog.FlatCatalogEntry());
+                if (entry != null && catalogSnapshot.readName(entry.nameId()) === name) return entry;
+            }
+            return null;
+        };
+        const database = findEntry(
+            0,
+            catalogSnapshot.catalogReader.databasesLength(),
+            (index, entry) => catalogSnapshot.catalogReader.databases(index, entry),
+            'sf',
+        );
+        const schema = findEntry(
+            database!.childBegin(),
+            database!.childCount(),
+            (index, entry) => catalogSnapshot.catalogReader.schemas(index, entry),
+            'public',
+        );
+        const table = findEntry(
+            schema!.childBegin(),
+            schema!.childCount(),
+            (index, entry) => catalogSnapshot.catalogReader.tables(index, entry),
+            'Account__dlm',
+        );
+        expect(database).not.toBeNull();
+        expect(schema).not.toBeNull();
+        expect(table).not.toBeNull();
         expect(functionScript.toString()).toBe(functionsSQL);
         expect(functionScript.getParsed().read().statementsLength()).toBe(350);
         expect(logger.info).toHaveBeenCalledWith(
