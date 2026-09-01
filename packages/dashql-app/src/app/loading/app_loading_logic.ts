@@ -30,6 +30,10 @@ export function selectStartupNotebook(
     return restoredNotebookIds[0] ?? null;
 }
 
+export async function shouldFinishInitialNavigation(initialInlineSetup: Promise<boolean> | null): Promise<boolean> {
+    return initialInlineSetup == null || !await initialInlineSetup;
+}
+
 /// Main logic to setup the application
 export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetAttachedDatabaseRegistryAction>, resetNotebookScripts: Dispatch<SetNotebookScriptsRegistryAction>, consumer: AppLoadingProgressConsumer) {
     const traced = logger.childSpan();

@@ -12,7 +12,7 @@ import { AppLoadingPage } from '../ui/app_loading_page.js';
 import { SETUP_NOTEBOOK, SETUP_NOTEBOOK_URL, SetupEventVariant } from '../../platform/events/event.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '../../utils/progress.js';
-import { loadApp, selectStartupNotebook } from './app_loading_logic.js';
+import { loadApp, selectStartupNotebook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../config/app_config.js';
 import { useStorage } from '../notebook/persistence/storage_provider.js';
 import { useNotebookScriptsRegistry } from '../notebook/scripts/notebook_scripts_registry.js';
@@ -84,6 +84,8 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     } | null>(null);
     const remoteNotebookAbortRef = React.useRef<AbortController | null>(null);
     const openingAttemptRef = React.useRef<{ databaseId: string; abort: AbortController } | null>(null);
+    // Normal startup must not replace the route selected by an inline notebook import.
+    const initialInlineSetupRef = React.useRef<Promise<boolean> | null>(null);
     // Notebooks whose metadata was refused a load. Surfaced (marked invalid, blocked, deletable) in
     // the notebook workbench instead of being silently dropped.
     const [invalidNotebooks, setInvalidNotebooks] = React.useState<Map<string, InvalidNotebook>>(() => new Map());
@@ -142,7 +144,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
     // Callback to consume setup event.
     // This function is called through os deep links and when opening DashQL by through .dashql files
-    const consumeSetupEvent = React.useEffectEvent(async (data: SetupEventVariant) => {
+    const consumeSetupEvent = React.useEffectEvent(async (data: SetupEventVariant): Promise<boolean> => {
         // Start trace for setup event handling
         const traced = logger.withTrace(createTrace());
         traced.debug("Consuming setup event", { "event_type": String(data.type) }, "app_loader");
@@ -184,6 +186,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             if (notebookId != null) {
                 traced.debug("Finished link setup", { notebookId }, "app_loader");
                 navigate({ type: OPEN_LINK_NOTEBOOK, value: notebookId });
+                return true;
             }
         } else if (data.type === SETUP_NOTEBOOK_URL) {
             const result = remoteResult!;
@@ -196,7 +199,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 }, 'app_loader');
                 const conflictLocation = await notebookImport.findPortableBundleConflict(result.bundle);
                 remoteAbort!.signal.throwIfAborted();
-                if (remoteNotebookAbortRef.current !== remoteAbort) return;
+                if (remoteNotebookAbortRef.current !== remoteAbort) return false;
                 traced.info('Checked shared notebook import conflict', {
                     notebookId: result.bundle.notebook.notebookId,
                     conflict: String(conflictLocation != null),
@@ -207,7 +210,9 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 setLoadedNotebookConflict(conflictLocation);
                 setLoadedNotebook(result);
             }
+            return false;
         }
+        return false;
     });
 
     const cancelRemoteNotebookLoad = React.useCallback(() => {
@@ -249,12 +254,17 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     }, [loadedNotebookBusy]);
 
     const handleSetupEvent = React.useEffectEvent((data: SetupEventVariant) => {
-        void consumeSetupEvent(data).catch(error => {
-            if ((error as Error)?.name === 'AbortError') return;
+        const handling = consumeSetupEvent(data).catch(error => {
+            if ((error as Error)?.name === 'AbortError') return false;
             remoteNotebookAbortRef.current = null;
             setRemoteNotebookLoading(null);
             logger.error('Failed to open shared notebook', { error: stringifyError(error) }, 'app_loader');
+            return false;
         });
+        if (data.type === SETUP_NOTEBOOK && routeContext.appLoadingStatus === AppLoadingStatus.NOT_STARTED) {
+            initialInlineSetupRef.current = handling;
+        }
+        void handling;
     });
 
     // Effect Events are non-reactive. Depending on consumeSetupEvent would resubscribe after every
@@ -349,23 +359,25 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
             traced.info("Finishing setup", {}, "app_loader");
 
-            let notebookId = selectStartupNotebook(
-                loaded.restoredNotebookIds,
-                config.settings?.lastOpenedNotebookId,
-                routeContext.notebookId,
-            );
-            if (notebookId == null) {
-                notebookId = crypto.randomUUID();
-                const database = allocateAttachedDatabase(
-                    notebookId,
-                    createDefaultHyperWasmAttachedDatabaseState(core, connReg.attachedDatabasesBySignature),
+            if (await shouldFinishInitialNavigation(initialInlineSetupRef.current)) {
+                let notebookId = selectStartupNotebook(
+                    loaded.restoredNotebookIds,
+                    config.settings?.lastOpenedNotebookId,
+                    routeContext.notebookId,
                 );
-                setupNotebookScripts(notebookId, database, 'Default');
+                if (notebookId == null) {
+                    notebookId = crypto.randomUUID();
+                    const database = allocateAttachedDatabase(
+                        notebookId,
+                        createDefaultHyperWasmAttachedDatabaseState(core, connReg.attachedDatabasesBySignature),
+                    );
+                    setupNotebookScripts(notebookId, database, 'Default');
+                }
+                navigate({
+                    type: OPEN_LINK_NOTEBOOK,
+                    value: notebookId,
+                });
             }
-            navigate({
-                type: OPEN_LINK_NOTEBOOK,
-                value: notebookId,
-            });
             globalThis.__DASHQL_STARTUP__ = {
                 embeddedDatabase: 'hyperdb-wasm',
                 host: getAppHost(),

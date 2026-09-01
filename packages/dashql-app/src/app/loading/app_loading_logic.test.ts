@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadApp, selectStartupNotebook } from './app_loading_logic.js';
+import { loadApp, selectStartupNotebook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 
 describe('selectStartupNotebook', () => {
     it('prefers a valid notebook requested by the URL', () => {
@@ -17,6 +17,20 @@ describe('selectStartupNotebook', () => {
 
     it('returns null when no valid notebook was restored', () => {
         expect(selectStartupNotebook([], 'missing')).toBeNull();
+    });
+});
+
+describe('shouldFinishInitialNavigation', () => {
+    it('does not replace navigation after an initial shared notebook was opened', async () => {
+        await expect(shouldFinishInitialNavigation(Promise.resolve(true))).resolves.toBe(false);
+    });
+
+    it('finishes fallback navigation when the initial shared notebook was not opened', async () => {
+        await expect(shouldFinishInitialNavigation(Promise.resolve(false))).resolves.toBe(true);
+    });
+
+    it('finishes normal startup navigation without an inline setup', async () => {
+        await expect(shouldFinishInitialNavigation(null)).resolves.toBe(true);
     });
 });
 
