@@ -10,5 +10,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 http = "1.4.2"
-napi = { version = "3", features = ["async", "napi8", "tokio_rt"] }
+napi = { version = "3.12.2", features = ["async", "napi8", "tokio_rt"] }
 napi-derive = "3"
