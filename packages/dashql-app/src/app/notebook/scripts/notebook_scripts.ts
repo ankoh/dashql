@@ -211,7 +211,7 @@ export function getSelectedScriptIndex(state: NotebookScripts): number {
 /// Apply a script re-pad plan (from planScriptInsertion) to a page in place: rename the listed
 /// scripts in the page-scripts map and the scripts map, follow the focused file, and persist each as
 /// delete-old + write-new. Re-padding only changes a script's prefix width (and normalises a legacy
-/// "-" separator), never its clean name, so the catalog path is stable and no re-analyze is needed.
+/// "-" separator), never its clean name.
 /// Returns the updated maps and focus; the caller weaves them into the new state it is building.
 function applyScriptRepad(
     repad: { oldFileName: string; newFileName: string }[],
@@ -598,11 +598,9 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 }, LOG_CTX);
                 return state;
             }
-            // The rename input edits the *clean* display name. Normalise whatever the user typed to a
-            // bare base (drop any prefix / ".sql" they included), disambiguate it against the other
-            // scripts (the clean name is the SQL reference namespace, so it must stay unique), then
-            // re-attach this script's existing ordering prefix so it keeps its feed position and the
-            // ".sql" extension. An empty base is ignored.
+            // The rename input edits the display name. Drop any prefix / ".sql" the user included,
+            // disambiguate it against the other scripts, then re-attach this script's existing
+            // ordering prefix and the ".sql" extension. An empty base is ignored.
             const requestedBase = scriptDisplayName(requestedName.trim());
             if (!requestedBase) {
                 return state;
@@ -615,23 +613,14 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             if (renamed) delete scriptRefs[oldFileName];
             scriptRefs[newFileName] = renamedEntry;
 
-            // Update the script data fileName. On rename we must re-analyze *immediately* rather than
-            // just marking the analysis outdated: the clean file name is the script's SQL reference
-            // namespace, so the analyzer has to re-register it in the catalog under the new notebook
-            // path. Deferring this (waiting until the script is next viewed) leaves the catalog holding
-            // the old notebook-path table declaration, so cross-script references — and VISUALIZE
-            // script-ref completion — keep resolving to the stale name.
+            // Update the script data fileName and re-analyze immediately with the new path.
             const scriptId = entry.scriptId;
             const updatedScriptData = state.scripts[scriptId];
             const newScripts = { ...state.scripts };
             if (updatedScriptData) {
                 const renamedScriptData: ScriptData = { ...updatedScriptData, fileName: newFileName };
                 if (renamed) {
-                    // Re-analyze through the path-aware helper so the analyzer picks up the new notebook
-                    // path and reloads the script into the catalog under its new name.
                     newScripts[scriptId] = analyzeScriptData(renamedScriptData, state.connectionCatalog, logger);
-                    // The catalog entry changed name; mark all other scripts outdated so cross-script
-                    // references (qualified-name table refs, VISUALIZE script refs) re-resolve.
                     for (const key in newScripts) {
                         if (+key === scriptId) continue;
                         const other = newScripts[key];
@@ -718,7 +707,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     continue;
                 }
                 renames.push({ oldFile, newFile });
-                // The clean name is unchanged, so the catalog path is stable; no re-analyze needed.
                 const sd = newScripts[entry.scriptId];
                 if (sd) newScripts[entry.scriptId] = { ...sd, fileName: newFile };
                 newScriptRefs[newFile] = { ...entry, fileName: newFile };

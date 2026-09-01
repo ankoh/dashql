@@ -89,6 +89,7 @@ function NameRow(props: { name: string | null; onCommit: (name: string) => void 
             e.currentTarget.value = props.name ?? '';
             e.currentTarget.blur();
         }
+        e.stopPropagation();
     }, [props.name]);
 
     return (

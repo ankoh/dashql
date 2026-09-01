@@ -7,6 +7,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const state = vi.hoisted(() => ({
     modifyNotebookScripts: vi.fn(),
+    parentKeyDown: vi.fn(),
 }));
 
 vi.mock('../storage_provider.js', () => ({
@@ -37,10 +38,15 @@ describe('NotebookStorageViewer notebook name', () => {
 
     beforeEach(() => {
         state.modifyNotebookScripts.mockReset();
+        state.parentKeyDown.mockReset();
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        act(() => root.render(<NotebookStorageViewer notebookId="notebook" onClose={vi.fn()} />));
+        act(() => root.render(
+            <div onKeyDown={state.parentKeyDown}>
+                <NotebookStorageViewer notebookId="notebook" onClose={vi.fn()} />
+            </div>,
+        ));
     });
 
     afterEach(() => {
@@ -82,6 +88,17 @@ describe('NotebookStorageViewer notebook name', () => {
             type: RENAME_NOTEBOOK,
             value: 'Updated name',
         });
+    });
+
+    it('keeps text-entry keys inside the name input', () => {
+        const input = nameInput();
+
+        act(() => {
+            input.focus();
+            input.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true }));
+        });
+
+        expect(state.parentKeyDown).not.toHaveBeenCalled();
     });
 
     it('cancels on Escape without renaming', () => {

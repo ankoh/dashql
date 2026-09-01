@@ -56,8 +56,7 @@ export function ScriptName(props: Props) {
                         onKeyDown={handleKeyDown}
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        // A script name is an identifier, not prose: suppress the browser's text
-                        // assistance so e.g. "random" isn't auto-capitalised to "Random".
+                        // Suppress browser text assistance so names are not changed unexpectedly.
                         autoComplete="off"
                         autoCorrect="off"
                         autoCapitalize="off"

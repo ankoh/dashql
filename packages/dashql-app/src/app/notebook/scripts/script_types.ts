@@ -107,13 +107,11 @@ export function createEmptyMetadata(): NotebookMetadata {
 /// shape; the same known ambiguity as pages applies (a file literally named "2024_report.sql" parses
 /// as prefix "2024" + clean "report.sql").
 const SCRIPT_ORDER_PREFIX_RE = /^(\d+)[-_]/;
-/// Trailing ".sql" extension, stripped for display (but kept in the clean SQL-reference name).
+/// Trailing ".sql" extension, stripped for display.
 const SCRIPT_EXTENSION_RE = /\.sql$/i;
 
-/// The clean (SQL-visible) name of a script, with any ordering prefix removed but the extension
-/// kept. "2_extract.sql" -> "extract.sql"; legacy "01-script.sql" -> "script.sql". This is the name
-/// a script is registered under in the notebook reference namespace, so reordering (which only
-/// rewrites the prefix) never changes how the script is referenced.
+/// The name of a script with any ordering prefix removed but the extension kept.
+/// "2_extract.sql" -> "extract.sql"; legacy "01-script.sql" -> "script.sql".
 export function normalizeScriptName(fileName: string): string {
     return fileName.replace(SCRIPT_ORDER_PREFIX_RE, '');
 }
@@ -142,8 +140,7 @@ export function scriptDisplayName(fileName: string): string {
 }
 
 /// Return a script base name (no prefix, no extension) that is unique among the display names of the
-/// existing scripts, suffixing "-2", "-3", ... on collision. The clean name doubles as the
-/// SQL reference namespace, so it must be unique in the notebook.
+/// existing scripts, suffixing "-2", "-3", ... on collision.
 export function uniqueScriptBase(
     base: string,
     existingScripts: { [fileName: string]: ScriptRef },
