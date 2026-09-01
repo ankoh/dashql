@@ -61,6 +61,8 @@ export abstract class PlatformEventListener {
     private queuedSetupEvent: SetupEventVariant | null;
     /// The clipboard subscriber
     private clipboardEventHandler: (e: ClipboardEvent) => void;
+    /// Whether global event listeners are installed
+    private isSetup: boolean;
     /// The drag event subscriber
     private dragDropEventSubscribers: Map<string, (e: PlatformDragDropEventVariant) => void>;
 
@@ -72,16 +74,29 @@ export abstract class PlatformEventListener {
         this.queuedSetupEvent = null;
         this.clipboardEventHandler = this.processClipboardEvent.bind(this);
         this.dragDropEventSubscribers = new Map();
+        this.isSetup = false;
     }
 
     /// Method to setup the listener
     public async setup(): Promise<void> {
+        if (this.isSetup) return;
+        this.isSetup = true;
         await this.listenForAppEvents();
         this.listenForClipboardEvents();
+    }
+    /// Remove global event listeners
+    public dispose(): void {
+        if (!this.isSetup) return;
+        this.isSetup = false;
+        document.removeEventListener("paste", this.clipboardEventHandler, true);
+        this.stopListeningForAppEvents();
+        this.dragDropEventSubscribers.clear();
     }
 
     /// Method to setup the listener for app events
     protected abstract listenForAppEvents(): Promise<void>;
+    /// Method to remove app event listeners
+    protected abstract stopListeningForAppEvents(): void;
 
     /// Called by subclasses when receiving an app event
     public dispatchAppEvent(event: app_event.AppEventData) {

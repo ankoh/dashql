@@ -6,6 +6,8 @@ import { ProgressBar } from '../../../ui/foundations/progress_bar.js';
 import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status_indicator.js';
 import { AlertIcon, XIcon } from '../../../ui/foundations/symbol_icon.js';
 import { ParticleFlowBackground } from '../../../ui/particle_flow/particle_flow_background.js';
+import { formatBytes } from '../../../utils/format.js';
+import type { NotebookBundle } from '../persistence/notebook_bundle.js';
 import { CompactNavBar } from '../../ui/navbar.js';
 import type { HttpNotebookLoadProgress, HttpNotebookLoadResult } from '../persistence/http_notebook_bundle.js';
 import * as styles from './notebook_import_card.module.css';
@@ -43,11 +45,46 @@ interface ConflictState {
     onClose(): void;
 }
 
-export type NotebookImportCardState = LoadingState | ReadyState | ConflictState;
+export type NotebookFileLoadStage = 'reading' | 'validating';
+export type NotebookFileFailureStage = NotebookFileLoadStage | 'importing';
+
+interface FileLoadingState {
+    phase: 'file-loading';
+    sourcePath: string;
+    stage: NotebookFileLoadStage;
+    fileByteCount: number | null;
+    onClose(): void;
+}
+
+interface FileReadyState {
+    phase: 'file-ready';
+    sourcePath: string;
+    fileByteCount: number;
+    bundle: NotebookBundle;
+    busy: boolean;
+    onImport(): void;
+    onClose(): void;
+}
+
+interface FileErrorState {
+    phase: 'file-error';
+    sourcePath: string;
+    fileByteCount: number | null;
+    failedStage: NotebookFileFailureStage;
+    errorMessage: string;
+    onRetry(): void;
+    onClose(): void;
+}
+
+export type NotebookImportCardState = LoadingState | ReadyState | ConflictState
+    | FileLoadingState | FileReadyState | FileErrorState;
 
 export function NotebookImportCard(props: NotebookImportCardState): React.ReactElement {
     if (props.phase === 'loading') return <LoadingCard state={props} />;
     if (props.phase === 'conflict') return <ConflictCard state={props} />;
+    if (props.phase === 'file-loading') return <FileLoadingCard state={props} />;
+    if (props.phase === 'file-ready') return <FileReadyCard state={props} />;
+    if (props.phase === 'file-error') return <FileErrorCard state={props} />;
     return <ReadyCard state={props} />;
 }
 
@@ -114,6 +151,80 @@ function ReadyCard({ state }: { state: ReadyState }): React.ReactElement {
                 <NotebookImportDetail label="UUID" mono>{bundle.notebook.notebookId}</NotebookImportDetail>
                 <NotebookImportDetail label="Name">{notebookName}</NotebookImportDetail>
                 <NotebookImportDetail label="Scripts">{scriptSummary}</NotebookImportDetail>
+            </NotebookImportDetails>
+        </CardShell>
+    );
+}
+
+function FileLoadingCard({ state }: { state: FileLoadingState }): React.ReactElement {
+    const status = state.stage === 'reading' ? 'Reading notebook file...' : 'Checking the notebook archive...';
+    return (
+        <CardShell title="Loading Notebook" busy onClose={state.onClose}>
+            <div className={styles.status} role="status" aria-live="polite">
+                <span aria-hidden="true">
+                    <StatusIndicator status={IndicatorStatus.Running} width="18px" height="18px" />
+                </span>
+                <span>{status}</span>
+            </div>
+            <NotebookImportDetails>
+                <NotebookImportDetail label="File" mono>{state.sourcePath}</NotebookImportDetail>
+                {state.fileByteCount != null && <NotebookImportDetail label="Size">{formatBytes(state.fileByteCount)}</NotebookImportDetail>}
+            </NotebookImportDetails>
+        </CardShell>
+    );
+}
+
+function FileReadyCard({ state }: { state: FileReadyState }): React.ReactElement {
+    const notebookName = state.bundle.notebook.name?.trim()
+        || state.bundle.notebook.metadata.originalFileName
+        || 'Unnamed notebook';
+    return (
+        <CardShell
+            title="Import Notebook"
+            busy={state.busy}
+            closeDisabled={state.busy}
+            onClose={state.onClose}
+            actions={<Button autoFocus variant={ButtonVariant.Primary} disabled={state.busy} onClick={state.onImport}>Import</Button>}
+        >
+            {state.busy ? (
+                <div className={styles.status} role="status" aria-live="polite">
+                    <span aria-hidden="true"><StatusIndicator status={IndicatorStatus.Running} width="18px" height="18px" /></span>
+                    <span>Adding the notebook to DashQL...</span>
+                </div>
+            ) : null}
+            <NotebookImportDetails>
+                <NotebookImportDetail label="File" mono>{state.sourcePath}</NotebookImportDetail>
+                <NotebookImportDetail label="Size">{formatBytes(state.fileByteCount)}</NotebookImportDetail>
+                <NotebookImportDetail label="Notebook">{notebookName}</NotebookImportDetail>
+                <NotebookImportDetail label="UUID" mono>{state.bundle.notebook.notebookId}</NotebookImportDetail>
+                <NotebookImportDetail label="Scripts">{formatCount(state.bundle.scripts.length, 'script')}</NotebookImportDetail>
+            </NotebookImportDetails>
+        </CardShell>
+    );
+}
+
+function FileErrorCard({ state }: { state: FileErrorState }): React.ReactElement {
+    const summary = state.failedStage === 'reading'
+        ? 'DashQL could not read this file.'
+        : state.failedStage === 'validating'
+            ? 'This file is not a valid DashQL notebook archive.'
+            : 'DashQL could not import this notebook.';
+    return (
+        <CardShell
+            title="Notebook Import Failed"
+            onClose={state.onClose}
+            actions={<Button autoFocus variant={ButtonVariant.Primary} onClick={state.onRetry}>Try Again</Button>}
+        >
+            <div className={styles.error} role="alert">
+                <AlertIcon size={16} aria-hidden="true" />
+                <div>
+                    <div className={styles.errorSummary}>{summary}</div>
+                    <div className={styles.errorDetail}>{state.errorMessage}</div>
+                </div>
+            </div>
+            <NotebookImportDetails>
+                <NotebookImportDetail label="File" mono>{state.sourcePath}</NotebookImportDetail>
+                {state.fileByteCount != null && <NotebookImportDetail label="Size">{formatBytes(state.fileByteCount)}</NotebookImportDetail>}
             </NotebookImportDetails>
         </CardShell>
     );
@@ -204,6 +315,10 @@ function NotebookImportDetail(props: { label: string; children: React.ReactNode;
 
 function formatScriptSummary(count: string, numericCount: number, folderCount: number): string {
     return `${count} ${numericCount === 1 ? 'script' : 'scripts'} in ${folderCount} ${folderCount === 1 ? 'folder' : 'folders'}`;
+}
+
+function formatCount(count: number, noun: string): string {
+    return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
 function progressDetails(progress: HttpNotebookLoadProgress): { status: string; notebookName: string | null; notebookId: string | null } {

@@ -6,19 +6,24 @@ import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, OAUTH_BROADCAST_CHANNEL, Platf
 const DRAG_TIMEOUT = 100;
 
 export class WebPlatformEventListener extends PlatformEventListener {
-    onWindowMessage: (event: any) => void;
-    oauthBroadcastChannel: BroadcastChannel;
-    dragTimeoutId: any | null;
+    private readonly onWindowMessage: (event: any) => void;
+    private readonly oauthBroadcastChannel: BroadcastChannel;
+    private readonly onWindowDragOver: (event: DragEvent) => void;
+    private readonly onWindowDragEnd: (event: DragEvent) => void;
+    private readonly onWindowDrop: (event: DragEvent) => void;
+    private dragTimeoutId: ReturnType<typeof setTimeout> | null;
 
     constructor(logger: Logger) {
         super(logger);
         this.onWindowMessage = this.processMessageEvent.bind(this);
         this.oauthBroadcastChannel = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
+        this.onWindowDragOver = this.processDragOverEvent.bind(this);
+        this.onWindowDragEnd = this.processDragEndEvent.bind(this);
+        this.onWindowDrop = this.processDropEvent.bind(this);
         this.dragTimeoutId = null;
     }
 
     public async listenForAppEvents(): Promise<void> {
-        const listener = this;
         this.oauthBroadcastChannel.onmessage = (event: MessageEvent) => {
             const data = this.readAppEvent(event.data, `broadcast channel`);
             if (data != null) {
@@ -26,92 +31,59 @@ export class WebPlatformEventListener extends PlatformEventListener {
             }
         };
         window.addEventListener("message", this.onWindowMessage);
-        window.addEventListener("dragover", function(e: DragEvent) {
-            // Prevent default to enable drop events
-            e.preventDefault();
+        // Capture drop events before stale hot-reload listeners can process the same file.
+        window.addEventListener("dragover", this.onWindowDragOver, true);
+        window.addEventListener("dragend", this.onWindowDragEnd, true);
+        window.addEventListener("drop", this.onWindowDrop, true);
+    }
 
-            // Clear old drag timeout
-            if (listener.dragTimeoutId != null) {
-                clearTimeout(listener.dragTimeoutId);
-                listener.dragTimeoutId = null;
-            }
+    protected stopListeningForAppEvents(): void {
+        this.oauthBroadcastChannel.onmessage = null;
+        window.removeEventListener("message", this.onWindowMessage);
+        window.removeEventListener("dragover", this.onWindowDragOver, true);
+        window.removeEventListener("dragend", this.onWindowDragEnd, true);
+        window.removeEventListener("drop", this.onWindowDrop, true);
+        this.clearDragTimeout();
+    }
 
-            // Dispatch drag/drop event
-            const event: PlatformDragEvent = {
-                pageX: e.pageX as number,
-                pageY: e.pageY as number,
-            };
-            listener.dispatchDragDrop({
-                type: DRAG_EVENT,
-                value: event
-            });
+    private clearDragTimeout(): void {
+        if (this.dragTimeoutId == null) return;
+        clearTimeout(this.dragTimeoutId);
+        this.dragTimeoutId = null;
+    }
 
-            // Create new drag timeout
-            const clearDragStart = () => {
-                listener.dispatchDragDrop({
-                    type: DRAG_STOP_EVENT,
-                    value: null
-                });
-            };
-            listener.dragTimeoutId = setTimeout(() => clearDragStart(), DRAG_TIMEOUT);
-        });
-        window.addEventListener("dragend", function(e: DragEvent) {
-            // Prevent default to enable drop events
-            e.preventDefault();
+    private processDragOverEvent(event: DragEvent): void {
+        event.preventDefault();
+        this.clearDragTimeout();
+        const dragEvent: PlatformDragEvent = { pageX: event.pageX, pageY: event.pageY };
+        this.dispatchDragDrop({ type: DRAG_EVENT, value: dragEvent });
+        this.dragTimeoutId = setTimeout(() => {
+            this.dragTimeoutId = null;
+            this.dispatchDragDrop({ type: DRAG_STOP_EVENT, value: null });
+        }, DRAG_TIMEOUT);
+    }
 
-            // Clear drag timeout
-            if (listener.dragTimeoutId != null) {
-                clearTimeout(listener.dragTimeoutId);
-                listener.dragTimeoutId = null;
-            }
+    private processDragEndEvent(event: DragEvent): void {
+        event.preventDefault();
+        this.clearDragTimeout();
+        this.dispatchDragDrop({ type: DRAG_STOP_EVENT, value: null });
+    }
 
-            // Dispatch stop event
-            listener.dispatchDragDrop({
-                type: DRAG_STOP_EVENT,
-                value: null
-            });
-        });
-        window.addEventListener("drop", (e: DragEvent) => {
-            // Prevent default drop handler
-            e.preventDefault();
-
-            // Clear drag timeout
-            if (listener.dragTimeoutId != null) {
-                clearTimeout(listener.dragTimeoutId);
-                listener.dragTimeoutId = null;
-            }
-
-            // Dispatch drop event
-            if (e.dataTransfer) {
-                let anyDropped = false;
-                for (let i = 0; i < e.dataTransfer.files.length; ++i) {
-                    const file = e.dataTransfer.files.item(i);
-                    if (file) {
-                        const event: PlatformDropEvent = {
-                            pageX: e.pageX as number,
-                            pageY: e.pageY as number,
-                            file: new WebFile(file, file.name),
-                        };
-                        anyDropped = true;
-                        listener.dispatchDragDrop({
-                            type: DROP_EVENT,
-                            value: event
-                        });
-                    }
-                }
-                if (!anyDropped) {
-                    listener.dispatchDragDrop({
-                        type: DRAG_STOP_EVENT,
-                        value: null
-                    });
-                }
-            } else {
-                listener.dispatchDragDrop({
-                    type: DRAG_STOP_EVENT,
-                    value: null
-                });
-            }
-        });
+    private processDropEvent(event: DragEvent): void {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this.clearDragTimeout();
+        const file = event.dataTransfer?.files.item(0);
+        if (file == null) {
+            this.dispatchDragDrop({ type: DRAG_STOP_EVENT, value: null });
+            return;
+        }
+        const dropEvent: PlatformDropEvent = {
+            pageX: event.pageX,
+            pageY: event.pageY,
+            file: new WebFile(file, file.name),
+        };
+        this.dispatchDragDrop({ type: DROP_EVENT, value: dropEvent });
     }
 
     protected processMessageEvent(event: MessageEvent) {

@@ -73,6 +73,33 @@
     margin-top: 1px;
 }
 
+.error {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid hsl(355, 66%, 65%);
+    border-radius: var(--border_radius);
+    background: hsl(355, 100%, 97%);
+    color: hsl(356, 72%, 29%);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.error svg {
+    flex: none;
+    margin-top: 1px;
+}
+
+.errorSummary {
+    font-weight: 600;
+}
+
+.errorDetail {
+    margin-top: 2px;
+    overflow-wrap: anywhere;
+}
+
 @media only screen and (max-width: 520px) {
     .details {
         grid-template-columns: 1fr;

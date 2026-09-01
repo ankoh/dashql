@@ -30,9 +30,13 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
         const l = host === AppHost.ELECTRON
             ? new ElectronPlatformEventListener(logger)
             : new WebPlatformEventListener(logger);
-        l.setup();
         return l;
     }, []);
+
+    React.useEffect(() => {
+        void listener.setup();
+        return () => listener.dispose();
+    }, [listener]);
 
     // Search for app events passed via the url parameter
     React.useEffect(() => {

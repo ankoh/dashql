@@ -5,7 +5,11 @@ import { parseClipboardSetup, PlatformEventListener } from './event_listener.js'
 import { TestLogger } from '../logger/test_logger.js';
 
 class TestPlatformEventListener extends PlatformEventListener {
-    protected async listenForAppEvents(): Promise<void> {}
+    public starts = 0;
+    public stops = 0;
+
+    protected async listenForAppEvents(): Promise<void> { this.starts += 1; }
+    protected stopListeningForAppEvents(): void { this.stops += 1; }
 }
 
 describe('PlatformEventListener clipboard events', () => {
@@ -54,5 +58,17 @@ describe('PlatformEventListener clipboard events', () => {
         }]);
         expect(preventDefault).toHaveBeenCalledOnce();
         expect(stopPropagation).toHaveBeenCalledOnce();
+        listener.dispose();
+    });
+
+    it('sets up global listeners once and removes them on dispose', async () => {
+        const listener = new TestPlatformEventListener(new TestLogger());
+        await listener.setup();
+        await listener.setup();
+        expect(listener.starts).toBe(1);
+
+        listener.dispose();
+        listener.dispose();
+        expect(listener.stops).toBe(1);
     });
 });
