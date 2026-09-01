@@ -1,20 +1,10 @@
 {
-  "folders": [
+  "scripts": [
     {
-      "name": "1_main",
-      "scripts": [
-        {
-          "name": "1_vivid_raven.sql"
-        }
-      ]
+      "name": "1_vivid_raven.sql"
     },
     {
-      "name": "2_json",
-      "scripts": [
-        {
-          "name": "1_json_table.sql"
-        }
-      ]
+      "name": "2_json_table.sql"
     }
   ]
 }

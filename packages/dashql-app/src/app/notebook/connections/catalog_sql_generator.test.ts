@@ -88,12 +88,12 @@ describe('SQL Generator Utilities', () => {
             );
         });
 
-        it('uses default for null database', () => {
+        it('uses hyper for a missing database name', () => {
             expect(generateQualifiedTableName(null, 'myschema', 'mytable')).toBe(
-                '"default"."myschema"."mytable"'
+                '"hyper"."myschema"."mytable"'
             );
             expect(generateQualifiedTableName(undefined, 'myschema', 'mytable')).toBe(
-                '"default"."myschema"."mytable"'
+                '"hyper"."myschema"."mytable"'
             );
         });
 
@@ -272,7 +272,7 @@ describe('SQL Generator Utilities', () => {
 
             const sql = generateCatalogSQL(schemas);
 
-            expect(sql).toContain('CREATE TABLE "default"."public"."users"');
+            expect(sql).toContain('CREATE TABLE "hyper"."public"."users"');
         });
     });
 });

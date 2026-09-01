@@ -4,6 +4,16 @@
     --border_color_primary: hsl(210deg 17.5% 84.31%);
     --border_radius: 8px;
 
+    --font_size_badge: 0.65rem;
+    --font_size_micro: 0.7rem;
+    --font_size_caption: 0.75rem;
+    --font_size_compact: 0.78rem;
+    --font_size_small: 0.8rem;
+    --font_size_body: 0.85rem;
+    --font_size_subtitle: 0.9rem;
+    --font_size_editor: 0.95rem;
+    --font_size_title: 1rem;
+
     --navbar_hover_background_color: rgba(0, 0, 0, 0.2);
     --shell_background_color: rgba(0, 0, 0, 0.2);
 

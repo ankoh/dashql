@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant, isCatalogRefreshRunning, reduceCatalogAction } from './catalog_update_state.js';
-import { CATALOG_UPDATE_PARTIALLY_SUCCEEDED, type ConnectionState } from './connection_state.js';
+import { CATALOG_UPDATE_PARTIALLY_SUCCEEDED, type AttachedDatabaseState } from './attached_database_state.js';
 
-function createConnection(currentFullRefresh: number | null, runningTaskIds: number[]): ConnectionState {
+function createConnection(currentFullRefresh: number | null, runningTaskIds: number[]): AttachedDatabaseState {
     return {
         catalogUpdates: {
             currentFullRefresh,
             tasksRunning: new Map(runningTaskIds.map(taskId => [taskId, {}])),
         },
-    } as unknown as ConnectionState;
+    } as unknown as AttachedDatabaseState;
 }
 
 describe('isCatalogRefreshRunning', () => {
@@ -31,7 +31,7 @@ describe('isCatalogRefreshRunning', () => {
 });
 
 describe('reduceCatalogAction', () => {
-    it('finishes and persists a partially successful refresh', () => {
+    it('finishes a partially successful refresh for the registry to persist', () => {
         const error = new Error('second: unavailable');
         const task = {
             taskId: 7,
@@ -46,7 +46,7 @@ describe('reduceCatalogAction', () => {
         };
         const state = {
             active: true,
-            notebookId: 'notebook',
+            databaseId: 'database',
             catalogRelationScript: {},
             catalogFunctionScript: {},
             catalogUpdates: {
@@ -56,7 +56,7 @@ describe('reduceCatalogAction', () => {
                 lastFullRefresh: null,
                 restoredAt: null,
             },
-        } as unknown as ConnectionState;
+        } as unknown as AttachedDatabaseState;
         const storage = { write: vi.fn() };
 
         const next = reduceCatalogAction(state, {
@@ -68,6 +68,6 @@ describe('reduceCatalogAction', () => {
         expect(finished.status).toBe(CatalogUpdateTaskStatus.PARTIALLY_SUCCEEDED);
         expect(finished.error).toBe(error);
         expect(next.catalogUpdates.tasksRunning.has(7)).toBe(false);
-        expect(storage.write).toHaveBeenCalledTimes(2);
+        expect(storage.write).not.toHaveBeenCalled();
     });
 });

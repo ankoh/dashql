@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { filterInvalidNotebookCatalogs, type NotebookBundle } from './notebook_bundle.js';
+import { filterInvalidNotebookCatalogs, regenerateNotebookDatabaseIds, type NotebookBundle } from './notebook_bundle.js';
 import type { PreparedNativeNotebook } from './composite_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 import {
@@ -16,7 +16,8 @@ import { displayPath } from './notebook_locator.js';
 import { useStorage } from './storage_provider.js';
 import { restoreSingleNotebook } from './app_state_loader.js';
 import { mergeRestoredNotebookIntoConnections, mergeRestoredNotebookIntoScripts } from './app_state_loader.js';
-import { useConnectionRegistry } from '../connections/connection_registry.js';
+import { useAttachedDatabaseRegistry } from '../connections/attached_database_registry.js';
+import type { AttachedDatabaseState } from '../connections/attached_database_state.js';
 import { useNotebookScriptsRegistry } from '../scripts/notebook_scripts_registry.js';
 import { useDashQLCoreSetup } from '../../providers/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
@@ -69,7 +70,7 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
     const logger = useLogger();
     const setupCore = useDashQLCoreSetup();
     const [reader, writer] = useStorage();
-    const [connections, setConnections] = useConnectionRegistry();
+    const [connections, setConnections] = useAttachedDatabaseRegistry();
     const [, setScripts] = useNotebookScriptsRegistry();
     const cancelAgentRun = useCancelAgentRun();
     const cancelQuery = useCancelQuery();
@@ -90,13 +91,14 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
     }, [logger, setupCore]);
 
     const stopNotebookWork = React.useCallback(async (notebookId: string) => {
-        const connectionId = connections.connectionByNotebook.get(notebookId);
-        const connection = connectionId == null ? null : connections.connectionMap.get(connectionId);
-        if (connection) {
-            await Promise.all(connection.queriesActiveOrdered.map(queryId =>
-                cancelQuery(connection.connectionId, queryId)
-            ));
-        }
+        const mapping = connections.attachedDatabasesByNotebook.get(notebookId);
+        const databases = mapping == null ? [] : [mapping.mainDatabaseId, ...mapping.attachedDatabaseIds]
+            .filter((databaseId): databaseId is string => databaseId != null)
+            .map(databaseId => connections.attachedDatabases.get(databaseId))
+            .filter((database): database is AttachedDatabaseState => database != null);
+        await Promise.all(databases.flatMap(database => database.queriesActiveOrdered.map(queryId =>
+            cancelQuery(database.databaseId, queryId)
+        )));
         await cancelAgentRun(notebookId);
         writer.pause();
         try {
@@ -124,7 +126,7 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
                 backend,
                 logger,
                 targetNotebookId,
-                connections.connectionsBySignature,
+                connections.attachedDatabasesBySignature,
             );
             setConnections(registry => mergeRestoredNotebookIntoConnections(registry, restored));
             setScripts(registry => mergeRestoredNotebookIntoScripts(registry, restored));
@@ -137,7 +139,7 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
             }
             throw error;
         }
-    }, [backend, connections.connectionsBySignature, logger, setConnections, setScripts, setupCore]);
+    }, [backend, connections.attachedDatabasesBySignature, logger, setConnections, setScripts, setupCore]);
 
     const requestConflictChoice = React.useCallback((
         bundle: NotebookBundle,
@@ -295,7 +297,10 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
 }
 
 function withFreshIdentity(bundle: NotebookBundle, notebookId: string): NotebookBundle {
-    const notebook = { ...bundle.notebook, notebookId };
+    const notebook = regenerateNotebookDatabaseIds({
+        ...bundle.notebook,
+        notebookId,
+    });
     const name = notebook.name?.trim();
     if (name) notebook.name = `${name} (copy)`;
     return { ...bundle, notebook };
@@ -348,8 +353,8 @@ function renderConflictDialog(
             || dialog.bundle.notebook.metadata.originalFileName
             || 'Unnamed notebook',
         notebookUuid: dialog.bundle.notebook.notebookId,
-        folderCount: dialog.bundle.folders.length,
-        scriptCount: dialog.bundle.folders.reduce((count, folder) => count + folder.scripts.length, 0),
+        folderCount: 0,
+        scriptCount: dialog.bundle.scripts.length,
         existingDisplayLocation: dialog.existingDisplayLocation,
         existingIsNative: getAppHost() === AppHost.ELECTRON && dialog.existingDisplayLocation.startsWith('fs://'),
         busy: dialog.busy,

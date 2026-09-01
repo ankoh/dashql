@@ -2,165 +2,91 @@ import * as React from 'react';
 import * as styles from './notebook_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
-
 import { useAppConfig } from '../../../config/app_config.js';
 
 import { List } from 'react-window';
+import {
+    DndContext,
+    DragEndEvent,
+    KeyboardSensor,
+    type Modifier,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
-import { ConnectionHealth, ConnectionState } from '../../connections/connection_state.js';
-import { compileNotebookQuery, createScriptExecution, getSelectedScriptRef, getSelectedScriptFolder, getSelectedScriptRefs, getSortedScriptFileNames, getUncommittedScriptData, NotebookScripts, SELECT_SCRIPT, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
-import { useAIClient } from '../../agent/ai/ai_client_provider.js';
-import { COMPOSE_INPUT_MODE_AI, useComposeInputMode } from '../../scripts/notebook_commands.js';
-import { useLatestAgentRunState, useStartAgentRun, useCancelAgentRun } from '../../agent/agent_run_provider.js';
-import { AgentRunPhase, agentRunIsActive } from '../../agent/agent_run_state.js';
-import { OutputColumn } from '../../scripts/script_agent_context.js';
-import { createNotebookScriptsAgentHost } from '../../scripts/script_agent_host.js';
+import { ConnectionHealth, AttachedDatabaseState } from '../../connections/attached_database_state.js';
+import { compileNotebookQuery, createScriptExecution, getSelectedScriptRef, getSelectedScriptRefs, getSortedScriptFileNames, NotebookScripts, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
+import { useLatestAgentRunState } from '../../agent/agent_run_provider.js';
+import { AgentRunPhase } from '../../agent/agent_run_state.js';
 import { QueryType } from '../../connections/query_execution_state.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
-import { ensureNotebookScriptAnalyzed, type ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
-import { normalizeScriptFolderName, projectionForVisualizeQuery, scriptDisplayName } from '../../scripts/script_types.js';
+import { type ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
+import { projectionForVisualizeQuery } from '../../scripts/script_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../../../utils/key_events.js';
 import { TabKey as DetailsTabKey } from '../script_details.js';
 import { registerNotebookScriptQuery, runNotebookScript } from '../rerun_query.js';
 import { useStorageReader } from '../../persistence/storage_provider.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
-import { NotebookFeedComposer } from './notebook_feed_composer.js';
 import { useNotebookFeedLayout, type FeedScrollTarget } from './notebook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './notebook_feed_row.js';
+import { reorderFeedEntries } from './notebook_feed_drag.js';
 
 export interface NotebookFeedProps {
     notebookScripts: NotebookScripts;
     modifyNotebookScripts: ModifyNotebookScripts;
     showDetails: (fileName?: string, initialTab?: DetailsTabKey) => void;
     scrollTarget?: FeedScrollTarget | null;
-    conn: ConnectionState | null;
-    openConnectionOverlay: () => void;
+    conn: AttachedDatabaseState | null;
     /// Whether the feed is the visible, interactive layer. The feed stays mounted (just hidden) while
     /// the catalog/details overlay is open so it keeps its scroll position and measured row heights;
     /// while inactive its global key handlers must stand down so Escape/Enter belong to the overlay.
     active: boolean;
 }
 
-const ESTIMATED_ROW_HEIGHT = 240;
 const OVERSCAN_ROW_COUNT = 16;
-const FEED_BOTTOM_PADDING = 8;
-
-/// Resolve the output columns (result schema) a script produced on its most recent execution, for
-/// the agent's visualize context. Output columns only exist after execution, so this reads the
-/// script's latest query from the connection state; it returns null when the script has never run
-/// or its result schema isn't available yet.
-function outputColumnsForScript(
-    notebookScripts: NotebookScripts,
-    conn: ConnectionState | null,
-    scriptKey: number,
-): OutputColumn[] | null {
-    const queryId = notebookScripts.scripts[scriptKey]?.latestQueryId ?? null;
-    if (conn == null || queryId == null) return null;
-    const query = conn.queriesActive.get(queryId) ?? conn.queriesFinished.get(queryId) ?? null;
-    const schema = query?.resultSchema ?? null;
-    if (schema == null) return null;
-    return schema.fields.map(f => ({ name: f.name, type: f.type?.toString() ?? null }));
-}
+const FEED_TOP_PADDING = 16;
+const restrictToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 });
 
 export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const config = useAppConfig();
     const logger = useLogger();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
-    const entries = getSelectedScriptRefs(props.notebookScripts);
+    const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
+    const scriptRefs = props.notebookScripts.scriptRefs;
+    const canonicalEntries = React.useMemo(
+        () => getSelectedScriptRefs(props.notebookScripts),
+        [scriptRefs],
+    );
+    const [displayEntries, setDisplayEntries] = React.useState(() => ({
+        source: scriptRefs,
+        entries: canonicalEntries,
+    }));
+    const entries = displayEntries.source === scriptRefs
+        ? displayEntries.entries
+        : canonicalEntries;
+    React.useLayoutEffect(() => {
+        setDisplayEntries({ source: scriptRefs, entries: canonicalEntries });
+    }, [scriptRefs, canonicalEntries]);
     const storageReader = useStorageReader();
 
-    const pendingScrollToBottomRef = React.useRef(false);
-    const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
+    const pendingCreatedScriptKeyRef = React.useRef<number | null>(null);
+    const editorViewsRef = React.useRef(new Map<number, EditorView>());
     // Presence means collapsed. A query id marks an automatic no-result collapse; null marks a
     // manual collapse, which must not be reset when a later query starts.
     const [collapsedResults, setCollapsedResults] = React.useState<ReadonlyMap<number, number | null>>(() => new Map());
-    const [aiContextScriptKey, setAIContextScriptKey] = React.useState<number | null>(null);
-
-    // The SQL/AI input mode is hoisted into the command context so the "Switch Mode" command
-    // and the Ctrl+M shortcut can drive it from outside the feed.
-    const { mode: inputMode, setMode: setInputMode } = useComposeInputMode();
-
-    const aiContextScript = aiContextScriptKey != null
-        ? props.notebookScripts.scripts[aiContextScriptKey] ?? null
-        : null;
-    const aiContextName = aiContextScript != null ? scriptDisplayName(aiContextScript.fileName) : null;
-
-    // Context is scoped to the current folder/notebook. Within that scope it is stable by script key,
-    // so hover selection and renames cannot silently retarget a prompt.
-    const contextScopeRef = React.useRef({
-        notebookId: props.notebookScripts.notebookId,
-        folderName: props.notebookScripts.scriptFocus.folderName,
-    });
-    React.useEffect(() => {
-        const nextScope = {
-            notebookId: props.notebookScripts.notebookId,
-            folderName: props.notebookScripts.scriptFocus.folderName,
-        };
-        if (contextScopeRef.current.notebookId !== nextScope.notebookId
-            || contextScopeRef.current.folderName !== nextScope.folderName) {
-            contextScopeRef.current = nextScope;
-            setAIContextScriptKey(null);
-        }
-    }, [props.notebookScripts.notebookId, props.notebookScripts.scriptFocus.folderName]);
-    React.useEffect(() => {
-        if (aiContextScriptKey != null && aiContextScript == null) {
-            setAIContextScriptKey(null);
-        }
-    }, [aiContextScript, aiContextScriptKey]);
-
-    // SQL and AI use two distinct editor instances. When a toggle swaps them, the freshly
-    // mounted editor should inherit focus so the keyboard flow continues uninterrupted.
-    const refocusComposeRef = React.useRef(false);
-
-    // The AI prompt editor is unmounted whenever we toggle back to SQL, so its draft text lives
-    // here (the SQL draft already persists via NotebookScripts' uncommitted script). This seeds the
-    // editor on remount and is kept current via PromptEditor's onChange.
-    const aiPromptTextRef = React.useRef('');
-
-    // The AI compose mode is only available when an AI provider is configured.
-    const aiClient = useAIClient();
-    const aiAvailable = aiClient != null;
     const notebookId = props.notebookScripts.notebookId;
-    const startAgentRun = useStartAgentRun();
-    const cancelAgentRun = useCancelAgentRun();
     const agentState = useLatestAgentRunState(notebookId);
-    const agentActive = agentState != null && agentRunIsActive(agentState.phase);
-
-    // When the input mode changes (via Ctrl+M, the "Switch Mode" command, or the toggle in the
-    // action bar) the editor instance swaps. Request that the freshly mounted editor take focus.
-    // Derived during render so the ref is set before the new editor reports its view below.
-    const prevInputModeRef = React.useRef(inputMode);
-    if (prevInputModeRef.current !== inputMode) {
-        prevInputModeRef.current = inputMode;
-        refocusComposeRef.current = true;
-    }
-
-    // Receive the active compose editor view; carry focus across a mode-swap.
-    const handleComposeView = React.useCallback((view: EditorView) => {
-        setComposeEditorView(view);
-        if (refocusComposeRef.current) {
-            refocusComposeRef.current = false;
-            view.focus();
-        }
-    }, []);
-
-    const handleUseAIContext = React.useCallback((scriptKey: number) => {
-        setAIContextScriptKey(scriptKey);
-        if (inputMode === COMPOSE_INPUT_MODE_AI) {
-            composeEditorView?.focus();
-        } else {
-            setInputMode(COMPOSE_INPUT_MODE_AI);
-        }
-    }, [composeEditorView, inputMode, setInputMode]);
 
     const handleFocus = React.useCallback((fileName: string) => {
         props.modifyNotebookScripts({ type: SELECT_SCRIPT, value: fileName });
     }, [props.modifyNotebookScripts]);
-
-    const handleExpand = React.useCallback((fileName: string) => {
-        props.modifyNotebookScripts({ type: SELECT_SCRIPT, value: fileName });
-        props.showDetails(fileName);
-    }, [props.modifyNotebookScripts, props.showDetails]);
 
     const handleShowStatus = React.useCallback((fileName: string) => {
         props.modifyNotebookScripts({ type: SELECT_SCRIPT, value: fileName });
@@ -180,6 +106,11 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const handleShowVisualization = React.useCallback((fileName: string) => {
         props.modifyNotebookScripts({ type: SELECT_SCRIPT, value: fileName });
         props.showDetails(fileName, DetailsTabKey.Visualization);
+    }, [props.modifyNotebookScripts, props.showDetails]);
+
+    const handleShowDetails = React.useCallback((fileName: string) => {
+        props.modifyNotebookScripts({ type: SELECT_SCRIPT, value: fileName });
+        props.showDetails(fileName, DetailsTabKey.Editor);
     }, [props.modifyNotebookScripts, props.showDetails]);
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
@@ -221,7 +152,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         if (queryText.trim().length === 0) {
             return;
         }
-        const [queryId, execution] = executeQuery(props.conn!.connectionId, {
+        const [queryId, execution] = executeQuery(props.conn!.databaseId, {
              query: queryText,
              scriptExecution: createScriptExecution(scriptData),
             analyzeResults: true,
@@ -240,69 +171,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         registerNotebookScriptQuery(scriptData, queryId, queryText, execution, props.modifyNotebookScripts);
     }, [agentState, props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, logger]);
 
-    const handleSend = React.useCallback((execute: boolean) => {
-        pendingScrollToBottomRef.current = true;
-        const notebookScripts = props.notebookScripts;
-        const scriptKey = notebookScripts.uncommittedScriptId;
-        const scriptData = notebookScripts.scripts[scriptKey];
-        const editorTextLength = composeEditorView?.state?.doc?.length ?? -1;
-        const nativeTextLength = scriptData?.scriptSession.getText().length ?? -1;
-        logger?.info("Draft action requested", {
-            notebookId: notebookScripts.notebookId,
-            action: execute ? 'execute' : 'save',
-            scriptKey: scriptKey.toString(),
-            scriptFound: (scriptData != null).toString(),
-            disconnected: isDisconnected.toString(),
-            editorHasFocus: (composeEditorView?.hasFocus ?? false).toString(),
-            editorTextLength: editorTextLength.toString(),
-            nativeTextLength: nativeTextLength.toString(),
-            textLengthsMatch: (editorTextLength === nativeTextLength).toString(),
-            editorDocumentRevision: scriptData?.editorUpdate?.documentRevision.toString(),
-            nativeDocumentRevision: scriptData?.scriptSession.getDocumentRevision?.().toString(),
-            analysisOutdated: scriptData?.analysisOutdated.toString(),
-            analysisAvailable: scriptData?.editorUpdate?.analysisAvailable.toString(),
-        }, 'notebook_feed');
-
-        // The compose editor keeps the draft analyzed as it is typed, so the
-        // resolved VISUALIZE query / derived annotations are already present (and
-        // carried across promotion, which preserves the script key).
-        const compiled = scriptData && execute ? compileNotebookQuery(scriptData, logger) : null;
-        const queryText = compiled?.sql ?? '';
-        props.modifyNotebookScripts({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
-        if (execute && !isDisconnected && queryText.trim().length > 0) {
-            const [queryId, execution] = executeQuery(props.conn!.connectionId, {
-                 query: queryText,
-                 scriptExecution: createScriptExecution(scriptData),
-                analyzeResults: true,
-                replaceComputationId: scriptData?.latestQueryId,
-                cacheable: compiled!.cacheable,
-                cacheSignature: compiled!.cacheSignature,
-                projection: projectionForVisualizeQuery(scriptData?.annotations.visualizeQuery),
-                metadata: {
-                    queryType: QueryType.USER_PROVIDED,
-                    title: "Notebook Query",
-                    description: null,
-                    issuer: "Query Execution Command",
-                    userProvided: true
-                }
-            });
-            logger?.info("Draft query allocated", {
-                notebookId: notebookScripts.notebookId,
-                scriptKey: scriptKey.toString(),
-                queryId: queryId.toString(),
-                queryLength: queryText.length.toString(),
-            }, 'notebook_feed');
-            registerNotebookScriptQuery(scriptData, queryId, queryText, execution, props.modifyNotebookScripts);
-        } else if (execute) {
-            logger?.warn("Draft execution stopped before query allocation", {
-                notebookId: notebookScripts.notebookId,
-                scriptKey: scriptKey.toString(),
-                disconnected: isDisconnected.toString(),
-                queryLength: queryText.length.toString(),
-            }, 'notebook_feed');
-        }
-    }, [props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, composeEditorView, logger]);
-
     // Refresh: drop the stale cache entry for a script's result, then re-execute — a plain cacheable
     // run then misses the cache and re-populates it. Resolves the script by feed file name.
     const handleRerunEntry = React.useCallback(async (fileName: string, cacheKey: string | null) => {
@@ -310,7 +178,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             return;
         }
         const notebookScripts = props.notebookScripts;
-        const entry = notebookScripts.scriptFolders[notebookScripts.scriptFocus.folderName]?.scripts[fileName];
+        const entry = notebookScripts.scriptRefs[fileName];
         const scriptData = entry != null ? notebookScripts.scripts[entry.scriptId] : undefined;
         if (scriptData == null) {
             return;
@@ -320,79 +188,17 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         if (cacheKey != null) {
             await storageReader.backend.deleteQueryResultCache(notebookScripts.notebookId, cacheKey).catch(() => { });
         }
-        runNotebookScript(props.conn!.connectionId, notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(props.conn!.databaseId, notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, storageReader, logger]);
 
     const handleExecuteEntry = React.useCallback((fileName: string) => {
         if (isDisconnected) return;
         const notebookScripts = props.notebookScripts;
-        const entry = notebookScripts.scriptFolders[notebookScripts.scriptFocus.folderName]?.scripts[fileName];
+        const entry = notebookScripts.scriptRefs[fileName];
         const scriptData = entry != null ? notebookScripts.scripts[entry.scriptId] : undefined;
         if (scriptData == null) return;
-        runNotebookScript(props.conn!.connectionId, notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(props.conn!.databaseId, notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [executeQuery, isDisconnected, props.modifyNotebookScripts, props.notebookScripts, logger]);
-
-    // Send the compose editor's text to the agent run as a natural-language prompt. Context is
-    // explicit: no bean means a blank-draft run rather than an implicit hover-selected target.
-    const handleSendAI = React.useCallback(() => {
-        if (!aiAvailable) return;
-        const prompt = composeEditorView?.state.doc.toString().trim() ?? '';
-        if (prompt.length === 0) return;
-        const contextScriptKey = aiContextScript?.scriptKey ?? null;
-        const start = (notebookScripts: NotebookScripts) => {
-            // Build the notebook adapter the run acts on. It closes over the focused script and the
-            // NotebookScripts dispatch; for visualize runs it also exposes each script's last-execution output
-            // schema (from the connection state) so the agent context can describe the chart's columns.
-            const host = createNotebookScriptsAgentHost({
-                notebookScripts,
-                contextScriptKey,
-                modifyNotebookScripts: props.modifyNotebookScripts,
-                resolveOutputColumns: (scriptKey) => outputColumnsForScript(notebookScripts, props.conn, scriptKey),
-                logger,
-            });
-            startAgentRun({
-                notebookId: notebookScripts.notebookId,
-                prompt,
-                contextScriptKey,
-                // Intent is always classified by the model (no manual Query/Chart override).
-                intentOverride: null,
-                host,
-            });
-
-            // Clear the prompt so the next instruction starts fresh (the editor's docChanged also
-            // resets the persisted draft via onChange, but clear the ref explicitly to be safe).
-            aiPromptTextRef.current = '';
-            if (composeEditorView) {
-                composeEditorView.dispatch({
-                    changes: { from: 0, to: composeEditorView.state.doc.length, insert: '' },
-                });
-            }
-        };
-
-        if (contextScriptKey != null && aiContextScript?.analysisOutdated) {
-            void ensureNotebookScriptAnalyzed(
-                props.notebookScripts,
-                contextScriptKey,
-                props.modifyNotebookScripts,
-            ).then((context) => {
-                if (context == null) return;
-                start({
-                    ...props.notebookScripts,
-                    scripts: { ...props.notebookScripts.scripts, [contextScriptKey]: context },
-                });
-            });
-        } else {
-            start(props.notebookScripts);
-        }
-    }, [aiAvailable, aiContextScript, composeEditorView, props.notebookScripts, props.conn, props.modifyNotebookScripts, startAgentRun]);
-
-    const handleComposeSend = React.useCallback(() => {
-        if (inputMode === 1) {
-            handleSendAI();
-        } else {
-            handleSend(true);
-        }
-    }, [inputMode, handleSendAI, handleSend]);
 
     const handleDelete = React.useCallback((fileName: string) => {
         props.modifyNotebookScripts({ type: DELETE_SCRIPT, value: fileName });
@@ -402,23 +208,39 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         props.modifyNotebookScripts({ type: RENAME_SCRIPT, value: { fileName: oldFileName, newFileName } });
     }, [props.modifyNotebookScripts]);
 
-    // Move a script one position up/down within its page by swapping it with its neighbour in the
+    // Move a script one position up/down within the notebook by swapping it with its neighbour in the
     // feed order and dispatching the new full order to REORDER_SCRIPTS.
     const moveScript = React.useCallback((fileName: string, delta: number) => {
-        const page = getSelectedScriptFolder(props.notebookScripts);
-        if (page == null) return;
-        const order = getSortedScriptFileNames(page);
+        const order = getSortedScriptFileNames(props.notebookScripts.scriptRefs);
         const from = order.indexOf(fileName);
         const to = from + delta;
         if (from < 0 || to < 0 || to >= order.length) return;
         [order[from], order[to]] = [order[to], order[from]];
         props.modifyNotebookScripts({
             type: REORDER_SCRIPTS,
-            value: { folderName: page.folderName, fileNames: order },
+            value: order,
         });
     }, [props.notebookScripts, props.modifyNotebookScripts]);
     const handleMoveUp = React.useCallback((fileName: string) => moveScript(fileName, -1), [moveScript]);
     const handleMoveDown = React.useCallback((fileName: string) => moveScript(fileName, 1), [moveScript]);
+    const dndSensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
+    const handleDragEnd = React.useCallback((event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over == null || active.id === over.id) return;
+        const reordered = reorderFeedEntries(entries, active.id, over.id);
+        if (reordered == null) return;
+        // Keep the dropped order visible while REORDER_SCRIPTS assigns durable filename prefixes.
+        // Stable script ids let React and dnd-kit retain card identity without forcing a render while
+        // dnd-kit still has the active drag transform applied.
+        setDisplayEntries({ source: scriptRefs, entries: reordered });
+        props.modifyNotebookScripts({
+            type: REORDER_SCRIPTS,
+            value: reordered.map(entry => entry.fileName),
+        });
+    }, [entries, props.modifyNotebookScripts, scriptRefs]);
 
     // Accept / reject a staged agent rewrite from the feed. These dispatch notebookScripts actions (the
     // feed shows the diff on the read-only preview, so there's no editor to drive the editor-effect
@@ -460,22 +282,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const feedActive = props.active;
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
         {
-            key: 'Enter',
-            ctrlKey: true,
-            capture: true,
-            callback: (event: KeyboardEvent) => {
-                if (!feedActive || !composeEditorView?.hasFocus) {
-                    return;
-                }
-                logger?.info("Draft Ctrl+Enter received", {
-                    notebookId: props.notebookScripts.notebookId,
-                    scriptKey: props.notebookScripts.uncommittedScriptId.toString(),
-                }, 'notebook_feed');
-                event.preventDefault();
-                handleComposeSend();
-            },
-        },
-        {
             // Plain Enter, while browsing the feed with nothing focused, accepts a staged agent
             // rewrite (matching the status bar's "Accept ⏎" hint). It intentionally does nothing for
             // ordinary scripts; Details is opened only through an explicit pointer action.
@@ -502,7 +308,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         {
             // Escape, while browsing the feed with nothing focused, rejects a staged rewrite on the
             // focused entry (matching the status bar's "Reject ⎋" hint). Same focus guard as Enter so the
-            // compose editor, rename input, or an open completion dropdown keeps Escape when focused.
+            // An inline editor, rename input, or open completion dropdown keeps Escape when focused.
             key: 'Escape',
             ctrlKey: false,
             capture: true,
@@ -522,61 +328,58 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                 }
             },
         },
-        {
-            // Ctrl+E executes the selected feed entry globally. Suppress it
-            // while the compose editor is focused so it doesn't run a
-            // background entry the user isn't looking at — Ctrl+Enter is
-            // the dedicated shortcut for sending the draft.
-            key: 'e',
-            ctrlKey: true,
-            capture: true,
-            callback: (event: KeyboardEvent) => {
-                if (!feedActive || !composeEditorView?.hasFocus) {
-                    return;
-                }
-                logger?.info("Draft Ctrl+E received; executing draft", {
-                    notebookId: props.notebookScripts.notebookId,
-                    scriptKey: props.notebookScripts.uncommittedScriptId.toString(),
-                }, 'notebook_feed');
-                event.preventDefault();
-                event.stopPropagation();
-                handleComposeSend();
-            },
-        },
-    ], [feedActive, composeEditorView, handleComposeSend, props.notebookScripts, handleAcceptDiff, handleRejectDiff, logger]);
+    ], [feedActive, props.notebookScripts, handleAcceptDiff, handleRejectDiff]);
     useKeyEvents(keyHandlers);
 
-    const feedLayout = useNotebookFeedLayout(entries, props.scrollTarget, pendingScrollToBottomRef);
+    const feedLayout = useNotebookFeedLayout(entries, props.scrollTarget);
 
-    // Get folder name from current page (display-only: strip the on-disk ordering prefix)
-    const selectedPage = getSelectedScriptFolder(props.notebookScripts);
-    const folderName = normalizeScriptFolderName(selectedPage?.folderName ?? '') || 'Untitled';
+    const handleEditorView = React.useCallback((scriptKey: number, view: EditorView) => {
+        editorViewsRef.current.set(scriptKey, view);
+        if (pendingCreatedScriptKeyRef.current !== scriptKey) return;
+        pendingCreatedScriptKeyRef.current = null;
+        requestAnimationFrame(() => view.focus());
+    }, []);
 
-    const pageCount = Object.keys(props.notebookScripts.scriptFolders).length;
-    const canDelete = pageCount > 1 || entries.length > 1;
+    const handleCreate = React.useCallback((index: number) => {
+        const result = props.modifyNotebookScripts({ type: CREATE_SCRIPT, value: index });
+        if (!result) return;
+        void result.then(next => {
+            if (next == null) return;
+            const created = getSelectedScriptRef(next);
+            if (created == null) return;
+            feedLayout.listRef.current?.scrollToRow({ index: index * 2 + 1, align: 'start' });
+            const view = editorViewsRef.current.get(created.scriptId);
+            if (view != null) {
+                view.focus();
+            } else {
+                pendingCreatedScriptKeyRef.current = created.scriptId;
+            }
+        });
+    }, [feedLayout.listRef, props.modifyNotebookScripts]);
+
+    const canDelete = entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         notebookId: props.notebookScripts.notebookId,
         connection: props.conn,
         entries,
         storageReader: storageReader,
         scripts: props.notebookScripts.scripts,
-        folderName,
         scriptDebugMode,
+        formattingDebugMode,
         focusedFileName: props.notebookScripts.scriptFocus.fileName,
-        canUseAI: aiAvailable,
         canDelete,
+        active: props.active,
         onFocus: handleFocus,
-        onExpand: handleExpand,
         onDelete: handleDelete,
         onRename: handleRename,
         onMoveUp: handleMoveUp,
         onMoveDown: handleMoveDown,
         onExecute: handleExecuteEntry,
-        onUseAIContext: handleUseAIContext,
         onShowStatus: handleShowStatus,
         onShowAgentStatus: handleShowAgentStatus,
         onShowTable: handleShowTable,
         onShowVisualization: handleShowVisualization,
+        onShowDetails: handleShowDetails,
         onRerun: handleRerunEntry,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
@@ -584,12 +387,11 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onToggleResultExpanded: handleToggleResultExpanded,
         onAutoCollapseResult: handleAutoCollapseResult,
         onResetAutoCollapsedResult: handleResetAutoCollapsedResult,
-        previewHints: feedLayout.previewHints,
-        onHeightMeasured: feedLayout.onHeightMeasured,
-        onFormattedText: feedLayout.onFormattedText,
-        topPadding: feedLayout.topPadding,
-        heightsVersion: feedLayout.heightsVersion,
-    }), [entries, props.notebookScripts.scripts, props.notebookScripts.connectorInfo.icons?.outlines, props.notebookScripts.scriptFocus.fileName, folderName, scriptDebugMode, aiAvailable, canDelete, handleFocus, handleExpand, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleUseAIContext, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleRerunEntry, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, feedLayout.previewHints, feedLayout.onHeightMeasured, feedLayout.onFormattedText, feedLayout.topPadding, feedLayout.heightsVersion]);
+        topPadding: FEED_TOP_PADDING,
+        onCreate: handleCreate,
+        onEditorView: handleEditorView,
+        onRowHeightChange: feedLayout.rowHeights.setRowHeight,
+    }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
 
     return (
         <div
@@ -597,47 +399,31 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             style={{ '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px` } as React.CSSProperties}
         >
             <div className={styles.feed_list_container} ref={feedLayout.listContainerRef}>
-                <List
-                    key={props.notebookScripts.scriptFocus.folderName}
-                    listRef={feedLayout.listRef}
-                    style={{
-                        width: feedLayout.listWidth,
-                        height: feedLayout.listHeight,
-                        overflowX: 'hidden',
-                        scrollbarGutter: 'stable',
-                        '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px`,
-                    } as React.CSSProperties}
-                    rowCount={entries.length + 1}
-                    overscanCount={OVERSCAN_ROW_COUNT}
-                    rowHeight={(rowIndex) => {
-                        if (rowIndex < entries.length) {
-                            const scriptId = entries[rowIndex].scriptId;
-                            const contentHeight = feedLayout.previewHints.get(scriptId)?.height ?? ESTIMATED_ROW_HEIGHT;
-                            return contentHeight + (rowIndex === 0 ? feedLayout.topPadding : 0);
-                        }
-                        return feedLayout.fillerRowHeight + FEED_BOTTOM_PADDING;
-                    }}
-                    rowComponent={ScriptFeedRow}
-                    rowProps={rowProps}
-                />
-            </div>
-            <div className={styles.compose_section} ref={feedLayout.composeSectionRef} data-electron-drag-region="false">
-                <NotebookFeedComposer
-                    notebookId={notebookId}
-                    scriptKey={getUncommittedScriptData(props.notebookScripts)?.scriptKey ?? 0}
-                    inputMode={inputMode}
-                    setInputMode={setInputMode}
-                    aiAvailable={aiAvailable}
-                    aiContextName={aiContextName}
-                    aiPromptTextRef={aiPromptTextRef}
-                    agentActive={agentActive}
-                    disconnected={isDisconnected}
-                    onClearAIContext={() => setAIContextScriptKey(null)}
-                    onCancelAgentRun={() => cancelAgentRun(notebookId)}
-                    onSave={() => handleSend(false)}
-                    onSend={handleComposeSend}
-                    onEditorView={handleComposeView}
-                />
+                <DndContext
+                    sensors={dndSensors}
+                    collisionDetection={closestCenter}
+                    modifiers={[restrictToVerticalAxis]}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext items={entries.map(entry => entry.scriptId)} strategy={verticalListSortingStrategy}>
+                        <List
+                            key={props.notebookScripts.notebookId}
+                            listRef={feedLayout.listRef}
+                            style={{
+                                width: feedLayout.listWidth,
+                                height: feedLayout.listHeight,
+                                overflowX: 'hidden',
+                                scrollbarGutter: 'stable',
+                                '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px`,
+                            } as React.CSSProperties}
+                            rowCount={entries.length * 2 + 1}
+                            overscanCount={OVERSCAN_ROW_COUNT}
+                            rowHeight={feedLayout.rowHeights}
+                            rowComponent={ScriptFeedRow}
+                            rowProps={rowProps}
+                        />
+                    </SortableContext>
+                </DndContext>
             </div>
         </div>
     );

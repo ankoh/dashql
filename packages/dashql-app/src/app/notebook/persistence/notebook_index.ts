@@ -1,20 +1,15 @@
-import type { NotebookIndexData, ScriptFolderData } from './storage_backend.js';
+import type { NotebookIndexData, ScriptData } from './storage_backend.js';
 
 const NATURAL_SORT = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
-export function createNotebookIndex(folders: readonly ScriptFolderData[]): NotebookIndexData {
+export function createNotebookIndex(scripts: readonly ScriptData[]): NotebookIndexData {
     return {
-        folders: folders
-            .map(folder => ({
-                name: folder.name,
-                scripts: folder.scripts
-                    .map(script => ({ name: script.name }))
-                    .sort((a, b) => NATURAL_SORT.compare(a.name, b.name)),
-            }))
+        scripts: scripts
+            .map(script => ({ name: script.name }))
             .sort((a, b) => NATURAL_SORT.compare(a.name, b.name)),
     };
 }
 
-export function serializeNotebookIndex(folders: readonly ScriptFolderData[]): string {
-    return JSON.stringify(createNotebookIndex(folders), null, 2);
+export function serializeNotebookIndex(scripts: readonly ScriptData[]): string {
+    return JSON.stringify(createNotebookIndex(scripts), null, 2);
 }

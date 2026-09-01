@@ -18,7 +18,7 @@ describe('native notebook sync', () => {
     it('ignores access-only watcher events', () => {
         const event: WatchEvent = {
             type: { access: { kind: 'open', mode: 'read' } },
-            paths: [`${DIR}/scripts/1_main/1_query.sql`],
+            paths: [`${DIR}/scripts/01_query.sql`],
             attrs: {},
         };
         expect(isNotebookContentWatchEvent(event, DIR)).toBe(false);
@@ -32,7 +32,7 @@ describe('native notebook sync', () => {
         });
         expect(isNotebookContentWatchEvent(modify(`${DIR}/cache/result.arrow`), DIR)).toBe(false);
         expect(isNotebookContentWatchEvent(modify(`${DIR}/dashql-notebook.json`), DIR)).toBe(false);
-        expect(isNotebookContentWatchEvent(modify(`${DIR}/scripts/1_main/1_query.sql`), DIR)).toBe(true);
+        expect(isNotebookContentWatchEvent(modify(`${DIR}/scripts/01_query.sql`), DIR)).toBe(true);
         expect(isNotebookContentWatchEvent(modify(`${DIR}/dashql-relations.sql`), DIR)).toBe(true);
     });
 

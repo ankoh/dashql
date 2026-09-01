@@ -163,6 +163,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                         columnHeader={TableColumnHeader.OnlyColumnName}
                         cellBackground="var(--notebook_feed_entry_footer_background)"
                         onShowTable={props.onShowTable}
+                        compact
                     />
                 )}
             </>

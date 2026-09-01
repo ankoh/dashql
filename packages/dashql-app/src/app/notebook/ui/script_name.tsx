@@ -3,8 +3,6 @@ import * as React from 'react';
 import * as styles from './script_name.module.css';
 
 interface Props {
-    /// The folder. Omit it for root-level files.
-    folder?: string;
     /// The file
     file: string;
     /// Optional icon rendered before the file name
@@ -21,8 +19,6 @@ interface Props {
     };
     /// Optional click handler for the file-name chip (ignored while editing)
     onFileClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
-    /// Optional click handler for the folder name
-    onFolderClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
 }
 
 export function ScriptName(props: Props) {
@@ -43,17 +39,6 @@ export function ScriptName(props: Props) {
     };
     return (
         <span className={styles.container}>
-            {props.folder != null && (
-                <>
-                    <span
-                        className={props.onFolderClick ? styles.folder_name_clickable : styles.folder_name}
-                        onClick={props.onFolderClick}
-                    >
-                        {props.folder}
-                    </span>
-                    <span className={styles.separator}>/</span>
-                </>
-            )}
             <span
                 className={isEditing ? styles.file_name_editing : styles.file_name}
                 onClick={handleFileClick}

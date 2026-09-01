@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ThreeBarsIcon } from '../../../ui/foundations/symbol_icon.js';
 
-import type { ConnectionState } from '../connections/connection_state.js';
+import type { AttachedDatabaseState } from '../connections/attached_database_state.js';
 import type { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import type { NotebookScripts } from '../scripts/notebook_scripts.js';
 import * as ActionList from '../../../ui/foundations/action_list.js';
@@ -15,7 +15,7 @@ import type { NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
 import * as styles from './notebook_action_menu.module.css';
 
 export interface NotebookActionMenuProps {
-    conn: ConnectionState | null;
+    conn: AttachedDatabaseState | null;
     notebookScripts: NotebookScripts;
     modifyNotebookScripts: ModifyNotebookScripts;
     navigationDisabled: boolean;

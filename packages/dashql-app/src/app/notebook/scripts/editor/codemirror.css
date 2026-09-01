@@ -7,7 +7,7 @@
     height: 100%;
     width: 100%;
     outline: none !important;
-    font-size: 0.95rem;
+    font-size: var(--font_size_editor);
     background-color: transparent;
 }
 .cm-gutters {
@@ -20,7 +20,7 @@
 
 .cm-tooltip-cursor-diagnostics {
     padding: 4px 8px;
-    font-size: 0.85rem;
+    font-size: var(--font_size_body);
     color: var(--dashql-text-color, #333);
     white-space: pre-wrap;
     max-width: 400px;

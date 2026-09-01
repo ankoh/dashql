@@ -1,0 +1,7 @@
+.menu {
+    min-width: 180px;
+}
+
+.delete_action {
+    color: var(--base_color_red_6);
+}

@@ -1,6 +1,6 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { ConnectionState } from './connection_state.js';
+import { AttachedDatabaseState } from './attached_database_state.js';
 import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
 
 export enum ConnectionSetupCheck {
@@ -15,7 +15,7 @@ export enum ConnectionSetupCheck {
 }
 
 export function checkSalesforceConnectionSetup(
-    state: ConnectionState | null,
+    state: AttachedDatabaseState | null,
     params: connection.SalesforceConnectionParams,
 ): ConnectionSetupCheck {
     if (!state) {
@@ -44,7 +44,7 @@ export function checkSalesforceConnectionSetup(
 }
 
 export function checkHyperConnectionSetup(
-    state: ConnectionState | null,
+    state: AttachedDatabaseState | null,
     params: connection.HyperConnectionParams,
 ): ConnectionSetupCheck {
     return ConnectionSetupCheck.UNKNOWN;

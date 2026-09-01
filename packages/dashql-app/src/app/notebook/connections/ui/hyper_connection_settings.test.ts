@@ -56,4 +56,8 @@ describe('Hyper connection settings', () => {
 
         expect(setupParams.metadata).toEqual({ 'ctx-tenant-id': 'tenant-123' });
     });
+
+    it('selects WASM by default', () => {
+        expect(buildHyperConnectionPageState(undefined).protocol).toBe('WASM');
+    });
 });

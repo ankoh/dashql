@@ -20,137 +20,6 @@
     height: 100%;
 }
 
-.notebook_bar_container {
-    display: flex;
-    flex: 1 1 auto;
-    min-width: 0;
-    padding: 0 8px;
-}
-
-.notebook_bar {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    height: 28px;
-    min-width: 0;
-    flex: 1 1 auto;
-    padding: 0;
-    border: 1px solid transparent;
-    border-radius: var(--border_radius);
-    background-color: rgba(0, 0, 0, 0.2);
-    color: var(--nav_tab_fg);
-    overflow: hidden;
-}
-
-.notebook_bar:focus-within {
-    border: var(--nav_border_active);
-}
-
-/* The clickable path region: grows to fill the pill, opening the storage overlay. */
-.notebook_bar_button {
-    -webkit-appearance: none;
-    appearance: none;
-    border: none;
-    font-family: inherit;
-
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    height: 100%;
-    min-width: 0;
-    flex: 1 1 auto;
-    padding: 0 12px 0 12px;
-    background-color: transparent;
-    color: var(--nav_tab_fg);
-    overflow: hidden;
-    cursor: pointer;
-    transition: background-color 0.1s ease-in-out;
-}
-
-.notebook_bar_button:focus-visible {
-    outline: none;
-}
-
-/* Compact notebook actions, right-aligned within the pill. */
-.notebook_bar_action {
-    -webkit-appearance: none;
-    appearance: none;
-    border: none;
-    font-family: inherit;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 32px;
-    height: 100%;
-    padding: 0;
-    border-radius: var(--border_radius);
-    background-color: transparent;
-    color: var(--nav_tab_fg);
-    fill: currentColor;
-    cursor: pointer;
-    transition: background-color 0.1s ease-in-out;
-    text-decoration: none;
-}
-
-.notebook_bar_action:hover {
-    background-color: var(--navbar_hover_background_color);
-}
-
-.notebook_bar_action:focus-visible {
-    outline: none;
-    border: var(--nav_border_active);
-}
-
-.notebook_bar_path {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-family: 'Roboto Mono';
-    font-size: 0.8rem;
-    font-weight: 300;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: inherit;
-}
-
-/* The user-supplied notebook name: crisp sans, leads the bar, never shrinks below its content so
-   the path (which follows, dimmed) is what yields when space is tight. Capped so a very long name
-   can't crowd the path out entirely. */
-.notebook_bar_name {
-    flex: 0 1 auto;
-    min-width: 0;
-    max-width: 55%;
-    margin-right: 8px;
-    font-family: 'Roboto';
-    font-size: 0.8rem;
-    font-weight: 400;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: inherit;
-}
-
-/* The path when a name is present: same mono treatment as .notebook_bar_path but dimmed, so it reads
-   as the secondary/technical address behind the name. */
-.notebook_bar_path_secondary {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-family: 'Roboto Mono';
-    font-size: 0.8rem;
-    font-weight: 300;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: inherit;
-    opacity: 0.6;
-}
-
 .navbar_mac {
     color: rgb(255, 255, 255);
     line-height: 24px;
@@ -183,9 +52,19 @@
     justify-content: center;
     color: white;
     fill: white;
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    border: 0;
     margin-left: 20px;
     margin-right: 4px;
+    background: transparent;
     cursor: pointer;
+}
+
+.brand_logo:focus-visible {
+    outline: 2px solid white;
+    outline-offset: -2px;
 }
 
 .brand_logo svg {
@@ -204,7 +83,7 @@
     color: white;
     fill: currentColor;
     font-family: 'Roboto Mono';
-    font-size: 1.0rem;
+    font-size: var(--font_size_title);
     font-weight: 400;
 }
 
@@ -290,14 +169,14 @@
 .tab_button_text {
     font-family: 'Roboto';
     font-weight: 300 !important;
-    font-size: 0.9rem;
+    font-size: var(--font_size_body);
     margin-top: 1px;
 }
 
 /* Dead, but useful should we ever add an unread log counter */
 .tab_button_count {
     font-weight: 400 !important;
-    font-size: 0.8rem;
+    font-size: var(--font_size_small);
     background: rgba(0, 0, 0, 0.2);
     padding: 2px 6px;
     border-radius: var(--border_radius);

@@ -115,7 +115,7 @@
     font-family: Menlo, monospace;
     color: #002b36;
     background-color: #00000000;
-    font-size: 13px;
+    font-size: var(--json_view_font_size, 13px);
 }
 .expand_button {
     appearance: none;

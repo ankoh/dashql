@@ -8,12 +8,12 @@ import * as style from './connection_settings.module.css';
 import { BookIcon, KeyIcon, PlugIcon, XIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonVariant } from '../../../../ui/foundations/button.js';
-import { ConnectionHealth } from '../connection_state.js';
+import { ConnectionHealth } from '../attached_database_state.js';
 import { Dispatch } from '../../../../utils/variant.js';
 import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../../../../ui/foundations/keyvalue_list.js';
 import { TextField, VALIDATION_WARNING } from '../../../../ui/foundations/text_field.js';
 import { classNames } from '../../../../utils/classnames.js';
-import { useConnectionState } from '../connection_registry.js';
+import { findNotebookForAttachedDatabase, useAttachedDatabaseById, useAttachedDatabaseRegistry } from '../attached_database_registry.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../query_executor.js';
 import { performHealthCheck } from '../health_check.js';
@@ -61,7 +61,7 @@ function buildPageStateFromParams(params: connection.TrinoConnectionParams | nul
 }
 
 interface Props {
-    notebookId: string | null;
+    databaseId: string | null;
     onClose?: () => void;
 }
 
@@ -75,8 +75,10 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
-    const connectionNotebookScripts = useAnyConnectionNotebookScripts(props.notebookId);
+    const [registry] = useAttachedDatabaseRegistry();
+    const notebookId = props.databaseId == null ? null : findNotebookForAttachedDatabase(registry, props.databaseId);
+    const [connectionState, dispatchAttachedDatabaseState] = useAttachedDatabaseById(props.databaseId);
+    const connectionNotebookScripts = useAnyConnectionNotebookScripts(notebookId);
 
     // Seed the form state from the restored connection params so a notebook
     // that was saved across an app restart displays its endpoint/auth/etc.
@@ -292,9 +294,9 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             // Setup the Trino connection
             setupAbortController.current = new AbortController();
             const connectionParams: connection.TrinoConnectionParams = pageState.newParams;
-            const trinoChannel = await trinoSetup.setup(dispatchConnectionState, connectionParams, setupAbortController.current.signal);
+            const trinoChannel = await trinoSetup.setup(dispatchAttachedDatabaseState, connectionParams, setupAbortController.current.signal);
             if (trinoChannel != null) {
-                await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'trino', channel: trinoChannel }, dispatchConnectionState, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.databaseId, { type: 'trino', channel: trinoChannel }, dispatchAttachedDatabaseState, setupAbortController.current.signal);
             }
 
         } catch (error: any) {
@@ -319,7 +321,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     };
     const resetSetup = async () => {
         if (trinoSetup) {
-            await trinoSetup.reset(dispatchConnectionState);
+            await trinoSetup.reset(dispatchAttachedDatabaseState);
         }
     };
 

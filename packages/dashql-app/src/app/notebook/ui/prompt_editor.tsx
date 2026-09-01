@@ -79,7 +79,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     }, [view]);
 
     const containerClass = [
-        props.autoHeight ? styles.uncommitted_editor : styles.editor,
+        props.autoHeight ? styles.auto_height_editor : styles.editor,
         styles.prompt_editor,
         props.className,
     ].filter(Boolean).join(' ');

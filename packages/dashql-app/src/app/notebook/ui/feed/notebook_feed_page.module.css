@@ -1,10 +1,8 @@
 .page {
     --notebook_header_height: 48px;
-    --notebook_navigation_sidebar_width: 248px;
+    --notebook_navigation_sidebar_width: 288px;
     --notebook_body_background_color: hsl(210, 29%, 97%);
     --notebook_sidebar_background: linear-gradient(to right, hsl(210, 29%, 93%), hsl(210, 29%, 97%));
-    --notebook_entry_max_width: 1104px;
-    --notebook_list_entry_max_width: 900px;
 }
 
 @media only screen and (max-width: 799px) {
@@ -55,11 +53,8 @@
         grid-row: 1;
         grid-column: 1;
         min-width: 0;
-        margin: 8px;
+        margin: 0;
         display: flex;
-        border: 1px solid var(--border_color_primary);
-        border-radius: var(--border_radius);
-        background-color: white;
         overflow: hidden;
     }
     .body_container {
@@ -76,15 +71,6 @@
 .feed_layer_hidden {
     position: absolute;
     inset: 0;
-}
-
-.file_navigation {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    min-height: 0;
 }
 
 .feed_layer_hidden {

@@ -4,7 +4,7 @@ import { ANALYZE_OUTDATED_SCRIPT, NotebookScripts, NotebookScriptsAction, Script
 import { Dispatch } from '../../../utils/variant.js';
 import type { DashQLScript } from '../../../core/index.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connections/connector_info.js';
-import { useConnectionRegistry } from '../connections/connection_registry.js';
+import { useAttachedDatabaseRegistry } from '../connections/attached_database_registry.js';
 import { useStorageWriter } from '../persistence/storage_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import {
@@ -74,7 +74,7 @@ export function useNotebookScriptsAllocator(): NotebookScriptsAllocator {
                 scripts.notebookMetadata.originalFileName = `${scripts.connectorInfo.names.fileShort}`;
             }
 
-            reg.notebookScriptsByConnection.set(state.connectionId, notebookId);
+            reg.notebookScriptsByConnection.set(state.databaseId, notebookId);
             reg.notebookScriptsByConnectionType[state.connectorInfo.connectorType].push(notebookId);
             reg.notebookScriptsMap.set(notebookId, scripts);
             return { ...reg };
@@ -102,7 +102,7 @@ export function removeNotebookScriptsFromRegistry(reg: NotebookScriptsRegistry, 
     const entry = reg.notebookScriptsMap.get(notebookId);
     if (!entry) return reg;
     reg.notebookScriptsMap.delete(notebookId);
-    reg.notebookScriptsByConnection.delete(entry.connectionId);
+    reg.notebookScriptsByConnection.delete(entry.databaseId);
     const connectorType = entry.connectorInfo.connectorType;
     reg.notebookScriptsByConnectionType[connectorType] =
         reg.notebookScriptsByConnectionType[connectorType].filter(id => id !== notebookId);
@@ -114,10 +114,10 @@ export function removeNotebookScriptsFromRegistry(reg: NotebookScriptsRegistry, 
 /// Notebook scripts share the connection's catalog by reference (see notebook_scripts_setup) and own every
 /// editor session they create. destroyNotebookScripts() drops those sessions from the shared catalog and then frees
 /// them, so it MUST run while that catalog is still alive, i.e.
-/// *before* the connection is deleted (DELETE_CONNECTION destroys the catalog). We therefore tear
+/// *before* the connection is deleted (DELETE_ATTACHED_DATABASE destroys the catalog). We therefore tear
 /// the Wasm down synchronously here, in the event handler, and keep the registry-map removal a
 /// pure updater (safe to run more than once). Callers must invoke this before dispatching
-/// DELETE_CONNECTION for the same notebook.
+/// DELETE_ATTACHED_DATABASE for the same notebook.
 export function useNotebookScriptsDeletion(): (notebookId: string) => void {
     const [reg, setReg] = React.useContext(NOTEBOOK_SCRIPTS_REGISTRY_CTX)!;
     return React.useCallback((notebookId: string) => {
@@ -134,7 +134,7 @@ export function useNotebookScriptsDeletion(): (notebookId: string) => void {
 
 export function useNotebookScripts(id: string | null): [NotebookScripts | null, ModifyNotebookScripts] {
     const [registry, setRegistry] = React.useContext(NOTEBOOK_SCRIPTS_REGISTRY_CTX)!;
-    const [connReg] = useConnectionRegistry();
+    const [connReg] = useAttachedDatabaseRegistry();
     const storageWriter = useStorageWriter();
     const logger = useLogger();
 
@@ -159,8 +159,9 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
 
         setRegistry((reg: NotebookScriptsRegistry) => {
             // Check if the connection is active to gate storage writes
-            const connectionId = connReg.connectionByNotebook.get(id);
-            const active = connectionId == null ? false : connReg.connectionMap.get(connectionId)?.active ?? false;
+            const mapping = connReg.attachedDatabasesByNotebook.get(id);
+            const executionDatabaseId = mapping?.mainDatabaseId;
+            const active = executionDatabaseId == null ? false : connReg.attachedDatabases.get(executionDatabaseId)?.active ?? false;
             for (const { action, resolve } of pending) {
                 const prev = reg.notebookScriptsMap.get(id);
                 if (!prev) {
@@ -171,7 +172,6 @@ export function useNotebookScripts(id: string | null): [NotebookScripts | null, 
                 logger.debug('Reducing notebook script action', {
                     notebookId: id,
                     actionType: action.type.description ?? action.type.toString(),
-                    uncommittedScriptId: prev.uncommittedScriptId.toString(),
                 }, LOG_CTX);
                 const next = reduceNotebookScripts(prev, action, storageWriter, logger, active);
                 reg.notebookScriptsMap.set(id, next);
@@ -221,7 +221,7 @@ export async function ensureNotebookScriptAnalyzed(
 
 export function useConnectionScriptsDispatch(): ModifyConnectionNotebookScripts {
     const [_registry, setRegistry] = React.useContext(NOTEBOOK_SCRIPTS_REGISTRY_CTX)!;
-    const [connReg] = useConnectionRegistry();
+    const [connReg] = useAttachedDatabaseRegistry();
     const storage = useStorageWriter();
     const logger = useLogger();
 
@@ -242,7 +242,7 @@ export function useConnectionScriptsDispatch(): ModifyConnectionNotebookScripts 
                 if (notebookId) {
                     const prev = reg.notebookScriptsMap.get(notebookId);
                     if (prev) {
-                        const active = connReg.connectionMap.get(conn)?.active ?? false;
+                        const active = connReg.attachedDatabases.get(conn)?.active ?? false;
                         const next = reduceNotebookScripts(prev, action, storage, logger, active);
                         reg.notebookScriptsMap.set(notebookId, next);
                     }

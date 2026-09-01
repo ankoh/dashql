@@ -2,7 +2,7 @@ import * as dashql from '../../../core/index.js';
 import type * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
 
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo } from './connector_info.js';
-import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
+import { ConnectionHealth, AttachedDatabaseStateWithoutId, ConnectionStatus, createConnectionMetrics } from './attached_database_state.js';
 import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { createHyperConnectionParamsSignature } from './hyper/hyper_connection_params.js';
 import { createHyperConnectionStateDetails } from './hyper/hyper_connection_state.js';
@@ -109,7 +109,7 @@ export function createConnectionParamsSignature(params: ConnectionParams): any {
     return null;
 }
 
-export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParams, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
+export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParams, connSigs: ConnectionSignatureMap): AttachedDatabaseStateWithoutId {
     const info = getConnectionInfoFromParams(params)!;
     const details = getConnectionStateDetailsFromParams(params)!;
     const sig = computeNewConnectionSignatureFromDetails(details);
@@ -121,7 +121,6 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
     catalogFunctionScript.replaceText(generateFunctionScriptHeader(CatalogSource.Unknown));
     return {
         instance: dql,
-        name: null,
         active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
@@ -145,6 +144,18 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: Conn
         queriesFinished: new Map(),
         queriesFinishedOrdered: [],
     };
+}
+
+export function createDefaultHyperWasmAttachedDatabaseState(
+    dql: dashql.DashQL,
+    connSigs: ConnectionSignatureMap,
+): AttachedDatabaseStateWithoutId {
+    const connector = CONNECTOR_INFOS[ConnectorType.HYPER];
+    return createConnectionStateFromParams(
+        dql,
+        createDefaultConnectionParamsForConnector(connector),
+        connSigs,
+    );
 }
 
 export function createDefaultConnectionParamsForConnector(connector: ConnectorInfo): ConnectionParams {

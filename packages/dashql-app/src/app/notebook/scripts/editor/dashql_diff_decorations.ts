@@ -1,7 +1,7 @@
 import * as dashql from '../../../../core/index.js';
 
 import { Decoration, DecorationSet, EditorView, gutter, GutterMarker } from '@codemirror/view';
-import { EditorState, Extension, Range, StateEffect, StateEffectType, StateField, Text, Transaction } from '@codemirror/state';
+import { Extension, Range, StateField, Text, Transaction } from '@codemirror/state';
 
 import { DashQLPendingDiff, DashQLProcessorPlugin } from './dashql_processor.js';
 
@@ -136,27 +136,13 @@ function buildDiffDecorations(pending: DashQLPendingDiff | null, doc: Text): Dif
     };
 }
 
-/// Build the diff decoration extensions for a diff source resolved from the editor state.
-///
-/// The integrated editor reads the pending diff from the `DashQLProcessorPlugin` state field; the
-/// standalone (read-only) preview reads it from an effect-backed field (see below). This factory
-/// keeps the decoration field and the highlight facet identical for both — only where the
-/// `DashQLPendingDiff` comes from differs. Mirrors `createScannerHighlightPlugin` in
-/// `dashql_decorations_standalone.ts`.
-///
-/// `includeDeleteGutter` controls the deletion gutter: the editable editor wants it, but the
-/// read-only compact preview leaves it off (a bare `gutter()` forces CodeMirror to render its
-/// `.cm-gutters` chrome — a stray right border + padding — even with no markers, which the preview
-/// otherwise has no gutter for).
-export function createDiffDecorationExtension(
-    getPending: (state: EditorState) => DashQLPendingDiff | null,
-    includeDeleteGutter: boolean = true,
-): Extension {
+/// Build the staged-rewrite decorations for the writable editor.
+function createDiffDecorationExtension(): Extension {
     /// Decorations for a pending, staged rewrite (agent suggestion) shown as an in-place diff.
     const field: StateField<DiffDecorationState> = StateField.define<DiffDecorationState>({
         create: () => ({ pendingDiff: null, decorations: Decoration.none, deleteLines: new Set() }),
         update: (state: DiffDecorationState, transaction: Transaction) => {
-            const pending = getPending(transaction.state);
+            const pending = transaction.state.field(DashQLProcessorPlugin).scriptPendingDiff;
             // Pending diff unchanged and doc untouched? Keep the previous decorations.
             if (pending === state.pendingDiff && !transaction.docChanged) {
                 return state;
@@ -166,10 +152,6 @@ export function createDiffDecorationExtension(
     });
 
     const decorations = EditorView.decorations.from(field, state => state.decorations);
-
-    if (!includeDeleteGutter) {
-        return [field, decorations];
-    }
 
     /// A dedicated gutter that marks lines where statements were deleted by the pending rewrite.
     const diffGutter = gutter({
@@ -189,34 +171,4 @@ export function createDiffDecorationExtension(
 
 /// Bundle the diff decoration extensions for the integrated (editable) editor — the pending diff
 /// comes from the `DashQLProcessorPlugin` state field, kept in sync with the notebook's ScriptData.
-export const DashQLDiffDecorationPlugin = createDiffDecorationExtension(
-    state => state.field(DashQLProcessorPlugin).scriptPendingDiff,
-);
-
-/// Effect used to push a pending diff into a standalone (read-only) editor from outside, e.g. the
-/// feed's compact preview which computes its own width-dependent diff. Pass null to clear it.
-export const DashQLDiffDecorationUpdateEffect: StateEffectType<DashQLPendingDiff | null> =
-    StateEffect.define<DashQLPendingDiff | null>();
-
-/// Holds the pending diff pushed in from outside via `DashQLDiffDecorationUpdateEffect`.
-/// The decoration extension reads it back out to overlay the diff on a read-only editor.
-const StandalonePendingDiffField: StateField<DashQLPendingDiff | null> =
-    StateField.define<DashQLPendingDiff | null>({
-        create: () => null,
-        update: (pending, transaction: Transaction) => {
-            for (const effect of transaction.effects) {
-                if (effect.is(DashQLDiffDecorationUpdateEffect)) {
-                    pending = effect.value;
-                }
-            }
-            return pending;
-        },
-    });
-
-/// Bundle the diff decoration extensions for a standalone (read-only) editor. The diff buffer is
-/// owned by the pusher (e.g. `ScriptPreview`), not by this field. The delete gutter is omitted here:
-/// the compact preview has no other gutter, so the bare gutter chrome would show as a stray border.
-export const DashQLStandaloneDiffDecorationPlugin = [
-    StandalonePendingDiffField,
-    createDiffDecorationExtension(state => state.field(StandalonePendingDiffField), false),
-];
+export const DashQLDiffDecorationPlugin = createDiffDecorationExtension();

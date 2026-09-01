@@ -13,7 +13,7 @@ import { classNames } from '../../../utils/classnames.js';
 import { exportNotebookAsUrl, NotebookLinkTarget } from '../persistence/notebook_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../connections/connection_params.js';
 import { sleep } from '../../../utils/sleep.js';
-import { useConnectionState } from '../connections/connection_registry.js';
+import { resolveNotebookAttachedDatabases, useAttachedDatabaseState, useAttachedDatabaseRegistry } from '../connections/attached_database_registry.js';
 import { useRouteContext } from '../../router/router.js';
 import { useNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { useStorageReader } from '../persistence/storage_provider.js';
@@ -40,7 +40,8 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const buttonRef = React.createRef<HTMLButtonElement>();
 
     const [notebookScripts] = useNotebookScripts(route.notebookId ?? null);
-    const [connection, _modifyConnection] = useConnectionState(notebookScripts?.notebookId ?? null);
+    const [connection, _modifyConnection] = useAttachedDatabaseState(notebookScripts?.notebookId ?? null);
+    const [databaseRegistry] = useAttachedDatabaseRegistry();
     const storage = useStorageReader();
     const [state, setState] = React.useState<State>(() => ({
         publicURLText: null,
@@ -65,12 +66,17 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
         async function generateURL() {
             let setupUrl: URL | null = null;
             if (notebookScripts != null && connection != null) {
-                const conn = getConnectionParamsFromStateDetails(connection.details);
-                if (conn) {
+                const attached = resolveNotebookAttachedDatabases(databaseRegistry, notebookScripts.notebookId);
+                if (attached != null) {
+                    const params = new Map();
+                    for (const database of [attached.main, ...attached.attached]) {
+                        const connectionParams = getConnectionParamsFromStateDetails(database.details);
+                        if (connectionParams != null) params.set(database.databaseId, connectionParams);
+                    }
                     setupUrl = await exportNotebookAsUrl(
                         storage.backend,
                         notebookScripts.notebookId,
-                        conn,
+                        params,
                         NotebookLinkTarget.WEB,
                         settings,
                     );
@@ -95,7 +101,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
         return () => {
             cancelled = true;
         };
-    }, [settings, notebookScripts, connection, props.isOpen]);
+    }, [databaseRegistry, settings, notebookScripts, connection, props.isOpen]);
 
     // Copy the url to the clipboard
     const copyURL = React.useCallback(

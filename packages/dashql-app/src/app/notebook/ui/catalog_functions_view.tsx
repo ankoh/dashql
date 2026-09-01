@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as detailStyles from './script_details.module.css';
 
-import { ConnectionState } from '../connections/connection_state.js';
+import { AttachedDatabaseState } from '../connections/attached_database_state.js';
 import { CatalogScriptCard } from './catalog_script_card.js';
 
 export interface CatalogFunctionsViewProps {
-    connection: ConnectionState;
+    connection: AttachedDatabaseState;
     onClose?: () => void;
 }
 

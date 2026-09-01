@@ -6,9 +6,8 @@ import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlu
 
 import type { Icon } from '../../../ui/foundations/symbol_icon.js';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
-import { ConnectionHealth, ConnectionState } from '../connections/connection_state.js';
+import { ConnectionHealth, AttachedDatabaseState } from '../connections/attached_database_state.js';
 import { useCancelQuery, useQueryState, useQueryExecutor } from '../connections/query_executor.js';
 import { QueryExecutionStatus } from '../connections/query_execution_state.js';
 import { useAgentRunState, useCancelAgentRun } from '../agent/agent_run_provider.js';
@@ -16,27 +15,24 @@ import { ScriptDetailsTab } from './script_output_details.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 import {
     ACCEPT_PENDING_DIFF,
-    getSelectedScriptFolder,
+    DELETE_SCRIPT,
     getSelectedScriptRef,
     NotebookScripts,
     REJECT_PENDING_DIFF,
     RENAME_SCRIPT,
-    SELECT_SCRIPT_PATH,
+    SELECT_SCRIPT,
 } from '../scripts/notebook_scripts.js';
 import { runNotebookScript } from './rerun_query.js';
 import { useStorageReader } from '../persistence/storage_provider.js';
-import { normalizeScriptFolderName, scriptDisplayName } from '../scripts/script_types.js';
+import { scriptDisplayName } from '../scripts/script_types.js';
 import type { ModifyNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { acceptPendingDiff, rejectPendingDiff } from '../scripts/editor/dashql_diff_hint.js';
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ScriptDiagnosticsButton } from './script_diagnostics.js';
-import * as ActionList from '../../../ui/foundations/action_list.js';
-import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
-import { OverlaySize } from '../../../ui/foundations/overlay.js';
-import { useScriptFormatPreview } from './script_format_preview.js';
+import { formatScriptEditor, isScriptFormattable } from './script_format.js';
+import { ScriptActionMenu } from './script_action_menu.js';
 import { ScriptDetailsEditorPane, ScriptDetailsOutputPane } from './script_details_panes.js';
 import { VerticalSplit } from '../../../ui/foundations/vertical_split.js';
 
@@ -45,81 +41,20 @@ export { ScriptDetailsTab as TabKey };
 export interface ScriptDetailsProps {
     notebookScripts: NotebookScripts;
     modifyNotebookScripts: ModifyNotebookScripts;
-    connection: ConnectionState | null;
+    connection: AttachedDatabaseState | null;
     hideDetails: () => void;
     scriptId?: number;
     initialTab?: ScriptDetailsTab;
     navigateToScript?: (scriptKey: number) => void;
 }
 
-interface ScriptFormatMenuProps {
-    disabled: boolean;
-    onFormat: (mode: dashql.buffers.formatting.FormattingMode) => void;
-}
-
-const ScriptFormatMenu: React.FC<ScriptFormatMenuProps> = (props) => {
-    const [isOpen, setIsOpen] = React.useState(false);
-    const triggerRef = React.useRef<HTMLButtonElement | null>(null);
-    const FormatIcon: Icon = SymbolIcon('pencil_ai_16');
-    const selectFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
-        setIsOpen(false);
-        props.onFormat(mode);
-    }, [props.onFormat]);
-
-    return (
-        <AnchoredOverlay
-            open={isOpen}
-            onOpen={() => setIsOpen(true)}
-            onClose={() => setIsOpen(false)}
-            side={AnchorSide.OutsideBottom}
-            align={AnchorAlignment.End}
-            anchorOffset={4}
-            width={OverlaySize.S}
-            anchorRef={triggerRef}
-            returnFocusRef={triggerRef}
-            focusZoneSettings={{ disabled: true }}
-            renderAnchor={(anchorProps) => (
-                <IconButton
-                    {...anchorProps}
-                    ref={triggerRef}
-                    variant={ButtonVariant.Invisible}
-                    size={ButtonSize.Small}
-                    aria-label="Format script"
-                    disabled={props.disabled}
-                >
-                    <FormatIcon size={16} />
-                </IconButton>
-            )}
-        >
-            <div className={styles.format_menu} role="dialog" aria-label="Script formatting">
-                <ActionList.List className={styles.format_menu_list} aria-label="Script formatting options">
-                    <ActionList.ListItem
-                        className={styles.format_menu_item}
-                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.PRETTY)}
-                    >
-                        <ActionList.ItemText>Format Pretty</ActionList.ItemText>
-                    </ActionList.ListItem>
-                    <ActionList.ListItem
-                        className={styles.format_menu_item}
-                        onClick={() => selectFormat(dashql.buffers.formatting.FormattingMode.COMPACT)}
-                    >
-                        <ActionList.ItemText>Format Compact</ActionList.ItemText>
-                    </ActionList.ListItem>
-                </ActionList.List>
-            </div>
-        </AnchoredOverlay>
-    );
-};
-
 export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const config = useAppConfig();
     const logger = useLogger();
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
-    const [isFormattable, setIsFormattable] = React.useState(true);
 
-    const selectedPage = getSelectedScriptFolder(props.notebookScripts);
     const notebookEntry = props.scriptId != null
-        ? Object.values(selectedPage?.scripts ?? {}).find(entry => entry.scriptId === props.scriptId)
+        ? Object.values(props.notebookScripts.scriptRefs).find(entry => entry.scriptId === props.scriptId)
         : getSelectedScriptRef(props.notebookScripts);
     const scriptData = notebookEntry != null ? props.notebookScripts.scripts[notebookEntry.scriptId] : null;
     const hasExecution = scriptData?.latestQueryId != null || scriptData?.latestAgentRunId != null;
@@ -128,7 +63,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     // Get folder name and script file name (display-only: strip the on-disk ordering prefix). The
     // raw scriptFileName stays the rename identity; the label and draft use the clean display name
     // (no prefix, no ".sql").
-    const folderName = normalizeScriptFolderName(selectedPage?.folderName ?? '') || 'Untitled';
     const scriptFileName = notebookEntry?.fileName ?? '01-script.sql';
     const scriptDisplay = scriptDisplayName(scriptFileName);
 
@@ -169,31 +103,18 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         setResultExpanded(hasExecution);
     }, [notebookEntry?.scriptId, hasExecution]);
 
-    React.useEffect(() => {
-        if (scriptData == null) {
-            setIsFormattable(true);
-            return;
-        }
-        const formattingConfig = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.HYPER,
-            dashql.buffers.formatting.FormattingMode.PRETTY,
-            80,
-            4,
-        );
-        try {
-            setIsFormattable(scriptData.scriptSession.isFullyFormattable(formattingConfig, true));
-        } catch {
-            setIsFormattable(false);
-        }
-    }, [scriptData?.scriptSession, scriptData?.editorUpdate?.stateRevision]);
-
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
-    const {
-        formatPending,
-        format: handleFormat,
-        acceptFormat: handleFormatAccept,
-        cancelFormat: handleFormatCancel,
-    } = useScriptFormatPreview(editorView, scriptData, formattingDebugMode);
+    const isFormattable = React.useMemo(
+        () => isScriptFormattable(scriptData),
+        [scriptData?.scriptSession, scriptData?.editorUpdate?.stateRevision],
+    );
+    const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
+        formatScriptEditor(editorView, scriptData, mode, formattingDebugMode);
+    }, [editorView, formattingDebugMode, scriptData]);
+    const handleDelete = React.useCallback(() => {
+        props.modifyNotebookScripts({ type: DELETE_SCRIPT, value: scriptFileName });
+        props.hideDetails();
+    }, [props.modifyNotebookScripts, props.hideDetails, scriptFileName]);
 
     // A staged agent rewrite is shown as an in-place diff on the editable editor here (the diff
     // decorations + ⏎/⎋ keymap come from the editor's DashQL extensions). Surface visible controls
@@ -220,10 +141,10 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             return;
         }
         const target = props.notebookScripts.scripts[scriptKey];
-        if (!target?.folderName || !target.fileName) return;
+        if (!target?.fileName) return;
         props.modifyNotebookScripts({
-            type: SELECT_SCRIPT_PATH,
-            value: { folderName: target.folderName, fileName: target.fileName },
+            type: SELECT_SCRIPT,
+            value: target.fileName,
         });
     }, [props.navigateToScript, props.notebookScripts.scripts, props.modifyNotebookScripts]);
 
@@ -259,7 +180,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         if (scriptData == null || props.connection?.connectionHealth !== ConnectionHealth.ONLINE) {
             return;
         }
-        runNotebookScript(props.connection.connectionId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        runNotebookScript(props.connection.databaseId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [props.connection?.connectionHealth, props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, logger]);
     const handleRerun = React.useCallback(async (cacheKey: string | null) => {
         if (scriptData == null) {
@@ -271,7 +192,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             await storageReader.backend.deleteQueryResultCache(props.notebookScripts.notebookId, cacheKey).catch(() => { });
         }
         if (props.connection != null) {
-            runNotebookScript(props.connection.connectionId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+            runNotebookScript(props.connection.databaseId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
         }
     }, [props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, storageReader, logger]);
 
@@ -335,8 +256,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     }
 
     const ScreenNormalIcon: Icon = SymbolIcon('screen_normal_16');
-    const PersonIcon: Icon = SymbolIcon('person_16');
-    const connectorIcon = props.connection?.connectorInfo?.icons?.outlines ?? 'database_16';
     const tableDebugMode = config?.settings?.tableDebugMode ?? false;
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     return (
@@ -357,7 +276,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                         <ScriptDetailsEditorPane
                             notebookId={props.notebookScripts.notebookId}
                             scriptData={scriptData}
-                            folderName={folderName}
                             scriptDisplay={scriptDisplay}
                             scriptDebugMode={scriptDebugMode}
                             executeDisabled={props.connection?.connectionHealth !== ConnectionHealth.ONLINE}
@@ -365,14 +283,20 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             draftFileName={draftFileName}
                             editInputRef={editInputRef}
                             isFormattable={isFormattable}
-                            formatPending={formatPending}
                             hasPendingDiff={hasPendingDiff}
                             PencilIcon={PencilIcon}
                             CheckIcon={CheckIcon}
                             CancelIcon={FormatXIcon}
                             CollapseIcon={ScreenNormalIcon}
-                            PersonIcon={PersonIcon}
-                            formatMenu={<ScriptFormatMenu disabled={formatPending || hasPendingDiff} onFormat={handleFormat} />}
+                            formatMenu={(
+                                <ScriptActionMenu
+                                    scriptName={scriptDisplay}
+                                    formatDisabled={!isFormattable || hasPendingDiff || editorView == null}
+                                    deleteDisabled={Object.keys(props.notebookScripts.scriptRefs).length <= 1}
+                                    onFormat={handleFormat}
+                                    onDelete={handleDelete}
+                                />
+                            )}
                             onExecute={handleExecute}
                             onHide={props.hideDetails}
                             onStartEditingName={startEditingName}
@@ -383,8 +307,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             onNavigateToScript={navigateToScript}
                             onAcceptDiff={handleAcceptDiff}
                             onRejectDiff={handleRejectDiff}
-                            onAcceptFormat={handleFormatAccept}
-                            onCancelFormat={handleFormatCancel}
                         />
                     )}
                     second={(
@@ -394,21 +316,17 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             visualizeQuery={visualizeQuery}
                             initialTab={props.initialTab}
                             tableDebugMode={tableDebugMode}
-                            connectorIcon={connectorIcon}
                             expanded={resultExpanded}
                             onToggleExpanded={handleToggleResultExpanded}
                             contentId={`script-result-${scriptData.scriptKey}`}
                             onCancelQuery={activeQueryId != null
-                                ? () => props.connection && cancelQuery(props.connection.connectionId, activeQueryId)
+                                ? () => props.connection && cancelQuery(props.connection.databaseId, activeQueryId)
                                 : undefined}
                             onCancelAgent={() => cancelAgentRun(props.notebookScripts.notebookId)}
                             statusActions={(
                                 <>
                                     <QueryResultCacheLabel query={activeQueryState} />
                                     <QueryResultRerunButton query={activeQueryState} onRerun={handleRerun} />
-                                    <IconButton variant={ButtonVariant.Invisible} onClick={props.hideDetails} aria-label="Close script details">
-                                        <ScreenNormalIcon size={16} />
-                                    </IconButton>
                                 </>
                             )}
                         />

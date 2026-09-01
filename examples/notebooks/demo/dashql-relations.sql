@@ -1,8 +1,8 @@
 -- DashQL Connection Relations.
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
--- Catalog Source: Hyper attached databases
--- Last Refresh: 2026-08-30T19:57:54.974Z
+-- Catalog Source: HyperDB WASM pg_class
+-- Last Refresh: 2026-09-01T14:41:28.815Z
 
 -- DashQL Hyper Catalog Section: "hyper"
 CREATE TABLE "hyper"."pg_catalog"."hyper_attached_database" (
@@ -30,7 +30,8 @@ CREATE TABLE "hyper"."pg_catalog"."hyper_load" (
     "scheduler_load" FLOAT,
     "memory_load" FLOAT,
     "machine_cpu_load" FLOAT,
-    "workspace_load" FLOAT
+    "workspace_load" FLOAT,
+    "memory_buckets_load" FLOAT
 );
 
 CREATE TABLE "hyper"."pg_catalog"."hyper_memory_usage" (

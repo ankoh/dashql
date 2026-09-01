@@ -23,20 +23,14 @@ export const STORAGE_SHELL_FOLDER = 'dashql-shell';
 
 export const STORAGE_SCRIPT_SCHEMA = 'dashql-relations.sql';
 export const STORAGE_SCRIPT_FUNCTIONS = 'dashql-functions.sql';
-export const STORAGE_SCRIPT_DRAFT = 'dashql-draft.sql';
 export const STORAGE_SCRIPT_EXTENSION = '.sql';
 
 export interface NotebookIndexScript {
     name: string;
 }
 
-export interface NotebookIndexFolder {
-    name: string;
-    scripts: NotebookIndexScript[];
-}
-
 export interface NotebookIndexData {
-    folders: NotebookIndexFolder[];
+    scripts: NotebookIndexScript[];
 }
 
 // Re-export JSON Schema types
@@ -45,7 +39,8 @@ export type StorageManifest = app_manifest.StorageManifest;
 export type AppSettings = app_manifest.AppSettings;
 export type NotebookData = app_notebook.NotebookData;
 export type NotebookMetadata = app_notebook.NotebookMetadata;
-export type ConnectionParams = NotebookData['connectionParams'];
+export type AttachedDatabase = app_notebook.AttachedDatabase;
+export type ConnectionParams = AttachedDatabase['params'];
 
 /// The kind of filesystem backend
 export enum StorageBackendType {
@@ -99,35 +94,17 @@ export interface StorageBackend {
     /// Save notebook catalog functions SQL
     saveNotebookFunctions(notebookId: string, sql: string): Promise<void>;
 
-    /// Load script folders
-    loadScriptFolders(notebookId: string): Promise<ScriptFolderData[]>;
-    /// Create a script folder
-    createScriptFolder(notebookId: string, folderName: string): Promise<void>;
-    /// Delete a script folder
-    deleteScriptFolder(notebookId: string, folderName: string): Promise<void>;
-    /// Rename a script folder, moving its contents with it.
-    ///
-    /// This is the in-place alternative to delete-old + recreate-new: it keeps the scripts inside the
-    /// folder exactly as they are on disk (no per-script rewrite). Native does an atomic directory
-    /// rename; OPFS, which has no atomic directory rename, moves each file into a fresh folder and
-    /// removes the old one. Callers must guarantee `oldFolderName` exists and `newFolderName` does not.
-    renameScriptFolder(notebookId: string, oldFolderName: string, newFolderName: string): Promise<void>;
-
+    /// Load the notebook's flat, naturally ordered script collection.
+    loadScripts(notebookId: string): Promise<ScriptData[]>;
     /// Load a notebook script
-    loadScript(notebookId: string, folderName: string, scriptName: string): Promise<ScriptData>;
+    loadScript(notebookId: string, scriptName: string): Promise<ScriptData>;
     /// Save a notebook script
-    saveScript(notebookId: string, folderName: string, scriptName: string, sql: string): Promise<void>;
+    saveScript(notebookId: string, scriptName: string, sql: string): Promise<void>;
     /// Delete a notebook script
-    deleteScript(notebookId: string, folderName: string, scriptName: string): Promise<void>;
-    /// Rename a script file within a folder, preserving its contents (no rewrite from
-    /// memory). Native renames the file; OPFS moves it (with a copy+delete fallback). Callers must
+    deleteScript(notebookId: string, scriptName: string): Promise<void>;
+    /// Rename a script file, preserving its contents (no rewrite from memory). Callers must
     /// guarantee `oldScriptName` exists and `newScriptName` does not.
-    renameScript(notebookId: string, folderName: string, oldScriptName: string, newScriptName: string): Promise<void>;
-
-    /// Load a notebook script draft
-    loadScriptDraft(notebookId: string): Promise<string | null>;
-    /// Save a notebook script draft
-    saveScriptDraft(notebookId: string, sql: string): Promise<void>;
+    renameScript(notebookId: string, oldScriptName: string, newScriptName: string): Promise<void>;
 
     /// Load a cached query result by content hash, or null on a cache miss.
     ///
@@ -177,14 +154,6 @@ export interface NotebookRegistryBackend extends StorageBackend {
     reorderNotebooks(orderedIds: string[]): Promise<void>;
     /// Delete a notebook's files only, leaving the registry entry intact.
     deleteNotebookFiles(notebookId: string): Promise<void>;
-}
-
-// Script folder data contains all scripts in a folder
-export interface ScriptFolderData {
-    /// The folder name
-    name: string;
-    /// The scripts in this folder
-    scripts: ScriptData[];
 }
 
 // Script data represents a single SQL script

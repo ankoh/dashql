@@ -1,35 +1,25 @@
 {
-  "folders": [
+  "scripts": [
     {
-      "name": "1_setup",
-      "scripts": [
-        {
-          "name": "1_hyper_version.sql"
-        },
-        {
-          "name": "2_test_tables.sql"
-        }
-      ]
+      "name": "1_hyper_version.sql"
     },
     {
-      "name": "2_property_graphs",
-      "scripts": [
-        {
-          "name": "1_customer_orders.sql"
-        },
-        {
-          "name": "2_order_fulfillment.sql"
-        },
-        {
-          "name": "3_commerce_network.sql"
-        },
-        {
-          "name": "4_bounded_traversal.sql"
-        },
-        {
-          "name": "5_path_steps.sql"
-        }
-      ]
+      "name": "2_test_tables.sql"
+    },
+    {
+      "name": "3_customer_orders.sql"
+    },
+    {
+      "name": "4_order_fulfillment.sql"
+    },
+    {
+      "name": "5_commerce_network.sql"
+    },
+    {
+      "name": "6_bounded_traversal.sql"
+    },
+    {
+      "name": "7_path_steps.sql"
     }
   ]
 }

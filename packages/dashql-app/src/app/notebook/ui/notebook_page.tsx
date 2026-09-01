@@ -1,10 +1,8 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
 
-import { ConnectionHealth } from '../connections/connection_state.js';
-import { ConnectionSettingsOverlay } from '../connections/ui/connection_settings_overlay.js';
 import { useNotebookScriptsRegistry, useNotebookScripts } from '../scripts/notebook_scripts_registry.js';
-import { useConnectionState } from '../connections/connection_registry.js';
+import { useAttachedDatabaseState } from '../connections/attached_database_registry.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router/router.js';
 
@@ -23,24 +21,8 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const logger = useLogger();
     const notebookScriptsRegistry = useNotebookScriptsRegistry()[0];
     const [notebookScripts, modifyNotebookScripts] = useNotebookScripts(route.notebookId ?? null);
-    const [conn, _modifyConn] = useConnectionState(notebookScripts?.notebookId ?? null);
-    const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
+    const [conn] = useAttachedDatabaseState(notebookScripts?.notebookId ?? null);
     const { mode: notebookMode } = useNotebookViewMode();
-    const connectionSettingsAnchorRef = React.useRef<HTMLButtonElement>(null);
-
-    // Auto-close the connection settings overlay once a connect attempt succeeds
-    const prevConnectionHealth = React.useRef<ConnectionHealth | null>(null);
-    React.useEffect(() => {
-        const health = conn?.connectionHealth ?? null;
-        if (
-            connectionOverlayOpen &&
-            prevConnectionHealth.current === ConnectionHealth.CONNECTING &&
-            health === ConnectionHealth.ONLINE
-        ) {
-            setConnectionOverlayOpen(false);
-        }
-        prevConnectionHealth.current = health;
-    }, [conn?.connectionHealth, connectionOverlayOpen]);
 
     React.useEffect(() => {
         if (route.notebookId === null) {
@@ -61,11 +43,6 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     if (route.notebookId === null || notebookScripts == null) {
         return <div />;
     }
-    const openConnectionOverlay = (anchor?: HTMLButtonElement | null) => {
-        connectionSettingsAnchorRef.current = anchor ?? null;
-        setConnectionOverlayOpen(true);
-    };
-
     return (
         <div className={styles.page}>
             {notebookMode === NotebookViewMode.Notebook ? (
@@ -74,7 +51,6 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     modifyNotebookScripts={modifyNotebookScripts}
                     connection={conn ?? null}
                     active
-                    openConnectionOverlay={openConnectionOverlay}
                 />
             ) : (
                 <React.Suspense fallback={(
@@ -82,15 +58,9 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         <strong>[ RUN ]</strong> Loading shell
                     </div>
                 )}>
-                    <NotebookShellPage connection={conn ?? null} active />
+                    <NotebookShellPage notebookId={notebookScripts.notebookId} notebookName={notebookScripts.name} connection={conn ?? null} active />
                 </React.Suspense>
             )}
-            <ConnectionSettingsOverlay
-                notebookId={route.notebookId}
-                isOpen={connectionOverlayOpen}
-                onClose={() => setConnectionOverlayOpen(false)}
-                anchorRef={connectionSettingsAnchorRef}
-            />
         </div>
     );
 };

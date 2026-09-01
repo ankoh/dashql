@@ -2,7 +2,6 @@ import {
     type StorageBackend,
     type NotebookRegistryBackend,
     type NotebookData,
-    type ScriptFolderData,
     type ScriptData,
     type NotebookEntry,
     type AppSettings,
@@ -255,35 +254,20 @@ export class CompositeStorageBackend implements NotebookRegistryBackend {
     async saveNotebookFunctions(notebookId: string, sql: string): Promise<void> {
         return (await this.backendFor(notebookId)).saveNotebookFunctions(notebookId, sql);
     }
-    async loadScriptFolders(notebookId: string): Promise<ScriptFolderData[]> {
-        return (await this.backendFor(notebookId)).loadScriptFolders(notebookId);
+    async loadScripts(notebookId: string): Promise<ScriptData[]> {
+        return (await this.backendFor(notebookId)).loadScripts(notebookId);
     }
-    async createScriptFolder(notebookId: string, folderName: string): Promise<void> {
-        return (await this.backendFor(notebookId)).createScriptFolder(notebookId, folderName);
+    async loadScript(notebookId: string, scriptName: string): Promise<ScriptData> {
+        return (await this.backendFor(notebookId)).loadScript(notebookId, scriptName);
     }
-    async deleteScriptFolder(notebookId: string, folderName: string): Promise<void> {
-        return (await this.backendFor(notebookId)).deleteScriptFolder(notebookId, folderName);
+    async saveScript(notebookId: string, scriptName: string, sql: string): Promise<void> {
+        return (await this.backendFor(notebookId)).saveScript(notebookId, scriptName, sql);
     }
-    async renameScriptFolder(notebookId: string, oldFolderName: string, newFolderName: string): Promise<void> {
-        return (await this.backendFor(notebookId)).renameScriptFolder(notebookId, oldFolderName, newFolderName);
+    async deleteScript(notebookId: string, scriptName: string): Promise<void> {
+        return (await this.backendFor(notebookId)).deleteScript(notebookId, scriptName);
     }
-    async loadScript(notebookId: string, folderName: string, scriptName: string): Promise<ScriptData> {
-        return (await this.backendFor(notebookId)).loadScript(notebookId, folderName, scriptName);
-    }
-    async saveScript(notebookId: string, folderName: string, scriptName: string, sql: string): Promise<void> {
-        return (await this.backendFor(notebookId)).saveScript(notebookId, folderName, scriptName, sql);
-    }
-    async deleteScript(notebookId: string, folderName: string, scriptName: string): Promise<void> {
-        return (await this.backendFor(notebookId)).deleteScript(notebookId, folderName, scriptName);
-    }
-    async renameScript(notebookId: string, folderName: string, oldScriptName: string, newScriptName: string): Promise<void> {
-        return (await this.backendFor(notebookId)).renameScript(notebookId, folderName, oldScriptName, newScriptName);
-    }
-    async loadScriptDraft(notebookId: string): Promise<string | null> {
-        return (await this.backendFor(notebookId)).loadScriptDraft(notebookId);
-    }
-    async saveScriptDraft(notebookId: string, sql: string): Promise<void> {
-        return (await this.backendFor(notebookId)).saveScriptDraft(notebookId, sql);
+    async renameScript(notebookId: string, oldScriptName: string, newScriptName: string): Promise<void> {
+        return (await this.backendFor(notebookId)).renameScript(notebookId, oldScriptName, newScriptName);
     }
     async loadQueryResultCache(notebookId: string, hash: string): Promise<CachedQueryResult | null> {
         return (await this.backendFor(notebookId)).loadQueryResultCache(notebookId, hash);

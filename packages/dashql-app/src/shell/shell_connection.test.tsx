@@ -2,11 +2,11 @@ import * as React from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { ConnectionHealth } from '../app/notebook/connections/connection_state.js';
-import { ConnectionRegistry, useConnectionRegistry } from '../app/notebook/connections/connection_registry.js';
+import { ConnectionHealth } from '../app/notebook/connections/attached_database_state.js';
+import { AttachedDatabaseRegistry, useAttachedDatabaseRegistry } from '../app/notebook/connections/attached_database_registry.js';
 import { EXECUTE_QUERY, QUERY_SUCCEEDED, QueryExecutionStatus, QueryType, createQueryExecutionState } from '../query/query_execution_state.js';
 import {
-    SHELL_CONNECTION_ID,
+    SHELL_DATABASE_ID,
     SHELL_NOTEBOOK_ID,
     ShellConnectionProvider,
     useShellConnection,
@@ -29,23 +29,26 @@ describe('ShellConnectionProvider', () => {
 
     it('publishes shell connection and query state through the shared registry', () => {
         let shell: ReturnType<typeof useShellConnection> | null = null;
-        let registry: ReturnType<typeof useConnectionRegistry>[0] | null = null;
+        let registry: ReturnType<typeof useAttachedDatabaseRegistry>[0] | null = null;
         const Probe = () => {
             shell = useShellConnection();
-            [registry] = useConnectionRegistry();
+            [registry] = useAttachedDatabaseRegistry();
             return null;
         };
 
         act(() => root.render(
-            <ConnectionRegistry>
+            <AttachedDatabaseRegistry>
                 <ShellConnectionProvider>
                     <Probe />
                 </ShellConnectionProvider>
-            </ConnectionRegistry>
+            </AttachedDatabaseRegistry>
         ));
 
-        expect(registry!.connectionByNotebook.get(SHELL_NOTEBOOK_ID)).toBe(SHELL_CONNECTION_ID);
-        expect(registry!.connectionMap.get(SHELL_CONNECTION_ID)?.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
+        expect(registry!.attachedDatabasesByNotebook.get(SHELL_NOTEBOOK_ID)).toEqual({
+            mainDatabaseId: SHELL_DATABASE_ID,
+            attachedDatabaseIds: [],
+        });
+        expect(registry!.attachedDatabases.get(SHELL_DATABASE_ID)?.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
 
         const query = createQueryExecutionState(
             1,
@@ -66,7 +69,7 @@ describe('ShellConnectionProvider', () => {
             shell!.queryExecutions.dispatch({ type: QUERY_SUCCEEDED, value: [query.queryId] });
         });
 
-        const connection = registry!.connectionMap.get(SHELL_CONNECTION_ID)!;
+        const connection = registry!.attachedDatabases.get(SHELL_DATABASE_ID)!;
         expect(connection.connectionHealth).toBe(ConnectionHealth.ONLINE);
         expect(connection.queriesActive.size).toBe(0);
         expect(connection.queriesFinished.get(query.queryId)).toMatchObject({

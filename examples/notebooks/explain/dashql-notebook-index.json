@@ -1,116 +1,76 @@
 {
-  "folders": [
+  "scripts": [
     {
-      "name": "1_setup",
-      "scripts": [
-        {
-          "name": "1_version.sql"
-        },
-        {
-          "name": "3_test_tables.sql"
-        }
-      ]
+      "name": "01_version.sql"
     },
     {
-      "name": "2_referenced_tables",
-      "scripts": [
-        {
-          "name": "4_expand_views_false.sql"
-        },
-        {
-          "name": "5_expand_views_true.sql"
-        }
-      ]
+      "name": "02_test_tables.sql"
     },
     {
-      "name": "3_schema",
-      "scripts": [
-        {
-          "name": "2_format_schema.sql"
-        },
-        {
-          "name": "3_with_lineage.sql"
-        }
-      ]
+      "name": "03_referenced_tables_expand_views_false.sql"
     },
     {
-      "name": "4_aggregation",
-      "scripts": [
-        {
-          "name": "1_tpch_q1.sql"
-        },
-        {
-          "name": "2_preagg_schema.sql"
-        },
-        {
-          "name": "3_preagg_sql.sql"
-        },
-        {
-          "name": "4_postagg_schema.sql"
-        },
-        {
-          "name": "5_limitation_sort.sql"
-        },
-        {
-          "name": "6_limitation_static.sql"
-        },
-        {
-          "name": "7_limitation_windows.sql"
-        }
-      ]
+      "name": "04_referenced_tables_expand_views_true.sql"
     },
     {
-      "name": "5_text_tree",
-      "scripts": [
-        {
-          "name": "2_text_tree.sql"
-        }
-      ]
+      "name": "05_schema.sql"
     },
     {
-      "name": "6_sql",
-      "scripts": [
-        {
-          "name": "1_dialect.sql"
-        },
-        {
-          "name": "2_obfuscation.sql"
-        },
-        {
-          "name": "3_regexp_like.sql"
-        },
-        {
-          "name": "4_dialect_check_lenient.sql"
-        },
-        {
-          "name": "5_dialect_check_strict.sql"
-        },
-        {
-          "name": "6_expand_views_false.sql"
-        },
-        {
-          "name": "7_expand_views_true.sql"
-        }
-      ]
+      "name": "06_schema_with_lineage.sql"
     },
     {
-      "name": "7_sql_expressions",
-      "scripts": [
-        {
-          "name": "1_hidden_orca.sql"
-        }
-      ]
+      "name": "07_tpch_q1.sql"
     },
     {
-      "name": "8_streaming",
-      "scripts": [
-        {
-          "name": "1_explain_options.sql"
-        },
-        {
-          "name": "2_explain_predicate.sql"
-        }
-      ]
+      "name": "08_preagg_schema.sql"
+    },
+    {
+      "name": "09_preagg_sql.sql"
+    },
+    {
+      "name": "10_postagg_schema.sql"
+    },
+    {
+      "name": "11_preagg_limitation_sort.sql"
+    },
+    {
+      "name": "12_preagg_limitation_static.sql"
+    },
+    {
+      "name": "13_preagg_limitation_windows.sql"
+    },
+    {
+      "name": "14_text_tree.sql"
+    },
+    {
+      "name": "15_sql_dialect.sql"
+    },
+    {
+      "name": "16_sql_with_obfuscated.sql"
+    },
+    {
+      "name": "17_sql_regexp_like.sql"
+    },
+    {
+      "name": "18_sql_with_dialect_check_lenient.sql"
+    },
+    {
+      "name": "19_sql_with_dialect_check_strict.sql"
+    },
+    {
+      "name": "20_sql_expand_views_false.sql"
+    },
+    {
+      "name": "21_sql_expand_views_true.sql"
+    },
+    {
+      "name": "22_sql_expressions.sql"
+    },
+    {
+      "name": "23_streaming_explain_options.sql"
+    },
+    {
+      "name": "24_streaming_with_predicate.sql"
     }
   ]
 }

@@ -29,6 +29,20 @@ export const SKIP_NOTEBOOK_SETUP = Symbol("SKIP_NOTEBOOK_SETUP");
 export const OPEN_LINK_NOTEBOOK = Symbol("OPEN_LINK_NOTEBOOK");
 export const OPEN_NOTEBOOK = Symbol("OPEN_NOTEBOOK");
 
+export function notebookPath(notebookId: string): string {
+    return `/notebooks/${encodeURIComponent(notebookId)}`;
+}
+
+export function notebookIdFromPathname(pathname: string): string | null {
+    const match = /^\/notebooks\/([^/]+)\/?$/.exec(pathname);
+    if (match == null) return null;
+    try {
+        return decodeURIComponent(match[1]);
+    } catch {
+        return null;
+    }
+}
+
 export type RouteTarget =
     VariantKind<typeof NOTEBOOK_PATH, string | null>
     | VariantKind<typeof TOOL_PATH, null>
@@ -51,7 +65,7 @@ export function useRouteContext() {
         return {
             appLoadingStatus: AppLoadingStatus.NOT_STARTED,
             confirmedFinishedSetup: false,
-            notebookId: null,
+            notebookId: notebookIdFromPathname(location.pathname),
             notebookSetupStatus: NotebookSetupStatus.NONE,
         };
     } else {
@@ -69,7 +83,7 @@ export function useRouterNavigate() {
     return React.useCallback((route: RouteTarget) => {
         switch (route.type) {
             case NOTEBOOK_PATH:
-                navigate("/notebook", {
+                navigate(route.value == null ? "/" : notebookPath(route.value), {
                     state: {
                         ...context,
                         notebookId: route.value ?? null,
@@ -102,7 +116,7 @@ export function useRouterNavigate() {
                 });
                 break;
             case SELECT_NOTEBOOK:
-                navigate(location.pathname, {
+                navigate(notebookPath(route.value), {
                     state: {
                         ...context,
                         notebookId: route.value,
@@ -111,7 +125,7 @@ export function useRouterNavigate() {
                 });
                 break;
             case OPEN_NOTEBOOK:
-                navigate(location.pathname, {
+                navigate(notebookPath(route.value), {
                     state: {
                         ...context,
                         notebookId: route.value,
@@ -129,7 +143,7 @@ export function useRouterNavigate() {
                 });
                 break;
             case BEGIN_NOTEBOOK_SETUP:
-                navigate(location.pathname, {
+                navigate(notebookPath(route.value), {
                     state: {
                         ...context,
                         notebookId: route.value,
@@ -138,7 +152,7 @@ export function useRouterNavigate() {
                 });
                 break;
             case CANCEL_NOTEBOOK_SETUP:
-                navigate(location.pathname, {
+                navigate("/", {
                     state: {
                         ...context,
                         notebookId: null,
@@ -158,7 +172,7 @@ export function useRouterNavigate() {
                 // A notebook arrived via a shared link and has been restored into the registries.
                 // Start the common opening flow atomically so embedded connections can initialize
                 // without briefly showing the connection setup screen.
-                navigate(location.pathname, {
+                navigate(notebookPath(route.value), {
                     state: {
                         appLoadingStatus: AppLoadingStatus.SETUP_DONE,
                         confirmedFinishedSetup: false,

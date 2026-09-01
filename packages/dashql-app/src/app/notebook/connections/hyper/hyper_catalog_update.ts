@@ -1,10 +1,10 @@
 import * as arrow from 'apache-arrow';
 import * as dashql from '../../../../core/index.js';
 
-import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
-import { DynamicConnectionDispatch } from '../connection_registry.js';
+import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from '../attached_database_state.js';
+import { DynamicAttachedDatabaseDispatch } from '../attached_database_registry.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../catalog_update_state.js';
-import { CatalogSource, generateCatalogScriptHeader, generateCatalogScriptHeaderForSource, generateSchemaSQL, quoteIdentifier, type ColumnMetadata } from '../catalog_sql_generator.js';
+import { CatalogSource, DEFAULT_DATABASE_NAME, generateCatalogScriptHeader, generateCatalogScriptHeaderForSource, generateSchemaSQL, quoteIdentifier, type ColumnMetadata } from '../catalog_sql_generator.js';
 import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, generateCatalogSQLFromPgAttribute } from '../catalog_query_pg_attribute.js';
 import { QueryExecutionArgs } from '../query_execution_args.js';
 import { QueryExecutor } from '../query_executor.js';
@@ -16,7 +16,6 @@ import { generateFunctionScriptHeaderForSource } from '../catalog_function_sql_g
 import { generateCatalogSQLFromPgProc, queryPgProc } from '../catalog_query_pg_proc.js';
 
 const LOG_CTX = 'hyper_catalog';
-const DEFAULT_HYPER_DATABASE = 'hyper';
 const SECTION_BEGIN = '-- DashQL Hyper Catalog Section: ';
 const SECTION_END = '-- DashQL Hyper Catalog Section End';
 
@@ -55,7 +54,7 @@ function summarizeFailures(message: string, failures: HyperCatalogUpdateFailure[
 
 function buildCatalogTargets(attachedDatabases: AttachedDatabase[]): CatalogTarget[] {
     if (attachedDatabases.length === 0) {
-        return [{ key: DEFAULT_HYPER_DATABASE, databaseName: DEFAULT_HYPER_DATABASE, queryDatabaseName: null, path: '' }];
+        return [{ key: DEFAULT_DATABASE_NAME, databaseName: DEFAULT_DATABASE_NAME, queryDatabaseName: null, path: '' }];
     }
     return attachedDatabases.map(database => ({
         key: database.alias ?? '',
@@ -129,7 +128,7 @@ export function generateCatalogSQLFromHyperCloud(result: HyperCloudCatalogTable,
 
 async function queryHyperCloudCatalog(
     connectionId: string,
-    connectionDispatch: DynamicConnectionDispatch,
+    connectionDispatch: DynamicAttachedDatabaseDispatch,
     updateId: number,
     databaseAlias: string,
     executor: QueryExecutor,
@@ -222,7 +221,7 @@ function replaceCatalogScript(
 export async function updateHyperCatalog(
     logger: LoggerLike,
     connectionId: string,
-    connectionDispatch: DynamicConnectionDispatch,
+    connectionDispatch: DynamicAttachedDatabaseDispatch,
     updateId: number,
     attachedDatabases: AttachedDatabase[],
     executor: QueryExecutor,
@@ -302,13 +301,13 @@ export async function updateHyperCatalog(
         if (functionResult == null || functionResult.numRows === 0) {
             throw new Error('pg_proc returned no Hyper functions');
         }
-        const functions = generateCatalogSQLFromPgProc(functionResult, DEFAULT_HYPER_DATABASE);
+        const functions = generateCatalogSQLFromPgProc(functionResult, DEFAULT_DATABASE_NAME);
         if (!functions.trim()) {
             throw new Error('pg_proc returned no usable Hyper functions');
         }
         functionSQL = `${generateFunctionScriptHeaderForSource('HyperDB WASM pg_proc')}${functions}`;
     } else {
-        functionSQL = qualifyPrefetchedHyperFunctions(DEFAULT_HYPER_DATABASE);
+        functionSQL = qualifyPrefetchedHyperFunctions(DEFAULT_DATABASE_NAME);
     }
 
     const sections = parseCatalogSections(catalogRelationScript.toString());

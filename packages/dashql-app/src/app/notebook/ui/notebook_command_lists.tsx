@@ -10,7 +10,7 @@ import { NotebookScripts } from '../scripts/notebook_scripts.js';
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
-import { ConnectionHealth, ConnectionState } from '../connections/connection_state.js';
+import { ConnectionHealth, AttachedDatabaseState } from '../connections/attached_database_state.js';
 import { CONNECTION_HEALTH_COLORS } from '../connections/ui/connection_status.js';
 import { isCatalogRefreshRunning } from '../connections/catalog_update_state.js';
 import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status_indicator.js';
@@ -18,7 +18,7 @@ import type { NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
 import { getHyperConnectionDetails } from '../connections/hyper/hyper_connection_state.js';
 
 export const ConnectionCommandList: React.FC<{
-    conn: ConnectionState | null;
+    conn: AttachedDatabaseState | null;
     notebookScripts: NotebookScripts | null;
     navigationDisabled?: boolean;
     onOpenSettings?: () => void;
@@ -47,7 +47,7 @@ export const ConnectionCommandList: React.FC<{
                     </svg>
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Edit Connection
+                    Edit Attached Database
                 </ActionList.ItemText>
                 {showHealthCheck ? (
                     <ActionList.Trailing>
@@ -89,7 +89,7 @@ export const ConnectionCommandList: React.FC<{
 };
 
 export const NotebookCommandList: React.FC<{
-    conn: ConnectionState | null;
+    conn: AttachedDatabaseState | null;
     notebookScripts: NotebookScripts | null;
     modifyNotebookScripts: ModifyNotebookScripts | null;
     navigationDisabled?: boolean;

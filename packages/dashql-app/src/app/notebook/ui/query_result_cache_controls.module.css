@@ -4,7 +4,7 @@
     display: inline-flex;
     align-items: center;
     height: 22px;
-    font-size: 0.75rem;
+    font-size: var(--font_size_caption);
     color: hsl(210, 12%, 40%);
     white-space: nowrap;
 }
@@ -21,7 +21,7 @@
     border-radius: 3px;
     color: hsl(210, 10%, 46%);
     background-color: hsl(210, 15%, 91%);
-    font-size: 0.65rem;
+    font-size: var(--font_size_badge);
     font-weight: 500;
     line-height: 1.4;
     text-transform: uppercase;

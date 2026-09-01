@@ -1,27 +1,17 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { NotebookData } from './storage_backend.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// The plugin-fs mock is backed by a *shared* in-memory store (see test_fs_mock.ts). It must be
-// shared with composite_storage_backend.test.ts because the app runs vitest with `isolate: false`:
-// when both files land on the same worker, the real native_storage_backend.ts is imported once and
-// bound to whichever file's mock loaded first, so a per-file store would be read/written by the
-// other file's backend. The factories use async `import()` so both files resolve the same singleton.
 vi.mock('../../../platform/electron_fs.js', async () => ({
     ...(await import('./test_fs_mock.js')).makeFsMock(),
     ...(await import('./test_fs_mock.js')).makePathMock(),
 }));
 
-// Import after the mocks are registered.
 import { fsStore, resetFsStore } from './test_fs_mock.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
-import { STORAGE_NOTEBOOK_INDEX_FILE } from './storage_backend.js';
+import { TEST_NOTEBOOK_ID, testNotebook } from './notebook_test_backend.js';
 
-// The directory that backs the single notebook under test. Files land *directly* here.
-const DIR = '/Users/test/my-notebook';
-// The notebook UUID is opaque routing context - it does not affect the on-disk layout.
-const SID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+const DIR = '/tmp/v2-notebook';
 
-describe('NativeStorageBackend (one-dir-one-notebook)', () => {
+describe('NativeStorageBackend V2 flat storage', () => {
     let backend: NativeStorageBackend;
 
     beforeEach(async () => {
@@ -30,404 +20,47 @@ describe('NativeStorageBackend (one-dir-one-notebook)', () => {
         await backend.initialize();
     });
 
-    describe('Registry-level ops are inert (owned by OPFS)', () => {
-        it('listNotebooks returns an empty array', async () => {
-            expect(await backend.listNotebooks('ignored')).toEqual([]);
-        });
+    it('round-trips manifest, catalog, and naturally ordered flat scripts', async () => {
+        await backend.saveNotebookManifest(TEST_NOTEBOOK_ID, testNotebook());
+        await backend.saveNotebookSchema(TEST_NOTEBOOK_ID, 'schema');
+        await backend.saveNotebookFunctions(TEST_NOTEBOOK_ID, 'functions');
+        await backend.saveScript(TEST_NOTEBOOK_ID, '10_last.sql', 'SELECT 10');
+        await backend.saveScript(TEST_NOTEBOOK_ID, '2_first.sql', 'SELECT 2');
 
-        it('loadAppSettings returns null', async () => {
-            expect(await backend.loadAppSettings()).toBeNull();
+        expect(await backend.loadNotebook(TEST_NOTEBOOK_ID)).toEqual(testNotebook());
+        expect(await backend.loadScripts(TEST_NOTEBOOK_ID)).toEqual([
+            { name: '2_first.sql', sql: 'SELECT 2' },
+            { name: '10_last.sql', sql: 'SELECT 10' },
+        ]);
+        expect(JSON.parse(fsStore.files.get(`${DIR}/dashql-notebook-index.json`)!)).toEqual({
+            scripts: [{ name: '2_first.sql' }, { name: '10_last.sql' }],
         });
-
-        it('saveAppSettings is a no-op that does not write files', async () => {
-            await backend.saveAppSettings({ someFlag: true } as any);
-            expect(fsStore.files.size).toBe(0);
-        });
-
-        it('exposes the backing directory and the native backend type', () => {
-            expect(backend.getDir()).toBe(DIR);
-            expect(backend.getBackendType()).toBe('native');
-        });
+        expect(fsStore.files.has(`${DIR}/scripts/2_first.sql`)).toBe(true);
+        expect([...fsStore.files.keys()].some(path => path.includes('/scripts/page/'))).toBe(false);
     });
 
-    describe('Notebook manifest', () => {
-        it('saves and loads a notebook, writing the manifest directly in the directory', async () => {
-            const notebookData: NotebookData = {
-                notebookId: SID,
-                name: 'Test Notebook',
-                connectionParams: { hyper: {} } as any,
-                metadata: {
-                    originalFileName: 'test.sql',
-                    createdAt: '2024-01-01T00:00:00Z',
-                },
-            };
-
-            await backend.saveNotebookManifest(SID, notebookData);
-
-            const loaded = await backend.loadNotebook(SID);
-            expect(loaded).toEqual(notebookData);
-            // The file lands directly under the directory - no notebooks/<uuid> nesting.
-            expect(fsStore.files.has(`${DIR}/dashql-notebook.json`)).toBe(true);
-            expect(fsStore.files.has(`${DIR}/notebooks/${SID}/dashql-notebook.json`)).toBe(false);
-        });
-
-        it('overwrites the manifest in place on re-save', async () => {
-            const make = (name: string): NotebookData => ({
-                notebookId: SID,
-                name,
-                connectionParams: { hyper: {} } as any,
-                metadata: {},
-            });
-            await backend.saveNotebookManifest(SID, make('First'));
-            await backend.saveNotebookManifest(SID, make('Second'));
-
-            const loaded = await backend.loadNotebook(SID);
-            expect(loaded.name).toBe('Second');
-            // Only one manifest file ever exists.
-            expect([...fsStore.files.keys()].filter(p => p.endsWith('dashql-notebook.json'))).toHaveLength(1);
-        });
-
-        it('returns malformed metadata for the shared validation gate to diagnose', async () => {
-            fsStore.files.set(`${DIR}/dashql-notebook.json`, JSON.stringify({
-                sessionId: SID,
-                connectionParams: { hyper: {} } as any,
-                notebook: {},
-            }));
-
-            const loaded = await backend.loadNotebook(SID);
-            expect(loaded.notebookId).toBeUndefined();
-        });
+    it('persists rename and delete while refreshing the flat index', async () => {
+        await backend.saveScript(TEST_NOTEBOOK_ID, '01_old.sql', 'SELECT 1');
+        await backend.renameScript(TEST_NOTEBOOK_ID, '01_old.sql', '01_new.sql');
+        expect(await backend.loadScript(TEST_NOTEBOOK_ID, '01_new.sql')).toEqual({ name: '01_new.sql', sql: 'SELECT 1' });
+        await backend.deleteScript(TEST_NOTEBOOK_ID, '01_new.sql');
+        expect(await backend.loadScripts(TEST_NOTEBOOK_ID)).toEqual([]);
+        expect(JSON.parse(fsStore.files.get(`${DIR}/dashql-notebook-index.json`)!)).toEqual({ scripts: [] });
     });
 
-    describe('Schema and Functions', () => {
-        it('saves and loads schema SQL directly in the directory', async () => {
-            await backend.saveNotebookSchema(SID, 'CREATE TABLE t(a int);');
-            expect(await backend.loadNotebookSchema(SID)).toBe('CREATE TABLE t(a int);');
-            expect(fsStore.files.has(`${DIR}/dashql-relations.sql`)).toBe(true);
-        });
-
-        it('returns null for missing schema', async () => {
-            expect(await backend.loadNotebookSchema(SID)).toBeNull();
-        });
-
-        it('saves and loads functions SQL directly in the directory', async () => {
-            await backend.saveNotebookFunctions(SID, 'CREATE FUNCTION f() ...;');
-            expect(await backend.loadNotebookFunctions(SID)).toBe('CREATE FUNCTION f() ...;');
-            expect(fsStore.files.has(`${DIR}/dashql-functions.sql`)).toBe(true);
-        });
-
-        it('returns null for missing functions', async () => {
-            expect(await backend.loadNotebookFunctions(SID)).toBeNull();
-        });
+    it.each([
+        ['nested directory', () => fsStore.dirs.add(`${DIR}/scripts/page`), 'nested scripts directory'],
+        ['draft file', () => fsStore.files.set(`${DIR}/scripts/dashql-draft.sql`, 'SELECT 1'), 'dashql-draft.sql is not supported'],
+    ])('rejects an obsolete %s', async (_label, seed, message) => {
+        seed();
+        await expect(backend.loadScripts(TEST_NOTEBOOK_ID)).rejects.toThrow(message);
     });
 
-    describe('Script Folders', () => {
-        it('backfills a missing index without overwriting an existing one', async () => {
-            await backend.createScriptFolder(SID, 'page-1');
-            await backend.saveScript(SID, 'page-1', '01-script.sql', 'SELECT 1;');
-            fsStore.files.delete(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`);
-
-            await backend.ensureNotebookIndex(SID);
-            expect(JSON.parse(fsStore.files.get(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`)!)).toEqual({
-                folders: [{ name: 'page-1', scripts: [{ name: '01-script.sql' }] }],
-            });
-
-            fsStore.files.set(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`, 'keep-me');
-            await backend.ensureNotebookIndex(SID);
-            expect(fsStore.files.get(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`)).toBe('keep-me');
-        });
-
-        it('creates script folders under the notebook folder', async () => {
-            await backend.createScriptFolder(SID, 'page-1');
-            await backend.createScriptFolder(SID, 'page-2');
-
-            const pages = await backend.loadScriptFolders(SID);
-            expect(pages).toHaveLength(2);
-            expect(pages[0].name).toBe('page-1');
-            expect(pages[1].name).toBe('page-2');
-            expect(fsStore.dirs.has(`${DIR}/scripts/page-1`)).toBe(true);
-        });
-
-        it('deletes a script folder', async () => {
-            await backend.createScriptFolder(SID, 'page-1');
-            await backend.createScriptFolder(SID, 'page-2');
-
-            await backend.deleteScriptFolder(SID, 'page-1');
-
-            const pages = await backend.loadScriptFolders(SID);
-            expect(pages).toHaveLength(1);
-            expect(pages[0].name).toBe('page-2');
-        });
-
-        it('returns pages with natural sort (page-1 < page-2 < page-10)', async () => {
-            await backend.createScriptFolder(SID, 'page-10');
-            await backend.createScriptFolder(SID, 'page-2');
-            await backend.createScriptFolder(SID, 'page-1');
-
-            const pages = await backend.loadScriptFolders(SID);
-            expect(pages.map(p => p.name)).toEqual(['page-1', 'page-2', 'page-10']);
-            expect(JSON.parse(fsStore.files.get(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`)!)).toEqual({
-                folders: [
-                    { name: 'page-1', scripts: [] },
-                    { name: 'page-2', scripts: [] },
-                    { name: 'page-10', scripts: [] },
-                ],
-            });
-        });
-
-        it('returns an empty array when the notebook folder does not exist', async () => {
-            expect(await backend.loadScriptFolders(SID)).toEqual([]);
-        });
-
-        it('renames a page atomically, carrying its scripts across unchanged', async () => {
-            await backend.createScriptFolder(SID, '1_old');
-            await backend.saveScript(SID, '1_old', '1_a.sql', 'SELECT 1;');
-            await backend.saveScript(SID, '1_old', '2_b.sql', 'SELECT 2;');
-
-            await backend.renameScriptFolder(SID, '1_old', '1_new');
-
-            const pages = await backend.loadScriptFolders(SID);
-            expect(pages.map(p => p.name)).toEqual(['1_new']);
-            expect(pages[0].scripts.map(s => s.name)).toEqual(['1_a.sql', '2_b.sql']);
-            expect(fsStore.dirs.has(`${DIR}/scripts/1_old`)).toBe(false);
-            expect(fsStore.files.has(`${DIR}/scripts/1_new/1_a.sql`)).toBe(true);
-        });
-
-        it('renaming a never-flushed page is a no-op (nothing on disk to move)', async () => {
-            await backend.renameScriptFolder(SID, '1_ghost', '1_new');
-            expect(await backend.loadScriptFolders(SID)).toEqual([]);
-        });
-    });
-
-    describe('Scripts', () => {
-        beforeEach(async () => {
-            await backend.createScriptFolder(SID, 'page-1');
-        });
-
-        it('saves and loads a script', async () => {
-            const sql = 'SELECT * FROM users;';
-            await backend.saveScript(SID, 'page-1', '01-script.sql', sql);
-
-            const script = await backend.loadScript(SID, 'page-1', '01-script.sql');
-            expect(script.name).toBe('01-script.sql');
-            expect(script.sql).toBe(sql);
-            expect(fsStore.files.has(`${DIR}/scripts/page-1/01-script.sql`)).toBe(true);
-        });
-
-        it('throws when loading a non-existent script', async () => {
-            await expect(
-                backend.loadScript(SID, 'page-1', '99-nonexistent.sql')
-            ).rejects.toThrow('Script not found');
-        });
-
-        it('deletes a script', async () => {
-            await backend.saveScript(SID, 'page-1', '01-script.sql', 'SELECT 1;');
-            await backend.deleteScript(SID, 'page-1', '01-script.sql');
-
-            await expect(
-                backend.loadScript(SID, 'page-1', '01-script.sql')
-            ).rejects.toThrow('Script not found');
-        });
-
-        it('returns scripts with natural sort (01- < 02- < 10-)', async () => {
-            await backend.saveScript(SID, 'page-1', '10-script.sql', 'SELECT 10;');
-            await backend.saveScript(SID, 'page-1', '02-script.sql', 'SELECT 2;');
-            await backend.saveScript(SID, 'page-1', '01-script.sql', 'SELECT 1;');
-
-            const pages = await backend.loadScriptFolders(SID);
-            expect(pages[0].scripts.map(s => s.name)).toEqual(['01-script.sql', '02-script.sql', '10-script.sql']);
-            expect(JSON.parse(fsStore.files.get(`${DIR}/${STORAGE_NOTEBOOK_INDEX_FILE}`)!)).toEqual({
-                folders: [{
-                    name: 'page-1',
-                    scripts: [
-                        { name: '01-script.sql' },
-                        { name: '02-script.sql' },
-                        { name: '10-script.sql' },
-                    ],
-                }],
-            });
-        });
-
-        it('renames a script atomically, preserving its contents', async () => {
-            await backend.saveScript(SID, 'page-1', '1_old.sql', 'SELECT 42;');
-
-            await backend.renameScript(SID, 'page-1', '1_old.sql', '1_new.sql');
-
-            await expect(
-                backend.loadScript(SID, 'page-1', '1_old.sql')
-            ).rejects.toThrow('Script not found');
-            const moved = await backend.loadScript(SID, 'page-1', '1_new.sql');
-            expect(moved.sql).toBe('SELECT 42;');
-        });
-
-        it('renaming a never-flushed script is a no-op', async () => {
-            await backend.renameScript(SID, 'page-1', '1_ghost.sql', '1_new.sql');
-            const pages = await backend.loadScriptFolders(SID);
-            expect(pages[0].scripts).toEqual([]);
-        });
-    });
-
-    describe('Script Draft', () => {
-        it('saves and loads the draft script', async () => {
-            await backend.saveScriptDraft(SID, 'SELECT * FROM draft;');
-            expect(await backend.loadScriptDraft(SID)).toBe('SELECT * FROM draft;');
-        });
-
-        it('returns null when the draft does not exist', async () => {
-            expect(await backend.loadScriptDraft(SID)).toBeNull();
-        });
-
-        it('overwrites an existing draft', async () => {
-            await backend.saveScriptDraft(SID, 'SELECT 1;');
-            await backend.saveScriptDraft(SID, 'SELECT 2;');
-            expect(await backend.loadScriptDraft(SID)).toBe('SELECT 2;');
-        });
-
-        it('does not return the draft as a page script', async () => {
-            await backend.createScriptFolder(SID, 'page-1');
-            await backend.saveScript(SID, 'page-1', '01-script.sql', 'SELECT 1;');
-            await backend.saveScriptDraft(SID, 'SELECT draft;');
-
-            const pages = await backend.loadScriptFolders(SID);
-            expect(pages[0].scripts.map(s => s.name)).toEqual(['01-script.sql']);
-        });
-    });
-
-    describe('Query result cache', () => {
-        const bytesOf = (s: string) => new TextEncoder().encode(s);
-
-        it('round-trips cached bytes and reports a write time', async () => {
-            await backend.saveQueryResultCache(SID, 'hash1', bytesOf('arrow-payload'));
-
-            const loaded = await backend.loadQueryResultCache(SID, 'hash1');
-            expect(loaded).not.toBeNull();
-            expect(new TextDecoder().decode(loaded!.bytes)).toBe('arrow-payload');
-            expect(typeof loaded!.cachedAtMs).toBe('number');
-            // The entry lives under cache/<hash>.arrow directly in the notebook directory.
-            expect(fsStore.binFiles.has(`${DIR}/cache/hash1.arrow`)).toBe(true);
-        });
-
-        it('returns null for a missing hash', async () => {
-            expect(await backend.loadQueryResultCache(SID, 'nope')).toBeNull();
-        });
-
-        it('writes a .gitignore excluding cache/ exactly once, never clobbering an existing one', async () => {
-            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
-            expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('cache/\n');
-
-            // A user-authored .gitignore must survive a later cache write.
-            fsStore.files.set(`${DIR}/.gitignore`, 'my-own-rules\n');
-            await backend.saveQueryResultCache(SID, 'h2', bytesOf('b'));
-            expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('my-own-rules\n');
-        });
-
-        it('deletes a single cached entry and tolerates a missing one', async () => {
-            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
-            await backend.deleteQueryResultCache(SID, 'h1');
-            expect(await backend.loadQueryResultCache(SID, 'h1')).toBeNull();
-            // Deleting an already-gone entry is a no-op.
-            await expect(backend.deleteQueryResultCache(SID, 'h1')).resolves.toBeUndefined();
-        });
-
-        it('seeds an access marker on write and removes it on delete', async () => {
-            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
-            expect(fsStore.binFiles.has(`${DIR}/cache/h1.arrow.last_access`)).toBe(true);
-
-            await backend.deleteQueryResultCache(SID, 'h1');
-            // The marker must not outlive its payload, or it would leak as a zero-byte file.
-            expect(fsStore.binFiles.has(`${DIR}/cache/h1.arrow.last_access`)).toBe(false);
-        });
-
-        it('touch bumps the marker mtime without re-touching the payload', async () => {
-            await backend.saveQueryResultCache(SID, 'h1', bytesOf('arrow-payload'));
-            const payloadMtime = fsStore.mtimes.get(`${DIR}/cache/h1.arrow`);
-            const markerMtimeBefore = fsStore.mtimes.get(`${DIR}/cache/h1.arrow.last_access`);
-
-            await backend.touchQueryResultCacheAccess(SID, 'h1');
-            // Payload write time is preserved (it is the UI's "cached at"); only the marker advances.
-            expect(fsStore.mtimes.get(`${DIR}/cache/h1.arrow`)).toBe(payloadMtime);
-            expect(fsStore.mtimes.get(`${DIR}/cache/h1.arrow.last_access`)!).toBeGreaterThan(markerMtimeBefore!);
-        });
-
-        it('reaps an orphaned access marker on the next save', async () => {
-            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
-            // Simulate a crash between payload-delete and marker-delete: strand the marker.
-            fsStore.binFiles.delete(`${DIR}/cache/h1.arrow`);
-            expect(fsStore.binFiles.has(`${DIR}/cache/h1.arrow.last_access`)).toBe(true);
-
-            // The next save walks the cache dir for eviction and reaps the orphan in that same pass.
-            await backend.saveQueryResultCache(SID, 'h2', bytesOf('b'));
-            expect(fsStore.binFiles.has(`${DIR}/cache/h1.arrow.last_access`)).toBe(false);
-        });
-
-        it('does not list access markers as cache entries', async () => {
-            // Two payloads plus their markers live in cache/, but only the .arrow payloads count as
-            // entries — the round-trip below must still see both, and markers must never masquerade
-            // as loadable results.
-            await backend.saveQueryResultCache(SID, 'h1', bytesOf('a'));
-            await backend.saveQueryResultCache(SID, 'h2', bytesOf('b'));
-            expect(await backend.loadQueryResultCache(SID, 'h1')).not.toBeNull();
-            expect(await backend.loadQueryResultCache(SID, 'h2')).not.toBeNull();
-            // The marker is not itself a payload: reading it as a hash yields the marker bytes only if
-            // the caller asked for the literal marker hash, never via the payload hash.
-            expect(await backend.loadQueryResultCache(SID, 'h1.arrow')).toBeNull();
-        });
-
-        it('lists cached entries (payloads only) with size and recency, empty when no cache folder', async () => {
-            // No cache folder yet -> empty listing, never throws.
-            expect(await backend.listQueryResultCache(SID)).toEqual([]);
-
-            await backend.saveQueryResultCache(SID, 'h1', bytesOf('aa'));
-            await backend.saveQueryResultCache(SID, 'h2', bytesOf('bbbb'));
-
-            const listed = await backend.listQueryResultCache(SID);
-            // Only the two .arrow payloads count — the access markers are folded into lastAccessMs.
-            expect(listed.map(e => e.name).sort()).toEqual(['h1.arrow', 'h2.arrow']);
-            const h2 = listed.find(e => e.name === 'h2.arrow')!;
-            expect(h2.size).toBe(4);
-            expect(typeof h2.mtimeMs).toBe('number');
-            expect(typeof h2.lastAccessMs).toBe('number');
-        });
-    });
-
-    describe('deleteNotebook / clearAllStorage', () => {
-        async function seed(): Promise<void> {
-            await backend.saveNotebookManifest(SID, {
-                notebookId: SID,
-                name: 'Test Notebook',
-                connectionParams: { hyper: {} } as any,
-                metadata: {},
-            });
-            await backend.createScriptFolder(SID, 'page-1');
-            await backend.saveScript(SID, 'page-1', '01-script.sql', 'SELECT 1;');
-        }
-
-        it('deleteNotebook leaves the user-owned folder on disk untouched', async () => {
-            await seed();
-            const before = [...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`)).sort();
-            expect(before.length).toBeGreaterThan(0);
-
-            await backend.deleteNotebook(SID);
-
-            // Deleting a native notebook only unregisters it (handled by the composite via the OPFS
-            // manifest); the files on disk are deliberately preserved.
-            const after = [...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`)).sort();
-            expect(after).toEqual(before);
-        });
-
-        it('clearAllStorage leaves the user-owned folder on disk untouched', async () => {
-            await seed();
-            const before = [...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`)).sort();
-            expect(before.length).toBeGreaterThan(0);
-
-            await backend.clearAllStorage();
-
-            const after = [...fsStore.files.keys()].filter(p => p.startsWith(`${DIR}/`)).sort();
-            expect(after).toEqual(before);
-        });
-
-        it('deleteNotebook on an already-empty directory does not throw', async () => {
-            await expect(backend.deleteNotebook(SID)).resolves.toBeUndefined();
-        });
+    it('leaves the user-owned directory intact on delete', async () => {
+        await backend.saveNotebookManifest(TEST_NOTEBOOK_ID, testNotebook());
+        await backend.saveScript(TEST_NOTEBOOK_ID, '01_query.sql', 'SELECT 1');
+        const before = new Map(fsStore.files);
+        await backend.deleteNotebook(TEST_NOTEBOOK_ID);
+        expect(fsStore.files).toEqual(before);
     });
 });

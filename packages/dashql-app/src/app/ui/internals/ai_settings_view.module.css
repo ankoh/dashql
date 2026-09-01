@@ -40,12 +40,12 @@
 }
 
 .title {
-    font-size: 1rem;
+    font-size: var(--font_size_subtitle);
 }
 
 .body {
     grid-row: 2;
-    font-size: 0.9rem;
+    font-size: var(--font_size_subtitle);
     overflow-y: auto;
     min-height: 0;
     display: flex;
@@ -87,12 +87,12 @@
 }
 
 .status_text {
-    font-size: 0.8rem;
+    font-size: var(--font_size_small);
     font-weight: 500;
 }
 
 .status_error {
-    font-size: 0.8rem;
+    font-size: var(--font_size_small);
     font-weight: 300;
     color: #8c959f;
     word-break: break-word;

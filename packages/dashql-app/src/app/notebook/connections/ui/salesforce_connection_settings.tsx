@@ -4,8 +4,8 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { KeyIcon, PersonIcon } from '../../../../ui/foundations/symbol_icon.js';
 
-import { useConnectionState } from '../connection_registry.js';
-import { ConnectionHealth, ConnectionStatus } from '../connection_state.js';
+import { findNotebookForAttachedDatabase, useAttachedDatabaseById, useAttachedDatabaseRegistry } from '../attached_database_registry.js';
+import { ConnectionHealth, ConnectionStatus } from '../attached_database_state.js';
 import { performHealthCheck } from '../health_check.js';
 import { useQueryExecutor } from '../query_executor.js';
 import { useSalesforceSetup } from '../salesforce/salesforce_connector.js';
@@ -119,7 +119,7 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
 }
 
 interface Props {
-    notebookId: string | null;
+    databaseId: string | null;
     onClose?: () => void;
 }
 
@@ -131,7 +131,7 @@ export interface SalesforceConnectionAliasField {
 }
 
 interface SalesforceConnectionSettingsPageProps {
-    connectionState: ReturnType<typeof useConnectionState>[0];
+    connectionState: ReturnType<typeof useAttachedDatabaseById>[0];
     notebookScripts: ReturnType<typeof useAnyConnectionNotebookScripts>;
     hyperProtocol: connection.HyperProtocol;
     protocols?: connection.HyperProtocol[];
@@ -191,8 +191,8 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                         <div className={classNames(style.section_layout, style.body_section_layout)}>
                             <TextField
                                 inputRef={props.alias.inputRef}
-                                name="Connection Alias"
-                                caption="Name saved in login history and used to address this connection in the shell"
+                                name="Attached Database Alias"
+                                caption="Name saved in login history and used to address this attached database in the shell"
                                 value={props.alias.value}
                                 onChange={props.alias.onChange}
                                 placeholder="Alias"
@@ -311,8 +311,10 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const queryExecutor = useQueryExecutor();
 
     // Resolve connection state
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
-    const connectionNotebookScripts = useAnyConnectionNotebookScripts(props.notebookId);
+    const [registry] = useAttachedDatabaseRegistry();
+    const notebookId = props.databaseId == null ? null : findNotebookForAttachedDatabase(registry, props.databaseId);
+    const [connectionState, dispatchAttachedDatabaseState] = useAttachedDatabaseById(props.databaseId);
+    const connectionNotebookScripts = useAnyConnectionNotebookScripts(notebookId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
 
     // Seed the form state from the restored connection params so a notebook
@@ -384,9 +386,9 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
 
         try {
             setupAbortController.current = new AbortController();
-            const sfChannel = await sfSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
+            const sfChannel = await sfSetup.setup(dispatchAttachedDatabaseState, setupParams, setupAbortController.current.signal);
             if (connectionState != null) {
-                await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'salesforce', channel: sfChannel }, dispatchConnectionState, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.databaseId, { type: 'salesforce', channel: sfChannel }, dispatchAttachedDatabaseState, setupAbortController.current.signal);
             }
         } catch {
             // Setup updates connection state with the failure details.
@@ -404,7 +406,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     };
     const resetSetup = async () => {
         if (sfSetup) {
-            await sfSetup.reset(dispatchConnectionState);
+            await sfSetup.reset(dispatchAttachedDatabaseState);
         }
     };
 

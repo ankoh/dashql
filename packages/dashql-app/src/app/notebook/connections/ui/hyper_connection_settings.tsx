@@ -20,8 +20,8 @@ import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useHyperGrpcClient, useHyperHttpClient } from '../hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../../../../ui/foundations/keyvalue_list.js';
 import { Dispatch } from '../../../../utils/variant.js';
-import { useConnectionState } from '../connection_registry.js';
-import { ConnectionHealth } from '../connection_state.js';
+import { findNotebookForAttachedDatabase, useAttachedDatabaseById, useAttachedDatabaseRegistry } from '../attached_database_registry.js';
+import { ConnectionHealth } from '../attached_database_state.js';
 import { performHealthCheck } from '../health_check.js';
 import { useHyperSetup } from '../hyper/hyper_connection_setup.js';
 import { getHyperConnectionDetails } from '../hyper/hyper_connection_state.js';
@@ -102,7 +102,7 @@ export function buildHyperConnectionSetupParams(pageState: HyperConnectionPageSt
 }
 
 interface Props {
-    notebookId: string | null;
+    databaseId: string | null;
     onClose?: () => void;
 }
 
@@ -117,8 +117,10 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
 
     // Wire up the page state
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
-    const connectionNotebookScripts = useAnyConnectionNotebookScripts(props.notebookId);
+    const [registry] = useAttachedDatabaseRegistry();
+    const notebookId = props.databaseId == null ? null : findNotebookForAttachedDatabase(registry, props.databaseId);
+    const [connectionState, dispatchAttachedDatabaseState] = useAttachedDatabaseById(props.databaseId);
+    const connectionNotebookScripts = useAnyConnectionNotebookScripts(notebookId);
     const hyperConnection = getHyperConnectionDetails(connectionState);
 
     // Seed the form state from the restored connection params so a notebook
@@ -213,9 +215,9 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
         try {
             // Setup the Hyper connection
             setupAbortController.current = new AbortController();
-            const hyperChannel = await hyperSetup.setup(dispatchConnectionState, setupParams, setupAbortController.current.signal);
+            const hyperChannel = await hyperSetup.setup(dispatchAttachedDatabaseState, setupParams, setupAbortController.current.signal);
             if (hyperChannel != null && protocol !== 'WASM') {
-                await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'hyper', channel: hyperChannel }, dispatchConnectionState, setupAbortController.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.databaseId, { type: 'hyper', channel: hyperChannel }, dispatchAttachedDatabaseState, setupAbortController.current.signal);
             }
 
             // Start the the inital catalog update
@@ -237,7 +239,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     };
     const resetSetup = async () => {
         if (hyperSetup) {
-            await hyperSetup.reset(dispatchConnectionState);
+            await hyperSetup.reset(dispatchAttachedDatabaseState);
         }
     };
 
@@ -296,7 +298,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             {isDocker ? (
                 <div className={style.body_container}>
                     <HyperDockerSettingsPanel
-                        notebookId={props.notebookId}
+                        databaseId={props.databaseId}
                         freezeInput={freezeInput}
                         mode={dockerMode}
                         setMode={setDockerMode}
@@ -401,7 +403,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             />
                             <KeyValueListBuilder
                                 title="Query Parameters"
-                                caption="Connection settings that are added to every query"
+                                caption="Attached database settings that are added to every query"
                                 keyIcon={() => <div>Name</div>}
                                 valueIcon={() => <div>Value</div>}
                                 addButtonLabel="Add Parameter"

@@ -3,7 +3,7 @@ import * as dashql from '../../core/index.js';
 import { TracedLogger } from '../../platform/logger/logger.js';
 import { StorageReader } from '../notebook/persistence/storage_provider.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
-import { SetConnectionRegistryAction } from '../notebook/connections/connection_registry.js';
+import { SetAttachedDatabaseRegistryAction } from '../notebook/connections/attached_database_registry.js';
 import { Dispatch } from '../../utils/variant.js';
 import { SetNotebookScriptsRegistryAction } from '../notebook/scripts/notebook_scripts_registry.js';
 import { ProgressCounter } from '../../utils/progress.js';
@@ -12,10 +12,26 @@ import { InvalidNotebook } from '../notebook/persistence/notebook_validation.js'
 export interface AppLoadingResult {
     /// Notebooks whose metadata failed validation and were refused a load (keyed by bare UUID).
     invalidNotebooks: Map<string, InvalidNotebook>;
+    /// Valid restored notebooks in persisted manifest order.
+    restoredNotebookIds: string[];
+}
+
+export function selectStartupNotebook(
+    restoredNotebookIds: readonly string[],
+    lastOpenedNotebookId: string | undefined,
+    requestedNotebookId?: string | null,
+): string | null {
+    if (requestedNotebookId != null && restoredNotebookIds.includes(requestedNotebookId)) {
+        return requestedNotebookId;
+    }
+    if (lastOpenedNotebookId != null && restoredNotebookIds.includes(lastOpenedNotebookId)) {
+        return lastOpenedNotebookId;
+    }
+    return restoredNotebookIds[0] ?? null;
 }
 
 /// Main logic to setup the application
-export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, resetNotebookScripts: Dispatch<SetNotebookScriptsRegistryAction>, consumer: AppLoadingProgressConsumer) {
+export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetAttachedDatabaseRegistryAction>, resetNotebookScripts: Dispatch<SetNotebookScriptsRegistryAction>, consumer: AppLoadingProgressConsumer) {
     const traced = logger.childSpan();
     traced.info("Loading application", {}, "app_loading");
     const appLoadStartTime = performance.now();
@@ -46,15 +62,15 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
         durationMs: restoreDuration.toFixed(2)
     }, "app_loading");
 
-    // Reset the connection registry
-    traced.info("Updating connection registry", {
+    // Reset the attached database registry
+    traced.info("Updating attached database registry", {
         connectionCount: state.connectionStates.size.toString()
     }, "app_loading");
     resetConnections({
-        connectionMap: state.connectionStates,
-        connectionByNotebook: state.connectionByNotebook,
-        connectionsByType: state.connectionStatesByType,
-        connectionsBySignature: state.connectionSignatures,
+        attachedDatabases: state.connectionStates,
+        attachedDatabasesByNotebook: state.attachedDatabasesByNotebook,
+        attachedDatabasesByType: state.connectionStatesByType,
+        attachedDatabasesBySignature: state.connectionSignatures,
     });
 
     // Reset the notebook scripts registry
@@ -74,5 +90,6 @@ export async function loadApp(logger: TracedLogger, core: dashql.DashQL, storage
 
     return {
         invalidNotebooks: state.invalidNotebooks,
+        restoredNotebookIds: [...state.notebookScripts.keys()],
     };
 }

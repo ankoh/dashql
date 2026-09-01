@@ -22,11 +22,11 @@ vi.mock('../../../ui/foundations/status_indicator.js', async () => {
     };
 });
 
-import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
+import { ConnectionHealth, type AttachedDatabaseState } from '../connections/attached_database_state.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../connections/connector_info.js';
 import { ConnectionCommandList } from './notebook_command_lists.js';
 
-function createConnection(currentFullRefresh: number | null, runningTaskIds: number[]): ConnectionState {
+function createConnection(currentFullRefresh: number | null, runningTaskIds: number[]): AttachedDatabaseState {
     return {
         connectionHealth: ConnectionHealth.ONLINE,
         connectorInfo: {
@@ -41,7 +41,7 @@ function createConnection(currentFullRefresh: number | null, runningTaskIds: num
             currentFullRefresh,
             tasksRunning: new Map(runningTaskIds.map(taskId => [taskId, {}])),
         },
-    } as unknown as ConnectionState;
+    } as unknown as AttachedDatabaseState;
 }
 
 describe('ConnectionCommandList', () => {
@@ -60,7 +60,7 @@ describe('ConnectionCommandList', () => {
         container.remove();
     });
 
-    function renderConnection(connection: ConnectionState) {
+    function renderConnection(connection: AttachedDatabaseState) {
         act(() => {
             root.render(<ConnectionCommandList conn={connection} notebookScripts={null} />);
         });
@@ -98,12 +98,12 @@ describe('ConnectionCommandList', () => {
                 proto: { setupParams: { protocol: 'WASM' } },
                 channel: null,
             },
-        } as ConnectionState['details'];
+        } as AttachedDatabaseState['details'];
 
         renderConnection(connection);
 
         const editConnection = Array.from(container.querySelectorAll('button'))
-            .find(button => button.textContent?.includes('Edit Connection'))!;
+            .find(button => button.textContent?.includes('Edit Attached Database'))!;
         expect(editConnection.querySelector('circle')).toBeNull();
     });
 

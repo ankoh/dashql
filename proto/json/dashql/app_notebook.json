@@ -2,9 +2,14 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "dashql/app_notebook.json",
   "title": "NotebookData",
-  "description": "Notebook data structure (dashql-notebook.json) - includes connection params and notebook metadata",
+  "description": "Version 2 notebook data structure (dashql-notebook.json)",
   "type": "object",
   "properties": {
+    "formatVersion": {
+      "type": "integer",
+      "enum": [2],
+      "description": "Notebook persistence format. Only version 2 is supported."
+    },
     "notebookId": {
       "type": "string",
       "description": "Unique notebook identifier (UUID v4). This is the authoritative identity; the storage location prefix is display-only."
@@ -26,9 +31,16 @@
       "type": "string",
       "description": "User-supplied notebook name shown as the primary label in the notebook bar and selector. Absent (or empty) means the user never named the notebook, and the UI falls back to the display path."
     },
-    "connectionParams": {
-      "$ref": "connection.json#/definitions/ConnectionParams",
-      "description": "The connection params"
+    "mainDatabase": {
+      "$ref": "#/definitions/AttachedDatabase",
+      "description": "Database used for notebook analysis, catalog operations, and user query execution."
+    },
+    "attachedDatabases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AttachedDatabase"
+      },
+      "description": "Additional databases attached to the main database. The application's internal compute database is never persisted here."
     },
     "metadata": {
       "$ref": "#/definitions/NotebookMetadata",
@@ -45,9 +57,25 @@
       "description": "When was last accessed"
     }
   },
-  "required": ["notebookId", "connectionParams", "metadata"],
+  "required": ["formatVersion", "notebookId", "mainDatabase", "attachedDatabases", "metadata"],
   "additionalProperties": false,
   "definitions": {
+    "AttachedDatabase": {
+      "type": "object",
+      "description": "A persisted database attached to the notebook",
+      "properties": {
+        "databaseId": {
+          "type": "string",
+          "description": "Stable database/connection identifier (UUID)"
+        },
+        "params": {
+          "$ref": "connection.json#/definitions/ConnectionParams",
+          "description": "Database connection parameters"
+        }
+      },
+      "required": ["databaseId", "params"],
+      "additionalProperties": false
+    },
     "NotebookOriginType": {
       "type": "string",
       "enum": ["FILE", "LOCAL", "HTTP"],

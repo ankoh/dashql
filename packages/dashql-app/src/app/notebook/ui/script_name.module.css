@@ -4,24 +4,7 @@
 
 .container {
     font-family: "Roboto Mono";
-    font-size: 0.8rem;
-}
-
-.folder_name {
-    display: inline-block;
-    box-sizing: border-box;
-    border-radius: 8px;
-    font-weight: 500;
-}
-
-.folder_name_clickable {
-    composes: folder_name;
-    cursor: pointer;
-}
-
-.separator {
-    padding: 0px 8px 0px 8px;
-    color: hsl(210deg 17.5% 64.31%);
+    font-size: var(--font_size_small);
 }
 
 .file_icon {
@@ -69,6 +52,8 @@
     padding: 1px 4px;
     font-weight: 500;
     gap: 4px;
+    min-height: 28px;
+    max-width: 100%;
 }
 
 .file_name_input {
@@ -81,5 +66,6 @@
     font: inherit;
     font-weight: 500;
     min-width: 0;
-    width: 18ch;
+    width: clamp(18ch, 40vw, 48ch);
+    min-height: 24px;
 }

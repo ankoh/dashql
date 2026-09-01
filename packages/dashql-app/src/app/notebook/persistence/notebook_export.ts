@@ -2,11 +2,10 @@ import JSZip from 'jszip';
 
 import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
-import type { StorageBackend, NotebookData, ScriptFolderData, ConnectionParams } from './storage_backend.js';
+import type { StorageBackend, NotebookData, ScriptData, ConnectionParams } from './storage_backend.js';
 import {
     STORAGE_NOTEBOOK_FILE,
     STORAGE_SCRIPTS_FOLDER,
-    STORAGE_SCRIPT_DRAFT,
     STORAGE_SCRIPT_FUNCTIONS,
     STORAGE_SCRIPT_SCHEMA,
 } from './storage_backend.js';
@@ -45,8 +44,7 @@ type SharedNotebookExportOptionsInput = SharedNotebookExportOptions | boolean;
 /// Creates a ZIP file from notebook data and script folders
 export async function createNotebookZip(
     notebookData: NotebookData,
-    folders: ScriptFolderData[],
-    draftSql: string | null,
+    scripts: ScriptData[],
     schemaSql: string | null = null,
     functionsSql: string | null = null,
 ): Promise<Blob> {
@@ -61,26 +59,14 @@ export async function createNotebookZip(
         zip.file(STORAGE_SCRIPT_FUNCTIONS, functionsSql);
     }
 
-    // Add script folders and files
+    // Add the flat ordered scripts.
     const scriptsFolder = zip.folder(STORAGE_SCRIPTS_FOLDER);
     if (!scriptsFolder) {
         throw new Error('Failed to create scripts folder in ZIP');
     }
 
-    for (const folder of folders) {
-        const scriptFolder = scriptsFolder.folder(folder.name);
-        if (!scriptFolder) {
-            throw new Error(`Failed to create script folder: ${folder.name}`);
-        }
-
-        for (const script of folder.scripts) {
-            scriptFolder.file(script.name, script.sql);
-        }
-    }
-
-    // Add draft script if present
-    if (draftSql != null) {
-        scriptsFolder.file(STORAGE_SCRIPT_DRAFT, draftSql);
+    for (const script of scripts) {
+        scriptsFolder.file(script.name, script.sql);
     }
 
     // Generate ZIP blob with compression
@@ -109,8 +95,7 @@ export async function exportNotebookAsZip(
     // Create ZIP from loaded data
     return await createNotebookZip(
         outNotebook,
-        bundle.folders,
-        bundle.draftSql,
+        bundle.scripts,
         bundle.schemaSql,
         bundle.functionsSql,
     );
@@ -125,18 +110,29 @@ export async function exportNotebookAsZip(
 export async function exportNotebookAsSharedZip(
     backend: StorageBackend,
     notebookId: string,
-    connectionParams: any,
+    databaseParams: ReadonlyMap<string, ConnectionParams>,
     optionsInput: SharedNotebookExportOptionsInput = {},
 ): Promise<Blob> {
     const options = typeof optionsInput === 'boolean' ? { withLoginHint: optionsInput } : optionsInput;
     const withLoginHint = options.withLoginHint ?? true;
-    const sharedConnectionParams: ConnectionParams = sanitizeConnectionParamsForSharing(connectionParams, withLoginHint);
-
     return await exportNotebookAsZip(notebookId, backend, {
         withCatalog: options.withCatalog ?? true,
         transformNotebook: (notebook: NotebookData): NotebookData => ({
             ...notebook,
-            connectionParams: sharedConnectionParams,
+            mainDatabase: {
+                ...notebook.mainDatabase,
+                params: sanitizeConnectionParamsForSharing(
+                    databaseParams.get(notebook.mainDatabase.databaseId) ?? notebook.mainDatabase.params,
+                    withLoginHint,
+                ),
+            },
+            attachedDatabases: notebook.attachedDatabases.map(database => ({
+                ...database,
+                params: sanitizeConnectionParamsForSharing(
+                    databaseParams.get(database.databaseId) ?? database.params,
+                    withLoginHint,
+                ),
+            })) as NotebookData['attachedDatabases'],
         }),
     });
 }
@@ -145,7 +141,7 @@ export async function exportNotebookAsSharedZip(
 export async function exportNotebookAsUrl(
     backend: StorageBackend,
     notebookId: string,
-    connectionParams: any,
+    databaseParams: any,
     target: NotebookLinkTarget,
     optionsInput: SharedNotebookExportOptionsInput = {},
 ): Promise<URL> {
@@ -153,7 +149,7 @@ export async function exportNotebookAsUrl(
     const zipBlob = await exportNotebookAsSharedZip(
         backend,
         notebookId,
-        connectionParams,
+        databaseParams,
         options,
     );
     const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());

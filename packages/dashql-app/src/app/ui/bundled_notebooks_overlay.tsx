@@ -17,7 +17,14 @@ import * as styles from './bundled_notebooks_overlay.module.css';
 
 const BeakerIcon = SymbolIcon('beaker');
 
-export function BundledNotebooksOverlay(): React.ReactElement {
+interface BundledNotebooksOverlayProps {
+    side?: AnchorSide;
+    align?: AnchorAlignment;
+    triggerSize?: ButtonSize;
+    triggerIconSize?: number;
+}
+
+export function BundledNotebooksOverlay(props: BundledNotebooksOverlayProps = {}): React.ReactElement {
     const appEvents = usePlatformEventListener();
     const logger = useLogger();
     const anchorRef = React.useRef<HTMLButtonElement>(null);
@@ -43,13 +50,14 @@ export function BundledNotebooksOverlay(): React.ReactElement {
         <>
             <IconButton
                 ref={anchorRef}
+                size={props.triggerSize}
                 variant={open ? ButtonVariant.Default : ButtonVariant.Invisible}
                 aria-label="Example notebooks"
                 aria-haspopup="dialog"
                 aria-expanded={open}
                 onClick={() => setOpen(value => !value)}
             >
-                <BeakerIcon size={16} />
+                <BeakerIcon size={props.triggerIconSize ?? 16} />
             </IconButton>
             <AnchoredOverlay
                 renderAnchor={null}
@@ -57,8 +65,8 @@ export function BundledNotebooksOverlay(): React.ReactElement {
                 returnFocusRef={anchorRef}
                 open={open}
                 onClose={() => setOpen(false)}
-                side={AnchorSide.OutsideTop}
-                align={AnchorAlignment.Start}
+                side={props.side ?? AnchorSide.OutsideTop}
+                align={props.align ?? AnchorAlignment.Start}
                 width={OverlaySize.S}
             >
                 <section className={styles.overlay} role="dialog" aria-labelledby={titleId}>

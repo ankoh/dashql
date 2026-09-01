@@ -1,5 +1,5 @@
 import type { DashQL, FlatBufferPtr, buffers } from '../../../core/index.js';
-import type { NotebookData, ScriptFolderData, StorageBackend } from './storage_backend.js';
+import type { NotebookData, ScriptData, StorageBackend } from './storage_backend.js';
 import { StorageBackendType } from './storage_backend.js';
 import {
     describeNotebookValidationError,
@@ -13,13 +13,24 @@ export interface NotebookBundle {
     notebook: NotebookData;
     schemaSql: string | null;
     functionsSql: string | null;
-    folders: ScriptFolderData[];
-    draftSql: string | null;
+    scripts: ScriptData[];
 }
 
 export interface NotebookCatalogValidationResult {
     bundle: NotebookBundle;
     invalidFiles: Array<'dashql-relations.sql' | 'dashql-functions.sql'>;
+}
+
+export function regenerateNotebookDatabaseIds(notebook: NotebookData): NotebookData {
+    const remap = (database: NotebookData['mainDatabase']) => ({
+        ...database,
+        databaseId: crypto.randomUUID(),
+    });
+    return {
+        ...notebook,
+        mainDatabase: remap(notebook.mainDatabase),
+        attachedDatabases: notebook.attachedDatabases.map(remap) as NotebookData['attachedDatabases'],
+    };
 }
 
 /// Parse catalog files on scratch scripts and omit malformed SQL before it can reach storage.
@@ -72,6 +83,8 @@ export interface NotebookBundleWriteOptions {
     /// The caller guarantees the destination did not exist before this write. Only then may a
     /// failed whole-bundle write remove the destination as rollback.
     targetIsFresh?: boolean;
+    /// Generate fresh attached database identities for a clone/create-new import.
+    regenerateDatabaseIds?: boolean;
 }
 
 /// Read the portable durable notebook data from a backend. Catalog SQL can be skipped for exports
@@ -81,14 +94,13 @@ export async function readNotebookBundle(
     backend: StorageBackend,
     withCatalog: boolean = true,
 ): Promise<NotebookBundle> {
-    const [notebook, folders, draftSql, schemaSql, functionsSql] = await Promise.all([
+    const [notebook, scripts, schemaSql, functionsSql] = await Promise.all([
         backend.loadNotebook(notebookId),
-        backend.loadScriptFolders(notebookId),
-        backend.loadScriptDraft(notebookId),
+        backend.loadScripts(notebookId),
         withCatalog ? backend.loadNotebookSchema(notebookId) : null,
         withCatalog ? backend.loadNotebookFunctions(notebookId) : null,
     ]);
-    return { notebook, schemaSql, functionsSql, folders, draftSql };
+    return { notebook, schemaSql, functionsSql, scripts };
 }
 
 /// Write a fully parsed bundle to storage. This is deliberately not a replacement transaction:
@@ -110,7 +122,11 @@ export async function writeNotebookBundle(
         throw new Error('targetIsFresh requires an explicit targetNotebookId');
     }
 
-    const notebook = { ...bundle.notebook, notebookId };
+    let notebook: NotebookData = {
+        ...bundle.notebook,
+        notebookId,
+    };
+    if (options.regenerateDatabaseIds) notebook = regenerateNotebookDatabaseIds(notebook);
     if (backend.getBackendType() === StorageBackendType.OPFS) {
         delete notebook.notebookPath;
         delete notebook.storageType;
@@ -129,14 +145,8 @@ export async function writeNotebookBundle(
             await backend.saveNotebookSchema(notebookId, bundle.schemaSql);
         }
         await backend.saveNotebookFunctions(notebookId, bundle.functionsSql ?? '');
-        for (const folder of bundle.folders) {
-            await backend.createScriptFolder(notebookId, folder.name);
-            for (const script of folder.scripts) {
-                await backend.saveScript(notebookId, folder.name, script.name, script.sql);
-            }
-        }
-        if (bundle.draftSql != null) {
-            await backend.saveScriptDraft(notebookId, bundle.draftSql);
+        for (const script of bundle.scripts) {
+            await backend.saveScript(notebookId, script.name, script.sql);
         }
     } catch (error) {
         if (options.targetIsFresh) {

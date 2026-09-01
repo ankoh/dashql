@@ -84,12 +84,11 @@ function LoadingCard({ state }: { state: LoadingState }): React.ReactElement {
 function ReadyCard({ state }: { state: ReadyState }): React.ReactElement {
     const { bundle, indexedScriptCount, loadedScriptCount, incomplete } = state.result;
     const notebookName = bundle.notebook.name?.trim() || bundle.notebook.metadata.originalFileName || 'Unnamed notebook';
-    const folderCount = bundle.folders.length;
     const scriptCount = incomplete
         ? indexedScriptCount > 0 ? `${loadedScriptCount} of ${indexedScriptCount}` : `${loadedScriptCount} (index unavailable)`
         : String(loadedScriptCount);
     const displayedScriptCount = incomplete && indexedScriptCount > 0 ? indexedScriptCount : loadedScriptCount;
-    const scriptSummary = formatScriptSummary(scriptCount, displayedScriptCount, folderCount);
+    const scriptSummary = formatScriptSummary(scriptCount, displayedScriptCount, 0);
     const hasConflict = state.conflictLocation != null;
     const actions = hasConflict ? (
         <>

@@ -25,6 +25,7 @@ interface EntryStatusBarProps {
     /// Result-level actions such as execution age and Refresh. Kept outside the clickable log strip
     /// so the bar never nests interactive controls.
     actions?: React.ReactNode;
+    compact?: boolean;
 }
 
 const ErrorDetailCard: React.FC<{
@@ -58,7 +59,7 @@ const ErrorDetailCard: React.FC<{
 /// The result-card header: it renders a spinner (or check/cross) plus a one-line status message and
 /// optionally toggles the result content below it. Failed-query details are available from a
 /// separate control so the toggle never contains nested interactive elements.
-export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggleExpanded, expanded, controls, onCancel, cancelLabel = 'Cancel operation', actions }) => {
+export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggleExpanded, expanded, controls, onCancel, cancelLabel = 'Cancel operation', actions, compact }) => {
     const [showDetail, setShowDetail] = React.useState(false);
     const hasErrorDetail = status.errorDetail != null;
     const CancelIcon = SymbolIcon('x_16');
@@ -109,6 +110,7 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
     return (
         <div className={classNames(styles.status_bar, {
             [styles.status_bar_collapsed]: expanded === false,
+            [styles.status_bar_compact]: compact,
         })}>
             {onToggleExpanded != null ? (
                 <button

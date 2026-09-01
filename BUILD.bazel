@@ -34,6 +34,19 @@ js_library(
     visibility = ["//visibility:public"],
 )
 
+js_library(
+    name = "example_notebooks_test_data",
+    srcs = glob(
+        ["examples/notebooks/**"],
+        exclude = [
+            "examples/notebooks/**/.DS_Store",
+            "examples/notebooks/**/.gitignore",
+            "examples/notebooks/**/cache/**",
+        ],
+        allow_empty = False,
+    ),
+)
+
 # npm link tree from pnpm lockfile (package.bazel.json + pnpm-lock.yaml).
 # Dashql-app uses this plus //packages/dashql-app:ankoh_overlay via NODE_PATH (two entries), no copy_to_directory merge.
 npm_link_all_packages(name = "node_modules")

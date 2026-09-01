@@ -1,41 +1,34 @@
 import * as React from 'react';
-import { ConnectionState } from '../connections/connection_state.js';
+import { AttachedDatabaseState } from '../connections/attached_database_state.js';
 import { ScriptData, NotebookScripts, createEmptyScriptData, replaceScriptSessionText } from './notebook_scripts.js';
 import { useNotebookScriptsAllocator } from './notebook_scripts_registry.js';
 import { createEmptyMetadata, createScriptRef, generateScriptFileName } from './script_types.js';
 
-export type NotebookScriptsSetup = (conn: ConnectionState, abort?: AbortSignal) => NotebookScripts;
+export type NotebookScriptsSetup = (notebookId: string, database: AttachedDatabaseState, abort?: AbortSignal) => NotebookScripts;
 
 export function useNotebookScriptsSetup(): NotebookScriptsSetup {
     const allocateNotebookScripts = useNotebookScriptsAllocator();
 
-    return React.useCallback((conn: ConnectionState) => {
-        const folderName = 'main';
+    return React.useCallback((notebookId: string, database: AttachedDatabaseState) => {
         const fileName = generateScriptFileName({});
-        const [, mainScriptData]: [number, ScriptData] = createEmptyScriptData(conn.instance, conn.catalog, fileName, folderName);
-        replaceScriptSessionText(mainScriptData.scriptSession, conn.connectorInfo.helloWorldScript);
+        const [, mainScriptData]: [number, ScriptData] = createEmptyScriptData(database.instance, database.catalog, fileName);
+        replaceScriptSessionText(mainScriptData.scriptSession, database.connectorInfo.helloWorldScript);
 
-        const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
-        const defaultPage = {
-            folderName,
-            scripts: { [fileName]: createScriptRef(mainScriptData.scriptKey, fileName) },
-        };
         const [_notebookId, notebookScripts] = allocateNotebookScripts({
             notebookMetadata: createEmptyMetadata(),
-            instance: conn.instance,
-            connectorInfo: conn.connectorInfo,
-            notebookId: conn.notebookId,
-            connectionId: conn.connectionId,
-            connectionCatalog: conn.catalog,
+            instance: database.instance,
+            connectorInfo: database.connectorInfo,
+            notebookId,
+            name: null,
+            databaseId: database.databaseId,
+            connectionCatalog: database.catalog,
             scripts: {
                 [mainScriptData.scriptKey]: mainScriptData,
-                [uncommittedKey]: uncommittedData,
             },
-            scriptFolders: { [folderName]: defaultPage },
-            uncommittedScriptId: uncommittedKey,
-            scriptFocus: { folderName, fileName, interactionCounter: 0 },
+            scriptRefs: { [fileName]: createScriptRef(mainScriptData.scriptKey, fileName) },
+            scriptFocus: { fileName, interactionCounter: 0 },
             semanticUserFocus: null,
-        }, conn.catalogFunctionScript);
+        }, database.catalogFunctionScript);
         return notebookScripts;
     }, [allocateNotebookScripts]);
 }

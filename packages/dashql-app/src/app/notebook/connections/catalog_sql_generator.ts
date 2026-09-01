@@ -1,5 +1,7 @@
 import * as dashql from '../../../core/index.js';
 
+export const DEFAULT_DATABASE_NAME = 'hyper';
+
 /// Column metadata for SQL generation
 export interface ColumnMetadata {
     name: string;
@@ -69,7 +71,7 @@ export function generateQualifiedTableName(
     schemaName: string,
     tableName: string
 ): string {
-    const db = databaseName || 'default';
+    const db = databaseName || DEFAULT_DATABASE_NAME;
     return `${quoteIdentifier(db)}.${quoteIdentifier(schemaName)}.${quoteIdentifier(tableName)}`;
 }
 

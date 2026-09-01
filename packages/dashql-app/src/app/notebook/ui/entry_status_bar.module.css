@@ -4,13 +4,17 @@
     display: flex;
     align-items: center;
     height: 40px;
-    font-size: 0.85rem;
+    font-size: var(--font_size_small);
     border-bottom: 1px solid var(--log_border_color);
     color: hsl(210, 12%, 36%);
 }
 
 .status_bar_collapsed {
     border-bottom-color: transparent;
+}
+
+.status_bar_compact {
+    font-size: var(--font_size_compact);
 }
 
 /* Reset the main toggle's default button chrome so the entire status region reads as one header. */
@@ -32,7 +36,7 @@
     text-align: left;
     cursor: pointer;
     font-family: inherit;
-    font-size: 0.85rem;
+    font-size: inherit;
 }
 
 .status_bar_cancel {
@@ -85,7 +89,7 @@
 .error_detail_title {
     flex: 1;
     margin: 0;
-    font-size: 0.85rem;
+    font-size: var(--font_size_body);
     font-weight: 600;
 }
 

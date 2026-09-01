@@ -1,4 +1,4 @@
-import { type StorageBackend, type NotebookData, type ScriptFolderData, type ScriptData, type NotebookEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_NOTEBOOK_FILE, STORAGE_NOTEBOOK_INDEX_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
+import { type StorageBackend, type NotebookData, type ScriptData, type NotebookEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_NOTEBOOK_FILE, STORAGE_NOTEBOOK_INDEX_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SCRIPT_SCHEMA, STORAGE_SCRIPT_FUNCTIONS, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
 import { serializeNotebookIndex } from './notebook_index.js';
 
@@ -92,7 +92,7 @@ export class NativeStorageBackend implements StorageBackend {
 
     async regenerateNotebookIndex(notebookId: string): Promise<void> {
         const indexFile = await this.abs(STORAGE_NOTEBOOK_INDEX_FILE);
-        await writeTextFile(indexFile, serializeNotebookIndex(await this.loadScriptFolders(notebookId)));
+        await writeTextFile(indexFile, serializeNotebookIndex(await this.loadScripts(notebookId)));
     }
 
     async ensureNotebookIndex(notebookId: string): Promise<void> {
@@ -137,35 +137,23 @@ export class NativeStorageBackend implements StorageBackend {
         await writeTextFile(functionsFile, sql);
     }
 
-    async loadScriptFolders(_notebookId: string): Promise<ScriptFolderData[]> {
+    async loadScripts(_notebookId: string): Promise<ScriptData[]> {
         const scriptsDir = await this.abs(STORAGE_SCRIPTS_FOLDER);
         if (!(await exists(scriptsDir))) {
             return [];
         }
 
         const entries = await readDir(scriptsDir);
-        const folders: ScriptFolderData[] = [];
+        const scripts: ScriptData[] = [];
         for (const entry of entries) {
             if (entry.isDirectory) {
-                const scripts = await this.loadScriptsInFolder(`${STORAGE_SCRIPTS_FOLDER}/${entry.name}`);
-                folders.push({ name: entry.name, scripts });
+                throw new Error(`Invalid V2 notebook layout: nested scripts directory ${entry.name}`);
             }
-        }
-        folders.sort((a, b) => this.naturalSort(a.name, b.name));
-        return folders;
-    }
-
-    private async loadScriptsInFolder(folderRel: string): Promise<ScriptData[]> {
-        const folderDir = await this.abs(folderRel);
-        const scripts: ScriptData[] = [];
-        if (!(await exists(folderDir))) {
-            return scripts;
-        }
-
-        const entries = await readDir(folderDir);
-        for (const entry of entries) {
-            if (entry.isFile && entry.name.endsWith('.sql') && entry.name !== STORAGE_SCRIPT_DRAFT) {
-                const sql = await readTextFile(await this.abs(`${folderRel}/${entry.name}`));
+            if (entry.isFile && entry.name.toLowerCase() === 'dashql-draft.sql') {
+                throw new Error('Invalid V2 notebook layout: dashql-draft.sql is not supported');
+            }
+            if (entry.isFile && entry.name.toLowerCase().endsWith('.sql')) {
+                const sql = await readTextFile(await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${entry.name}`));
                 scripts.push({ name: entry.name, sql });
             }
         }
@@ -173,44 +161,10 @@ export class NativeStorageBackend implements StorageBackend {
         return scripts;
     }
 
-    async createScriptFolder(_notebookId: string, folderName: string): Promise<void> {
-        await this.ensureDir(`${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
-        await this.regenerateNotebookIndex(_notebookId);
-    }
-
-    async deleteScriptFolder(_notebookId: string, folderName: string): Promise<void> {
-        const folderDir = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
-        if (await exists(folderDir)) {
-            await remove(folderDir, { recursive: true });
-            await this.regenerateNotebookIndex(_notebookId);
-        }
-    }
-
-    async renameScriptFolder(_notebookId: string, oldFolderName: string, newFolderName: string): Promise<void> {
-        if (oldFolderName === newFolderName) {
-            return;
-        }
-        const oldDir = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${oldFolderName}`);
-        const newDir = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${newFolderName}`);
-        // If the source is missing there is nothing on disk to move yet (e.g. the folder was created and
-        // renamed before its first flush); leave it to the pending write of the new name.
-        if (!(await exists(oldDir))) {
-            return;
-        }
-        // Atomic directory rename onto a destination the caller guarantees is free. Callers schedule
-        // these so the destination is always free at flush time: within one reprefix pass the
-        // destination "<n>_<clean>" carries a globally-unique clean name, so it can equal no other
-        // folder's current name; across passes the writer flushes renames in insertion order, and each
-        // pass's destinations are the next pass's sources, so every destination has already been
-        // vacated by the time its rename runs.
-        await rename(oldDir, newDir);
-        await this.regenerateNotebookIndex(_notebookId);
-    }
-
-    async loadScript(notebookId: string, folderName: string, scriptName: string): Promise<ScriptData> {
-        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${scriptName}`);
+    async loadScript(notebookId: string, scriptName: string): Promise<ScriptData> {
+        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
         if (!(await exists(scriptFile))) {
-            throw new Error(`Script not found: notebook ${notebookId}, folder ${folderName}, script ${scriptName}`);
+            throw new Error(`Script not found: notebook ${notebookId}, script ${scriptName}`);
         }
         const sql = await readTextFile(scriptFile);
         return { name: scriptName, sql };
@@ -218,12 +172,11 @@ export class NativeStorageBackend implements StorageBackend {
 
     async saveScript(
         _notebookId: string,
-        folderName: string,
         scriptName: string,
         sql: string
     ): Promise<void> {
-        await this.ensureDir(`${STORAGE_SCRIPTS_FOLDER}/${folderName}`);
-        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${scriptName}`);
+        await this.ensureDir(STORAGE_SCRIPTS_FOLDER);
+        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
         const isNew = !(await exists(scriptFile));
         await writeTextFile(scriptFile, sql);
         if (isNew) {
@@ -231,20 +184,20 @@ export class NativeStorageBackend implements StorageBackend {
         }
     }
 
-    async deleteScript(_notebookId: string, folderName: string, scriptName: string): Promise<void> {
-        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${scriptName}`);
+    async deleteScript(_notebookId: string, scriptName: string): Promise<void> {
+        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
         if (await exists(scriptFile)) {
             await remove(scriptFile);
             await this.regenerateNotebookIndex(_notebookId);
         }
     }
 
-    async renameScript(_notebookId: string, folderName: string, oldScriptName: string, newScriptName: string): Promise<void> {
+    async renameScript(_notebookId: string, oldScriptName: string, newScriptName: string): Promise<void> {
         if (oldScriptName === newScriptName) {
             return;
         }
-        const oldFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${oldScriptName}`);
-        const newFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${folderName}/${newScriptName}`);
+        const oldFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${oldScriptName}`);
+        const newFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${newScriptName}`);
         // A missing source means the script hasn't been flushed yet; the pending write under the new
         // name will create it, so there is nothing to move here.
         if (!(await exists(oldFile))) {
@@ -254,20 +207,6 @@ export class NativeStorageBackend implements StorageBackend {
         // destination is free.
         await rename(oldFile, newFile);
         await this.regenerateNotebookIndex(_notebookId);
-    }
-
-    async loadScriptDraft(_notebookId: string): Promise<string | null> {
-        const draftFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
-        if (!(await exists(draftFile))) {
-            return null;
-        }
-        return await readTextFile(draftFile);
-    }
-
-    async saveScriptDraft(_notebookId: string, sql: string): Promise<void> {
-        await this.ensureDir(STORAGE_SCRIPTS_FOLDER);
-        const draftFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`);
-        await writeTextFile(draftFile, sql);
     }
 
     async loadQueryResultCache(_notebookId: string, hash: string): Promise<CachedQueryResult | null> {

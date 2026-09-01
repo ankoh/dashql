@@ -9,11 +9,15 @@ import type { NotebookData, NotebookEntry } from './storage_backend.js';
 import { ConnectorType } from '../connections/connector_info.js';
 
 const UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+const DATABASE_ID = '11111111-2222-3333-4444-555555555555';
+const REMOTE_DATABASE_ID = '66666666-7777-8888-9999-aaaaaaaaaaaa';
 
 function notebook(extra: Partial<NotebookData> = {}): NotebookData {
     return {
+        formatVersion: 2,
         notebookId: UUID,
-        connectionParams: { hyper: {} } as any,
+        mainDatabase: { databaseId: DATABASE_ID, params: { hyper: {} } as any },
+        attachedDatabases: [],
         metadata: {},
         ...extra,
     } as NotebookData;
@@ -24,24 +28,25 @@ describe('validateNotebookData', () => {
         expect(validateNotebookData(notebook())).toEqual({ ok: true });
     });
 
-    it('accepts each known connector', () => {
-        const hyper = notebook({ connectionParams: { hyper: {} } as any });
-        const sf = notebook({ connectionParams: { salesforce: {} } as any });
-        const trino = notebook({ connectionParams: { trino: {} } as any });
+    it('accepts each known remote connector after the local database', () => {
+        const local = { databaseId: DATABASE_ID, params: { hyper: { protocol: 'WASM' } } as any };
+        const hyper = notebook({ mainDatabase: { databaseId: REMOTE_DATABASE_ID, params: { hyper: { protocol: 'V3_HTTP' } } as any }, attachedDatabases: [local] });
+        const sf = notebook({ mainDatabase: { databaseId: REMOTE_DATABASE_ID, params: { salesforce: {} } as any }, attachedDatabases: [local] });
+        const trino = notebook({ mainDatabase: { databaseId: REMOTE_DATABASE_ID, params: { trino: {} } as any }, attachedDatabases: [local] });
         expect(validateNotebookData(hyper).ok).toBe(true);
         expect(validateNotebookData(sf).ok).toBe(true);
         expect(validateNotebookData(trino).ok).toBe(true);
     });
 
     it('rejects removed connector metadata', () => {
-        expect(validateNotebookData(notebook({ connectionParams: { duckdb: {} } as any }))).toEqual({
+        expect(validateNotebookData(notebook({ mainDatabase: { databaseId: DATABASE_ID, params: { duckdb: {} } as any } }))).toEqual({
             ok: false,
             error: NotebookValidationError.UnknownConnector,
         });
     });
 
     it('rejects legacy dataless notebooks', () => {
-        expect(validateNotebookData(notebook({ connectionParams: { dataless: {} } as any }))).toEqual({
+        expect(validateNotebookData(notebook({ mainDatabase: { databaseId: DATABASE_ID, params: { dataless: {} } as any } }))).toEqual({
             ok: false,
             error: NotebookValidationError.UnknownConnector,
         });
@@ -67,17 +72,54 @@ describe('validateNotebookData', () => {
         expect(validateNotebookData(notebook({ notebookId: UUID.toUpperCase() }))).toEqual({ ok: true });
     });
 
-    it('rejects a notebook with no connectionParams', () => {
+    it('rejects missing, V1, and unknown format versions', () => {
+        for (const formatVersion of [undefined, 1, 3]) {
+            expect(validateNotebookData(notebook({ formatVersion } as any))).toEqual({
+                ok: false,
+                error: NotebookValidationError.UnsupportedFormatVersion,
+            });
+        }
+    });
+
+    it('requires an attached database array', () => {
         const data = notebook();
-        delete (data as any).connectionParams;
+        delete (data as any).attachedDatabases;
         expect(validateNotebookData(data)).toEqual({
             ok: false,
-            error: NotebookValidationError.MissingConnectionParams,
+            error: NotebookValidationError.InvalidAttachedDatabases,
+        });
+        expect(validateNotebookData(notebook({ attachedDatabases: [] } as any))).toEqual({ ok: true });
+    });
+
+    it('accepts multiple attached databases with unique ids', () => {
+        expect(validateNotebookData(notebook({ attachedDatabases: [
+            { databaseId: REMOTE_DATABASE_ID, params: { trino: {} } as any },
+            { databaseId: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff', params: { salesforce: {} } as any },
+        ] }))).toEqual({ ok: true });
+    });
+
+    it('rejects an attached database with an invalid databaseId', () => {
+        expect(validateNotebookData(notebook({ attachedDatabases: [{ databaseId: 'not-a-uuid', params: { hyper: {} } as any }] }))).toEqual({
+            ok: false,
+            error: NotebookValidationError.InvalidDatabaseId,
         });
     });
 
-    it('rejects a notebook whose connectionParams match no known connector', () => {
-        expect(validateNotebookData(notebook({ connectionParams: { garbage: 'data' } as any }))).toEqual({
+    it('requires a valid main database', () => {
+        for (const databaseId of ['', 'not-a-uuid']) {
+            expect(validateNotebookData(notebook({ mainDatabase: { databaseId, params: { hyper: {} } as any } }))).toEqual({
+                ok: false,
+                error: NotebookValidationError.InvalidDatabaseId,
+            });
+        }
+    });
+
+    it('rejects an attached database with missing or unknown params', () => {
+        expect(validateNotebookData(notebook({ mainDatabase: { databaseId: DATABASE_ID } as any }))).toEqual({
+            ok: false,
+            error: NotebookValidationError.MissingDatabaseParams,
+        });
+        expect(validateNotebookData(notebook({ mainDatabase: { databaseId: DATABASE_ID, params: { garbage: 'data' } as any } }))).toEqual({
             ok: false,
             error: NotebookValidationError.UnknownConnector,
         });
@@ -103,7 +145,7 @@ describe('describeInvalidNotebook', () => {
     const entry: NotebookEntry = { path: UUID };
 
     it('keys on the manifest entry path and uses notebook data for title and connector', () => {
-        const data = notebook({ name: 'My Notebook', connectionParams: { hyper: {} } as any });
+        const data = notebook({ name: 'My Notebook' });
         const inv = describeInvalidNotebook(entry, NotebookValidationError.UnknownConnector, data);
         expect(inv.notebookId).toBe(UUID);
         expect(inv.title).toBe('My Notebook');
@@ -127,7 +169,7 @@ describe('describeInvalidNotebook', () => {
     });
 
     it('has a null connector type when params are unknown', () => {
-        const data = notebook({ connectionParams: { garbage: 'data' } as any });
+        const data = notebook({ mainDatabase: { databaseId: DATABASE_ID, params: { garbage: 'data' } as any } });
         const inv = describeInvalidNotebook(entry, NotebookValidationError.UnknownConnector, data);
         expect(inv.connectorType).toBeNull();
     });

@@ -100,7 +100,11 @@ export function VegaLiteView(props: Props): React.ReactElement {
     const [computationState] = useComputationRegistry();
 
     const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
-    const spec = props.vegaLiteSpec;
+    // Analysis emits a fresh spec object for editor transactions, including cursor-only updates.
+    // Keep the previous identity when the authored spec is structurally unchanged so Vega's
+    // effect does not finalize and rebuild the canvas while the user types or moves the cursor.
+    const specSignature = props.vegaLiteSpec == null ? null : JSON.stringify(props.vegaLiteSpec);
+    const spec = React.useMemo(() => props.vegaLiteSpec, [specSignature]);
     const queryId = props.query?.queryId ?? null;
 
     // Prefer the analyzed data table (it carries the cross-filter row-id indirection); fall back

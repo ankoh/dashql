@@ -34,6 +34,7 @@ export interface ScriptEditorProps {
     className?: string;
     autoHeight?: boolean;
     setView?: (view: EditorView) => void;
+    onFocus?: () => void;
     onNavigateToScript?: (scriptKey: number) => void;
 }
 
@@ -79,13 +80,17 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     }, [view, props.setView]);
 
     const containerClass = [
-        props.autoHeight ? styles.uncommitted_editor : styles.editor,
+        props.autoHeight ? styles.auto_height_editor : styles.editor,
         props.className,
     ].filter(Boolean).join(' ');
 
     return (
-        <div className={containerClass}>
-            <CodeMirror ref={setViewState} style={props.autoHeight ? { height: 'auto' } : undefined} />
+        <div className={containerClass} onFocusCapture={props.onFocus}>
+            <CodeMirror
+                ref={setViewState}
+                initialDoc={scriptData?.scriptSession.getText() ?? ''}
+                style={props.autoHeight ? { height: 'auto' } : undefined}
+            />
         </div>
     );
 };
@@ -99,6 +104,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
     // Create a new editor state and update the view.
     // XXX Here's the place where we would restore a previous state, if one exists.
     if (state.scriptSession !== scriptData.scriptSession) {
+        const scriptText = scriptData.scriptSession.getText();
         logger.debug("Resetting editor for a different native session", {
             notebookId: scripts.notebookId,
             scriptKey: scriptData.scriptKey.toString(),
@@ -109,7 +115,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
         // When that happens we have to reset the editor state.
         // It means that someone gave us a new notebook script that requires a state update
         const extensions = createCodeMirrorExtensions();
-        const newState = EditorState.create({ extensions });
+        const newState = EditorState.create({ doc: scriptText, extensions });
         view.setState(newState);
     }
 

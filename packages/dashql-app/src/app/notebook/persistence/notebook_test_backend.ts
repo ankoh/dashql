@@ -1,0 +1,101 @@
+import type {
+    AppSettings,
+    CachedQueryResult,
+    NotebookData,
+    NotebookEntry,
+    ScriptData,
+    StorageBackend,
+} from './storage_backend.js';
+import { StorageBackendType } from './storage_backend.js';
+import type { CacheFileStat } from './query_result_cache_eviction.js';
+
+export class NotebookTestBackend implements StorageBackend {
+    readonly notebooks = new Map<string, NotebookData>();
+    readonly schemas = new Map<string, string>();
+    readonly functions = new Map<string, string>();
+    readonly scripts = new Map<string, Map<string, string>>();
+    readonly calls: string[] = [];
+    appSettings: AppSettings | null = null;
+
+    constructor(private readonly type = StorageBackendType.OPFS) {}
+
+    getBackendType(): StorageBackendType { return this.type; }
+    async listNotebooks(): Promise<NotebookEntry[]> { return [...this.notebooks.keys()].map(path => ({ path })); }
+    async loadAppSettings(): Promise<AppSettings | null> { return this.appSettings; }
+    async saveAppSettings(settings: AppSettings): Promise<void> { this.appSettings = settings; }
+    async loadNotebook(notebookId: string): Promise<NotebookData> {
+        const notebook = this.notebooks.get(notebookId);
+        if (!notebook) throw new Error(`No notebook ${notebookId}`);
+        return notebook;
+    }
+    async saveNotebookManifest(notebookId: string, data: NotebookData): Promise<void> {
+        this.calls.push(`manifest:${notebookId}`);
+        this.notebooks.set(notebookId, data);
+    }
+    async deleteNotebook(notebookId: string): Promise<void> {
+        this.calls.push(`delete-notebook:${notebookId}`);
+        this.notebooks.delete(notebookId);
+        this.schemas.delete(notebookId);
+        this.functions.delete(notebookId);
+        this.scripts.delete(notebookId);
+    }
+    async loadNotebookSchema(notebookId: string): Promise<string | null> { return this.schemas.get(notebookId) ?? null; }
+    async saveNotebookSchema(notebookId: string, sql: string): Promise<void> {
+        this.calls.push(`schema:${notebookId}`);
+        this.schemas.set(notebookId, sql);
+    }
+    async loadNotebookFunctions(notebookId: string): Promise<string | null> { return this.functions.get(notebookId) ?? null; }
+    async saveNotebookFunctions(notebookId: string, sql: string): Promise<void> {
+        this.calls.push(`functions:${notebookId}`);
+        this.functions.set(notebookId, sql);
+    }
+    async loadScripts(notebookId: string): Promise<ScriptData[]> {
+        return [...(this.scripts.get(notebookId) ?? new Map())]
+            .map(([name, sql]) => ({ name, sql }))
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    }
+    async loadScript(notebookId: string, scriptName: string): Promise<ScriptData> {
+        const sql = this.scripts.get(notebookId)?.get(scriptName);
+        if (sql == null) throw new Error(`Script not found: ${scriptName}`);
+        return { name: scriptName, sql };
+    }
+    async saveScript(notebookId: string, scriptName: string, sql: string): Promise<void> {
+        this.calls.push(`write:${notebookId}/${scriptName}=${sql}`);
+        const scripts = this.scripts.get(notebookId) ?? new Map<string, string>();
+        scripts.set(scriptName, sql);
+        this.scripts.set(notebookId, scripts);
+    }
+    async deleteScript(notebookId: string, scriptName: string): Promise<void> {
+        this.calls.push(`delete:${notebookId}/${scriptName}`);
+        this.scripts.get(notebookId)?.delete(scriptName);
+    }
+    async renameScript(notebookId: string, oldScriptName: string, newScriptName: string): Promise<void> {
+        this.calls.push(`rename:${notebookId}/${oldScriptName}->${newScriptName}`);
+        const scripts = this.scripts.get(notebookId);
+        if (!scripts?.has(oldScriptName)) return;
+        const sql = scripts.get(oldScriptName)!;
+        scripts.delete(oldScriptName);
+        scripts.set(newScriptName, sql);
+    }
+    async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
+    async touchQueryResultCacheAccess(): Promise<void> {}
+    async saveQueryResultCache(): Promise<void> {}
+    async listQueryResultCache(): Promise<CacheFileStat[]> { return []; }
+    async hasCachedQueryResult(): Promise<boolean> { return false; }
+    async deleteQueryResultCache(): Promise<void> {}
+}
+
+export const TEST_NOTEBOOK_ID = '11111111-2222-4333-8444-555555555555';
+export const TEST_DATABASE_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+
+export function testNotebook(overrides: Partial<NotebookData> = {}): NotebookData {
+    return {
+        formatVersion: 2,
+        notebookId: TEST_NOTEBOOK_ID,
+        name: 'V2 Notebook',
+        mainDatabase: { databaseId: TEST_DATABASE_ID, params: { hyper: {} } as any },
+        attachedDatabases: [],
+        metadata: {},
+        ...overrides,
+    };
+}

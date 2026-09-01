@@ -33,6 +33,7 @@ interface Props {
     onShowTable?: () => void;
     fitHeight?: boolean;
     maxHeight?: number;
+    compact?: boolean;
 }
 
 const MIN_GRID_HEIGHT = 200;
@@ -325,7 +326,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         // The grid can be rendered within the notebook feed's Electron drag region. Opt out so
         // native scrollbar thumbs receive pointer drags instead of moving the application window.
         <div
-            className={classNames(styles.root, props.className)}
+            className={classNames(styles.root, props.className, {
+                [styles.root_compact]: props.compact,
+            })}
             data-electron-drag-region="false"
             style={{
                 ...(props.cellBackground ? { '--data_table_bg': props.cellBackground } : {}),

@@ -63,7 +63,7 @@ export interface Script {
     annotations: ScriptAnnotations;
 }
 
-/// A script reference in a script folder.
+/// A reference in the notebook's flat ordered script collection.
 export interface ScriptRef {
     // The script id
     scriptId: number;
@@ -71,26 +71,14 @@ export interface ScriptRef {
     fileName: string;
 }
 
-/// A script folder containing script references, keyed by file name.
-export interface ScriptFolder {
-    // The folder name for this page
-    folderName: string;
-    // The entries (script references) keyed by file name
-    scripts: { [fileName: string]: ScriptRef };
-}
-
 /// Complete script collection structure (runtime representation).
 export interface Scripts {
-    // The connection params (if any)
-    connectionParams?: any; // ConnectionParams from JSON Schema
     // The scripts
     scripts: Script[];
-    // The script folders keyed by folder name
-    scriptFolders: { [folderName: string]: ScriptFolder };
+    // The committed script references keyed by ordered file name
+    scriptRefs: { [fileName: string]: ScriptRef };
     // The notebook metadata
     notebookMetadata: NotebookMetadata;
-    // The uncommitted script id (0 = unset)
-    uncommittedScriptId: number;
 }
 
 /// Helper to create empty annotations
@@ -110,41 +98,6 @@ export function createEmptyMetadata(): NotebookMetadata {
         originalFileName: '',
         originalHttpUrl: '',
     };
-}
-
-/// A leading numeric ordering prefix on a page folder name, e.g. "03_" in "03_main".
-///
-/// The prefix encodes the tab order *on disk* (folders sort lexicographically, so a
-/// zero-padded numeric prefix yields the desired tab order). It is deliberately hidden from
-/// the UI and from the logical SQL-reference namespace: a page's clean name is its stable
-/// identity, so reordering a tab (which rewrites the prefix) must not change its display
-/// label or break cross-script references that point at it.
-///
-/// Anchored at the start and requires the `<digits>_` shape. Note the known ambiguity: a page
-/// a user literally names `2024_report` parses as prefix `2024` + clean `report`. This is
-/// accepted as part of the lean "prefix lives in the folder name" model.
-const PAGE_ORDER_PREFIX_RE = /^(\d+)_/;
-
-/// The display / logical name of a page, with any storage ordering prefix removed.
-/// "03_main" -> "main"; "main" -> "main".
-export function normalizeScriptFolderName(folderName: string): string {
-    return folderName.replace(PAGE_ORDER_PREFIX_RE, '');
-}
-
-/// The leading ordering prefix of a page folder name *including* the trailing underscore
-/// ("03_main" -> "03_"), or the empty string if the folder carries none. Used to preserve a
-/// page's position across a rename.
-export function scriptFolderOrderPrefixString(folderName: string): string {
-    const m = PAGE_ORDER_PREFIX_RE.exec(folderName);
-    return m ? m[0] : '';
-}
-
-/// Format a 1-based ordering prefix, zero-padded to just the digit count required by `total`
-/// (total <= 9 -> "1_"; total in 10..99 -> "01_"). The uniform width keeps a plain
-/// lexicographic sort of the resulting folder names in numeric order.
-export function formatScriptFolderOrderPrefix(index1: number, total: number): string {
-    const width = String(Math.max(total, 1)).length;
-    return `${String(index1).padStart(width, '0')}_`;
 }
 
 /// Script file names mirror the page ordering-prefix scheme: a leading "<n>_" orders the file
@@ -189,8 +142,8 @@ export function scriptDisplayName(fileName: string): string {
 }
 
 /// Return a script base name (no prefix, no extension) that is unique among the display names of the
-/// existing scripts in a page, suffixing "-2", "-3", ... on collision. The clean name doubles as the
-/// SQL reference namespace, so it must be unique per page; this mirrors uniqueScriptFolderName for pages.
+/// existing scripts, suffixing "-2", "-3", ... on collision. The clean name doubles as the
+/// SQL reference namespace, so it must be unique in the notebook.
 export function uniqueScriptBase(
     base: string,
     existingScripts: { [fileName: string]: ScriptRef },
@@ -214,10 +167,10 @@ function scriptOrderIndex(fileName: string): number {
     return m ? parseInt(m[1], 10) : 0;
 }
 
-/// A plan for appending one script to a page: the name for the new (bottom) script, plus any
-/// existing scripts that must be re-padded so the whole page shares one prefix width.
+/// A plan for inserting one script into a page: the name for the new script, plus any existing
+/// scripts that must be renamed to keep a dense, uniformly padded order.
 export interface ScriptInsertionPlan {
-    /// File name for the newly inserted script (sorts last in the page).
+    /// File name for the newly inserted script.
     newFileName: string;
     /// Existing scripts to rename so their prefix width matches the new one. Each keeps its numeric
     /// position and clean name; only the zero-padding (and any legacy "-" separator) changes. Empty
@@ -225,42 +178,50 @@ export interface ScriptInsertionPlan {
     repad: { oldFileName: string; newFileName: string }[];
 }
 
-/// Plan the insertion of a new script at the *bottom* of a page.
+/// Plan the insertion of a new script at a zero-based index in the page.
 ///
-/// The new script is numbered one past the highest existing ordering prefix, so it always sorts last
-/// (the only hard guarantee). Its clean base defaults to a random "<adjective>-<animal>" name (e.g.
-/// "brave-otter"), disambiguated against the page ("brave-otter", "brave-otter-2", ...); callers may
-/// pass an explicit `base` (tests do, for determinism). The prefix width follows the digit count of
-/// that new (largest) index; if appending widens it (e.g. the 10th script in a page takes the count
-/// from 1 to 2 digits), every existing script is re-padded to the wider format — preserving its
-/// number and clean name — so the on-disk listing stays uniform. This re-pad also normalises any
-/// legacy "01-name.sql" (hyphen) entries to the "01_name.sql" form.
+/// With an explicit index, existing scripts retain their sorted relative order and are assigned dense
+/// 1-based prefixes around the insertion point. The index is clamped to `[0, script count]`. Omitting
+/// the index preserves the existing append planner, including sparse prefixes. The new script's clean
+/// base defaults to a random "<adjective>_<animal>" name, disambiguated against the page; callers may
+/// pass an explicit `base` for deterministic tests.
 export function planScriptInsertion(
     existingScripts: { [fileName: string]: ScriptRef },
     base?: string,
+    index?: number,
 ): ScriptInsertionPlan {
-    const keys = Object.keys(existingScripts);
-    let maxPrefix = 0;
-    for (const key of keys) {
-        maxPrefix = Math.max(maxPrefix, scriptOrderIndex(key));
-    }
-    const newIndex = Math.max(maxPrefix + 1, keys.length + 1);
-    const width = String(newIndex).length;
+    const keys = Object.keys(existingScripts).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    const requested = base ?? randomScriptName(new Set(keys.map(scriptDisplayName)));
+    const clean = uniqueScriptBase(requested, existingScripts);
 
-    // Re-pad existing scripts whose rendered prefix (number padded to the new width, "_" separator)
-    // differs from what they have today. Scripts without a numeric prefix are left untouched.
+    if (index == null) {
+        let maxPrefix = 0;
+        for (const key of keys) {
+            maxPrefix = Math.max(maxPrefix, scriptOrderIndex(key));
+        }
+        const newIndex = Math.max(maxPrefix + 1, keys.length + 1);
+        const width = String(newIndex).length;
+        const repad: { oldFileName: string; newFileName: string }[] = [];
+        for (const key of keys) {
+            const currentIndex = scriptOrderIndex(key);
+            if (currentIndex === 0) continue;
+            const desired = `${String(currentIndex).padStart(width, '0')}_${normalizeScriptName(key)}`;
+            if (desired !== key) repad.push({ oldFileName: key, newFileName: desired });
+        }
+        return { newFileName: `${formatScriptOrderPrefix(newIndex, newIndex)}${clean}.sql`, repad };
+    }
+
+    const insertIndex = Math.max(0, Math.min(Math.trunc(index), keys.length));
+    const total = keys.length + 1;
     const repad: { oldFileName: string; newFileName: string }[] = [];
-    for (const key of keys) {
-        const n = scriptOrderIndex(key);
-        if (n === 0) continue;
-        const desired = `${String(n).padStart(width, '0')}_${normalizeScriptName(key)}`;
+    for (let oldIndex = 0; oldIndex < keys.length; ++oldIndex) {
+        const key = keys[oldIndex];
+        const newIndex = oldIndex < insertIndex ? oldIndex : oldIndex + 1;
+        const desired = `${formatScriptOrderPrefix(newIndex + 1, total)}${normalizeScriptName(key)}`;
         if (desired !== key) repad.push({ oldFileName: key, newFileName: desired });
     }
 
-    // Pick the requested base, or a fresh random one biased against the names already on the page.
-    const requested = base ?? randomScriptName(new Set(keys.map(scriptDisplayName)));
-    const clean = uniqueScriptBase(requested, existingScripts);
-    return { newFileName: `${formatScriptOrderPrefix(newIndex, newIndex)}${clean}.sql`, repad };
+    return { newFileName: `${formatScriptOrderPrefix(insertIndex + 1, total)}${clean}.sql`, repad };
 }
 
 /// Helper to generate a script file name that doesn't collide with existing entries. The new script
@@ -275,15 +236,7 @@ export function generateScriptFileName(
     return planScriptInsertion(existingScripts, base).newFileName;
 }
 
-/// Helper to create an empty page
-export function createEmptyScriptFolder(folderName: string = 'Untitled'): ScriptFolder {
-    return {
-        folderName,
-        scripts: {},
-    };
-}
-
-/// Helper to create a page script entry
+/// Helper to create a committed script entry.
 export function createScriptRef(scriptId: number, fileName: string): ScriptRef {
     return {
         scriptId,

@@ -27,13 +27,14 @@ describe('prefetched Hyper functions', () => {
         const functionCount = loadPrefetchedHyperFunctions(dql, catalog, script, sql);
 
         expect(functionCount).toBe(350);
-        expect(sql).toContain('CREATE FUNCTION "default"."pg_catalog"."date_add"() RETURNS any;');
-        expect(sql).toContain('CREATE AGGREGATE "default"."pg_catalog"."count"() RETURNS any;');
+        expect(sql).toContain('CREATE FUNCTION "hyper"."pg_catalog"."date_add"() RETURNS any;');
+        expect(sql).toContain('CREATE AGGREGATE "hyper"."pg_catalog"."count"() RETURNS any;');
+        expect(sql).toContain('CREATE FUNCTION "hyper"."tableau"."sqrt"() RETURNS any;');
     });
 
     it('uses the bundled SQL without fetching a runtime URL', async () => {
         await expect(fetchPrefetchedHyperFunctions()).resolves.toContain(
-            'CREATE FUNCTION "default"."pg_catalog"."abs"() RETURNS any;',
+            'CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;',
         );
     });
 

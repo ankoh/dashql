@@ -43,7 +43,7 @@
 }
 
 .title {
-    font-size: 1rem;
+    font-size: var(--font_size_subtitle);
 }
 
 .body {
@@ -54,7 +54,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    font-size: 0.9rem;
+    font-size: var(--font_size_subtitle);
 }
 
 .empty_state {
@@ -109,7 +109,7 @@
 .container_meta_image {
     color: #6e7781;
     font-family: 'Roboto Mono';
-    font-size: 0.8rem;
+    font-size: var(--font_size_small);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -141,7 +141,7 @@
 
 .log_overlay_title {
     flex: 1;
-    font-size: 0.9rem;
+    font-size: var(--font_size_subtitle);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -154,7 +154,7 @@
     overflow: hidden;
     position: relative;
     font-family: 'Roboto Mono';
-    font-size: 0.65rem;
+    font-size: var(--font_size_badge);
 }
 
 .log_loading {
@@ -343,7 +343,7 @@
     padding: 0 0 0 12px;
     border-bottom: 1px solid var(--border_color_primary);
     font-family: 'Roboto Mono';
-    font-size: 0.75rem;
+    font-size: var(--font_size_caption);
     font-weight: 500;
     color: hsl(208.5, 24.69%, 51.76%);
 }
@@ -380,7 +380,7 @@
     outline: none;
     background: transparent;
     font: inherit;
-    font-size: 0.75rem;
+    font-size: var(--font_size_caption);
     color: inherit;
     padding: 0;
 }
@@ -396,7 +396,7 @@
     overflow: hidden;
     position: relative;
     font-family: 'Roboto Mono';
-    font-size: 0.75rem;
+    font-size: var(--font_size_caption);
 }
 
 .tag_row {
@@ -417,7 +417,7 @@
 
 .tag_progress {
     color: #6e7781;
-    font-size: 0.75rem;
+    font-size: var(--font_size_caption);
     text-align: right;
 }
 
@@ -430,7 +430,7 @@
 
 .error_text {
     color: #6e7781;
-    font-size: 0.8rem;
+    font-size: var(--font_size_small);
     text-align: center;
     padding: 24px;
 }
@@ -447,7 +447,7 @@
 
 .hyper_setting_row {
     font-family: 'Roboto Mono';
-    font-size: 0.75rem;
+    font-size: var(--font_size_caption);
     color: #6e7781;
 }
 
@@ -455,5 +455,5 @@
    visually with the required-argument rows above them. */
 .mono_value_list input {
     font-family: 'Roboto Mono';
-    font-size: 0.75rem;
+    font-size: var(--font_size_caption);
 }

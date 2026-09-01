@@ -50,7 +50,7 @@
     color: white;
     fill: currentColor;
     font-family: 'Roboto';
-    font-size: 0.9rem;
+    font-size: var(--font_size_body);
     font-weight: 300;
     cursor: pointer;
 }
@@ -83,7 +83,7 @@
 }
 
 .version_title {
-    font-size: 1rem;
+    font-size: var(--font_size_title);
 }
 
 .version_info {
@@ -93,7 +93,7 @@
     row-gap: 8px;
     align-items: center;
     padding: 12px 16px 12px 8px;
-    font-size: 0.9rem;
+    font-size: var(--font_size_subtitle);
 }
 
 .version_label {
@@ -115,7 +115,7 @@
     border: 1px solid transparent;
     border-radius: var(--border_radius);
     color: inherit;
-    font-size: 0.85rem;
+    font-size: var(--font_size_body);
     text-decoration: none;
 }
 

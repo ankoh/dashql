@@ -8,7 +8,7 @@ import { AppSettingsSync } from './config/app_settings_sync.js';
 import { CatalogLoaderProvider } from './notebook/connections/catalog_loader.js';
 import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputationScheduler } from '../compute/computation_scheduler.js';
-import { ConnectionRegistry } from './notebook/connections/connection_registry.js';
+import { AttachedDatabaseRegistry } from './notebook/connections/attached_database_registry.js';
 import { ComputeConnectionProvider } from '../compute/compute_connection_provider.js';
 import { DashQLCoreProvider } from './providers/core_provider.js';
 import { FileDownloaderProvider } from '../platform/file/file_downloader_provider.js';
@@ -57,7 +57,7 @@ const LOG_CTX = 'app';
 // For example:
 // - CatalogLoaderProvider requires NotebookScriptsRegistryProvider to mark connection scripts as outdated.
 const NotebookProviders = (props: { children: React.ReactElement }) => (
-    <ConnectionRegistry>
+    <AttachedDatabaseRegistry>
         <SalesforceConnector>
             <HyperConnector>
                 <TrinoConnector>
@@ -85,7 +85,7 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
                 </TrinoConnector>
             </HyperConnector>
         </SalesforceConnector>
-    </ConnectionRegistry>
+    </AttachedDatabaseRegistry>
 );
 
 const AppProviders = (props: { children: React.ReactElement }) => (
@@ -166,6 +166,7 @@ root.render(
                     <Routes>
                         <Route index Component={NotebookPage} />
                         <Route path="/notebook" Component={NotebookPage} />
+                        <Route path="/notebooks/:notebookId" Component={NotebookPage} />
                         <Route path="/tool" element={<NavigateWithState to="/tool/format" />} />
                         <Route path="/tool/format" Component={ToolsPage} />
                         <Route path="/tool/hyperplan" Component={ToolsPage} />

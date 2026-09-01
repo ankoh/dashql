@@ -1,10 +1,22 @@
-export function fakeScriptEditorModule(React: typeof import('react'), state: { composeEditorFocused: boolean }) {
+export function fakeScriptEditorModule(React: typeof import('react'), state: {
+    editorFocusByScriptKey?: Map<number, () => void>;
+}) {
     return {
-        ScriptEditor: (props: { setView?: (view: { hasFocus: boolean }) => void }) => {
+        ScriptEditor: (props: { scriptKey?: number; setView?: (view: { hasFocus: boolean; focus: () => void }) => void; onFocus?: () => void }) => {
+            const focus = React.useMemo(() => {
+                const mock = state.editorFocusByScriptKey?.get(props.scriptKey ?? 0) ?? (() => {});
+                return () => mock();
+            }, [props.scriptKey]);
             React.useEffect(() => {
-                props.setView?.({ hasFocus: state.composeEditorFocused });
-            }, [props.setView]);
-            return React.createElement('div', { 'data-testid': 'script-editor' }, 'editor');
+                const view = { hasFocus: false, focus };
+                props.setView?.(view);
+            }, [focus, props.scriptKey]);
+            return React.createElement('div', {
+                'data-testid': 'script-editor',
+                'data-script-key': props.scriptKey,
+                tabIndex: 0,
+                onFocus: props.onFocus,
+            }, 'editor');
         },
     };
 }
@@ -194,8 +206,8 @@ export function fakeReactWindowModule(
                 {
                     key: index,
                     'data-row-height': props.rowHeight(index),
-                    'data-row-script-id': index < props.rowProps.entries.length
-                        ? props.rowProps.entries[index].scriptId
+                    'data-row-script-id': index % 2 === 1 && Math.floor(index / 2) < props.rowProps.entries.length
+                        ? props.rowProps.entries[Math.floor(index / 2)].scriptId
                         : undefined,
                 },
                 React.createElement(props.rowComponent, {

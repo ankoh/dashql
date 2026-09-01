@@ -6,17 +6,17 @@ import {
     type QueryEntry,
 } from '../../../../query/ui/query_history_viewer.js';
 import { QueryType } from '../../../../query/query_execution_state.js';
-import { useConnectionRegistry } from '../connection_registry.js';
+import { useAttachedDatabaseRegistry } from '../attached_database_registry.js';
 
 export * from '../../../../query/ui/query_history_viewer.js';
 
 export function QueryViewer(props: {
     onClose: () => void;
 }) {
-    const [connReg] = useConnectionRegistry();
+    const [connReg] = useAttachedDatabaseRegistry();
     const entries = React.useMemo(() => {
         const next: QueryEntry[] = [];
-        for (const [connectionId, conn] of connReg.connectionMap) {
+        for (const [connectionId, conn] of connReg.attachedDatabases) {
             const connectorName = conn.connectorInfo.names.displayShort;
             for (const queryIds of [conn.queriesFinishedOrdered, conn.queriesActiveOrdered]) {
                 for (const queryId of queryIds) {

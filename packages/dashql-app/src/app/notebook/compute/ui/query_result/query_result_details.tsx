@@ -57,6 +57,7 @@ export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions,
                 <QueryResultView
                     query={query}
                     debugMode={debugMode}
+                    compact
                     fitHeight={fitHeight}
                     maxHeight={maxHeight == null ? undefined : Math.max(0, maxHeight - HEADER_HEIGHT)}
                     columnHeader={columnHeader}

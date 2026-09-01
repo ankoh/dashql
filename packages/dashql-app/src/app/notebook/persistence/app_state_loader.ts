@@ -2,14 +2,14 @@ import type { DashQL, DashQLScript } from '../../../core/api.js';
 import type { Logger } from '../../../platform/logger/logger.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { ProgressCounter } from '../../../utils/progress.js';
-import type { ConnectionState } from '../connections/connection_state.js';
-import type { ConnectionRegistry } from '../connections/connection_registry.js';
+import type { AttachedDatabaseState } from '../connections/attached_database_state.js';
+import type { AttachedDatabaseRegistry, NotebookAttachedDatabases } from '../connections/attached_database_registry.js';
 import type { NotebookScripts, ScriptData } from '../scripts/notebook_scripts.js';
 import type { NotebookScriptsRegistry } from '../scripts/notebook_scripts_registry.js';
-import { createEmptyScriptData, destroyNotebookScripts, replaceScriptSessionText, sortScriptFolderNamesNumerically } from '../scripts/notebook_scripts.js';
-import { decodeConnectionFromProto, restoreConnectionState } from '../connections/connection_import.js';
+import { createEmptyScriptData, destroyNotebookScripts, replaceScriptSessionText } from '../scripts/notebook_scripts.js';
+import { decodeConnectionFromProto, restoreAttachedDatabaseState } from '../connections/connection_import.js';
 import { CONNECTOR_TYPES, ConnectorType, type ConnectorInfo } from '../connections/connector_info.js';
-import type { StorageBackend, NotebookEntry, NotebookData, ScriptFolderData } from './storage_backend.js';
+import type { StorageBackend, NotebookEntry, NotebookData } from './storage_backend.js';
 import { StorageBackendType } from './storage_backend.js';
 import { validateNotebookData, describeInvalidNotebook, isValidUuid, NotebookValidationError, type InvalidNotebook } from './notebook_validation.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../connections/catalog_update_state.js';
@@ -17,15 +17,15 @@ import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../connections/catalog_upd
 const LOG_CTX = "app_state_loader";
 
 export interface RestoredAppState {
-    connectionStates: Map<string, ConnectionState>;
-    connectionByNotebook: Map<string, string>;
+    connectionStates: Map<string, AttachedDatabaseState>;
+    attachedDatabasesByNotebook: Map<string, NotebookAttachedDatabases>;
     connectionStatesByType: string[][];
     connectionSignatures: Map<string, string | null>;
     notebookScripts: Map<string, NotebookScripts>;
     notebookScriptsByConnection: Map<string, string>;
     notebookScriptsByConnectionType: string[][];
     /// Notebooks whose metadata failed validation and were refused a load (keyed by bare UUID).
-    /// These never enter the connection/notebook maps; the notebook selector surfaces them as
+    /// These never enter the connection/notebook maps; the notebook workbench surfaces them as
     /// invalid (blocked from opening, still deletable).
     invalidNotebooks: Map<string, InvalidNotebook>;
 }
@@ -52,7 +52,8 @@ async function restoreNotebookScripts(
     core: DashQL,
     backend: StorageBackend,
     notebookId: string,
-    connectionId: string,
+    databaseId: string,
+    name: string | null,
     connectorInfo: ConnectorInfo,
     connectionCatalog: any,
     notebookMetadata: any,
@@ -61,102 +62,44 @@ async function restoreNotebookScripts(
     const scripts: Record<number, ScriptData> = {};
 
     try {
-        // Load script folders from storage
-        logger.info("Loading script folders", { notebookId }, LOG_CTX);
-        const pages: ScriptFolderData[] = await backend.loadScriptFolders(notebookId);
-        logger.info("Script folders loaded", {
+        logger.info("Loading scripts", { notebookId }, LOG_CTX);
+        const storedScripts = await backend.loadScripts(notebookId);
+        logger.info("Scripts loaded", {
             notebookId,
-            pageCount: pages.length.toString()
+            scriptCount: storedScripts.length.toString()
         }, LOG_CTX);
 
-        // Reconstruct scripts and pages
-        const scriptFolders: { [folderName: string]: { folderName: string; scripts: { [fileName: string]: { scriptId: number; fileName: string } } } } = {};
-
-        logger.info("Reconstructing scripts and pages", {
-            notebookId,
-            pageCount: pages.length.toString()
-        }, LOG_CTX);
-
-        for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-            const page = pages[pageIndex];
-            const pageScripts: { [fileName: string]: { scriptId: number; fileName: string } } = {};
-
-            logger.info("Processing page", {
-                notebookId,
-                pageIndex: `${pageIndex + 1}/${pages.length}`,
-                scriptCount: page.scripts.length.toString()
-            }, LOG_CTX);
-
-            for (const scriptFile of page.scripts) {
+        const scriptRefs: { [fileName: string]: { scriptId: number; fileName: string } } = {};
+        for (const scriptFile of storedScripts) {
                 const [scriptKey, scriptData] = createEmptyScriptData(
                     core,
                     connectionCatalog,
                     scriptFile.name,
-                    page.name,
                 );
                 scripts[scriptKey] = scriptData;
 
                 // Set SQL content. Ordinary notebook scripts remain outdated until first use.
                 replaceScriptSessionText(scriptData.scriptSession, scriptFile.sql);
 
-                // Create page script reference
-                pageScripts[scriptFile.name] = {
+                scriptRefs[scriptFile.name] = {
                     scriptId: scriptKey,
                     fileName: scriptFile.name,
                 };
-            }
-
-            scriptFolders[page.name] = {
-                folderName: page.name,
-                scripts: pageScripts,
-            };
         }
 
-        // Ensure at least one page exists
-        if (Object.keys(scriptFolders).length === 0) {
-            logger.info("No pages found, creating empty page", { notebookId }, LOG_CTX);
-            scriptFolders['Untitled'] = { folderName: 'Untitled', scripts: {} };
-        }
-
-        // Create uncommitted script
-        logger.info("Creating uncommitted script", { notebookId }, LOG_CTX);
-        const [uncommittedKey, uncommittedData] = createEmptyScriptData(core, connectionCatalog);
-        scripts[uncommittedKey] = uncommittedData;
-
-        // Load draft script if exists
-        logger.info("Loading draft script", { notebookId }, LOG_CTX);
-        const draftSql = await backend.loadScriptDraft(notebookId);
-        if (draftSql) {
-            logger.info("Draft script loaded", {
-                notebookId,
-                draftLength: draftSql.length.toString()
-            }, LOG_CTX);
-            replaceScriptSessionText(uncommittedData.scriptSession, draftSql);
-            uncommittedData.analysisOutdated = true;
-        } else {
-            logger.info("No draft script found", { notebookId }, LOG_CTX);
-        }
-
-        // Pick the first sorted page as the initial focus. Use the same numeric-aware ordering the
-        // tab bar renders with, so the focused page matches the first tab even with ordering prefixes.
-        const sortedFolders = sortScriptFolderNamesNumerically(Object.keys(scriptFolders));
-        const initialFolder = sortedFolders[0] ?? '';
-        const initialPage = initialFolder ? scriptFolders[initialFolder] : null;
-        const initialFile = initialPage
-            ? (Object.keys(initialPage.scripts).sort((a, b) => a.localeCompare(b))[0] ?? '')
-            : '';
+        const initialFile = Object.keys(scriptRefs).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))[0] ?? '';
 
         const notebookScripts: NotebookScripts = {
             instance: core,
             notebookId,
-            connectionId,
+            name,
+            databaseId,
             notebookMetadata,
             connectorInfo,
             connectionCatalog,
             scripts,
-            scriptFolders,
-            uncommittedScriptId: uncommittedKey,
-            scriptFocus: { folderName: initialFolder, fileName: initialFile, interactionCounter: 0 },
+            scriptRefs,
+            scriptFocus: { fileName: initialFile, interactionCounter: 0 },
             semanticUserFocus: null,
         };
 
@@ -177,8 +120,8 @@ async function restoreNotebookEntry(
     backend: StorageBackend,
     logger: Logger,
     notebookEntry: NotebookEntry,
-    connectionStates: Map<string, ConnectionState>,
-    connectionByNotebook: Map<string, string>,
+    connectionStates: Map<string, AttachedDatabaseState>,
+    attachedDatabasesByNotebook: Map<string, NotebookAttachedDatabases>,
     connectionSignatures: Map<string, string | null>,
     connectionStatesByType: string[][],
     notebookScripts: Map<string, NotebookScripts>,
@@ -232,7 +175,7 @@ async function restoreNotebookEntry(
     }
 
     // Fail-fast metadata validation: refuse to load a notebook whose metadata is structurally
-    // unusable (no id, no connection params, or params that map to no known connector). This runs
+    // unusable (unsupported format, no id, or invalid attached database). This runs
     // before any heavy restore work and surfaces the notebook as invalid in the selector rather than
     // letting it blow up mid-restore. Runtime hiccups (catalog/notebook) remain non-fatal below.
     const validation = validateNotebookData(notebookData);
@@ -245,33 +188,23 @@ async function restoreNotebookEntry(
         throw new InvalidNotebookError(invalid);
     }
 
-    const { connectionParams } = notebookData;
     logger.info("Notebook data loaded", { notebookId }, LOG_CTX);
 
     // Decode connection details (validation above guarantees the params map to a known connector)
-    const [connectorInfo, details] = decodeConnectionFromProto(
-        connectionParams as any,
-        notebookId
-    );
-
-    // Restore connection state
-    logger.info("Restoring connection state", {
-        notebookId,
-        connectorType: ConnectorType[connectorInfo.connectorType]
-    }, LOG_CTX);
-    const connectionState = restoreConnectionState(
-        core,
-        notebookId,
-        connectorInfo,
-        details,
-        connectionSignatures,
-        // The optional user-supplied `name` becomes the primary label; blank means unnamed.
-        notebookData.name?.trim() || null
-    );
-
-    connectionStates.set(connectionState.connectionId, connectionState);
-    connectionByNotebook.set(notebookId, connectionState.connectionId);
-    connectionStatesByType[connectorInfo.connectorType].push(connectionState.connectionId);
+    const restoreDatabase = (database: NotebookData['attachedDatabases'][number]) => {
+        const [connectorInfo, details] = decodeConnectionFromProto(database.params as any, notebookId);
+        const state = restoreAttachedDatabaseState(core, database.databaseId, connectorInfo, details, connectionSignatures);
+        connectionStates.set(state.databaseId, state);
+        connectionStatesByType[connectorInfo.connectorType].push(state.databaseId);
+        return state;
+    };
+    const connectionState = restoreDatabase(notebookData.mainDatabase);
+    const attachedConnectionStates = notebookData.attachedDatabases.map(restoreDatabase);
+    const connectorInfo = connectionState.connectorInfo;
+    attachedDatabasesByNotebook.set(notebookId, {
+        mainDatabaseId: connectionState.databaseId,
+        attachedDatabaseIds: attachedConnectionStates.map(database => database.databaseId),
+    });
 
     const connectionDuration = performance.now() - connectionStartTime;
     logger.info("Connection restored", {
@@ -282,7 +215,8 @@ async function restoreNotebookEntry(
 
     restoreConnections.addSucceeded();
 
-    // Phase 2: Restore catalog
+    // Phase 2: Restore the main database catalog. Other attached databases retain their own catalogs;
+    // notebook scripts and persisted catalog SQL always route to the explicit main database.
     logger.info("Restoring catalog", { notebookId }, LOG_CTX);
     const catalogStartTime = performance.now();
     restoreCatalogs.addStarted();
@@ -368,7 +302,8 @@ async function restoreNotebookEntry(
             core,
             backend,
             notebookId,
-            connectionState.connectionId,
+            connectionState.databaseId,
+            notebookData.name?.trim() || null,
             connectorInfo,
             connectionState.catalog,
             notebookData.metadata,
@@ -378,7 +313,6 @@ async function restoreNotebookEntry(
         const notebookScriptsDuration = performance.now() - notebookScriptsStartTime;
         logger.info("Notebook scripts restored", {
             notebookId,
-            pageCount: Object.keys(restoredNotebookScripts.scriptFolders).length.toString(),
             scriptCount: Object.keys(restoredNotebookScripts.scripts).length.toString(),
             durationMs: notebookScriptsDuration.toFixed(2)
         }, LOG_CTX);
@@ -399,7 +333,7 @@ async function restoreNotebookEntry(
 
     if (restoredNotebookScripts != null) {
         notebookScripts.set(notebookId, restoredNotebookScripts);
-        notebookScriptsByConnection.set(connectionState.connectionId, notebookId);
+        notebookScriptsByConnection.set(connectionState.databaseId, notebookId);
         notebookScriptsByConnectionType[connectorInfo.connectorType].push(notebookId);
     }
 
@@ -413,22 +347,21 @@ async function restoreNotebookEntry(
 /// The connection + notebook a single notebook restored into.
 export interface RestoredNotebook {
     notebookId: string;
-    connectorType: ConnectorType;
-    connection: ConnectionState;
+    databases: AttachedDatabaseState[];
+    mapping: NotebookAttachedDatabases;
     notebookScripts: NotebookScripts;
 }
 
 export function mergeRestoredNotebookIntoConnections(
-    reg: ConnectionRegistry,
+    reg: AttachedDatabaseRegistry,
     restored: RestoredNotebook,
-): ConnectionRegistry {
-    reg.connectionMap.set(restored.connection.connectionId, restored.connection);
-    reg.connectionByNotebook.set(restored.notebookId, restored.connection.connectionId);
-    reg.connectionsByType[restored.connectorType].push(restored.connection.connectionId);
-    reg.connectionsBySignature.set(
-        restored.connection.connectionSignature.signatureString,
-        restored.connection.connectionId,
-    );
+): AttachedDatabaseRegistry {
+    for (const database of restored.databases) {
+        reg.attachedDatabases.set(database.databaseId, database);
+        reg.attachedDatabasesByType[database.connectorInfo.connectorType].push(database.databaseId);
+        reg.attachedDatabasesBySignature.set(database.connectionSignature.signatureString, database.databaseId);
+    }
+    reg.attachedDatabasesByNotebook.set(restored.notebookId, restored.mapping);
     return { ...reg };
 }
 
@@ -437,17 +370,17 @@ export function mergeRestoredNotebookIntoScripts(
     restored: RestoredNotebook,
 ): NotebookScriptsRegistry {
     reg.notebookScriptsMap.set(restored.notebookId, restored.notebookScripts);
-    reg.notebookScriptsByConnection.set(restored.connection.connectionId, restored.notebookId);
-    reg.notebookScriptsByConnectionType[restored.connectorType].push(restored.notebookId);
+    reg.notebookScriptsByConnection.set(restored.notebookScripts.databaseId, restored.notebookId);
+    reg.notebookScriptsByConnectionType[restored.notebookScripts.connectorInfo.connectorType].push(restored.notebookId);
     return { ...reg };
 }
 
 export function destroyRestoredNotebook(restored: RestoredNotebook): void {
     destroyNotebookScripts(restored.notebookScripts);
-    destroyRestoredConnection(restored.connection);
+    for (const database of restored.databases) destroyRestoredConnection(database);
 }
 
-function destroyRestoredConnection(connection: ConnectionState): void {
+function destroyRestoredConnection(connection: AttachedDatabaseState): void {
     connection.connectionSignature.signatures.delete(
         connection.connectionSignature.signatureString,
     );
@@ -475,8 +408,8 @@ export async function restoreSingleNotebook(
     // manifest entry `restoreNotebookEntry` needs to route the load.
     const notebookEntry: NotebookEntry = { path: notebookId, storageType: StorageBackendType.OPFS };
 
-    const connectionStates = new Map<string, ConnectionState>();
-    const connectionByNotebook = new Map<string, string>();
+    const connectionStates = new Map<string, AttachedDatabaseState>();
+    const attachedDatabasesByNotebook = new Map<string, NotebookAttachedDatabases>();
     const notebookScripts = new Map<string, NotebookScripts>();
     const notebookScriptsByConnection = new Map<string, string>();
     const connectionStatesByType: string[][] = CONNECTOR_TYPES.map(() => []);
@@ -489,7 +422,7 @@ export async function restoreSingleNotebook(
         logger,
         notebookEntry,
         connectionStates,
-        connectionByNotebook,
+        attachedDatabasesByNotebook,
         connectionSignatures,
         connectionStatesByType,
         notebookScripts,
@@ -501,9 +434,9 @@ export async function restoreSingleNotebook(
         noopConsumer,
     );
 
-    const connectionId = connectionByNotebook.get(notebookId);
-    const connection = connectionId == null ? null : connectionStates.get(connectionId);
-    if (!connection) {
+    const mapping = attachedDatabasesByNotebook.get(notebookId);
+    const connection = mapping == null ? null : connectionStates.get(mapping.mainDatabaseId);
+    if (!connection || mapping == null) {
         // restoreNotebookEntry only fails to register a connection by throwing (invalid/unreadable), which
         // would have propagated above. Reaching here means the persisted id didn't match — treat it
         // as a hard restore failure rather than silently returning a half-loaded notebook.
@@ -511,13 +444,13 @@ export async function restoreSingleNotebook(
     }
     const scripts = notebookScripts.get(notebookId) ?? null;
     if (!scripts) {
-        destroyRestoredConnection(connection);
+        for (const database of connectionStates.values()) destroyRestoredConnection(database);
         throw new Error(`imported notebook ${notebookId} did not restore its scripts`);
     }
     return {
         notebookId,
-        connectorType: connection.connectorInfo.connectorType,
-        connection,
+        databases: [...connectionStates.values()],
+        mapping,
         notebookScripts: scripts,
     };
 }
@@ -534,8 +467,8 @@ export async function restoreAppState(
     logger.info("Starting app state restoration", {}, LOG_CTX);
     const startTime = performance.now();
 
-    const connectionStates = new Map<string, ConnectionState>();
-    const connectionByNotebook = new Map<string, string>();
+    const connectionStates = new Map<string, AttachedDatabaseState>();
+    const attachedDatabasesByNotebook = new Map<string, NotebookAttachedDatabases>();
     const connectionSignatures = new Map<string, string | null>();
     const notebookScripts = new Map<string, NotebookScripts>();
     const notebookScriptsByConnection = new Map<string, string>();
@@ -590,7 +523,7 @@ export async function restoreAppState(
                     logger,
                     notebookEntry,
                     connectionStates,
-                    connectionByNotebook,
+                    attachedDatabasesByNotebook,
                     connectionSignatures,
                     connectionStatesByType,
                     notebookScripts,
@@ -682,7 +615,7 @@ export async function restoreAppState(
 
     return {
         connectionStates,
-        connectionByNotebook,
+        attachedDatabasesByNotebook,
         connectionStatesByType,
         connectionSignatures,
         notebookScripts,

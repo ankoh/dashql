@@ -2,7 +2,6 @@ import type { NotebookData, ScriptData } from './storage_backend.js';
 import {
     STORAGE_NOTEBOOK_FILE,
     STORAGE_SCRIPTS_FOLDER,
-    STORAGE_SCRIPT_DRAFT,
     STORAGE_SCRIPT_FUNCTIONS,
     STORAGE_SCRIPT_SCHEMA,
 } from './storage_backend.js';
@@ -53,7 +52,6 @@ export async function readNotebookBundleFromBrowserFolder(
     }
 
     const destinations = new Map<string, BrowserFolderEntry>();
-    const scriptFolders = new Map<string, string>();
     for (const entry of entries) {
         const classification = classifyBundlePath(entry.path);
         if (classification === 'ignore') {
@@ -61,7 +59,7 @@ export async function readNotebookBundleFromBrowserFolder(
         }
         if (classification === 'invalid-script') {
             throw new Error(
-                `Invalid notebook folder: SQL scripts must be directly inside a script folder: ${entry.path}`,
+                `Invalid notebook folder: SQL scripts must be directly inside scripts/: ${entry.path}`,
             );
         }
 
@@ -71,16 +69,6 @@ export async function readNotebookBundleFromBrowserFolder(
         }
         destinations.set(key, entry);
 
-        if (classification === 'script') {
-            const folderName = entry.path.split('/')[1];
-            const sourceFolderName = entry.sourcePath.split('/')[1];
-            const folderKey = destinationKey(folderName);
-            const existingName = scriptFolders.get(folderKey);
-            if (existingName != null && existingName !== sourceFolderName) {
-                throw new Error(`Invalid notebook folder: duplicate normalized script folder ${folderName}`);
-            }
-            scriptFolders.set(folderKey, sourceFolderName);
-        }
     }
 
     const manifest = destinations.get(destinationKey(STORAGE_NOTEBOOK_FILE));
@@ -110,27 +98,19 @@ export async function readNotebookBundleFromBrowserFolder(
         );
     }
 
-    const folders = [...scriptFolders.keys()]
-        .map(key => scriptFolders.get(key)!.normalize('NFC'))
-        .sort((a, b) => NATURAL_SORT.compare(a, b))
-        .map(name => {
-            const prefix = `${destinationKey(STORAGE_SCRIPTS_FOLDER)}/${destinationKey(name)}/`;
-            const scripts: ScriptData[] = [...destinations]
-                .filter(([key]) => key.startsWith(prefix))
-                .map(([key, entry]) => ({
-                    name: entry.path.split('/')[2],
-                    sql: contents.get(key)!,
-                }))
-                .sort((a, b) => NATURAL_SORT.compare(a.name, b.name));
-            return { name, scripts };
-        });
+    const scripts: ScriptData[] = [...destinations]
+        .filter(([, entry]) => classifyBundlePath(entry.path) === 'script')
+        .map(([key, entry]) => ({
+            name: entry.path.split('/')[1],
+            sql: contents.get(key)!,
+        }))
+        .sort((a, b) => NATURAL_SORT.compare(a.name, b.name));
 
     return {
         notebook,
         schemaSql: getOptionalContent(contents, STORAGE_SCRIPT_SCHEMA),
         functionsSql: getOptionalContent(contents, STORAGE_SCRIPT_FUNCTIONS),
-        folders,
-        draftSql: getOptionalContent(contents, `${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`),
+        scripts,
     };
 }
 
@@ -159,8 +139,7 @@ function classifyBundlePath(path: string): 'accept' | 'script' | 'ignore' | 'inv
     const key = destinationKey(path);
     if (key === destinationKey(STORAGE_NOTEBOOK_FILE)
         || key === destinationKey(STORAGE_SCRIPT_SCHEMA)
-        || key === destinationKey(STORAGE_SCRIPT_FUNCTIONS)
-        || key === destinationKey(`${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`)) {
+        || key === destinationKey(STORAGE_SCRIPT_FUNCTIONS)) {
         return 'accept';
     }
 
@@ -169,10 +148,10 @@ function classifyBundlePath(path: string): 'accept' | 'script' | 'ignore' | 'inv
         return 'ignore';
     }
     const parts = path.split('/');
-    if (parts.length !== 3) {
+    if (parts.length !== 2) {
         return 'invalid-script';
     }
-    if (destinationKey(parts[2]) === destinationKey(STORAGE_SCRIPT_DRAFT)) {
+    if (destinationKey(parts[1]) === destinationKey('dashql-draft.sql')) {
         return 'invalid-script';
     }
     return 'script';

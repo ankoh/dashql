@@ -1,5 +1,6 @@
 import type { Logger } from '../../../platform/logger/logger.js';
 import type { StorageBackend } from './storage_backend.js';
+import { regenerateNotebookDatabaseIds } from './notebook_bundle.js';
 
 const LOG_CTX = 'storage_migration';
 
@@ -44,20 +45,8 @@ export async function copyNotebook(
         fileCount++;
     }
 
-    // Script folders + scripts
-    const folders = await source.loadScriptFolders(notebookId);
-    for (const folder of folders) {
-        await target.createScriptFolder(notebookId, folder.name);
-        for (const script of folder.scripts) {
-            await target.saveScript(notebookId, folder.name, script.name, script.sql);
-            fileCount++;
-        }
-    }
-
-    // Draft
-    const draft = await source.loadScriptDraft(notebookId);
-    if (draft != null) {
-        await target.saveScriptDraft(notebookId, draft);
+    for (const script of await source.loadScripts(notebookId)) {
+        await target.saveScript(notebookId, script.name, script.sql);
         fileCount++;
     }
 
@@ -79,8 +68,10 @@ export async function cloneNotebook(
 ): Promise<MigrationResult> {
     let fileCount = 0;
     try {
-        const notebookData = { ...(await source.loadNotebook(sourceNotebookId)) };
-        notebookData.notebookId = newNotebookId;
+        const notebookData = regenerateNotebookDatabaseIds({
+            ...(await source.loadNotebook(sourceNotebookId)),
+            notebookId: newNotebookId,
+        });
         delete notebookData.notebookPath;
         const trimmedName = notebookData.name?.trim();
         if (trimmedName) {
@@ -102,18 +93,8 @@ export async function cloneNotebook(
             fileCount++;
         }
 
-        const folders = await source.loadScriptFolders(sourceNotebookId);
-        for (const folder of folders) {
-            await target.createScriptFolder(newNotebookId, folder.name);
-            for (const script of folder.scripts) {
-                await target.saveScript(newNotebookId, folder.name, script.name, script.sql);
-                fileCount++;
-            }
-        }
-
-        const draft = await source.loadScriptDraft(sourceNotebookId);
-        if (draft != null) {
-            await target.saveScriptDraft(newNotebookId, draft);
+        for (const script of await source.loadScripts(sourceNotebookId)) {
+            await target.saveScript(newNotebookId, script.name, script.sql);
             fileCount++;
         }
 
@@ -149,11 +130,5 @@ export async function verifyNotebook(notebookId: string, source: StorageBackend,
         return false;
     }
 
-    const sourceScripts = countScripts(await source.loadScriptFolders(notebookId));
-    const targetScripts = countScripts(await target.loadScriptFolders(notebookId));
-    return sourceScripts === targetScripts;
-}
-
-function countScripts(folders: { scripts: unknown[] }[]): number {
-    return folders.reduce((sum, folder) => sum + folder.scripts.length, 0);
+    return (await source.loadScripts(notebookId)).length === (await target.loadScripts(notebookId)).length;
 }

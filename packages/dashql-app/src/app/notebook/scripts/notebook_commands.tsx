@@ -1,16 +1,15 @@
 import * as React from 'react';
 
-import { ConnectionHealth, printConnectionHealth } from '../connections/connection_state.js';
+import { ConnectionHealth, printConnectionHealth } from '../connections/attached_database_state.js';
 import { ConnectorInfo } from '../connections/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
-import { getSelectedScriptRef, SELECT_NEXT_SCRIPT, SELECT_NEXT_SCRIPT_FOLDER, SELECT_PREV_SCRIPT, SELECT_PREV_SCRIPT_FOLDER } from './notebook_scripts.js';
+import { getSelectedScriptRef, SELECT_NEXT_SCRIPT, SELECT_PREV_SCRIPT } from './notebook_scripts.js';
 import { useCatalogLoaderQueue } from '../connections/catalog_loader.js';
-import { useConnectionState } from '../connections/connection_registry.js';
+import { useAttachedDatabaseState } from '../connections/attached_database_registry.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../connections/query_executor.js';
-import { useRouteContext, useRouterNavigate, CHANGE_NOTEBOOK } from '../../router/router.js';
+import { useRouteContext } from '../../router/router.js';
 import { useNotebookScriptsRegistry, useNotebookScripts } from './notebook_scripts_registry.js';
-import { useAIClient } from '../agent/ai/ai_client_provider.js';
 import { isCatalogRefreshRunning } from '../connections/catalog_update_state.js';
 import { runNotebookScript } from '../ui/rerun_query.js';
 
@@ -24,11 +23,8 @@ export enum NotebookCommandType {
     SaveQueryResultsAsArrow = 5,
     SelectPreviousNotebookScript = 6,
     SelectNextNotebookScript = 7,
-    SelectPreviousScriptFolder = 10,
-    SelectNextScriptFolder = 11,
     EditNotebookConnection = 8,
     CloseNotebook = 9,
-    ToggleComposeInputMode = 12,
 }
 
 export type ScriptCommandDispatch = (command: NotebookCommandType) => void;
@@ -39,10 +35,6 @@ interface Props {
 
 const COMMAND_DISPATCH_CTX = React.createContext<ScriptCommandDispatch | null>(null);
 export const useNotebookCommandDispatch = () => React.useContext(COMMAND_DISPATCH_CTX)!;
-
-/// The compose editor's input mode: 0 = SQL, 1 = AI.
-export const COMPOSE_INPUT_MODE_SQL = 0;
-export const COMPOSE_INPUT_MODE_AI = 1;
 
 export enum NotebookViewMode {
     Notebook = 0,
@@ -56,52 +48,21 @@ export interface NotebookViewModeContextValue {
 const NOTEBOOK_VIEW_MODE_CTX = React.createContext<NotebookViewModeContextValue | null>(null);
 export const useNotebookViewMode = () => React.useContext(NOTEBOOK_VIEW_MODE_CTX)!;
 
-/// The requested compose input mode lives here rather than in the script feed, so the
-/// "Switch Mode" command and the Ctrl+M shortcut (dispatched from outside the feed) can drive
-/// it directly. The feed is just a consumer. Hoisting it here also means the mode persists when
-/// the feed is replaced by the details view and restored.
-export interface ComposeInputModeContextValue {
-    mode: number;
-    setMode: React.Dispatch<React.SetStateAction<number>>;
-}
-const COMPOSE_INPUT_MODE_CTX = React.createContext<ComposeInputModeContextValue | null>(null);
-export const useComposeInputMode = () => React.useContext(COMPOSE_INPUT_MODE_CTX)!;
-
 export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const route = useRouteContext();
-    const navigate = useRouterNavigate();
     const logger = useLogger();
 
     const registry = useNotebookScriptsRegistry()[0];
     const [notebookScripts, modifyNotebookScripts] = useNotebookScripts(route.notebookId ?? null);
-    const [connection, _dispatchConnection] = useConnectionState(notebookScripts?.notebookId ?? null);
+    const [connection, _dispatchConnection] = useAttachedDatabaseState(notebookScripts?.notebookId ?? null);
     const executeQuery = useQueryExecutor();
     const refreshCatalog = useCatalogLoaderQueue();
-    const aiAvailable = useAIClient() != null;
-    const aiAvailableRef = React.useRef(aiAvailable);
-    aiAvailableRef.current = aiAvailable;
     const [notebookViewMode, setNotebookViewMode] = React.useState(NotebookViewMode.Notebook);
     const notebookViewModeRef = React.useRef(notebookViewMode);
     notebookViewModeRef.current = notebookViewMode;
     const notebookViewModeValue = React.useMemo<NotebookViewModeContextValue>(
         () => ({ mode: notebookViewMode, setMode: setNotebookViewMode }),
         [notebookViewMode],
-    );
-    // The compose editor's SQL/AI input mode, hoisted here so commands can drive it (see
-    // useComposeInputMode). Kept in a ref too, so the command dispatch callback can toggle it
-    // without listing the mode in its dependency array.
-    const [composeInputMode, setComposeInputMode] = React.useState<number>(0);
-    const composeInputModeRef = React.useRef(composeInputMode);
-    composeInputModeRef.current = composeInputMode;
-    // If the provider becomes unavailable while in AI mode, fall back to SQL.
-    React.useEffect(() => {
-        if (!aiAvailable && composeInputMode === COMPOSE_INPUT_MODE_AI) {
-            setComposeInputMode(COMPOSE_INPUT_MODE_SQL);
-        }
-    }, [aiAvailable, composeInputMode]);
-    const composeInputModeValue = React.useMemo<ComposeInputModeContextValue>(
-        () => ({ mode: composeInputMode, setMode: setComposeInputMode }),
-        [composeInputMode],
     );
 
     // Setup command dispatch logic
@@ -118,7 +79,6 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         notebookId: route.notebookId,
                         viewMode: notebookViewModeRef.current.toString(),
                         connectionHealth: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED),
-                        focusedFolder: notebookScripts.scriptFocus.folderName,
                         focusedFile: notebookScripts.scriptFocus.fileName,
                     }, LOG_CTX);
                     if (notebookViewModeRef.current !== NotebookViewMode.Notebook) {
@@ -135,7 +95,6 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         if (!entry) {
                             logger.warn("Ignoring Ctrl+E because no committed script is selected", {
                                 notebookId: route.notebookId,
-                                focusedFolder: notebookScripts.scriptFocus.folderName,
                                 focusedFile: notebookScripts.scriptFocus.fileName,
                             }, LOG_CTX);
                             break;
@@ -149,7 +108,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                             break;
                         }
                         await runNotebookScript(
-                            connection!.connectionId,
+                            connection!.databaseId,
                             notebookScripts,
                             scriptData,
                             executeQuery,
@@ -162,17 +121,12 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                     if (connection?.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.warn("Cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
                     } else if (isCatalogRefreshRunning(connection)) {
-                        logger.debug("Catalog refresh already running", { notebookId: connection.notebookId }, LOG_CTX);
+                        logger.debug("Catalog refresh already running", { notebookId: notebookScripts.notebookId }, LOG_CTX);
                     } else {
-                        refreshCatalog(connection.connectionId, true);
+                        refreshCatalog(connection.databaseId, true);
                     }
                     break;
                 case NotebookCommandType.CloseNotebook: {
-                    // Navigate back to the notebook selector
-                    navigate({
-                        type: CHANGE_NOTEBOOK,
-                        value: null,
-                    });
                     break;
                 }
 
@@ -200,29 +154,6 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                             value: null,
                         });
                     }
-                    break;
-                case NotebookCommandType.SelectPreviousScriptFolder:
-                    if (modifyNotebookScripts) {
-                        modifyNotebookScripts({
-                            type: SELECT_PREV_SCRIPT_FOLDER,
-                            value: null,
-                        });
-                    }
-                    break;
-                case NotebookCommandType.SelectNextScriptFolder:
-                    if (modifyNotebookScripts) {
-                        modifyNotebookScripts({
-                            type: SELECT_NEXT_SCRIPT_FOLDER,
-                            value: null,
-                        });
-                    }
-                    break;
-                case NotebookCommandType.ToggleComposeInputMode:
-                    // AI mode requires a configured provider; otherwise stay in SQL.
-                    if (!aiAvailableRef.current) break;
-                    setComposeInputMode(composeInputModeRef.current === COMPOSE_INPUT_MODE_SQL
-                        ? COMPOSE_INPUT_MODE_AI
-                        : COMPOSE_INPUT_MODE_SQL);
                     break;
                 case NotebookCommandType.EditNotebookConnection:
                     // Connection settings are now handled via overlay in the UI
@@ -281,16 +212,11 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         : () => commandDispatch(NotebookCommandType.SaveQueryResultsAsArrow),
                 ),
             },
-            // Ctrl+H / Ctrl+L (page-bar navigation) and Ctrl+J / Ctrl+K (feed navigation) are
-            // handled in ScriptFolder, where the meta tabs (relations/functions) and the
+                    // Ctrl+H / Ctrl+L (page-bar navigation) and Ctrl+J / Ctrl+K (feed navigation) are
+                    // handled in the notebook page, where the meta tabs (relations/functions) and the
             // editing/details view state are in scope. They fold the meta tabs into the same
             // left/right stepping and become no-ops when the feed isn't showing. They are
             // intentionally not bound here to avoid double-handling the key.
-            {
-                key: 'm',
-                ctrlKey: true,
-                callback: () => commandDispatch(NotebookCommandType.ToggleComposeInputMode),
-            },
         ],
         [notebookScripts?.connectorInfo, commandDispatch],
     );
@@ -301,9 +227,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     return (
         <COMMAND_DISPATCH_CTX.Provider value={commandDispatch}>
             <NOTEBOOK_VIEW_MODE_CTX.Provider value={notebookViewModeValue}>
-                <COMPOSE_INPUT_MODE_CTX.Provider value={composeInputModeValue}>
-                    {props.children}
-                </COMPOSE_INPUT_MODE_CTX.Provider>
+                {props.children}
             </NOTEBOOK_VIEW_MODE_CTX.Provider>
         </COMMAND_DISPATCH_CTX.Provider>
     );

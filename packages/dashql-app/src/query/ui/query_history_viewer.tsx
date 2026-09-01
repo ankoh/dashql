@@ -17,7 +17,7 @@ import { useKeyEvents } from '../../utils/key_events.js';
 export const ROW_HEIGHT = 32;
 
 export enum QueryTarget {
-    CONNECTION = 'Connection',
+    CONNECTION = 'Attached Database',
     MEMORY = 'Memory',
 }
 

@@ -6,12 +6,21 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    font-size: 0.95rem;
+    font-size: var(--font_size_editor);
     display: flex;
     flex-direction: column;
 
     /* Collapse last row's bottom border with the container border */
     margin-bottom: -1px;
+}
+
+.root_compact {
+    font-size: var(--font_size_compact);
+}
+
+.root_compact .header_cell_name,
+.root_compact .header_cell_rightmost {
+    font-size: var(--font_size_compact);
 }
 
 .grid_container {
@@ -71,7 +80,7 @@
 .header_cell_rightmost {
     border-right: 1px solid transparent;
     padding-right: 2px;
-    font-size: 0.9rem;
+    font-size: var(--font_size_subtitle);
     font-weight: 500;
 
     /* Needed for inline-flex alignment */
@@ -84,7 +93,7 @@
 
 .header_cell_name {
     flex: 1;
-    font-size: 0.9rem;
+    font-size: var(--font_size_subtitle);
     font-weight: 500;
 }
 
@@ -244,7 +253,7 @@
     margin-left: 6px;
     padding: 0 4px;
     border-radius: 3px;
-    font-size: 0.65rem;
+    font-size: var(--font_size_badge);
     font-weight: 500;
     line-height: 1.4;
     text-transform: uppercase;

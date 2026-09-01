@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { useConnectionRegistry } from '../connections/connection_registry.js';
-import { catalogFileMatchesStorage, connectionCatalogMatchesStorage, replaceConnectionCatalogFromStorage } from '../connections/connection_state.js';
+import { useAttachedDatabaseRegistry } from '../connections/attached_database_registry.js';
+import { catalogFileMatchesStorage, attachedDatabaseCatalogMatchesStorage, replaceAttachedDatabaseCatalogFromStorage } from '../connections/attached_database_state.js';
 import { useNotebookScriptsRegistry } from '../scripts/notebook_scripts_registry.js';
 import { notebookScriptsMatchStorageSnapshot, replaceNotebookScriptsFromStorage } from '../scripts/notebook_scripts.js';
 import { isNativePlatform } from '../../../platform/native_globals.js';
@@ -10,11 +10,10 @@ import { stringifyError } from '../../../platform/logger/logger.js';
 import { useStorage } from './storage_provider.js';
 import { NativeNotebookSyncService, nativeNotebookWatchForLocation } from './native_notebook_sync.js';
 import type { NotebookScriptsStorageSnapshot, NotebookScripts } from '../scripts/notebook_scripts.js';
-import type { ConnectionState } from '../connections/connection_state.js';
+import type { AttachedDatabaseState } from '../connections/attached_database_state.js';
 import type { StorageWriter } from './storage_writer.js';
 import {
     STORAGE_SCRIPTS_FOLDER,
-    STORAGE_SCRIPT_DRAFT,
     STORAGE_SCRIPT_FUNCTIONS,
     STORAGE_SCRIPT_SCHEMA,
 } from './storage_backend.js';
@@ -46,7 +45,7 @@ function snapshotMatchesCompletedWrite(
     snapshot: NotebookScriptsStorageSnapshot,
     schema: string | null,
     functions: string | null,
-    connection: ConnectionState | undefined,
+    connection: AttachedDatabaseState | undefined,
     notebookScripts: NotebookScripts | undefined,
     writer: StorageWriter,
 ): boolean {
@@ -54,7 +53,6 @@ function snapshotMatchesCompletedWrite(
     const memoryFiles = new Map<string, string | null>();
     diskFiles.set(`${notebookId}/${STORAGE_SCRIPT_SCHEMA}`, schema);
     diskFiles.set(`${notebookId}/${STORAGE_SCRIPT_FUNCTIONS}`, functions);
-    diskFiles.set(`${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`, snapshot.draft ?? '');
     if (connection) {
         memoryFiles.set(`${notebookId}/${STORAGE_SCRIPT_SCHEMA}`, catalogFileMatchesStorage(connection.catalogRelationScript, null)
             ? null
@@ -64,20 +62,15 @@ function snapshotMatchesCompletedWrite(
             : connection.catalogFunctionScript.toString());
     }
     if (notebookScripts) {
-        memoryFiles.set(
-            `${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`,
-            notebookScripts.scripts[notebookScripts.uncommittedScriptId]?.scriptSession.getText() ?? '',
-        );
-        for (const script of Object.values(notebookScripts.scripts)) {
-            if (script.folderName && script.fileName) {
-                memoryFiles.set(`${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${script.folderName}/${script.fileName}`, script.scriptSession.getText());
+        for (const ref of Object.values(notebookScripts.scriptRefs)) {
+            const script = notebookScripts.scripts[ref.scriptId];
+            if (script) {
+                memoryFiles.set(`${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${ref.fileName}`, script.scriptSession.getText());
             }
         }
     }
-    for (const page of snapshot.folders) {
-        for (const script of page.scripts) {
-            diskFiles.set(`${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${page.name}/${script.name}`, script.sql);
-        }
+    for (const script of snapshot.scripts) {
+        diskFiles.set(`${notebookId}/${STORAGE_SCRIPTS_FOLDER}/${script.name}`, script.sql);
     }
     let divergenceFound = false;
     for (const path of new Set([...diskFiles.keys(), ...memoryFiles.keys()])) {
@@ -99,7 +92,7 @@ function snapshotMatchesCompletedWrite(
 export const NativeNotebookSync: React.FC = () => {
     const logger = useLogger();
     const [reader, writer] = useStorage();
-    const [connectionRegistry, setConnectionRegistry] = useConnectionRegistry();
+    const [connectionRegistry, setAttachedDatabaseRegistry] = useAttachedDatabaseRegistry();
     const [notebookScriptsRegistry, setNotebookScriptsRegistry] = useNotebookScriptsRegistry();
     const connectionRegistryRef = React.useRef(connectionRegistry);
     const notebookScriptsRegistryRef = React.useRef(notebookScriptsRegistry);
@@ -114,18 +107,18 @@ export const NativeNotebookSync: React.FC = () => {
         try {
             // A write that started before the watcher event must finish before the stable disk read.
             await writer.settle();
-            const [schema, functions, pages, draft] = await Promise.all([
+            const [schema, functions, scripts] = await Promise.all([
                 reader.backend.loadNotebookSchema(notebookId),
                 reader.backend.loadNotebookFunctions(notebookId),
-                reader.backend.loadScriptFolders(notebookId),
-                reader.backend.loadScriptDraft(notebookId),
+                reader.backend.loadScripts(notebookId),
             ]);
-            const snapshot: NotebookScriptsStorageSnapshot = { folders: pages, draft };
-            const connectionId = connectionRegistryRef.current.connectionByNotebook.get(notebookId);
-            const connection = connectionId == null ? null : connectionRegistryRef.current.connectionMap.get(connectionId);
+            const snapshot: NotebookScriptsStorageSnapshot = { scripts };
+            const mapping = connectionRegistryRef.current.attachedDatabasesByNotebook.get(notebookId);
+            const connectionId = mapping?.mainDatabaseId;
+            const connection = connectionId == null ? null : connectionRegistryRef.current.attachedDatabases.get(connectionId);
             const currentNotebookScripts = notebookScriptsRegistryRef.current.notebookScriptsMap.get(notebookId);
             const notebookUnchanged = currentNotebookScripts != null && notebookScriptsMatchStorageSnapshot(currentNotebookScripts, snapshot);
-            const catalogUnchanged = connection != null && connectionCatalogMatchesStorage(connection, schema, functions);
+            const catalogUnchanged = connection != null && attachedDatabaseCatalogMatchesStorage(connection, schema, functions);
             if (notebookUnchanged && catalogUnchanged) {
                 return;
             }
@@ -163,14 +156,15 @@ export const NativeNotebookSync: React.FC = () => {
                 writer.cancelPendingWritesForNotebook(notebookId, isReloadedKey);
             }
             await reader.backend.regenerateNotebookIndex?.(notebookId);
-            const latestConnectionId = connectionRegistryRef.current.connectionByNotebook.get(notebookId);
-            const latestConnection = latestConnectionId == null ? null : connectionRegistryRef.current.connectionMap.get(latestConnectionId);
+            const latestMapping = connectionRegistryRef.current.attachedDatabasesByNotebook.get(notebookId);
+            const latestConnectionId = latestMapping?.mainDatabaseId;
+            const latestConnection = latestConnectionId == null ? null : connectionRegistryRef.current.attachedDatabases.get(latestConnectionId);
             const latestNotebookScripts = notebookScriptsRegistryRef.current.notebookScriptsMap.get(notebookId);
             const catalogChanged = latestConnection != null
-                ? replaceConnectionCatalogFromStorage(latestConnection, schema, functions)
+                ? replaceAttachedDatabaseCatalogFromStorage(latestConnection, schema, functions)
                 : false;
             if (catalogChanged) {
-                setConnectionRegistry(registry => ({ ...registry }));
+                setAttachedDatabaseRegistry(registry => ({ ...registry }));
             }
             if (latestNotebookScripts) {
                 const reloadedNotebookScripts = replaceNotebookScriptsFromStorage(latestNotebookScripts, snapshot, logger, catalogChanged);
@@ -229,7 +223,7 @@ export const NativeNotebookSync: React.FC = () => {
         if (!isNativePlatform() || !serviceRef.current) {
             return;
         }
-        const notebooks = [...connectionRegistry.connectionByNotebook.keys()]
+        const notebooks = [...connectionRegistry.attachedDatabasesByNotebook.keys()]
             .map(notebookId => nativeNotebookWatchForLocation(notebookId, reader.getNotebookLocation(notebookId)))
             .filter((watch): watch is NonNullable<typeof watch> => watch != null);
         void serviceRef.current.reconcile(notebooks);

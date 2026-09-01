@@ -11,8 +11,8 @@ export const PREFETCHED_HYPER_FUNCTIONS_SQL = prefetchedHyperFunctionsSql;
 export function qualifyPrefetchedHyperFunctions(databaseName: string, updatedAt: Date = new Date()): string {
     const quotedDatabase = `"${databaseName.replace(/"/g, '""')}"`;
     const functions = PREFETCHED_HYPER_FUNCTIONS_SQL.replace(
-        /"default"\."pg_catalog"/g,
-        `${quotedDatabase}."pg_catalog"`,
+        /"hyper"\./g,
+        `${quotedDatabase}.`,
     );
     return `${generateFunctionScriptHeader(CatalogSource.Hyper, updatedAt)}${functions}`;
 }

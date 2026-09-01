@@ -58,14 +58,14 @@ export const CatalogScriptCard: React.FC<CatalogScriptCardProps> = (props) => {
 
         // Replace the document text and publish the portable editor projection in a single
         // transaction. Splitting these into two dispatches forced two full layout passes
-        // (and a frame of unstyled text) on large scripts; ScriptEditor and ScriptPreview
+        // (and a frame of unstyled text) on large scripts; ScriptEditor
         // both apply changes+effects atomically, and this mirrors that.
         updateCatalogScriptEditor(view, props.script, text);
     }, [view, props.lastFullRefresh, props.script]);
 
     return (
         <div key={props.fileName} className={detailStyles.entry_single}>
-            <div className={`${detailStyles.entry_script_card} ${styles.entry_script_card}`}>
+            <div className={`${detailStyles.entry_script_section} ${styles.entry_script_card}`}>
                 <div className={detailStyles.entry_card_action_bar}>
                     <div className={detailStyles.entry_card_file_name}>
                         <ScriptName file={props.fileName} icon={<LockIcon size={12} />} />

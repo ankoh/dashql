@@ -9,7 +9,7 @@
 }
 
 .content_sized_tabs {
-    height: 100%;
+    flex: 1;
     min-height: 0;
     grid-template-rows: minmax(0, 1fr);
 }

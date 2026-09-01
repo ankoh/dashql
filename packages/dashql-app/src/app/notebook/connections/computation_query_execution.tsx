@@ -12,15 +12,15 @@ import {
 } from '../../../compute/computation_scheduler.js';
 import { QueryType } from '../../../query/query_execution_state.js';
 import { executeTrackedQuery } from '../../../query/tracked_query_execution.js';
-import { useDynamicConnectionDispatch } from './connection_registry.js';
+import { useDynamicAttachedDatabaseDispatch } from './attached_database_registry.js';
 
 const LOG_CTX = 'scheduler';
 
 export function NotebookComputeQueryExecutionProvider(props: React.PropsWithChildren) {
-    const [registry, dispatch] = useDynamicConnectionDispatch();
+    const [registry, dispatch] = useDynamicAttachedDatabaseDispatch();
     const createExecution = React.useCallback((task: TaskVariant) => {
         let connectionId: string | null = null;
-        for (const [candidateId, connection] of registry.connectionMap) {
+        for (const [candidateId, connection] of registry.attachedDatabases) {
             if (connection.queriesActive.has(task.value.tableId) || connection.queriesFinished.has(task.value.tableId)) {
                 connectionId = candidateId;
                 break;

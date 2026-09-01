@@ -1,11 +1,4 @@
-import {
-    DEBOUNCE_DURATION_NOTEBOOK_WRITE,
-    groupNotebookSchemaWrites,
-    groupNotebookFunctionWrites,
-    StorageWriter,
-    WRITE_NOTEBOOK_CATALOG_SCRIPT,
-    WRITE_NOTEBOOK_FUNCTION_SCRIPT,
-} from '../persistence/storage_writer.js';
+import { StorageWriter } from '../persistence/storage_writer.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
@@ -14,10 +7,10 @@ import {
     CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
     CATALOG_UPDATE_SUCCEEDED,
     CatalogAction,
-    ConnectionState,
+    AttachedDatabaseState,
     SET_CATALOG_SCRIPT,
     UPDATE_CATALOG,
-} from './connection_state.js';
+} from './attached_database_state.js';
 export { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../../../catalog.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../../../catalog.js';
 
@@ -64,27 +57,13 @@ export interface CatalogUpdateTaskState {
     lastUpdateAt: Date | null;
 }
 
-function persistCatalogScripts(state: ConnectionState, storage: StorageWriter): void {
-    if (!state.active) return;
-    storage.write(
-        groupNotebookSchemaWrites(state.notebookId),
-        { type: WRITE_NOTEBOOK_CATALOG_SCRIPT, value: [state.notebookId, state.catalogRelationScript] },
-        DEBOUNCE_DURATION_NOTEBOOK_WRITE,
-    );
-    storage.write(
-        groupNotebookFunctionWrites(state.notebookId),
-        { type: WRITE_NOTEBOOK_FUNCTION_SCRIPT, value: [state.notebookId, state.catalogFunctionScript] },
-        DEBOUNCE_DURATION_NOTEBOOK_WRITE,
-    );
-}
-
-export function isCatalogRefreshRunning(connection: ConnectionState | null): boolean {
+export function isCatalogRefreshRunning(connection: AttachedDatabaseState | null): boolean {
     if (connection == null) return false;
     const refreshId = connection.catalogUpdates.currentFullRefresh;
     return refreshId != null && connection.catalogUpdates.tasksRunning.has(refreshId);
 }
 
-export function reduceCatalogAction(state: ConnectionState, action: CatalogAction, storage: StorageWriter): ConnectionState {
+export function reduceCatalogAction(state: AttachedDatabaseState, action: CatalogAction, _storage: StorageWriter): AttachedDatabaseState {
     const now = new Date();
 
     if (action.type == UPDATE_CATALOG) {
@@ -195,7 +174,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             };
             state.catalogUpdates.tasksRunning.delete(updateId);
             state.catalogUpdates.tasksFinished.set(updateId, update);
-            let newState = {
+            return {
                 ...state,
                 catalogUpdates: {
                     tasksRunning: state.catalogUpdates.tasksRunning,
@@ -205,9 +184,6 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                     lastFullRefresh: updateId,
                 }
             };
-            // Persist successful and partial updates so each database section survives reloads.
-            persistCatalogScripts(newState, storage);
-            return newState;
         default:
             return state;
     }

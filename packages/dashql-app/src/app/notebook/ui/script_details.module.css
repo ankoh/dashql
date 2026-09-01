@@ -1,7 +1,5 @@
 :root {
     --notebook_details_actionbar_background: hsl(210, 29%, 98%);
-    --notebook_details_script_accent: hsl(213, 24%, 64%);
-    --notebook_details_server_accent: hsl(267, 12%, 61%);
 }
 
 .entry_body_container {
@@ -12,92 +10,43 @@
     padding: 16px;
     box-sizing: border-box;
     background-color: var(--notebook_body_background_color);
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 .entry_single {
     width: 100%;
-    max-width: var(--notebook_entry_max_width);
     height: 100%;
     margin: 0 auto;
     box-sizing: border-box;
     min-height: 0;
-}
-
-.entry_split {
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    padding: 0 42px;
-    box-sizing: border-box;
-}
-
-.entry_message_script,
-.entry_message_server {
-    position: relative;
-    width: calc(100% - 12px);
-    height: 100%;
-    min-height: 0;
-}
-
-.entry_message_script {
-    margin-left: auto;
-}
-
-.entry_message_server {
-    margin-right: auto;
-}
-
-.entry_script_card,
-.entry_server_card {
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    min-height: 0;
-    box-sizing: border-box;
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
     background-color: white;
     overflow: hidden;
 }
 
-.entry_script_card {
+.entry_split {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+.entry_script_section {
     position: relative;
     display: flex;
     flex-direction: column;
-    border-right: 2px solid var(--notebook_details_script_accent);
-    border-radius: 10px var(--border_radius) var(--border_radius) 10px;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+    background-color: white;
+    overflow: hidden;
 }
 
-.entry_server_card {
-    border-left: 2px solid var(--notebook_details_server_accent);
-    border-radius: var(--border_radius) 10px 10px var(--border_radius);
+.entry_output_section {
     --notebook_feed_entry_headerbar_background: hsl(0, 0%, 10%);
-}
-
-.entry_avatar_script,
-.entry_avatar_server {
-    position: absolute;
-    top: 5px;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    color: white;
-}
-
-.entry_avatar_script {
-    right: -42px;
-    border: 1px solid var(--notebook_details_script_accent);
-    background: var(--notebook_details_script_accent);
-}
-
-.entry_avatar_server {
-    left: -42px;
-    border: 2px solid var(--notebook_details_server_accent);
-    background: var(--notebook_details_server_accent);
 }
 
 @media only screen and (max-width: 700px) {
@@ -105,48 +54,6 @@
         padding: 8px;
     }
 
-    .entry_single {
-        min-height: 480px;
-    }
-
-    .entry_split {
-        padding: 0;
-    }
-
-    .entry_message_script,
-    .entry_message_server {
-        width: calc(100% - 12px);
-        box-sizing: border-box;
-    }
-
-    .entry_message_script {
-        padding-right: 34px;
-    }
-
-    .entry_message_server {
-        padding-left: 34px;
-    }
-
-    .entry_avatar_script {
-        right: 0;
-    }
-
-    .entry_avatar_server {
-        left: 0;
-    }
-}
-
-@media only screen and (max-width: 480px) {
-    .entry_message_script,
-    .entry_message_server {
-        width: calc(100% - 6px);
-        padding: 0;
-    }
-
-    .entry_avatar_script,
-    .entry_avatar_server {
-        display: none;
-    }
 }
 
 .entry_card_action_bar {
@@ -205,21 +112,6 @@
     gap: 4px;
 }
 
-.format_menu {
-    width: 100%;
-}
-
-.format_menu_list {
-    row-gap: 2px;
-    padding: 4px 0;
-}
-
-.format_menu_item {
-    min-height: 28px;
-    margin: 0 4px;
-    padding: 2px 8px;
-}
-
 .script_body {
     position: relative;
     flex: 1;
@@ -239,4 +131,9 @@
     position: relative;
     width: 100%;
     height: 100%;
+}
+
+.editor_container :global(.cm-editor) {
+    font-size: var(--font_size_compact);
+    line-height: 1.45;
 }

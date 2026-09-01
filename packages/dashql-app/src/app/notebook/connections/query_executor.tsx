@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import { useConnectionState, useDynamicConnectionDispatch } from './connection_registry.js';
+import { findNotebookForAttachedDatabase, useAttachedDatabaseState, useDynamicAttachedDatabaseDispatch } from './attached_database_registry.js';
 import {
     createQueryResponseStreamMetrics,
     QUERY_CACHE_RECORDED,
@@ -75,12 +75,12 @@ export const useQueryExecutor = () => React.useContext(EXECUTOR_CTX)!.execute;
 export const useCancelQuery = () => React.useContext(EXECUTOR_CTX)!.cancel;
 /// Use the query state
 export function useQueryState(notebookId: string | null, queryId: number | null) {
-    const [connReg, _connDispatch] = useConnectionState(notebookId);
+    const [connReg, _connDispatch] = useAttachedDatabaseState(notebookId);
     if (queryId == null) return null;
     return connReg?.queriesActive.get(queryId) ?? connReg?.queriesFinished.get(queryId) ?? null;
 }
 
-function createConnectionQueryExecutionTracker(connectionId: string, dispatch: ReturnType<typeof useDynamicConnectionDispatch>[1]): QueryExecutionTracker {
+function createConnectionQueryExecutionTracker(connectionId: string, dispatch: ReturnType<typeof useDynamicAttachedDatabaseDispatch>[1]): QueryExecutionTracker {
     return {
         dispatch: action => dispatch(connectionId, action),
     };
@@ -91,8 +91,8 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
     // The connection registry changes frequently, the connection map is stable.
     // This executor will depend on the map directly since it can resolve everything ad-hoc.
-    const [connReg, connDispatch] = useDynamicConnectionDispatch();
-    const connMap = connReg.connectionMap;
+    const [connReg, connDispatch] = useDynamicAttachedDatabaseDispatch();
+    const connMap = connReg.attachedDatabases;
 
     const [_, computeDispatch] = useComputationRegistry();
     const computeDb = useComputeDatabase();
@@ -110,7 +110,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             traced.error("Connection not configured", { connectionId, "query": queryId.toString() }, LOG_CTX);
             throw new Error(`Couldn't find a connection with id ${connectionId}`);
         }
-        const notebookId = conn.notebookId;
+        const notebookId = findNotebookForAttachedDatabase(connReg, connectionId);
+        if (notebookId == null) {
+            throw new Error(`Couldn't find a notebook for database ${connectionId}`);
+        }
         const queryTracker = createConnectionQueryExecutionTracker(connectionId, connDispatch);
         const execution = await executeTrackedQuery({
             query: args.query,

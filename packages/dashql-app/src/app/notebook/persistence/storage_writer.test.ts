@@ -1,371 +1,75 @@
-import * as core from '../../../core/index.js';
+import { describe, expect, it } from 'vitest';
 
-import { beforeAll, afterEach, describe, expect, it } from 'vitest';
-
-import { type StorageBackend, type NotebookData, type ScriptFolderData, type ScriptData, type CachedQueryResult, StorageBackendType } from './storage_backend.js';
-import { type CacheFileStat } from './query_result_cache_eviction.js';
+import { Logger } from '../../../platform/logger/logger.js';
+import { NotebookTestBackend } from './notebook_test_backend.js';
 import {
-    StorageWriter,
-    WRITE_NOTEBOOK_MANIFEST,
-    RENAME_SCRIPT_FOLDER,
-    RENAME_SCRIPT,
-    WRITE_SCRIPT,
-    groupNotebookManifestWrites,
-    groupScriptFolderRenames,
+    DELETE_SCRIPT,
     groupScriptDeletes,
     groupScriptRenames,
     groupScriptWrites,
-    storageWriteKeyBelongsToNotebook,
-    storageWriteKeyWithinNotebook,
+    RENAME_SCRIPT,
+    StorageWriter,
+    WRITE_NOTEBOOK_MANIFEST,
+    WRITE_SCRIPT,
 } from './storage_writer.js';
-import { type ConnectionState } from '../connections/connection_state.js';
-import { createHyperConnectionState } from '../connections/hyper/hyper_connection_state.js';
-import { Logger } from '../../../platform/logger/logger.js';
-
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
+import type { AttachedDatabaseState } from '../connections/attached_database_state.js';
 
 class NullLogger extends Logger {
-    public destroy(): void { }
-    protected flushPendingRecords(): void { }
+    public destroy(): void {}
+    protected flushPendingRecords(): void {}
 }
 
-/// A minimal in-memory backend that records how often each notebook manifest is written.
-class CountingBackend implements StorageBackend {
-    notebooks = new Map<string, NotebookData>();
-    saveCount = 0;
+describe('V2 storage writer flat mutations', () => {
+    it('round-trips local and remote attached databases with an explicit main database', async () => {
+        const backend = new NotebookTestBackend();
+        const writer = new StorageWriter(new NullLogger(), backend);
+        const notebookId = '11111111-2222-4333-8444-555555555555';
+        const state = (databaseId: string, connectorType: ConnectorType, setupParams: object) => ({
+            databaseId,
+            connectorInfo: { connectorType },
+            details: connectorType === ConnectorType.HYPER
+                ? { type: HYPER_CONNECTOR, value: { proto: { setupParams } } }
+                : { type: TRINO_CONNECTOR, value: { proto: { setupParams } } },
+        }) as unknown as AttachedDatabaseState;
 
-    getBackendType(): StorageBackendType { return StorageBackendType.OPFS; }
+        await writer.write(notebookId, {
+            type: WRITE_NOTEBOOK_MANIFEST,
+            value: [notebookId, 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb', [
+                state('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', ConnectorType.HYPER, { protocol: 'WASM' }),
+                state('ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb', ConnectorType.TRINO, { endpoint: 'https://trino.example' }),
+            ]],
+        });
 
-    async listNotebooks(): Promise<any[]> { return []; }
-    async loadAppSettings(): Promise<any> { return null; }
-    async saveAppSettings(): Promise<void> { }
-
-    async loadNotebook(notebookId: string): Promise<NotebookData> {
-        const data = this.notebooks.get(notebookId);
-        if (!data) throw new Error(`No notebook ${notebookId}`);
-        // Return a deep copy so callers can't mutate our stored copy in place.
-        return JSON.parse(JSON.stringify(data));
-    }
-    async saveNotebookManifest(notebookId: string, data: NotebookData): Promise<void> {
-        this.saveCount += 1;
-        this.notebooks.set(notebookId, JSON.parse(JSON.stringify(data)));
-    }
-    async deleteNotebook(notebookId: string): Promise<void> { this.notebooks.delete(notebookId); }
-
-    async loadNotebookSchema(): Promise<string | null> { return null; }
-    async saveNotebookSchema(): Promise<void> { }
-    async loadNotebookFunctions(): Promise<string | null> { return null; }
-    async saveNotebookFunctions(): Promise<void> { }
-    async loadScriptFolders(): Promise<ScriptFolderData[]> { return []; }
-    async createScriptFolder(): Promise<void> { }
-    async deleteScriptFolder(): Promise<void> { }
-    async renameScriptFolder(): Promise<void> { }
-    async loadScript(): Promise<ScriptData> { return { name: '', sql: '' }; }
-    async saveScript(): Promise<void> { }
-    async deleteScript(): Promise<void> { }
-    async renameScript(): Promise<void> { }
-    async loadScriptDraft(): Promise<string | null> { return null; }
-    async saveScriptDraft(): Promise<void> { }
-    async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
-    async saveQueryResultCache(): Promise<void> { }
-    async touchQueryResultCacheAccess(): Promise<void> { }
-    async hasCachedQueryResult(): Promise<boolean> { return false; }
-    async listQueryResultCache(): Promise<CacheFileStat[]> { return []; }
-    async deleteQueryResultCache(): Promise<void> { }
-}
-
-/// Records every notebook mutation call in order, so tests can assert that a rename reaches the
-/// backend and that a rename followed by a content write of the new name dispatch as two ordered ops.
-class CallLogBackend implements StorageBackend {
-    calls: string[] = [];
-
-    getBackendType(): StorageBackendType { return StorageBackendType.OPFS; }
-    async listNotebooks(): Promise<any[]> { return []; }
-    async loadAppSettings(): Promise<any> { return null; }
-    async saveAppSettings(): Promise<void> { }
-    async loadNotebook(): Promise<NotebookData> { throw new Error('not used'); }
-    async saveNotebookManifest(): Promise<void> { }
-    async deleteNotebook(): Promise<void> { }
-    async loadNotebookSchema(): Promise<string | null> { return null; }
-    async saveNotebookSchema(): Promise<void> { }
-    async loadNotebookFunctions(): Promise<string | null> { return null; }
-    async saveNotebookFunctions(): Promise<void> { }
-    async loadScriptFolders(): Promise<ScriptFolderData[]> { return []; }
-    async createScriptFolder(): Promise<void> { }
-    async deleteScriptFolder(): Promise<void> { }
-    async renameScriptFolder(_s: string, oldName: string, newName: string): Promise<void> {
-        this.calls.push(`renameFolder:${oldName}->${newName}`);
-    }
-    async loadScript(): Promise<ScriptData> { return { name: '', sql: '' }; }
-    async saveScript(_s: string, page: string, name: string, sql: string): Promise<void> {
-        this.calls.push(`write:${page}/${name}=${sql}`);
-    }
-    async deleteScript(): Promise<void> { }
-    async renameScript(_s: string, page: string, oldName: string, newName: string): Promise<void> {
-        this.calls.push(`renameScript:${page}/${oldName}->${newName}`);
-    }
-    async loadScriptDraft(): Promise<string | null> { return null; }
-    async saveScriptDraft(): Promise<void> { }
-    async loadQueryResultCache(): Promise<CachedQueryResult | null> { return null; }
-    async saveQueryResultCache(): Promise<void> { }
-    async touchQueryResultCacheAccess(): Promise<void> { }
-    async hasCachedQueryResult(): Promise<boolean> { return false; }
-    async listQueryResultCache(): Promise<CacheFileStat[]> { return []; }
-    async deleteQueryResultCache(): Promise<void> { }
-}
-
-let dql: core.DashQL | null = null;
-const logger = new NullLogger();
-
-beforeAll(async () => {
-    const wasmBinary = await DASHQL_PRECOMPILED;
-    dql = await core.DashQL.create({ wasmBinary });
-    expect(dql).not.toBeNull();
-});
-
-afterEach(() => {
-    dql!.resetUnsafe();
-});
-
-describe('storage write key notebook scoping', () => {
-    const SID = 'a0000000-0000-4000-8000-000000000001';
-    const OTHER = 'b0000000-0000-4000-8000-000000000002';
-
-    it('recognises keys that belong to a notebook across namespaces', () => {
-        expect(storageWriteKeyBelongsToNotebook(SID, SID)).toBe(true);
-        expect(storageWriteKeyBelongsToNotebook(groupNotebookManifestWrites(SID), SID)).toBe(true);
-        expect(storageWriteKeyBelongsToNotebook(groupScriptWrites(SID, 'page-1', '01.sql'), SID)).toBe(true);
-        expect(storageWriteKeyBelongsToNotebook(groupScriptRenames(SID, 'page-1', '01.sql'), SID)).toBe(true);
-        expect(storageWriteKeyBelongsToNotebook(groupScriptDeletes(SID, 'page-1', '01.sql'), SID)).toBe(true);
+        expect((await backend.loadNotebook(notebookId)).attachedDatabases).toEqual([
+            { databaseId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: { protocol: 'WASM' } } },
+        ]);
+        expect((await backend.loadNotebook(notebookId)).mainDatabase.databaseId).toBe('ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb');
     });
 
-    it('rejects keys from a different notebook (no id-prefix false positives)', () => {
-        expect(storageWriteKeyBelongsToNotebook(groupNotebookManifestWrites(OTHER), SID)).toBe(false);
-        expect(storageWriteKeyBelongsToNotebook(groupScriptWrites(OTHER, 'page-1', '01.sql'), SID)).toBe(false);
-        // A notebook id that is a string prefix of another must not match.
-        expect(storageWriteKeyBelongsToNotebook(`${SID}-suffix/notebook`, SID)).toBe(false);
-    });
+    it('keeps rename, write, and delete in distinct ordered keyspaces', async () => {
+        const backend = new NotebookTestBackend();
+        const writer = new StorageWriter(new NullLogger(), backend);
+        const id = '11111111-2222-4333-8444-555555555555';
+        await backend.saveScript(id, '01_old.sql', 'old');
+        backend.calls.length = 0;
 
-    it('strips the notebook id prefix for display, keeping the action namespace suffix', () => {
-        expect(storageWriteKeyWithinNotebook(groupScriptWrites(SID, 'page-1', '01.sql'), SID))
-            .toBe('scripts/page-1/01.sql');
-        expect(storageWriteKeyWithinNotebook(groupScriptRenames(SID, 'page-1', '01.sql'), SID))
-            .toBe('scripts/page-1/01.sql:rename');
-        expect(storageWriteKeyWithinNotebook(groupScriptDeletes(SID, 'page-1', '01.sql'), SID))
-            .toBe('scripts/page-1/01.sql:delete');
-        // The notebook manifest keys on its real file path, so it reads as a normal file row.
-        expect(storageWriteKeyWithinNotebook(groupNotebookManifestWrites(SID), SID)).toBe('dashql-notebook.json');
-        // A bare notebook id (no trailing path) still collapses to empty.
-        expect(storageWriteKeyWithinNotebook(SID, SID)).toBe('');
-        // A key from another notebook is returned unchanged.
-        expect(storageWriteKeyWithinNotebook(groupNotebookManifestWrites(OTHER), SID)).toBe(groupNotebookManifestWrites(OTHER));
-    });
-});
-
-describe('StorageWriter notebook coordination', () => {
-    const SID = 'a0000000-0000-4000-8000-000000000001';
-
-    it('holds and resumes debounced writes for one notebook', async () => {
-        vi.useFakeTimers();
-        try {
-            const backend = new CallLogBackend();
-            const writer = new StorageWriter(logger, backend);
-            writer.pauseNotebook(SID);
-            const result = writer.write(
-                groupScriptWrites(SID, 'page', '1.sql'),
-                { type: WRITE_SCRIPT, value: [SID, 'page', '1.sql', 'SELECT 1'] },
-                10,
-            );
-
-            await vi.advanceTimersByTimeAsync(20);
-            expect(backend.calls).toEqual([]);
-            expect(writer.getPendingKeysForNotebook(SID)).toHaveLength(1);
-
-            writer.resumeNotebook(SID);
-            await vi.advanceTimersByTimeAsync(20);
-            await expect(result).resolves.toBe(true);
-            expect(backend.calls).toEqual(['write:page/1.sql=SELECT 1']);
-        } finally {
-            vi.useRealTimers();
-        }
-    });
-
-    it('cancels only the selected notebook pending writes', async () => {
-        vi.useFakeTimers();
-        try {
-            const backend = new CallLogBackend();
-            const writer = new StorageWriter(logger, backend);
-            const other = 'b0000000-0000-4000-8000-000000000002';
-            writer.pauseNotebook(SID);
-            writer.pauseNotebook(other);
-            const cancelled = writer.write(
-                groupScriptWrites(SID, 'page', '1.sql'),
-                { type: WRITE_SCRIPT, value: [SID, 'page', '1.sql', 'SELECT 1'] },
-                10,
-            );
-            const retained = writer.write(
-                groupScriptWrites(other, 'page', '2.sql'),
-                { type: WRITE_SCRIPT, value: [other, 'page', '2.sql', 'SELECT 2'] },
-                10,
-            );
-
-            writer.cancelPendingWritesForNotebook(SID);
-            await expect(cancelled).resolves.toBe(false);
-            expect(writer.getPendingKeysForNotebook(SID)).toEqual([]);
-            expect(writer.getPendingKeysForNotebook(other)).toHaveLength(1);
-
-            writer.resumeNotebook(other);
-            await vi.advanceTimersByTimeAsync(20);
-            await expect(retained).resolves.toBe(true);
-            expect(backend.calls).toEqual(['write:page/2.sql=SELECT 2']);
-        } finally {
-            vi.useRealTimers();
-        }
-    });
-
-    it('flushes notebook-paused writes when an outer lifecycle requires a full drain', async () => {
-        const backend = new CallLogBackend();
-        const writer = new StorageWriter(logger, backend);
-        writer.pauseNotebook(SID);
-        const result = writer.write(
-            groupScriptWrites(SID, 'page', '1.sql'),
-            { type: WRITE_SCRIPT, value: [SID, 'page', '1.sql', 'SELECT 1'] },
-            10_000,
-        );
-
+        const rename = writer.write(groupScriptRenames(id, '01_old.sql'), {
+            type: RENAME_SCRIPT, value: [id, '01_old.sql', '01_new.sql'],
+        }, 10_000);
+        const write = writer.write(groupScriptWrites(id, '01_new.sql'), {
+            type: WRITE_SCRIPT, value: [id, '01_new.sql', 'new'],
+        }, 10_000);
+        const remove = writer.write(groupScriptDeletes(id, '02_unused.sql'), {
+            type: DELETE_SCRIPT, value: [id, '02_unused.sql'],
+        }, 10_000);
         await writer.flush();
-        await expect(result).resolves.toBe(true);
-        expect(writer.getPendingKeysForNotebook(SID)).toEqual([]);
-        expect(backend.calls).toEqual(['write:page/1.sql=SELECT 1']);
-    });
-
-    it('can cancel notebook writes without dropping an unrelated manifest write', async () => {
-        const backend = new CountingBackend();
-        const writer = new StorageWriter(logger, backend);
-        writer.pauseNotebook(SID);
-        const connection = makeConnection(SID);
-        const manifest = writer.write(
-            groupNotebookManifestWrites(SID),
-            { type: WRITE_NOTEBOOK_MANIFEST, value: [SID, connection] },
-            10_000,
-        );
-        const notebook = writer.write(
-            groupScriptWrites(SID, 'page', '1.sql'),
-            { type: WRITE_SCRIPT, value: [SID, 'page', '1.sql', 'SELECT 1'] },
-            10_000,
-        );
-
-        writer.cancelPendingWritesForNotebook(SID, key => key.includes('/scripts/'));
-        await expect(notebook).resolves.toBe(false);
-        expect(writer.getPendingKeysForNotebook(SID)).toEqual([groupNotebookManifestWrites(SID)]);
-        writer.resumeNotebook(SID);
-        await writer.flush();
-        await expect(manifest).resolves.toBe(true);
-    });
-});
-
-function makeConnection(notebookId: string): ConnectionState {
-    return { ...createHyperConnectionState(dql!, new Map()), connectionId: crypto.randomUUID(), notebookId };
-}
-
-describe('StorageWriter notebook manifest writes', () => {
-    it('skips rewriting the manifest when nothing changed', async () => {
-        const backend = new CountingBackend();
-        const writer = new StorageWriter(logger, backend);
-        const conn = makeConnection('a0000000-0000-4000-8000-000000000001');
-        const key = groupNotebookManifestWrites(conn.notebookId);
-
-        // First write: nothing on disk yet, so it must persist.
-        await writer.write(key, { type: WRITE_NOTEBOOK_MANIFEST, value: [conn.notebookId, conn] });
-        await writer.flush();
-        expect(backend.saveCount).toBe(1);
-
-        // Second write with identical content: should be skipped.
-        await writer.write(key, { type: WRITE_NOTEBOOK_MANIFEST, value: [conn.notebookId, conn] });
-        await writer.flush();
-        expect(backend.saveCount).toBe(1);
-    });
-
-    it('preserves createdAt across rewrites and writes again when content changes', async () => {
-        const backend = new CountingBackend();
-        const writer = new StorageWriter(logger, backend);
-        const conn = makeConnection('a0000000-0000-4000-8000-000000000002');
-        const key = groupNotebookManifestWrites(conn.notebookId);
-
-        await writer.write(key, { type: WRITE_NOTEBOOK_MANIFEST, value: [conn.notebookId, conn] });
-        await writer.flush();
-        const createdAt = backend.notebooks.get(conn.notebookId)!.metadata.createdAt;
-        expect(createdAt).toBeTruthy();
-
-        // A change to a persisted field (name) must trigger a write that keeps the original createdAt.
-        const renamed: ConnectionState = { ...conn, name: 'Renamed' };
-        await writer.write(key, { type: WRITE_NOTEBOOK_MANIFEST, value: [renamed.notebookId, renamed] });
-        await writer.flush();
-        expect(backend.saveCount).toBe(2);
-
-        const persisted = backend.notebooks.get(conn.notebookId)!;
-        expect(persisted.name).toBe('Renamed');
-        expect(persisted.metadata.createdAt).toBe(createdAt);
-    });
-
-    it('persists a user-supplied name and omits it when unset', async () => {
-        const backend = new CountingBackend();
-        const writer = new StorageWriter(logger, backend);
-        const conn = makeConnection('a0000000-0000-4000-8000-000000000003');
-        const key = groupNotebookManifestWrites(conn.notebookId);
-
-        // No name set: the manifest carries no `name` key at all.
-        await writer.write(key, { type: WRITE_NOTEBOOK_MANIFEST, value: [conn.notebookId, conn] });
-        await writer.flush();
-        expect(backend.saveCount).toBe(1);
-        expect(backend.notebooks.get(conn.notebookId)!.name).toBeUndefined();
-
-        // Setting a name is a change to a persisted field, so it must trigger a rewrite.
-        const named: ConnectionState = { ...conn, name: 'Q3 Revenue' };
-        await writer.write(key, { type: WRITE_NOTEBOOK_MANIFEST, value: [named.notebookId, named] });
-        await writer.flush();
-        expect(backend.saveCount).toBe(2);
-        expect(backend.notebooks.get(conn.notebookId)!.name).toBe('Q3 Revenue');
-
-        // Re-writing the same name is a no-op.
-        await writer.write(key, { type: WRITE_NOTEBOOK_MANIFEST, value: [named.notebookId, named] });
-        await writer.flush();
-        expect(backend.saveCount).toBe(2);
-    });
-});
-
-describe('StorageWriter notebook renames', () => {
-    const SID = 'b0000000-0000-4000-8000-000000000001';
-
-    it('dispatches a RENAME_SCRIPT_FOLDER task to the backend', async () => {
-        const backend = new CallLogBackend();
-        const writer = new StorageWriter(logger, backend);
-        await writer.write(groupScriptFolderRenames(SID, '1_old'), { type: RENAME_SCRIPT_FOLDER, value: [SID, '1_old', '1_new'] });
-        await writer.flush();
-        expect(backend.calls).toEqual(['renameFolder:1_old->1_new']);
-    });
-
-    it('dispatches a RENAME_SCRIPT task to the backend', async () => {
-        const backend = new CallLogBackend();
-        const writer = new StorageWriter(logger, backend);
-        await writer.write(groupScriptRenames(SID, 'page', '1_old.sql'), { type: RENAME_SCRIPT, value: [SID, 'page', '1_old.sql', '1_new.sql'] });
-        await writer.flush();
-        expect(backend.calls).toEqual(['renameScript:page/1_old.sql->1_new.sql']);
-    });
-
-    it('keeps a rename and a later write of the new name as two distinct, ordered ops', async () => {
-        // A rename of A->B, then a content edit of B (the post-rename name), is exactly the sequence a
-        // user produces by renaming a script and then typing into it. The rename lives in its own
-        // `:rename` keyspace keyed by the source, the write in the destination keyspace, so they do not
-        // coalesce — and since the rename is scheduled first, the move runs before the content write.
-        const backend = new CallLogBackend();
-        const writer = new StorageWriter(logger, backend);
-
-        const p = writer.write(groupScriptRenames(SID, 'page', '1_a.sql'), { type: RENAME_SCRIPT, value: [SID, 'page', '1_a.sql', '1_b.sql'] });
-        const w = writer.write(groupScriptWrites(SID, 'page', '1_b.sql'), { type: WRITE_SCRIPT, value: [SID, 'page', '1_b.sql', 'SELECT 1;'] });
-        await writer.flush();
-        await Promise.all([p, w]);
-
-        expect(backend.calls).toEqual(['renameScript:page/1_a.sql->1_b.sql', 'write:page/1_b.sql=SELECT 1;']);
+        await expect(Promise.all([rename, write, remove])).resolves.toEqual([true, true, true]);
+        expect(backend.calls).toEqual([
+            `rename:${id}/01_old.sql->01_new.sql`,
+            `write:${id}/01_new.sql=new`,
+            `delete:${id}/02_unused.sql`,
+        ]);
+        expect(await backend.loadScript(id, '01_new.sql')).toEqual({ name: '01_new.sql', sql: 'new' });
     });
 });

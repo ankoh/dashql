@@ -1,4 +1,4 @@
-import { quoteIdentifier, CatalogSource } from './catalog_sql_generator.js';
+import { quoteIdentifier, CatalogSource, DEFAULT_DATABASE_NAME } from './catalog_sql_generator.js';
 
 export interface FunctionMetadata {
     schemaName: string | null;
@@ -9,7 +9,7 @@ export interface FunctionMetadata {
 }
 
 export function generateCreateFunctionSQL(databaseName: string | null | undefined, fn: FunctionMetadata): string {
-    const db = databaseName || 'default';
+    const db = databaseName || DEFAULT_DATABASE_NAME;
     let qualifiedName: string;
     if (fn.schemaName != null) {
         qualifiedName = `${quoteIdentifier(db)}.${quoteIdentifier(fn.schemaName)}.${quoteIdentifier(fn.functionName)}`;

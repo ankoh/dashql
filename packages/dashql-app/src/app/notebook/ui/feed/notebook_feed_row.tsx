@@ -1,17 +1,20 @@
 import * as React from 'react';
 import * as styles from './notebook_feed.module.css';
+import * as dashql from '../../../../core/index.js';
 
+import type { EditorView } from '@codemirror/view';
 import type { Icon } from '../../../../ui/foundations/symbol_icon.js';
-import { PaperAirplaneIcon, SparklesFillIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
-import symbols from '@ankoh/dashql-svg-symbols';
+import { PaperAirplaneIcon, PlusIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
 import type { RowComponentProps } from 'react-window';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { ButtonGroup } from '../../../../ui/foundations/button_group.js';
 import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js';
 import { SymbolIcon } from '../../../../ui/foundations/symbol_icon.js';
 import { useAgentRunState, useCancelAgentRun } from '../../agent/agent_run_provider.js';
-import type { ConnectionState } from '../../connections/connection_state.js';
+import type { AttachedDatabaseState } from '../../connections/attached_database_state.js';
 import { QueryExecutionStatus, queryIsDone } from '../../connections/query_execution_state.js';
 import { computeQueryCacheKeyForConnection, useCancelQuery, useQueryState } from '../../connections/query_executor.js';
 import type { StorageReader } from '../../persistence/storage_provider.js';
@@ -22,39 +25,39 @@ import { EntryStatusBar } from '../entry_status_bar.js';
 import { CachedResultBean, QueryResultCacheLabel, QueryResultRerunButton } from '../query_result_cache_controls.js';
 import { ScriptDiagnosticsButton } from '../script_diagnostics.js';
 import { ScriptName } from '../script_name.js';
-import { ScriptPreview } from '../script_preview.js';
+import { ScriptEditor } from '../script_editor.js';
 import { ScriptStatisticsBar } from '../script_statistics_bar.js';
+import { formatScriptEditor, isScriptFormattable } from '../script_format.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
-import type { ScriptPreviewHint } from './notebook_feed_layout.js';
+import { ScriptActionMenu } from '../script_action_menu.js';
 
-const HEIGHT_CHANGE_EPSILON = 0.5;
+const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
 
 export interface ScriptCardProps {
     notebookId: string;
-    connection: ConnectionState | null;
+    connection: AttachedDatabaseState | null;
     storageReader: StorageReader;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
-    folderName: string;
     scriptFileName: string;
     scriptDebugMode: boolean;
+    formattingDebugMode: boolean;
     canExecute: boolean;
-    canUseAI: boolean;
     canDelete: boolean;
+    active: boolean;
     canMoveUp: boolean;
     canMoveDown: boolean;
     onFocus: (fileName: string) => void;
-    onExpand: (fileName: string) => void;
     onDelete: (fileName: string) => void;
     onRename: (oldFileName: string, newFileName: string) => void;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
-    onUseAIContext: (scriptKey: number) => void;
     onShowStatus: (fileName: string) => void;
     onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
+    onShowDetails: (fileName: string) => void;
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
@@ -62,19 +65,16 @@ export interface ScriptCardProps {
     onToggleResultExpanded: (scriptKey: number) => void;
     onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
     onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
-    onPreviewReady: () => void;
-    initialPreviewText: string;
-    onFormattedText: (scriptText: string) => void;
+    onEditorView: (scriptKey: number, view: EditorView) => void;
 }
 
 export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) => {
-    const TrashIcon: Icon = SymbolIcon('trash_16');
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
-    const PersonIcon: Icon = SymbolIcon('person_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
     const CheckIcon: Icon = SymbolIcon('check_16');
     const CrossIcon: Icon = SymbolIcon('x_16');
+    const ExpandIcon: Icon = SymbolIcon('screen_full_16');
 
     const queryState = useQueryState(props.notebookId, props.scriptData?.latestQueryId ?? null);
     const cancelQuery = useCancelQuery();
@@ -86,9 +86,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
     const agentRunState = useAgentRunState(props.scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
 
-    // A staged agent rewrite waiting to be accepted/rejected. While set, the read-only preview
-    // renders the rewrite as a compact in-place diff overlay and the body carries an Accept/Reject
-    // overlay (which dispatch notebookScripts actions — no editable editor is mounted).
+    // A staged agent rewrite waiting to be accepted/rejected. The editable editor renders the
+    // in-place diff and these actions provide the same explicit accept/reject alternatives.
     const hasPendingDiff = props.scriptData?.pendingDiff != null;
 
     // Is the script cached?
@@ -147,7 +146,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
         if (entryStatus?.kind === EntryStatusKind.Agent) {
             cancelAgentRun(props.notebookId);
         } else if (entryStatus?.kind === EntryStatusKind.Query && props.scriptData?.latestQueryId != null) {
-            if (props.connection != null) cancelQuery(props.connection.connectionId, props.scriptData.latestQueryId);
+            if (props.connection != null) cancelQuery(props.connection.databaseId, props.scriptData.latestQueryId);
         }
     }, [cancelAgentRun, cancelQuery, entryStatus?.kind, props.scriptData?.latestQueryId, props.notebookId]);
 
@@ -159,7 +158,23 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
     }, [scriptKey, props.onRejectDiff]);
 
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isCompactFormattable, setIsCompactFormattable] = React.useState(true);
+    const [editorView, setEditorView] = React.useState<EditorView | null>(null);
+    const isFormattable = React.useMemo(
+        () => isScriptFormattable(props.scriptData ?? null),
+        [props.scriptData?.scriptSession, props.scriptData?.editorUpdate?.stateRevision],
+    );
+    const handleEditorView = React.useCallback((view: EditorView) => {
+        setEditorView(view);
+        if (props.scriptData != null) props.onEditorView(props.scriptData.scriptKey, view);
+    }, [props.onEditorView, props.scriptData?.scriptKey]);
+    const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
+        formatScriptEditor(
+            editorView,
+            props.scriptData ?? null,
+            mode,
+            props.formattingDebugMode,
+        );
+    }, [editorView, props.formattingDebugMode, props.scriptData]);
 
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
     // the raw scriptFileName remains the identity passed to handlers and to RENAME_SCRIPT.
@@ -192,116 +207,105 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
         }
     }, [isEditing]);
 
-    const handlePreviewClick = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-        if ((event.target as HTMLElement).closest('[data-diff-actions], [data-dashql-story-control]') != null) return;
-        if (!window.getSelection()?.isCollapsed) return;
-        props.onExpand(props.scriptFileName);
-    }, [props.scriptFileName, props.onExpand]);
-
-
-    const connectorIcon = props.connection?.connectorInfo?.icons?.outlines ?? 'database_16';
     const resultContentId = props.scriptData != null ? `feed-result-${props.scriptData.scriptKey}` : undefined;
+    const hasFooterContent = entryStatus.kind !== EntryStatusKind.Idle;
     return (
-        <div
+        <article
             className={styles.feed_entry_pair}
             data-electron-drag-region="false"
             onPointerEnter={() => props.onFocus(props.scriptFileName)}
+            aria-label={`${displayName} script cell`}
         >
-            <div className={styles.feed_entry_message_script}>
-                <div className={styles.feed_entry_card_script}>
-                    <div className={styles.feed_entry_action_bar}>
-                        <IconButton
-                            className={props.isFocused ? undefined : styles.feed_entry_execute_unfocused}
-                            variant={ButtonVariant.Invisible}
-                            size={ButtonSize.Small}
-                            aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
-                            aria-current={props.isFocused ? 'true' : undefined}
-                            disabled={!queryActive && !props.canExecute}
-                            onClick={() => {
-                                if (queryActive && props.scriptData?.latestQueryId != null) {
-                                    if (props.connection != null) cancelQuery(props.connection.connectionId, props.scriptData.latestQueryId);
-                                } else {
-                                    props.onExecute(props.scriptFileName);
-                                }
-                            }}
-                        >
-                            {queryActive ? <SquareFillIcon size={14} /> : <PaperAirplaneIcon size={16} />}
-                        </IconButton>
-                        <div className={styles.feed_entry_file_name}>
-                            <ScriptName
-                                folder={props.folderName}
-                                file={displayName}
-                                onFileClick={startEditing}
-                                editing={isEditing ? {
-                                    value: draftFileName,
-                                    onChange: setDraftFileName,
-                                    onCommit: saveEdit,
-                                    onCancel: cancelEdit,
-                                    inputRef: editInputRef,
-                                } : undefined}
-                                fileNameTrailing={
-                                    <span className={styles.feed_entry_actions}>
-                                        <PencilIcon size={12} />
-                                    </span>
-                                }
-                            />
-                        </div>
-                        {props.scriptDebugMode && props.scriptData != null && (
-                            <div className={styles.feed_entry_stats_bar}>
-                                <ScriptStatisticsBar stats={props.scriptData.statistics} />
-                            </div>
-                        )}
-                        {props.scriptData != null && (
-                            <ScriptDiagnosticsButton
-                                scriptData={props.scriptData}
-                                isFormattable={isCompactFormattable}
-                            />
-                        )}
-                        {props.canUseAI && props.scriptData != null && (
-                            <IconButton
-                                variant={ButtonVariant.Invisible}
-                                size={ButtonSize.Small}
-                                aria-label={`Use ${displayName} as AI context`}
-                                onClick={() => props.onUseAIContext(props.scriptData!.scriptKey)}
-                            >
-                                <SparklesFillIcon size={16} />
-                            </IconButton>
-                        )}
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            onClick={(event) => { event.stopPropagation(); props.onMoveUp(props.scriptFileName); }}
-                            aria-label="Move script up"
-                            disabled={!props.canMoveUp}
-                        >
-                            <MoveUpIcon size={16} />
-                        </IconButton>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            onClick={(event) => { event.stopPropagation(); props.onMoveDown(props.scriptFileName); }}
-                            aria-label="Move script down"
-                            disabled={!props.canMoveDown}
-                        >
-                            <MoveDownIcon size={16} />
-                        </IconButton>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            onClick={() => props.onDelete(props.scriptFileName)}
-                            aria-label="Delete script"
-                            disabled={!props.canDelete}
-                        >
-                            <TrashIcon size={16} />
-                        </IconButton>
+            <div className={styles.feed_entry_cell} data-result-card={hasFooterContent ? '' : undefined}>
+                <div className={styles.feed_entry_action_bar}>
+                    <IconButton
+                        className={props.isFocused ? undefined : styles.feed_entry_execute_unfocused}
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
+                        aria-current={props.isFocused ? 'true' : undefined}
+                        disabled={!queryActive && !props.canExecute}
+                        onClick={() => {
+                            if (queryActive && props.scriptData?.latestQueryId != null) {
+                                if (props.connection != null) cancelQuery(props.connection.databaseId, props.scriptData.latestQueryId);
+                            } else {
+                                props.onExecute(props.scriptFileName);
+                            }
+                        }}
+                    >
+                        {queryActive ? <SquareFillIcon size={14} /> : <PaperAirplaneIcon size={16} />}
+                    </IconButton>
+                    <div className={styles.feed_entry_file_name}>
+                        <ScriptName
+                            file={displayName}
+                            onFileClick={startEditing}
+                            editing={isEditing ? {
+                                value: draftFileName,
+                                onChange: setDraftFileName,
+                                onCommit: saveEdit,
+                                onCancel: cancelEdit,
+                                inputRef: editInputRef,
+                            } : undefined}
+                            fileNameTrailing={
+                                <span className={styles.feed_entry_actions}>
+                                    <PencilIcon size={12} />
+                                </span>
+                            }
+                        />
                     </div>
-                    <div className={styles.feed_body} onClick={handlePreviewClick}>
-                        {props.scriptData == null ? null : (
-                            <ScriptPreview
-                                className={styles.script_preview_editor}
+                    {props.scriptDebugMode && props.scriptData != null && (
+                        <div className={styles.feed_entry_stats_bar}>
+                            <ScriptStatisticsBar stats={props.scriptData.statistics} />
+                        </div>
+                    )}
+                    {props.scriptData != null && (
+                        <ScriptDiagnosticsButton
+                            scriptData={props.scriptData}
+                            isFormattable={isFormattable}
+                        />
+                    )}
+                    <ScriptActionMenu
+                        scriptName={displayName}
+                        formatDisabled={!isFormattable || hasPendingDiff || editorView == null}
+                        deleteDisabled={!props.canDelete}
+                        onFormat={handleFormat}
+                        onDelete={() => props.onDelete(props.scriptFileName)}
+                    />
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        onClick={(event) => { event.stopPropagation(); props.onMoveUp(props.scriptFileName); }}
+                        aria-label="Move script up"
+                        disabled={!props.canMoveUp}
+                    >
+                        <MoveUpIcon size={16} />
+                    </IconButton>
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        onClick={(event) => { event.stopPropagation(); props.onMoveDown(props.scriptFileName); }}
+                        aria-label="Move script down"
+                        disabled={!props.canMoveDown}
+                    >
+                        <MoveDownIcon size={16} />
+                    </IconButton>
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        onClick={() => props.onShowDetails(props.scriptFileName)}
+                        aria-label={`Expand ${displayName} script details`}
+                    >
+                        <ExpandIcon size={16} />
+                    </IconButton>
+                </div>
+                <div className={styles.feed_body}>
+                    <div className={styles.feed_editor_container}>
+                        {props.scriptData == null || !props.active ? null : (
+                            <ScriptEditor
                                 notebookId={props.notebookId}
-                                scriptData={props.scriptData}
-                                onReady={props.onPreviewReady}
-                                initialTextHint={props.initialPreviewText}
-                                onFormattedText={props.onFormattedText}
-                                onFormattingStatus={setIsCompactFormattable}
+                                scriptKey={props.scriptData.scriptKey}
+                                className={styles.feed_script_editor}
+                                autoHeight
+                                onFocus={() => props.onFocus(props.scriptFileName)}
+                                setView={handleEditorView}
                             />
                         )}
                         {hasPendingDiff && (
@@ -330,22 +334,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                         )}
                     </div>
                 </div>
-                <div className={styles.feed_entry_avatar_script} aria-hidden="true">
-                    <PersonIcon size={16} />
-                </div>
-            </div>
-            {entryStatus.kind !== EntryStatusKind.Idle && (
-                <div className={styles.feed_entry_message_server}>
-                    <div className={styles.feed_entry_avatar_server} aria-hidden="true">
-                        <svg width="16" height="16">
-                            <use xlinkHref={`${symbols}#${connectorIcon}`} />
-                        </svg>
-                    </div>
-                    <div
-                        className={styles.feed_entry_card_server}
-                        data-result-card
-                        data-unfocused={props.isFocused ? undefined : 'true'}
-                    >
+                {hasFooterContent && (
+                    <div className={styles.feed_entry_footer}>
                         <EntryStatusBar
                             status={entryStatus}
                             onToggleExpanded={() => {
@@ -355,6 +345,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                             controls={resultContentId}
                             onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
                             cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
+                            compact
                             actions={
                                 <>
                                     {isCached && <CachedResultBean />}
@@ -381,35 +372,34 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                             </div>
                         ) : null}
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </article>
     );
 };
 
 export interface ScriptFeedRowProps {
     notebookId: string;
-    connection: ConnectionState | null;
+    connection: AttachedDatabaseState | null;
     storageReader: StorageReader;
     entries: ReturnType<typeof getSelectedScriptRefs>;
     scripts: NotebookScripts['scripts'];
-    folderName: string;
     scriptDebugMode: boolean;
+    formattingDebugMode: boolean;
     focusedFileName: string;
-    canUseAI: boolean;
     canDelete: boolean;
+    active: boolean;
     onFocus: (fileName: string) => void;
-    onExpand: (fileName: string) => void;
     onDelete: (fileName: string) => void;
     onRename: (oldFileName: string, newFileName: string) => void;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
-    onUseAIContext: (scriptKey: number) => void;
     onShowStatus: (fileName: string) => void;
     onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
+    onShowDetails: (fileName: string) => void;
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
@@ -417,106 +407,127 @@ export interface ScriptFeedRowProps {
     onToggleResultExpanded: (scriptKey: number) => void;
     onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
     onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
-    previewHints: ReadonlyMap<number, ScriptPreviewHint>;
-    onHeightMeasured: (scriptId: number, height: number) => void;
-    onFormattedText: (scriptId: number, scriptText: string) => void;
     topPadding: number;
-    heightsVersion: number;
+    onCreate: (index: number) => void;
+    onEditorView: (scriptKey: number, view: EditorView) => void;
+    onRowHeightChange: (index: number, height: number) => void;
 }
 
 export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const isFillerRow = props.index >= props.entries.length;
-    const entryIndex = props.index;
-    const entry = !isFillerRow ? props.entries[entryIndex] : undefined;
+    const isSeparator = props.index % 2 === 0;
+    const entryIndex = Math.floor(props.index / 2);
+    const entry = !isSeparator ? props.entries[entryIndex] : undefined;
     const scriptData = entry != null ? props.scripts[entry.scriptId] : undefined;
     const scriptFileName = entry?.fileName ?? '01-script.sql';
-    const previewHint = entry != null ? props.previewHints.get(entry.scriptId) : undefined;
-    const cachedHeight = previewHint?.height;
 
     // Entries are in feed order, so the index drives the movement buttons
-    const canMoveUp = !isFillerRow && entryIndex > 0;
-    const canMoveDown = !isFillerRow && entryIndex < props.entries.length - 1;
-    const outerRef = React.useRef<HTMLDivElement>(null);
-    const [previewReady, setPreviewReady] = React.useState(false);
-
+    const canMoveUp = !isSeparator && entryIndex > 0;
+    const canMoveDown = !isSeparator && entryIndex < props.entries.length - 1;
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: entry?.scriptId ?? `separator-${entryIndex}`,
+        disabled: { draggable: isSeparator, droppable: isSeparator },
+        // The optimistic order is already the final dropped layout. Suppress dnd-kit's derived
+        // post-drop FLIP transform, which otherwise briefly animates the card back toward its old row.
+        animateLayoutChanges: () => false,
+    });
+    const rowRef = React.useRef<HTMLDivElement | null>(null);
+    const setRowRef = React.useCallback((node: HTMLDivElement | null) => {
+        rowRef.current = node;
+        setNodeRef(node);
+    }, [setNodeRef]);
     React.useLayoutEffect(() => {
-        setPreviewReady(false);
-    }, [entry?.scriptId, scriptData?.editorUpdate?.stateRevision, scriptData?.pendingDiff]);
-    const handlePreviewReady = React.useCallback(() => setPreviewReady(true), []);
-    const handleFormattedText = React.useCallback((scriptText: string) => {
-        if (entry != null) props.onFormattedText(entry.scriptId, scriptText);
-    }, [entry, props.onFormattedText]);
-
-    React.useLayoutEffect(() => {
-        if (entry == null) return;
-        const element = outerRef.current;
-        if (element == null) return;
-        const rowPadding = entryIndex === 0 ? props.topPadding : 0;
-
-        const measure = () => {
-            const height = element.getBoundingClientRect().height - rowPadding;
-            if (!(height > 0)) return;
-            if (!previewReady) {
-                // While a remounted preview is still empty, retain the cached height instead of
-                // recording a transient shrink. Result content may grow independently of the SQL
-                // preview, though, so immediately accept measurements above the cached hint.
-                if (cachedHeight == null || height <= cachedHeight + HEIGHT_CHANGE_EPSILON) return;
-            }
-            props.onHeightMeasured(entry.scriptId, height);
+        if (isSeparator) return;
+        const row = rowRef.current;
+        if (row == null) return;
+        const syncHeight = () => {
+            const height = Math.ceil(row.getBoundingClientRect().height);
+            if (height > 0) props.onRowHeightChange(props.index, height);
         };
-
-        // Observe immediately so result cards can grow even while SQL is being reformatted. The
-        // measure guard above is what prevents a remount's empty editor from shrinking the row.
-        measure();
-        const observer = new ResizeObserver(measure);
-        observer.observe(element);
+        syncHeight();
+        const observer = new ResizeObserver(syncHeight);
+        observer.observe(row);
         return () => observer.disconnect();
-    }, [cachedHeight, entry, entryIndex, props.onHeightMeasured, previewReady, props.topPadding]);
+    }, [isSeparator, props.index, props.onRowHeightChange]);
 
-    if (isFillerRow) {
-        return <div className={styles.feed_list_filler} style={props.style} />;
+    if (isSeparator) {
+        return (
+            <div
+                className={styles.feed_cell_separator}
+                style={{
+                    ...props.style,
+                    paddingTop: props.index === 0 ? props.topPadding : undefined,
+                }}
+            >
+                <span className={styles.feed_cell_separator_line} aria-hidden="true" />
+                <button
+                    type="button"
+                    className={styles.feed_cell_add}
+                    aria-label={`Add script at position ${entryIndex + 1}`}
+                    onClick={() => props.onCreate(entryIndex)}
+                >
+                    <PlusIcon size={16} />
+                </button>
+            </div>
+        );
     }
 
     return (
         <div
-            ref={outerRef}
-            style={{
-                ...props.style,
-                height: 'auto',
-                minHeight: !previewReady && cachedHeight != null
-                    ? cachedHeight + (entryIndex === 0 ? props.topPadding : 0)
-                    : undefined,
-                paddingTop: entryIndex === 0 ? props.topPadding : undefined,
-            }}
+            style={props.style}
         >
-            <div className={styles.feed_list_item}>
+            <div
+                ref={setRowRef}
+                className={styles.feed_list_item}
+                style={{
+                    // dnd-kit may scale the active item toward a differently sized target row.
+                    // Feed cards have variable heights, so scaling visibly squashes or stretches them.
+                    transform: CSS.Translate.toString(transform),
+                    transition,
+                    zIndex: isDragging ? 1 : undefined,
+                }}
+            >
+                <button
+                    type="button"
+                    className={styles.feed_entry_drag_handle}
+                    aria-label={`Drag ${scriptDisplayName(scriptFileName)} script to reorder`}
+                    {...attributes}
+                    {...listeners}
+                >
+                    <DragHandleIcon size={16} />
+                </button>
                 <ScriptCard
                     key={entry?.scriptId}
                     notebookId={props.notebookId}
                     connection={props.connection}
                     storageReader={props.storageReader}
                     isFocused={scriptFileName === props.focusedFileName}
-                    folderName={props.folderName}
                     scriptData={scriptData}
                     scriptFileName={scriptFileName}
                     scriptDebugMode={props.scriptDebugMode}
+                    formattingDebugMode={props.formattingDebugMode}
                     canExecute={scriptData != null && props.connection != null}
-                    canUseAI={props.canUseAI}
                     canDelete={props.canDelete}
+                    active={props.active}
                     canMoveUp={canMoveUp}
                     canMoveDown={canMoveDown}
                     onFocus={props.onFocus}
-                    onExpand={props.onExpand}
                     onDelete={props.onDelete}
                     onRename={props.onRename}
                     onMoveUp={props.onMoveUp}
                     onMoveDown={props.onMoveDown}
                     onExecute={props.onExecute}
-                    onUseAIContext={props.onUseAIContext}
                     onShowStatus={props.onShowStatus}
                     onShowAgentStatus={props.onShowAgentStatus}
                     onShowTable={props.onShowTable}
                     onShowVisualization={props.onShowVisualization}
+                    onShowDetails={props.onShowDetails}
                     onRerun={props.onRerun}
                     onAcceptDiff={props.onAcceptDiff}
                     onRejectDiff={props.onRejectDiff}
@@ -524,9 +535,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onToggleResultExpanded={props.onToggleResultExpanded}
                     onAutoCollapseResult={props.onAutoCollapseResult}
                     onResetAutoCollapsedResult={props.onResetAutoCollapsedResult}
-                    onPreviewReady={handlePreviewReady}
-                    initialPreviewText={previewHint?.formattedText ?? ''}
-                    onFormattedText={handleFormattedText}
+                    onEditorView={props.onEditorView}
                 />
             </div>
         </div>

@@ -5,7 +5,7 @@ import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
 import { useFocusTrap } from '../ui/foundations/focus.js';
 import { TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_UNKNOWN } from '../ui/foundations/text_field.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
-import { ConnectionHealth } from '../app/notebook/connections/connection_state.js';
+import { ConnectionHealth } from '../app/notebook/connections/attached_database_state.js';
 import { SalesforceConnectionSettingsPage } from '../app/notebook/connections/ui/salesforce_connection_settings.js';
 import { collectSalesforceAuthInfo } from '../app/notebook/connections/salesforce/salesforce_api_client.js';
 import type { SalesforceLoginHistoryEntry } from './salesforce_login_history.js';
@@ -178,7 +178,7 @@ export function useSalesforceLoginDialog(
         setDialogState(state => ({
             ...state,
             phase: 'failed',
-            status: 'Connection failed',
+            status: 'Attached database failed',
             statusError: message,
             indicator: IndicatorStatus.Failed,
         }));
@@ -329,7 +329,7 @@ function SalesforceLoginDialog(props: SalesforceLoginDialogProps) {
                 className={styles.dialog}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Salesforce Data Cloud connection"
+                aria-label="Salesforce Data Cloud attached database"
                 onKeyDown={event => {
                     if (event.key !== 'Escape') return;
                     event.preventDefault();

@@ -1,9 +1,9 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { ConnectionState } from "./connection_state.js";
+import { AttachedDatabaseState } from "./attached_database_state.js";
 import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 
-export function encodeConnectionAsProto(state: ConnectionState): connection.Connection {
+export function encodeConnectionAsProto(state: AttachedDatabaseState): connection.Connection {
     switch (state.details.type) {
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
             return {

@@ -14,8 +14,8 @@ import { displayPath } from '../notebook_locator.js';
 import { useStorageReader, useStorageWriter } from '../storage_provider.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { relocateNotebookToNative } from '../storage_migration_flow.js';
-import { useConnectionState } from '../../connections/connection_registry.js';
-import { RENAME_NOTEBOOK } from '../../connections/connection_state.js';
+import { useNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
+import { RENAME_NOTEBOOK } from '../../scripts/notebook_scripts.js';
 
 /// The shared header for the storage view: title on the left, actions + close button on the right.
 function StorageViewHeader(props: {
@@ -106,10 +106,10 @@ export const NotebookStorageViewer: React.FC<NotebookStorageViewerProps> = (prop
     const logger = useLogger();
     const platform = usePlatformType();
 
-    const [connection, connectionDispatch] = useConnectionState(props.notebookId);
+    const [notebookScripts, modifyNotebookScripts] = useNotebookScripts(props.notebookId);
     const onRename = React.useCallback((name: string) => {
-        connectionDispatch({ type: RENAME_NOTEBOOK, value: name });
-    }, [connectionDispatch]);
+        void modifyNotebookScripts({ type: RENAME_NOTEBOOK, value: name });
+    }, [modifyNotebookScripts]);
 
     const [migrating, setMigrating] = React.useState(false);
 
@@ -143,7 +143,7 @@ export const NotebookStorageViewer: React.FC<NotebookStorageViewerProps> = (prop
                 onRelocate={onRelocate}
             />
             <div className={styles.body_content}>
-                {connection && <NameRow name={connection.name} onCommit={onRename} />}
+                {notebookScripts && <NameRow name={notebookScripts.name} onCommit={onRename} />}
                 <ParamRow label="Backend" value={backendValue} />
                 <ParamRow label="Location" value={schemaValue} />
                 {isNative && location?.nativePath && (

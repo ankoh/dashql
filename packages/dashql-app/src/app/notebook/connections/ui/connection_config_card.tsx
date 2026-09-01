@@ -7,8 +7,8 @@ import { ChevronLeftIcon } from '../../../../ui/foundations/symbol_icon.js';
 import { Button, IconButton, ButtonVariant } from '../../../../ui/foundations/button.js';
 import { ConnectorConfigTabs } from './connector_config_tabs.js';
 import { ConnectorType } from '../connector_info.js';
-import { useConnectionState } from '../connection_registry.js';
-import { ConnectionHealth } from '../connection_state.js';
+import { useAttachedDatabaseById, useAttachedDatabaseRegistry } from '../attached_database_registry.js';
+import { ConnectionHealth } from '../attached_database_state.js';
 
 interface Props {
     notebookId: string;
@@ -19,7 +19,9 @@ interface Props {
 }
 
 export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
-    const [conn, _modifyConn] = useConnectionState(props.notebookId);
+    const [registry] = useAttachedDatabaseRegistry();
+    const databaseId = registry.attachedDatabasesByNotebook.get(props.notebookId)?.mainDatabaseId ?? null;
+    const [conn, _modifyConn] = useAttachedDatabaseById(databaseId);
 
     // Default to TRINO or first available connector
     const defaultConnectorType = conn?.connectorInfo.connectorType ?? ConnectorType.TRINO;
@@ -50,7 +52,7 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
                     >
                         <ChevronLeftIcon size={16} />
                     </IconButton>
-                    {props.headerTitle ?? "Configure Connection"}
+                    {props.headerTitle ?? "Configure Attached Database"}
                 </div>
                 <div className={baseStyles.card_header_right_container}>
                     {props.onSkip && (
@@ -63,7 +65,7 @@ export const ConnectionConfigCard: React.FC<Props> = (props: Props) => {
             <div className={`${baseStyles.card_section} ${styles.card_body}`}>
                 <ConnectorConfigTabs
                     className={styles.content_sized_tabs}
-                    notebookId={props.notebookId}
+                     databaseId={databaseId}
                     selectedConnectorType={selectedConnectorType}
                     setSelectedConnectorType={setSelectedConnectorType}
                     lockConnectorType={!!props.onSkip}

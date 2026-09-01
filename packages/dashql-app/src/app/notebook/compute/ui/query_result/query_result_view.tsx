@@ -16,6 +16,7 @@ interface Props {
     onShowTable?: () => void;
     fitHeight?: boolean;
     maxHeight?: number;
+    compact?: boolean;
 }
 
 export function QueryResultView(props: Props) {
@@ -44,6 +45,7 @@ export function QueryResultView(props: Props) {
                 onShowTable={props.onShowTable}
                 fitHeight={props.fitHeight}
                 maxHeight={props.maxHeight}
+                compact={props.compact}
             />
         </div>
     );

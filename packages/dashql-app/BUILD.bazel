@@ -419,7 +419,7 @@ vitest_bin.vitest_test(
     node_options = ["--experimental-wasm-exnref"],
     tags = [],
     chdir = "packages/dashql-app",
-    data = _vite_web_deps + [":tsc_typecheck"],
+    data = _vite_web_deps + [":tsc_typecheck", "//:example_notebooks_test_data"],
     visibility = ["//visibility:public"],
 )
 

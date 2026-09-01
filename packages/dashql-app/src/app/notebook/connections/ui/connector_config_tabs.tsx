@@ -6,12 +6,12 @@ import { CONNECTOR_INFOS, ConnectorType, useConnectorList } from '../connector_i
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
-import { useConnectionState } from '../connection_registry.js';
-import { ConnectionHealth, ConnectionStatus, SWITCH_CONNECTOR_TYPE } from '../connection_state.js';
+import { useAttachedDatabaseById } from '../attached_database_registry.js';
+import { ConnectionHealth, ConnectionStatus, SWITCH_CONNECTOR_TYPE } from '../attached_database_state.js';
 
 interface Props {
     className?: string;
-    notebookId: string | null;
+    databaseId: string | null;
     selectedConnectorType: ConnectorType;
     setSelectedConnectorType: (type: ConnectorType) => void;
     onClose?: () => void;
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
-    const [conn, modifyConn] = useConnectionState(props.notebookId);
+    const [conn, modifyConn] = useAttachedDatabaseById(props.databaseId);
     const availableConnectors = useConnectorList();
     const currentConnector = conn?.connectorInfo ?? null;
     const connectors = currentConnector && !availableConnectors.some(info => info.connectorType === currentConnector.connectorType)
@@ -60,15 +60,15 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
         tabRenderers[connectorType] = () => {
             // Pass the notebook connection to the matching tab, or to all tabs when unconfigured
             // (since SWITCH_CONNECTOR_TYPE ensures the type matches the selected tab)
-            const notebookId = (isCurrentConnection || isUnconfigured) ? props.notebookId : null;
+            const databaseId = (isCurrentConnection || isUnconfigured) ? props.databaseId : null;
 
             switch (connectorType) {
                 case ConnectorType.TRINO:
-                    return <TrinoConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
+                    return <TrinoConnectorSettings databaseId={databaseId} onClose={props.onClose} />;
                 case ConnectorType.SALESFORCE_DATA_CLOUD:
-                    return <SalesforceConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
+                    return <SalesforceConnectorSettings databaseId={databaseId} onClose={props.onClose} />;
                 case ConnectorType.HYPER:
-                    return <HyperConnectorSettings notebookId={notebookId} onClose={props.onClose} />;
+                    return <HyperConnectorSettings databaseId={databaseId} onClose={props.onClose} />;
                 default:
                     throw new Error(`unsupported connector type ${connectorType}`);
             }

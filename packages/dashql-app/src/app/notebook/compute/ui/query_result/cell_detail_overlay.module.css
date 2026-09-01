@@ -106,6 +106,7 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
+    font-size: var(--font_size_compact);
 }
 
 .body_padded {
@@ -115,6 +116,10 @@
 .body > .structured_view {
     max-height: none;
     overflow: visible;
+}
+
+.structured_view {
+    --json_view_font_size: var(--font_size_compact);
 }
 
 .plan_container {
@@ -150,6 +155,7 @@
 
 .codemirror_container :global(.cm-editor) {
     height: 100%;
+    font-size: var(--font_size_compact);
 }
 
 .codemirror_container :global(.cm-scroller) {

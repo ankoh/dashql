@@ -3,11 +3,11 @@ import * as React from 'react';
 import { createQueryExecutionMetrics } from '../query/query_execution_state.js';
 import type { QueryExecutionHistoryState } from '../query/query_execution_state.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../app/notebook/connections/connector_info.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '../app/notebook/connections/connection_state.js';
-import { useConnectionRegistry } from '../app/notebook/connections/connection_registry.js';
+import { ConnectionHealth, ConnectionStatus, type AttachedDatabaseState } from '../app/notebook/connections/attached_database_state.js';
+import { useAttachedDatabaseRegistry } from '../app/notebook/connections/attached_database_registry.js';
 import { ShellQueryExecutionTracker } from './query_execution.js';
 
-export const SHELL_CONNECTION_ID = 'shell';
+export const SHELL_DATABASE_ID = 'shell';
 export const SHELL_NOTEBOOK_ID = 'shell';
 
 interface ShellConnectionContextValue {
@@ -17,11 +17,9 @@ interface ShellConnectionContextValue {
 
 const SHELL_CONNECTION_CTX = React.createContext<ShellConnectionContextValue | null>(null);
 
-function createShellConnectionState(): ConnectionState {
+function createShellAttachedDatabaseState(): AttachedDatabaseState {
     return {
-        connectionId: SHELL_CONNECTION_ID,
-        notebookId: SHELL_NOTEBOOK_ID,
-        name: 'Shell',
+        databaseId: SHELL_DATABASE_ID,
         active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
@@ -32,20 +30,23 @@ function createShellConnectionState(): ConnectionState {
         queriesFinished: new Map(),
         queriesFinishedOrdered: [],
         snapshotQueriesActiveFinished: 1,
-    } as unknown as ConnectionState;
+    } as unknown as AttachedDatabaseState;
 }
 
 export const ShellConnectionProvider: React.FC<{ children: React.ReactElement }> = props => {
-    const [, setRegistry] = useConnectionRegistry();
-    const stateRef = React.useRef<ConnectionState>(createShellConnectionState());
+    const [, setRegistry] = useAttachedDatabaseRegistry();
+    const stateRef = React.useRef<AttachedDatabaseState>(createShellAttachedDatabaseState());
 
-    const publish = React.useCallback((state: ConnectionState) => {
+    const publish = React.useCallback((state: AttachedDatabaseState) => {
         stateRef.current = state;
         setRegistry(registry => {
-            registry.connectionMap.set(SHELL_CONNECTION_ID, state);
-            registry.connectionByNotebook.set(SHELL_NOTEBOOK_ID, SHELL_CONNECTION_ID);
-            if (!registry.connectionsByType[ConnectorType.HYPER].includes(SHELL_CONNECTION_ID)) {
-                registry.connectionsByType[ConnectorType.HYPER].push(SHELL_CONNECTION_ID);
+            registry.attachedDatabases.set(SHELL_DATABASE_ID, state);
+            registry.attachedDatabasesByNotebook.set(SHELL_NOTEBOOK_ID, {
+                mainDatabaseId: SHELL_DATABASE_ID,
+                attachedDatabaseIds: [],
+            });
+            if (!registry.attachedDatabasesByType[ConnectorType.HYPER].includes(SHELL_DATABASE_ID)) {
+                registry.attachedDatabasesByType[ConnectorType.HYPER].push(SHELL_DATABASE_ID);
             }
             return { ...registry };
         });
@@ -70,10 +71,10 @@ export const ShellConnectionProvider: React.FC<{ children: React.ReactElement }>
         publish(stateRef.current);
         return () => {
             setRegistry(registry => {
-                registry.connectionMap.delete(SHELL_CONNECTION_ID);
-                registry.connectionByNotebook.delete(SHELL_NOTEBOOK_ID);
-                registry.connectionsByType[ConnectorType.HYPER] = registry.connectionsByType[ConnectorType.HYPER]
-                    .filter(connectionId => connectionId !== SHELL_CONNECTION_ID);
+                registry.attachedDatabases.delete(SHELL_DATABASE_ID);
+                registry.attachedDatabasesByNotebook.delete(SHELL_NOTEBOOK_ID);
+                registry.attachedDatabasesByType[ConnectorType.HYPER] = registry.attachedDatabasesByType[ConnectorType.HYPER]
+                    .filter(connectionId => connectionId !== SHELL_DATABASE_ID);
                 return { ...registry };
             });
         };

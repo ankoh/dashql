@@ -15,8 +15,8 @@ import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useHyperGrpcClient } from '../hyper/hyperdb_grpc_client_provider.js';
 import { useHyperSetup } from '../hyper/hyper_connection_setup.js';
 import { useQueryExecutor } from '../query_executor.js';
-import { useConnectionState } from '../connection_registry.js';
-import { ConnectionHealth } from '../connection_state.js';
+import { useAttachedDatabaseById } from '../attached_database_registry.js';
+import { ConnectionHealth } from '../attached_database_state.js';
 import { performHealthCheck } from '../health_check.js';
 import { getHyperConnectionDetails } from '../hyper/hyper_connection_state.js';
 import {
@@ -39,7 +39,7 @@ interface LogState {
 export type HyperDockerPanelMode = 'list' | 'create';
 
 interface Props {
-    notebookId: string | null;
+    databaseId: string | null;
     freezeInput?: boolean;
     mode: HyperDockerPanelMode;
     setMode: (mode: HyperDockerPanelMode) => void;
@@ -57,7 +57,7 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
     const grpcClient = useHyperGrpcClient();
     const hyperSetup = useHyperSetup();
     const queryExecutor = useQueryExecutor();
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.notebookId);
+    const [connectionState, dispatchAttachedDatabaseState] = useAttachedDatabaseById(props.databaseId);
     const hyperConnection = getHyperConnectionDetails(connectionState);
 
     const [containers, setContainers] = React.useState<DockerContainerSummary[]>([]);
@@ -191,9 +191,9 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
                 metadata: {},
                 queryParameters: { user: 'tableau_internal_user' },
             };
-            const channel = await hyperSetup.setup(dispatchConnectionState, params, setupAbort.current.signal);
+            const channel = await hyperSetup.setup(dispatchAttachedDatabaseState, params, setupAbort.current.signal);
             if (channel != null) {
-                await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'hyper', channel }, dispatchConnectionState, setupAbort.current.signal);
+                await performHealthCheck(queryExecutor, connectionState.databaseId, { type: 'hyper', channel }, dispatchAttachedDatabaseState, setupAbort.current.signal);
             }
         } catch (_error: any) {
             // Errors are surfaced through the connection state; nothing to do here.
@@ -210,7 +210,7 @@ export const HyperDockerSettingsPanel: React.FC<Props> = (props: Props) => {
 
     const handleDisconnect = async () => {
         if (hyperSetup) {
-            await hyperSetup.reset(dispatchConnectionState);
+            await hyperSetup.reset(dispatchAttachedDatabaseState);
         }
     };
 
@@ -313,7 +313,7 @@ const HyperContainerCard: React.FC<HyperContainerCardProps> = (props) => {
                 connectButton = (
                     <IconButton
                         variant={ButtonVariant.Invisible}
-                        aria-label="Cancel connection"
+                        aria-label="Cancel attached database setup"
                         description="Cancel"
                         onClick={props.onCancel}
                     >

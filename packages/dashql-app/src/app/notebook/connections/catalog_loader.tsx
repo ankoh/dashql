@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useDynamicConnectionDispatch } from './connection_registry.js';
+import { findNotebookForAttachedDatabase, useDynamicAttachedDatabaseDispatch } from './attached_database_registry.js';
 import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
 import { CatalogResolver, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
@@ -11,7 +11,7 @@ import {
     CATALOG_UPDATE_SUCCEEDED,
     SET_CATALOG_SCRIPT,
     UPDATE_CATALOG,
-} from './connection_state.js';
+} from './attached_database_state.js';
 import { updateSalesforceCatalog } from './salesforce/salesforce_catalog_update.js';
 import { useQueryExecutor } from './query_executor.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
@@ -48,8 +48,8 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
 
     // The connection registry changes frequently, the connection map is stable.
     // This executor will depend on the map directly since it can resolve everything ad-hoc.
-    const [connReg, connDispatch] = useDynamicConnectionDispatch();
-    const connMap = connReg.connectionMap;
+    const [connReg, connDispatch] = useDynamicAttachedDatabaseDispatch();
+    const connMap = connReg.attachedDatabases;
     const connScriptsDispatch = useConnectionScriptsDispatch();
 
     // Execute a query with pre-allocated query id
@@ -63,7 +63,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             traced.warn("Failed to resolve connection", { connectionId }, LOG_CTX);
             throw new Error(`couldn't find a connection with id ${connectionId}`);
         }
-        const notebookId = conn.notebookId;
+        const notebookId = findNotebookForAttachedDatabase(connReg, connectionId);
         if (!executor) {
             traced.warn("Query executor not configured", { notebookId }, LOG_CTX);
             throw new Error(`couldn't find trino executor`);
@@ -280,7 +280,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             logger.debug("Received catalog update request", { connectionId }, LOG_CTX);
 
             // Find the connection
-            const connState = connReg.connectionMap.get(connectionId);
+            const connState = connReg.attachedDatabases.get(connectionId);
             if (!connState) {
                 logger.warn("Failed to resolve connection", { connectionId }, LOG_CTX);
                 continue;

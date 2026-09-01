@@ -6,27 +6,22 @@ import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, Seman
 import { ConnectorInfo } from '../connections/connector_info.js';
 import { VariantKind } from '../../../utils/index.js';
 import {
-    CREATE_SCRIPT_FOLDER as STORAGE_CREATE_SCRIPT_FOLDER,
     DEBOUNCE_DURATION_SCRIPT_WRITE,
     DEBOUNCE_DURATION_NOTEBOOK_WRITE,
-    DELETE_SCRIPT_FOLDER as STORAGE_DELETE_SCRIPT_FOLDER,
     DELETE_SCRIPT as STORAGE_DELETE_SCRIPT,
-    groupDraftWrites,
+    groupNotebookManifestWrites,
     groupNotebookWrites,
-    groupScriptFolderRenames,
-    groupScriptFolderWrites,
     groupScriptDeletes,
     groupScriptRenames,
     groupScriptWrites,
-    RENAME_SCRIPT_FOLDER as STORAGE_RENAME_SCRIPT_FOLDER,
     RENAME_SCRIPT as STORAGE_RENAME_SCRIPT,
     StorageWriter,
-    WRITE_SCRIPT_DRAFT,
+    WRITE_NOTEBOOK_NAME,
     WRITE_SCRIPT,
 } from '../persistence/storage_writer.js';
 import type { NotebookScriptsInput } from './notebook_scripts_registry.js';
 import { Logger, LoggerLike, LoggableException, stringifyError } from '../../../platform/logger/logger.js';
-import { ScriptAnnotations, ScriptFolder, ScriptRef, NotebookMetadata as NotebookMetadataType, ResolvedVisualizeQuery, createEmptyAnnotations, createScriptRef, generateScriptFileName, planScriptInsertion, normalizeScriptFolderName, formatScriptFolderOrderPrefix, normalizeScriptName, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase } from './script_types.js';
+import { ScriptAnnotations, ScriptRef, NotebookMetadata as NotebookMetadataType, ResolvedVisualizeQuery, createEmptyAnnotations, createScriptRef, planScriptInsertion, normalizeScriptName, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase } from './script_types.js';
 import { parseUmapSpec } from '../compute/ui/visualization/umap/umap_spec.js';
 
 const LOG_CTX = 'notebook_scripts';
@@ -35,16 +30,11 @@ const LOG_CTX = 'notebook_scripts';
 export type ScriptKey = number;
 /// A script data map
 export type ScriptDataMap = { [scriptKey: number]: ScriptData };
-/// A page map keyed by folder name
-export type ScriptFolderMap = { [folderName: string]: ScriptFolder };
-
 /// A notebook user focus
 export interface ScriptFocus {
-    /// The folder name of the selected page (empty if none)
-    folderName: string;
-    /// The file name of the selected entry within the page (empty if none)
+    /// The file name of the selected cell (empty if none)
     fileName: string;
-    /// Monotonic counter incremented only by explicit navigation (Next/Prev Script/Page), used to trigger auto-scroll
+    /// Monotonic counter incremented only by explicit navigation, used to trigger auto-scroll
     interactionCounter: number;
 }
 
@@ -55,8 +45,10 @@ export interface NotebookScripts {
     instance: core.DashQL;
     /// The notebook identifier.
     notebookId: string;
-    /// Runtime connection associated with this notebook.
-    connectionId: string;
+    /// The user-supplied notebook name, independent from attached database identity.
+    name: string | null;
+    /// Attached database whose catalog backs script analysis.
+    databaseId: string;
     /// The notebook metadata
     notebookMetadata: NotebookMetadataType;
     /// The connector info
@@ -65,11 +57,9 @@ export interface NotebookScripts {
     connectionCatalog: core.DashQLCatalog;
     /// The scripts
     scripts: ScriptDataMap;
-    /// The notebook pages keyed by folder name. View order is by name.
-    scriptFolders: ScriptFolderMap;
-    /// The uncommitted script id for the notebook-level composer.
-    uncommittedScriptId: number;
-    /// The notebook focus (selected page and entry by name)
+    /// Committed cells keyed by their ordered file name.
+    scriptRefs: { [fileName: string]: ScriptRef };
+    /// The notebook focus (selected cell by file name)
     scriptFocus: ScriptFocus;
     /// The semantic user focus info (if any)
     semanticUserFocus: SemanticUserFocus | null;
@@ -79,40 +69,20 @@ export interface NotebookScripts {
 /// notebook. Keeping this type here prevents the native watcher from knowing about WASM lifetime
 /// and catalog invariants.
 export interface NotebookScriptsStorageSnapshot {
-    folders: Array<{
-        name: string;
-        scripts: Array<{ name: string; sql: string }>;
-    }>;
-    draft: string | null;
+    scripts: Array<{ name: string; sql: string }>;
 }
 
 export function notebookScriptsMatchStorageSnapshot(state: NotebookScripts, snapshot: NotebookScriptsStorageSnapshot): boolean {
-    const diskPages = new Set(snapshot.folders.map(folder => folder.name));
-    const memoryPages = new Set(Object.keys(state.scriptFolders));
-    // "Untitled" is virtual when the disk has no pages, matching startup restoration.
-    if (diskPages.size === 0 && memoryPages.size === 1 && memoryPages.has('untitled')) {
-        memoryPages.clear();
-    }
-    if (diskPages.size !== memoryPages.size || [...diskPages].some(page => !memoryPages.has(page))) {
+    const diskScripts = new Map(snapshot.scripts.map(script => [script.name, script.sql]));
+    if (Object.keys(state.scriptRefs).length !== diskScripts.size) {
         return false;
     }
-    const diskScripts = new Map<string, string>();
-    for (const folder of snapshot.folders) {
-        for (const script of folder.scripts) {
-            diskScripts.set(`${folder.name}/${script.name}`, script.sql);
-        }
-    }
-    const memoryScripts = Object.values(state.scripts).filter(script => script.folderName && script.fileName);
-    if (memoryScripts.length !== diskScripts.size) {
-        return false;
-    }
-    for (const script of memoryScripts) {
-        if (diskScripts.get(`${script.folderName}/${script.fileName}`) !== script.scriptSession.getText()) {
+    for (const [fileName, ref] of Object.entries(state.scriptRefs)) {
+        if (diskScripts.get(fileName) !== state.scripts[ref.scriptId]?.scriptSession.getText()) {
             return false;
         }
     }
-    const draft = state.scripts[state.uncommittedScriptId]?.scriptSession.getText() ?? '';
-    return draft === (snapshot.draft ?? '');
+    return true;
 }
 
 /// A script data
@@ -139,21 +109,13 @@ export interface ScriptData {
     latestQueryId: number | null;
     /// The latest agent-run id
     latestAgentRunId: number | null;
-    /// The file name of this script (empty string for uncommitted/draft script)
+    /// The file name of this committed script
     fileName: string;
-    /// The folder name of the page this script belongs to (empty string for uncommitted/draft script)
-    folderName: string;
 }
 
-export const SELECT_SCRIPT_FOLDER = Symbol('SELECT_SCRIPT_FOLDER');
-export const CREATE_SCRIPT_FOLDER = Symbol('CREATE_SCRIPT_FOLDER');
-export const DELETE_SCRIPT_FOLDER = Symbol('DELETE_SCRIPT_FOLDER');
-export const SELECT_NEXT_SCRIPT_FOLDER = Symbol('SELECT_NEXT_SCRIPT_FOLDER');
-export const SELECT_PREV_SCRIPT_FOLDER = Symbol('SELECT_PREV_SCRIPT_FOLDER');
 export const SELECT_NEXT_SCRIPT = Symbol('SELECT_NEXT_SCRIPT');
 export const SELECT_PREV_SCRIPT = Symbol('SELECT_PREV_SCRIPT');
 export const SELECT_SCRIPT = Symbol('SELECT_SCRIPT');
-export const SELECT_SCRIPT_PATH = Symbol('SELECT_SCRIPT_PATH');
 export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
@@ -162,46 +124,36 @@ export const REGISTER_AGENT_RUN = Symbol('REGISTER_AGENT_RUN');
 export const CREATE_SCRIPT = Symbol('CREATE_SCRIPT');
 export const DELETE_SCRIPT = Symbol('DELETE_SCRIPT');
 export const RENAME_SCRIPT = Symbol('RENAME_SCRIPT');
-export const RENAME_SCRIPT_FOLDER = Symbol('RENAME_SCRIPT_FOLDER');
-export const REORDER_SCRIPT_FOLDERS = Symbol('REORDER_SCRIPT_FOLDERS');
 export const REORDER_SCRIPTS = Symbol('REORDER_SCRIPTS');
-export const PROMOTE_UNCOMMITTED_SCRIPT = Symbol('PROMOTE_UNCOMMITTED_SCRIPT');
 export const SET_SCRIPT_TEXT = Symbol('SET_SCRIPT_TEXT');
 export const CREATE_SCRIPT_WITH_TEXT = Symbol('CREATE_SCRIPT_WITH_TEXT');
 export const ACCEPT_PENDING_DIFF = Symbol('ACCEPT_PENDING_DIFF');
 export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
+export const RENAME_NOTEBOOK = Symbol('RENAME_NOTEBOOK');
 
 export type NotebookScriptsAction =
-    | VariantKind<typeof SELECT_SCRIPT_FOLDER, string>
-    | VariantKind<typeof CREATE_SCRIPT_FOLDER, null>
-    | VariantKind<typeof DELETE_SCRIPT_FOLDER, string>
-    | VariantKind<typeof SELECT_NEXT_SCRIPT_FOLDER, null>
-    | VariantKind<typeof SELECT_PREV_SCRIPT_FOLDER, null>
     | VariantKind<typeof SELECT_NEXT_SCRIPT, null>
     | VariantKind<typeof SELECT_PREV_SCRIPT, null>
     | VariantKind<typeof SELECT_SCRIPT, string>
-    | VariantKind<typeof SELECT_SCRIPT_PATH, { folderName: string; fileName: string }>
     | VariantKind<typeof ANALYZE_OUTDATED_SCRIPT, ScriptKey>
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
     | VariantKind<typeof REGISTER_QUERY, [ScriptKey, number]>
     | VariantKind<typeof REGISTER_AGENT_RUN, [ScriptKey, number]>
-    | VariantKind<typeof CREATE_SCRIPT, null>
+    | VariantKind<typeof CREATE_SCRIPT, number | null>
     | VariantKind<typeof DELETE_SCRIPT, string>
     | VariantKind<typeof RENAME_SCRIPT, { fileName: string, newFileName: string }>
-    | VariantKind<typeof RENAME_SCRIPT_FOLDER, { folderName: string, newFolderName: string }>
-    | VariantKind<typeof REORDER_SCRIPT_FOLDERS, string[]>  // folder names in the desired new view order
-    | VariantKind<typeof REORDER_SCRIPTS, { folderName: string; fileNames: string[] }>
-    | VariantKind<typeof PROMOTE_UNCOMMITTED_SCRIPT, null>
+    | VariantKind<typeof REORDER_SCRIPTS, string[]>
     | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string, withDiff?: boolean }>
     | VariantKind<typeof CREATE_SCRIPT_WITH_TEXT, { text: string }>
     | VariantKind<typeof ACCEPT_PENDING_DIFF, ScriptKey>
     | VariantKind<typeof REJECT_PENDING_DIFF, ScriptKey>
+    | VariantKind<typeof RENAME_NOTEBOOK, string | null>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
 
-export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQLCatalog, fileName: string = '', folderName: string = ''): [number, ScriptData] {
+export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQLCatalog, fileName: string = ''): [number, ScriptData] {
     const scriptSession = instance.createScriptSession(catalog);
     const scriptKey = scriptSession.getCatalogEntryId();
     const scriptData: ScriptData = {
@@ -216,28 +168,8 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
         latestQueryId: null,
         latestAgentRunId: null,
         fileName,
-        folderName,
     };
     return [scriptKey, scriptData];
-}
-
-/// Find a clean (prefix-free) page name that collides with no other page's clean name.
-///
-/// Collisions are checked on clean names because the ordering prefix is not part of a page's
-/// identity — two pages may not share a clean name even if their prefixes differ. The returned
-/// value is always prefix-free; callers re-apply an ordering prefix as needed.
-function uniqueScriptFolderName(baseName: string, pages: ScriptFolderMap, excludeFolder: string = ''): string {
-    const base = normalizeScriptFolderName(baseName);
-    const takenCleanNames = new Set<string>();
-    for (const key in pages) {
-        if (key === excludeFolder) continue;
-        takenCleanNames.add(normalizeScriptFolderName(key));
-    }
-    let candidate = base;
-    for (let suffix = 2; takenCleanNames.has(candidate); ++suffix) {
-        candidate = `${base} ${suffix}`;
-    }
-    return candidate;
 }
 
 enum FocusUpdate {
@@ -246,77 +178,34 @@ enum FocusUpdate {
     UpdateFromCompletion,
 };
 
-/// Returns the sorted list of folder names for view-layer iteration.
-///
-/// Folder names may carry a numeric ordering prefix ("03_main"); sorting numerically (matching
-/// the storage backends' natural sort on load) yields the intended tab order and keeps a page
-/// in place when its prefix width grows (e.g. "9_x" before "10_y").
-export function getSortedScriptFolderNames(pages: ScriptFolderMap): string[] {
-    return sortScriptFolderNamesNumerically(Object.keys(pages));
-}
-
-/// Sort raw folder names with the numeric-aware ordering used for the tab bar. Exposed so callers
-/// that only have the names (and not a full ScriptFolderMap) order them identically.
-export function sortScriptFolderNamesNumerically(folderNames: string[]): string[] {
-    return [...folderNames].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-}
-
-/// Returns the sorted list of file names within a page.
+/// Returns the naturally ordered cell file names.
 ///
 /// File names may carry a numeric ordering prefix ("2_extract.sql"); sorting numerically (matching
 /// the storage backends' natural sort on load) yields the intended feed order and keeps a script in
 /// place when its prefix width grows (e.g. "9_x.sql" before "10_y.sql").
-export function getSortedScriptFileNames(page: ScriptFolder): string[] {
-    return Object.keys(page.scripts).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+export function getSortedScriptFileNames(scriptRefs: { [fileName: string]: ScriptRef }): string[] {
+    return Object.keys(scriptRefs).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
-/// Returns the currently selected page, or undefined if none.
-export function getSelectedScriptFolder(state: NotebookScripts): ScriptFolder | undefined {
-    const folder = state.scriptFocus.folderName;
-    if (folder && state.scriptFolders[folder]) return state.scriptFolders[folder];
-    // Fall back to the first page in sorted order
-    const folders = getSortedScriptFolderNames(state.scriptFolders);
-    return folders.length > 0 ? state.scriptFolders[folders[0]] : undefined;
-}
-
-/// Returns the script entries of the selected page, sorted by file name.
+/// Returns the committed cells, sorted by file name.
 export function getSelectedScriptRefs(state: NotebookScripts): ScriptRef[] {
-    const page = getSelectedScriptFolder(state);
-    if (!page) return [];
-    return getSortedScriptFileNames(page).map(name => page.scripts[name]);
+    return getSortedScriptFileNames(state.scriptRefs).map(name => state.scriptRefs[name]);
 }
 
-/// Returns the uncommitted script data for the notebook-level composer, or null if none.
-export function getUncommittedScriptData(state: NotebookScripts): ScriptData | null {
-    if (state.uncommittedScriptId === 0) return null;
-    return state.scripts[state.uncommittedScriptId] ?? null;
-}
-
-/// Returns the currently selected entry (script ref) in the selected page, or undefined.
+/// Returns the currently selected cell, or the first cell when focus is unset.
 export function getSelectedScriptRef(state: NotebookScripts): ScriptRef | undefined {
-    const page = getSelectedScriptFolder(state);
-    if (!page) return undefined;
     const file = state.scriptFocus.fileName;
-    if (file && page.scripts[file]) return page.scripts[file];
-    // Fall back to first sorted entry
-    const files = getSortedScriptFileNames(page);
-    return files.length > 0 ? page.scripts[files[0]] : undefined;
+    if (file && state.scriptRefs[file]) return state.scriptRefs[file];
+    const files = getSortedScriptFileNames(state.scriptRefs);
+    return files.length > 0 ? state.scriptRefs[files[0]] : undefined;
 }
 
 /// Returns the index of the selected entry in the sorted entry list, or -1.
 export function getSelectedScriptIndex(state: NotebookScripts): number {
-    const page = getSelectedScriptFolder(state);
-    if (!page) return -1;
     const file = state.scriptFocus.fileName;
     if (!file) return -1;
-    const files = getSortedScriptFileNames(page);
+    const files = getSortedScriptFileNames(state.scriptRefs);
     return files.indexOf(file);
-}
-
-/// Returns the index of the selected page in the sorted page list, or -1.
-export function getSelectedScriptFolderIndex(state: NotebookScripts): number {
-    const folders = getSortedScriptFolderNames(state.scriptFolders);
-    return folders.indexOf(state.scriptFocus.folderName);
 }
 
 /// Apply a script re-pad plan (from planScriptInsertion) to a page in place: rename the listed
@@ -326,29 +215,36 @@ export function getSelectedScriptFolderIndex(state: NotebookScripts): number {
 /// Returns the updated maps and focus; the caller weaves them into the new state it is building.
 function applyScriptRepad(
     repad: { oldFileName: string; newFileName: string }[],
-    folderName: string,
-    pageScripts: { [fileName: string]: ScriptRef },
+    scriptRefs: { [fileName: string]: ScriptRef },
     scripts: ScriptDataMap,
     focusFileName: string,
     notebookId: string,
     storage: StorageWriter | null,
-): { pageScripts: { [fileName: string]: ScriptRef }; scripts: ScriptDataMap; focusFileName: string } {
+    reservedFileNames: ReadonlySet<string> = new Set(),
+): { scriptRefs: { [fileName: string]: ScriptRef }; scripts: ScriptDataMap; focusFileName: string } {
     if (repad.length === 0) {
-        return { pageScripts, scripts, focusFileName };
+        return { scriptRefs, scripts, focusFileName };
     }
-    const nextPageScripts = { ...pageScripts };
+    const nextScriptRefs = { ...scriptRefs };
     const nextScripts = { ...scripts };
     let nextFocus = focusFileName;
+    const movedEntries = repad.map(({ oldFileName, newFileName }) => ({
+        oldFileName,
+        newFileName,
+        entry: scriptRefs[oldFileName],
+    })).filter(move => move.entry != null);
+    // Remove all source paths before installing targets. Indexed insertion shifts adjacent numeric
+    // prefixes, so a target can otherwise overwrite an entry that a later move still needs to read.
+    for (const { oldFileName } of movedEntries) {
+        delete nextScriptRefs[oldFileName];
+    }
     // A re-pad target path that is also some entry's source path must not be deleted: the write for
     // that path already carries the correct content, and the delete (a separate keyspace from the
     // write) would otherwise race it and could clobber the file on disk. This guards the mixed
     // width/separator legacy case where clean names are not unique within the page.
-    const targetFiles = new Set(repad.map(r => r.newFileName));
-    for (const { oldFileName, newFileName } of repad) {
-        const entry = nextPageScripts[oldFileName];
-        if (!entry) continue;
-        delete nextPageScripts[oldFileName];
-        nextPageScripts[newFileName] = { ...entry, fileName: newFileName };
+    const targetFiles = new Set([...movedEntries.map(r => r.newFileName), ...reservedFileNames]);
+    for (const { oldFileName, newFileName, entry } of movedEntries) {
+        nextScriptRefs[newFileName] = { ...entry, fileName: newFileName };
         const sd = nextScripts[entry.scriptId];
         if (sd) nextScripts[entry.scriptId] = { ...sd, fileName: newFileName };
         if (nextFocus === oldFileName) nextFocus = newFileName;
@@ -356,244 +252,40 @@ function applyScriptRepad(
         // entry's new path — the write for it already carries the correct content.
         if (!targetFiles.has(oldFileName)) {
             storage?.write(
-                groupScriptDeletes(notebookId, folderName, oldFileName),
-                { type: STORAGE_DELETE_SCRIPT, value: [notebookId, folderName, oldFileName] },
+                groupScriptDeletes(notebookId, oldFileName),
+                { type: STORAGE_DELETE_SCRIPT, value: [notebookId, oldFileName] },
                 DEBOUNCE_DURATION_SCRIPT_WRITE
             );
         }
         const sql = nextScripts[entry.scriptId]?.scriptSession.getText() ?? '';
         storage?.write(
-            groupScriptWrites(notebookId, folderName, newFileName),
-            { type: WRITE_SCRIPT, value: [notebookId, folderName, newFileName, sql] },
+            groupScriptWrites(notebookId, newFileName),
+            { type: WRITE_SCRIPT, value: [notebookId, newFileName, sql] },
             DEBOUNCE_DURATION_SCRIPT_WRITE
         );
     }
-    return { pageScripts: nextPageScripts, scripts: nextScripts, focusFileName: nextFocus };
-}
-
-/// Re-assign a dense numeric ordering prefix to every page in `order`, persisting each moved page.
-///
-/// `order` is the desired left-to-right tab order over exactly the current pages. Each page is
-/// renamed to "<n>_<clean>" for its 1-based position, zero-padded to a uniform width — so *every*
-/// page ends up prefixed (a page that arrived without one, e.g. "vis_data", gains "3_vis_data") and
-/// a plain numeric sort reproduces `order`. The clean name is held stable, so the catalog path is
-/// unchanged and no re-analyze is needed. A page already keyed exactly at its target name is left
-/// untouched (no rename, no disk churn) — this keeps a still-lean notebook lean until something
-/// actually moves it. Persists each real rename as delete-old + create-new (no backend has an atomic
-/// folder rename), mirroring REORDER_SCRIPT_FOLDERS/RENAME_SCRIPT_FOLDER. Returns null when nothing moved.
-///
-/// `unpersistedFolder` names a page that exists only in the staged in-memory `state` and was never
-/// written to disk (the freshly created page in CREATE_SCRIPT_FOLDER): there is nothing on disk to rename, so
-/// it is created under its final prefixed name instead of moved.
-function reprefixPages(
-    order: string[],
-    state: NotebookScripts,
-    storage: StorageWriter | null,
-    unpersistedFolder: string = '',
-): NotebookScripts | null {
-    const total = order.length;
-    const renames: { oldFolder: string; newFolder: string }[] = [];
-    const newPages: ScriptFolderMap = {};
-    const newScripts: ScriptDataMap = { ...state.scripts };
-    for (let i = 0; i < order.length; ++i) {
-        const oldFolder = order[i];
-        const page = state.scriptFolders[oldFolder];
-        const newFolder = `${formatScriptFolderOrderPrefix(i + 1, total)}${normalizeScriptFolderName(oldFolder)}`;
-        if (newFolder === oldFolder) {
-            newPages[oldFolder] = page;
-            continue;
-        }
-        renames.push({ oldFolder, newFolder });
-        // The clean name is unchanged, so the catalog path is stable; no re-analyze needed.
-        for (const fileName in page.scripts) {
-            const entry = page.scripts[fileName];
-            const sd = newScripts[entry.scriptId];
-            if (sd) newScripts[entry.scriptId] = { ...sd, folderName: newFolder };
-        }
-        newPages[newFolder] = { ...page, folderName: newFolder };
-    }
-
-    if (renames.length === 0) {
-        return null;
-    }
-
-    const newFocusFolder = renames.find(r => r.oldFolder === state.scriptFocus.folderName)?.newFolder
-        ?? state.scriptFocus.folderName;
-
-    const next: NotebookScripts = {
-        ...state,
-        scriptFolders: newPages,
-        scripts: newScripts,
-        scriptFocus: { ...state.scriptFocus, folderName: newFocusFolder },
-    };
-
-    // Persist each moved page as an in-place folder rename (the backend moves its contents with it —
-    // no per-script rewrite). Renames live in their own `rename:` keyspace keyed by the source folder,
-    // so a content write of the destination folder never coalesces onto, and clobbers, a pending move.
-    // Page clean names are unique (uniqueScriptFolderName), so within one reorder the rename destinations are
-    // disjoint from the sources — no permutation forms a swap cycle that an atomic rename would break.
-    //
-    // The freshly created page (`unpersistedFolder`) has nothing on disk to move, so it is created
-    // under its final prefixed name instead.
-    for (const { oldFolder, newFolder } of renames) {
-        if (oldFolder === unpersistedFolder) {
-            const page = newPages[newFolder];
-            const scriptEntries = Object.values(page.scripts).map(entry => {
-                const sd = newScripts[entry.scriptId];
-                return { scriptId: entry.scriptId, fileName: entry.fileName, sql: sd ? sd.scriptSession.getText() : '' };
-            });
-            storage?.write(
-                groupScriptFolderWrites(next.notebookId, newFolder),
-                { type: STORAGE_CREATE_SCRIPT_FOLDER, value: [next.notebookId, newFolder, scriptEntries] },
-                DEBOUNCE_DURATION_SCRIPT_WRITE
-            );
-            continue;
-        }
-        storage?.write(
-            groupScriptFolderRenames(next.notebookId, oldFolder),
-            { type: STORAGE_RENAME_SCRIPT_FOLDER, value: [next.notebookId, oldFolder, newFolder] },
-            DEBOUNCE_DURATION_SCRIPT_WRITE
-        );
-    }
-    return next;
+    return { scriptRefs: nextScriptRefs, scripts: nextScripts, focusFileName: nextFocus };
 }
 
 export function reduceNotebookScripts(state: NotebookScripts, action: NotebookScriptsAction, storageArg: StorageWriter, logger: Logger, active: boolean): NotebookScripts {
     // Suppress storage writes when the connection is not yet active
     const storage = active ? storageArg : null;
     switch (action.type) {
-        case SELECT_SCRIPT_FOLDER: {
-            const folderName = action.value;
-            if (!state.scriptFolders[folderName]) return state;
-            const page = state.scriptFolders[folderName];
-            const files = getSortedScriptFileNames(page);
-            const fileName = files.length > 0 ? files[0] : '';
-            return {
-                ...clearSemanticUserFocus(state),
-                scriptFocus: { folderName, fileName, interactionCounter: state.scriptFocus.interactionCounter + 1 },
-            };
-        }
-        case CREATE_SCRIPT_FOLDER: {
-            const folderName = uniqueScriptFolderName('untitled', state.scriptFolders);
-            const fileName = generateScriptFileName({});
-
-            // Create a new script for the new page
-            const scriptSession = state.instance.createScriptSession(state.connectionCatalog);
-            const scriptKey = scriptSession.getCatalogEntryId();
-            const scriptData: ScriptData = {
-                scriptKey,
-                scriptSession,
-                analysisOutdated: true,
-                statistics: Immutable.List(),
-                annotations: createEmptyAnnotations(),
-                completion: null,
-                pendingDiff: null,
-                latestQueryId: null,
-                latestAgentRunId: null,
-                fileName,
-                folderName,
-            };
-
-            const entry = createScriptRef(scriptKey, fileName);
-            const newPage: ScriptFolder = {
-                folderName,
-                scripts: { [fileName]: entry },
-            };
-
-            // Stage the new (still prefix-free) page, then densely re-prefix every page so the new one
-            // lands fully to the right with a numeric prefix. Re-prefixing also normalises any
-            // still-unprefixed sibling (e.g. a legacy "vis_data" -> "3_vis_data"), keeping the on-disk
-            // tab order uniform. The new page is appended last in the desired order; passing it as the
-            // unpersisted folder makes reprefixPages emit only its create (never a delete-of-nothing).
-            const staged: NotebookScripts = {
-                ...clearSemanticUserFocus(state),
-                scripts: {
-                    ...state.scripts,
-                    [scriptKey]: scriptData,
-                },
-                scriptFolders: { ...state.scriptFolders, [folderName]: newPage },
-                scriptFocus: { folderName, fileName, interactionCounter: state.scriptFocus.interactionCounter + 1 },
-            };
-            const order = [...getSortedScriptFolderNames(state.scriptFolders), folderName];
-            const reprefixed = reprefixPages(order, staged, storage, folderName);
-            // A freshly created page is always prefix-free while its target carries a prefix, so it
-            // always moves and reprefixPages returns non-null (emitting the create under the final
-            // name). The `?? staged` is a defensive fallback that should not be reached in practice.
-            return reprefixed ?? staged;
-        }
-        case DELETE_SCRIPT_FOLDER: {
-            // Prevent deleting the last remaining page
-            const folders = getSortedScriptFolderNames(state.scriptFolders);
-            if (folders.length <= 1) return state;
-
-            const folderToDelete = action.value;
-            if (!state.scriptFolders[folderToDelete]) {
-                logger.warn("DELETE_SCRIPT_FOLDER references invalid folder", { folderName: folderToDelete }, LOG_CTX);
-                return state;
+        case RENAME_NOTEBOOK: {
+            const trimmed = action.value?.trim() ?? '';
+            const name = trimmed.length > 0 ? trimmed : null;
+            if (name === state.name) return state;
+            if (active) {
+                void storageArg.write(
+                    groupNotebookManifestWrites(state.notebookId),
+                    { type: WRITE_NOTEBOOK_NAME, value: [state.notebookId, name] },
+                    DEBOUNCE_DURATION_NOTEBOOK_WRITE,
+                );
             }
-
-            const newPages: ScriptFolderMap = { ...state.scriptFolders };
-            delete newPages[folderToDelete];
-
-            // Pick a new focused page: previous in sorted order, else first remaining
-            let newFolder = state.scriptFocus.folderName;
-            if (folderToDelete === newFolder) {
-                const idx = folders.indexOf(folderToDelete);
-                const remaining = folders.filter(f => f !== folderToDelete);
-                newFolder = remaining[Math.max(0, idx - 1)] ?? remaining[0] ?? '';
-            }
-            const newPage = newPages[newFolder];
-            const newFiles = newPage ? getSortedScriptFileNames(newPage) : [];
-            const newFile = newFiles[0] ?? '';
-
-            const next: NotebookScripts = {
-                ...destroyDeadScripts({
-                    ...clearSemanticUserFocus(state),
-                    scriptFolders: newPages,
-                    scriptFocus: {
-                        folderName: newFolder,
-                        fileName: newFile,
-                        interactionCounter: state.scriptFocus.interactionCounter + 1,
-                    }
-                })
-            };
-
-            storage?.write(
-                groupScriptFolderWrites(next.notebookId, folderToDelete),
-                { type: STORAGE_DELETE_SCRIPT_FOLDER, value: [next.notebookId, folderToDelete] },
-                DEBOUNCE_DURATION_SCRIPT_WRITE
-            );
-            return next;
-        }
-        case SELECT_NEXT_SCRIPT_FOLDER: {
-            const folders = getSortedScriptFolderNames(state.scriptFolders);
-            const cur = folders.indexOf(state.scriptFocus.folderName);
-            const nextIdx = Math.min(Math.max(cur, 0) + 1, folders.length - 1);
-            const folderName = folders[nextIdx] ?? state.scriptFocus.folderName;
-            const page = state.scriptFolders[folderName];
-            const files = page ? getSortedScriptFileNames(page) : [];
-            const fileName = files[0] ?? '';
-            return {
-                ...clearSemanticUserFocus(state),
-                scriptFocus: { folderName, fileName, interactionCounter: state.scriptFocus.interactionCounter + 1 },
-            };
-        }
-        case SELECT_PREV_SCRIPT_FOLDER: {
-            const folders = getSortedScriptFolderNames(state.scriptFolders);
-            const cur = folders.indexOf(state.scriptFocus.folderName);
-            const prevIdx = Math.max((cur < 0 ? 0 : cur) - 1, 0);
-            const folderName = folders[prevIdx] ?? state.scriptFocus.folderName;
-            const page = state.scriptFolders[folderName];
-            const files = page ? getSortedScriptFileNames(page) : [];
-            const fileName = files[0] ?? '';
-            return {
-                ...clearSemanticUserFocus(state),
-                scriptFocus: { folderName, fileName, interactionCounter: state.scriptFocus.interactionCounter + 1 },
-            };
+            return { ...state, name };
         }
         case SELECT_NEXT_SCRIPT: {
-            const page = getSelectedScriptFolder(state);
-            const files = page ? getSortedScriptFileNames(page) : [];
+            const files = getSortedScriptFileNames(state.scriptRefs);
             const cur = files.indexOf(state.scriptFocus.fileName);
             const nextIdx = Math.min(Math.max(cur, 0) + 1, files.length - 1);
             const fileName = files[nextIdx] ?? state.scriptFocus.fileName;
@@ -603,8 +295,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             };
         }
         case SELECT_PREV_SCRIPT: {
-            const page = getSelectedScriptFolder(state);
-            const files = page ? getSortedScriptFileNames(page) : [];
+            const files = getSortedScriptFileNames(state.scriptRefs);
             const cur = files.indexOf(state.scriptFocus.fileName);
             const prevIdx = Math.max((cur < 0 ? 0 : cur) - 1, 0);
             const fileName = files[prevIdx] ?? state.scriptFocus.fileName;
@@ -615,27 +306,12 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
         }
         case SELECT_SCRIPT: {
             const fileName = action.value;
-            const page = getSelectedScriptFolder(state);
-            if (!page || !page.scripts[fileName]) return state;
+            if (!state.scriptRefs[fileName]) return state;
             return {
                 ...clearSemanticUserFocus(state),
                 scriptFocus: { ...state.scriptFocus, fileName },
             };
         }
-        case SELECT_SCRIPT_PATH: {
-            const { folderName, fileName } = action.value;
-            const page = state.scriptFolders[folderName];
-            if (!page || !page.scripts[fileName]) return state;
-            return {
-                ...clearSemanticUserFocus(state),
-                scriptFocus: {
-                    folderName,
-                    fileName,
-                    interactionCounter: state.scriptFocus.interactionCounter + 1,
-                },
-            };
-        }
-
         case CATALOG_DID_UPDATE: {
             const scripts = { ...state.scripts };
             for (const scriptKey in scripts) {
@@ -665,7 +341,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 logger.warn("Dropping editor update for unknown script", {
                     notebookId: state.notebookId,
                     scriptKey: update.scriptKey.toString(),
-                    uncommittedScriptId: state.uncommittedScriptId.toString(),
                     documentRevision: update.editorUpdate?.documentRevision.toString(),
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
                 }, LOG_CTX);
@@ -677,7 +352,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 logger.warn("Dropping editor update from stale editor session", {
                     notebookId: state.notebookId,
                     scriptKey: update.scriptKey.toString(),
-                    uncommittedScriptId: state.uncommittedScriptId.toString(),
                     documentRevision: update.editorUpdate?.documentRevision.toString(),
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
                 }, LOG_CTX);
@@ -692,7 +366,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             logger.debug("Applying editor processor update", {
                 notebookId: state.notebookId,
                 scriptKey: update.scriptKey.toString(),
-                uncommittedScriptId: state.uncommittedScriptId.toString(),
                 documentChanged: documentChanged.toString(),
                 analysisRefreshed: analysisRefreshed.toString(),
                 projectionChanged: projectionChanged.toString(),
@@ -788,21 +461,13 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             if (documentChanged) {
                 const scriptKey = update.scriptKey;
                 const scriptData = nextState.scripts[scriptKey];
-                if (scriptData) {
+                if (scriptData?.fileName) {
                     const sql = scriptData.scriptSession.getText();
-                    if (scriptData.folderName === '' || scriptData.fileName === '') {
-                        storage?.write(
-                            groupDraftWrites(nextState.notebookId),
-                            { type: WRITE_SCRIPT_DRAFT, value: [nextState.notebookId, sql] },
-                            DEBOUNCE_DURATION_SCRIPT_WRITE
-                        );
-                    } else {
-                        storage?.write(
-                            groupScriptWrites(nextState.notebookId, scriptData.folderName, scriptData.fileName),
-                            { type: WRITE_SCRIPT, value: [nextState.notebookId, scriptData.folderName, scriptData.fileName, sql] },
-                            DEBOUNCE_DURATION_SCRIPT_WRITE
-                        );
-                    }
+                    storage?.write(
+                        groupScriptWrites(nextState.notebookId, scriptData.fileName),
+                        { type: WRITE_SCRIPT, value: [nextState.notebookId, scriptData.fileName, sql] },
+                        DEBOUNCE_DURATION_SCRIPT_WRITE
+                    );
                 }
             }
             return nextState;
@@ -847,90 +512,46 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
         }
 
         case DELETE_SCRIPT: {
-            const page = getSelectedScriptFolder(state);
-            if (!page || !page.scripts[action.value]) return state;
             const deletedFileName = action.value;
-            const deletedEntry = page.scripts[deletedFileName];
-            const folderName = page.folderName;
-
-            const remainingFiles = getSortedScriptFileNames(page).filter(n => n !== deletedFileName);
-
-            // If this would empty the page
-            if (remainingFiles.length === 0) {
-                // If there's only one page total, prevent deletion (can't have empty notebook)
-                const folders = getSortedScriptFolderNames(state.scriptFolders);
-                if (folders.length <= 1) {
-                    logger.info("Refusing to delete script", {}, LOG_CTX);
-                    return state;
-                }
-                // Multiple pages exist - delete the entire page instead
-                const newPages: ScriptFolderMap = { ...state.scriptFolders };
-                delete newPages[folderName];
-
-                const idx = folders.indexOf(folderName);
-                const remainingFolders = folders.filter(f => f !== folderName);
-                const newFolder = remainingFolders[Math.max(0, idx - 1)] ?? remainingFolders[0] ?? '';
-                const newPage = newPages[newFolder];
-                const newFiles = newPage ? getSortedScriptFileNames(newPage) : [];
-
-                const next: NotebookScripts = {
-                    ...destroyDeadScripts({
-                        ...clearSemanticUserFocus(state),
-                        scriptFolders: newPages,
-                        scriptFocus: {
-                            folderName: newFolder,
-                            fileName: newFiles[0] ?? '',
-                            interactionCounter: state.scriptFocus.interactionCounter + 1,
-                        }
-                    })
-                };
-
-                storage?.write(
-                    groupScriptFolderWrites(next.notebookId, folderName),
-                    { type: STORAGE_DELETE_SCRIPT_FOLDER, value: [next.notebookId, folderName] },
-                    DEBOUNCE_DURATION_SCRIPT_WRITE
-                );
-                return next;
-            }
-
-            // Normal case: delete the entry from the page
-            const newPageScripts = { ...page.scripts };
-            delete newPageScripts[deletedFileName];
-            const newPages: ScriptFolderMap = {
-                ...state.scriptFolders,
-                [folderName]: { ...page, scripts: newPageScripts },
-            };
+            const deletedEntry = state.scriptRefs[deletedFileName];
+            if (!deletedEntry || Object.keys(state.scriptRefs).length <= 1) return state;
+            const remainingFiles = getSortedScriptFileNames(state.scriptRefs).filter(name => name !== deletedFileName);
+            const scriptRefs = { ...state.scriptRefs };
+            delete scriptRefs[deletedFileName];
 
             // Adjust focus if needed
             let newFile = state.scriptFocus.fileName;
             if (newFile === deletedFileName) {
-                const oldIdx = getSortedScriptFileNames(page).indexOf(deletedFileName);
+                const oldIdx = getSortedScriptFileNames(state.scriptRefs).indexOf(deletedFileName);
                 newFile = remainingFiles[Math.max(0, oldIdx - 1)] ?? remainingFiles[0] ?? '';
             }
 
             const next = destroyDeadScripts({
                 ...clearSemanticUserFocus(state),
-                scriptFolders: newPages,
+                scriptRefs,
                 scriptFocus: { ...state.scriptFocus, fileName: newFile },
             });
             storage?.write(
-                groupScriptDeletes(next.notebookId, folderName, deletedEntry.fileName),
-                { type: STORAGE_DELETE_SCRIPT, value: [next.notebookId, folderName, deletedEntry.fileName] },
+                groupScriptDeletes(next.notebookId, deletedEntry.fileName),
+                { type: STORAGE_DELETE_SCRIPT, value: [next.notebookId, deletedEntry.fileName] },
                 DEBOUNCE_DURATION_SCRIPT_WRITE
             );
             return next;
         }
 
         case CREATE_SCRIPT: {
-            const page = getSelectedScriptFolder(state);
-            if (!page) return state;
-
-            const folderName = page.folderName;
-            // Plan the insertion: name the new script (sorts last) and re-pad existing scripts if the
-            // prefix width grew (e.g. the 10th script). Re-pads are applied to the base maps first.
-            const plan = planScriptInsertion(page.scripts);
+            // Null preserves the existing append behavior; an index inserts at that feed boundary.
+            const plan = planScriptInsertion(state.scriptRefs, undefined, action.value ?? undefined);
             const fileName = plan.newFileName;
-            const repadded = applyScriptRepad(plan.repad, folderName, page.scripts, state.scripts, state.scriptFocus.fileName, state.notebookId, storage);
+            const repadded = applyScriptRepad(
+                plan.repad,
+                state.scriptRefs,
+                state.scripts,
+                state.scriptFocus.fileName,
+                state.notebookId,
+                storage,
+                new Set([fileName]),
+            );
 
             // Create a new script
             const scriptSession = state.instance.createScriptSession(state.connectionCatalog);
@@ -947,14 +568,9 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 latestQueryId: null,
                 latestAgentRunId: null,
                 fileName,
-                folderName,
             };
 
             const entry: ScriptRef = createScriptRef(scriptKey, fileName);
-            const newPage: ScriptFolder = {
-                ...page,
-                scripts: { ...repadded.pageScripts, [fileName]: entry },
-            };
 
             const next: NotebookScripts = {
                 ...clearSemanticUserFocus(state),
@@ -962,30 +578,22 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     ...repadded.scripts,
                     [scriptKey]: scriptData,
                 },
-                scriptFolders: { ...state.scriptFolders, [folderName]: newPage },
+                scriptRefs: { ...repadded.scriptRefs, [fileName]: entry },
                 scriptFocus: { ...state.scriptFocus, fileName },
             };
             storage?.write(
-                groupScriptWrites(next.notebookId, folderName, fileName),
-                { type: WRITE_SCRIPT, value: [next.notebookId, folderName, fileName, ''] },
+                groupScriptWrites(next.notebookId, fileName),
+                { type: WRITE_SCRIPT, value: [next.notebookId, fileName, ''] },
                 DEBOUNCE_DURATION_SCRIPT_WRITE
             );
             return next;
         }
 
         case RENAME_SCRIPT: {
-            const page = getSelectedScriptFolder(state);
-            if (!page) {
-                logger.warn("RENAME_SCRIPT references invalid selected folder", {
-                    folderName: state.scriptFocus.folderName,
-                }, LOG_CTX);
-                return state;
-            }
             const { fileName: oldFileName, newFileName: requestedName } = action.value;
-            const entry = page.scripts[oldFileName];
+            const entry = state.scriptRefs[oldFileName];
             if (!entry) {
                 logger.warn("RENAME_SCRIPT references invalid script", {
-                    folderName: page.folderName,
                     fileName: oldFileName,
                 }, LOG_CTX);
                 return state;
@@ -999,18 +607,13 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             if (!requestedBase) {
                 return state;
             }
-            const cleanBase = uniqueScriptBase(requestedBase, page.scripts, oldFileName);
+            const cleanBase = uniqueScriptBase(requestedBase, state.scriptRefs, oldFileName);
             const newFileName = `${scriptOrderPrefixString(oldFileName)}${cleanBase}.sql`;
             const renamed = oldFileName !== newFileName;
             const renamedEntry: ScriptRef = { ...entry, fileName: newFileName };
-            const newPageScripts = { ...page.scripts };
-            if (renamed) delete newPageScripts[oldFileName];
-            newPageScripts[newFileName] = renamedEntry;
-
-            const newPages: ScriptFolderMap = {
-                ...state.scriptFolders,
-                [page.folderName]: { ...page, scripts: newPageScripts },
-            };
+            const scriptRefs = { ...state.scriptRefs };
+            if (renamed) delete scriptRefs[oldFileName];
+            scriptRefs[newFileName] = renamedEntry;
 
             // Update the script data fileName. On rename we must re-analyze *immediately* rather than
             // just marking the analysis outdated: the clean file name is the script's SQL reference
@@ -1049,7 +652,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
 
             const next = {
                 ...(renamed ? clearSemanticUserFocus(state) : state),
-                scriptFolders: newPages,
+                scriptRefs,
                 scripts: newScripts,
                 scriptFocus: { ...state.scriptFocus, fileName: focusFile },
             };
@@ -1058,163 +661,36 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 // rewrite-new. The new clean base is disambiguated unique within the page, so the
                 // rename target never collides with another script's existing name.
                 storage?.write(
-                    groupScriptRenames(next.notebookId, page.folderName, oldFileName),
-                    { type: STORAGE_RENAME_SCRIPT, value: [next.notebookId, page.folderName, oldFileName, newFileName] },
+                    groupScriptRenames(next.notebookId, oldFileName),
+                    { type: STORAGE_RENAME_SCRIPT, value: [next.notebookId, oldFileName, newFileName] },
                     DEBOUNCE_DURATION_SCRIPT_WRITE
                 );
             } else {
                 // No rename: just persist the current contents under the unchanged name.
                 const sql = updatedScriptData ? updatedScriptData.scriptSession.getText() : '';
                 storage?.write(
-                    groupScriptWrites(next.notebookId, page.folderName, newFileName),
-                    { type: WRITE_SCRIPT, value: [next.notebookId, page.folderName, newFileName, sql] },
+                    groupScriptWrites(next.notebookId, newFileName),
+                    { type: WRITE_SCRIPT, value: [next.notebookId, newFileName, sql] },
                     DEBOUNCE_DURATION_SCRIPT_WRITE
                 );
             }
             return next;
         }
 
-        case RENAME_SCRIPT_FOLDER: {
-            const { folderName: oldFolderName, newFolderName: requestedName } = action.value;
-            const page = state.scriptFolders[oldFolderName];
-            if (!page) {
-                logger.warn("RENAME_SCRIPT_FOLDER references invalid folder", {
-                    folderName: oldFolderName,
-                }, LOG_CTX);
-                return state;
-            }
-            // Only the clean (display) part of the name changes here; the numeric ordering prefix is
-            // (re-)derived below so the page keeps its tab slot. A rename that leaves the clean name
-            // unchanged is a no-op (don't churn the disk or prefix a still-lean notebook).
-            const cleanName = uniqueScriptFolderName(requestedName, state.scriptFolders, oldFolderName);
-            if (normalizeScriptFolderName(oldFolderName) === cleanName) {
-                return state;
-            }
-
-            // Land the renamed page directly at its final prefixed name, holding its current slot:
-            // its position is its index in the current view order, padded to the notebook's width.
-            // This always gives the page a numeric prefix (even one that had none, e.g. "vis_data").
-            const viewOrder = getSortedScriptFolderNames(state.scriptFolders);
-            const slot = viewOrder.indexOf(oldFolderName);
-            const newFolderName = `${formatScriptFolderOrderPrefix(slot + 1, viewOrder.length)}${cleanName}`;
-
-            // Re-analyze the renamed page's scripts immediately so their new catalog paths are
-            // registered before any dependent script is executed. Deferring this left the catalog
-            // under the old folder name and made VISUALIZE references fall through unresolved.
-            const newScripts = { ...state.scripts };
-            for (const fileName of getSortedScriptFileNames(page)) {
-                const entry = page.scripts[fileName];
-                const scriptData = newScripts[entry.scriptId];
-                if (scriptData) {
-                    const renamedScriptData: ScriptData = {
-                        ...scriptData,
-                        folderName: newFolderName,
-                    };
-                    newScripts[entry.scriptId] = analyzeScriptData(
-                        renamedScriptData,
-                        state.connectionCatalog,
-                        logger,
-                    );
-                }
-            }
-
-            // The catalog entries above changed names. Their dependents still carry analysis against
-            // the old path and must resolve again, while the renamed source scripts remain fresh.
-            const renamedScriptIds = new Set(Object.values(page.scripts).map(entry => entry.scriptId));
-            for (const key in newScripts) {
-                if (renamedScriptIds.has(+key)) continue;
-                const scriptData = newScripts[key];
-                newScripts[key] = {
-                    ...scriptData,
-                    analysisOutdated: true,
-                };
-            }
-
-            const newPages: ScriptFolderMap = { ...state.scriptFolders };
-            delete newPages[oldFolderName];
-            newPages[newFolderName] = { ...page, folderName: newFolderName };
-
-            const newFocusFolder = state.scriptFocus.folderName === oldFolderName
-                ? newFolderName
-                : state.scriptFocus.folderName;
-
-            const renamedState: NotebookScripts = {
-                ...state,
-                scriptFolders: newPages,
-                scripts: newScripts,
-                scriptFocus: { ...state.scriptFocus, folderName: newFocusFolder },
-            };
-
-            // Persist the clean rename as an in-place folder rename: the page's script files move with
-            // it untouched (their file names and SQL are unchanged — only the folder path changes, and
-            // the catalog path is recomputed in-memory from the new clean name). No per-script rewrite.
-            storage?.write(
-                groupScriptFolderRenames(renamedState.notebookId, oldFolderName),
-                { type: STORAGE_RENAME_SCRIPT_FOLDER, value: [renamedState.notebookId, oldFolderName, newFolderName] },
-                DEBOUNCE_DURATION_SCRIPT_WRITE
-            );
-
-            // Densely re-prefix the remaining pages so any still-unprefixed sibling is normalised and
-            // the notebook converges to a uniform "<n>_<clean>" listing. The renamed page already sits
-            // at its target name (its prefix matches its slot), so reprefixPages leaves it untouched.
-            const reprefixed = reprefixPages(viewOrder.map(f => f === oldFolderName ? newFolderName : f), renamedState, storage);
-            return reprefixed ?? renamedState;
-        }
-
-        case REORDER_SCRIPT_FOLDERS: {
-            const requestedOrder = action.value;
-
-            // Build the target order: the requested folders (that still exist, de-duplicated),
-            // then any pages the caller omitted, appended in their current view order so none are
-            // dropped. The result is a total order over exactly the current pages.
-            const seen = new Set<string>();
-            const order: string[] = [];
-            for (const folder of requestedOrder) {
-                if (state.scriptFolders[folder] && !seen.has(folder)) {
-                    seen.add(folder);
-                    order.push(folder);
-                }
-            }
-            const currentOrder = getSortedScriptFolderNames(state.scriptFolders);
-            for (const folder of currentOrder) {
-                if (!seen.has(folder)) {
-                    seen.add(folder);
-                    order.push(folder);
-                }
-            }
-
-            // If the resolved order matches the current view order, change nothing — a same-order
-            // reorder must not churn the disk or prefix a still-lean notebook. (The tab UI already
-            // suppresses drop-in-place; this keeps the reducer consistent for any caller.)
-            if (order.length === currentOrder.length && order.every((f, i) => f === currentOrder[i])) {
-                return state;
-            }
-
-            // Assign a dense ordering prefix to each page in the new order, persisting each move.
-            return reprefixPages(order, state, storage) ?? state;
-        }
-
         case REORDER_SCRIPTS: {
-            // Reorder scripts within an explicitly named page. Mirrors REORDER_SCRIPT_FOLDERS but at file level:
-            // dense "<n>_clean.sql" prefixes assigned in the new order, with the clean (SQL-visible)
-            // file name held stable so cross-script references survive the reorder.
-            const page = state.scriptFolders[action.value.folderName];
-            if (!page) {
-                return state;
-            }
-            const requestedOrder = action.value.fileNames;
+            const requestedOrder = action.value;
 
             // Build the target order: the requested files (that still exist, de-duplicated), then any
             // files the caller omitted, appended in their current feed order so none are dropped.
             const seen = new Set<string>();
             const order: string[] = [];
             for (const file of requestedOrder) {
-                if (page.scripts[file] && !seen.has(file)) {
+                if (state.scriptRefs[file] && !seen.has(file)) {
                     seen.add(file);
                     order.push(file);
                 }
             }
-            const currentOrder = getSortedScriptFileNames(page);
+            const currentOrder = getSortedScriptFileNames(state.scriptRefs);
             for (const file of currentOrder) {
                 if (!seen.has(file)) {
                     seen.add(file);
@@ -1231,43 +707,33 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             // A script already at its target name is left untouched (no rename, no disk churn).
             const total = order.length;
             const renames: { oldFile: string; newFile: string }[] = [];
-            const newPageScripts: { [fileName: string]: ScriptRef } = {};
+            const newScriptRefs: { [fileName: string]: ScriptRef } = {};
             const newScripts: ScriptDataMap = { ...state.scripts };
             for (let i = 0; i < order.length; ++i) {
                 const oldFile = order[i];
-                const entry = page.scripts[oldFile];
+                const entry = state.scriptRefs[oldFile];
                 const newFile = `${formatScriptOrderPrefix(i + 1, total)}${normalizeScriptName(oldFile)}`;
                 if (newFile === oldFile) {
-                    newPageScripts[oldFile] = entry;
+                    newScriptRefs[oldFile] = entry;
                     continue;
                 }
                 renames.push({ oldFile, newFile });
                 // The clean name is unchanged, so the catalog path is stable; no re-analyze needed.
                 const sd = newScripts[entry.scriptId];
                 if (sd) newScripts[entry.scriptId] = { ...sd, fileName: newFile };
-                newPageScripts[newFile] = { ...entry, fileName: newFile };
+                newScriptRefs[newFile] = { ...entry, fileName: newFile };
             }
 
             if (renames.length === 0) {
                 return state;
             }
 
-            const folderName = page.folderName;
-            const newPages: ScriptFolderMap = {
-                ...state.scriptFolders,
-                [folderName]: { ...page, scripts: newPageScripts },
-            };
-
-            // Follow the focused file across its rename.
-            const focusIsInPage = state.scriptFocus.folderName === page.folderName;
-            const renamedFocus = focusIsInPage
-                ? renames.find(r => r.oldFile === state.scriptFocus.fileName)?.newFile
-                : undefined;
+            const renamedFocus = renames.find(r => r.oldFile === state.scriptFocus.fileName)?.newFile;
             const newFocusFile = renamedFocus ?? state.scriptFocus.fileName;
 
             const next: NotebookScripts = {
                 ...state,
-                scriptFolders: newPages,
+                scriptRefs: newScriptRefs,
                 scripts: newScripts,
                 scriptFocus: { ...state.scriptFocus, fileName: newFocusFile },
             };
@@ -1285,76 +751,21 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             for (const { oldFile } of renames) {
                 if (targetFiles.has(oldFile)) continue;
                 storage?.write(
-                    groupScriptDeletes(next.notebookId, folderName, oldFile),
-                    { type: STORAGE_DELETE_SCRIPT, value: [next.notebookId, folderName, oldFile] },
+                    groupScriptDeletes(next.notebookId, oldFile),
+                    { type: STORAGE_DELETE_SCRIPT, value: [next.notebookId, oldFile] },
                     DEBOUNCE_DURATION_SCRIPT_WRITE
                 );
             }
             for (const { newFile } of renames) {
-                const entry = newPageScripts[newFile];
+                const entry = newScriptRefs[newFile];
                 const sd = newScripts[entry.scriptId];
                 const sql = sd ? sd.scriptSession.getText() : '';
                 storage?.write(
-                    groupScriptWrites(next.notebookId, folderName, newFile),
-                    { type: WRITE_SCRIPT, value: [next.notebookId, folderName, newFile, sql] },
+                    groupScriptWrites(next.notebookId, newFile),
+                    { type: WRITE_SCRIPT, value: [next.notebookId, newFile, sql] },
                     DEBOUNCE_DURATION_SCRIPT_WRITE
                 );
             }
-            return next;
-        }
-
-        case PROMOTE_UNCOMMITTED_SCRIPT: {
-            const page = getSelectedScriptFolder(state);
-            if (!page || state.uncommittedScriptId == 0) {
-                return state;
-            }
-            const folderName = page.folderName;
-            // Plan the insertion (new script sorts last; re-pad existing scripts on a width change).
-            const plan = planScriptInsertion(page.scripts);
-            const fileName = plan.newFileName;
-            const repadded = applyScriptRepad(plan.repad, folderName, page.scripts, state.scripts, state.scriptFocus.fileName, state.notebookId, storage);
-
-            // Append the uncommitted script as a new committed entry
-            const promotedEntry = createScriptRef(state.uncommittedScriptId, fileName);
-
-            // Update the promoted script metadata
-            const promotedScriptData = repadded.scripts[state.uncommittedScriptId];
-            const updatedPromotedScript = promotedScriptData ? {
-                ...promotedScriptData,
-                fileName,
-                folderName,
-            } : promotedScriptData;
-
-            // Create a new empty uncommitted script
-            const [newUncommittedKey, newUncommittedData] = createEmptyScriptData(state.instance, state.connectionCatalog);
-
-            const newPage: ScriptFolder = {
-                ...page,
-                scripts: { ...repadded.pageScripts, [fileName]: promotedEntry },
-            };
-
-            const next: NotebookScripts = {
-                ...clearSemanticUserFocus(state),
-                scripts: {
-                    ...repadded.scripts,
-                    [state.uncommittedScriptId]: updatedPromotedScript,
-                    [newUncommittedKey]: newUncommittedData,
-                },
-                scriptFolders: { ...state.scriptFolders, [folderName]: newPage },
-                uncommittedScriptId: newUncommittedKey,
-                scriptFocus: { ...state.scriptFocus, fileName },
-            };
-            const sql = updatedPromotedScript ? updatedPromotedScript.scriptSession.getText() : '';
-            storage?.write(
-                groupScriptWrites(next.notebookId, folderName, fileName),
-                { type: WRITE_SCRIPT, value: [next.notebookId, folderName, fileName, sql] },
-                DEBOUNCE_DURATION_SCRIPT_WRITE
-            );
-            storage?.write(
-                groupDraftWrites(next.notebookId),
-                { type: WRITE_SCRIPT_DRAFT, value: [next.notebookId, ''] },
-                DEBOUNCE_DURATION_SCRIPT_WRITE
-            );
             return next;
         }
 
@@ -1404,16 +815,10 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
 
             // Persist only the updated script (same tail as UPDATE_FROM_PROCESSOR)
             const sql = nextScriptData.scriptSession.getText();
-            if (nextScriptData.folderName === '' || nextScriptData.fileName === '') {
+            if (nextScriptData.fileName) {
                 storage?.write(
-                    groupDraftWrites(nextState.notebookId),
-                    { type: WRITE_SCRIPT_DRAFT, value: [nextState.notebookId, sql] },
-                    DEBOUNCE_DURATION_SCRIPT_WRITE
-                );
-            } else {
-                storage?.write(
-                    groupScriptWrites(nextState.notebookId, nextScriptData.folderName, nextScriptData.fileName),
-                    { type: WRITE_SCRIPT, value: [nextState.notebookId, nextScriptData.folderName, nextScriptData.fileName, sql] },
+                    groupScriptWrites(nextState.notebookId, nextScriptData.fileName),
+                    { type: WRITE_SCRIPT, value: [nextState.notebookId, nextScriptData.fileName, sql] },
                     DEBOUNCE_DURATION_SCRIPT_WRITE
                 );
             }
@@ -1476,16 +881,10 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
 
             // Persist only the updated script (same tail as SET_SCRIPT_TEXT)
             const sql = nextScriptData.scriptSession.getText();
-            if (nextScriptData.folderName === '' || nextScriptData.fileName === '') {
+            if (nextScriptData.fileName) {
                 storage?.write(
-                    groupDraftWrites(nextState.notebookId),
-                    { type: WRITE_SCRIPT_DRAFT, value: [nextState.notebookId, sql] },
-                    DEBOUNCE_DURATION_SCRIPT_WRITE
-                );
-            } else {
-                storage?.write(
-                    groupScriptWrites(nextState.notebookId, nextScriptData.folderName, nextScriptData.fileName),
-                    { type: WRITE_SCRIPT, value: [nextState.notebookId, nextScriptData.folderName, nextScriptData.fileName, sql] },
+                    groupScriptWrites(nextState.notebookId, nextScriptData.fileName),
+                    { type: WRITE_SCRIPT, value: [nextState.notebookId, nextScriptData.fileName, sql] },
                     DEBOUNCE_DURATION_SCRIPT_WRITE
                 );
             }
@@ -1493,15 +892,11 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
         }
 
         case CREATE_SCRIPT_WITH_TEXT: {
-            const page = getSelectedScriptFolder(state);
-            if (!page) return state;
-
             const { text } = action.value;
-            const folderName = page.folderName;
             // Plan the insertion (new script sorts last; re-pad existing scripts on a width change).
-            const plan = planScriptInsertion(page.scripts);
+            const plan = planScriptInsertion(state.scriptRefs);
             const fileName = plan.newFileName;
-            const repadded = applyScriptRepad(plan.repad, folderName, page.scripts, state.scripts, state.scriptFocus.fileName, state.notebookId, storage);
+            const repadded = applyScriptRepad(plan.repad, state.scriptRefs, state.scripts, state.scriptFocus.fileName, state.notebookId, storage);
 
             // Create a new script seeded with the provided text
             const scriptSession = state.instance.createScriptSession(state.connectionCatalog);
@@ -1519,15 +914,9 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 latestQueryId: null,
                 latestAgentRunId: null,
                 fileName,
-                folderName,
             };
 
             const entry: ScriptRef = createScriptRef(scriptKey, fileName);
-            const newPage: ScriptFolder = {
-                ...page,
-                scripts: { ...repadded.pageScripts, [fileName]: entry },
-            };
-            const newPages: ScriptFolderMap = { ...state.scriptFolders, [folderName]: newPage };
             const newScripts: ScriptDataMap = { ...repadded.scripts, [scriptKey]: scriptData };
 
             // Analyze before persisting so derived annotations are ready.
@@ -1537,13 +926,13 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const next: NotebookScripts = {
                 ...clearSemanticUserFocus(state),
                 scripts: newScripts,
-                scriptFolders: newPages,
+                scriptRefs: { ...repadded.scriptRefs, [fileName]: entry },
                 scriptFocus: { ...state.scriptFocus, fileName },
             };
             const sql = scriptData.scriptSession.getText();
             storage?.write(
-                groupScriptWrites(next.notebookId, folderName, fileName),
-                { type: WRITE_SCRIPT, value: [next.notebookId, folderName, fileName, sql] },
+                groupScriptWrites(next.notebookId, fileName),
+                { type: WRITE_SCRIPT, value: [next.notebookId, fileName, sql] },
                 DEBOUNCE_DURATION_SCRIPT_WRITE
             );
             return next;
@@ -1586,22 +975,19 @@ export function replaceNotebookScriptsFromStorage(
 ): NotebookScripts {
     const existingByPath = new Map<string, ScriptData>();
     for (const script of Object.values(state.scripts)) {
-        if (script.folderName && script.fileName) {
-            existingByPath.set(`${script.folderName}/${script.fileName}`, script);
+        if (script.fileName) {
+            existingByPath.set(script.fileName, script);
         }
     }
 
     const scripts: ScriptDataMap = {};
-    const scriptFolders: ScriptFolderMap = {};
+    const scriptRefs: { [fileName: string]: ScriptRef } = {};
     let contentChanged = false;
 
-    for (const page of snapshot.folders) {
-        const pageScripts: { [fileName: string]: ScriptRef } = {};
-        for (const stored of page.scripts) {
-            const path = `${page.name}/${stored.name}`;
-            let scriptData = existingByPath.get(path);
+    for (const stored of snapshot.scripts) {
+            let scriptData = existingByPath.get(stored.name);
             if (scriptData) {
-                existingByPath.delete(path);
+                existingByPath.delete(stored.name);
                 if (scriptData.scriptSession.getText() !== stored.sql) {
                     scriptData.pendingDiff?.diffBuffer.destroy();
                     scriptData.completion?.buffer.destroy();
@@ -1615,15 +1001,13 @@ export function replaceNotebookScriptsFromStorage(
                     contentChanged = true;
                 }
             } else {
-                const [scriptKey, created] = createEmptyScriptData(state.instance, state.connectionCatalog, stored.name, page.name);
+                const [scriptKey, created] = createEmptyScriptData(state.instance, state.connectionCatalog, stored.name);
                 replaceScriptSessionText(created.scriptSession, stored.sql);
                 scriptData = created;
                 contentChanged = true;
             }
             scripts[scriptData.scriptKey] = scriptData;
-            pageScripts[stored.name] = createScriptRef(scriptData.scriptKey, stored.name);
-        }
-        scriptFolders[page.name] = { folderName: page.name, scripts: pageScripts };
+            scriptRefs[stored.name] = createScriptRef(scriptData.scriptKey, stored.name);
     }
 
     // Files no longer present on disk own WASM objects that must be detached before destruction.
@@ -1637,48 +1021,16 @@ export function replaceNotebookScriptsFromStorage(
         contentChanged = true;
     }
 
-    // The composer is not part of a page and retains its identity across reloads.
-    let draft = state.scripts[state.uncommittedScriptId];
-    if (!draft) {
-        const [draftKey, created] = createEmptyScriptData(state.instance, state.connectionCatalog);
-        draft = created;
-        state = { ...state, uncommittedScriptId: draftKey };
-        contentChanged = true;
-    }
-    const draftSql = snapshot.draft ?? '';
-    if (draft.scriptSession.getText() !== draftSql) {
-        draft.pendingDiff?.diffBuffer.destroy();
-        draft.completion?.buffer.destroy();
-        replaceScriptSessionText(draft.scriptSession, draftSql);
-        draft = {
-            ...draft,
-            pendingDiff: null,
-            completion: null,
-            analysisOutdated: true,
-        };
-        contentChanged = true;
-    }
-    scripts[draft.scriptKey] = draft;
-
-    // Match boot restoration: an empty on-disk notebook still has one virtual page in the UI.
-    if (Object.keys(scriptFolders).length === 0) {
-        scriptFolders['Untitled'] = { folderName: 'Untitled', scripts: {} };
-    }
-
-    const folders = getSortedScriptFolderNames(scriptFolders);
-    const previousFolder = state.scriptFocus.folderName;
-    const folderName = scriptFolders[previousFolder] ? previousFolder : (folders[0] ?? '');
-    const files = folderName ? getSortedScriptFileNames(scriptFolders[folderName]) : [];
+    const files = getSortedScriptFileNames(scriptRefs);
     const previousFile = state.scriptFocus.fileName;
-    const fileName = scriptFolders[folderName]?.scripts[previousFile] ? previousFile : (files[0] ?? '');
+    const fileName = scriptRefs[previousFile] ? previousFile : (files[0] ?? '');
 
     let next: NotebookScripts = {
         ...clearSemanticUserFocus(state),
         scripts,
-        scriptFolders,
+        scriptRefs,
         scriptFocus: {
             ...state.scriptFocus,
-            folderName,
             fileName,
         },
     };
@@ -1697,18 +1049,14 @@ export function replaceNotebookScriptsFromStorage(
 }
 
 function destroyDeadScripts(state: NotebookScripts): NotebookScripts {
-    // Determine script liveness: any script referenced in any page is live
+    // Determine script liveness from the committed cell collection.
     let deadScripts = new Map<number, ScriptData>();
     for (const key in state.scripts) {
         deadScripts.set(+key, state.scripts[key]);
     }
-    for (const folder in state.scriptFolders) {
-        const page = state.scriptFolders[folder];
-        for (const fileName in page.scripts) {
-            deadScripts.delete(page.scripts[fileName].scriptId);
-        }
+    for (const ref of Object.values(state.scriptRefs)) {
+        deadScripts.delete(ref.scriptId);
     }
-    deadScripts.delete(state.uncommittedScriptId);
     // Nothing to cleanup?
     if (deadScripts.size == 0) {
         return state;
@@ -1779,7 +1127,6 @@ export function compileNotebookQuery(
 ): CompiledNotebookQuery {
     logger?.debug('Compiling script for query execution', {
         scriptKey: scriptData.scriptKey.toString(),
-        folderName: scriptData.folderName,
         fileName: scriptData.fileName,
         documentRevision: scriptData.editorUpdate?.documentRevision.toString(),
         stateRevision: scriptData.editorUpdate?.stateRevision.toString(),
@@ -1795,7 +1142,6 @@ export function compileNotebookQuery(
             const error = reader.errors(0);
             throw new LoggableException(error?.message() ?? 'Could not compile query', {
                 scriptKey: scriptData.scriptKey.toString(),
-                folderName: scriptData.folderName,
                 fileName: scriptData.fileName,
                 errorCode: error?.code().toString(),
             }, LOG_CTX);
@@ -1804,7 +1150,6 @@ export function compileNotebookQuery(
         if (sql.trim().length == 0) {
             throw new LoggableException('Compile query is empty', {
                 scriptKey: scriptData.scriptKey.toString(),
-                folderName: scriptData.folderName,
                 fileName: scriptData.fileName,
                 script: scriptData.scriptSession.getText(),
             }, LOG_CTX);

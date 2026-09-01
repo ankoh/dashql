@@ -1,7 +1,5 @@
 .entry_script_card {
-    border-right-width: 1px;
-    border-radius: var(--border_radius);
-    border-color: var(--border_color_primary);
+    border: 0;
 }
 
 .entry_card_editor {

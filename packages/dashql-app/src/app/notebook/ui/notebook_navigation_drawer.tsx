@@ -33,9 +33,9 @@ export const NotebookNavigationDrawer: React.FC<Props> = (props) => {
         <Portal>
             <div>
                 <div className={styles.backdrop} aria-hidden="true" />
-                <aside ref={overlayRef} className={styles.drawer} role="dialog" aria-modal="true" aria-label="Notebook navigation">
+                <aside ref={overlayRef} className={styles.drawer} role="dialog" aria-modal="true" aria-label="Notebook workbench">
                     <header className={styles.header}>
-                        <IconButton ref={closeButtonRef} variant={ButtonVariant.Invisible} aria-label="Close notebook navigation" onClick={props.onClose}>
+                        <IconButton ref={closeButtonRef} variant={ButtonVariant.Invisible} aria-label="Close notebook workbench" onClick={props.onClose}>
                             <XIcon />
                         </IconButton>
                     </header>

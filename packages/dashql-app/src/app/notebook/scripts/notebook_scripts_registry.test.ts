@@ -6,7 +6,7 @@ import { ConnectorType } from '../connections/connector_info.js';
 // removeNotebookScriptsFromRegistry only reads notebookScriptsMap and entry.connectorInfo.connectorType, so a
 // tiny stand-in NotebookScripts is enough — no Wasm needed.
 function scripts(notebookId: string, connectorType: ConnectorType): NotebookScripts {
-    return { notebookId, connectionId: `connection-${notebookId}`, connectorInfo: { connectorType } } as unknown as NotebookScripts;
+    return { notebookId, databaseId: `connection-${notebookId}`, connectorInfo: { connectorType } } as unknown as NotebookScripts;
 }
 
 function registry(entries: Array<[string, ConnectorType]>): NotebookScriptsRegistry {

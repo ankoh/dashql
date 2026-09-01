@@ -1,4 +1,5 @@
 import * as dashql from '../../../../core/index.js';
+import { DEFAULT_DATABASE_NAME } from '../../connections/catalog_sql_generator.js';
 
 import { ChangeSpec, Text } from '@codemirror/state';
 import { VariantKind } from '../../../../utils/index.js';
@@ -94,7 +95,7 @@ export function unpackQualifiedObjectName(co: dashql.buffers.completion.Completi
 export function shouldAutoQualifyNonDefaultTable(co: dashql.buffers.completion.CompletionCandidateObject): boolean {
     if (co.objectType() !== dashql.buffers.completion.CompletionCandidateObjectType.TABLE) return false;
     if (co.qualifiedNameLength() !== 3) return false;
-    return co.qualifiedName(0)?.toLowerCase() !== 'default';
+    return co.qualifiedName(0)?.toLowerCase() !== DEFAULT_DATABASE_NAME;
 }
 
 function copyLazily(nextState: DashQLCompletionState, prevState: DashQLCompletionState): DashQLCompletionState {

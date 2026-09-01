@@ -45,7 +45,7 @@
 }
 
 .title {
-    font-size: 1rem;
+    font-size: var(--font_size_subtitle);
 }
 
 /* Column header row */
@@ -53,7 +53,7 @@
     grid-row: 2;
     border-bottom: 1px solid var(--border_color_primary);
     font-family: 'Roboto Mono';
-    font-size: 0.75rem;
+    font-size: var(--font_size_caption);
     font-weight: 500;
     color: var(--log_header_color);
 }
@@ -101,7 +101,7 @@
     position: relative;
 
     font-family: 'Roboto Mono';
-    font-size: 0.75rem;
+    font-size: var(--font_size_caption);
 }
 
 /* Main row container */

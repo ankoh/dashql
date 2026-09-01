@@ -2,26 +2,17 @@ import * as React from 'react';
 import * as styles from './navbar.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
-import { XIcon } from '../../ui/foundations/symbol_icon.js';
-
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { HoverMode, NavBarButton, NavBarButtonWithRef } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
-import { NotebookStorageOverlay } from '../notebook/persistence/ui/notebook_storage_overlay.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { DASHQL_VERSION } from '../../globals.js';
 import { VersionCheckIndicator } from '../../ui/version/version_viewer.js';
 import { VersionInfoOverlay } from '../../ui/version/version_viewer.js';
-import { exportNotebookAsUrl, NotebookLinkTarget } from '../notebook/persistence/notebook_export.js';
-import { getConnectionParamsFromStateDetails } from '../notebook/connections/connection_params.js';
-import { useConnectionState } from '../notebook/connections/connection_registry.js';
-import { useStorageReader } from '../notebook/persistence/storage_provider.js';
-import { displayPath } from '../notebook/persistence/notebook_locator.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { RouteContext, useRouteContext, useRouterNavigate, CHANGE_NOTEBOOK } from '../router/router.js';
+import { NOTEBOOK_PATH, SELECT_NOTEBOOK, useRouteContext, useRouterNavigate } from '../router/router.js';
 import { useVersionCheck } from '../../platform/version/version_check.js';
-import { useNotebookScripts } from '../notebook/scripts/notebook_scripts_registry.js';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { NotebookViewMode, useNotebookViewMode } from '../notebook/scripts/notebook_commands.js';
 
 const LOG_CTX = "navbar";
@@ -52,94 +43,6 @@ const InternalsButton = (props: { notebookId: string | null }) => {
                 align={AnchorAlignment.End}
                 anchorOffset={16}
             />
-        </div>
-    );
-};
-
-/// The clickable notebook path bar. Forwards a ref + anchor props so it can anchor the overlay
-/// while keeping the bar's flex layout (ellipsized path).
-const NotebookBarButton = React.forwardRef<HTMLButtonElement, {
-    notebookName: string | null;
-    notebookPath: string;
-    onClick?: (event: React.MouseEvent) => void;
-} & object>((props, ref) => {
-    const { notebookName, notebookPath, ...anchorProps } = props;
-    // When the user has named the notebook, the name leads (crisp, primary) and the path follows
-    // dimmed — the name is what a human recognises, the path stays visible as the address. With no
-    // name, the path is the sole, primary label (unchanged from before).
-    const hasName = notebookName != null && notebookName.length > 0;
-    return (
-        <button
-            ref={ref}
-            type="button"
-            className={styles.notebook_bar_button}
-            title={hasName ? `${notebookName} · ${notebookPath}` : notebookPath}
-            {...anchorProps}
-        >
-            {hasName && (
-                <div className={styles.notebook_bar_name}>
-                    {notebookName}
-                </div>
-            )}
-            <div className={hasName ? styles.notebook_bar_path_secondary : styles.notebook_bar_path}>
-                {notebookPath}
-            </div>
-        </button>
-    );
-});
-
-const NotebookBar = (props: {
-    notebookId: string | null;
-    notebookName: string | null;
-    notebookPath: string;
-    openInAppUrl?: string | null;
-    route: RouteContext;
-    onClose: () => void;
-}) => {
-    const [showStorageOverlay, setShowStorageOverlay] = React.useState<boolean>(false);
-
-    return (
-        <div className={styles.notebook_bar_container}>
-            <div className={styles.notebook_bar}>
-                <NotebookStorageOverlay
-                    notebookId={props.notebookId}
-                    isOpen={showStorageOverlay}
-                    onClose={() => setShowStorageOverlay(false)}
-                    renderAnchor={(p: object) => (
-                        <NotebookBarButton
-                            {...p}
-                            notebookName={props.notebookName}
-                            notebookPath={props.notebookPath}
-                            onClick={() => setShowStorageOverlay(true)}
-                        />
-                    )}
-                    side={AnchorSide.OutsideBottom}
-                    align={AnchorAlignment.Start}
-                    anchorOffset={8}
-                />
-                {props.openInAppUrl !== undefined && (
-                    <Link
-                        aria-label="Open notebook in desktop app"
-                        className={styles.notebook_bar_action}
-                        to={props.openInAppUrl ?? ""}
-                        state={props.route}
-                        title="Open notebook in desktop app"
-                    >
-                        <svg width="14px" height="14px" aria-hidden="true">
-                            <use xlinkHref={`${symbols}#download_desktop`} />
-                        </svg>
-                    </Link>
-                )}
-                <button
-                    type="button"
-                    className={styles.notebook_bar_action}
-                    title="Close Notebook"
-                    aria-label="Close Notebook"
-                    onClick={props.onClose}
-                >
-                    <XIcon />
-                </button>
-            </div>
         </div>
     );
 };
@@ -194,13 +97,25 @@ const VersionButton = (_props: {}) => {
     );
 };
 
-const BrandLogo = (props: { onClose: () => void }) => (
-    <div className={styles.brand_logo} data-electron-drag-region aria-label="dashql" onClick={props.onClose}>
-        <svg width="24px" height="24px" aria-hidden="true">
-            <use xlinkHref={`${symbols}#dashql`} />
-        </svg>
-    </div>
-);
+const BrandLogo = () => {
+    const route = useRouteContext();
+    const navigate = useRouterNavigate();
+    const { setMode } = useNotebookViewMode();
+    const openWorkbench = React.useCallback(() => {
+        setMode(NotebookViewMode.Notebook);
+        navigate(route.notebookId == null
+            ? { type: NOTEBOOK_PATH, value: null }
+            : { type: SELECT_NOTEBOOK, value: route.notebookId });
+    }, [navigate, route.notebookId, setMode]);
+
+    return (
+        <button type="button" className={styles.brand_logo} aria-label="Open notebook workbench" onClick={openWorkbench}>
+            <svg width="24px" height="24px" aria-hidden="true">
+                <use xlinkHref={`${symbols}#dashql`} />
+            </svg>
+        </button>
+    );
+};
 
 const BrandIdentity = () => (
     <div className={styles.brand_identity} data-electron-drag-region>
@@ -230,78 +145,22 @@ export const CompactNavBar = (): React.ReactElement => {
 export const NavBar = (): React.ReactElement => {
     const logger = useLogger();
     const route = useRouteContext();
-    const navigate = useRouterNavigate();
     const platform = usePlatformType();
     const location = useLocation();
-    const storageReader = useStorageReader();
 
-    const [notebookScripts] = useNotebookScripts(route.notebookId ?? null);
-    const [connection, _modifyConnection] = useConnectionState(route.notebookId ?? notebookScripts?.notebookId ?? null);
-
-    const handleCloseNotebook = React.useCallback(() => {
-        navigate({
-            type: CHANGE_NOTEBOOK,
-            value: null,
-        });
-    }, [navigate]);
-
-    const isBrowser = platform === PlatformType.WEB;
     const isMac = platform === PlatformType.MACOS;
-    const setupLinkTarget = isBrowser ? NotebookLinkTarget.NATIVE : NotebookLinkTarget.WEB;
-
-    const [setupUrl, setSetupUrl] = React.useState<URL | null>(null);
-    React.useEffect(() => {
-        let cancelled = false;
-
-        async function generateUrl() {
-            if (connection == null || notebookScripts == null || !connection.details) {
-                setSetupUrl(null);
-                return;
-            }
-
-            const connParams = getConnectionParamsFromStateDetails(connection.details);
-            if (!connParams) {
-                setSetupUrl(null);
-                return;
-            }
-
-            const url = await exportNotebookAsUrl(storageReader.backend, notebookScripts.notebookId, connParams, setupLinkTarget);
-            if (!cancelled) {
-                setSetupUrl(url);
-            }
-        }
-
-        generateUrl();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [notebookScripts, connection, setupLinkTarget, storageReader.backend]);
 
     React.useEffect(() => {
         logger.debug("Navigated to path", { "path": location.pathname }, LOG_CTX);
     }, [location.pathname]);
 
-    const notebookId = connection?.notebookId ?? null;
-    // The notebook bar shows a display path (opfs://… or fs://…) reconstructed from the uuid +
-    // its recorded physical location; the uuid stays the authoritative identity.
-    const notebookPath = notebookId ? displayPath(notebookId, storageReader.getNotebookLocation(notebookId)) : "";
+    const notebookId = route.notebookId;
     return (
         // Electron excludes the interactive controls below via the global no-drag rules.
         <div className={isMac ? styles.navbar_mac : styles.navbar_default}
             data-electron-drag-region
         >
-            {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
-            <div className={styles.tabs}>
-                <NotebookBar
-                    notebookId={notebookId}
-                    notebookName={connection?.name ?? null}
-                    notebookPath={notebookPath}
-                    openInAppUrl={isBrowser ? setupUrl?.toString() ?? null : undefined}
-                    route={route}
-                    onClose={handleCloseNotebook}
-                />
-            </div>
+            <BrandLogo />
             <div className={styles.navbar_actions}>
                 {notebookId != null && <NotebookShellButton />}
                 <InternalsButton notebookId={notebookId} />

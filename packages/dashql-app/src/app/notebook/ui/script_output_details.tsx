@@ -29,6 +29,7 @@ export enum ScriptDetailsTab {
 
 interface Props {
     className?: string;
+    embedded?: boolean;
     query: QueryExecutionState | null;
     agentRun?: AgentRunState | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
@@ -176,7 +177,7 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
     }), [agentTraceId, props.query, props.tableDebugMode, props.visualizeQuery, queryTraceId, totalRows]);
 
     return (
-        <div className={classNames(styles.card, props.className)}>
+        <div className={classNames(styles.card, props.className, { [styles.embedded]: props.embedded })}>
             <EntryStatusBar
                 status={entryStatus}
                 onToggleExpanded={props.onToggleExpanded}

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_shell_page.module.css';
 
-import type { ConnectionState } from '../connections/connection_state.js';
+import type { AttachedDatabaseState } from '../connections/attached_database_state.js';
 import { useCancelQuery, useQueryExecutor, useQueryState } from '../connections/query_executor.js';
 import { NotebookViewMode, useNotebookViewMode } from '../scripts/notebook_commands.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
@@ -26,11 +26,13 @@ function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): s
 }
 
 interface Props {
-    connection: ConnectionState | null;
+    notebookId: string;
+    notebookName?: string | null;
+    connection: AttachedDatabaseState | null;
     active: boolean;
 }
 
-export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
+export const NotebookShellPage: React.FC<Props> = ({ notebookId, notebookName, connection, active }) => {
     const logger = useLogger();
     const executeQuery = useQueryExecutor();
     const cancelQuery = useCancelQuery();
@@ -43,9 +45,9 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
     const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating Shell');
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
-    const resultQuery = useQueryState(connection?.notebookId ?? null, resultQueryId);
+    const resultQuery = useQueryState(notebookId, resultQueryId);
     const connectorName = connection?.connectorInfo.names.displayShort ?? '';
-    const shellName = `${connection?.name ?? connectorName} Shell`;
+    const shellName = `${notebookName ?? connectorName} Shell`;
     const relationsSql = connection?.catalogRelationScript.toString() ?? '';
     const functionsSql = connection?.catalogFunctionScript.toString() ?? '';
 
@@ -55,7 +57,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         let cancelled = false;
         const getOutputMode = () => outputModeRef.current;
         const environment = createNotebookShellEnvironment(
-                connection.connectionId,
+                connection.databaseId,
             executeQuery,
             cancelQuery,
             getOutputMode,
@@ -111,7 +113,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
         return () => {
             cancelled = true;
         };
-    }, [connection?.notebookId, connectorName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode]);
+    }, [connection?.databaseId, connectorName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();
@@ -119,7 +121,7 @@ export const NotebookShellPage: React.FC<Props> = ({ connection, active }) => {
 
     React.useEffect(() => {
         setResultQueryId(null);
-    }, [connection?.notebookId]);
+    }, [connection?.databaseId]);
 
     React.useEffect(() => () => {
         ++generationRef.current;

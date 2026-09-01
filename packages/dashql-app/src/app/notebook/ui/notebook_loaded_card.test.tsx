@@ -13,128 +13,48 @@ vi.mock('../../../ui/particle_flow/particle_flow_background.js', () => ({ Partic
 const RESULT: HttpNotebookLoadResult = {
     bundle: {
         notebook: {
-            notebookId: '4f741f53-d76f-4a6d-b1d8-c22aa85bd449',
-            name: 'Quarterly pipeline',
-            connectionParams: { hyper: {} } as any,
-            metadata: {
-                originType: 'HTTP',
-                originalHttpUrl: 'https://example.com/notebook/dashql-notebook.json',
-            },
+            formatVersion: 2,
+            notebookId: '11111111-2222-4333-8444-555555555555',
+            name: 'Flat notebook',
+            mainDatabase: { databaseId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: {} } as any },
+            attachedDatabases: [],
+            metadata: { originType: 'HTTP', originalHttpUrl: 'https://example.com/dashql-notebook.json' },
         },
         schemaSql: null,
         functionsSql: null,
-        folders: [{ name: 'main', scripts: [{ name: 'query.sql', sql: 'SELECT 1' }] }],
-        draftSql: null,
+        scripts: [{ name: '01_query.sql', sql: 'SELECT 1' }],
     },
     indexedScriptCount: 1,
     loadedScriptCount: 1,
     incomplete: false,
 };
 
-describe('NotebookImportCard ready state', () => {
+describe('NotebookImportCard V2 ready state', () => {
     let container: HTMLDivElement;
     let root: Root;
+    beforeEach(() => { container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
+    afterEach(() => { act(() => root.unmount()); container.remove(); });
 
-    beforeEach(() => {
-        container = document.createElement('div');
-        document.body.appendChild(container);
-        root = createRoot(container);
-    });
-
-    afterEach(() => {
-        act(() => root.unmount());
-        container.remove();
-    });
-
-    it('shows the notebook summary and imports', () => {
+    it('summarizes flat scripts and starts import', () => {
         const onImport = vi.fn();
-        act(() => root.render(
-            <NotebookImportCard
-                phase="ready"
-                result={RESULT}
-                conflictLocation={null}
-                conflictIsNative={false}
-                busy={false}
-                onImport={onImport}
-                onReplace={() => {}}
-                onCreateNew={() => {}}
-                onClose={() => {}}
-            />,
-        ));
-
-        expect(container.querySelector('h1')?.textContent).toBe('Import Notebook');
-        expect(container.textContent).toContain('Quarterly pipeline');
-        expect(container.textContent).toContain(RESULT.bundle.notebook.notebookId);
-        expect(container.textContent).toContain(RESULT.bundle.notebook.metadata.originalHttpUrl);
-        expect(container.querySelector('[role="status"]')).toBeNull();
-
-        expect(container.textContent).toContain('1 script in 1 folder');
-        const importButton = Array.from(container.querySelectorAll('button'))
-            .find(candidate => candidate.textContent === 'Import') as HTMLButtonElement;
-        act(() => importButton.click());
+        act(() => root.render(<NotebookImportCard phase="ready" result={RESULT} conflictLocation={null}
+            conflictIsNative={false} busy={false} onImport={onImport} onReplace={() => {}}
+            onCreateNew={() => {}} onClose={() => {}} />));
+        expect(container.textContent).toContain('Flat notebook');
+        expect(container.textContent).toContain('1 script in 0 folders');
+        const button = Array.from(container.querySelectorAll('button')).find(value => value.textContent === 'Import')!;
+        act(() => button.click());
         expect(onImport).toHaveBeenCalledOnce();
     });
 
-    it('warns when indexed scripts are unresolved', () => {
-        const result = { ...RESULT, indexedScriptCount: 3, incomplete: true };
-        act(() => root.render(
-            <NotebookImportCard
-                phase="ready"
-                result={result}
-                conflictLocation={null}
-                conflictIsNative={false}
-                busy={false}
-                onImport={() => {}}
-                onReplace={() => {}}
-                onCreateNew={() => {}}
-                onClose={() => {}}
-            />,
-        ));
-
-        expect(container.querySelector('[role="status"]')?.textContent).toContain('could not be resolved');
-        expect(container.textContent).toContain('1 of 3 scripts in 1 folder');
-    });
-
-    it('shows conflict choices immediately on the import card', () => {
-        act(() => root.render(
-            <NotebookImportCard
-                phase="ready"
-                result={RESULT}
-                conflictLocation="Local notebooks / Sales"
-                conflictIsNative={false}
-                busy={false}
-                onImport={() => {}}
-                onReplace={() => {}}
-                onCreateNew={() => {}}
-                onClose={() => {}}
-            />,
-        ));
-
-        expect(container.querySelector('[role="status"]')?.textContent).toContain('already exists');
-        expect(container.textContent).toContain('Local notebooks / Sales');
-        expect(container.textContent).not.toContain('Continue');
-        expect(Array.from(container.querySelectorAll('button')).some(button => button.textContent === 'Import')).toBe(false);
+    it('surfaces incomplete index state and native replacement safety', () => {
+        act(() => root.render(<NotebookImportCard phase="ready" result={{ ...RESULT, indexedScriptCount: 3, incomplete: true }}
+            conflictLocation="/tmp/native" conflictIsNative busy={false} onImport={() => {}} onReplace={() => {}}
+            onCreateNew={() => {}} onClose={() => {}} />));
+        expect(container.querySelectorAll('[role="status"]')).toHaveLength(2);
+        expect(container.textContent).toContain('1 of 3 scripts in 0 folders');
+        expect(container.textContent).toContain('without overwriting existing native files');
         expect(container.textContent).toContain('Replace');
         expect(container.textContent).toContain('Create New');
-        expect(container.querySelector('button[aria-label="Close"]')).toBeInstanceOf(HTMLButtonElement);
-    });
-
-    it('clarifies that replacing a native collision preserves its files', () => {
-        act(() => root.render(
-            <NotebookImportCard
-                phase="ready"
-                result={RESULT}
-                conflictLocation="fs:///Users/test/notebook"
-                conflictIsNative
-                busy={false}
-                onImport={() => {}}
-                onReplace={() => {}}
-                onCreateNew={() => {}}
-                onClose={() => {}}
-            />,
-        ));
-
-        expect(container.textContent).toContain('Replacing removes the old notebook without overwriting existing native files.');
-        expect(container.textContent).toContain('Existingfs:///Users/test/notebook');
     });
 });

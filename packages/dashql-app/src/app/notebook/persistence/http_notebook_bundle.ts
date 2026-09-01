@@ -2,15 +2,13 @@ import type { HttpClient, HttpFetchResult } from '../../../platform/http/http_cl
 import type {
     NotebookData,
     NotebookIndexData,
-    NotebookIndexFolder,
     NotebookIndexScript,
-    ScriptFolderData,
+    ScriptData,
 } from './storage_backend.js';
 import {
     STORAGE_NOTEBOOK_FILE,
     STORAGE_NOTEBOOK_INDEX_FILE,
     STORAGE_SCRIPTS_FOLDER,
-    STORAGE_SCRIPT_DRAFT,
     STORAGE_SCRIPT_FUNCTIONS,
     STORAGE_SCRIPT_SCHEMA,
 } from './storage_backend.js';
@@ -21,7 +19,6 @@ const MAX_MANIFEST_BYTES = 1024 * 1024;
 const MAX_INDEX_BYTES = 1024 * 1024;
 const MAX_SCRIPT_BYTES = 8 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 32 * 1024 * 1024;
-const MAX_FOLDERS = 256;
 const MAX_SCRIPTS = 2048;
 
 export interface HttpNotebookLoadResult {
@@ -71,8 +68,8 @@ export async function readNotebookBundleFromHttp(
     totalBytes += indexText == null ? 0 : textBytes(indexText);
     const parsedIndex = parseNotebookIndex(indexText);
     const index = parsedIndex.index;
-    const indexedScriptCount = index.folders.reduce((count, folder) => count + folder.scripts.length, 0);
-    const totalFileCount = 5 + indexedScriptCount;
+    const indexedScriptCount = index.scripts.length;
+    const totalFileCount = 4 + indexedScriptCount;
     let completedFileCount = 2;
     let completedScriptCount = 0;
     const reportFileProgress = () => onProgress?.({
@@ -98,35 +95,20 @@ export async function readNotebookBundleFromHttp(
     const optional = await Promise.all([
         trackFile(fetchBestEffortText(httpClient, new URL(STORAGE_SCRIPT_SCHEMA, baseUrl), MAX_SCRIPT_BYTES, signal)),
         trackFile(fetchBestEffortText(httpClient, new URL(STORAGE_SCRIPT_FUNCTIONS, baseUrl), MAX_SCRIPT_BYTES, signal)),
-        trackFile(fetchBestEffortText(
-            httpClient,
-            new URL(`${STORAGE_SCRIPTS_FOLDER}/${STORAGE_SCRIPT_DRAFT}`, baseUrl),
-            MAX_SCRIPT_BYTES,
-            signal,
-        )),
     ]);
 
-    const folders: ScriptFolderData[] = await Promise.all(index.folders.map(async folder => {
-        const scripts = await Promise.all(folder.scripts.map(async script => {
+    const scripts: ScriptData[] = (await Promise.all(index.scripts.map(async script => {
             const sql = await trackFile(fetchBestEffortText(
                 httpClient,
-                notebookFileUrl(baseUrl, folder.name, script.name),
+                notebookFileUrl(baseUrl, script.name),
                 MAX_SCRIPT_BYTES,
                 signal,
             ), true);
             return sql == null ? null : { name: script.name, sql };
-        }));
-        return {
-            name: folder.name,
-            scripts: scripts.filter((script): script is NonNullable<typeof script> => script != null),
-        };
-    }));
+        }))).filter((script): script is ScriptData => script != null);
 
     totalBytes += optional.reduce((bytes, text) => bytes + (text == null ? 0 : textBytes(text)), 0);
-    totalBytes += folders.reduce(
-        (folderBytes, folder) => folderBytes + folder.scripts.reduce((bytes, script) => bytes + textBytes(script.sql), 0),
-        0,
-    );
+    totalBytes += scripts.reduce((bytes, script) => bytes + textBytes(script.sql), 0);
     // Optional files are loaded only while the notebook remains within the total budget. The
     // manifest is the sole required file, so an oversized optional tree degrades to metadata only.
     const includeOptionalFiles = totalBytes <= MAX_TOTAL_BYTES;
@@ -142,10 +124,9 @@ export async function readNotebookBundleFromHttp(
         },
         schemaSql: includeOptionalFiles ? optional[0] : null,
         functionsSql: includeOptionalFiles ? optional[1] : null,
-        folders: includeOptionalFiles ? folders : [],
-        draftSql: includeOptionalFiles ? optional[2] : null,
+        scripts: includeOptionalFiles ? scripts : [],
     };
-    const loadedScriptCount = bundle.folders.reduce((count, folder) => count + folder.scripts.length, 0);
+    const loadedScriptCount = bundle.scripts.length;
     return {
         bundle,
         indexedScriptCount,
@@ -190,68 +171,48 @@ function parseNotebook(text: string): NotebookData {
 }
 
 function parseNotebookIndex(text: string | null): { index: NotebookIndexData; valid: boolean } {
-    if (text == null) return { index: { folders: [] }, valid: false };
+    if (text == null) return { index: { scripts: [] }, valid: false };
     let parsed: unknown;
     try {
         parsed = JSON.parse(text);
     } catch {
-        return { index: { folders: [] }, valid: false };
+        return { index: { scripts: [] }, valid: false };
     }
-    if (!isPlainObject(parsed) || !Array.isArray(parsed.folders)) {
-        return { index: { folders: [] }, valid: false };
+    if (!isPlainObject(parsed) || !Array.isArray(parsed.scripts)) {
+        return { index: { scripts: [] }, valid: false };
     }
 
-    const folders: NotebookIndexFolder[] = [];
-    const folderNames = new Set<string>();
+    const scripts: NotebookIndexScript[] = [];
+    const scriptNames = new Set<string>();
     let scriptCount = 0;
     let valid = true;
-    for (const value of parsed.folders) {
-        if (folders.length >= MAX_FOLDERS) {
+    for (const script of parsed.scripts) {
+        if (scriptCount >= MAX_SCRIPTS) {
             valid = false;
             break;
         }
-        if (!isPlainObject(value) || !isSafeName(value.name) || !Array.isArray(value.scripts)) {
+        if (!isPlainObject(script)
+            || !isSafeName(script.name)
+            || !script.name.toLowerCase().endsWith('.sql')
+            || destinationKey(script.name) === destinationKey('dashql-draft.sql')) {
             valid = false;
             continue;
         }
-        const folderKey = destinationKey(value.name);
-        if (folderNames.has(folderKey)) {
+        const scriptKey = destinationKey(script.name);
+        if (scriptNames.has(scriptKey)) {
             valid = false;
             continue;
         }
-        folderNames.add(folderKey);
-
-        const scripts: NotebookIndexScript[] = [];
-        const scriptNames = new Set<string>();
-        for (const script of value.scripts) {
-            if (scriptCount >= MAX_SCRIPTS) {
-                valid = false;
-                break;
-            }
-            if (!isPlainObject(script)
-                || !isSafeName(script.name)
-                || !script.name.toLowerCase().endsWith('.sql')
-                || destinationKey(script.name) === destinationKey(STORAGE_SCRIPT_DRAFT)) {
-                valid = false;
-                continue;
-            }
-            const scriptKey = destinationKey(script.name);
-            if (scriptNames.has(scriptKey)) {
-                valid = false;
-                continue;
-            }
-            scriptNames.add(scriptKey);
-            scripts.push({ name: script.name.normalize('NFC') });
-            scriptCount += 1;
-        }
-        folders.push({ name: value.name.normalize('NFC'), scripts });
+        scriptNames.add(scriptKey);
+        scripts.push({ name: script.name.normalize('NFC') });
+        scriptCount += 1;
     }
-    return { index: { folders }, valid };
+    return { index: { scripts }, valid };
 }
 
-function notebookFileUrl(baseUrl: URL, folderName: string, scriptName: string): URL {
+function notebookFileUrl(baseUrl: URL, scriptName: string): URL {
     return new URL(
-        `${STORAGE_SCRIPTS_FOLDER}/${encodeURIComponent(folderName)}/${encodeURIComponent(scriptName)}`,
+        `${STORAGE_SCRIPTS_FOLDER}/${encodeURIComponent(scriptName)}`,
         baseUrl,
     );
 }
