@@ -103,8 +103,8 @@
     gap: 8px;
     width: 100%;
     min-width: 0;
-    min-height: 32px;
-    padding: 4px 34px 4px 8px;
+    min-height: 38px;
+    padding: 7px 34px 7px 8px;
     border: 1px solid transparent;
     border-radius: var(--border_radius);
     color: var(--base_color_neutral_8);

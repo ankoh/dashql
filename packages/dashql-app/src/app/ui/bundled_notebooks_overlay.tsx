@@ -22,6 +22,7 @@ interface BundledNotebooksOverlayProps {
     align?: AnchorAlignment;
     triggerSize?: ButtonSize;
     triggerIconSize?: number;
+    dispatchNotebookUrl?: (url: string) => void;
 }
 
 export function BundledNotebooksOverlay(props: BundledNotebooksOverlayProps = {}): React.ReactElement {
@@ -43,8 +44,9 @@ export function BundledNotebooksOverlay(props: BundledNotebooksOverlayProps = {}
 
     const addNotebook = React.useCallback((notebook: BundledNotebook) => {
         setOpen(false);
-        appEvents.dispatchNotebookUrl(resolveBundledNotebookUrl(notebook, new URL(globalThis.location.href)).toString());
-    }, [appEvents]);
+        const url = resolveBundledNotebookUrl(notebook, new URL(globalThis.location.href)).toString();
+        (props.dispatchNotebookUrl ?? appEvents.dispatchNotebookUrl.bind(appEvents))(url);
+    }, [appEvents, props.dispatchNotebookUrl]);
 
     return (
         <>

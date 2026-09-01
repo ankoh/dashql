@@ -1,7 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const grantScope = vi.hoisted(() => vi.fn(async () => {}));
-vi.mock('./native_fs_scope.js', () => ({ grantFsScope: grantScope }));
 vi.mock('../../../platform/electron_fs.js', async () => ({
     ...(await import('./test_fs_mock.js')).makeFsMock(),
     ...(await import('./test_fs_mock.js')).makePathMock(),
@@ -12,7 +9,7 @@ import { CompositeStorageBackend } from './composite_storage_backend.js';
 import type { NotebookEntry, NotebookRegistryBackend } from './storage_backend.js';
 import { StorageBackendType } from './storage_backend.js';
 import { NotebookTestBackend, TEST_NOTEBOOK_ID, testNotebook } from './notebook_test_backend.js';
-import { fsStore, resetFsStore } from './test_fs_mock.js';
+import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import { replaceNotebookWithPortableBundle } from './notebook_import_transaction.js';
 
 class Registry extends NotebookTestBackend implements NotebookRegistryBackend {
@@ -40,7 +37,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
 
     beforeEach(async () => {
         resetFsStore();
-        grantScope.mockClear();
+        globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
         registry = new Registry();
         backend = new CompositeStorageBackend(registry, new TestLogger());
         await backend.initialize();
@@ -61,7 +58,6 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         await backend.saveScript(TEST_NOTEBOOK_ID, '01_query.sql', 'SELECT 1');
         await backend.renameScript(TEST_NOTEBOOK_ID, '01_query.sql', '02_renamed.sql');
         expect(await backend.loadScripts(TEST_NOTEBOOK_ID)).toEqual([{ name: '02_renamed.sql', sql: 'SELECT 1' }]);
-        expect(grantScope).toHaveBeenCalledWith(dir);
         expect(fsStore.files.get(`${dir}/scripts/02_renamed.sql`)).toBe('SELECT 1');
         const before = new Map(fsStore.files);
         await backend.deleteNotebook(TEST_NOTEBOOK_ID);

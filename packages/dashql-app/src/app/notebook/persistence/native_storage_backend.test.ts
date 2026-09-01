@@ -5,7 +5,7 @@ vi.mock('../../../platform/electron_fs.js', async () => ({
     ...(await import('./test_fs_mock.js')).makePathMock(),
 }));
 
-import { fsStore, resetFsStore } from './test_fs_mock.js';
+import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { TEST_NOTEBOOK_ID, testNotebook } from './notebook_test_backend.js';
 
@@ -16,6 +16,7 @@ describe('NativeStorageBackend V2 flat storage', () => {
 
     beforeEach(async () => {
         resetFsStore();
+        globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
         backend = new NativeStorageBackend(DIR);
         await backend.initialize();
     });

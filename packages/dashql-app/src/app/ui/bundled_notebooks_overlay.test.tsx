@@ -12,9 +12,6 @@ vi.stubGlobal('ResizeObserver', class {
     unobserve() { }
     disconnect() { }
 });
-vi.mock('../../platform/events/event_listener_provider.js', () => ({
-    usePlatformEventListener: () => ({ dispatchNotebookUrl }),
-}));
 vi.mock('../../platform/logger/logger_provider.js', () => ({
     useLogger: () => ({ error: vi.fn() }),
 }));
@@ -41,7 +38,7 @@ describe('BundledNotebooksOverlay', () => {
     });
 
     it('copies a public link and dispatches a bundled notebook URL', async () => {
-        act(() => root.render(<BundledNotebooksOverlay />));
+        act(() => root.render(<BundledNotebooksOverlay dispatchNotebookUrl={dispatchNotebookUrl} />));
         act(() => (container.querySelector('[aria-label="Example notebooks"]') as HTMLButtonElement).click());
 
         expect(document.querySelector('[aria-label="Add Property Graphs notebook"]')).toBeInstanceOf(HTMLButtonElement);
