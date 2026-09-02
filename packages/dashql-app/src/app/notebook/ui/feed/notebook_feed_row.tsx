@@ -463,23 +463,21 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
     if (isSeparator) {
         return (
-            <div
+            <button
+                type="button"
                 className={styles.feed_cell_separator}
+                aria-label={`Add script at position ${entryIndex + 1}`}
+                onClick={() => props.onCreate(entryIndex)}
                 style={{
                     ...props.style,
                     paddingTop: props.index === 0 ? props.topPadding : undefined,
                 }}
             >
                 <span className={styles.feed_cell_separator_line} aria-hidden="true" />
-                <button
-                    type="button"
-                    className={styles.feed_cell_add}
-                    aria-label={`Add script at position ${entryIndex + 1}`}
-                    onClick={() => props.onCreate(entryIndex)}
-                >
+                <span className={styles.feed_cell_add} aria-hidden="true">
                     <PlusIcon size={16} />
-                </button>
-            </div>
+                </span>
+            </button>
         );
     }
 

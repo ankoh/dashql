@@ -91,6 +91,8 @@ describe('V2 notebook feed rows', () => {
             'Add script at position 1', 'Add script at position 2', 'Add script at position 3',
         ]);
         expect((container.firstElementChild as HTMLElement).style.paddingTop).toBe('16px');
+        act(() => (container.firstElementChild?.firstElementChild as HTMLElement).click());
+        expect(props.onCreate).toHaveBeenCalledWith(0);
         act(() => (container.querySelector('[aria-label="Add script at position 2"]') as HTMLButtonElement).click());
         expect(props.onCreate).toHaveBeenCalledWith(1);
     });
