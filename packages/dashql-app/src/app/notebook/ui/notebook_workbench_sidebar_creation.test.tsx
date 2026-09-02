@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
     local: null as AttachedDatabaseState | null,
     overlayProps: null as { databaseId: string | null; headerTitle?: string; isOpen: boolean; onClose: () => void; onConnected?: (database: AttachedDatabaseState) => void } | null,
     shareProps: null as { isOpen: boolean; notebookId?: string } | null,
+    fileSaveProps: null as { isOpen: boolean; notebookScripts?: { notebookId: string }; fileName?: string } | null,
     attachedDatabases: new Map<string, AttachedDatabaseState>(),
     attachedDatabasesByNotebook: new Map<string, { mainDatabaseId: string; attachedDatabaseIds: string[] }>(),
     notebookScriptsMap: new Map<string, unknown>(),
@@ -83,6 +84,12 @@ vi.mock('./notebook_url_share_overlay.js', () => ({
         return props?.isOpen ? <div data-testid="share-url-overlay" /> : null;
     },
 }));
+vi.mock('./notebook_file_save_overlay.js', () => ({
+    NotebookFileSaveOverlay: (props: typeof state.fileSaveProps) => {
+        state.fileSaveProps = props;
+        return props?.isOpen ? <div data-testid="file-save-overlay" /> : null;
+    },
+}));
 vi.mock('../persistence/notebook_import_provider.js', () => ({ useNotebookImport: () => ({}) }));
 vi.mock('../persistence/invalid_notebook_registry.js', () => ({ useInvalidNotebookRegistry: () => ({ invalidNotebooks: new Map(), deleteInvalidNotebook: vi.fn() }) }));
 vi.mock('../../providers/core_provider.js', () => ({ useDashQLCoreSetup: () => vi.fn() }));
@@ -108,6 +115,7 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
         state.refreshCatalog.mockReset();
         state.overlayProps = null;
         state.shareProps = null;
+        state.fileSaveProps = null;
         state.attachedDatabases.clear();
         state.attachedDatabasesByNotebook.clear();
         state.notebookScriptsMap.clear();
@@ -228,5 +236,36 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
         act(() => share.click());
         expect(state.shareProps).toMatchObject({ isOpen: true, notebookId });
         expect(document.querySelector('[data-testid="share-url-overlay"]')).not.toBeNull();
+    });
+
+    it('opens export settings before saving from the notebook row menu', () => {
+        const notebookId = 'current-notebook';
+        state.attachedDatabases.set('local-database', state.local!);
+        state.attachedDatabasesByNotebook.set(notebookId, {
+            mainDatabaseId: 'local-database',
+            attachedDatabaseIds: [],
+        });
+        state.notebookScriptsMap.set(notebookId, {
+            notebookId,
+            name: 'Current notebook',
+            notebookMetadata: { originalFileName: 'current' },
+        });
+        act(() => root.render(<NotebookWorkbenchSidebar notebookScripts={{
+            notebookId,
+            instance: {},
+        } as any} />));
+
+        click('More actions for Current notebook');
+        const exportItem = Array.from(document.querySelectorAll('button'))
+            .find(button => button.textContent?.includes('Export .dashql'))!;
+        expect(exportItem).toBeDefined();
+
+        act(() => exportItem.click());
+        expect(state.fileSaveProps).toMatchObject({
+            isOpen: true,
+            notebookScripts: { notebookId },
+            fileName: 'Current notebook',
+        });
+        expect(document.querySelector('[data-testid="file-save-overlay"]')).not.toBeNull();
     });
 });

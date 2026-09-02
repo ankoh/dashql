@@ -43,6 +43,7 @@ interface Props {
     setIsOpen: (v: boolean) => void;
     notebookScripts: NotebookScripts | null;
     conn: AttachedDatabaseState | null;
+    fileName?: string;
 }
 
 export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
@@ -51,7 +52,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const fileDownloader = useFileDownloader();
     const storage = useStorageReader();
     const [databaseRegistry] = useAttachedDatabaseRegistry();
-    const fileName = `${props.notebookScripts?.notebookMetadata.originalFileName ?? "notebook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
+    const fileName = `${props.fileName ?? props.notebookScripts?.notebookMetadata.originalFileName ?? "notebook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
 
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: true,

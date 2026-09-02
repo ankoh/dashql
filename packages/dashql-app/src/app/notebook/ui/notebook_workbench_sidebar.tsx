@@ -21,7 +21,6 @@ import { List, type RowComponentProps } from 'react-window';
 import * as core from '../../../core/index.js';
 import { useComputationRegistry } from '../../../compute/computation_registry.js';
 import { DELETE_COMPUTATION } from '../../../compute/computation_state.js';
-import { useFileDownloader } from '../../../platform/file/file_downloader_provider.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import * as ActionList from '../../../ui/foundations/action_list.js';
@@ -33,7 +32,6 @@ import {
     ChevronRightIcon,
     CopyIcon,
     DatabaseIcon,
-    DownloadIcon,
     FileDirectoryIcon,
     LinkIcon,
     PlusIcon,
@@ -61,7 +59,6 @@ import {
 } from '../connections/attached_database_registry.js';
 import {
     createDefaultHyperWasmAttachedDatabaseState,
-    getConnectionParamsFromStateDetails,
 } from '../connections/connection_params.js';
 import { HYPER_CONNECTOR } from '../connections/connector_info.js';
 import { ConnectionSettingsOverlay } from '../connections/ui/connection_settings_overlay.js';
@@ -69,8 +66,6 @@ import { useCatalogLoaderQueue } from '../connections/catalog_loader.js';
 import { useHyperSetup } from '../connections/hyper/hyper_connection_setup.js';
 import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status_indicator.js';
 import { observeSize } from '../../../ui/foundations/size_observer.js';
-import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../../globals.js';
-import { exportNotebookAsSharedZip } from '../persistence/notebook_export.js';
 import { displayPath } from '../persistence/notebook_locator.js';
 import { StorageBackendType } from '../persistence/storage_backend.js';
 import { NotebookStorageOverlay } from '../persistence/ui/notebook_storage_overlay.js';
@@ -100,6 +95,7 @@ import { BundledNotebooksOverlay } from '../../ui/bundled_notebooks_overlay.js';
 import { attachedDatabaseLabel, isHyperWasmAttachedDatabase } from './attached_database_label.js';
 import { canRefreshAttachedDatabase } from './attached_database_refresh.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
+import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { isCatalogRefreshRunning } from '../connections/catalog_update_state.js';
 import * as styles from './notebook_workbench_sidebar.module.css';
 import * as actionMenuStyles from './action_menu.module.css';
@@ -173,6 +169,7 @@ interface Props {
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const ColumnsIcon = SymbolIcon('columns_16');
 const SettingsIcon = SymbolIcon('settings_16');
+const FileZipIcon = SymbolIcon('file_zip_16');
 
 function readCatalogNode(
     reader: core.DashQLCatalogSnapshotReader,
@@ -478,37 +475,9 @@ interface NotebookRowMenuProps {
 const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, onDelete }) => {
     const [open, setOpen] = React.useState(false);
     const [shareOpen, setShareOpen] = React.useState(false);
+    const [exportOpen, setExportOpen] = React.useState(false);
     const [storageOpen, setStorageOpen] = React.useState(false);
-    const [exporting, setExporting] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
-    const downloader = useFileDownloader();
-    const storage = useStorageReader();
-    const [databaseRegistry] = useAttachedDatabaseRegistry();
-
-    const exportNotebook = React.useCallback(async () => {
-        const attached = resolveNotebookAttachedDatabases(databaseRegistry, item.notebookId);
-        if (attached == null) return;
-        const params = new Map<string, NonNullable<ReturnType<typeof getConnectionParamsFromStateDetails>>>();
-        for (const database of [attached.main, ...attached.attached]) {
-            const databaseParams = getConnectionParamsFromStateDetails(database.details);
-            if (databaseParams != null) params.set(database.databaseId, databaseParams);
-        }
-        setExporting(true);
-        try {
-            const archive = await exportNotebookAsSharedZip(
-                storage.backend,
-                item.notebookId,
-                params,
-                { withCatalog: true, withLoginHint: true },
-            );
-            const bytes = new Uint8Array(await archive.arrayBuffer());
-            const baseName = item.scripts.name ?? item.scripts.notebookMetadata.originalFileName ?? 'notebook';
-            await downloader.downloadBufferAsFile(bytes, `${baseName}.${DASHQL_ARCHIVE_FILENAME_EXT}`);
-            setOpen(false);
-        } finally {
-            setExporting(false);
-        }
-    }, [databaseRegistry, downloader, item, storage.backend]);
 
     return (
         <AnchoredOverlay
@@ -572,9 +541,21 @@ const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, on
                             />
                         </ActionList.ItemText>
                     </ActionList.ListItem>
-                    <ActionList.ListItem disabled={exporting} aria-busy={exporting} onClick={exportNotebook}>
-                        <ActionList.Leading><DownloadIcon size={16} /></ActionList.Leading>
-                        <ActionList.ItemText>{exporting ? 'Exporting...' : `Export .${DASHQL_ARCHIVE_FILENAME_EXT}`}</ActionList.ItemText>
+                    <ActionList.ListItem onClick={(event) => {
+                        event.stopPropagation();
+                        setExportOpen(value => !value);
+                    }}>
+                        <ActionList.Leading><FileZipIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>
+                            Export .dashql
+                            <NotebookFileSaveOverlay
+                                isOpen={exportOpen}
+                                setIsOpen={setExportOpen}
+                                conn={item.database}
+                                notebookScripts={item.scripts}
+                                fileName={item.scripts.name ?? item.scripts.notebookMetadata.originalFileName ?? 'notebook'}
+                            />
+                        </ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem onClick={() => { setOpen(false); onDuplicate(); }}>
                         <ActionList.Leading><CopyIcon size={16} /></ActionList.Leading>
