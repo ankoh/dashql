@@ -2,7 +2,7 @@
 -- This file is auto-generated and can only be updated through a catalog refresh.
 --
 -- Catalog Source: HyperDB WASM pg_class
--- Last Refresh: 2026-09-01T14:41:28.815Z
+-- Last Refresh: 2026-09-01T22:19:45.686Z
 
 -- DashQL Hyper Catalog Section: "hyper"
 CREATE TABLE "hyper"."pg_catalog"."hyper_attached_database" (
