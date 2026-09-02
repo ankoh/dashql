@@ -48,12 +48,12 @@ describe('BundledNotebooksOverlay', () => {
             await Promise.resolve();
         });
         expect(writeText).toHaveBeenCalledWith(
-            'https://dashql.app?notebook=https%3A%2F%2Fdashql.app%2Fstatic%2Fexamples%2Fnotebooks%2Fexplain%2Fdashql-notebook.json',
+            'https://dashql.app?notebook=https%3A%2F%2Fdashql.app%2Fstatic%2Fexamples%2Fnotebooks%2Fhyper-explain%2Fdashql-notebook.json',
         );
 
         act(() => (document.querySelector('[aria-label="Add Explain notebook"]') as HTMLButtonElement).click());
         expect(dispatchNotebookUrl).toHaveBeenCalledWith(
-            new URL('/static/examples/notebooks/explain/dashql-notebook.json', globalThis.location.href).toString(),
+            new URL('/static/examples/notebooks/hyper-explain/dashql-notebook.json', globalThis.location.href).toString(),
         );
         expect(document.querySelector('[role="dialog"]')).toBeNull();
     });
