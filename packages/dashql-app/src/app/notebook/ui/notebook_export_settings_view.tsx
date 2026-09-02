@@ -6,6 +6,7 @@ import { ToggleSwitch } from '../../../ui/foundations/toggle_switch.js';
 export interface NotebookExportSettings {
     withCatalog: boolean;
     withLoginHint: boolean;
+    preserveUUIDs: boolean;
 }
 
 interface Props {
@@ -29,6 +30,11 @@ export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
         props.setSettings({ ...props.settings, withLoginHint: !props.settings.withLoginHint });
     }, [props.settings, props.setSettings]);
 
+    const togglePreserveUUIDs = React.useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        props.setSettings({ ...props.settings, preserveUUIDs: !props.settings.preserveUUIDs });
+    }, [props.settings, props.setSettings]);
+
     return (
         <div className={styles.root}>
             <div className={styles.part_list}>
@@ -44,11 +50,16 @@ export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
                         aria-labelledby="export-toggle-login-hint-label"
                     />
                 </div>
-                <div id="export-toggle-notebook-label" className={styles.part_name}>
-                    Notebook Data
+                <div id="export-toggle-preserve-uuids-label" className={styles.part_name}>
+                    Preserve UUIDs
                 </div>
                 <div className={styles.part_toggle}>
-                    <ToggleSwitch size="medium" checked={true} disabled={true} aria-labelledby="export-toggle-notebook-label" />
+                    <ToggleSwitch
+                        size="medium"
+                        checked={props.settings.preserveUUIDs}
+                        onClick={togglePreserveUUIDs}
+                        aria-labelledby="export-toggle-preserve-uuids-label"
+                    />
                 </div>
                 <div id="export-toggle-catalog-label" className={styles.part_name}>
                     Catalog Data

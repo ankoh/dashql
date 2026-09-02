@@ -11,7 +11,7 @@ import {
 } from './storage_backend.js';
 import { BASE64URL_CODEC } from '../../../utils/base64.js';
 import { sanitizeConnectionParamsForSharing } from '../connections/connection_params.js';
-import { readNotebookBundle } from './notebook_bundle.js';
+import { readNotebookBundle, regenerateNotebookDatabaseIds } from './notebook_bundle.js';
 
 /// The target platform a shared notebook link points at.
 export enum NotebookLinkTarget {
@@ -37,6 +37,8 @@ export interface SharedNotebookExportOptions {
     withLoginHint?: boolean;
     /// Include persisted relation and function catalog SQL files when present.
     withCatalog?: boolean;
+    /// Keep the notebook and attached database UUIDs instead of generating export-only identities.
+    preserveUUIDs?: boolean;
 }
 
 type SharedNotebookExportOptionsInput = SharedNotebookExportOptions | boolean;
@@ -104,10 +106,9 @@ export async function exportNotebookAsZip(
 
 /// Export a notebook as a shareable ZIP.
 ///
-/// Scripts and the notebook name are read straight from disk (via `exportNotebookAsZip`) so the
-/// shared archive matches the persisted notebook exactly. Only the connection params are rewritten
-/// for sharing: the stored params are swapped for the live connection's params, sanitized of
-/// secrets, with the login hint optionally stripped.
+/// Scripts and the notebook name are read straight from disk (via `exportNotebookAsZip`). Connection
+/// params are replaced with their live values and sanitized. By default the exported notebook and
+/// databases receive fresh UUIDs so importing a copy cannot collide with existing runtime state.
 export async function exportNotebookAsSharedZip(
     backend: StorageBackend,
     notebookId: string,
@@ -118,23 +119,28 @@ export async function exportNotebookAsSharedZip(
     const withLoginHint = options.withLoginHint ?? true;
     return await exportNotebookAsZip(notebookId, backend, {
         withCatalog: options.withCatalog ?? true,
-        transformNotebook: (notebook: NotebookData): NotebookData => ({
-            ...notebook,
-            mainDatabase: {
-                ...notebook.mainDatabase,
-                params: sanitizeConnectionParamsForSharing(
-                    databaseParams.get(notebook.mainDatabase.databaseId) ?? notebook.mainDatabase.params,
-                    withLoginHint,
-                ),
-            },
-            attachedDatabases: notebook.attachedDatabases.map(database => ({
-                ...database,
-                params: sanitizeConnectionParamsForSharing(
-                    databaseParams.get(database.databaseId) ?? database.params,
-                    withLoginHint,
-                ),
-            })) as NotebookData['attachedDatabases'],
-        }),
+        transformNotebook: (notebook: NotebookData): NotebookData => {
+            const sanitized: NotebookData = {
+                ...notebook,
+                mainDatabase: {
+                    ...notebook.mainDatabase,
+                    params: sanitizeConnectionParamsForSharing(
+                        databaseParams.get(notebook.mainDatabase.databaseId) ?? notebook.mainDatabase.params,
+                        withLoginHint,
+                    ),
+                },
+                attachedDatabases: notebook.attachedDatabases.map(database => ({
+                    ...database,
+                    params: sanitizeConnectionParamsForSharing(
+                        databaseParams.get(database.databaseId) ?? database.params,
+                        withLoginHint,
+                    ),
+                })) as NotebookData['attachedDatabases'],
+            };
+            return options.preserveUUIDs
+                ? sanitized
+                : regenerateNotebookDatabaseIds({ ...sanitized, notebookId: crypto.randomUUID() });
+        },
     });
 }
 

@@ -39,6 +39,7 @@ export async function writePortableNotebookFresh(
     if (conflict) {
         throw new Error(`Notebook ${conflict.notebookId} is already registered`);
     }
+    await requireUniqueDatabaseIds(backend, bundle, targetNotebookId);
 
     try {
         await backend.writePortableNotebookBundle(bundle, targetNotebookId, true);
@@ -63,10 +64,12 @@ export async function replaceNotebookWithPortableBundle(
 ): Promise<string> {
     const targetNotebookId = conflict.notebookId;
     requireMatchingSource(bundle, targetNotebookId);
+    await requireUniqueDatabaseIds(backend, bundle, targetNotebookId);
     const oldEntry = await findManifestEntry(backend, targetNotebookId);
-    const oldBundle = oldEntry.storageType === StorageBackendType.Native
-        ? await tryReadBundle(backend, targetNotebookId)
-        : await backend.readNotebookBundle(targetNotebookId);
+    // A replacement is also the recovery path for registered notebooks that the current format can
+    // no longer read (for example V1 notebooks containing dashql-draft.sql). Keep rollback data when
+    // possible, but do not prevent the explicitly confirmed replacement when it is unavailable.
+    const oldBundle = await tryReadBundle(backend, targetNotebookId);
     const stagingId = (options.randomUUID ?? (() => crypto.randomUUID()))();
     if (await backend.findNotebookImportConflict(stagingId)) {
         throw new Error(`Staging notebook ${stagingId} is already registered`);
@@ -113,6 +116,7 @@ export async function registerNativeNotebook(
     if (conflict) {
         throw new Error(`Notebook ${conflict.notebookId} is already registered`);
     }
+    await requireUniqueDatabaseIds(backend, prepared.bundle, notebookId);
     await backend.registerPreparedNativeNotebook(prepared, notebookId);
     return notebookId;
 }
@@ -130,6 +134,7 @@ export async function replaceNotebookWithNativeFolder(
         && conflict.location.nativePath === prepared.dir) {
         return targetNotebookId;
     }
+    await requireUniqueDatabaseIds(backend, prepared.bundle, targetNotebookId);
 
     const oldEntry = await findManifestEntry(backend, targetNotebookId);
     let manifestFlipped = false;
@@ -175,6 +180,37 @@ async function findManifestEntry(
         throw new Error(`Notebook ${notebookId} is no longer registered`);
     }
     return { ...entry };
+}
+
+/// Database UUIDs key global runtime maps, so two notebooks cannot safely share one. Ignore the
+/// destination notebook during replacement, but inspect every other readable manifest before any
+/// import write starts. An unreadable notebook cannot contribute live database state at startup.
+async function requireUniqueDatabaseIds(
+    backend: CompositeStorageBackend,
+    bundle: NotebookBundle,
+    targetNotebookId: string,
+): Promise<void> {
+    const incomingIds = new Set(
+        [bundle.notebook.mainDatabase, ...bundle.notebook.attachedDatabases]
+            .map(database => database.databaseId.toLowerCase()),
+    );
+    const entries = await backend.listNotebooks(STORAGE_MANIFEST_FILE);
+    for (const entry of entries) {
+        if (entry.path.toLowerCase() === targetNotebookId.toLowerCase()) continue;
+        let notebook;
+        try {
+            notebook = await backend.loadNotebook(entry.path);
+        } catch {
+            continue;
+        }
+        for (const database of [notebook.mainDatabase, ...(notebook.attachedDatabases ?? [])]) {
+            if (database?.databaseId && incomingIds.has(database.databaseId.toLowerCase())) {
+                throw new Error(
+                    `Database ${database.databaseId} is already used by notebook ${entry.path}`,
+                );
+            }
+        }
+    }
 }
 
 async function tryReadBundle(

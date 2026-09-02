@@ -54,6 +54,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: false,
         withLoginHint: true,
+        preserveUUIDs: false,
     });
 
     React.useEffect(() => {

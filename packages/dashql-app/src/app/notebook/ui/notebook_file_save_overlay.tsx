@@ -56,6 +56,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: true,
         withLoginHint: true,
+        preserveUUIDs: false,
     });
 
     const [fileBytes, setFileBytes] = React.useState<Uint8Array>(new Uint8Array());

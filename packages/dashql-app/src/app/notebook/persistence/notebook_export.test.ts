@@ -81,4 +81,53 @@ describe('V2 notebook export', () => {
         expect(await archive.file('dashql-relations.sql')!.async('text')).toBe('schema');
         expect(await archive.file('dashql-functions.sql')!.async('text')).toBe('functions');
     });
+
+    it('generates new notebook and database UUIDs for shared exports by default', async () => {
+        const backend = new NotebookTestBackend();
+        const attachedDatabaseId = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
+        await backend.saveNotebookManifest(TEST_NOTEBOOK_ID, testNotebook({
+            attachedDatabases: [{ databaseId: attachedDatabaseId, params: { hyper: {} } as any }],
+        }));
+
+        const archive = await JSZip.loadAsync(await exportNotebookAsSharedZip(
+            backend,
+            TEST_NOTEBOOK_ID,
+            new Map(),
+        ));
+        const exported = JSON.parse(await archive.file('dashql-notebook.json')!.async('text'));
+
+        expect(exported.notebookId).not.toBe(TEST_NOTEBOOK_ID);
+        expect(exported.mainDatabase.databaseId).not.toBe(testNotebook().mainDatabase.databaseId);
+        expect(exported.attachedDatabases[0].databaseId).not.toBe(attachedDatabaseId);
+    });
+
+    it('preserves notebook and database UUIDs when requested', async () => {
+        const backend = new NotebookTestBackend();
+        await backend.saveNotebookManifest(TEST_NOTEBOOK_ID, testNotebook());
+
+        const archive = await JSZip.loadAsync(await exportNotebookAsSharedZip(
+            backend,
+            TEST_NOTEBOOK_ID,
+            new Map(),
+            { preserveUUIDs: true },
+        ));
+        const exported = JSON.parse(await archive.file('dashql-notebook.json')!.async('text'));
+
+        expect(exported.notebookId).toBe(TEST_NOTEBOOK_ID);
+        expect(exported.mainDatabase.databaseId).toBe(testNotebook().mainDatabase.databaseId);
+    });
+
+    it('generates new UUIDs for URL exports by default', async () => {
+        const backend = new NotebookTestBackend();
+        await backend.saveNotebookManifest(TEST_NOTEBOOK_ID, testNotebook());
+
+        const url = await exportNotebookAsUrl(backend, TEST_NOTEBOOK_ID, new Map(), NotebookLinkTarget.WEB);
+        const eventJson = new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!));
+        const event = JSON.parse(eventJson) as { notebook: string };
+        const archive = await JSZip.loadAsync(BASE64URL_CODEC.decode(event.notebook));
+        const exported = JSON.parse(await archive.file('dashql-notebook.json')!.async('text'));
+
+        expect(exported.notebookId).not.toBe(TEST_NOTEBOOK_ID);
+        expect(exported.mainDatabase.databaseId).not.toBe(testNotebook().mainDatabase.databaseId);
+    });
 });
