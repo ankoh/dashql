@@ -24,8 +24,8 @@ export interface NotebookExportOptions {
     /// Include the persisted relation and function catalog SQL files when they exist.
     withCatalog?: boolean;
     /// Transform the notebook metadata after it is loaded from the backend and before it is written
-    /// into the ZIP. The script folders and draft are always exported verbatim from disk; only the
-    /// `dashql-notebook.json` payload passes through here. The sharing path uses this to sanitize
+    /// into the ZIP. Scripts are exported verbatim from disk; only the `dashql-notebook.json`
+    /// payload passes through here. The sharing path uses this to sanitize
     /// connection secrets, strip the login hint, or override the name.
     /// Receives the notebook as stored; returns the notebook to serialize.
     transformNotebook?: (notebook: NotebookData) => NotebookData;
@@ -66,6 +66,7 @@ export async function createNotebookZip(
     }
 
     for (const script of scripts) {
+        if (script.name.toLowerCase() === 'dashql-draft.sql') continue;
         scriptsFolder.file(script.name, script.sql);
     }
 
@@ -79,9 +80,9 @@ export async function createNotebookZip(
 
 /// Exports a notebook as a ZIP file by loading from storage backend.
 ///
-/// Script folders and the draft are always exported exactly as they exist on disk. Pass
-/// `options.transformNotebook` to adjust the notebook metadata on the way out (e.g. sanitize
-/// connection secrets or drop the login hint when sharing).
+/// Scripts are always exported exactly as they exist on disk. Pass `options.transformNotebook` to
+/// adjust the notebook metadata on the way out (e.g. sanitize connection secrets or drop the login
+/// hint when sharing).
 export async function exportNotebookAsZip(
     notebookId: string,
     backend: StorageBackend,
@@ -103,10 +104,10 @@ export async function exportNotebookAsZip(
 
 /// Export a notebook as a shareable ZIP.
 ///
-/// Script folders, scripts, the draft and the notebook name are read straight from disk (via
-/// `exportNotebookAsZip`) so the shared archive matches the persisted notebook exactly. Only the
-/// connection params are rewritten for sharing: the stored params are swapped for the live
-/// connection's params, sanitized of secrets, with the login hint optionally stripped.
+/// Scripts and the notebook name are read straight from disk (via `exportNotebookAsZip`) so the
+/// shared archive matches the persisted notebook exactly. Only the connection params are rewritten
+/// for sharing: the stored params are swapped for the live connection's params, sanitized of
+/// secrets, with the login hint optionally stripped.
 export async function exportNotebookAsSharedZip(
     backend: StorageBackend,
     notebookId: string,
@@ -150,7 +151,7 @@ export async function exportNotebookAsUrl(
         backend,
         notebookId,
         databaseParams,
-        options,
+        { ...options, withCatalog: options.withCatalog ?? false },
     );
     const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
 

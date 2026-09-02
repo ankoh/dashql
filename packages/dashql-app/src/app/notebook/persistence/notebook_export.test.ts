@@ -1,11 +1,28 @@
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 
-import { exportNotebookAsZip } from './notebook_export.js';
+import { BASE64URL_CODEC } from '../../../utils/base64.js';
+import {
+    createNotebookZip,
+    exportNotebookAsSharedZip,
+    exportNotebookAsUrl,
+    exportNotebookAsZip,
+    NotebookLinkTarget,
+} from './notebook_export.js';
 import { importNotebookFromZip } from './notebook_import.js';
 import { NotebookTestBackend, TEST_NOTEBOOK_ID, testNotebook } from './notebook_test_backend.js';
 
 describe('V2 notebook export', () => {
+    it('does not encode the reserved draft script', async () => {
+        const archive = await JSZip.loadAsync(await createNotebookZip(testNotebook(), [
+            { name: 'dashql-draft.sql', sql: 'SELECT draft' },
+            { name: '01_query.sql', sql: 'SELECT 1' },
+        ]));
+
+        expect(archive.file('scripts/dashql-draft.sql')).toBeNull();
+        expect(await archive.file('scripts/01_query.sql')!.async('text')).toBe('SELECT 1');
+    });
+
     it('exports only flat scripts and includes catalogs on request', async () => {
         const backend = new NotebookTestBackend();
         await backend.saveNotebookManifest(TEST_NOTEBOOK_ID, testNotebook());
@@ -32,5 +49,36 @@ describe('V2 notebook export', () => {
         const blob = await exportNotebookAsZip(TEST_NOTEBOOK_ID, source);
         await expect(importNotebookFromZip(blob, target)).resolves.toBe(TEST_NOTEBOOK_ID);
         expect(await target.loadScripts(TEST_NOTEBOOK_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 42' }]);
+    });
+
+    it('omits catalogs from URL exports by default', async () => {
+        const backend = new NotebookTestBackend();
+        await backend.saveNotebookManifest(TEST_NOTEBOOK_ID, testNotebook());
+        await backend.saveNotebookSchema(TEST_NOTEBOOK_ID, 'schema');
+        await backend.saveNotebookFunctions(TEST_NOTEBOOK_ID, 'functions');
+
+        const url = await exportNotebookAsUrl(backend, TEST_NOTEBOOK_ID, new Map(), NotebookLinkTarget.WEB);
+        const eventJson = new TextDecoder().decode(BASE64URL_CODEC.decode(url.searchParams.get('data')!));
+        const event = JSON.parse(eventJson) as { notebook: string };
+        const archive = await JSZip.loadAsync(BASE64URL_CODEC.decode(event.notebook));
+
+        expect(archive.file('dashql-relations.sql')).toBeNull();
+        expect(archive.file('dashql-functions.sql')).toBeNull();
+    });
+
+    it('includes catalogs in shared ZIP exports by default', async () => {
+        const backend = new NotebookTestBackend();
+        await backend.saveNotebookManifest(TEST_NOTEBOOK_ID, testNotebook());
+        await backend.saveNotebookSchema(TEST_NOTEBOOK_ID, 'schema');
+        await backend.saveNotebookFunctions(TEST_NOTEBOOK_ID, 'functions');
+
+        const archive = await JSZip.loadAsync(await exportNotebookAsSharedZip(
+            backend,
+            TEST_NOTEBOOK_ID,
+            new Map(),
+        ));
+
+        expect(await archive.file('dashql-relations.sql')!.async('text')).toBe('schema');
+        expect(await archive.file('dashql-functions.sql')!.async('text')).toBe('functions');
     });
 });
