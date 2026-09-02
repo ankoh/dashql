@@ -124,7 +124,14 @@
 
 .reset_label { font-size: 10px; font-weight: 600; }
 
-.inspector { max-height: 432px; overflow: auto; user-select: text; }
+.inspector {
+    display: flex;
+    flex-direction: column;
+    max-height: 432px;
+    overflow: hidden;
+    user-select: text;
+}
+.inspector_json { flex: 1; }
 .inspector_header {
     display: flex;
     flex-direction: column;

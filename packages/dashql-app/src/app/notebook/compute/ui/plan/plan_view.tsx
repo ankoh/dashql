@@ -283,7 +283,14 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                             <span>{selection.operator.typeName}</span>
                         )}
                     </header>
-                    {selection != null && <JsonView value={selection.operator.properties} collapsed={2} shortenTextAfterLength={100} />}
+                    {selection != null && (
+                        <JsonView
+                            className={styles.inspector_json}
+                            value={selection.operator.properties}
+                            collapsed={2}
+                            shortenTextAfterLength={100}
+                        />
+                    )}
                 </section>
             </AnchoredOverlay>
         </div>
