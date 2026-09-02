@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '../logger/logger.js';
-import { compareReleaseVersions, detectReleaseChannel, loadReleaseManifest } from './web_version_check.js';
+import { canInstallReleaseVersion, compareReleaseVersions, detectReleaseChannel, loadReleaseManifest } from './web_version_check.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }
@@ -49,6 +49,21 @@ describe('compareReleaseVersions', () => {
         expect(compareReleaseVersions('0.0.2', '0.0.3-dev.5')).toBeLessThan(0);
         // The canary of the next core version is an upgrade over the current stable
         expect(compareReleaseVersions('0.0.3-dev.5', '0.0.2')).toBeGreaterThan(0);
+    });
+});
+
+describe('canInstallReleaseVersion', () => {
+    it('allows switching from canary to an older stable release', () => {
+        expect(canInstallReleaseVersion('0.0.12', '0.0.13-dev.5')).toBe(true);
+    });
+
+    it('allows switching from stable to canary', () => {
+        expect(canInstallReleaseVersion('0.0.13-dev.5', '0.0.12')).toBe(true);
+    });
+
+    it('blocks same-channel downgrades and reinstalls', () => {
+        expect(canInstallReleaseVersion('0.0.11', '0.0.12')).toBe(false);
+        expect(canInstallReleaseVersion('0.0.12', '0.0.12')).toBe(false);
     });
 });
 

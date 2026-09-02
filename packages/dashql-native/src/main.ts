@@ -555,14 +555,16 @@ if (!hasSingleInstanceLock) {
         if (!isTrustedRenderer(event.senderFrame?.url)) throw new Error("Rejected update request from an untrusted frame");
         return updater?.getStatus() ?? {status: "disabled"};
     });
-    ipcMain.handle("dashql:check-for-updates", async (event) => {
+    ipcMain.handle("dashql:check-for-updates", async (event, channel?: "canary" | "stable") => {
         if (!isTrustedRenderer(event.senderFrame?.url)) throw new Error("Rejected update request from an untrusted frame");
-        return await updater?.check() ?? {status: "disabled"};
+        if (channel !== undefined && channel !== "canary" && channel !== "stable") throw new Error("Rejected invalid update channel");
+        return await updater?.check(channel) ?? {status: "disabled"};
     });
-    ipcMain.handle("dashql:download-update", async (event) => {
+    ipcMain.handle("dashql:download-update", async (event, channel: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url)) throw new Error("Rejected update request from an untrusted frame");
+        if (channel !== "canary" && channel !== "stable") throw new Error("Rejected invalid update channel");
         if (updater === null) throw new Error("Updates are unavailable");
-        await updater.download();
+        await updater.download(channel);
     });
     ipcMain.handle("dashql:install-update", (event) => {
         if (!isTrustedRenderer(event.senderFrame?.url)) throw new Error("Rejected update request from an untrusted frame");

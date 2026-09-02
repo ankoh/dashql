@@ -20,7 +20,7 @@ import {
 } from '../../platform/version/version_check.js';
 import { Button, ButtonVariant, IconButton } from '../foundations/button.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
-import { compareReleaseVersions, detectReleaseChannel, ReleaseChannel, ReleaseManifest } from '../../platform/version/web_version_check.js';
+import { canInstallReleaseVersion, detectReleaseChannel, ReleaseChannel, ReleaseManifest } from '../../platform/version/web_version_check.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../../utils/result.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { ReleaseBundles } from './release_bundle.js';
@@ -58,11 +58,10 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
             // If the installation status refers to this channel, we render the installation status instead.
             // If it's not referring to this channel, we render nothing.
             if (props.installationStatus == null) {
-                // Whether the channel offers an upgrade is decided by the release manifest (the same
-                // signal the navbar indicator uses). We only ever signal a strict upgrade so we never
-                // nudge towards a downgrade (e.g. an older stable while on a newer canary).
-                const isUpgrade = versionName != null && compareReleaseVersions(versionName, DASHQL_VERSION) > 0;
-                if (!isUpgrade) {
+                // Same-channel installs only move forward. Switching channels may select an older
+                // release, for example when moving from a canary back to stable.
+                const isInstallable = versionName != null && canInstallReleaseVersion(versionName, DASHQL_VERSION);
+                if (!isInstallable) {
                     status = props.isActive
                         ? <span className={styles.update_channel_action_status}>up to date</span>
                         : null;

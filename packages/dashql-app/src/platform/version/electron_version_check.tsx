@@ -16,7 +16,7 @@ import {
     VERSION_CHECK_REFRESH_CTX,
     VersionCheckStatusCode,
 } from './version_check.js';
-import { detectReleaseChannel, loadReleaseManifest, ReleaseManifest } from './web_version_check.js';
+import { detectReleaseChannel, loadReleaseManifest, ReleaseChannel, ReleaseManifest } from './web_version_check.js';
 import { DASHQL_VERSION } from '../../globals.js';
 
 type Props = {children: React.ReactElement};
@@ -29,35 +29,51 @@ export const ElectronVersionCheck: React.FC<Props> = ({children}) => {
     const [installation, setInstallation] = React.useState<InstallationState | null>(null);
     const [stableRelease, setStableRelease] = React.useState<Result<ReleaseManifest> | null>(null);
     const [canaryRelease, setCanaryRelease] = React.useState<Result<ReleaseManifest> | null>(null);
-    const updateRef = React.useRef<InstallableUpdate | null>(null);
+    const updateRef = React.useRef<Record<ReleaseChannel, InstallableUpdate> | null>(null);
 
     if (updateRef.current === null) {
-        updateRef.current = {download: async () => await bridge.download()};
+        updateRef.current = {
+            stable: {download: async () => await bridge.download('stable')},
+            canary: {download: async () => await bridge.download('canary')},
+        };
     }
-    const update = updateRef.current;
-    const [activeUpdate, setActiveUpdate] = React.useState<Result<InstallableUpdate | null> | null>(null);
+    const updates = updateRef.current;
+    const [stableUpdate, setStableUpdate] = React.useState<Result<InstallableUpdate | null> | null>(null);
+    const [canaryUpdate, setCanaryUpdate] = React.useState<Result<InstallableUpdate | null> | null>(null);
 
     const applyStatus = React.useEffectEvent((next: DashQLElectronUpdateStatus) => {
         switch (next.status) {
             case 'disabled':
                 setStatus(VersionCheckStatusCode.Disabled);
-                setActiveUpdate({type: RESULT_OK, value: null});
+                if (activeChannel === 'canary') {
+                    setCanaryUpdate({type: RESULT_OK, value: null});
+                } else {
+                    setStableUpdate({type: RESULT_OK, value: null});
+                }
                 break;
             case 'checking':
                 setStatus(VersionCheckStatusCode.Unknown);
                 break;
             case 'up-to-date':
                 setStatus(VersionCheckStatusCode.UpToDate);
-                setActiveUpdate({type: RESULT_OK, value: null});
+                if (next.channel === 'canary') {
+                    setCanaryUpdate({type: RESULT_OK, value: null});
+                } else {
+                    setStableUpdate({type: RESULT_OK, value: null});
+                }
                 break;
             case 'available':
                 setStatus(VersionCheckStatusCode.UpdateAvailable);
-                setActiveUpdate({type: RESULT_OK, value: update});
+                if (next.channel === 'canary') {
+                    setCanaryUpdate({type: RESULT_OK, value: updates.canary});
+                } else {
+                    setStableUpdate({type: RESULT_OK, value: updates.stable});
+                }
                 break;
             case 'downloading':
                 setStatus(VersionCheckStatusCode.UpdateInstalling);
                 setInstallation({
-                    update,
+                    update: updates[next.channel],
                     statusCode: InstallationStatusCode.InProgress,
                     totalBytes: next.total,
                     loadedBytes: next.transferred,
@@ -68,7 +84,7 @@ export const ElectronVersionCheck: React.FC<Props> = ({children}) => {
             case 'downloaded':
                 setStatus(VersionCheckStatusCode.RestartPending);
                 setInstallation({
-                    update,
+                    update: updates[next.channel],
                     statusCode: InstallationStatusCode.RestartPending,
                     totalBytes: null,
                     loadedBytes: 0,
@@ -79,7 +95,11 @@ export const ElectronVersionCheck: React.FC<Props> = ({children}) => {
             case 'error': {
                 const error = new Error(next.message);
                 setStatus(VersionCheckStatusCode.UpdateFailed);
-                setActiveUpdate({type: RESULT_ERROR, error});
+                if (next.channel === 'canary') {
+                    setCanaryUpdate({type: RESULT_ERROR, error});
+                } else {
+                    setStableUpdate({type: RESULT_ERROR, error});
+                }
                 setInstallation((current) => current === null ? null : {
                     ...current,
                     statusCode: InstallationStatusCode.Failed,
@@ -97,7 +117,7 @@ export const ElectronVersionCheck: React.FC<Props> = ({children}) => {
         void loadReleaseManifest('canary', DASHQL_CANARY_RELEASE_MANIFEST, logger)
             .then(value => setCanaryRelease({type: RESULT_OK, value}))
             .catch(error => setCanaryRelease({type: RESULT_ERROR, error}));
-        void bridge.check().then(applyStatus).catch(error => applyStatus({status: 'error', message: String(error)}));
+        void bridge.check(activeChannel).then(applyStatus).catch(error => applyStatus({status: 'error', channel: activeChannel, message: String(error)}));
     }, [bridge, logger]);
 
     React.useEffect(() => {
@@ -107,16 +127,16 @@ export const ElectronVersionCheck: React.FC<Props> = ({children}) => {
         return unsubscribe;
     }, [bridge, refresh]);
 
-    const stableUpdate = activeChannel === 'stable' ? activeUpdate : {type: RESULT_OK, value: null} as const;
-    const canaryUpdate = activeChannel === 'canary' ? activeUpdate : {type: RESULT_OK, value: null} as const;
+    const stableInstallableUpdate = stableUpdate ?? (activeChannel === 'canary' ? {type: RESULT_OK, value: updates.stable} as const : null);
+    const canaryInstallableUpdate = canaryUpdate ?? (activeChannel === 'stable' ? {type: RESULT_OK, value: updates.canary} as const : null);
     return (
         <VERSION_CHECK_CTX.Provider value={status}>
             <VERSION_CHECK_REFRESH_CTX.Provider value={refresh}>
                 <INSTALLATION_STATUS_CTX.Provider value={installation}>
                     <STABLE_RELEASE_MANIFEST_CTX.Provider value={stableRelease}>
-                        <STABLE_UPDATE_MANIFEST_CTX.Provider value={stableUpdate}>
+                        <STABLE_UPDATE_MANIFEST_CTX.Provider value={stableInstallableUpdate}>
                             <CANARY_RELEASE_MANIFEST_CTX.Provider value={canaryRelease}>
-                                <CANARY_UPDATE_MANIFEST_CTX.Provider value={canaryUpdate}>
+                                <CANARY_UPDATE_MANIFEST_CTX.Provider value={canaryInstallableUpdate}>
                                     {children}
                                 </CANARY_UPDATE_MANIFEST_CTX.Provider>
                             </CANARY_RELEASE_MANIFEST_CTX.Provider>

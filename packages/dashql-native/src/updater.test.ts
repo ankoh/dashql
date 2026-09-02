@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 
-import {architectureName, updateFeedUrl} from "./update_feed.js";
+import {architectureName, updateFeedUrl, updateFeedUrlForChannel} from "./update_feed.js";
 
 describe("updateFeedUrl", () => {
     it("selects stable and arm64", () => {
@@ -9,6 +9,10 @@ describe("updateFeedUrl", () => {
 
     it("selects canary and x64", () => {
         expect(updateFeedUrl("1.2.4-dev.3", "x64")).toBe("https://get.dashql.app/channels/canary/macos/x64");
+    });
+
+    it("allows a stable installation to explicitly select the canary feed", () => {
+        expect(updateFeedUrlForChannel("canary", "arm64")).toBe("https://get.dashql.app/channels/canary/macos/arm64");
     });
 });
 

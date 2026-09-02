@@ -32,8 +32,8 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
     }),
     openExternal: async (url) => await ipcRenderer.invoke("dashql:open-external", url),
     updates: {
-        check: async () => await ipcRenderer.invoke("dashql:check-for-updates"),
-        download: async () => await ipcRenderer.invoke("dashql:download-update"),
+        check: async (channel) => await ipcRenderer.invoke("dashql:check-for-updates", channel),
+        download: async (channel) => await ipcRenderer.invoke("dashql:download-update", channel),
         getStatus: async () => await ipcRenderer.invoke("dashql:update-status"),
         install: async () => await ipcRenderer.invoke("dashql:install-update"),
         onStatus: (listener) => {

@@ -3,7 +3,13 @@ export function architectureName(arch: string): "arm64" | "x64" {
     throw new Error(`Unsupported update architecture: ${arch}`);
 }
 
+export type UpdateChannel = "canary" | "stable";
+
+export function updateFeedUrlForChannel(channel: UpdateChannel, arch: string): string {
+    return `https://get.dashql.app/channels/${channel}/macos/${architectureName(arch)}`;
+}
+
 export function updateFeedUrl(version: string, arch: string): string {
     const channel = version.includes("-") ? "canary" : "stable";
-    return `https://get.dashql.app/channels/${channel}/macos/${architectureName(arch)}`;
+    return updateFeedUrlForChannel(channel, arch);
 }

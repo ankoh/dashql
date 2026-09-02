@@ -26,8 +26,8 @@ interface DashQLElectronBridge {
     openExternal(url: string): Promise<void>;
     openDirectory(title: string): Promise<string | null>;
     updates: {
-        check(): Promise<DashQLElectronUpdateStatus>;
-        download(): Promise<void>;
+        check(channel?: DashQLUpdateChannel): Promise<DashQLElectronUpdateStatus>;
+        download(channel: DashQLUpdateChannel): Promise<void>;
         getStatus(): Promise<DashQLElectronUpdateStatus>;
         install(): Promise<void>;
         onStatus(listener: (status: DashQLElectronUpdateStatus) => void): () => void;
@@ -35,14 +35,16 @@ interface DashQLElectronBridge {
     watchDirectory(path: string, listener: (paths: string[]) => void): Promise<() => Promise<void>>;
 }
 
+type DashQLUpdateChannel = 'canary' | 'stable';
+
 type DashQLElectronUpdateStatus =
     | {status: 'disabled'}
-    | {status: 'checking'}
-    | {status: 'up-to-date'; version: string}
-    | {status: 'available'; version: string}
-    | {status: 'downloading'; version: string; transferred: number; total: number}
-    | {status: 'downloaded'; version: string}
-    | {status: 'error'; message: string};
+    | {status: 'checking'; channel: DashQLUpdateChannel}
+    | {status: 'up-to-date'; channel: DashQLUpdateChannel; version: string}
+    | {status: 'available'; channel: DashQLUpdateChannel; version: string}
+    | {status: 'downloading'; channel: DashQLUpdateChannel; version: string; transferred: number; total: number}
+    | {status: 'downloaded'; channel: DashQLUpdateChannel; version: string}
+    | {status: 'error'; channel: DashQLUpdateChannel; message: string};
 
 declare var __DASHQL_STARTUP__: DashQLStartupResult | undefined;
 declare var dashqlElectron: DashQLElectronBridge | undefined;

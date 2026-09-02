@@ -111,6 +111,13 @@ export function compareReleaseVersions(a: string, b: string): number {
     return comparePrerelease(pa.prerelease, pb.prerelease);
 }
 
+/// Whether a release should be offered for installation. Updates within the current channel
+/// must move forward, while selecting another channel may move to an older version.
+export function canInstallReleaseVersion(targetVersion: string, currentVersion: string): boolean {
+    return detectReleaseChannel(targetVersion) !== detectReleaseChannel(currentVersion)
+        || compareReleaseVersions(targetVersion, currentVersion) > 0;
+}
+
 /// Load the release manifest
 export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, logger: Logger): Promise<ReleaseManifest> {
     const traced = logger.withTrace(createTrace());
