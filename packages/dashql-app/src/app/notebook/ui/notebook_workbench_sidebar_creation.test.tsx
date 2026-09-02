@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AttachedDatabaseState } from '../connections/attached_database_state.js';
+import { ConnectionHealth, type AttachedDatabaseState } from '../connections/attached_database_state.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -14,7 +14,7 @@ const state = vi.hoisted(() => ({
     write: vi.fn<() => Promise<boolean>>(),
     refreshCatalog: vi.fn(),
     local: null as AttachedDatabaseState | null,
-    overlayProps: null as { isOpen: boolean; onClose: () => void; onConnected?: (database: AttachedDatabaseState) => void } | null,
+    overlayProps: null as { databaseId: string | null; headerTitle?: string; isOpen: boolean; onClose: () => void; onConnected?: (database: AttachedDatabaseState) => void } | null,
     shareProps: null as { isOpen: boolean; notebookId?: string } | null,
     attachedDatabases: new Map<string, AttachedDatabaseState>(),
     attachedDatabasesByNotebook: new Map<string, { mainDatabaseId: string; attachedDatabaseIds: string[] }>(),
@@ -90,7 +90,7 @@ vi.mock('../../../platform/logger/logger_provider.js', () => ({ useLogger: () =>
 vi.mock('../../../platform/platform_type.js', () => ({ PlatformType: { WEB: 0, MACOS: 1 }, usePlatformType: () => 0 }));
 vi.mock('../../router/notebook_setup_status.js', () => ({ NotebookSetupStatus: { NONE: 0, OPENING: 1, CONFIGURING: 2 } }));
 
-import { HYPER_CONNECTOR } from '../connections/connector_info.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connections/connector_info.js';
 import { NotebookWorkbenchSidebar } from './notebook_workbench_sidebar.js';
 
 describe('NotebookWorkbenchSidebar notebook creation', () => {
@@ -137,6 +137,7 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
 
     it('creates a notebook only after the selected main database connects', async () => {
         click('Create notebook');
+        expect(state.overlayProps).toMatchObject({ headerTitle: 'Create notebook' });
         expect(state.setupNotebookScripts).not.toHaveBeenCalled();
         await act(async () => {
             Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Complete setup')!.click();
@@ -149,6 +150,56 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
         expect(state.navigate).toHaveBeenCalledWith({
             type: expect.any(Symbol),
             value: '00000000-0000-4000-8000-000000000001',
+        });
+    });
+
+    it('logs into a disconnected notebook in the workbench before selecting it', async () => {
+        const database = {
+            databaseId: 'salesforce-database',
+            connectionHealth: ConnectionHealth.NOT_STARTED,
+            connectorInfo: { icons: { colored: 'salesforce' } },
+            details: {
+                type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                value: { proto: { setupParams: {} } },
+            },
+        } as AttachedDatabaseState;
+        state.attachedDatabases.set(database.databaseId, database);
+        state.attachedDatabasesByNotebook.set('salesforce-notebook', {
+            mainDatabaseId: database.databaseId,
+            attachedDatabaseIds: [],
+        });
+        state.notebookScriptsMap.set('salesforce-notebook', {
+            notebookId: 'salesforce-notebook',
+            name: 'Salesforce notebook',
+            notebookMetadata: {},
+        });
+        act(() => root.render(<NotebookWorkbenchSidebar notebookScripts={{
+            notebookId: 'current-notebook',
+            instance: {},
+        } as any} />));
+
+        act(() => {
+            Array.from(container.querySelectorAll('button'))
+                .find(button => button.textContent?.includes('Salesforce notebook'))!
+                .click();
+        });
+
+        expect(state.overlayProps).toMatchObject({
+            databaseId: database.databaseId,
+            headerTitle: 'Open Salesforce notebook',
+            isOpen: true,
+        });
+        expect(state.navigate).not.toHaveBeenCalled();
+
+        await act(async () => {
+            await state.overlayProps!.onConnected?.({
+                ...database,
+                connectionHealth: ConnectionHealth.ONLINE,
+            });
+        });
+        expect(state.navigate).toHaveBeenCalledWith({
+            type: expect.any(Symbol),
+            value: 'salesforce-notebook',
         });
     });
 

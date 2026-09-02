@@ -691,7 +691,7 @@ export const AttachedDatabaseRefreshButton: React.FC<AttachedDatabaseRefreshButt
 interface NotebookRowProps {
     item: NotebookItem;
     selected: boolean;
-    onOpen: () => void;
+    onOpen: (anchor: HTMLButtonElement) => void;
     onDuplicate: () => void;
     onDelete: () => void;
 }
@@ -720,7 +720,7 @@ const NotebookRow: React.FC<NotebookRowProps> = ({ item, selected, onOpen, onDup
                 className={styles.notebook_button}
                 aria-current={selected ? 'page' : undefined}
                 title={item.path}
-                onClick={onOpen}
+                onClick={event => onOpen(event.currentTarget)}
             >
                 <BookIcon size={14} aria-hidden="true" />
                 <span className={title ? styles.notebook_name : styles.notebook_path}>{title ?? item.path}</span>
@@ -779,7 +779,9 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
         [attached?.main, attached?.attached],
     );
     const [connectionOverlayDatabaseId, setConnectionOverlayDatabaseId] = React.useState<string | null>(null);
+    const [connectionOverlayHeader, setConnectionOverlayHeader] = React.useState<string | null>(null);
     const pendingNotebookRef = React.useRef<{ notebookId: string; databaseId: string; committing: boolean } | null>(null);
+    const pendingNotebookSelectionRef = React.useRef<{ notebookId: string; databaseId: string } | null>(null);
     const connectionSettingsAnchorRef = React.useRef<HTMLButtonElement>(null);
     const notebookSwitchAbortRef = React.useRef<AbortController | null>(null);
     const folderButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -882,17 +884,20 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
         ));
         pendingNotebookRef.current = { notebookId, databaseId: database.databaseId, committing: false };
         connectionSettingsAnchorRef.current = anchor;
+        setConnectionOverlayHeader('Create notebook');
         setConnectionOverlayDatabaseId(database.databaseId);
     }, [allocateDatabase, databaseRegistry.attachedDatabasesBySignature, props.notebookScripts.instance]);
 
     const closeConnectionOverlay = React.useCallback(() => {
         const pending = pendingNotebookRef.current;
         pendingNotebookRef.current = null;
+        pendingNotebookSelectionRef.current = null;
         if (pending != null) {
             storageWriter.cancelPendingWritesForNotebook(pending.notebookId);
             databaseDispatch(pending.databaseId, { type: DELETE_ATTACHED_DATABASE, value: null });
             void storageWriter.backend.deleteNotebook(pending.notebookId).catch(() => {});
         }
+        setConnectionOverlayHeader(null);
         setConnectionOverlayDatabaseId(null);
         if (route.notebookSetupStatus === NotebookSetupStatus.CONFIGURING && route.notebookId != null) {
             navigate({ type: SELECT_NOTEBOOK, value: route.notebookId });
@@ -913,12 +918,23 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
             }
             setupNotebookScripts(pending.notebookId, database);
             pendingNotebookRef.current = null;
+            setConnectionOverlayHeader(null);
             setConnectionOverlayDatabaseId(null);
             navigate({ type: SELECT_NOTEBOOK, value: pending.notebookId });
             props.closeAfterSelection?.();
             return;
         }
+        const selection = pendingNotebookSelectionRef.current;
+        if (selection != null && selection.databaseId === database.databaseId) {
+            pendingNotebookSelectionRef.current = null;
+            setConnectionOverlayHeader(null);
+            setConnectionOverlayDatabaseId(null);
+            navigate({ type: SELECT_NOTEBOOK, value: selection.notebookId });
+            props.closeAfterSelection?.();
+            return;
+        }
         if (route.notebookId != null) {
+            setConnectionOverlayHeader(null);
             setConnectionOverlayDatabaseId(null);
             navigate({ type: SELECT_NOTEBOOK, value: route.notebookId });
             props.closeAfterSelection?.();
@@ -1013,7 +1029,7 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
         }
     }, [cancelAgentRun, computationDispatch, databaseDispatch, databaseRegistry, deleteNotebookScripts, navigate, notebooks, props.notebookScripts.notebookId, storageWriter.backend]);
 
-    const openNotebook = React.useCallback((item: NotebookItem) => {
+    const openNotebook = React.useCallback((item: NotebookItem, anchor: HTMLButtonElement) => {
         if (item.notebookId === props.notebookScripts.notebookId) {
             props.closeAfterSelection?.();
             return;
@@ -1023,7 +1039,13 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
         if (mode === 'select') {
             navigate({ type: SELECT_NOTEBOOK, value: item.notebookId });
         } else if (mode === 'open-setup') {
-            navigate({ type: OPEN_NOTEBOOK, value: item.notebookId });
+            pendingNotebookSelectionRef.current = {
+                notebookId: item.notebookId,
+                databaseId: item.database.databaseId,
+            };
+            connectionSettingsAnchorRef.current = anchor;
+            setConnectionOverlayHeader(`Open ${item.label}`);
+            setConnectionOverlayDatabaseId(item.database.databaseId);
         } else {
             notebookSwitchAbortRef.current?.abort('another notebook selected');
             const abort = new AbortController();
@@ -1108,7 +1130,7 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
                                     key={item.notebookId}
                                     item={item}
                                     selected={item.notebookId === props.notebookScripts.notebookId}
-                                    onOpen={() => openNotebook(item)}
+                                    onOpen={anchor => openNotebook(item, anchor)}
                                     onDuplicate={() => { void duplicateNotebook(item); }}
                                     onDelete={() => { void deleteNotebook(item); }}
                                 />
@@ -1152,7 +1174,10 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
                 isOpen={connectionOverlayDatabaseId != null}
                 onClose={closeConnectionOverlay}
                 anchorRef={connectionSettingsAnchorRef}
-                onConnected={pendingNotebookRef.current != null || route.notebookSetupStatus === NotebookSetupStatus.CONFIGURING
+                headerTitle={connectionOverlayHeader ?? undefined}
+                onConnected={pendingNotebookRef.current != null
+                    || pendingNotebookSelectionRef.current != null
+                    || route.notebookSetupStatus === NotebookSetupStatus.CONFIGURING
                     ? finishConnectionSetup
                     : undefined}
             />

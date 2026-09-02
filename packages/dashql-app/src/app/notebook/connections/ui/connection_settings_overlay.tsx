@@ -4,6 +4,8 @@ import * as styles from './connection_settings_overlay.module.css';
 import { AnchoredOverlay } from '../../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored_position.js';
 import { OverlaySize } from '../../../../ui/foundations/overlay.js';
+import { ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
+import { XIcon } from '../../../../ui/foundations/symbol_icon.js';
 import { ConnectorType } from '../connector_info.js';
 import { useAttachedDatabaseById } from '../attached_database_registry.js';
 import { ConnectionHealth, type AttachedDatabaseState } from '../attached_database_state.js';
@@ -14,6 +16,7 @@ interface Props {
     isOpen: boolean;
     onClose: () => void;
     anchorRef: React.RefObject<HTMLElement | null>;
+    headerTitle?: string;
     onConnected?: (database: AttachedDatabaseState) => void;
 }
 
@@ -62,12 +65,21 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
             maxHeight={OverlaySize.XL}
         >
             <div className={styles.overlay_container}>
+                <header className={styles.header}>
+                    <h2 className={styles.header_title}>{props.headerTitle ?? 'Connection settings'}</h2>
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Close"
+                        onClick={props.onClose}
+                    >
+                        <XIcon />
+                    </IconButton>
+                </header>
                 <ConnectorConfigTabs
                     className={styles.content_sized_tabs}
                     databaseId={props.databaseId}
                     selectedConnectorType={selectedConnectorType}
                     setSelectedConnectorType={setSelectedConnectorType}
-                    onClose={props.onClose}
                 />
             </div>
         </AnchoredOverlay>

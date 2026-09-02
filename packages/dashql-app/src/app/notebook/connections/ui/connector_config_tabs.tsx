@@ -14,7 +14,6 @@ interface Props {
     databaseId: string | null;
     selectedConnectorType: ConnectorType;
     setSelectedConnectorType: (type: ConnectorType) => void;
-    onClose?: () => void;
     lockConnectorType?: boolean;
 }
 
@@ -64,11 +63,11 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
 
             switch (connectorType) {
                 case ConnectorType.TRINO:
-                    return <TrinoConnectorSettings databaseId={databaseId} onClose={props.onClose} />;
+                    return <TrinoConnectorSettings databaseId={databaseId} />;
                 case ConnectorType.SALESFORCE_DATA_CLOUD:
-                    return <SalesforceConnectorSettings databaseId={databaseId} onClose={props.onClose} />;
+                    return <SalesforceConnectorSettings databaseId={databaseId} />;
                 case ConnectorType.HYPER:
-                    return <HyperConnectorSettings databaseId={databaseId} onClose={props.onClose} />;
+                    return <HyperConnectorSettings databaseId={databaseId} />;
                 default:
                     throw new Error(`unsupported connector type ${connectorType}`);
             }
