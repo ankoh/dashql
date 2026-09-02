@@ -45,10 +45,6 @@
       "type": "object",
       "description": "Persisted app-level settings",
       "properties": {
-        "lastOpenedNotebookId": {
-          "type": "string",
-          "description": "UUID of the notebook most recently opened by the user"
-        },
         "aiProvider": {
           "$ref": "#/definitions/AIProviderSettings",
           "description": "Configuration of the OpenAI-compatible AI provider"

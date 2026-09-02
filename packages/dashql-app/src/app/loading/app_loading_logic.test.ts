@@ -3,20 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { loadApp, selectStartupNotebook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 
 describe('selectStartupNotebook', () => {
-    it('prefers a valid notebook requested by the URL', () => {
-        expect(selectStartupNotebook(['first', 'requested'], 'first', 'requested')).toBe('requested');
-    });
-
-    it('prefers a valid last-opened notebook', () => {
-        expect(selectStartupNotebook(['first', 'last'], 'last')).toBe('last');
-    });
-
-    it('falls back to the first restored notebook', () => {
-        expect(selectStartupNotebook(['first', 'second'], 'missing')).toBe('first');
+    it('selects the first restored notebook', () => {
+        expect(selectStartupNotebook(['first', 'second'])).toBe('first');
     });
 
     it('returns null when no valid notebook was restored', () => {
-        expect(selectStartupNotebook([], 'missing')).toBeNull();
+        expect(selectStartupNotebook([])).toBeNull();
     });
 });
 
@@ -92,6 +84,6 @@ describe('loadApp', () => {
             vi.fn(),
         );
         expect(result.restoredNotebookIds).toEqual(['second', 'first']);
-        expect(selectStartupNotebook(result.restoredNotebookIds, undefined)).toBe('second');
+        expect(selectStartupNotebook(result.restoredNotebookIds)).toBe('second');
     });
 });

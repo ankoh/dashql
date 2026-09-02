@@ -360,11 +360,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             traced.info("Finishing setup", {}, "app_loader");
 
             if (await shouldFinishInitialNavigation(initialInlineSetupRef.current)) {
-                let notebookId = selectStartupNotebook(
-                    loaded.restoredNotebookIds,
-                    config.settings?.lastOpenedNotebookId,
-                    routeContext.notebookId,
-                );
+                let notebookId = selectStartupNotebook(loaded.restoredNotebookIds);
                 if (notebookId == null) {
                     notebookId = crypto.randomUUID();
                     const database = allocateAttachedDatabase(

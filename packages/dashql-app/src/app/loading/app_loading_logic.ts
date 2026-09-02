@@ -18,15 +18,7 @@ export interface AppLoadingResult {
 
 export function selectStartupNotebook(
     restoredNotebookIds: readonly string[],
-    lastOpenedNotebookId: string | undefined,
-    requestedNotebookId?: string | null,
 ): string | null {
-    if (requestedNotebookId != null && restoredNotebookIds.includes(requestedNotebookId)) {
-        return requestedNotebookId;
-    }
-    if (lastOpenedNotebookId != null && restoredNotebookIds.includes(lastOpenedNotebookId)) {
-        return lastOpenedNotebookId;
-    }
     return restoredNotebookIds[0] ?? null;
 }
 

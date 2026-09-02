@@ -3,8 +3,6 @@ import * as React from 'react';
 import { useAppConfig, useAppReconfigure } from './app_config.js';
 import { useStorageReader } from '../notebook/persistence/storage_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { AppLoadingStatus } from '../router/app_loading_status.js';
-import { useRouteContext } from '../router/router.js';
 
 const LOG_CTX = 'app_settings_sync';
 
@@ -23,7 +21,6 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
     const reconfigure = useAppReconfigure();
     const storageReader = useStorageReader();
     const logger = useLogger();
-    const route = useRouteContext();
 
     const [hydrated, setHydrated] = React.useState(false);
     const hydrating = React.useRef(false);
@@ -35,9 +32,12 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
         storageReader.backend.loadAppSettings().then(stored => {
             if (stored != null) {
                 logger.info("Hydrated app settings from manifest", {}, LOG_CTX);
+                const { lastOpenedNotebookId: _lastOpenedNotebookId, ...settings } = stored as typeof stored & {
+                    lastOpenedNotebookId?: string;
+                };
                 reconfigure(c => c == null ? null : {
                     ...c,
-                    settings: { ...(c.settings ?? {}), ...stored },
+                    settings: { ...(c.settings ?? {}), ...settings },
                 });
             }
         }).catch(e => {
@@ -58,19 +58,6 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
         }, 250);
         return () => clearTimeout(handle);
     }, [hydrated, config?.settings, storageReader, logger]);
-
-    React.useEffect(() => {
-        if (!hydrated || route.appLoadingStatus !== AppLoadingStatus.SETUP_DONE || route.notebookId == null) return;
-        if (config?.settings?.lastOpenedNotebookId === route.notebookId) return;
-        const notebookId = route.notebookId;
-        reconfigure(current => current == null ? null : {
-            ...current,
-            settings: {
-                ...(current.settings ?? {}),
-                lastOpenedNotebookId: notebookId,
-            },
-        });
-    }, [config?.settings?.lastOpenedNotebookId, hydrated, reconfigure, route.appLoadingStatus, route.notebookId]);
 
     return <APP_SETTINGS_READY_CTX.Provider value={hydrated}>{props.children}</APP_SETTINGS_READY_CTX.Provider>;
 };
