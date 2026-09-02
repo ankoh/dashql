@@ -1,9 +1,9 @@
 {
   "formatVersion": 2,
-  "notebookId": "8203c46f-e9bd-4940-acc3-decc5d9d13a3",
-  "name": "Explain",
+  "notebookId": "f52ad067-c479-4c03-a07a-8edb0cb79711",
+  "name": "Hyper Property Graphs",
   "mainDatabase": {
-    "databaseId": "a7c9be55-7b4c-4d34-b557-469ff7693138",
+    "databaseId": "819bc22c-e793-414f-b002-a613a4dcd991",
     "params": {
       "hyper": {
         "protocol": "WASM",
@@ -21,6 +21,7 @@
   },
   "attachedDatabases": [],
   "metadata": {
-    "createdAt": "2026-08-29T08:58:04.623Z"
+    "createdAt": "2026-08-31T08:19:54.844Z",
+    "originalFileName": "hyper"
   }
 }
