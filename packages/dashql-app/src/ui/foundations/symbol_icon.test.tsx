@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { CheckIcon, SymbolIcon, XIcon } from './symbol_icon.js';
+import { BeakerIcon, CheckIcon, SymbolIcon, XIcon } from './symbol_icon.js';
 
 describe('SymbolIcon', () => {
     let container: HTMLDivElement;
@@ -48,6 +48,12 @@ describe('SymbolIcon', () => {
         svg = render(<XIcon size="medium" />);
         expect(svg.getAttribute('width')).toBe('32');
         expect(svg.querySelector('use')?.getAttribute('xlink:href')).toBe('/dependencies/svg-symbols/symbols.generated.svg#x_24');
+    });
+
+    it('uses the 16px beaker artwork at notebook-card sizes', () => {
+        const svg = render(<BeakerIcon size={14} />);
+
+        expect(svg.querySelector('use')?.getAttribute('xlink:href')).toBe('/dependencies/svg-symbols/symbols.generated.svg#beaker_16');
     });
 
     it('forwards SVG properties and exposes explicitly labelled graphics', () => {

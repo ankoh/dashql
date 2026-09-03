@@ -95,6 +95,7 @@ export function SymbolIcon(symbol: string): Icon {
 }
 
 export const AlertIcon = createIcon({ 16: 'alert_16' });
+export const BeakerIcon = createIcon({ 16: 'beaker_16', 24: 'beaker_24' });
 export const BookIcon = createIcon({ 16: 'book_16', 24: 'book_24' });
 export const CheckIcon = createIcon({ 16: 'check_16', 24: 'check_24' });
 export const ChecklistIcon = createIcon({ 16: 'checklist_16' });

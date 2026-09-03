@@ -4,7 +4,7 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
-import { CheckIcon, CopyIcon, SymbolIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
+import { BeakerIcon, CheckIcon, CopyIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import {
     BUNDLED_NOTEBOOKS,
     bundledNotebookShareUrl,
@@ -14,8 +14,6 @@ import {
 import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import * as styles from './bundled_notebooks_overlay.module.css';
-
-const BeakerIcon = SymbolIcon('beaker');
 
 export interface BundledNotebooksOverlayProps {
     side?: AnchorSide;
