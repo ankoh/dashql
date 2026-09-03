@@ -79,13 +79,28 @@ describe('QueryResultSearchControls', () => {
                 dataMatchCount={null}
             />,
         ));
-        const columnsButton = Array.from(container.querySelectorAll('button'))
-            .find(button => button.textContent?.includes('Columns'))!;
-        act(() => columnsButton.click());
         const input = container.querySelector<HTMLInputElement>('input[aria-label="Search columns"]')!;
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
         expect(container.querySelector('input[aria-label="Search columns"]')).not.toBeNull();
         expect(container.querySelector('[role="status"]')?.textContent).toContain('2 matching columns');
+    });
+
+    it('starts expanded when remounted with an active Data search', () => {
+        const dataSearch = { ...createResultSearchState(), requestedPattern: 'customer' };
+
+        act(() => root.render(
+            <QueryResultSearchControls
+                columnSearch={createResultSearchState()}
+                dataSearch={dataSearch}
+                onColumnPatternChange={() => {}}
+                onDataPatternChange={() => {}}
+                columnMatchCount={null}
+                dataMatchCount={2}
+            />,
+        ));
+
+        expect(container.querySelector<HTMLInputElement>('input[aria-label="Search data"]')?.value).toBe('customer');
+        expect(Array.from(container.querySelectorAll('button')).some(button => button.textContent?.includes('Data'))).toBe(false);
     });
 
     it('clears and collapses an active search from its close button', () => {
@@ -101,9 +116,6 @@ describe('QueryResultSearchControls', () => {
                 dataMatchCount={null}
             />,
         ));
-        const columnsButton = Array.from(container.querySelectorAll('button'))
-            .find(button => button.textContent?.includes('Columns'))!;
-        act(() => columnsButton.click());
         const clearButton = container.querySelector<HTMLButtonElement>('button[aria-label="Close columns search"]')!;
 
         act(() => clearButton.click());

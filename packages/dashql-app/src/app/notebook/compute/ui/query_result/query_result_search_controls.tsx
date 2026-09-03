@@ -107,8 +107,8 @@ interface Props {
 }
 
 export function QueryResultSearchControls(props: Props) {
-    const [columnsExpanded, setColumnsExpanded] = React.useState(false);
-    const [dataExpanded, setDataExpanded] = React.useState(false);
+    const [columnsExpanded, setColumnsExpanded] = React.useState(() => props.columnSearch.requestedPattern.length > 0);
+    const [dataExpanded, setDataExpanded] = React.useState(() => props.dataSearch.requestedPattern.length > 0);
     return (
         <>
             <SearchControl
