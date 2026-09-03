@@ -24,6 +24,5 @@
     "originalFileName": "hyper"
   },
   "name": "TPC-H",
-  "storageType": "native",
-  "nativePath": "/Users/andre.kohn/Repositories/dashql/examples/notebooks/tpch"
+  "storageType": "native"
 }

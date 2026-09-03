@@ -9,7 +9,8 @@ import { validateNotebookData } from './notebook_validation.js';
 const EXAMPLES_DIR = resolve(process.cwd(), '../../examples/notebooks');
 describe('bundled V2 notebooks', () => {
     it.each(BUNDLED_NOTEBOOKS)('$name has a valid manifest and an exact flat script index', notebook => {
-        const notebookDir = resolve(EXAMPLES_DIR, notebook.id);
+        const manifestPathSegments = notebook.manifestPath.split('/');
+        const notebookDir = resolve(EXAMPLES_DIR, manifestPathSegments[manifestPathSegments.length - 2]);
         const manifest = JSON.parse(readFileSync(resolve(notebookDir, 'dashql-notebook.json'), 'utf8')) as NotebookData;
         const index = JSON.parse(readFileSync(resolve(notebookDir, 'dashql-notebook-index.json'), 'utf8')) as NotebookIndexData;
         const scriptEntries = readdirSync(resolve(notebookDir, 'scripts'), { withFileTypes: true });
