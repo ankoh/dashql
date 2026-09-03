@@ -52,7 +52,13 @@ export interface NotebookFeedProps {
 
 const OVERSCAN_ROW_COUNT = 16;
 const FEED_TOP_PADDING = 16;
+const FEED_ENTRY_CHROME_HEIGHT = 50;
+const FEED_EDITOR_LINE_HEIGHT = 18;
 const restrictToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 });
+
+function estimateFeedEntryHeight(scriptText: string) {
+    return FEED_ENTRY_CHROME_HEIGHT + Math.max(1, scriptText.split('\n').length) * FEED_EDITOR_LINE_HEIGHT;
+}
 
 export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const config = useAppConfig();
@@ -61,8 +67,13 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const scriptRefs = props.notebookScripts.scriptRefs;
     const canonicalEntries = React.useMemo(
-        () => getSelectedScriptRefs(props.notebookScripts),
-        [scriptRefs],
+        () => getSelectedScriptRefs(props.notebookScripts).map(entry => ({
+            ...entry,
+            estimatedHeight: estimateFeedEntryHeight(
+                props.notebookScripts.scripts[entry.scriptId]?.scriptSession.getText() ?? '',
+            ),
+        })),
+        [scriptRefs, props.notebookScripts.scripts],
     );
     const [displayEntries, setDisplayEntries] = React.useState(() => ({
         source: scriptRefs,
