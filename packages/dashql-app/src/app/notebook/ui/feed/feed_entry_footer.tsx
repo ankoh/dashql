@@ -11,6 +11,7 @@ import { VisualizationDispatch } from '../../compute/ui/visualization/visualizat
 import { ResolvedVisualizeQuery } from '../../scripts/script_types.js';
 import { TraceLogPanel } from '../trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';
+import { QueryResultToolbar, useQueryResultRowCounts } from '../../compute/ui/query_result/query_result_toolbar.js';
 
 const FEED_LIMIT_RESULT_ROWS = 6;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
@@ -42,6 +43,7 @@ interface FeedEntryFooterProps {
 
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     const { hasResult, totalRows } = useResultRowCount(props.queryState);
+    const searchRows = useQueryResultRowCounts(props.queryState);
     const hasVisualization = hasResult && props.visualizeQuery != null;
 
     // Query execution and agent traces are separate vertical tabs. Each TraceLogPanel only owns its
@@ -120,11 +122,16 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         }
     }, [enabledTabKeys, selectedTab]);
 
-    const dataRowCount = totalRows != null ? Math.min(totalRows, FEED_LIMIT_RESULT_ROWS) : null;
+    const displayedRows = searchRows.matchingRows ?? totalRows;
+    const dataRowCount = displayedRows != null ? Math.min(displayedRows, FEED_LIMIT_RESULT_ROWS) : null;
     const rowCountDetail = totalRows != null
-        ? (totalRows > FEED_LIMIT_RESULT_ROWS
-            ? `${dataRowCount} of ${totalRows} rows`
-            : `${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`)
+        ? (searchRows.matchingRows != null
+            ? (searchRows.matchingRows > FEED_LIMIT_RESULT_ROWS
+                ? `${dataRowCount} of ${searchRows.matchingRows} matching rows`
+                : `${searchRows.matchingRows} of ${searchRows.currentRows ?? totalRows} rows`)
+            : totalRows > FEED_LIMIT_RESULT_ROWS
+                ? `${dataRowCount} of ${totalRows} rows`
+                : `${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`)
         : null;
 
     // The visualization renders the full cloud (no feed row cap), so the header just shows the
@@ -154,6 +161,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                     title="Query Results"
                     detail={rowCountDetail}
                     onClick={props.onShowTable}
+                    actions={props.queryState == null ? undefined : <QueryResultToolbar query={props.queryState} />}
                 />
                 {props.queryState != null && (
                     <QueryResultView

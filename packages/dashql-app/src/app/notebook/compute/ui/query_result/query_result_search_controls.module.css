@@ -1,0 +1,52 @@
+.control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+}
+
+.button {
+    white-space: nowrap;
+}
+
+.input {
+    width: clamp(120px, 18vw, 220px);
+    min-height: 28px;
+    height: 28px;
+    border-radius: 5px;
+    font-size: var(--font_size_small);
+}
+
+.control .input:focus-within {
+    border-color: var(--border_color_primary);
+    outline: none;
+}
+
+.input > :first-child {
+    margin-left: 8px;
+    margin-right: 6px;
+}
+
+.status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.error {
+    color: var(--fgColor-danger, #cf222e);
+    font-weight: 700;
+}
+
+@media only screen and (max-width: 700px) {
+    .input {
+        width: clamp(76px, 26vw, 112px);
+    }
+}

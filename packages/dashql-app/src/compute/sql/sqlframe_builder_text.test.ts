@@ -1,4 +1,4 @@
-import { SQLFrame } from './sqlframe_builder.js';
+import { SQLFrame, quoteStringLiteral } from './sqlframe_builder.js';
 
 describe('SQLFrame SQL generation', () => {
     it('empty transform', () => {
@@ -218,5 +218,9 @@ describe('SQLFrame SQL generation', () => {
     it('escapes double quotes in identifiers', () => {
         const sql = SQLFrame.from('a"b').toSQL();
         expect(sql).toBe('SELECT * FROM "a""b"');
+    });
+
+    it('escapes single quotes in SQL string literals', () => {
+        expect(quoteStringLiteral("o'neil")).toBe("'o''neil'");
     });
 });

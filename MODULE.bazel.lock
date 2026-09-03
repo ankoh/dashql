@@ -892,8 +892,8 @@
           "REPO_MAPPING:rules_rust+,rules_rust rules_rust+",
           "FILE:@@//Cargo.lock c3f3dab32fea8fb255e4534162cfea0a1fdb34d30b03d260e8a1bdeeea2f2ab5",
           "FILE:@@//Cargo.toml 209843d9589ab14780581181fe26295b2b8faa919720549e4a504347e37e3b19",
-          "FILE:@@//packages/dashql-native-napi/Cargo.toml 5dd1677d294a98b1a561646e2514762bccd6b960b586d9f8bb9be1b755ecb213",
-          "FILE:@@//packages/dashql-native-proxy/Cargo.toml 90806dfdcd99f030f972a36729c848648e91370d0836a21a92efdbf28be224bc",
+          "FILE:@@//packages/dashql-native-napi/Cargo.toml e79d21d1b84d56552fc1944ed38c32a3fb27d5a6974e5657b21cf81e7c7572b6",
+          "FILE:@@//packages/dashql-native-proxy/Cargo.toml 366611d1277b96c14d56101f089826771cde62b7f8239f6ddcc18adc6a0fb190",
           "FILE:@@//packages/dashql-pack/Cargo.toml 6de4b868dfe15dda9dd77e1b1520fc80e1ec6bc072c776efa4fc4c2b796ed7ac",
           "FILE:@@//packages/dashql-data/Cargo.toml 1134158d115d995b2866b27c0e920126d1e2deaea06a1db7e1e846990820afea"
         ],

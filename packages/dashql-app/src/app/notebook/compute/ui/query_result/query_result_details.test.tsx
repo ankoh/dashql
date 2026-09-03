@@ -12,10 +12,12 @@ const mockState = vi.hoisted(() => ({
         tableComputations: {},
     } as any,
     dispatch: vi.fn(),
+    dataFrameMemory: { acquire: vi.fn(), release: vi.fn() },
 }));
 
 vi.mock('../../../../../compute/computation_registry.js', () => ({
     useComputationRegistry: () => [mockState.computationState, mockState.dispatch],
+    useDataFrameRegistry: () => mockState.dataFrameMemory,
 }));
 vi.mock('../../../../../ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
 vi.mock('../../../../../ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));

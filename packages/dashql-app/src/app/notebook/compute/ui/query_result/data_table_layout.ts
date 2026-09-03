@@ -21,9 +21,13 @@ const COLUMN_HEADER_ACTION_WIDTH = 24;
 const ROW_HEADER_WIDTH = 48;
 const FORMATTER_PIXEL_SCALING = 10;
 
-function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolean): number {
+function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolean, visibleColumnGroups?: ReadonlySet<number> | null): number {
     let columnCount = 0;
-    for (const columnGroup of columnGroups) {
+    for (let groupIndex = 0; groupIndex < columnGroups.length; ++groupIndex) {
+        const columnGroup = columnGroups[groupIndex];
+        if (columnGroup.type !== ROWNUMBER_COLUMN && visibleColumnGroups != null && !visibleColumnGroups.has(groupIndex)) {
+            continue;
+        }
         switch (columnGroup.type) {
             case ROWNUMBER_COLUMN:
                 ++columnCount;
@@ -58,9 +62,9 @@ function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolea
     return columnCount;
 }
 
-export function computeTableLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0): DataTableLayout {
+export function computeTableLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null): DataTableLayout {
     // Allocate column offsets
-    let columnCount = computeColumnCount(state.columnGroups, showSystemColumns);
+    let columnCount = computeColumnCount(state.columnGroups, showSystemColumns, visibleColumnGroups);
     const columnFields = new Uint32Array(columnCount);
     const columnOffsets = new Float64Array(columnCount + 1);
     const columnAggregateIndex = new Int32Array(columnCount);
@@ -84,6 +88,9 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
     let nextDisplayOffset = 0;
     for (let groupIndex = 0; groupIndex < state.columnGroups.length; ++groupIndex) {
         const columnGroup = state.columnGroups[groupIndex];
+        if (columnGroup.type !== ROWNUMBER_COLUMN && visibleColumnGroups != null && !visibleColumnGroups.has(groupIndex)) {
+            continue;
+        }
         switch (columnGroup.type) {
             case ROWNUMBER_COLUMN: {
                 const outputIndex = nextDisplayColumn++;

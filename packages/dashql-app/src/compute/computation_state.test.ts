@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { CLEAR_TABLE_ORDERING, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { CLEAR_TABLE_ORDERING, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
@@ -208,6 +208,37 @@ describe('ComputationState', () => {
         expect(output.tableComputations[1].columnGroups).toEqual(inputTableColumns);
         expect(output.tableComputations[1].dataTableLifetime).toEqual(tableLifetime);
         expect(output.tableComputations[1].dataFrame).toBeNull();
+    });
+
+    it('keeps column matches visible while a replacement search is pending', () => {
+        const memory = new DataFrameRegistry(logger);
+        const dataFrame = createMockDataFrame('__test_input');
+        let state = createComputationState();
+        state.tableComputations[1] = createTableComputationState(
+            1,
+            inputTable,
+            inputTableColumns,
+            new AbortController(),
+        );
+        state.tableComputations[1].dataFrame = dataFrame;
+
+        state = reduceComputationState(state, {
+            type: SET_RESULT_SEARCH_PATTERN,
+            value: [1, 'columns', 'score'],
+        }, memory, logger);
+        state = reduceComputationState(state, {
+            type: COLUMN_SEARCH_SUCCEEDED,
+            value: [1, dataFrame, 1, [1]],
+        }, memory, logger);
+        state = reduceComputationState(state, {
+            type: SET_RESULT_SEARCH_PATTERN,
+            value: [1, 'columns', 'sc'],
+        }, memory, logger);
+
+        expect(state.tableComputations[1].columnSearch.pending).toBe(true);
+        expect(state.tableComputations[1].columnSearch.requestedPattern).toBe('sc');
+        expect(state.tableComputations[1].columnSearch.appliedPattern).toBe('score');
+        expect(state.tableComputations[1].columnSearch.matchingColumnGroups).toEqual([1]);
     });
 
     it('umap computation appends coordinate columns and records them on the embedding group', () => {

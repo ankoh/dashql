@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import { OrderByConstraint } from './sql/sqlframe_builder.js';
-import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
+import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch, ComputationStateVersion, ResultSearchState, createResultSearchState } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { CrossFilters } from './cross_filters.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
@@ -42,6 +42,10 @@ export interface TableComputationState {
     filterTable: FilterTable | null;
     /// The active ordering table (if any)
     orderingTable: OrderingTable | null;
+    /// Shared Columns search for every view of this result
+    columnSearch: ResultSearchState;
+    /// Shared Data search for every view of this result
+    dataSearch: ResultSearchState;
     /// The row number column group
     rowNumberColumnGroup: number | null;
     /// The row number column name
@@ -126,6 +130,8 @@ export function createTableComputationState(computationId: number, table: arrow.
         dataFrame: null,
         filterTable: null,
         orderingTable: null,
+        columnSearch: createResultSearchState(),
+        dataSearch: createResultSearchState(),
         filteredColumnAggregates: Array.from({ length: tableColumns.length }, () => null),
         filteredColumnAggregatesOutdated: Array.from({ length: tableColumns.length }, () => false),
         tableAggregation: null,
@@ -147,6 +153,10 @@ export const UMAP_COMPUTATION_SUCCEEDED = Symbol('UMAP_COMPUTATION_SUCCEEDED');
 export const COLUMN_AGGREGATION_SUCCEEDED = Symbol('COLUMN_AGGREGATION_SUCCEEDED');
 export const FILTERED_COLUMN_AGGREGATION_SUCCEEDED = Symbol('FILTERED_COLUMN_AGGREGATION_SUCCEEDED');
 export const SET_CROSS_FILTERS = Symbol('SET_CROSS_FILTERS');
+export const SET_RESULT_SEARCH_PATTERN = Symbol('SET_RESULT_SEARCH_PATTERN');
+export const COLUMN_SEARCH_SUCCEEDED = Symbol('COLUMN_SEARCH_SUCCEEDED');
+export const DATA_SEARCH_SUCCEEDED = Symbol('DATA_SEARCH_SUCCEEDED');
+export const RESULT_SEARCH_FAILED = Symbol('RESULT_SEARCH_FAILED');
 
 export type ComputationAction =
     | VariantKind<typeof SCHEDULE_TASK, TaskVariant>
@@ -166,6 +176,10 @@ export type ComputationAction =
     | VariantKind<typeof COLUMN_AGGREGATION_SUCCEEDED, [number, number, ColumnAggregationVariant]>
     | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, ComputationStateVersion, WithFilterEpoch<ColumnAggregationVariant> | null]>
     | VariantKind<typeof SET_CROSS_FILTERS, [number, CrossFilters]>
+    | VariantKind<typeof SET_RESULT_SEARCH_PATTERN, [number, 'columns' | 'data', string]>
+    | VariantKind<typeof COLUMN_SEARCH_SUCCEEDED, [number, DataFrame, number, number[]]>
+    | VariantKind<typeof DATA_SEARCH_SUCCEEDED, [number, DataFrame, number, Map<number, number[]>]>
+    | VariantKind<typeof RESULT_SEARCH_FAILED, [number, DataFrame, 'columns' | 'data', number, string]>
     ;
 
 export function reduceComputationState(state: ComputationState, action: ComputationAction, memory: DataFrameRegistry, _logger: Logger): ComputationState {
@@ -579,6 +593,120 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     [tableId]: {
                         ...tableState,
                         crossFilters,
+                    }
+                }
+            };
+        }
+        case SET_RESULT_SEARCH_PATTERN: {
+            const [tableId, kind, pattern] = action.value;
+            const tableState = state.tableComputations[tableId];
+            if (tableState === undefined) {
+                return state;
+            }
+            const current = kind === 'columns' ? tableState.columnSearch : tableState.dataSearch;
+            if (current.requestedPattern === pattern && current.pending === (pattern.length > 0)) {
+                return state;
+            }
+            const nextSearch: ResultSearchState = pattern.length === 0
+                ? {
+                    ...createResultSearchState(),
+                    requestId: current.requestId + 1,
+                    appliedRequestId: current.requestId + 1,
+                }
+                : {
+                    ...current,
+                    requestedPattern: pattern,
+                    requestId: current.requestId + 1,
+                    pending: true,
+                    error: null,
+                };
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        columnSearch: kind === 'columns' ? nextSearch : tableState.columnSearch,
+                        dataSearch: kind === 'data' ? nextSearch : tableState.dataSearch,
+                    }
+                }
+            };
+        }
+        case COLUMN_SEARCH_SUCCEEDED: {
+            const [tableId, sourceDataFrame, requestId, matchingColumnGroups] = action.value;
+            const tableState = state.tableComputations[tableId];
+            if (tableState === undefined || tableState.dataFrame !== sourceDataFrame || tableState.columnSearch.requestId !== requestId) {
+                return state;
+            }
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        columnSearch: {
+                            ...tableState.columnSearch,
+                            appliedPattern: tableState.columnSearch.requestedPattern,
+                            appliedRequestId: requestId,
+                            matchingColumnGroups,
+                            pending: false,
+                            error: null,
+                        }
+                    }
+                }
+            };
+        }
+        case DATA_SEARCH_SUCCEEDED: {
+            const [tableId, sourceDataFrame, requestId, matchingRows] = action.value;
+            const tableState = state.tableComputations[tableId];
+            if (tableState === undefined || tableState.dataFrame !== sourceDataFrame || tableState.dataSearch.requestId !== requestId) {
+                return state;
+            }
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        dataSearch: {
+                            ...tableState.dataSearch,
+                            appliedPattern: tableState.dataSearch.requestedPattern,
+                            appliedRequestId: requestId,
+                            matchingRows,
+                            pending: false,
+                            error: null,
+                        }
+                    }
+                }
+            };
+        }
+        case RESULT_SEARCH_FAILED: {
+            const [tableId, sourceDataFrame, kind, requestId, error] = action.value;
+            const tableState = state.tableComputations[tableId];
+            if (tableState === undefined || tableState.dataFrame !== sourceDataFrame) {
+                return state;
+            }
+            const current = kind === 'columns' ? tableState.columnSearch : tableState.dataSearch;
+            if (current.requestId !== requestId) {
+                return state;
+            }
+            const nextSearch: ResultSearchState = {
+                ...current,
+                appliedPattern: '',
+                appliedRequestId: requestId,
+                matchingColumnGroups: null,
+                matchingRows: null,
+                pending: false,
+                error,
+            };
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        columnSearch: kind === 'columns' ? nextSearch : tableState.columnSearch,
+                        dataSearch: kind === 'data' ? nextSearch : tableState.dataSearch,
                     }
                 }
             };

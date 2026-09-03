@@ -51,7 +51,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: hsl(210, 10%, 60%);
+    color: hsl(210, 10%, 44%);
 }
 
 /* In the clickable feed header, the title/count live inside the inner button. Let the button span

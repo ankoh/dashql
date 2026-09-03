@@ -34,3 +34,23 @@ export function resolveVisibleRowIndices(computation: TableComputationState | nu
     }
     return out;
 }
+
+/// Intersect the current cross-filtered/ordered rows with the active Data search.
+/// Search result keys are stable 1-based row numbers from the analyzed data frame.
+export function resolveSearchedRowIndices(computation: TableComputationState | null): Int32Array | null {
+    if (computation == null || computation.dataSearch.matchingRows == null) {
+        return resolveVisibleRowIndices(computation);
+    }
+    const visible = resolveVisibleRowIndices(computation);
+    if (visible == null) {
+        const rows = Array.from(computation.dataSearch.matchingRows.keys(), rowNumber => rowNumber - 1);
+        return Int32Array.from(rows);
+    }
+    const rows: number[] = [];
+    for (const row of visible) {
+        if (computation.dataSearch.matchingRows.has(row + 1)) {
+            rows.push(row);
+        }
+    }
+    return Int32Array.from(rows);
+}

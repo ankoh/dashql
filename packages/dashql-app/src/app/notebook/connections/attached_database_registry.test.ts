@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { ConnectionHealth, type AttachedDatabaseState } from './attached_database_state.js';
 import {
     type AttachedDatabaseRegistry,
+    didPersistedConnectionChange,
     resolveNotebookAttachedDatabases,
     resolveNotebookExecutionDatabase,
 } from './attached_database_registry.js';
+import { HYPER_CONNECTOR } from './connector_info.js';
 
 function database(databaseId: string, health: ConnectionHealth): AttachedDatabaseState {
     return { databaseId, connectionHealth: health } as AttachedDatabaseState;
@@ -51,5 +53,40 @@ describe('notebook attached database routing', () => {
         const value = registry('remote', 'remote');
         value.attachedDatabases.delete('remote');
         expect(resolveNotebookExecutionDatabase(value, 'notebook')).toBeNull();
+    });
+});
+
+describe('notebook manifest persistence', () => {
+    const state = (active: boolean, endpoint: string): AttachedDatabaseState => ({
+        active,
+        details: {
+            type: HYPER_CONNECTOR,
+            value: {
+                proto: {
+                    setupParams: {
+                        protocol: 'HTTP',
+                        endpoint,
+                        tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
+                    },
+                },
+            },
+        },
+    } as unknown as AttachedDatabaseState);
+
+    it('ignores transient connection state changes', () => {
+        const prev = state(true, 'https://db.example.com');
+        const next = { ...prev, snapshotQueriesActiveFinished: 2 };
+        expect(didPersistedConnectionChange(prev, next)).toBe(false);
+    });
+
+    it('persists activation and connection parameter changes', () => {
+        expect(didPersistedConnectionChange(
+            state(false, 'https://db.example.com'),
+            state(true, 'https://db.example.com'),
+        )).toBe(true);
+        expect(didPersistedConnectionChange(
+            state(true, 'https://db.example.com'),
+            state(true, 'https://other.example.com'),
+        )).toBe(true);
     });
 });

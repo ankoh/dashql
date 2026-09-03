@@ -19,6 +19,8 @@ import { useScrollbarHeight } from '../../../../../utils/scrollbar.js';
 import { useDataTableOrdering } from './data_table_ordering.js';
 import { useDataTablePortalContainers } from './data_table_portals.js';
 import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
+import { resolveSearchedRowIndices } from './visible_rows.js';
+import { collectSearchableResultColumns } from '../../../../../compute/sql/query_result_search_sql.js';
 
 const LOG_CTX = 'data_table';
 
@@ -84,7 +86,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const computationState = props.table;
     const dataTable = computationState.dataTable;
     const [gridApi, setGridApi] = useGridCallbackRef(null);
-    const visibleRowIdTable = computationState.orderingTable?.dataTable ?? computationState.filterTable?.dataTable ?? null;
     const gridContainerElement = React.useRef(null);
     const gridContainerSize = observeSize(gridContainerElement);
     const gridContainerWidth = Math.max(gridContainerSize?.width ?? 0, MIN_GRID_WIDTH);
@@ -93,32 +94,25 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         : TableColumnHeader.OnlyColumnName);
 
     // Get the row-id indirection column from ordering or filtering
-    const visibleRowIds = React.useMemo<arrow.Vector<arrow.Int> | null>(() => {
-        if (visibleRowIdTable == null) {
-            return null;
-        }
-        if (visibleRowIdTable.numCols !== 1) {
-            logger.error(`Visible row table has an unexpected column count`, {
-                columnCount: visibleRowIdTable.numCols.toString(),
-            }, LOG_CTX);
-            return null;
-        }
-        const rowIdColumn = visibleRowIdTable.getChildAt(0);
-        if (rowIdColumn!.type.typeId !== arrow.Type.Int) {
-            logger.error(`Visible row table column is not of type Int`, {
-                actual: rowIdColumn?.type.toString()
-            }, LOG_CTX);
-            return null;
-        }
-        return rowIdColumn;
-    }, [logger, visibleRowIdTable]);
+    const visibleRowIndices = React.useMemo(
+        () => resolveSearchedRowIndices(computationState),
+        [computationState.orderingTable, computationState.filterTable, computationState.dataSearch.matchingRows],
+    );
 
     // Data row count. Headers are rendered separately via portals
     // When an indirection table is active, show only the derived visible rows
-    const totalRowCount = visibleRowIds?.length ?? dataTable.numRows ?? 0;
+    const totalRowCount = visibleRowIndices?.length ?? dataTable.numRows ?? 0;
     const dataRowCount = props.maxRows != null ? Math.min(totalRowCount, props.maxRows) : totalRowCount;
     // Header configuration
     const headerRowCount = columnHeader === TableColumnHeader.WithColumnPlots ? 2 : 1;
+    const visibleColumnGroups = React.useMemo(() => {
+        const matches = computationState.columnSearch.matchingColumnGroups;
+        return matches == null ? null : new Set(matches);
+    }, [computationState.columnSearch.matchingColumnGroups]);
+    const searchColumnIndexByGroup = React.useMemo(() => new Map(
+        collectSearchableResultColumns(computationState.columnGroups)
+            .map(column => [column.columnGroupIdx, column.columnIdx] as const),
+    ), [computationState.columnGroups]);
 
     // Construct the arrow formatter and update it whenever the data table changes
     const tableFormatter = React.useMemo(() => {
@@ -139,13 +133,14 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 headerRowCount
             };
         }
-        return computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount, gridContainerWidth);
+        return computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount, gridContainerWidth, visibleColumnGroups);
     }, [
         computationState.columnGroups,
         tableFormatter,
         props.debugMode,
         gridContainerWidth,
         headerRowCount,
+        visibleColumnGroups,
     ]);
 
     // Compute helper to resolve column widths
@@ -217,9 +212,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             if (prev == null) return null;
             const visibleRow = prev.visibleRow + delta;
             if (visibleRow < 0 || visibleRow >= dataRowCount) return prev;
-            const dataRow = visibleRowIds == null
+            const dataRow = visibleRowIndices == null
                 ? visibleRow
-                : Math.max(Number(visibleRowIds.get(visibleRow)), 1) - 1;
+                : visibleRowIndices[visibleRow];
             const formattedValue = tableFormatter.getValue(dataRow, prev.fieldId);
             const field = dataTable.schema.fields[prev.fieldId];
             const isStructured = isArrowStructuredType(field.type);
@@ -227,12 +222,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             const structuredValue = rawValue == null ? null : arrowValueToJson(rawValue) as object;
             return { ...prev, visibleRow, dataRow, formattedValue, structuredValue };
         });
-    }, [tableFormatter, dataTable, dataRowCount, visibleRowIds]);
+    }, [tableFormatter, dataTable, dataRowCount, visibleRowIndices]);
 
     // Maintain a rendering context for data cells.
     // This context is passed to grid elements as item data.
     const gridData = React.useMemo<DataCellData>(() => ({
-        visibleRowIds: visibleRowIds,
+        visibleRowIndices,
         gridLayout: gridLayout,
         hideRowHeader: true,
         columnGroups: computationState.columnGroups,
@@ -244,13 +239,17 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         focusedRow: focusedCells.current?.row ?? null,
         focusedField: focusedCells.current?.field ?? null,
         rightmostVisibleColumn: gridLayout.columnCount - 1,
+        matchingRows: computationState.dataSearch.matchingRows,
+        searchColumnIndexByGroup,
     }), [
         // Data dependencies that legitimately require cell re-renders
         computationState.columnGroups,
         computationState.dataTable,
-        visibleRowIds,
+        visibleRowIndices,
         gridLayout,
         tableFormatter,
+        computationState.dataSearch.matchingRows,
+        searchColumnIndexByGroup,
         updateCounter, // Force recomputation when focused cell changes
         // Stable callbacks (empty deps) - included for correctness but won't cause re-renders
         onMouseEnterCell,

@@ -4,9 +4,14 @@ import { Dispatch } from '../utils/variant.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { DataFrameRegistry } from './data_frame.js';
 
-const COMPUTATION_SCHEDULER_CTX = React.createContext<[ComputationState, Dispatch<ComputationAction>] | null>(null);
+const COMPUTATION_SCHEDULER_CTX = React.createContext<[
+    ComputationState,
+    Dispatch<ComputationAction>,
+    DataFrameRegistry,
+] | null>(null);
 
 export const useComputationRegistry = () => React.useContext(COMPUTATION_SCHEDULER_CTX)!;
+export const useDataFrameRegistry = () => React.useContext(COMPUTATION_SCHEDULER_CTX)![2];
 
 interface ComputationRegistryProps {
     children: React.ReactElement[] | React.ReactElement;
@@ -20,7 +25,7 @@ export function ComputationRegistry(props: ComputationRegistryProps) {
     }, [dataFrameMemory, logger]);
     const [state, dispatch] = React.useReducer(reducer, null, createComputationState);
     return (
-        <COMPUTATION_SCHEDULER_CTX.Provider value={[state, dispatch]}>
+        <COMPUTATION_SCHEDULER_CTX.Provider value={[state, dispatch, dataFrameMemory]}>
             {props.children}
         </COMPUTATION_SCHEDULER_CTX.Provider>
     );

@@ -24,6 +24,7 @@ import {
     WRITE_NOTEBOOK_FUNCTION_SCRIPT,
     WRITE_NOTEBOOK_MANIFEST,
 } from '../persistence/storage_writer.js';
+import { getConnectionParamsFromStateDetails } from './connection_params.js';
 
 // Note: Storage persistence handled by connection reducer when setupParams are configured
 
@@ -80,6 +81,13 @@ export function findNotebookForAttachedDatabase(registry: AttachedDatabaseRegist
         if (mapping.mainDatabaseId === databaseId || mapping.attachedDatabaseIds.includes(databaseId)) return notebookId;
     }
     return null;
+}
+
+export function didPersistedConnectionChange(prev: AttachedDatabaseState, next: AttachedDatabaseState): boolean {
+    if (!prev.active && next.active) return true;
+    const prevParams = getConnectionParamsFromStateDetails(prev.details);
+    const nextParams = getConnectionParamsFromStateDetails(next.details);
+    return JSON.stringify(prevParams) !== JSON.stringify(nextParams);
 }
 
 export type SetAttachedDatabaseRegistryAction = React.SetStateAction<AttachedDatabaseRegistry>;
@@ -197,7 +205,7 @@ export function useDynamicAttachedDatabaseDispatch(): [AttachedDatabaseRegistry,
                         reg.attachedDatabasesBySignature.delete(connectionSignature);
                         reg.attachedDatabasesBySignature.set(next.connectionSignature.signatureString, databaseId);
                     }
-                    if (notebookId != null && next.active) {
+                    if (notebookId != null && next.active && didPersistedConnectionChange(prev, next)) {
                         void storageWriter.write(
                             groupNotebookManifestWrites(notebookId),
                             {

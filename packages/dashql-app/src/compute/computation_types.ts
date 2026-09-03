@@ -95,6 +95,40 @@ export interface TableOrderingTask {
     orderingConstraints: OrderByConstraint[];
 }
 
+export type ResultSearchKind = 'columns' | 'data';
+
+export interface ResultSearchState {
+    /// The plain-text search requested by the user
+    requestedPattern: string;
+    /// The last successfully applied search text
+    appliedPattern: string;
+    /// Incremented for every requested search
+    requestId: number;
+    /// The last applied request
+    appliedRequestId: number;
+    /// Matching column-group indexes for a Columns search
+    matchingColumnGroups: number[] | null;
+    /// Matching original-column indexes keyed by 1-based row number
+    matchingRows: Map<number, number[]> | null;
+    /// Whether a search is currently running
+    pending: boolean;
+    /// Latest search error, if any
+    error: string | null;
+}
+
+export function createResultSearchState(): ResultSearchState {
+    return {
+        requestedPattern: '',
+        appliedPattern: '',
+        requestId: 0,
+        appliedRequestId: 0,
+        matchingColumnGroups: null,
+        matchingRows: null,
+        pending: false,
+        error: null,
+    };
+}
+
 export interface TableAggregationTask {
     /// The table id
     tableId: number;

@@ -15,7 +15,7 @@ import { peekFormat } from './format_peek.js';
 
 export interface DataCellData {
     columnGroups: ColumnGroup[];
-    visibleRowIds: arrow.Vector<arrow.Int> | null;
+    visibleRowIndices: Int32Array | null;
     focusedField: number | null;
     focusedRow: number | null;
     gridLayout: DataTableLayout;
@@ -23,6 +23,8 @@ export interface DataCellData {
     table: arrow.Table;
     tableFormatter: ArrowTableFormatter;
     rightmostVisibleColumn: number;
+    matchingRows: ReadonlyMap<number, number[]> | null;
+    searchColumnIndexByGroup: ReadonlyMap<number, number>;
     onMouseEnter: (event: React.PointerEvent<HTMLDivElement>) => void;
     onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void;
     onClick: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -40,8 +42,8 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
     }
 
     // Translate the row index through the visible row ids, if an indirection table is active
-    if (props.visibleRowIds != null) {
-        dataRow = Math.max(Number(props.visibleRowIds.get(dataRow)), 1) - 1;
+    if (props.visibleRowIndices != null) {
+        dataRow = props.visibleRowIndices[dataRow];
     }
 
     // Abort if no formatter is available
@@ -80,6 +82,12 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
         const isMetadata = props.gridLayout.isSystemColumn[props.columnIndex] === 1;
         const isNull = formatted == null;
         const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
+        const searchColumnIndex = props.searchColumnIndexByGroup.get(
+            props.gridLayout.columnGroupByColumnIndex[props.columnIndex],
+        );
+        const isSearchMatch = searchColumnIndex != null
+            && !isMetadata
+            && props.matchingRows?.get(dataRow + 1)?.includes(searchColumnIndex) === true;
 
         // Build class string directly - avoids object creation and iteration
         let className: string;
@@ -99,6 +107,9 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
         if (isRightmost) {
             className += ` ${styles.data_cell_rightmost}`;
         }
+        if (isSearchMatch) {
+            className += ` ${styles.data_cell_search_match}`;
+        }
 
         const field = props.table.schema.fields[fieldId];
         const canOpenDetail = field.type.typeId === arrow.Type.Utf8
@@ -116,6 +127,9 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
                 className={className}
                 style={props.style}
                 role="gridcell"
+                aria-label={isSearchMatch
+                    ? `${isNull ? 'NULL' : formatted}${hint == null ? '' : `, ${hint}`}, search match`
+                    : undefined}
                 tabIndex={canOpenDetail ? 0 : -1}
                 data-table-col={fieldId}
                 data-table-row={dataRow}

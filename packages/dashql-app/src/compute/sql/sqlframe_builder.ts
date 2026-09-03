@@ -68,8 +68,12 @@ interface ValueIdentifierEntry {
     outputAlias: string;
 }
 
-function quoteIdent(name: string): string {
+export function quoteIdent(name: string): string {
     return `"${name.replace(/"/g, '""')}"`;
+}
+
+export function quoteStringLiteral(value: string): string {
+    return `'${value.replace(/'/g, "''")}'`;
 }
 
 function formatLiteral(value: number): string {

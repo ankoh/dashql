@@ -510,4 +510,56 @@ describe('SQLFrame execution', () => {
             { id: 3, name: 'Charlie' },
         ]);
     });
+
+    it('casts currently searchable result types to text for ILIKE', async () => {
+        await conn.query(`CREATE TABLE input (
+            name TEXT,
+            "score" DOUBLE PRECISION,
+            flagged BOOLEAN,
+            occurred_at TIMESTAMP
+        )`);
+        await conn.query(
+            `INSERT INTO input VALUES ` +
+            `('Alice', 10.5, TRUE, TIMESTAMP '2024-01-01 00:00:00'), ` +
+            `('Bob', 20, FALSE, TIMESTAMP '2024-02-02 12:00:00')`,
+        );
+
+        const rows = toPlainObjects(await conn.query(
+            `SELECT ` +
+            `CAST(name AS TEXT) AS name_text, ` +
+            `CAST("score" AS TEXT) AS score_text, ` +
+            `CAST(flagged AS TEXT) AS flagged_text, ` +
+            `CAST(occurred_at AS TEXT) AS occurred_text, ` +
+            `CAST(ARRAY['red', 'blue'] AS TEXT) AS tags_text ` +
+            `FROM input ` +
+            `WHERE CAST(name AS TEXT) ILIKE '%ali%' ` +
+            `AND CAST(ARRAY['red', 'blue'] AS TEXT) ILIKE '%red%'`,
+        ));
+
+        expect(rows.length).toBe(1);
+        expect(rows[0].name_text.toLowerCase()).toContain('alice');
+        expect(String(rows[0].score_text)).toContain('10');
+        expect(String(rows[0].flagged_text).toLowerCase()).toMatch(/t|true|1/);
+        expect(String(rows[0].tags_text)).toContain('red');
+    });
+
+    it('aggregates matching data-search columns per row', async () => {
+        await conn.query(`CREATE TABLE input (_rownum BIGINT, name TEXT, city TEXT)`);
+        await conn.query(
+            `INSERT INTO input VALUES ` +
+            `(1, 'Alice', 'Boston'), ` +
+            `(2, 'Bob', 'Austin'), ` +
+            `(3, 'Carol', 'Seattle')`,
+        );
+        const { buildDataSearchSQL } = await import('./query_result_search_sql.js');
+        const sql = buildDataSearchSQL('input', '_rownum', [
+            { columnIdx: 0, columnGroupIdx: 1, fieldName: 'name' },
+            { columnIdx: 1, columnGroupIdx: 2, fieldName: 'city' },
+        ], 'a');
+        const rows = toPlainObjects(await conn.query(sql!));
+        expect(rows.map(row => Number(row.row_idx))).toEqual([1, 2, 3]);
+        expect(Array.from(rows[0].column_indices, Number)).toEqual([0]);
+        expect(Array.from(rows[1].column_indices, Number)).toEqual([1]);
+        expect(Array.from(rows[2].column_indices, Number)).toEqual([0, 1]);
+    });
 });
