@@ -23,7 +23,7 @@
     "createdAt": "2026-09-03T06:52:24.149Z",
     "originalFileName": "hyper"
   },
-  "name": "TPCH",
+  "name": "TPC-H",
   "storageType": "native",
   "nativePath": "/Users/andre.kohn/Repositories/dashql/examples/notebooks/tpch"
 }
