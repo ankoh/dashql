@@ -34,6 +34,7 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
+    const lastScrollInteractionRef = React.useRef<number | null>(null);
     const requestFeedScroll = React.useCallback((fileName: string) => {
         setFeedScrollTarget(previous => ({
             fileName,
@@ -43,6 +44,9 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
 
     React.useEffect(() => {
         if (showDetails) return;
+        const interactionCounter = props.notebookScripts.scriptFocus.interactionCounter;
+        if (lastScrollInteractionRef.current === interactionCounter) return;
+        lastScrollInteractionRef.current = interactionCounter;
         requestFeedScroll(props.notebookScripts.scriptFocus.fileName);
     }, [props.notebookScripts.scriptFocus.interactionCounter, requestFeedScroll, showDetails]);
 

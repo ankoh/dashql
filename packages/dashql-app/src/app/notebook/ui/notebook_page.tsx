@@ -45,21 +45,24 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     }
     return (
         <div className={styles.page}>
-            {notebookMode === NotebookViewMode.Notebook ? (
+            <div className={notebookMode === NotebookViewMode.Notebook ? styles.view : styles.view_hidden}>
                 <NotebookFeedPage
                     notebookScripts={notebookScripts}
                     modifyNotebookScripts={modifyNotebookScripts}
                     connection={conn ?? null}
-                    active
+                    active={notebookMode === NotebookViewMode.Notebook}
                 />
-            ) : (
-                <React.Suspense fallback={(
-                    <div className={styles.shellLoading} role="status">
-                        <strong>[ RUN ]</strong> Loading shell
-                    </div>
-                )}>
-                    <NotebookShellPage notebookId={notebookScripts.notebookId} notebookName={notebookScripts.name} connection={conn ?? null} active />
-                </React.Suspense>
+            </div>
+            {notebookMode === NotebookViewMode.Shell && (
+                <div className={styles.view}>
+                    <React.Suspense fallback={(
+                        <div className={styles.shellLoading} role="status">
+                            <strong>[ RUN ]</strong> Loading shell
+                        </div>
+                    )}>
+                        <NotebookShellPage notebookId={notebookScripts.notebookId} notebookName={notebookScripts.name} connection={conn ?? null} active />
+                    </React.Suspense>
+                </div>
             )}
         </div>
     );

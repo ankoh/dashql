@@ -6,6 +6,17 @@
     min-height: 0;
 }
 
+.view,
+.view_hidden {
+    position: absolute;
+    inset: 0;
+}
+
+.view_hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+
 .shell_loading {
     width: calc(100% - 8px);
     height: calc(100% - 4px);
