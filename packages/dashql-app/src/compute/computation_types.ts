@@ -89,6 +89,8 @@ export interface TableOrderingTask {
     inputDataFrame: DataFrame;
     /// The active filter table, if ordering should happen on a filtered subset
     filterTable: FilterTable | null;
+    /// The active Data-search table, if ordering should happen on searched rows
+    dataSearchTable: DataSearchTable | null;
     /// The row number column that provides stable ids into the immutable base table
     rowNumberColumnName: string;
     /// The ordering constraints
@@ -114,6 +116,25 @@ export interface ResultSearchState {
     pending: boolean;
     /// Latest search error, if any
     error: string | null;
+}
+
+export interface DataSearchTask {
+    /// The table id
+    tableId: number;
+    /// The data/filter version when the search was requested
+    tableVersion: ComputationStateVersion;
+    /// The source data frame
+    inputDataFrame: DataFrame;
+    /// The stable row-number column in the source data frame
+    rowNumberColumnName: string;
+    /// Original result columns searched by the query
+    columns: Array<{ columnIdx: number; columnGroupIdx: number; fieldName: string }>;
+    /// The plain-text search pattern
+    pattern: string;
+    /// The request id used to reject stale results
+    requestId: number;
+    /// Cancels materialization when superseded or when the source table is destroyed
+    abortController: AbortController;
 }
 
 export function createResultSearchState(): ResultSearchState {
@@ -309,6 +330,8 @@ export interface OrderingTable {
     dataFrame: DataFrame;
     /// The version when this ordering was computed
     version: ComputationStateVersion;
+    /// The Data-search request included in the ordering, if any
+    dataSearchRequestId: number | null;
 }
 
 export interface FilterTable {
@@ -322,6 +345,19 @@ export interface FilterTable {
     version: ComputationStateVersion;
 }
 
+export interface DataSearchTable {
+    /// The source row-number column matched by this search
+    inputRowNumberColumnName: string;
+    /// The Arrow table containing matched row ids and matching original-column ids
+    dataTable: arrow.Table;
+    /// The materialized search result
+    dataFrame: DataFrame;
+    /// The source data version searched
+    version: ComputationStateVersion;
+    /// The request represented by this table
+    requestId: number;
+}
+
 // ------------------------------------------------------------
 
 export type ColumnAggregationVariant =
@@ -332,8 +368,12 @@ export type ColumnAggregationVariant =
     ;
 
 export type WithFilter<T> = T & {
-    /// The filter table
-    filterTable: FilterTable,
+    /// The cross-filter table, if active
+    filterTable: FilterTable | null,
+    /// The Data-search table, if active
+    dataSearchTable: DataSearchTable | null,
+    /// Number of rows in the effective intersection
+    selectionRowCount: number,
     /// The unfiltered aggregate
     unfilteredAggregate: ColumnAggregationVariant;
 };
@@ -341,6 +381,8 @@ export type WithFilter<T> = T & {
 export type WithFilterEpoch<T> = T & {
     /// The filter version when this aggregate was computed
     filterVersion: ComputationStateVersion,
+    /// The Data-search request when this aggregate was computed
+    dataSearchRequestId: number | null,
 };
 
 export interface TableAggregation {

@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { CLEAR_TABLE_ORDERING, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { CLEAR_TABLE_ORDERING, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, DATA_SEARCH_SUCCEEDED, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
@@ -45,6 +45,7 @@ function createFilteredOrdinalAggregate(
     return {
         ...createOrdinalAggregate(columnEntry, dataFrame, aggregateTable, formatter, analysis),
         filterVersion,
+        dataSearchRequestId: null,
     };
 }
 
@@ -76,6 +77,7 @@ function releaseAllRegisteredDataFramesFromLatestState(state: ComputationState, 
     for (const tableState of Object.values(state.tableComputations)) {
         addDataFrame(tableState.dataFrame);
         addDataFrame(tableState.filterTable?.dataFrame);
+        addDataFrame(tableState.dataSearchTable?.dataFrame);
         addDataFrame(tableState.orderingTable?.dataFrame);
         addDataFrame(tableState.tableAggregation?.dataFrame);
 
@@ -89,6 +91,8 @@ function releaseAllRegisteredDataFramesFromLatestState(state: ComputationState, 
         addDataFrame(tableState.tasks.filteringTask?.inputDataFrame);
         addDataFrame(tableState.tasks.orderingTask?.inputDataFrame);
         addDataFrame(tableState.tasks.orderingTask?.filterTable?.dataFrame);
+        addDataFrame(tableState.tasks.orderingTask?.dataSearchTable?.dataFrame);
+        addDataFrame(tableState.tasks.dataSearchTask?.inputDataFrame);
         addDataFrame(tableState.tasks.tableAggregationTask?.inputDataFrame);
         addDataFrame(tableState.tasks.systemColumnTask?.inputDataFrame);
         addDataFrame(tableState.tasks.systemColumnTask?.tableAggregate.dataFrame);
@@ -100,7 +104,8 @@ function releaseAllRegisteredDataFramesFromLatestState(state: ComputationState, 
         for (const task of tableState.tasks.filteredColumnAggregationTasks) {
             addDataFrame(task?.inputDataFrame);
             addDataFrame(task?.tableAggregate.dataFrame);
-            addDataFrame(task?.filterTable.dataFrame);
+            addDataFrame(task?.filterTable?.dataFrame);
+            addDataFrame(task?.dataSearchTable?.dataFrame);
             addDataFrame(getAggregationDataFrame(task?.unfilteredAggregate));
         }
     }
@@ -239,6 +244,36 @@ describe('ComputationState', () => {
         expect(state.tableComputations[1].columnSearch.requestedPattern).toBe('sc');
         expect(state.tableComputations[1].columnSearch.appliedPattern).toBe('score');
         expect(state.tableComputations[1].columnSearch.matchingColumnGroups).toEqual([1]);
+    });
+
+    it('accepts the latest materialized Data search without changing the filter version', () => {
+        const memory = new DataFrameRegistry(logger);
+        const dataFrame = createMockDataFrame('__test_input');
+        const searchFrame = createMockDataFrame('__test_search');
+        let state = createComputationState();
+        state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
+        state.tableComputations[1].dataFrame = dataFrame;
+        state.tableComputations[1].version = new ComputationStateVersion(2, 7);
+        state = reduceComputationState(state, {
+            type: SET_RESULT_SEARCH_PATTERN,
+            value: [1, 'data', '10'],
+        }, memory, logger);
+
+        state = reduceComputationState(state, {
+            type: DATA_SEARCH_SUCCEEDED,
+            value: [1, dataFrame, 1, {
+                inputRowNumberColumnName: 'rowNumber',
+                dataTable: arrow.tableFromArrays({ row_idx: new Int32Array([2, 3]), column_indices: [[1], [1]] }),
+                dataFrame: searchFrame,
+                version: new ComputationStateVersion(2, 7),
+                requestId: 1,
+            }],
+        }, memory, logger);
+
+        expect(state.tableComputations[1].version).toEqual(new ComputationStateVersion(2, 7));
+        expect(state.tableComputations[1].dataSearch.matchingRows).toEqual(new Map([[2, [1]], [3, [1]]]));
+        expect(state.tableComputations[1].dataSearchTable?.dataFrame).toBe(searchFrame);
+        expect(memory.getRegisteredDataFrames().get(searchFrame)).toBe(1);
     });
 
     it('umap computation appends coordinate columns and records them on the embedding group', () => {
@@ -424,6 +459,7 @@ describe('ComputationState', () => {
                         inputDataTableFieldIndex: inputTableFieldIndex,
                         inputDataFrame,
                         filterTable: null,
+                        dataSearchTable: null,
                         rowNumberColumnName: 'rowNumber',
                         orderingConstraints: [
                             { field: 'score', ascending: false, nullsFirst: false },
@@ -651,6 +687,8 @@ describe('ComputationState', () => {
                             dataFrame: filterDataFrame,
                             version: new ComputationStateVersion(0, 10),
                         },
+                        dataSearchTable: null,
+                        selectionRowCount: filterTable.numRows,
                         unfilteredAggregate: {
                             ...createOrdinalAggregate(inputTableColumns[1].value as OrdinalGridColumnGroup, scoreAggregateDataFrame, scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>, scoreAggregateTableFormatter, ordinalColumnAnalysis),
                         },
@@ -762,6 +800,7 @@ describe('ComputationState', () => {
                 dataTable: filterTable,
                 dataFrame: orderingDataFrame,
                 version: new ComputationStateVersion(0, 9),
+                dataSearchRequestId: null,
             };
 
             const currentFilterSucceeded: ComputationAction = {
@@ -797,6 +836,7 @@ describe('ComputationState', () => {
                 inputDataTableFieldIndex: inputTableFieldIndex,
                 inputDataFrame,
                 filterTable: null,
+                dataSearchTable: null,
                 rowNumberColumnName: 'rowNumber',
                 orderingConstraints: [{ field: 'score', ascending: false, nullsFirst: false }],
                 progress: {
@@ -817,6 +857,7 @@ describe('ComputationState', () => {
                     dataTable: filterTable,
                     dataFrame: orderingDataFrame,
                     version: new ComputationStateVersion(0, 10),
+                    dataSearchRequestId: null,
                 }],
             };
 
@@ -844,6 +885,7 @@ describe('ComputationState', () => {
                 dataTable: filterTable,
                 dataFrame: orderingDataFrame,
                 version: state.tableComputations[1].version,
+                dataSearchRequestId: null,
             };
             memory.acquire(orderingDataFrame);
 
@@ -870,6 +912,7 @@ describe('ComputationState', () => {
                 inputDataTableFieldIndex: inputTableFieldIndex,
                 inputDataFrame,
                 filterTable: null,
+                dataSearchTable: null,
                 rowNumberColumnName: 'rowNumber',
                 orderingConstraints: [],
                 progress: {
@@ -889,6 +932,7 @@ describe('ComputationState', () => {
                     dataTable: filterTable,
                     dataFrame: orderingDataFrame,
                     version: state.tableComputations[1].version,
+                    dataSearchRequestId: null,
                 }],
             }, memory, logger);
 
@@ -917,6 +961,7 @@ describe('ComputationState', () => {
                     dataTable: filterTable,
                     dataFrame: staleOrderingDataFrame,
                     version: new ComputationStateVersion(0, 10),
+                    dataSearchRequestId: null,
                 }],
             };
 
@@ -938,6 +983,7 @@ describe('ComputationState', () => {
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
             state.tableComputations[1].dataFrame = inputDataFrame;
+            state.tableComputations[1].version = new ComputationStateVersion(0, 10);
             state.tableComputations[1].filterTable = {
                 inputRowNumberColumnName: 'rowNumber',
                 dataTable: filterTable,
@@ -954,7 +1000,7 @@ describe('ComputationState', () => {
             state.tableComputations[1].filteredColumnAggregatesOutdated[1] = true;
             state.tableComputations[1].tasks.filteredColumnAggregationTasks[1] = {
                 tableId: 1,
-                tableVersion: new ComputationStateVersion(0, 20),
+                tableVersion: new ComputationStateVersion(0, 10),
                 inputDataFrame,
                 columnId: 1,
                 columnEntry: inputTableColumns[1],
@@ -971,6 +1017,8 @@ describe('ComputationState', () => {
                     dataFrame: filterDataFrame,
                     version: new ComputationStateVersion(0, 10),
                 },
+                dataSearchTable: null,
+                selectionRowCount: filterTable.numRows,
                 unfilteredAggregate: createOrdinalAggregate(
                     inputTableColumns[1].value as OrdinalGridColumnGroup,
                     scoreAggregateDataFrame,

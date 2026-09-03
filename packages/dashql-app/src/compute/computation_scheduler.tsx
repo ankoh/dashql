@@ -5,11 +5,11 @@ import * as computationLogic from './computation_logic.js';
 
 import { DataFrame } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, DATA_SEARCH_FAILED, DATA_SEARCH_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { Dispatch, VariantKind } from '../utils/variant.js';
 import { LoggableException, Logger, stringifyError } from '../platform/logger/logger.js';
 import { createTrace } from '../platform/logger/trace_context.js';
-import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderingTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress, WithFilter, WithFilterEpoch } from "./computation_types.js";
+import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderingTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress, WithFilter, WithFilterEpoch, DataSearchTask, DataSearchTable } from "./computation_types.js";
 import { useComputationRegistry } from "./computation_registry.js";
 import { useLogger } from '../platform/logger/logger_provider.js';
 import type { ComputeQueryExecution } from './computation_logic.js';
@@ -29,6 +29,7 @@ export const TABLE_FILTERING_TASK = Symbol("TABLE_FILTERING_TASK");
 export const TABLE_ORDERING_TASK = Symbol("TABLE_ORDERING_TASK");
 export const TABLE_AGGREGATION_TASK = Symbol("TABLE_AGGREGATION_TASK");
 export const SYSTEM_COLUMN_COMPUTATION_TASK = Symbol("SYSTEM_COLUMN_COMPUTATION_TASK");
+export const DATA_SEARCH_TASK = Symbol("DATA_SEARCH_TASK");
 
 export type TaskVariant =
     | ComputationTask<typeof TABLE_FILTERING_TASK, TableFilteringTask, FilterTable | null>
@@ -37,6 +38,7 @@ export type TaskVariant =
     | ComputationTask<typeof SYSTEM_COLUMN_COMPUTATION_TASK, SystemColumnComputationTask, [arrow.Table, DataFrame, ColumnGroup[]]>
     | ComputationTask<typeof COLUMN_AGGREGATION_TASK, ColumnAggregationTask, ColumnAggregationVariant>
     | ComputationTask<typeof FILTERED_COLUMN_AGGREGATION_TASK, WithFilter<ColumnAggregationTask>, WithFilterEpoch<ColumnAggregationVariant> | null>
+    | ComputationTask<typeof DATA_SEARCH_TASK, DataSearchTask, DataSearchTable>
     ;
 
 interface SchedulerState {
@@ -132,6 +134,15 @@ export async function processTask(
                 task.result.resolve(ordered);
                 break;
             }
+            case DATA_SEARCH_TASK: {
+                const searchTable = await computationLogic.searchData(task.value, traced, executeQuery);
+                dispatchComputation({
+                    type: DATA_SEARCH_SUCCEEDED,
+                    value: [task.value.tableId, task.value.inputDataFrame, task.value.requestId, searchTable],
+                });
+                task.result.resolve(searchTable);
+                break;
+            }
             case TABLE_AGGREGATION_TASK: {
                 // Aggregate the table
                 const [tableAgg, colEntries] = await computationLogic.computeTableAggregates(task.value, traced, executeQuery);
@@ -173,13 +184,19 @@ export async function processTask(
                 // Mark as succeeded
                 dispatchComputation({
                     type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
-                    value: [task.value.tableId, task.value.columnId, task.value.filterTable.version, filteredColumnAgg]
+                    value: [task.value.tableId, task.value.columnId, task.value.tableVersion, filteredColumnAgg]
                 });
                 // Resolve the task
                 task.result.resolve(filteredColumnAgg);
                 break;
         }
     } catch (e: any) {
+        if (task.type === DATA_SEARCH_TASK) {
+            dispatchComputation({
+                type: DATA_SEARCH_FAILED,
+                value: [task.value.tableId, task.value.inputDataFrame, task.value.requestId, stringifyError(e)],
+            });
+        }
         let loggable: LoggableException = (e instanceof LoggableException)
             ? e
             : new LoggableException("Failed to execute task", { error: stringifyError(e) }, LOG_CTX);
@@ -198,6 +215,10 @@ export async function processTask(
         });
         // Reject for users
         task.result.reject(e);
+        dispatchComputation({
+            type: UNREGISTER_SCHEDULER_TASK,
+            value: task,
+        });
         return;
     }
 
@@ -222,5 +243,7 @@ function getTaskVariantName(task: TaskVariant): string {
             return "system_column";
         case FILTERED_COLUMN_AGGREGATION_TASK:
             return "filtered_column_aggregation"
+        case DATA_SEARCH_TASK:
+            return "data_search";
     }
 }

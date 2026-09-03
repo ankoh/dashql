@@ -57,9 +57,18 @@ export function buildDataSearchSQL(
     rowNumberFieldName: string,
     columns: SearchableResultColumn[],
     pattern: string,
-): string | null {
+): string {
     if (columns.length === 0) {
-        return null;
+        const quotedRowNumber = quoteIdent(rowNumberFieldName);
+        return (
+            `SELECT\n` +
+            `    ${quotedRowNumber} AS row_idx,\n` +
+            `    array_agg(0 ORDER BY 0) AS column_indices\n` +
+            `FROM ${quoteIdent(tableName)}\n` +
+            `WHERE FALSE\n` +
+            `GROUP BY ${quotedRowNumber}\n` +
+            `ORDER BY row_idx`
+        );
     }
     const quotedPattern = quoteStringLiteral(`%${pattern}%`);
     const quotedRowNumber = quoteIdent(rowNumberFieldName);

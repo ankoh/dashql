@@ -25,7 +25,8 @@ export interface HeaderPlotsCellProps {
     filteredColumnAggregationTasks: (WithProgress<WithFilter<ColumnAggregationTask>> | null)[];
     filteredColumnAggregationOutdated: boolean[];
     tableAggregation: TableAggregation | null;
-    filterTableEpoch: ComputationStateVersion | null;
+    selectionEpoch: ComputationStateVersion;
+    dataSearchRequestId: number | null;
     crossFilters: CrossFilters;
     isVisible: boolean;
     rightmostVisibleColumn: number;
@@ -60,7 +61,8 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
             return;
         }
         const hasUpToDateRunningTask = filteredColumnAggregationTask?.progress.status === TaskStatus.TASK_RUNNING
-            && (props.filterTableEpoch ? filteredColumnAggregationTask.filterTable.version.filterMatches(props.filterTableEpoch) : false);
+            && filteredColumnAggregationTask.tableVersion.filterMatches(props.selectionEpoch)
+            && (filteredColumnAggregationTask.dataSearchTable?.requestId ?? null) === props.dataSearchRequestId;
         if (hasUpToDateRunningTask) {
             return;
         }
@@ -69,7 +71,8 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
         columnAggregateId,
         filteredColumnAggregationOutdated,
         filteredColumnAggregationTask,
-        props.filterTableEpoch,
+        props.selectionEpoch,
+        props.dataSearchRequestId,
         props.isVisible,
         props.onRequestFilteredColumnAggregation,
     ]);

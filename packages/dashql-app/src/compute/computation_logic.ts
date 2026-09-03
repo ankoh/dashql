@@ -3,9 +3,9 @@ import * as arrow from 'apache-arrow';
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { DataFrame, generateTableName } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
+import { COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED } from './computation_state.js';
-import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
+import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch, ComputationStateVersion, DataSearchTask, DataSearchTable } from './computation_types.js';
 import { Dispatch, VariantKind } from '../utils/variant.js';
 import { LoggableException, LoggerLike, stringifyError } from '../platform/logger/logger.js';
 import { assert } from '../utils/assert.js';
@@ -13,6 +13,7 @@ import { SQLFrame } from './sql/sqlframe_builder.js';
 import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
 import { UmapRequest, projectWithUMAP } from './umap/umap_projection.js';
 import { extractEmbeddingMatrix } from './umap/umap_extraction.js';
+import { buildDataSearchSQL } from './sql/query_result_search_sql.js';
 export type ComputeQueryExecution = <T>(queryText: string, execute: () => Promise<T>) => Promise<T>;
 
 const LOG_CTX = "compute";
@@ -601,6 +602,13 @@ export async function sortTable(task: TableOrderingTask, logger: LoggerLike, exe
                 task.filterTable.dataTable.schema.fields[0].name,
             );
         }
+        if (task.dataSearchTable != null) {
+            frame = frame.semiJoinFilter(
+                task.rowNumberColumnName,
+                task.dataSearchTable.dataFrame.tableName,
+                task.dataSearchTable.dataTable.schema.fields[0].name,
+            );
+        }
         const sql = frame
             .orderBy(task.orderingConstraints)
             .project([task.rowNumberColumnName])
@@ -624,6 +632,7 @@ export async function sortTable(task: TableOrderingTask, logger: LoggerLike, exe
             dataFrame: transformed,
             // Ordering depends on filtered data, so version stays same
             version: task.tableVersion,
+            dataSearchRequestId: task.dataSearchTable?.requestId ?? null,
         };
         return out;
 
@@ -633,6 +642,59 @@ export async function sortTable(task: TableOrderingTask, logger: LoggerLike, exe
         } else {
             throw new LoggableException(`Sorting table failed`, { "error": stringifyError(error) }, LOG_CTX);
         }
+    }
+}
+
+export async function searchDataDispatched(task: DataSearchTask, dispatch: Dispatch<ComputationAction>): Promise<DataSearchTable> {
+    const result = new AsyncValue<DataSearchTable, LoggableException>();
+    const variant: TaskVariant = {
+        type: DATA_SEARCH_TASK,
+        value: task,
+        result,
+    };
+    dispatch({ type: SCHEDULE_TASK, value: variant });
+    return result.getValue();
+}
+
+export async function searchData(
+    task: DataSearchTask,
+    logger: LoggerLike,
+    executeQuery: ComputeQueryExecution = executeDirectly,
+): Promise<DataSearchTable> {
+    const sql = buildDataSearchSQL(
+        task.inputDataFrame.tableName,
+        task.rowNumberColumnName,
+        task.columns,
+        task.pattern,
+    );
+    try {
+        logger.info('Searching table data', {
+            version: task.tableVersion.toString(),
+            requestId: task.requestId.toString(),
+        }, LOG_CTX);
+        const tableName = generateTableName('__search');
+        const dataFrame = await executeQuery(sql, () => DataFrame.fromSQL(
+            task.inputDataFrame.database,
+            sql,
+            tableName,
+            task.abortController.signal,
+        ));
+        try {
+            const dataTable = await dataFrame.readTable(task.abortController.signal);
+            return {
+                inputRowNumberColumnName: task.rowNumberColumnName,
+                dataTable,
+                dataFrame,
+                version: task.tableVersion,
+                requestId: task.requestId,
+            };
+        } catch (error) {
+            await dataFrame.destroy();
+            throw error;
+        }
+    } catch (error) {
+        if (error instanceof LoggableException) throw error;
+        throw new LoggableException('Failed to search table data', { error: stringifyError(error) }, LOG_CTX);
     }
 }
 
@@ -1051,7 +1113,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
 
 export const BIN_COUNT = 16;
 
-function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: [FilterTable, ColumnAggregationVariant] | null = null): string {
+function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: WithFilter<ColumnAggregationTask> | null = null): string {
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.value.statsFields == null) {
         throw new Error("Column summary requires precomputed table summary");
     }
@@ -1059,12 +1121,20 @@ function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: [Filte
     let frame = SQLFrame.from(task.inputDataFrame.tableName);
 
     if (filtered != null) {
-        const filterTable = filtered[0];
-        frame = frame.semiJoinFilter(
-            filterTable.inputRowNumberColumnName,
-            filterTable.dataFrame.tableName,
-            filterTable.dataTable.schema.fields[0].name
-        );
+        if (filtered.filterTable != null) {
+            frame = frame.semiJoinFilter(
+                filtered.filterTable.inputRowNumberColumnName,
+                filtered.filterTable.dataFrame.tableName,
+                filtered.filterTable.dataTable.schema.fields[0].name,
+            );
+        }
+        if (filtered.dataSearchTable != null) {
+            frame = frame.semiJoinFilter(
+                filtered.dataSearchTable.inputRowNumberColumnName,
+                filtered.dataSearchTable.dataFrame.tableName,
+                filtered.dataSearchTable.dataTable.schema.fields[0].name,
+            );
+        }
     }
 
     const targetFieldName = task.columnEntry.value.inputFieldName;
@@ -1126,7 +1196,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
         }, LOG_CTX);
     }
 
-    const sql = buildColumnAggregationSQL(task, [task.filterTable, task.unfilteredAggregate]);
+    const sql = buildColumnAggregationSQL(task, task);
 
     try {
         logger.info("Aggregating filtered table column", {
@@ -1156,7 +1226,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
         let columnAggregate: WithFilterEpoch<ColumnAggregationVariant>;
         switch (task.columnEntry.type) {
             case ORDINAL_COLUMN: {
-                const analysis = analyzeOrdinalColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter, task.filterTable.dataTable.numRows);
+                const analysis = analyzeOrdinalColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter, task.selectionRowCount);
                 columnAggregate = {
                     type: ORDINAL_COLUMN,
                     value: {
@@ -1166,12 +1236,13 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
                         binnedValuesFormatter: aggregateTableFormatter,
                         columnAnalysis: analysis,
                     },
-                    filterVersion: task.filterTable.version.clone(),
+                    filterVersion: task.tableVersion.clone(),
+                    dataSearchRequestId: task.dataSearchTable?.requestId ?? null,
                 };
                 break;
             }
             case STRING_COLUMN: {
-                const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter, task.filterTable.dataTable.numRows);
+                const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter, task.selectionRowCount);
                 columnAggregate = {
                     type: STRING_COLUMN,
                     value: {
@@ -1181,7 +1252,8 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
                         frequentValuesFormatter: aggregateTableFormatter,
                         analysis,
                     },
-                    filterVersion: task.filterTable.version.clone(),
+                    filterVersion: task.tableVersion.clone(),
+                    dataSearchRequestId: task.dataSearchTable?.requestId ?? null,
                 };
                 break;
             }

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { ComputationAction, SET_CROSS_FILTERS, TableComputationState } from '../../../../../compute/computation_state.js';
 import { CrossFilters } from '../../../../../compute/cross_filters.js';
 import { Dispatch } from '../../../../../utils/variant.js';
-import { ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask } from '../../../../../compute/computation_types.js';
+import { ORDINAL_COLUMN, STRING_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableAggregation, TableFilteringTask, TaskStatus, WithFilter, ColumnAggregationTask, DataSearchTable, FilterTable } from '../../../../../compute/computation_types.js';
 import { ScalarFilter } from '../../../../../compute/sql/sqlframe_builder.js';
 import { HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
@@ -244,21 +244,29 @@ export function useCrossFilters(
         }
         const tableAggregation = state.tableAggregation;
         const filterTable = state.filterTable;
+        const dataSearchTable = state.dataSearchTable;
         const inputDataFrame = state.dataFrame;
         const columnEntry = state.columnGroups[columnId];
         const unfilteredAggregate = state.columnAggregates[columnId];
-        if (tableAggregation == null || filterTable == null || inputDataFrame == null || columnEntry == null || unfilteredAggregate == null) {
+        if (
+            tableAggregation == null
+            || (filterTable == null && dataSearchTable == null)
+            || inputDataFrame == null
+            || columnEntry == null
+            || unfilteredAggregate == null
+        ) {
             return;
         }
 
         const currentTask = state.tasks.filteredColumnAggregationTasks[columnId];
         const hasUpToDateRunningTask = currentTask?.progress.status === TaskStatus.TASK_RUNNING
-            && currentTask.filterTable.version.filterMatches(filterTable.version);
+            && currentTask.tableVersion.filterMatches(state.version)
+            && (currentTask.dataSearchTable?.requestId ?? null) === (dataSearchTable?.requestId ?? null);
         if (hasUpToDateRunningTask) {
             return;
         }
 
-        const scheduleKey = `aggregate:${state.tableId}:${columnId}:${filterTable.version.toString()}`;
+        const scheduleKey = `aggregate:${state.tableId}:${columnId}:${state.version.toString()}:${dataSearchTable?.requestId ?? ''}`;
         const releaseSchedule = claimSchedule(dispatchComputation, scheduleKey);
         if (releaseSchedule == null) {
             return;
@@ -266,12 +274,14 @@ export function useCrossFilters(
 
         const task: WithFilter<ColumnAggregationTask> = {
             tableId: state.tableId,
-            tableVersion: state.version,
+            tableVersion: filterTable?.version ?? state.version,
             columnId,
             tableAggregate: tableAggregation,
             columnEntry,
             inputDataFrame,
             filterTable,
+            dataSearchTable,
+            selectionRowCount: countSelectionRows(filterTable, dataSearchTable),
             unfilteredAggregate,
         };
         void computeFilteredColumnAggregatesDispatched(task, dispatchComputation).finally(releaseSchedule);
@@ -283,6 +293,21 @@ export function useCrossFilters(
         mostFrequentValueFilter,
         requestFilteredColumnAggregation,
     };
+}
+
+function countSelectionRows(filterTable: FilterTable | null, dataSearchTable: DataSearchTable | null): number {
+    if (filterTable == null) return dataSearchTable?.dataTable.numRows ?? 0;
+    if (dataSearchTable == null) return filterTable.dataTable.numRows;
+    const searchRows = dataSearchTable.dataTable.getChildAt(0);
+    const filterRows = filterTable.dataTable.getChildAt(0);
+    if (searchRows == null || filterRows == null) return 0;
+    const matches = new Set<number>();
+    for (let i = 0; i < searchRows.length; ++i) matches.add(Number(searchRows.get(i)));
+    let count = 0;
+    for (let i = 0; i < filterRows.length; ++i) {
+        if (matches.has(Number(filterRows.get(i)))) ++count;
+    }
+    return count;
 }
 
 const EMPTY_CROSS_FILTERS = new CrossFilters();

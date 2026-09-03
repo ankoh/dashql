@@ -35,7 +35,7 @@ export function useQueryResultRowCounts(query: QueryExecutionState | null) {
     const [computationState] = useComputationRegistry();
     const table = query == null ? null : computationState.tableComputations[query.queryId] ?? null;
     const totalRows = table?.dataTable.numRows ?? null;
-    const currentRows = table?.filterTable?.dataTable.numRows ?? totalRows;
+    const currentRows = getMatchingRowCount(table) ?? table?.filterTable?.dataTable.numRows ?? totalRows;
     const matchingRows = getMatchingRowCount(table);
     return { totalRows, currentRows, matchingRows };
 }

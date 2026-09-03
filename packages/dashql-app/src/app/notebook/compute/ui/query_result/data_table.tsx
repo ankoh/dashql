@@ -96,7 +96,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Get the row-id indirection column from ordering or filtering
     const visibleRowIndices = React.useMemo(
         () => resolveSearchedRowIndices(computationState),
-        [computationState.orderingTable, computationState.filterTable, computationState.dataSearch.matchingRows],
+        [computationState.orderingTable, computationState.filterTable, computationState.dataSearchTable, computationState.dataSearch.matchingRows],
     );
 
     // Data row count. Headers are rendered separately via portals
@@ -381,7 +381,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                         filteredColumnAggregationTasks: computationState.tasks.filteredColumnAggregationTasks,
                         filteredColumnAggregationOutdated: computationState.filteredColumnAggregatesOutdated,
                         tableAggregation: computationState.tableAggregation,
-                        filterTableEpoch: computationState.filterTable?.version ?? null,
+                        selectionEpoch: computationState.filterTable?.version ?? computationState.version,
+                        dataSearchRequestId: computationState.dataSearchTable?.requestId ?? null,
                         crossFilters,
                         isVisible: true,
                         rightmostVisibleColumn: gridLayout.columnCount - 1,

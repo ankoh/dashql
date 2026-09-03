@@ -43,15 +43,18 @@ export class DataFrame {
         return new DataFrame(database, tableName);
     }
 
-    static async fromSQL(database: EmbeddedComputeDatabase, sql: string, tableName: string): Promise<DataFrame> {
+    static async fromSQL(database: EmbeddedComputeDatabase, sql: string, tableName: string, abort?: AbortSignal): Promise<DataFrame> {
         await DataFrame.withConnection(database, async conn => {
-            await conn.createTableAs(tableName, sql);
+            await conn.createTableAs(tableName, sql, abort);
         });
         return new DataFrame(database, tableName);
     }
 
-    async readTable(): Promise<arrow.Table> {
-        return await this.withConnection(async conn => await conn.query(`SELECT * FROM "${this.tableName}"`));
+    async readTable(abort?: AbortSignal): Promise<arrow.Table> {
+        return await this.withConnection(async conn => {
+            const bytes = await conn.queryArrowIPC(`SELECT * FROM "${this.tableName}"`, abort);
+            return new arrow.Table(arrow.RecordBatchReader.from(bytes));
+        });
     }
 
     async destroy(): Promise<void> {

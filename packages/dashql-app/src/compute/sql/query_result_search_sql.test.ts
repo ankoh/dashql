@@ -96,9 +96,9 @@ describe('query result search SQL', () => {
         expect(sql).toContain(`WHERE name ILIKE '%o''neil%'`);
     });
 
-    it('returns null SQL when there are no searchable columns', () => {
+    it('builds an empty materializable Data search when there are no searchable columns', () => {
         expect(buildColumnSearchSQL([], 'x')).toBeNull();
-        expect(buildDataSearchSQL('__syscols_1', '_rownum', [], 'x')).toBeNull();
+        expect(buildDataSearchSQL('__syscols_1', '_rownum', [], 'x')).toContain('WHERE FALSE');
     });
 
     it('searches every original data column independently of column visibility', () => {

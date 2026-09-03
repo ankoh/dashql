@@ -16,6 +16,8 @@ import {
     TABLE_AGGREGATION_SUCCEEDED,
     SYSTEM_COLUMN_COMPUTATION_SUCCEEDED,
     COLUMN_AGGREGATION_SUCCEEDED,
+    DATA_SEARCH_FAILED,
+    DATA_SEARCH_SUCCEEDED,
     FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
 } from './computation_state.js';
 import {
@@ -27,6 +29,7 @@ import {
     TABLE_AGGREGATION_TASK,
     SYSTEM_COLUMN_COMPUTATION_TASK,
     COLUMN_AGGREGATION_TASK,
+    DATA_SEARCH_TASK,
     FILTERED_COLUMN_AGGREGATION_TASK,
 } from './computation_scheduler.js';
 import { Dispatch } from '../utils/variant.js';
@@ -111,6 +114,7 @@ describe('processTask', () => {
         vi.spyOn(computationLogic, 'computeSystemColumns').mockResolvedValue([{} as any, {} as any, []]);
         vi.spyOn(computationLogic, 'computeColumnAggregates').mockResolvedValue({} as any);
         vi.spyOn(computationLogic, 'computeFilteredColumnAggregates').mockResolvedValue(null);
+        vi.spyOn(computationLogic, 'searchData').mockResolvedValue({} as any);
     });
 
     it('warns and skips if task has no taskId', async () => {
@@ -166,7 +170,7 @@ describe('processTask', () => {
     });
 
     it('processes TABLE_ORDERING_TASK successfully', async () => {
-        const mockOrdered = { inputRowNumberColumnName: 'rowNumber', orderingConstraints: [], dataTable: {} as any, dataFrame: {} as any, version: new ComputationStateVersion(0, 0) };
+        const mockOrdered = { inputRowNumberColumnName: 'rowNumber', orderingConstraints: [], dataTable: {} as any, dataFrame: {} as any, version: new ComputationStateVersion(0, 0), dataSearchRequestId: null };
         vi.spyOn(computationLogic, 'sortTable').mockResolvedValue(mockOrdered);
 
         const result = new AsyncValue<typeof mockOrdered, LoggableException>();
@@ -185,6 +189,53 @@ describe('processTask', () => {
         expect(calls[1][0]).toEqual({ type: TABLE_ORDERING_SUCCEDED, value: [42, mockOrdered] });
         expect(calls[2][0]).toEqual({ type: UNREGISTER_SCHEDULER_TASK, value: task });
         await expect(result.getValue()).resolves.toBe(mockOrdered);
+    });
+
+    it('processes DATA_SEARCH_TASK successfully', async () => {
+        const searchTable = { requestId: 3 } as any;
+        vi.spyOn(computationLogic, 'searchData').mockResolvedValue(searchTable);
+        const result = new AsyncValue<any, LoggableException>();
+        const inputDataFrame = {} as any;
+        const task: TaskVariant = {
+            type: DATA_SEARCH_TASK,
+            value: { tableId: 42, inputDataFrame, requestId: 3 } as any,
+            result,
+            taskId: 20,
+        };
+
+        await processTask(task, dispatch, logger);
+
+        const calls = (dispatch as ReturnType<typeof vi.fn>).mock.calls;
+        expect(calls[1][0]).toEqual({
+            type: DATA_SEARCH_SUCCEEDED,
+            value: [42, inputDataFrame, 3, searchTable],
+        });
+        expect(calls[2][0]).toEqual({ type: UNREGISTER_SCHEDULER_TASK, value: task });
+        await expect(result.getValue()).resolves.toBe(searchTable);
+    });
+
+    it('reports DATA_SEARCH_TASK failures to search state', async () => {
+        const error = new Error('search failed');
+        vi.spyOn(computationLogic, 'searchData').mockRejectedValue(error);
+        const result = new AsyncValue<any, any>();
+        const inputDataFrame = {} as any;
+        const task: TaskVariant = {
+            type: DATA_SEARCH_TASK,
+            value: { tableId: 42, inputDataFrame, requestId: 4 } as any,
+            result,
+            taskId: 21,
+        };
+
+        await processTask(task, dispatch, logger);
+
+        const calls = (dispatch as ReturnType<typeof vi.fn>).mock.calls;
+        expect(calls[1][0]).toEqual({ type: DATA_SEARCH_FAILED, value: [42, inputDataFrame, 4, 'search failed'] });
+        expect(calls[2][0]).toMatchObject({
+            type: UPDATE_SCHEDULER_TASK,
+            value: [task, expect.objectContaining({ status: TaskStatus.TASK_FAILED })],
+        });
+        expect(calls[3][0]).toEqual({ type: UNREGISTER_SCHEDULER_TASK, value: task });
+        await expect(result.getValue()).rejects.toBe(error);
     });
 
     it('processes TABLE_AGGREGATION_TASK successfully', async () => {
@@ -265,6 +316,7 @@ describe('processTask', () => {
             value: {
                 tableId: 42,
                 columnId: 7,
+                tableVersion: filterVersion,
                 filterTable: { version: filterVersion },
             } as any,
             result: result as any,
@@ -299,7 +351,7 @@ describe('processTask', () => {
         await processTask(task, dispatch, logger);
 
         const calls = (dispatch as ReturnType<typeof vi.fn>).mock.calls;
-        expect(calls).toHaveLength(2);
+        expect(calls).toHaveLength(3);
         expect(calls[0][0]).toMatchObject({ type: UPDATE_SCHEDULER_TASK, value: [task, expect.objectContaining({ status: TaskStatus.TASK_RUNNING })] });
         expect(calls[1][0]).toMatchObject({
             type: UPDATE_SCHEDULER_TASK,
@@ -308,6 +360,7 @@ describe('processTask', () => {
                 failedWithError: expect.any(LoggableException),
             })],
         });
+        expect(calls[2][0]).toEqual({ type: UNREGISTER_SCHEDULER_TASK, value: task });
         await expect(result.getValue()).rejects.toBe(error);
     });
 

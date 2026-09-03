@@ -1,12 +1,13 @@
 import * as arrow from 'apache-arrow';
 
 import { OrderByConstraint } from './sql/sqlframe_builder.js';
-import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch, ComputationStateVersion, ResultSearchState, createResultSearchState } from './computation_types.js';
+import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch, ComputationStateVersion, ResultSearchState, createResultSearchState, DataSearchTable, DataSearchTask } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { CrossFilters } from './cross_filters.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { Logger } from '../platform/logger/logger.js';
-import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
+import { COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
+import { parseDataSearchMatches } from './sql/query_result_search_sql.js';
 
 const LOG_CTX = 'computation_state';
 
@@ -46,6 +47,8 @@ export interface TableComputationState {
     columnSearch: ResultSearchState;
     /// Shared Data search for every view of this result
     dataSearch: ResultSearchState;
+    /// The materialized rows and matching columns for the applied Data search
+    dataSearchTable: DataSearchTable | null;
     /// The row number column group
     rowNumberColumnGroup: number | null;
     /// The row number column name
@@ -69,6 +72,8 @@ export interface TableComputationTasks {
     filteringTask: WithProgress<TableFilteringTask> | null;
     /// The ordering task
     orderingTask: WithProgress<TableOrderingTask> | null;
+    /// The Data-search materialization task
+    dataSearchTask: WithProgress<DataSearchTask> | null;
     /// The task to compute column (group) aggregates.
     /// The array contains N entries where N is the number of column groups
     columnAggregationTasks: (WithProgress<ColumnAggregationTask> | null)[];
@@ -112,6 +117,7 @@ export function createTableComputationState(computationId: number, table: arrow.
         tasks: {
             filteringTask: null,
             orderingTask: null,
+            dataSearchTask: null,
             tableAggregationTask: null,
             systemColumnTask: null,
             columnAggregationTasks: Array(tableColumns.length + 1).fill(null),
@@ -132,6 +138,7 @@ export function createTableComputationState(computationId: number, table: arrow.
         orderingTable: null,
         columnSearch: createResultSearchState(),
         dataSearch: createResultSearchState(),
+        dataSearchTable: null,
         filteredColumnAggregates: Array.from({ length: tableColumns.length }, () => null),
         filteredColumnAggregatesOutdated: Array.from({ length: tableColumns.length }, () => false),
         tableAggregation: null,
@@ -156,6 +163,7 @@ export const SET_CROSS_FILTERS = Symbol('SET_CROSS_FILTERS');
 export const SET_RESULT_SEARCH_PATTERN = Symbol('SET_RESULT_SEARCH_PATTERN');
 export const COLUMN_SEARCH_SUCCEEDED = Symbol('COLUMN_SEARCH_SUCCEEDED');
 export const DATA_SEARCH_SUCCEEDED = Symbol('DATA_SEARCH_SUCCEEDED');
+export const DATA_SEARCH_FAILED = Symbol('DATA_SEARCH_FAILED');
 export const RESULT_SEARCH_FAILED = Symbol('RESULT_SEARCH_FAILED');
 
 export type ComputationAction =
@@ -178,7 +186,8 @@ export type ComputationAction =
     | VariantKind<typeof SET_CROSS_FILTERS, [number, CrossFilters]>
     | VariantKind<typeof SET_RESULT_SEARCH_PATTERN, [number, 'columns' | 'data', string]>
     | VariantKind<typeof COLUMN_SEARCH_SUCCEEDED, [number, DataFrame, number, number[]]>
-    | VariantKind<typeof DATA_SEARCH_SUCCEEDED, [number, DataFrame, number, Map<number, number[]>]>
+    | VariantKind<typeof DATA_SEARCH_SUCCEEDED, [number, DataFrame, number, DataSearchTable]>
+    | VariantKind<typeof DATA_SEARCH_FAILED, [number, DataFrame, number, string]>
     | VariantKind<typeof RESULT_SEARCH_FAILED, [number, DataFrame, 'columns' | 'data', number, string]>
     ;
 
@@ -203,8 +212,12 @@ export function reduceComputationState(state: ComputationState, action: Computat
             if (action.value.taskId === undefined) {
                 return state;
             }
+            if (state.schedulerTasks[action.value.taskId] !== action.value) {
+                return state;
+            }
             const schedulerTasks = { ...state.schedulerTasks };
             delete schedulerTasks[action.value.taskId];
+            releaseTaskDataFrames(action.value, memory);
             return {
                 ...state,
                 schedulerTasks
@@ -270,6 +283,10 @@ export function reduceComputationState(state: ComputationState, action: Computat
             }
             // Ordering depends on both data and filter, so check both
             if (!orderingTable.version.filterMatches(tableState.version)) {
+                memory.release(orderingTable.dataFrame);
+                return state;
+            }
+            if ((tableState.dataSearchTable?.requestId ?? null) !== (orderingTable.dataSearchRequestId ?? null)) {
                 memory.release(orderingTable.dataFrame);
                 return state;
             }
@@ -527,11 +544,20 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 releaseColumnAggregate(newColumnAggregate, memory);
                 return state;
             }
-            if (!currentTask.filterTable.version.filterMatches(completedFilterVersion)) {
+            if (!currentTask.tableVersion.filterMatches(completedFilterVersion)) {
                 releaseColumnAggregate(newColumnAggregate, memory);
                 return state;
             }
-            if (tableState.filterTable == null || !tableState.filterTable.version.filterMatches(completedFilterVersion)) {
+            const currentSelectionVersion = tableState.filterTable?.version ?? tableState.version;
+            if (!currentSelectionVersion.filterMatches(completedFilterVersion)) {
+                releaseColumnAggregate(newColumnAggregate, memory);
+                return state;
+            }
+            if ((newColumnAggregate?.dataSearchRequestId ?? null) !== (tableState.dataSearchTable?.requestId ?? null)) {
+                releaseColumnAggregate(newColumnAggregate, memory);
+                return state;
+            }
+            if ((currentTask.dataSearchTable?.requestId ?? null) !== (tableState.dataSearchTable?.requestId ?? null)) {
                 releaseColumnAggregate(newColumnAggregate, memory);
                 return state;
             }
@@ -551,9 +577,9 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
             filteredColumnAggregationTasks[columnId] = task;
 
-            const aggregateUpToDate = newColumnAggregate?.filterVersion?.filterMatches(
-                tableState.filterTable.version
-            ) ?? false;
+            const aggregateUpToDate = newColumnAggregate != null
+                && newColumnAggregate.filterVersion.filterMatches(currentSelectionVersion)
+                && newColumnAggregate.dataSearchRequestId === (tableState.dataSearchTable?.requestId ?? null);
             filteredColumnAggregatesOutdated[columnId] = !aggregateUpToDate;
 
             // Destroy the previous column aggregate, if there is one
@@ -620,6 +646,21 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     pending: true,
                     error: null,
                 };
+            if (kind === 'data') {
+                tableState.tasks.dataSearchTask?.abortController.abort();
+            }
+            const clearAppliedDataSearch = kind === 'data' && pattern.length === 0;
+            if (clearAppliedDataSearch) {
+                memory.release(tableState.dataSearchTable?.dataFrame);
+                memory.release(tableState.orderingTable?.dataFrame);
+                memory.release(tableState.tasks.dataSearchTask?.inputDataFrame);
+                if (tableState.filterTable == null) {
+                    releaseColumnAggregates(tableState.filteredColumnAggregates, memory);
+                }
+            }
+            const stateForOutdatedCheck = clearAppliedDataSearch
+                ? { ...tableState, dataSearchTable: null }
+                : tableState;
             return {
                 ...state,
                 tableComputations: {
@@ -628,6 +669,17 @@ export function reduceComputationState(state: ComputationState, action: Computat
                         ...tableState,
                         columnSearch: kind === 'columns' ? nextSearch : tableState.columnSearch,
                         dataSearch: kind === 'data' ? nextSearch : tableState.dataSearch,
+                        dataSearchTable: clearAppliedDataSearch ? null : tableState.dataSearchTable,
+                        orderingTable: clearAppliedDataSearch ? null : tableState.orderingTable,
+                        tasks: clearAppliedDataSearch
+                            ? { ...tableState.tasks, dataSearchTask: null }
+                            : tableState.tasks,
+                        filteredColumnAggregatesOutdated: clearAppliedDataSearch
+                            ? getFilteredColumnAggregatesOutdated(stateForOutdatedCheck, null)
+                            : tableState.filteredColumnAggregatesOutdated,
+                        filteredColumnAggregates: clearAppliedDataSearch && tableState.filterTable == null
+                            ? Array.from({ length: tableState.filteredColumnAggregates.length }, () => null)
+                            : tableState.filteredColumnAggregates,
                     }
                 }
             };
@@ -657,11 +709,33 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
         }
         case DATA_SEARCH_SUCCEEDED: {
-            const [tableId, sourceDataFrame, requestId, matchingRows] = action.value;
+            const [tableId, sourceDataFrame, requestId, dataSearchTable] = action.value;
+            memory.acquire(dataSearchTable.dataFrame);
             const tableState = state.tableComputations[tableId];
-            if (tableState === undefined || tableState.dataFrame !== sourceDataFrame || tableState.dataSearch.requestId !== requestId) {
+            if (
+                tableState === undefined
+                || tableState.dataFrame !== sourceDataFrame
+                || tableState.dataSearch.requestId !== requestId
+                || !dataSearchTable.version.dataMatches(tableState.version)
+            ) {
+                memory.release(dataSearchTable.dataFrame);
                 return state;
             }
+            const matchingRows = parseDataSearchMatches(dataSearchTable.dataTable);
+            memory.release(tableState.dataSearchTable?.dataFrame);
+            memory.release(tableState.orderingTable?.dataFrame);
+            if (tableState.filterTable == null) {
+                releaseColumnAggregates(tableState.filteredColumnAggregates, memory);
+            }
+            const dataSearchTask = tableState.tasks.dataSearchTask == null ? null : {
+                ...tableState.tasks.dataSearchTask,
+                progress: {
+                    ...tableState.tasks.dataSearchTask.progress,
+                    status: TaskStatus.TASK_SUCCEEDED,
+                    completedAt: new Date(),
+                },
+            };
+            const effectiveVersion = tableState.filterTable?.version ?? tableState.version;
             return {
                 ...state,
                 tableComputations: {
@@ -675,9 +749,48 @@ export function reduceComputationState(state: ComputationState, action: Computat
                             matchingRows,
                             pending: false,
                             error: null,
-                        }
+                        },
+                        dataSearchTable,
+                        orderingTable: null,
+                        filteredColumnAggregatesOutdated: getFilteredColumnAggregatesOutdated(
+                            { ...tableState, version: effectiveVersion },
+                            dataSearchTable,
+                        ),
+                        tasks: { ...tableState.tasks, dataSearchTask },
                     }
                 }
+            };
+        }
+        case DATA_SEARCH_FAILED: {
+            const [tableId, sourceDataFrame, requestId, error] = action.value;
+            const tableState = state.tableComputations[tableId];
+            if (tableState === undefined || tableState.dataFrame !== sourceDataFrame || tableState.dataSearch.requestId !== requestId) {
+                return state;
+            }
+            memory.release(tableState.dataSearchTable?.dataFrame);
+            memory.release(tableState.orderingTable?.dataFrame);
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        dataSearch: {
+                            ...tableState.dataSearch,
+                            appliedPattern: '',
+                            appliedRequestId: requestId,
+                            matchingRows: null,
+                            pending: false,
+                            error,
+                        },
+                        dataSearchTable: null,
+                        orderingTable: null,
+                        filteredColumnAggregatesOutdated: getFilteredColumnAggregatesOutdated({ ...tableState, dataSearchTable: null }, null),
+                        filteredColumnAggregates: tableState.filterTable == null
+                            ? Array.from({ length: tableState.filteredColumnAggregates.length }, () => null)
+                            : tableState.filteredColumnAggregates,
+                    },
+                },
             };
         }
         case RESULT_SEARCH_FAILED: {
@@ -768,8 +881,12 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
             break;
         case TABLE_ORDERING_TASK:
             if (create) {
+                memory.release(tableState.tasks.orderingTask?.inputDataFrame);
+                memory.release(tableState.tasks.orderingTask?.filterTable?.dataFrame);
+                memory.release(tableState.tasks.orderingTask?.dataSearchTable?.dataFrame);
                 memory.acquire(task.value.inputDataFrame, 2);
                 memory.acquire(task.value.filterTable?.dataFrame, 2);
+                memory.acquire(task.value.dataSearchTable?.dataFrame, 2);
             }
             registerTask = (tasks: TableComputationTasks) => {
                 const orderTask = task.value as TableOrderingTask;
@@ -789,6 +906,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                         inputDataTableFieldIndex: orderTask.inputDataTableFieldIndex,
                         inputDataFrame: orderTask.inputDataFrame,
                         filterTable: orderTask.filterTable,
+                        dataSearchTable: orderTask.dataSearchTable,
                         rowNumberColumnName: orderTask.rowNumberColumnName,
                         orderingConstraints: orderTask.orderingConstraints,
                         progress: {
@@ -797,6 +915,29 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                         } as TaskProgress,
                     }
                 });
+            };
+            break;
+        case DATA_SEARCH_TASK:
+            if (create) {
+                tableState.tasks.dataSearchTask?.abortController.abort();
+                memory.release(tableState.tasks.dataSearchTask?.inputDataFrame);
+                memory.acquire(task.value.inputDataFrame, 2);
+            }
+            registerTask = (tasks: TableComputationTasks) => {
+                const searchTask = task.value as DataSearchTask;
+                if (!create && tasks.dataSearchTask?.requestId !== searchTask.requestId) {
+                    return tasks;
+                }
+                return {
+                    ...tasks,
+                    dataSearchTask: {
+                        ...searchTask,
+                        progress: {
+                            ...tasks.dataSearchTask?.progress,
+                            ...progress,
+                        } as TaskProgress,
+                    },
+                };
             };
             break;
         case TABLE_AGGREGATION_TASK:
@@ -873,8 +1014,14 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
             break;
         case FILTERED_COLUMN_AGGREGATION_TASK:
             if (create) {
+                const previous = tableState.tasks.filteredColumnAggregationTasks[task.value.columnId];
+                memory.release(previous?.inputDataFrame);
+                memory.release(previous?.filterTable?.dataFrame);
+                memory.release(previous?.dataSearchTable?.dataFrame);
+                releaseColumnAggregate(previous?.unfilteredAggregate, memory);
                 memory.acquire(task.value.inputDataFrame, 2);
-                memory.acquire(task.value.filterTable.dataFrame, 2);
+                memory.acquire(task.value.filterTable?.dataFrame, 2);
+                memory.acquire(task.value.dataSearchTable?.dataFrame, 2);
                 memory.acquire(task.value.tableAggregate.dataFrame, 2);
                 acquireColumnAggregate(task.value.unfilteredAggregate, memory, 2);
             }
@@ -890,6 +1037,8 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                     inputDataFrame: filteredTask.inputDataFrame,
                     tableAggregate: filteredTask.tableAggregate,
                     filterTable: filteredTask.filterTable,
+                    dataSearchTable: filteredTask.dataSearchTable,
+                    selectionRowCount: filteredTask.selectionRowCount,
                     unfilteredAggregate: filteredTask.unfilteredAggregate,
                     progress: {
                         ...prev?.progress,
@@ -923,6 +1072,33 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
     return updatedState;
 }
 
+function releaseTaskDataFrames(task: TaskVariant, memory: DataFrameRegistry) {
+    switch (task.type) {
+        case TABLE_FILTERING_TASK:
+        case TABLE_AGGREGATION_TASK:
+        case DATA_SEARCH_TASK:
+            memory.release(task.value.inputDataFrame);
+            break;
+        case TABLE_ORDERING_TASK:
+            memory.release(task.value.inputDataFrame);
+            memory.release(task.value.filterTable?.dataFrame);
+            memory.release(task.value.dataSearchTable?.dataFrame);
+            break;
+        case SYSTEM_COLUMN_COMPUTATION_TASK:
+            memory.release(task.value.inputDataFrame);
+            break;
+        case COLUMN_AGGREGATION_TASK:
+            memory.release(task.value.inputDataFrame);
+            break;
+        case FILTERED_COLUMN_AGGREGATION_TASK:
+            memory.release(task.value.inputDataFrame);
+            memory.release(task.value.filterTable?.dataFrame);
+            memory.release(task.value.dataSearchTable?.dataFrame);
+            releaseColumnAggregate(task.value.unfilteredAggregate, memory);
+            break;
+    }
+}
+
 function areOrderingConstraintsEqual(left: OrderByConstraint[], right: OrderByConstraint[]): boolean {
     if (left.length !== right.length) {
         return false;
@@ -954,7 +1130,7 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
     const obsoleteFilteredColumnAggregates: Map<number, WithFilterEpoch<ColumnAggregationVariant> | null> = new Map();
     let newFilteredColumnAggregatesOutdated = tableState.filteredColumnAggregatesOutdated;
 
-    if (filterTable == null) {
+    if (filterTable == null && tableState.dataSearchTable == null) {
         // Clear column aggregates - track existing ones for release
         for (let columnId = 0; columnId < tableState.filteredColumnAggregates.length; ++columnId) {
             const prevAggregate = tableState.filteredColumnAggregates[columnId];
@@ -965,28 +1141,14 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
         newFilteredColumnAggregatesOutdated = Array.from({ length: tableState.filteredColumnAggregatesOutdated.length }, () => false);
 
     } else {
-        newFilteredColumnAggregatesOutdated = [...tableState.filteredColumnAggregatesOutdated];
-        for (let columnId = 0; columnId < tableState.columnGroups.length; ++columnId) {
-            // Skip columns that don't compute a column summary
-            const columnEntry = tableState.columnGroups[columnId];
-            if (columnEntry.type == SKIPPED_COLUMN || columnEntry.type == ROWNUMBER_COLUMN) {
-                newFilteredColumnAggregatesOutdated[columnId] = false;
-                continue;
-            }
-            const unfilteredAggregate = tableState.columnAggregates[columnId];
-            const prevFilteredAggregate = tableState.filteredColumnAggregates[columnId];
-            newFilteredColumnAggregatesOutdated[columnId] = (
-                unfilteredAggregate != null
-                && !prevFilteredAggregate?.filterVersion?.filterMatches(filterTable.version)
-            );
-        }
+        newFilteredColumnAggregatesOutdated = getFilteredColumnAggregatesOutdated(tableState, tableState.dataSearchTable, filterTable);
     }
 
     // When the filter is cleared, release obsolete aggregates and clear the state.
     // When the filter is active, we deliberately keep old aggregates until new ones are computed.
     // We use the filter epoch to determine that an aggregate is not yet updated.
     let newFilteredColumnAggregates = tableState.filteredColumnAggregates;
-    if (filterTable == null) {
+    if (filterTable == null && tableState.dataSearchTable == null) {
         // Release all obsolete filtered column aggregates
         for (const [, prevAggregate] of obsoleteFilteredColumnAggregates.entries()) {
             releaseColumnAggregate(prevAggregate, memory);
@@ -1016,6 +1178,32 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
             }
         },
     };
+}
+
+function getFilteredColumnAggregatesOutdated(
+    tableState: TableComputationState,
+    dataSearchTable: DataSearchTable | null,
+    filterTable: FilterTable | null = tableState.filterTable,
+): boolean[] {
+    if (filterTable == null && dataSearchTable == null) {
+        return Array.from({ length: tableState.filteredColumnAggregatesOutdated.length }, () => false);
+    }
+    const outdated = [...tableState.filteredColumnAggregatesOutdated];
+    const targetVersion = filterTable?.version ?? tableState.version;
+    for (let columnId = 0; columnId < tableState.columnGroups.length; ++columnId) {
+        const columnEntry = tableState.columnGroups[columnId];
+        if (columnEntry.type == SKIPPED_COLUMN || columnEntry.type == ROWNUMBER_COLUMN || columnEntry.type == LIST_COLUMN) {
+            outdated[columnId] = false;
+            continue;
+        }
+        const unfilteredAggregate = tableState.columnAggregates[columnId];
+        const previous = tableState.filteredColumnAggregates[columnId];
+        outdated[columnId] = unfilteredAggregate != null && !(
+            previous?.filterVersion.filterMatches(targetVersion)
+            && previous.dataSearchRequestId === (dataSearchTable?.requestId ?? null)
+        );
+    }
+    return outdated;
 }
 
 /// Acquire a column aggregate
@@ -1073,6 +1261,7 @@ function destroyTableComputationState(state: TableComputationState, memory: Data
     // Release data frames
     memory.release(state.dataFrame);
     memory.release(state.filterTable?.dataFrame);
+    memory.release(state.dataSearchTable?.dataFrame);
     memory.release(state.orderingTable?.dataFrame);
     memory.release(state.tableAggregation?.dataFrame);
     releaseColumnAggregates(state.columnAggregates, memory);
@@ -1082,11 +1271,14 @@ function destroyTableComputationState(state: TableComputationState, memory: Data
     memory.release(state.tasks.filteringTask?.inputDataFrame);
     memory.release(state.tasks.orderingTask?.inputDataFrame);
     memory.release(state.tasks.orderingTask?.filterTable?.dataFrame);
+    memory.release(state.tasks.orderingTask?.dataSearchTable?.dataFrame);
+    memory.release(state.tasks.dataSearchTask?.inputDataFrame);
     memory.release(state.tasks.tableAggregationTask?.inputDataFrame);
     memory.release(state.tasks.systemColumnTask?.inputDataFrame);
     memory.releaseMany(state.tasks.columnAggregationTasks.map(task => task?.inputDataFrame));
     for (const task of state.tasks.filteredColumnAggregationTasks) {
         memory.release(task?.filterTable?.dataFrame);
+        memory.release(task?.dataSearchTable?.dataFrame);
         releaseColumnAggregate(task?.unfilteredAggregate ?? null, memory);
     }
 }

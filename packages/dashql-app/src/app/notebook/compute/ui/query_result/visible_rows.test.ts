@@ -21,4 +21,14 @@ describe('resolveSearchedRowIndices', () => {
         } as any;
         expect(Array.from(resolveSearchedRowIndices(computation)!)).toEqual([3, 0]);
     });
+
+    it('uses a materialized Data-search table directly without cross-filters', () => {
+        const computation = {
+            filterTable: null,
+            orderingTable: null,
+            dataSearchTable: { dataTable: arrow.tableFromArrays({ row_idx: new Int32Array([2, 4]) }) },
+            dataSearch: { matchingRows: new Map([[2, [0]], [4, [1]]]) },
+        } as any;
+        expect(Array.from(resolveSearchedRowIndices(computation)!)).toEqual([1, 3]);
+    });
 });

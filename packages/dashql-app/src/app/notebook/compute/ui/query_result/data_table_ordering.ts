@@ -46,6 +46,7 @@ function createOrderingTask(
         inputDataTableFieldIndex: table.dataTableFieldsByName,
         inputDataFrame: table.dataFrame,
         filterTable: table.filterTable,
+        dataSearchTable: table.dataSearchTable,
         rowNumberColumnName: table.rowNumberColumnName,
         orderingConstraints,
     };
@@ -68,10 +69,12 @@ export function useDataTableOrdering(
         const currentTask = table.tasks.orderingTask;
         const currentOrdering = table.orderingTable;
         const filterVersion = table.filterTable?.version ?? null;
+        const dataSearchRequestId = table.dataSearchTable?.requestId ?? null;
         const taskMatchesInput = currentTask?.tableVersion.filterMatches(table.version)
             && (filterVersion
                 ? (currentTask.filterTable?.version?.filterMatches(filterVersion) ?? false)
-                : currentTask.filterTable === null);
+                : currentTask.filterTable === null)
+            && (currentTask.dataSearchTable?.requestId ?? null) === dataSearchRequestId;
         const hasUpToDateOrdering = currentOrdering != null
             && currentTask?.progress.status === TaskStatus.TASK_SUCCEEDED
             && taskMatchesInput

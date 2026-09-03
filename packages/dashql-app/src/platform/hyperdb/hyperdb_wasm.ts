@@ -426,9 +426,9 @@ export class HyperDBConnection implements EmbeddedTableImportConnection, Embedde
         });
     }
 
-    async createTableAs(name: string, query: string): Promise<void> {
+    async createTableAs(name: string, query: string, abort?: AbortSignal): Promise<void> {
         this.checkOpen();
-        await this.queryArrowIPC(`CREATE TABLE ${quoteIdentifier(name)} AS ${query}`);
+        await this.queryArrowIPC(`CREATE TABLE ${quoteIdentifier(name)} AS ${query}`, abort);
     }
 
     async attachPersistentDatabase(name: string, alias: string): Promise<void> {

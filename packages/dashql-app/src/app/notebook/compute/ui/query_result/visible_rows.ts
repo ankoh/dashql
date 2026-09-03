@@ -16,7 +16,9 @@ export function resolveVisibleRowIndices(computation: TableComputationState | nu
     if (computation == null) {
         return null;
     }
-    const indirection = computation.orderingTable?.dataTable ?? computation.filterTable?.dataTable ?? null;
+    const indirection = computation.orderingTable?.dataTable
+        ?? (computation.filterTable == null ? computation.dataSearchTable?.dataTable : computation.filterTable.dataTable)
+        ?? null;
     if (indirection == null) {
         return null;
     }
@@ -41,7 +43,9 @@ export function resolveSearchedRowIndices(computation: TableComputationState | n
     if (computation == null || computation.dataSearch.matchingRows == null) {
         return resolveVisibleRowIndices(computation);
     }
-    const visible = resolveVisibleRowIndices(computation);
+    const visible = computation.orderingTable?.dataSearchRequestId === computation.dataSearchTable?.requestId
+        ? resolveVisibleRowIndices(computation)
+        : resolveVisibleRowIndices(computation == null ? null : { ...computation, dataSearchTable: null });
     if (visible == null) {
         const rows = Array.from(computation.dataSearch.matchingRows.keys(), rowNumber => rowNumber - 1);
         return Int32Array.from(rows);

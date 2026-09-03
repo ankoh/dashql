@@ -3,7 +3,6 @@ import * as React from 'react';
 
 import {
     COLUMN_SEARCH_SUCCEEDED,
-    DATA_SEARCH_SUCCEEDED,
     RESULT_SEARCH_FAILED,
     SET_RESULT_SEARCH_PATTERN,
     type ComputationAction,
@@ -11,15 +10,14 @@ import {
 } from '../../../../../compute/computation_state.js';
 import {
     buildColumnSearchSQL,
-    buildDataSearchSQL,
     collectSearchableResultColumns,
     parseColumnSearchMatches,
-    parseDataSearchMatches,
 } from '../../../../../compute/sql/query_result_search_sql.js';
 import type { Dispatch } from '../../../../../utils/variant.js';
 import { useLogger } from '../../../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../../../platform/logger/logger.js';
 import { useDataFrameRegistry } from '../../../../../compute/computation_registry.js';
+import { searchDataDispatched } from '../../../../../compute/computation_logic.js';
 
 const LOG_CTX = 'query_result_search';
 
@@ -127,51 +125,34 @@ export function useQueryResultSearch(
         if (search.requestId === search.appliedRequestId) return;
         if (table.dataTableLifetime.signal.aborted) return;
 
-        const sql = buildDataSearchSQL(
-            table.dataFrame.tableName,
-            table.rowNumberColumnName,
-            columns,
-            search.requestedPattern,
-        );
-        if (sql == null) {
-            dispatch({
-                type: DATA_SEARCH_SUCCEEDED,
-                value: [table.tableId, table.dataFrame, search.requestId, new Map()],
-            });
-            return;
-        }
-
         if (executions.data?.requestId === search.requestId && executions.data.sourceDataFrame === table.dataFrame) return;
         executions.data?.abort.abort();
         const execution = { requestId: search.requestId, sourceDataFrame: table.dataFrame, abort: new AbortController() };
         executions.data = execution;
         const abortForTableLifetime = () => execution.abort.abort(table.dataTableLifetime.signal.reason);
         table.dataTableLifetime.signal.addEventListener('abort', abortForTableLifetime, { once: true });
-        dataFrameMemory.acquire(table.dataFrame);
         void (async () => {
             try {
-                const result = await table.dataFrame!.withConnection(async connection => {
-                    const bytes = await connection.queryArrowIPC(sql, execution.abort.signal);
-                    return new arrow.Table(arrow.RecordBatchReader.from(bytes));
-                });
-                dispatch({
-                    type: DATA_SEARCH_SUCCEEDED,
-                    value: [table.tableId, table.dataFrame!, search.requestId, parseDataSearchMatches(result)],
-                });
+                await searchDataDispatched({
+                    tableId: table.tableId,
+                    tableVersion: table.version,
+                    inputDataFrame: table.dataFrame!,
+                    rowNumberColumnName: table.rowNumberColumnName!,
+                    columns,
+                    pattern: search.requestedPattern,
+                    requestId: search.requestId,
+                    abortController: execution.abort,
+                }, dispatch);
             } catch (error) {
-                if (execution.abort.signal.aborted) return;
-                logger.warn('Data search failed', { error: stringifyError(error) }, LOG_CTX);
-                dispatch({
-                    type: RESULT_SEARCH_FAILED,
-                    value: [table.tableId, table.dataFrame!, 'data', search.requestId, stringifyError(error)],
-                });
+                if (!execution.abort.signal.aborted) {
+                    logger.warn('Data search failed', { error: stringifyError(error) }, LOG_CTX);
+                }
             } finally {
                 table.dataTableLifetime.signal.removeEventListener('abort', abortForTableLifetime);
-                dataFrameMemory.release(table.dataFrame);
                 if (executions.data === execution) executions.data = null;
             }
         })();
-    }, [columns, dataFrameMemory, dispatch, logger, table?.dataSearch?.requestId, table?.dataFrame, table?.rowNumberColumnName, table?.tableId]);
+    }, [columns, dispatch, logger, table?.dataSearch?.requestId, table?.dataFrame, table?.rowNumberColumnName, table?.tableId, table?.version]);
 
     const setColumnPattern = React.useCallback((pattern: string) => {
         if (table != null) {
