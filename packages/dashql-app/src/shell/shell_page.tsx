@@ -20,6 +20,7 @@ import { useShellConnection } from './shell_connection.js';
 import { createShellOutputCommand, type ShellOutputMode } from './shell_result.js';
 import { createShellFilesCommand, ShellFileRegistry } from './shell_files.js';
 import { createDatabaseCommand } from './commands/database.js';
+import { createFormatCommand } from './commands/format.js';
 import { OPFSPersistentDatabaseRegistry } from './persistent_database_registry.js';
 import { useFileDownloader } from '../platform/file/file_downloader_provider.js';
 import { useSalesforceLoginDialog } from './salesforce_login_dialog.js';
@@ -37,6 +38,7 @@ import { usePlatformEventListener } from '../platform/events/event_listener_prov
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { useAppConfig } from '../app/config/app_config.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
+import { useFormatDialog } from './format_dialog.js';
 import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';
@@ -69,6 +71,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         loadHistory: () => loginHistoryRef.current.load(),
         deleteHistoryEntry: organizationId => loginHistoryRef.current.delete(organizationId),
     });
+    const { controller: formatDialog, dialog: formatterDialog } = useFormatDialog();
     const containerRef = React.useRef<HTMLDivElement>(null);
     const fileRegistryRef = React.useRef(new ShellFileRegistry());
     const databaseRegistryRef = React.useRef(new OPFSPersistentDatabaseRegistry());
@@ -230,6 +233,12 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             });
             const commands: DashQLShellCommand[] = [
                 examplesCommand,
+                createFormatCommand({
+                    requestDialog: signal => {
+                        if (shell == null) throw new Error('Shell is not ready');
+                        return formatDialog.request(shell.core, shell.catalog, signal);
+                    },
+                }),
                 loginCommand,
                 refreshCommand,
                 createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
@@ -321,7 +330,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             setConnected(false);
             void connection?.close();
         };
-    }, [appConfig, appEvents, dispatchComputation, fileDownloader, httpClient, logger, loginDialog, platformType, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase, showResultQuery]);
+    }, [appConfig, appEvents, dispatchComputation, fileDownloader, formatDialog, httpClient, logger, loginDialog, platformType, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase, showResultQuery]);
 
     return (
         <main className={styles.page} aria-label="HyperDB Shell">
@@ -341,6 +350,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 />
             )}
             {dialog}
+            {formatterDialog}
         </main>
     );
 };

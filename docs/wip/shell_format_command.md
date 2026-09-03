@@ -6,11 +6,11 @@ Add a `.format` command to the standalone shell. Running the command opens a lar
 
 The card contains:
 
-- A `Format SQL` header.
+- A `SQL Formatter` header.
 - A close button on the right.
 - A `Raw / Compact / Pretty` segmented control immediately left of the close button.
 - A warning or error indicator immediately left of the segmented control when parsing or formatting fails.
-- A CodeMirror editor with the placeholder `Edit SQL`.
+- A CodeMirror editor with an empty Raw input state.
 
 ## Behavior
 
@@ -61,7 +61,7 @@ Use the standard centered `Overlay` and usual overlay-card styling. The dialog s
 Interaction and accessibility requirements:
 
 - Use `role="dialog"` and `aria-modal="true"`.
-- Associate the dialog with its `Format SQL` heading.
+- Associate the dialog with its `SQL Formatter` heading.
 - Trap focus inside the dialog.
 - Initially focus CodeMirror.
 - Restore focus to the shell after closing.
@@ -80,7 +80,7 @@ Configure an isolated SQL editor with:
 - The existing editor theme.
 - Line numbers and selection rendering.
 - History and standard editing key bindings.
-- The `Edit SQL` placeholder.
+- No placeholder text in the empty editor.
 - Standalone DashQL syntax highlighting.
 - An update listener that stores Raw text and refreshes parse/format availability.
 
@@ -134,7 +134,7 @@ Add tests covering:
 
 - Accessible dialog name and modal semantics.
 - Accessible close action.
-- CodeMirror placeholder `Edit SQL`.
+- Empty Raw editor without placeholder text.
 - Initial editor focus and focus restoration.
 - Raw text remains editable.
 - Compact and Pretty display expected derived text.
