@@ -31,6 +31,16 @@ if (typeof g.Headers === "undefined") g.Headers = Headers;
 if (typeof g.Request === "undefined") g.Request = Request;
 if (typeof g.Response === "undefined") g.Response = Response;
 
+// jsdom does not implement ResizeObserver. Keep a baseline implementation outside
+// vi.stubGlobal() so tests that call vi.unstubAllGlobals() restore a usable value.
+if (typeof g.ResizeObserver === "undefined") {
+    g.ResizeObserver = class ResizeObserverMock {
+        observe() { }
+        unobserve() { }
+        disconnect() { }
+    };
+}
+
 const coreWasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
 const coreJsPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.js");
 const shellWasmPath = path.resolve(process.cwd(), "dependencies/dashql-shell-wasm/dashql_shell.wasm");

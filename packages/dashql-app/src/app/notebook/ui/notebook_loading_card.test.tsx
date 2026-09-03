@@ -31,11 +31,6 @@ const FILE_BUNDLE: NotebookBundle = {
 };
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-vi.stubGlobal('ResizeObserver', class {
-    observe() { }
-    unobserve() { }
-    disconnect() { }
-});
 vi.mock('../../ui/navbar.js', () => ({ CompactNavBar: () => null }));
 vi.mock('../../../ui/particle_flow/particle_flow_background.js', () => ({ ParticleFlowBackground: () => null }));
 
