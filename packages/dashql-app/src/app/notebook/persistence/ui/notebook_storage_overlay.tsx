@@ -64,7 +64,7 @@ function ParamRow(props: { label: string; value: string }) {
 
 /// An editable notebook-name row. The input owns its draft so typing does not rerender the storage
 /// view; blur or Enter dispatches RENAME_NOTEBOOK, which normalises blank input to "no name".
-function NameRow(props: { name: string | null; onCommit: (name: string) => void }) {
+export function NameRow(props: { name: string | null; onCommit: (name: string) => void }) {
     const inputRef = React.useRef<HTMLInputElement>(null);
     const cancelBlurRef = React.useRef(false);
     // Re-sync the draft when the persisted name changes (e.g. a rename from elsewhere, or switching

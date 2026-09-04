@@ -6,45 +6,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const state = vi.hoisted(() => ({
-    modifyNotebookScripts: vi.fn(),
+    commitName: vi.fn(),
     parentKeyDown: vi.fn(),
 }));
 
-vi.mock('../storage_provider.js', () => ({
-    useStorageReader: () => ({
-        backend: {},
-        getNotebookLocation: () => ({ type: 0 }),
-    }),
-    useStorageWriter: () => ({}),
-}));
-vi.mock('../../scripts/notebook_scripts_registry.js', () => ({
-    useNotebookScripts: () => [{ name: 'Original name' }, state.modifyNotebookScripts],
-}));
-vi.mock('../../../../platform/logger/logger_provider.js', () => ({
-    useLogger: () => ({}),
-}));
-
-import { RENAME_NOTEBOOK } from '../../scripts/notebook_scripts.js';
-import { NotebookStorageViewer } from './notebook_storage_overlay.js';
+import { NameRow } from './notebook_storage_overlay.js';
 
 function setInputValue(input: HTMLInputElement, value: string) {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-describe('NotebookStorageViewer notebook name', () => {
+describe('NameRow', () => {
     let container: HTMLDivElement;
     let root: Root;
 
     beforeEach(() => {
-        state.modifyNotebookScripts.mockReset();
+        state.commitName.mockReset();
         state.parentKeyDown.mockReset();
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
         act(() => root.render(
             <div onKeyDown={state.parentKeyDown}>
-                <NotebookStorageViewer notebookId="notebook" onClose={vi.fn()} />
+                <NameRow name="Original name" onCommit={state.commitName} />
             </div>,
         ));
     });
@@ -65,14 +50,11 @@ describe('NotebookStorageViewer notebook name', () => {
             setInputValue(input, 'Updated name');
         });
 
-        expect(state.modifyNotebookScripts).not.toHaveBeenCalled();
+        expect(state.commitName).not.toHaveBeenCalled();
 
         act(() => input.blur());
-        expect(state.modifyNotebookScripts).toHaveBeenCalledOnce();
-        expect(state.modifyNotebookScripts).toHaveBeenCalledWith({
-            type: RENAME_NOTEBOOK,
-            value: 'Updated name',
-        });
+        expect(state.commitName).toHaveBeenCalledOnce();
+        expect(state.commitName).toHaveBeenCalledWith('Updated name');
     });
 
     it('commits on Enter', () => {
@@ -83,11 +65,8 @@ describe('NotebookStorageViewer notebook name', () => {
             input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         });
 
-        expect(state.modifyNotebookScripts).toHaveBeenCalledOnce();
-        expect(state.modifyNotebookScripts).toHaveBeenCalledWith({
-            type: RENAME_NOTEBOOK,
-            value: 'Updated name',
-        });
+        expect(state.commitName).toHaveBeenCalledOnce();
+        expect(state.commitName).toHaveBeenCalledWith('Updated name');
     });
 
     it('keeps text-entry keys inside the name input', () => {
@@ -110,6 +89,6 @@ describe('NotebookStorageViewer notebook name', () => {
         });
 
         expect(input.value).toBe('Original name');
-        expect(state.modifyNotebookScripts).not.toHaveBeenCalled();
+        expect(state.commitName).not.toHaveBeenCalled();
     });
 });
