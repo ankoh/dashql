@@ -1,16 +1,9 @@
 /// Shared in-memory filesystem backing the Electron filesystem mock used by the storage tests.
 ///
 /// `native_storage_backend.test.ts` and `composite_storage_backend.test.ts` both exercise the *real*
-/// `NativeStorageBackend` against a mocked Electron bridge. The app's vitest config runs with
-/// `isolate: false` (see `vite.config.tpl.ts`), so when both files land on the same worker the
-/// production `native_storage_backend.ts` module is imported and cached only once, bound to whichever
-/// file's mock factory loaded first. If each test file owned its own store, the other file's backend
-/// would read and write a *different* store than its assertions inspect - which surfaces as the
-/// backend "losing" writes and leaking stale data across files (intermittently, depending on how
-/// vitest distributes files across workers; reliably under constrained CI parallelism).
-///
-/// Both files therefore share this single store instance and the single mock factory below, and reset
-/// the store in `beforeEach`.
+/// `NativeStorageBackend` against a mocked Electron bridge. Keeping the mock implementation here
+/// ensures both tests model the filesystem consistently. Each test file receives an isolated module
+/// instance, and resets its store in `beforeEach`.
 export interface FsStore {
     files: Map<string, string>;
     /// Binary files written via `writeFile` / read via `readFile` (e.g. the `.arrow` cache entries),
@@ -25,8 +18,7 @@ export interface FsStore {
     clock: number;
 }
 
-/// The one shared store. Same module specifier from both the top-level import and the dynamic import
-/// inside each `vi.mock` factory resolves to this same singleton.
+/// Store shared by the test and its dynamic `vi.mock` factory within one isolated test context.
 export const fsStore: FsStore = {
     files: new Map<string, string>(),
     binFiles: new Map<string, Uint8Array>(),

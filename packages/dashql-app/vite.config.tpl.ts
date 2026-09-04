@@ -236,7 +236,6 @@ export default vite.defineConfig(({ mode, command }) => {
             pool: 'forks',
             execArgv: ['--experimental-wasm-exnref'],
             maxWorkers: 4,
-            isolate: false,
             testTimeout: 60_000,
             hookTimeout: 60_000,
             setupFiles: [
