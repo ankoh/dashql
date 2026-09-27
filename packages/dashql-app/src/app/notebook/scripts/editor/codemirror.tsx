@@ -3,6 +3,7 @@ import * as themes from './themes/index.js';
 
 import { EditorState, Extension } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands"
+import { search, searchKeymap } from '@codemirror/search';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 import { DashQLExtensions, DashQLReadonlyExtensions } from './dashql_extension.js';
 
@@ -17,11 +18,16 @@ export interface CodeMirrorProps {
     style?: React.CSSProperties;
     /// Additional extensions appended after the default set
     extraExtensions?: Extension[];
-    /// Full extension set to use instead of defaults
+    /// Full editor-specific extension set to use instead of defaults. Shared search is still appended.
     extensions?: Extension[];
     /// Document used when constructing the EditorState. Later changes are owned by the caller.
     initialDoc?: string;
 }
+
+export const CodeMirrorSearchExtensions: Extension[] = [
+    search({ top: true }),
+    keymap.of(searchKeymap),
+];
 
 export function createCodeMirrorExtensions(): Extension[] {
     // See: https://github.com/codemirror/basic-setup/blob/main/src/codemirror.ts
@@ -36,6 +42,7 @@ export function createCodeMirrorExtensions(): Extension[] {
         drawSelection(),
         history(),
         ...DashQLExtensions,
+        ...CodeMirrorSearchExtensions,
         keymapExtension
     ];
     return extensions;
@@ -48,6 +55,7 @@ export function createReadonlyCodeMirrorExtensions(): Extension[] {
         drawSelection(),
         EditorState.readOnly.of(true),
         ...DashQLReadonlyExtensions,
+        ...CodeMirrorSearchExtensions,
     ];
 }
 
@@ -65,7 +73,9 @@ export const CodeMirror = React.forwardRef<EditorView, CodeMirrorProps>((props: 
         logger.debug("Creating a new codemirror view", {}, "codemirror");
 
         // The DOM node has changed, create a new view
-        const extensions = props.extensions ?? [...createCodeMirrorExtensions(), ...(props.extraExtensions ?? [])];
+        const extensions = props.extensions == null
+            ? [...createCodeMirrorExtensions(), ...(props.extraExtensions ?? [])]
+            : [...props.extensions, ...CodeMirrorSearchExtensions];
         const view = new EditorView({
             state: EditorState.create({ doc: props.initialDoc, extensions }),
             parent: node,

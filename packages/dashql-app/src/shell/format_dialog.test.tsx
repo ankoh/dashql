@@ -157,6 +157,40 @@ describe('SQL formatter dialog', () => {
         await expect(result).resolves.toBeUndefined();
     });
 
+    it('opens shared editor search and closes search before the dialog on Escape', async () => {
+        const result = open();
+        setEditorText('select one\nselect two');
+
+        const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+        act(() => editorContent().dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'f',
+            code: 'KeyF',
+            bubbles: true,
+            cancelable: true,
+            metaKey: isMac,
+            ctrlKey: !isMac,
+        })));
+
+        const searchInput = document.querySelector<HTMLInputElement>('.cm-search input[name="search"]');
+        expect(searchInput).not.toBeNull();
+        searchInput!.focus();
+
+        act(() => searchInput!.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'Escape',
+            bubbles: true,
+            cancelable: true,
+        })));
+        expect(document.querySelector('.cm-search')).toBeNull();
+        expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+
+        act(() => editorContent().dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'Escape',
+            bubbles: true,
+            cancelable: true,
+        })));
+        await expect(result).resolves.toBeUndefined();
+    });
+
     it('closes and settles when the shell command is aborted or the component unmounts', async () => {
         const abort = new AbortController();
         const aborted = open(abort.signal);

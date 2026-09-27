@@ -315,6 +315,7 @@ _vite_web_deps = [
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/@codemirror/commands",
     "//:node_modules/@codemirror/language",
+    "//:node_modules/@codemirror/search",
     "//:node_modules/@codemirror/state",
     "//:node_modules/@codemirror/view",
     "//:node_modules/@dnd-kit/core",

@@ -223,7 +223,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             {
                 key: 'Escape',
                 ctrlKey: false,
-                capture: true,
                 callback: (event) => {
                     if (isEditingName) {
                         cancelNameEdit();

@@ -28,7 +28,6 @@ export function useOverlay(args: UseOverlayArgs): React.RefObject<HTMLDivElement
         {
             key: "Escape",
             ctrlKey: false,
-            capture: true,
             callback: (e: KeyboardEvent) => {
                 args.onEscape(e);
                 e.stopPropagation();

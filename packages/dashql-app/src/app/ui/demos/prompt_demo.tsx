@@ -12,6 +12,7 @@ import { useDashQLCoreSetup } from '../../providers/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { DashQLExtensions } from '../../notebook/scripts/editor/dashql_extension.js';
 import { DashQLUpdateEffect, DashQLProcessorUpdateOut } from '../../notebook/scripts/editor/dashql_processor.js';
+import { CodeMirrorSearchExtensions } from '../../notebook/scripts/editor/codemirror.js';
 import * as themes from '../../notebook/scripts/editor/themes/index.js';
 
 const LOG_CTX = "prompt_demo";
@@ -28,6 +29,7 @@ function createPromptExtensions(): Extension[] {
         drawSelection(),
         history(),
         ...DashQLExtensions,
+        ...CodeMirrorSearchExtensions,
         keymapExtension,
         placeholder("select * from orders order by timestamp desc limit 10"),
         // Auto-height: let the content determine the height
