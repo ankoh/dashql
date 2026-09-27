@@ -1,5 +1,5 @@
 import * as dashql from './index.js';
-import { materializePlanScene } from '../app/notebook/compute/ui/plan/plan_scene.js';
+import { materializePlanScene, PLAN_OPERATOR_PORT_INPUT, PLAN_OPERATOR_PORT_OUTPUT } from '../app/notebook/compute/ui/plan/plan_scene.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -100,9 +100,16 @@ describe('Plan View Model', () => {
             expect(plan.operators(edge.sourceNode())!.crossEdgeCount()).toEqual(1);
 
             const sceneEdge = materializePlanScene(planPtr).crossEdges[0];
+            const scene = materializePlanScene(planPtr);
             expect(sceneEdge.kind).toEqual('early-probe');
             expect(sceneEdge.properties).toMatchObject({ type: 'lookup', attributes: [0] });
             expect(sceneEdge.path).not.toEqual('');
+            expect(scene.operators[sceneEdge.sourceOperator].ports & PLAN_OPERATOR_PORT_OUTPUT).toBeTruthy();
+            expect(scene.operators[sceneEdge.targetOperator].ports & PLAN_OPERATOR_PORT_INPUT).toBeTruthy();
+            for (const treeEdge of scene.edges) {
+                expect(scene.operators[treeEdge.childOperator].ports & PLAN_OPERATOR_PORT_OUTPUT).toBeTruthy();
+                expect(scene.operators[treeEdge.parentOperator].ports & PLAN_OPERATOR_PORT_INPUT).toBeTruthy();
+            }
         });
         it('creates fragments from federate descendants', () => {
             const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);

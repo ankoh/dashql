@@ -13,6 +13,19 @@ class TestPlatformEventListener extends PlatformEventListener {
 }
 
 describe('PlatformEventListener clipboard events', () => {
+    function paste(text: string) {
+        const preventDefault = vi.fn();
+        const stopPropagation = vi.fn();
+        const event = new Event('paste', { bubbles: true, cancelable: true }) as ClipboardEvent;
+        Object.defineProperties(event, {
+            clipboardData: { value: { getData: () => text } },
+            preventDefault: { value: preventDefault },
+            stopPropagation: { value: stopPropagation },
+        });
+        document.dispatchEvent(event);
+        return { preventDefault, stopPropagation };
+    }
+
     it.each([
         'dashql://localhost?notebook=https%3A%2F%2Fexample.com%2Fdashql-notebook.json',
         'https://dashql.app/?notebook=https%3A%2F%2Fexample.com%2Fdashql-notebook.json',
@@ -38,19 +51,9 @@ describe('PlatformEventListener clipboard events', () => {
         listener.subscribeSetupEvents(event => setupEvents.push(event));
         await listener.setup();
 
-        const preventDefault = vi.fn();
-        const stopPropagation = vi.fn();
-        const event = new Event('paste', { bubbles: true, cancelable: true }) as ClipboardEvent;
-        Object.defineProperties(event, {
-            clipboardData: {
-                value: {
-                    getData: () => 'http://localhost:9002/?notebook=http://localhost:9002/static/examples/notebooks/explain/dashql-notebook.json',
-                },
-            },
-            preventDefault: { value: preventDefault },
-            stopPropagation: { value: stopPropagation },
-        });
-        document.dispatchEvent(event);
+        const { preventDefault, stopPropagation } = paste(
+            'http://localhost:9002/?notebook=http://localhost:9002/static/examples/notebooks/explain/dashql-notebook.json',
+        );
 
         expect(setupEvents).toEqual([{
             type: SETUP_NOTEBOOK_URL,
@@ -58,6 +61,25 @@ describe('PlatformEventListener clipboard events', () => {
         }]);
         expect(preventDefault).toHaveBeenCalledOnce();
         expect(stopPropagation).toHaveBeenCalledOnce();
+        listener.dispose();
+    });
+
+    it('dispatches unhandled pasted text to fallback subscribers without trimming it', async () => {
+        const listener = new TestPlatformEventListener(new TestLogger());
+        const fallbackPastes: string[] = [];
+        const handler = (text: string) => fallbackPastes.push(text);
+        listener.subscribeFallbackPasteEvents(handler);
+        await listener.setup();
+
+        const { preventDefault, stopPropagation } = paste('  query plan\n');
+
+        expect(fallbackPastes).toEqual(['  query plan\n']);
+        expect(preventDefault).toHaveBeenCalledOnce();
+        expect(stopPropagation).toHaveBeenCalledOnce();
+
+        listener.unsubscribeFallbackPasteEvents(handler);
+        paste('ignored');
+        expect(fallbackPastes).toHaveLength(1);
         listener.dispose();
     });
 

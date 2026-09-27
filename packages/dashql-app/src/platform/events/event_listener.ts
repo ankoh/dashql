@@ -65,6 +65,8 @@ export abstract class PlatformEventListener {
     private isSetup: boolean;
     /// The drag event subscriber
     private dragDropEventSubscribers: Map<string, (e: PlatformDragDropEventVariant) => void>;
+    /// Subscribers for pasted text not handled as an app event
+    private fallbackPasteSubscribers: Set<(text: string) => void>;
 
     /// Constructor
     constructor(logger: Logger) {
@@ -74,6 +76,7 @@ export abstract class PlatformEventListener {
         this.queuedSetupEvent = null;
         this.clipboardEventHandler = this.processClipboardEvent.bind(this);
         this.dragDropEventSubscribers = new Map();
+        this.fallbackPasteSubscribers = new Set();
         this.isSetup = false;
     }
 
@@ -91,6 +94,7 @@ export abstract class PlatformEventListener {
         document.removeEventListener("paste", this.clipboardEventHandler, true);
         this.stopListeningForAppEvents();
         this.dragDropEventSubscribers.clear();
+        this.fallbackPasteSubscribers.clear();
     }
 
     /// Method to setup the listener for app events
@@ -222,6 +226,15 @@ export abstract class PlatformEventListener {
         this.dragDropEventSubscribers.delete(key);
     }
 
+    /// Subscribe to pasted text that is not recognized as an app event
+    public subscribeFallbackPasteEvents(handler: (text: string) => void): void {
+        this.fallbackPasteSubscribers.add(handler);
+    }
+    /// Unsubscribe from fallback paste events
+    public unsubscribeFallbackPasteEvents(handler: (text: string) => void): void {
+        this.fallbackPasteSubscribers.delete(handler);
+    }
+
     /// Method to listen for pasted dashql links
     private listenForClipboardEvents() {
         this.logger.info("Subscribing to clipboard events", {}, LOG_CTX);
@@ -266,8 +279,9 @@ export abstract class PlatformEventListener {
 
     /// Helper to process a clipboard event
     private processClipboardEvent(event: ClipboardEvent) {
-        const pastedText = event.clipboardData?.getData("text/plain").trim() ?? null;
-        if (pastedText == null) return;
+        const clipboardText = event.clipboardData?.getData("text/plain") ?? null;
+        if (clipboardText == null) return;
+        const pastedText = clipboardText.trim();
 
         const setup = parseClipboardSetup(pastedText);
         let eventData: string | null = null;
@@ -282,6 +296,7 @@ export abstract class PlatformEventListener {
             // Raw base64 event data pasted directly (web opener flow fallback)
             eventData = pastedText;
         } else {
+            this.dispatchFallbackPaste(event, clipboardText);
             return;
         }
 
@@ -290,6 +305,17 @@ export abstract class PlatformEventListener {
             event.preventDefault();
             event.stopPropagation();
             this.dispatchAppEvent(data);
+        } else {
+            this.dispatchFallbackPaste(event, clipboardText);
+        }
+    }
+
+    private dispatchFallbackPaste(event: ClipboardEvent, text: string): void {
+        if (this.fallbackPasteSubscribers.size === 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        for (const subscriber of this.fallbackPasteSubscribers) {
+            subscriber(text);
         }
     }
 }

@@ -163,6 +163,35 @@ TEST(HyperPlanTest, ResolvesOperatorCrossEdges) {
     EXPECT_EQ(plan->root_operators()->size(), 1);
 }
 
+TEST(HyperPlanTest, ResolvesHyphenatedExplicitScanInputCrossEdge) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"result-sink","operator-id":1,"inputs":[
+            {"operator":"explicit-scan","operator-id":4,
+             "input":{"operator":"share","operator-id":5,
+                      "inputs":[{"operator":"scan","operator-id":6}]}},
+            {"operator":"explicit-scan","operator-id":8,"input":5}
+        ]
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    ASSERT_NE(plan->operator_cross_edges(), nullptr);
+    ASSERT_EQ(plan->operator_cross_edges()->size(), 1);
+    const auto* edge = plan->operator_cross_edges()->Get(0);
+    auto source_operator_id = [&](uint32_t operator_id) -> uint64_t {
+        const auto* op = plan->operators()->Get(operator_id);
+        for (size_t i = 0; i < op->attribute_count(); ++i) {
+            const auto* attribute = plan->attributes()->Get(op->attributes_begin() + i);
+            auto name = plan->string_dictionary()->Get(attribute->name())->string_view();
+            if (name == "operatorId" || name == "operator-id") {
+                return std::stoull(plan->string_dictionary()->Get(attribute->value_json())->str());
+            }
+        }
+        return uint64_t{0};
+    };
+    EXPECT_EQ(source_operator_id(edge->source_node()), 5);
+    EXPECT_EQ(source_operator_id(edge->target_node()), 8);
+}
+
 TEST(HyperPlanTest, IgnoresUnknownAndUnrelatedNumericProperties) {
     auto builder = PackPlan(R"JSON({
         "operator":"executiontarget","operatorId":1,"cardinality":42,
@@ -397,6 +426,40 @@ TEST(HyperPlanTest, VariableWidthNodesDoNotOverlap) {
 
     ExpectSameLevelNodesDoNotOverlap(*plan, margin);
     ExpectBoundsContainNodes(*plan);
+}
+
+TEST(HyperPlanTest, UnaryChildRemainsCenteredAcrossUnevenSiblingContours) {
+    auto builder = PackPlan(R"JSON({
+        "operator":"result-sink","operator-id":1,"inputs":[
+            {"operator":"map","input":
+                {"operator":"explicit-scan","operator-id":4,"input":
+                    {"operator":"share","operator-id":5,"inputs":[
+                        {"operator":"scan","operator-id":6}
+                    ]}
+                }
+            },
+            {"operator":"map","input":
+                {"operator":"explicit-scan","operator-id":8,"input":5}
+            }
+        ]
+    })JSON");
+    auto* plan = flatbuffers::GetRoot<buffers::view::PlanViewModel>(builder.GetBufferPointer());
+
+    const buffers::view::PlanOperator* explicit_scan = nullptr;
+    const buffers::view::PlanOperator* share = nullptr;
+    for (const auto* op : *plan->operators()) {
+        for (size_t i = 0; i < op->attribute_count(); ++i) {
+            const auto* attribute = plan->attributes()->Get(op->attributes_begin() + i);
+            auto name = plan->string_dictionary()->Get(attribute->name())->string_view();
+            if (name != "operator-id") continue;
+            auto source_id = std::stoull(plan->string_dictionary()->Get(attribute->value_json())->str());
+            if (source_id == 4) explicit_scan = op;
+            if (source_id == 5) share = op;
+        }
+    }
+    ASSERT_NE(explicit_scan, nullptr);
+    ASSERT_NE(share, nullptr);
+    EXPECT_NEAR(explicit_scan->layout_rect().x(), share->layout_rect().x(), 0.001);
 }
 
 TEST(HyperPlanTest, IndependentRootsArePackedWithoutOverlap) {

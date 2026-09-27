@@ -31,11 +31,29 @@
 
 .crossEdge {
     fill: none;
-    stroke: hsl(309, 45%, 52%);
-    stroke-width: 1.5px;
+    stroke: hsl(210, 13%, 74%);
+    stroke-width: 1px;
     stroke-dasharray: 6 4;
     stroke-linecap: round;
     stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.edgeHighlightLayer {
+    pointer-events: none;
+}
+
+.edgeHighlight,
+.crossEdgeHighlight {
+    fill: none;
+    stroke: hsl(211, 100%, 45%);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.crossEdgeHighlight {
+    stroke-width: 2px;
+    stroke-dasharray: 6 4;
     vector-effect: non-scaling-stroke;
 }
 
@@ -65,11 +83,29 @@
 
 .pipeline[data-status="2"], .pipeline[data-status="4"] { display: inline; }
 
-.operator { cursor: pointer; }
-.operator rect {
-    fill: white;
+.operator {
+    --operator_border_color: hsl(210, 13%, 74%);
+    --operator_background: white;
+    cursor: pointer;
+}
+.operator_frame {
+    fill: var(--operator_background);
+    stroke: var(--operator_border_color);
+    stroke-width: 1px;
+}
+.operator_port {
+    pointer-events: none;
+}
+.operator_port_border {
+    fill: none;
     stroke: hsl(210, 13%, 74%);
     stroke-width: 1px;
+}
+.operator_port_mask {
+    fill: var(--operator_background);
+}
+.operator_port_dot {
+    fill: hsl(210, 13%, 74%);
 }
 .operator text {
     font-family: "Roboto Mono", monospace;
@@ -81,18 +117,21 @@
     color: hsl(210, 18%, 24%);
     pointer-events: none;
 }
-.operator:hover rect { fill: hsl(210, 30%, 98%); }
-.operator[data-selected="true"] rect {
-    fill: hsl(211, 100%, 97%);
+.operator:hover { --operator_background: hsl(210, 30%, 98%); }
+.operator[data-selected="true"],
+.operator:focus-visible {
+    --operator_background: hsl(211, 100%, 97%);
+    --operator_border_color: hsl(211, 100%, 45%);
+}
+.operator[data-highlighted-output-port="true"] [data-plan-port="output"] .operator_port_border,
+.operator[data-highlighted-input-port="true"] [data-plan-port="input"] .operator_port_border {
     stroke: hsl(211, 100%, 45%);
-    stroke-width: 2px;
 }
-.operator:focus-visible { outline: none; }
-.operator:focus-visible rect {
-    stroke: hsl(211, 100%, 35%);
-    stroke-width: 2px;
-    stroke-dasharray: 3 2;
+.operator[data-highlighted-output-port="true"] [data-plan-port="output"] .operator_port_dot,
+.operator[data-highlighted-input-port="true"] [data-plan-port="input"] .operator_port_dot {
+    fill: hsl(211, 100%, 45%);
 }
+.operator:focus { outline: none; }
 
 .status path { display: none; }
 .status[data-status="0"] path[data-status-icon="0"],

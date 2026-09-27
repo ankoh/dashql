@@ -1,4 +1,4 @@
-import { buildFragmentPath, hasOutputCardinalityProduced, scaleRowWidths, selectDefaultRowMetric, truncatePlanLabel } from './plan_scene.js';
+import { buildCrossEdgePath, buildFragmentPath, hasOutputCardinalityProduced, scaleRowWidths, selectDefaultRowMetric, truncatePlanLabel } from './plan_scene.js';
 
 function pathContainsPoint(path: string, x: number, y: number): boolean {
     const contours = path.split('M ').filter(Boolean).map(contour => {
@@ -82,6 +82,22 @@ describe('scaleRowWidths', () => {
 
     it('uses the minimum width for missing or zero rows', () => {
         expect(scaleRowWidths([0, null, Number.NaN])).toEqual([1, 1, 1]);
+    });
+});
+
+describe('buildCrossEdgePath', () => {
+    it('connects the centered tree ports with external control points', () => {
+        expect(buildCrossEdgePath(
+            { x: 40, y: 160, width: 60, height: 32 },
+            { x: 200, y: 160, width: 80, height: 32 },
+        )).toEqual('M 40 144 C 40 120, 200 224, 200 176');
+    });
+
+    it('keeps vertical tension when the lead endpoints align', () => {
+        expect(buildCrossEdgePath(
+            { x: 40, y: 224, width: 60, height: 32 },
+            { x: 200, y: 160, width: 80, height: 32 },
+        )).toEqual('M 40 208 C 40 184, 200 224, 200 176');
     });
 });
 

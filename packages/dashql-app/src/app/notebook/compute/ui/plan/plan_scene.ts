@@ -16,6 +16,7 @@ export interface PlanSceneOperator {
     label: string;
     displayLabel: string;
     rect: PlanSceneRect;
+    ports: number;
     statistics: PlanSceneOperatorStatistics;
     properties: Record<string, unknown>;
 }
@@ -30,6 +31,9 @@ export interface PlanSceneOperatorStatistics {
 }
 
 export type PlanRowMetric = 'estimatedRows' | 'outputRows';
+
+export const PLAN_OPERATOR_PORT_OUTPUT = 0b01;
+export const PLAN_OPERATOR_PORT_INPUT = 0b10;
 
 export interface PlanSceneEdge {
     id: bigint;
@@ -143,6 +147,21 @@ export function scaleRowWidths(values: readonly (number | null)[], minWidth = 1,
     if (maxValue === 0 || maxWidth <= minWidth) return finiteValues.map(() => minWidth);
     const denominator = Math.log1p(maxValue);
     return finiteValues.map(value => minWidth + Math.log1p(value) / denominator * (maxWidth - minWidth));
+}
+
+export function buildCrossEdgePath(
+    source: PlanSceneRect,
+    target: PlanSceneRect,
+    minHandleLength = 24,
+    minInputHandleLength = 48,
+): string {
+    const sourceX = source.x;
+    const sourceY = source.y - source.height / 2;
+    const targetX = target.x;
+    const targetY = target.y + target.height / 2;
+    const sourceHandleLength = Math.max(minHandleLength, Math.abs(sourceY - targetY) / 2);
+    const targetHandleLength = Math.max(minInputHandleLength, sourceHandleLength);
+    return `M ${sourceX} ${sourceY} C ${sourceX} ${sourceY - sourceHandleLength}, ${targetX} ${targetY + targetHandleLength}, ${targetX} ${targetY}`;
 }
 
 export function truncatePlanLabel(label: string, maxChars: number): string {
@@ -402,6 +421,7 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
             label,
             displayLabel: truncatePlanLabel(label, layoutConfig.input!.maxLabelChars),
             rect: { x: layout.x(), y: layout.y(), width, height: layout.height() },
+            ports: 0,
             statistics: {
                 inputCardinalityEstimated: statistics.inputCardinalityEstimated(),
                 inputCardinalityConsumed: statistics.inputCardinalityConsumed(),
@@ -420,6 +440,8 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         const edge = vm.operatorEdges(i, tmpEdge)!;
         const child = operators[edge.childOperator()];
         const parent = operators[edge.parentOperator()];
+        child.ports |= PLAN_OPERATOR_PORT_OUTPUT;
+        parent.ports |= PLAN_OPERATOR_PORT_INPUT;
         const edgeType = selectVerticalEdgeType(child.rect.x, child.rect.y, parent.rect.x, parent.rect.y);
         const path = buildEdgePathBetweenRectangles(
             new PathBuilder(), edgeType,
@@ -445,20 +467,16 @@ export function materializePlanScene(viewModel: dashql.FlatBufferPtr<dashql.buff
         const source = operators[edge.sourceNode()];
         const target = operators[edge.targetNode()];
         if (source == null || target == null) continue;
+        source.ports |= PLAN_OPERATOR_PORT_OUTPUT;
+        target.ports |= PLAN_OPERATOR_PORT_INPUT;
         const properties = readAttributeRange(vm, edge.attributesBegin(), edge.attributeCount());
-        const edgeType = selectVerticalEdgeType(source.rect.x, source.rect.y, target.rect.x, target.rect.y);
-        const path = buildEdgePathBetweenRectangles(
-            new PathBuilder(), edgeType,
-            source.rect.x, source.rect.y, target.rect.x, target.rect.y,
-            source.rect.width, source.rect.height, target.rect.width, target.rect.height, 4, 6,
-        ).render();
         crossEdges.push({
             id: edge.edgeId(),
             sourceOperator: source.id,
             targetOperator: target.id,
             kind: typeof properties.kind === 'string' ? properties.kind : 'reference',
             properties,
-            path,
+            path: buildCrossEdgePath(source.rect, target.rect),
         });
     }
 

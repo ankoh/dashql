@@ -301,7 +301,7 @@ PlanLayoutNode& PlanLayouter::Apportion(PlanLayoutNode& root, PlanLayoutNode* le
         if (lr->GetNextAlongRightContour() && !rr->GetNextAlongRightContour()) {
             // Let thread of RR point to LRs right contour starting at next level.
             rr->thread = lr->GetNextAlongRightContour();
-            ll->mod += lr_mod - rr_mod;
+            rr->mod += lr_mod - rr_mod;
         }
 
         // Still have contour nodes at the seam from the right subtree?

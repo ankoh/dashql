@@ -11,8 +11,10 @@ import { AnchorAlignment, AnchorSide } from '../../../../../ui/foundations/ancho
 import { OverlaySize } from '../../../../../ui/foundations/overlay.js';
 import { SymbolIcon } from '../../../../../ui/foundations/symbol_icon.js';
 import { PlanExecutionController } from './plan_execution_controller.js';
+import { findPlanOperatorInDirection } from './plan_navigation.js';
+import type { PlanNavigationDirection } from './plan_navigation.js';
 import { getPlanOperatorSymbol, PLAN_OPERATOR_SYMBOL_SIZE, shouldRenderPlanOperatorSymbol } from './plan_operator_symbol.js';
-import { materializePlanScene, PlanRowMetric, PlanScene, PlanSceneOperator, scaleRowWidths, selectDefaultRowMetric } from './plan_scene.js';
+import { materializePlanScene, PLAN_OPERATOR_PORT_INPUT, PLAN_OPERATOR_PORT_OUTPUT, PlanRowMetric, PlanScene, PlanSceneOperator, scaleRowWidths, selectDefaultRowMetric } from './plan_scene.js';
 import * as styles from './plan_view.module.css';
 
 const FIT_PADDING = 24;
@@ -44,9 +46,10 @@ export interface PlanViewProps {
     plan: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>;
     showProgress?: boolean;
     controllerRef?: React.RefObject<PlanExecutionController | null>;
+    autoFocus?: boolean;
 }
 
-export function PlanView({ plan, showProgress = false, controllerRef }: PlanViewProps) {
+export function PlanView({ plan, showProgress = false, controllerRef, autoFocus = false }: PlanViewProps) {
     const scene = React.useMemo(() => materializePlanScene(plan), [plan]);
     const ownController = React.useRef<PlanExecutionController | null>(null);
     ownController.current ??= new PlanExecutionController();
@@ -57,6 +60,8 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
     const zoomRef = React.useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
     const transformRef = React.useRef<ZoomTransform>(zoomIdentity);
     const [selection, setSelection] = React.useState<{ operator: PlanSceneOperator; anchor: SVGGElement } | null>(null);
+    const [inspectorOpen, setInspectorOpen] = React.useState(false);
+    const operatorRefs = React.useRef(new Map<number, SVGGElement>());
     const defaultMetric = React.useMemo(() => selectDefaultRowMetric(scene.edges), [scene.edges]);
     const [metricSelection, setMetricSelection] = React.useState<{ scene: PlanScene; metric: PlanRowMetric } | null>(null);
     const metric = metricSelection?.scene === scene ? metricSelection.metric : defaultMetric;
@@ -68,6 +73,26 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
             : edge.outputCardinalityEstimated)),
         [metric, scene.edges],
     );
+    const highlightedEdges = React.useMemo(() => {
+        const operatorId = selection?.operator.id;
+        return operatorId == null
+            ? []
+            : scene.edges.filter(edge => edge.childOperator === operatorId || edge.parentOperator === operatorId);
+    }, [scene.edges, selection?.operator.id]);
+    const highlightedCrossEdges = React.useMemo(() => {
+        const operatorId = selection?.operator.id;
+        return operatorId == null
+            ? []
+            : scene.crossEdges.filter(edge => edge.sourceOperator === operatorId || edge.targetOperator === operatorId);
+    }, [scene.crossEdges, selection?.operator.id]);
+    const highlightedOutputPortOperatorIds = React.useMemo(() => new Set([
+        ...highlightedEdges.map(edge => edge.childOperator),
+        ...highlightedCrossEdges.map(edge => edge.sourceOperator),
+    ]), [highlightedCrossEdges, highlightedEdges]);
+    const highlightedInputPortOperatorIds = React.useMemo(() => new Set([
+        ...highlightedEdges.map(edge => edge.parentOperator),
+        ...highlightedCrossEdges.map(edge => edge.targetOperator),
+    ]), [highlightedCrossEdges, highlightedEdges]);
     const describeCrossEdge = React.useCallback((operator: PlanSceneOperator) => {
         const relationships = scene.crossEdges.flatMap(edge => {
             if (edge.sourceOperator === operator.id) {
@@ -88,6 +113,10 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
             if (controllerRef != null) controllerRef.current = null;
         };
     }, [controller, controllerRef, scene]);
+
+    React.useLayoutEffect(() => {
+        if (autoFocus) viewportRef.current?.focus();
+    }, [autoFocus]);
 
     const fit = React.useCallback((animate = false) => {
         const viewport = viewportRef.current;
@@ -137,21 +166,43 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
 
 
     const onKeyDown = React.useCallback((event: React.KeyboardEvent) => {
-        const svg = svgRef.current;
-        const behavior = zoomRef.current;
-        if (svg == null || behavior == null) return;
-        const step = event.shiftKey ? 120 : 40;
-        if (event.key === '+' || event.key === '=') zoomBy(1.25);
+        if (event.key === 'Escape' && inspectorOpen) {
+            setInspectorOpen(false);
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+
+        const targetIsViewport = event.target === viewportRef.current;
+        const targetIsOperator = event.target instanceof Element && event.target.matches('[data-plan-operator-id]');
+        if (!targetIsViewport && !targetIsOperator) return;
+
+        const direction: PlanNavigationDirection | null = event.key === 'ArrowLeft' ? 'left'
+            : event.key === 'ArrowRight' ? 'right'
+                : event.key === 'ArrowUp' ? 'up'
+                    : event.key === 'ArrowDown' ? 'down'
+                        : null;
+        if (direction != null) {
+            const targetOperatorId = targetIsOperator
+                ? Number((event.target as Element).getAttribute('data-plan-operator-id'))
+                : null;
+            const current = targetOperatorId == null
+                ? selection?.operator ?? null
+                : scene.operators.find(operator => operator.id === targetOperatorId) ?? null;
+            const next = findPlanOperatorInDirection(scene.operators, current, direction);
+            const anchor = next == null ? null : operatorRefs.current.get(next.id) ?? null;
+            if (next != null && anchor != null) {
+                setSelection({ operator: next, anchor });
+                setPositionRevision(value => value + 1);
+                anchor.focus();
+            }
+        } else if (event.key === '+' || event.key === '=') zoomBy(1.25);
         else if (event.key === '-') zoomBy(0.8);
         else if (event.key === 'f') fit(true);
-        else if (event.key === 'ArrowLeft') select(svg).call(behavior.translateBy, step, 0);
-        else if (event.key === 'ArrowRight') select(svg).call(behavior.translateBy, -step, 0);
-        else if (event.key === 'ArrowUp') select(svg).call(behavior.translateBy, 0, step);
-        else if (event.key === 'ArrowDown') select(svg).call(behavior.translateBy, 0, -step);
         else return;
         event.preventDefault();
         event.stopPropagation();
-    }, [fit, zoomBy]);
+    }, [fit, inspectorOpen, scene.operators, selection?.operator, zoomBy]);
 
     const anchorRef = React.useMemo(() => ({ current: selection?.anchor ?? null }), [selection?.anchor]);
     return (
@@ -165,7 +216,10 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
             data-electron-drag-region="false"
         >
             <svg ref={svgRef} className={styles.svg} onClick={event => {
-                if (event.target === svgRef.current) setSelection(null);
+                if (event.target === svgRef.current) {
+                    setSelection(null);
+                    setInspectorOpen(false);
+                }
             }}>
                 <g ref={sceneRef}>
                     <g>
@@ -217,6 +271,26 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                             />
                         ))}
                     </g>
+                    <g className={styles.edgeHighlightLayer} aria-hidden="true">
+                        {highlightedEdges.map(edge => {
+                            const edgeIndex = scene.edges.indexOf(edge);
+                            return <path
+                                key={`edge-${edge.id}`}
+                                className={styles.edgeHighlight}
+                                d={edge.path}
+                                style={{ strokeWidth: Math.max(2, edgeWidths[edgeIndex]) }}
+                                data-plan-edge-highlight-id={edge.id.toString()}
+                            />;
+                        })}
+                        {highlightedCrossEdges.map(edge => (
+                            <path
+                                key={`cross-edge-${edge.id}`}
+                                className={styles.crossEdgeHighlight}
+                                d={edge.path}
+                                data-plan-cross-edge-highlight-id={edge.id.toString()}
+                            />
+                        ))}
+                    </g>
                     <g>
                         {scene.operators.map(operator => (
                             <PlanOperatorNode
@@ -225,9 +299,21 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
                                 scene={scene}
                                 showProgress={showProgress}
                                 selected={selection?.operator.id === operator.id}
+                                highlightedOutputPort={highlightedOutputPortOperatorIds.has(operator.id)}
+                                highlightedInputPort={highlightedInputPortOperatorIds.has(operator.id)}
+                                expanded={inspectorOpen && selection?.operator.id === operator.id}
                                 controller={controller}
                                 relationshipDescription={describeCrossEdge(operator)}
-                                onSelect={(selected, anchor) => setSelection(current => current?.operator.id === selected.id ? null : { operator: selected, anchor })}
+                                setAnchor={anchor => {
+                                    if (anchor == null) operatorRefs.current.delete(operator.id);
+                                    else operatorRefs.current.set(operator.id, anchor);
+                                }}
+                                onFocus={(selected, anchor) => setSelection({ operator: selected, anchor })}
+                                onSelect={(selected, anchor) => {
+                                    setSelection({ operator: selected, anchor });
+                                    setPositionRevision(value => value + 1);
+                                    setInspectorOpen(open => selection?.operator.id === selected.id ? !open : true);
+                                }}
                             />
                         ))}
                     </g>
@@ -264,8 +350,8 @@ export function PlanView({ plan, showProgress = false, controllerRef }: PlanView
             <AnchoredOverlay
                 renderAnchor={null}
                 anchorRef={anchorRef}
-                open={selection != null}
-                onClose={() => setSelection(null)}
+                open={selection != null && inspectorOpen}
+                onClose={() => setInspectorOpen(false)}
                 side={AnchorSide.OutsideRight}
                 align={AnchorAlignment.Center}
                 anchorOffset={8}
@@ -302,8 +388,13 @@ function PlanOperatorNode(props: {
     scene: PlanScene;
     showProgress: boolean;
     selected: boolean;
+    highlightedOutputPort: boolean;
+    highlightedInputPort: boolean;
+    expanded: boolean;
     controller: PlanExecutionController;
     relationshipDescription: string;
+    setAnchor: (anchor: SVGGElement | null) => void;
+    onFocus: (operator: PlanSceneOperator, anchor: SVGGElement) => void;
     onSelect: (operator: PlanSceneOperator, anchor: SVGGElement) => void;
 }) {
     const { operator, scene } = props;
@@ -324,17 +415,29 @@ function PlanOperatorNode(props: {
     };
     return (
         <g
+            ref={props.setAnchor}
             className={styles.operator}
             data-selected={props.selected}
+            data-highlighted-output-port={props.highlightedOutputPort}
+            data-highlighted-input-port={props.highlightedInputPort}
+            data-plan-operator-id={operator.id}
             transform={`translate(${x}, ${y})`}
             role="button"
             tabIndex={0}
             aria-label={`${operator.label}${props.relationshipDescription}, show properties`}
-            aria-expanded={props.selected}
+            aria-expanded={props.expanded}
             onClick={activate}
+            onFocus={event => props.onFocus(operator, event.currentTarget)}
             onKeyDown={activate}
         >
-            <rect width={operator.rect.width} height={operator.rect.height} rx={6} ry={6} />
+            <rect
+                className={styles.operator_frame}
+                width={operator.rect.width}
+                height={operator.rect.height}
+                rx={6}
+                ry={6}
+                data-plan-operator-frame
+            />
             <clipPath id={labelClipId}>
                 <path d={`M ${regionStart} 0 H ${regionEnd} V ${input.nodeHeight} H ${regionStart} Z`} />
             </clipPath>
@@ -351,6 +454,30 @@ function PlanOperatorNode(props: {
             {OperatorSymbol != null
                 ? <g className={styles.operator_symbol} transform={`translate(${(regionStart + regionEnd - PLAN_OPERATOR_SYMBOL_SIZE) / 2}, ${(input.nodeHeight - PLAN_OPERATOR_SYMBOL_SIZE) / 2})`} aria-hidden="true"><OperatorSymbol size={PLAN_OPERATOR_SYMBOL_SIZE} /></g>
                 : <text clipPath={`url(#${labelClipId})`} x={(regionStart + regionEnd) / 2} y={input.nodeHeight / 2 + 5}>{operator.displayLabel}</text>}
+            {(operator.ports & PLAN_OPERATOR_PORT_OUTPUT) !== 0 && (
+                <g
+                    className={styles.operator_port}
+                    transform={`translate(${operator.rect.width / 2}, 0)`}
+                    data-plan-port="output"
+                    aria-hidden="true"
+                >
+                    <path className={styles.operator_port_border} d="M -5 0 A 5 5 0 0 1 5 0" />
+                    <circle className={styles.operator_port_mask} r={4} />
+                    <circle className={styles.operator_port_dot} r={2.5} />
+                </g>
+            )}
+            {(operator.ports & PLAN_OPERATOR_PORT_INPUT) !== 0 && (
+                <g
+                    className={styles.operator_port}
+                    transform={`translate(${operator.rect.width / 2}, ${operator.rect.height})`}
+                    data-plan-port="input"
+                    aria-hidden="true"
+                >
+                    <path className={styles.operator_port_border} d="M -5 0 A 5 5 0 0 0 5 0" />
+                    <circle className={styles.operator_port_mask} r={4} />
+                    <circle className={styles.operator_port_dot} r={2.5} />
+                </g>
+            )}
         </g>
     );
 }

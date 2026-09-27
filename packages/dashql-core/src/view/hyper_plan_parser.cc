@@ -312,7 +312,9 @@ void PlanViewModel::IdentifyOperatorCrossEdges() {
             if (member != object.MemberEnd() && member->value.IsUint64()) append(op, member->value.GetUint64(), kind);
         };
 
-        if (op.operator_type == "explicitscan") append_member("input", "input");
+        if (op.operator_type == "explicitscan" || op.operator_type == "explicit-scan") {
+            append_member("input", "input");
+        }
         if (op.operator_type == "iterationincrement") append_member("source", "source");
         if (op.operator_type == "earlyprobe") append_member("builder", "builder");
         if (op.operator_type.has_value() &&

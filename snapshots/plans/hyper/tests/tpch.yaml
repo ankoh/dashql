@@ -1497,46 +1497,46 @@ plan-snapshots:
     operators:
       - id: 15
         type: executiontarget
-        position: [585.625000,32.000000]
+        position: [300.375000,32.000000]
         children:
           - id: 14
             path: input
             type: sort
             loc: 949..961
             parent: 15
-            position: [585.625000,96.000000]
+            position: [300.375000,96.000000]
             children:
               - id: 13
                 path: input
                 type: join
                 parent: 14
-                position: [585.625000,160.000000]
+                position: [300.375000,160.000000]
                 children:
                   - id: 11
                     path: left
                     type: map
                     loc: 518..559
                     parent: 13
-                    position: [443.000000,224.000000]
+                    position: [157.750000,224.000000]
                     children:
                       - id: 5
                         path: input
                         type: groupby
                         loc: 518..550
                         parent: 11
-                        position: [443.000000,288.000000]
+                        position: [157.750000,288.000000]
                         children:
                           - id: 4
                             path: input
                             type: join
                             parent: 5
-                            position: [443.000000,352.000000]
+                            position: [157.750000,352.000000]
                             children:
                               - id: 2
                                 path: left
                                 type: join
                                 parent: 4
-                                position: [388.500000,416.000000]
+                                position: [103.250000,416.000000]
                                 children:
                                   - id: 0
                                     path: left
@@ -1558,25 +1558,25 @@ plan-snapshots:
                                 label: partsupp
                                 loc: 621..629
                                 parent: 4
-                                position: [497.500000,416.000000]
+                                position: [212.250000,416.000000]
                   - id: 12
                     path: right
                     type: groupby
                     loc: 367..394
                     parent: 13
-                    position: [728.250000,224.000000]
+                    position: [443.000000,224.000000]
                     children:
                       - id: 10
                         path: input
                         type: join
                         parent: 12
-                        position: [728.250000,288.000000]
+                        position: [443.000000,288.000000]
                         children:
                           - id: 8
                             path: left
                             type: join
                             parent: 10
-                            position: [673.750000,352.000000]
+                            position: [388.500000,352.000000]
                             children:
                               - id: 6
                                 path: left
@@ -1584,21 +1584,21 @@ plan-snapshots:
                                 label: nation
                                 loc: 254..260
                                 parent: 8
-                                position: [615.000000,416.000000]
+                                position: [329.750000,416.000000]
                               - id: 7
                                 path: right
                                 type: tablescan
                                 label: supplier
                                 loc: 236..244
                                 parent: 8
-                                position: [732.500000,416.000000]
+                                position: [447.250000,416.000000]
                           - id: 9
                             path: right
                             type: tablescan
                             label: partsupp
                             loc: 218..226
                             parent: 10
-                            position: [782.750000,352.000000]
+                            position: [497.500000,352.000000]
     operator-edges:
       - id: 0
         child: 0
