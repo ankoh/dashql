@@ -32,7 +32,7 @@ export const PLAN_OPERATOR_SYMBOL_SIZE = 18;
 
 export function getPlanOperatorSymbol(typeName: string | null): string | null {
     if (typeName == null) return null;
-    return OPERATOR_SYMBOLS[typeName.toLowerCase()] ?? null;
+    return OPERATOR_SYMBOLS[typeName.toLowerCase().replace(/-/g, '')] ?? null;
 }
 
 export function shouldRenderPlanOperatorSymbol(typeName: string | null, label: string): boolean {

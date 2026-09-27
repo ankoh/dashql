@@ -33,8 +33,10 @@ describe('getPlanOperatorSymbol', () => {
         expect(getPlanOperatorSymbol(operator)).toEqual(symbol);
     });
 
-    it('normalizes operator casing', () => {
+    it('normalizes operator casing and Hyper kebab-case names', () => {
         expect(getPlanOperatorSymbol('JOIN')).toEqual('relalg_join');
+        expect(getPlanOperatorSymbol('group-by')).toEqual('relalg_group');
+        expect(getPlanOperatorSymbol('left-outer-join')).toEqual('relalg_left_outer_join');
     });
 
     it('leaves unknown and missing operator types without a symbol', () => {
@@ -47,6 +49,7 @@ describe('getPlanOperatorSymbol', () => {
 describe('shouldRenderPlanOperatorSymbol', () => {
     it('replaces a known type-only label', () => {
         expect(shouldRenderPlanOperatorSymbol('join', 'join')).toEqual(true);
+        expect(shouldRenderPlanOperatorSymbol('group-by', 'group-by')).toEqual(true);
     });
 
     it('preserves a meaningful operator label', () => {
