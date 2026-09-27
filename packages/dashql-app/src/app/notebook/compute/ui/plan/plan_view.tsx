@@ -189,7 +189,7 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
             const current = targetOperatorId == null
                 ? selection?.operator ?? null
                 : scene.operators.find(operator => operator.id === targetOperatorId) ?? null;
-            const next = findPlanOperatorInDirection(scene.operators, current, direction);
+            const next = findPlanOperatorInDirection(scene.operators, scene.edges, current, direction);
             const anchor = next == null ? null : operatorRefs.current.get(next.id) ?? null;
             if (next != null && anchor != null) {
                 setSelection({ operator: next, anchor });
@@ -309,10 +309,10 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                                     else operatorRefs.current.set(operator.id, anchor);
                                 }}
                                 onFocus={(selected, anchor) => setSelection({ operator: selected, anchor })}
-                                onSelect={(selected, anchor) => {
+                                onSelect={(selected, anchor, toggle) => {
                                     setSelection({ operator: selected, anchor });
                                     setPositionRevision(value => value + 1);
-                                    setInspectorOpen(open => selection?.operator.id === selected.id ? !open : true);
+                                    setInspectorOpen(open => toggle && selection?.operator.id === selected.id ? !open : true);
                                 }}
                             />
                         ))}
@@ -395,7 +395,7 @@ function PlanOperatorNode(props: {
     relationshipDescription: string;
     setAnchor: (anchor: SVGGElement | null) => void;
     onFocus: (operator: PlanSceneOperator, anchor: SVGGElement) => void;
-    onSelect: (operator: PlanSceneOperator, anchor: SVGGElement) => void;
+    onSelect: (operator: PlanSceneOperator, anchor: SVGGElement, toggle: boolean) => void;
 }) {
     const { operator, scene } = props;
     const labelClipId = React.useId();
@@ -411,7 +411,7 @@ function PlanOperatorNode(props: {
         if ('key' in event && event.key !== 'Enter' && event.key !== ' ') return;
         if ('key' in event) event.preventDefault();
         event.stopPropagation();
-        props.onSelect(operator, event.currentTarget);
+        props.onSelect(operator, event.currentTarget, 'key' in event);
     };
     return (
         <g

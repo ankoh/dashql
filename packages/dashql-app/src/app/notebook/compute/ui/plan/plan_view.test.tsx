@@ -156,9 +156,11 @@ describe('PlanView keyboard navigation', () => {
         const viewport = container.querySelector<HTMLElement>('[role="region"]')!;
         key(viewport, 'ArrowRight');
         expect(container.querySelector('[data-plan-operator-id="0"]')?.getAttribute('data-selected')).toEqual('true');
+        expect(document.querySelector('[aria-label="Scan orders properties"]')).toBeNull();
 
         key(container.querySelector('[data-plan-operator-id="0"]')!, 'ArrowRight');
         expect(container.querySelector('[data-plan-operator-id="1"]')?.getAttribute('data-selected')).toEqual('true');
+        expect(document.querySelector('[aria-label="Project total properties"]')).toBeNull();
     });
 
     it('highlights every inbound and outbound edge while navigating with arrow keys', () => {
@@ -211,6 +213,27 @@ describe('PlanView keyboard navigation', () => {
         key(selected, 'Enter');
         expect(document.querySelector('[aria-label="Scan orders properties"]')).toBeNull();
         expect(selected.getAttribute('aria-expanded')).toEqual('false');
+    });
+
+    it('opens operator properties immediately when clicked', () => {
+        const node = container.querySelector('[data-plan-operator-id="1"]')!;
+        act(() => node.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0 })));
+
+        expect(node.getAttribute('data-selected')).toEqual('true');
+        expect(node.getAttribute('aria-expanded')).toEqual('true');
+        expect(document.querySelector('[aria-label="Project total properties"]')).not.toBeNull();
+    });
+
+    it('shows the next operator properties when arrow navigation continues with details open', () => {
+        const first = container.querySelector('[data-plan-operator-id="0"]')!;
+        act(() => first.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0 })));
+        expect(document.querySelector('[aria-label="Scan orders properties"]')).not.toBeNull();
+
+        key(first, 'ArrowRight');
+
+        expect(container.querySelector('[data-plan-operator-id="1"]')?.getAttribute('data-selected')).toEqual('true');
+        expect(document.querySelector('[aria-label="Scan orders properties"]')).toBeNull();
+        expect(document.querySelector('[aria-label="Project total properties"]')).not.toBeNull();
     });
 
     it('closes only the operator properties on Escape', () => {
