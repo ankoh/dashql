@@ -1,4 +1,4 @@
-import { buildCrossEdgePath, buildFragmentPath, hasOutputCardinalityProduced, scaleRowWidths, selectDefaultRowMetric, truncatePlanLabel } from './plan_scene.js';
+import { buildCrossEdgePath, buildFragmentPath, estimateRelativeDifference, hasOutputCardinalityProduced, truncatePlanLabel } from './plan_scene.js';
 
 function pathContainsPoint(path: string, x: number, y: number): boolean {
     const contours = path.split('M ').filter(Boolean).map(contour => {
@@ -49,39 +49,21 @@ describe('hasOutputCardinalityProduced', () => {
     });
 });
 
-describe('selectDefaultRowMetric', () => {
-    it('selects estimates for non-analyzed plans', () => {
-        expect(selectDefaultRowMetric([
-            { outputCardinalityProduced: null },
-            { outputCardinalityProduced: null },
-        ])).toEqual('estimatedRows');
+describe('estimateRelativeDifference', () => {
+    it('is neutral when estimated and actual rows match', () => {
+        expect(estimateRelativeDifference(100, 100)).toEqual(0);
+        expect(estimateRelativeDifference(0, 0)).toEqual(0);
     });
 
-    it('selects actual output rows when the plan contains them', () => {
-        expect(selectDefaultRowMetric([
-            { outputCardinalityProduced: null },
-            { outputCardinalityProduced: 0 },
-        ])).toEqual('outputRows');
-    });
-});
-
-describe('scaleRowWidths', () => {
-    it('maps zero to the minimum and the largest flow to the maximum', () => {
-        expect(scaleRowWidths([0, 10, 100])).toEqual([1, expect.any(Number), 8]);
-        expect(scaleRowWidths([0, 10, 100])[1]).toBeGreaterThan(1);
-        expect(scaleRowWidths([0, 10, 100])[1]).toBeLessThan(8);
+    it('expresses the error relative to the estimate', () => {
+        expect(estimateRelativeDifference(1, 2)).toEqual(1);
+        expect(estimateRelativeDifference(2, 1)).toEqual(-0.5);
+        expect(estimateRelativeDifference(10, 100)).toEqual(9);
     });
 
-    it('uses a logarithmic scale for skewed cardinalities', () => {
-        const [small, medium, large] = scaleRowWidths([1, 1000, 1000000]);
-        expect(small).toBeGreaterThanOrEqual(1);
-        expect(medium).toBeGreaterThan(small);
-        expect(large).toEqual(8);
-        expect(medium).toBeGreaterThan(4);
-    });
-
-    it('uses the minimum width for missing or zero rows', () => {
-        expect(scaleRowWidths([0, null, Number.NaN])).toEqual([1, 1, 1]);
+    it('uses infinity when actual rows exceed a zero estimate', () => {
+        expect(estimateRelativeDifference(100, 0)).toEqual(-1);
+        expect(estimateRelativeDifference(0, 100)).toEqual(Number.POSITIVE_INFINITY);
     });
 });
 

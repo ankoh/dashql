@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { GraphIcon, RowsIcon, ScreenFullIcon, ZoomInIcon, ZoomOutIcon } from '../../../../../ui/foundations/symbol_icon.js';
-import { select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
+import { ScreenFullIcon, ZoomInIcon, ZoomOutIcon } from '../../../../../ui/foundations/symbol_icon.js';
+import { color as parseColor, interpolateBrBG, interpolatePuOr, interpolateRdBu, interpolateRdPu, select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
 
 import * as dashql from '../../../../../core/index.js';
 import { JsonView } from '../../../../../ui/json/json_view.js';
 import { IconButton, ButtonSize, ButtonVariant } from '../../../../../ui/foundations/button.js';
 import { ButtonGroup } from '../../../../../ui/foundations/button_group.js';
+import { SegmentedControl, SegmentedControlSize } from '../../../../../ui/foundations/segmented_control.js';
 import { AnchoredOverlay } from '../../../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../../../ui/foundations/anchored_position.js';
 import { OverlaySize } from '../../../../../ui/foundations/overlay.js';
@@ -14,10 +15,17 @@ import { PlanExecutionController } from './plan_execution_controller.js';
 import { findPlanOperatorInDirection } from './plan_navigation.js';
 import type { PlanNavigationDirection } from './plan_navigation.js';
 import { getPlanOperatorSymbol, PLAN_OPERATOR_SYMBOL_SIZE, shouldRenderPlanOperatorSymbol } from './plan_operator_symbol.js';
-import { materializePlanScene, PLAN_OPERATOR_PORT_INPUT, PLAN_OPERATOR_PORT_OUTPUT, PlanRowMetric, PlanScene, PlanSceneOperator, scaleRowWidths, selectDefaultRowMetric } from './plan_scene.js';
+import { estimateRelativeDifference, materializePlanScene, PLAN_OPERATOR_PORT_INPUT, PLAN_OPERATOR_PORT_OUTPUT, PlanScene, PlanSceneEdge, PlanSceneOperator } from './plan_scene.js';
 import * as styles from './plan_view.module.css';
 
 const FIT_PADDING = 24;
+const EDGE_WIDTH = 2;
+const EDGE_BADGE_MIN_WIDTH = 25;
+const EDGE_BADGE_HEIGHT = 15;
+const ESTIMATE_APPROXIMATE_ROW_THRESHOLD = 100;
+const EDGE_BADGE_BORDER = 'hsl(210, 13%, 74%)';
+const EDGE_HIGHLIGHT_COLOR = 'hsl(211, 100%, 45%)';
+type PlanAnnotationMode = 'plain' | 'rows' | 'estimates';
 const STATUS_PATHS: Record<number, string> = {
     [dashql.buffers.view.PlanExecutionStatus.UNKNOWN]: 'M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
     [dashql.buffers.view.PlanExecutionStatus.PENDING]: 'M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
@@ -29,7 +37,7 @@ const STATUS_PATHS: Record<number, string> = {
 
 export function createPlanLayoutConfig(showProgress: boolean): dashql.buffers.view.PlanLayoutConfigT {
     const config = new dashql.buffers.view.PlanLayoutConfigT();
-    config.levelHeight = 64;
+    config.levelHeight = 72;
     config.nodeHeight = 32;
     config.nodeMarginHorizontal = 32;
     config.nodePaddingLeft = 12;
@@ -47,9 +55,69 @@ export interface PlanViewProps {
     showProgress?: boolean;
     controllerRef?: React.RefObject<PlanExecutionController | null>;
     autoFocus?: boolean;
+    edgeRendering?: PlanEdgeRenderingConfig;
 }
 
-export function PlanView({ plan, showProgress = false, controllerRef, autoFocus = false }: PlanViewProps) {
+export type PlanEdgeColorScheme = (value: number) => string;
+export const PLAN_EDGE_COLOR_SCHEME_PU_OR: PlanEdgeColorScheme = interpolatePuOr;
+export const PLAN_EDGE_COLOR_SCHEME_BR_BG: PlanEdgeColorScheme = interpolateBrBG;
+export const PLAN_EDGE_COLOR_SCHEME_RD_BU: PlanEdgeColorScheme = value => interpolateRdBu(1 - value);
+export const PLAN_EDGE_COLOR_SCHEME_RD_PU: PlanEdgeColorScheme = interpolateRdPu;
+
+export interface PlanEdgeRenderingConfig {
+    colorScheme?: PlanEdgeColorScheme;
+    rowColorScheme?: PlanEdgeColorScheme;
+}
+
+interface PlanEdgeBadge {
+    x: number;
+    y: number;
+    width: number;
+    text: string;
+    background: string;
+    foreground: string;
+    description: string;
+}
+
+interface RenderedPlanEdge {
+    edge: PlanSceneEdge;
+    badge: PlanEdgeBadge | null;
+}
+
+function contrastingTextColor(background: string): string {
+    const rgb = parseColor(background)?.rgb();
+    if (rgb == null) return '#000000';
+    const linear = [rgb.r, rgb.g, rgb.b].map(channel => {
+        const value = channel / 255;
+        return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+    });
+    const luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    return luminance > 0.179 ? '#000000' : '#ffffff';
+}
+
+function formatRelativeDifference(difference: number): string {
+    const percentage = Math.round(difference * 100);
+    if (percentage > 200) return '>200%';
+    if (percentage < -200) return '<-200%';
+    return `${percentage > 0 ? '+' : ''}${percentage}%`;
+}
+
+export function formatEstimateSymbol(difference: number, absoluteDifference = Number.POSITIVE_INFINITY): string {
+    if (difference === 0) return '=';
+    if (absoluteDifference <= ESTIMATE_APPROXIMATE_ROW_THRESHOLD) return '~';
+    if (difference <= -0.5) return '>>';
+    if (difference <= -0.1) return '>';
+    if (difference < 0) return '~';
+    if (difference < 0.1) return '~';
+    if (difference < 0.5) return '<';
+    return '<<';
+}
+
+function formatRowCount(value: number): string {
+    return Intl.NumberFormat('en-US').format(value);
+}
+
+export function PlanView({ plan, showProgress = false, controllerRef, autoFocus = false, edgeRendering }: PlanViewProps) {
     const scene = React.useMemo(() => materializePlanScene(plan), [plan]);
     const ownController = React.useRef<PlanExecutionController | null>(null);
     ownController.current ??= new PlanExecutionController();
@@ -61,18 +129,60 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
     const transformRef = React.useRef<ZoomTransform>(zoomIdentity);
     const [selection, setSelection] = React.useState<{ operator: PlanSceneOperator; anchor: SVGGElement } | null>(null);
     const [inspectorOpen, setInspectorOpen] = React.useState(false);
+    const [annotationMode, setAnnotationMode] = React.useState<PlanAnnotationMode>('rows');
     const operatorRefs = React.useRef(new Map<number, SVGGElement>());
-    const defaultMetric = React.useMemo(() => selectDefaultRowMetric(scene.edges), [scene.edges]);
-    const [metricSelection, setMetricSelection] = React.useState<{ scene: PlanScene; metric: PlanRowMetric } | null>(null);
-    const metric = metricSelection?.scene === scene ? metricSelection.metric : defaultMetric;
     const [positionRevision, setPositionRevision] = React.useState(0);
-    const hasOutputRows = React.useMemo(() => scene.edges.some(edge => edge.outputCardinalityProduced != null), [scene.edges]);
-    const edgeWidths = React.useMemo(
-        () => scaleRowWidths(scene.edges.map(edge => metric === 'outputRows'
-            ? edge.outputCardinalityProduced
-            : edge.outputCardinalityEstimated)),
-        [metric, scene.edges],
+    const edgeColorScheme = edgeRendering?.colorScheme ?? PLAN_EDGE_COLOR_SCHEME_RD_BU;
+    const rowColorScheme = edgeRendering?.rowColorScheme ?? PLAN_EDGE_COLOR_SCHEME_RD_PU;
+    const edgeDifferenceColor = React.useCallback(
+        (difference: number) => edgeColorScheme(difference < 0
+            ? Math.max(0, (difference + 1) / 2)
+            : Math.min(1, 0.5 + difference / 4)),
+        [edgeColorScheme],
     );
+    const estimateLegendGradient = React.useMemo(
+        () => Array.from({ length: 11 }, (_, index) => edgeColorScheme(1 - index / 10)).join(', '),
+        [edgeColorScheme],
+    );
+    const rowLegendGradient = React.useMemo(
+        () => Array.from({ length: 11 }, (_, index) => rowColorScheme(index / 10)).join(', '),
+        [rowColorScheme],
+    );
+    const rowValues = scene.edges.map(edge => edge.outputCardinalityProduced ?? edge.outputCardinalityEstimated);
+    const maxRowValue = rowValues.reduce((maximum, value) => Math.max(maximum, value), 0);
+    const renderedEdges: RenderedPlanEdge[] = (() => {
+        return scene.edges.map((edge, edgeIndex) => {
+            const child = scene.operators[edge.childOperator];
+            const parent = scene.operators[edge.parentOperator];
+            const actual = edge.outputCardinalityProduced;
+            const difference = actual == null ? null : estimateRelativeDifference(edge.outputCardinalityEstimated, actual);
+            const rowValue = rowValues[edgeIndex];
+            const rowScaleValue = maxRowValue === 0 ? 0 : Math.log1p(rowValue) / Math.log1p(maxRowValue);
+            const badgeText = annotationMode === 'rows' ? formatRowCount(rowValue)
+                : annotationMode === 'estimates' && difference != null && actual != null
+                    ? formatEstimateSymbol(difference, Math.abs(actual - edge.outputCardinalityEstimated))
+                    : null;
+            const background = annotationMode === 'rows' ? rowColorScheme(rowScaleValue)
+                : annotationMode === 'estimates' && difference != null ? edgeDifferenceColor(difference)
+                    : null;
+            const description = annotationMode === 'rows'
+                ? `${actual == null ? 'Estimated' : 'Actual'} rows ${rowValue}`
+                : difference == null ? null
+                    : `Actual rows ${actual}, estimated rows ${edge.outputCardinalityEstimated}, difference ${formatRelativeDifference(difference)}`;
+            return {
+                edge,
+                badge: badgeText == null || background == null || description == null || child == null || parent == null ? null : {
+                    x: (child.rect.x + parent.rect.x) / 2,
+                    y: (child.rect.y + parent.rect.y) / 2,
+                    width: Math.max(EDGE_BADGE_MIN_WIDTH, badgeText.length * 5.5 + 10),
+                    text: badgeText,
+                    background,
+                    foreground: contrastingTextColor(background),
+                    description,
+                },
+            };
+        });
+    })();
     const highlightedEdges = React.useMemo(() => {
         const operatorId = selection?.operator.id;
         return operatorId == null
@@ -252,12 +362,13 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                         ))}
                     </g>
                     <g aria-hidden="true">
-                        {scene.edges.map((edge, edgeIndex) => (
+                        {renderedEdges.map(rendered => (
                             <path
-                                key={edge.id.toString()}
+                                key={rendered.edge.id.toString()}
                                 className={styles.edge}
-                                d={edge.path}
-                                style={{ strokeWidth: edgeWidths[edgeIndex] }}
+                                d={rendered.edge.path}
+                                style={{ strokeWidth: EDGE_WIDTH }}
+                                data-plan-edge-id={rendered.edge.id.toString()}
                             />
                         ))}
                     </g>
@@ -272,16 +383,15 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                         ))}
                     </g>
                     <g className={styles.edgeHighlightLayer} aria-hidden="true">
-                        {highlightedEdges.map(edge => {
-                            const edgeIndex = scene.edges.indexOf(edge);
-                            return <path
+                        {highlightedEdges.map(edge => (
+                            <path
                                 key={`edge-${edge.id}`}
                                 className={styles.edgeHighlight}
                                 d={edge.path}
-                                style={{ strokeWidth: Math.max(2, edgeWidths[edgeIndex]) }}
+                                style={{ strokeWidth: EDGE_WIDTH }}
                                 data-plan-edge-highlight-id={edge.id.toString()}
-                            />;
-                        })}
+                            />
+                        ))}
                         {highlightedCrossEdges.map(edge => (
                             <path
                                 key={`cross-edge-${edge.id}`}
@@ -290,6 +400,30 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                                 data-plan-cross-edge-highlight-id={edge.id.toString()}
                             />
                         ))}
+                    </g>
+                    <g className={styles.edgeBadgeLayer}>
+                        {annotationMode !== 'plain' && renderedEdges.flatMap(rendered => rendered.badge == null ? [] : [(
+                            <g
+                                key={rendered.edge.id.toString()}
+                                className={styles.edgeBadge}
+                                transform={`translate(${rendered.badge.x}, ${rendered.badge.y})`}
+                                role="img"
+                                aria-label={rendered.badge.description}
+                                data-plan-edge-badge-id={rendered.edge.id.toString()}
+                                data-highlighted={highlightedEdges.includes(rendered.edge) || undefined}
+                            >
+                                <rect
+                                    x={-rendered.badge.width / 2}
+                                    y={-EDGE_BADGE_HEIGHT / 2}
+                                    width={rendered.badge.width}
+                                    height={EDGE_BADGE_HEIGHT}
+                                    rx={EDGE_BADGE_HEIGHT / 2}
+                                    fill={highlightedEdges.includes(rendered.edge) ? EDGE_HIGHLIGHT_COLOR : rendered.badge.background}
+                                    stroke={highlightedEdges.includes(rendered.edge) ? EDGE_HIGHLIGHT_COLOR : EDGE_BADGE_BORDER}
+                                />
+                                <text fill={highlightedEdges.includes(rendered.edge) ? '#ffffff' : rendered.badge.foreground}>{rendered.badge.text}</text>
+                            </g>
+                        )])}
                     </g>
                     <g>
                         {scene.operators.map(operator => (
@@ -319,29 +453,50 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                     </g>
                 </g>
             </svg>
-            <ButtonGroup className={styles.metric_controls} aria-label="Plan metric controls">
-                <IconButton
-                    className={styles.metric_button}
-                    variant={ButtonVariant.Default}
-                    size={ButtonSize.Small}
-                    aria-label="Encode estimated rows as edge thickness"
-                    aria-pressed={metric === 'estimatedRows'}
-                    onClick={() => setMetricSelection({ scene, metric: 'estimatedRows' })}
+            <div className={styles.metric_controls}>
+                <SegmentedControl
+                    aria-label="Plan annotations"
+                    size={SegmentedControlSize.Tiny}
+                    onChange={index => setAnnotationMode(index === 0 ? 'plain' : index === 1 ? 'rows' : 'estimates')}
                 >
-                    <GraphIcon size={12} />
-                </IconButton>
-                <IconButton
-                    className={styles.metric_button}
-                    variant={ButtonVariant.Default}
-                    size={ButtonSize.Small}
-                    aria-label="Encode actual output rows as edge thickness"
-                    aria-pressed={metric === 'outputRows'}
-                    disabled={!hasOutputRows}
-                    onClick={() => setMetricSelection({ scene, metric: 'outputRows' })}
+                    <SegmentedControl.Button selected={annotationMode === 'plain'}>Plain</SegmentedControl.Button>
+                    <SegmentedControl.Button selected={annotationMode === 'rows'}>Rows</SegmentedControl.Button>
+                    <SegmentedControl.Button selected={annotationMode === 'estimates'}>Estimates</SegmentedControl.Button>
+                </SegmentedControl>
+            </div>
+            {annotationMode === 'rows' && (
+                <div
+                    className={styles.edge_legend}
+                    role="img"
+                    aria-label="Badge color encodes row count from fewer rows on the left to more rows on the right"
                 >
-                    <RowsIcon size={12} />
-                </IconButton>
-            </ButtonGroup>
+                    <div className={styles.edge_legend_scale}>
+                        <span>Fewer rows</span>
+                        <span>More rows</span>
+                        <i
+                            aria-hidden="true"
+                            style={{ backgroundImage: `linear-gradient(to right, ${rowLegendGradient})` }}
+                        />
+                    </div>
+                </div>
+            )}
+            {annotationMode === 'estimates' && (
+                <div
+                    className={styles.edge_legend}
+                    role="img"
+                    aria-label="Badge color compares actual rows with estimates: red on the left means underestimated, the center means matched, and blue on the right means overestimated; differences are capped at 200 percent"
+                >
+                    <div className={styles.edge_legend_scale}>
+                        <span>Underestimated</span>
+                        <span>Overestimated</span>
+                        <i
+                            aria-hidden="true"
+                            style={{ backgroundImage: `linear-gradient(to right, ${estimateLegendGradient})` }}
+                        />
+                        <span className={styles.edge_legend_matched}>Matched</span>
+                    </div>
+                </div>
+            )}
             <ButtonGroup className={styles.controls} aria-label="Plan zoom controls">
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Zoom in" onClick={() => zoomBy(1.25)}><ZoomInIcon size={12} /></IconButton>
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Zoom out" onClick={() => zoomBy(0.8)}><ZoomOutIcon size={12} /></IconButton>

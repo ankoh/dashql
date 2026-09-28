@@ -30,8 +30,6 @@ export interface PlanSceneOperatorStatistics {
     memoryBytes: bigint;
 }
 
-export type PlanRowMetric = 'estimatedRows' | 'outputRows';
-
 export const PLAN_OPERATOR_PORT_OUTPUT = 0b01;
 export const PLAN_OPERATOR_PORT_INPUT = 0b10;
 
@@ -136,17 +134,9 @@ export function hasOutputCardinalityProduced(properties: Record<string, unknown>
         || readNumberProperty(properties, ['output-rows', 'outputRows']) != null;
 }
 
-export function selectDefaultRowMetric(edges: readonly Pick<PlanSceneEdge, 'outputCardinalityProduced'>[]): PlanRowMetric {
-    return edges.some(edge => edge.outputCardinalityProduced != null) ? 'outputRows' : 'estimatedRows';
-}
-
-export function scaleRowWidths(values: readonly (number | null)[], minWidth = 1, maxWidth = 8): number[] {
-    const finiteValues = values.map(value => value != null && Number.isFinite(value) ? Math.max(0, value) : 0);
-    let maxValue = 0;
-    for (const value of finiteValues) maxValue = Math.max(maxValue, value);
-    if (maxValue === 0 || maxWidth <= minWidth) return finiteValues.map(() => minWidth);
-    const denominator = Math.log1p(maxValue);
-    return finiteValues.map(value => minWidth + Math.log1p(value) / denominator * (maxWidth - minWidth));
+export function estimateRelativeDifference(estimated: number, actual: number): number {
+    if (estimated === 0) return actual === 0 ? 0 : Number.POSITIVE_INFINITY;
+    return (actual - estimated) / Math.abs(estimated);
 }
 
 export function buildCrossEdgePath(
