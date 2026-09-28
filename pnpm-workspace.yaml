@@ -6,3 +6,4 @@ allowBuilds:
   electron-winstaller: true
 minimumReleaseAgeExclude:
   - hyperdb-wasm@0.0.26553-dev.wasm.gc7d06744
+  - hyperdb-wasm@0.0.26792-dev.wasm.g72cc44c1
