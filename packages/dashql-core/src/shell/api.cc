@@ -307,7 +307,7 @@ uint32_t dashql_shell_prompt_apply_completion(DashQLShell* shell, const DashQLSh
 
 uint32_t dashql_shell_prompt_consume(DashQLShell* shell, uint32_t key, const uint8_t* text, size_t text_length,
                                      DashQLShellPromptResult* result) {
-    if (key > DASHQL_SHELL_INPUT_END || (text == nullptr && text_length != 0)) {
+    if (key > DASHQL_SHELL_INPUT_ABORT || (text == nullptr && text_length != 0)) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetPromptResult(result);
         return StorePromptResult(result,
@@ -361,7 +361,7 @@ uint32_t dashql_shell_terminal_open(DashQLShell* shell, const uint8_t* prompt, s
 
 uint32_t dashql_shell_terminal_consume(DashQLShell* shell, uint32_t key, const uint8_t* text, size_t text_length,
                                        DashQLShellTerminalResult* result) {
-    if (key > DASHQL_SHELL_INPUT_END || (text == nullptr && text_length != 0)) {
+    if (key > DASHQL_SHELL_INPUT_ABORT || (text == nullptr && text_length != 0)) {
         if (result == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
         ResetTerminalResult(result);
         return StoreTerminalResult(result, {dashql::shell::ShellStatus::kInvalidArgument, "invalid terminal input"});

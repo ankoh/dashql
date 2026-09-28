@@ -187,6 +187,19 @@ export enum DashQLShellPromptInput {
     DOWN = 13,
     START = 14,
     END = 15,
+    LINE_START = 16,
+    LINE_END = 17,
+    WORD_LEFT = 18,
+    WORD_RIGHT = 19,
+    KILL_LINE = 20,
+    BACKWARD_KILL_LINE = 21,
+    KILL_WORD = 22,
+    BACKWARD_KILL_WORD = 23,
+    YANK = 24,
+    TRANSPOSE = 25,
+    CLEAR_SCREEN = 26,
+    EOF = 27,
+    ABORT = 28,
 }
 
 export enum DashQLShellPromptAction {

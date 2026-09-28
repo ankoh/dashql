@@ -50,11 +50,41 @@ describe('browser shell input', () => {
         expect(terminalPromptInputForKey('End')).toBe(DashQLShellPromptInput.END);
     });
 
-    it('maps shell convenience shortcuts to prompt boundaries', () => {
-        expect(terminalPromptInputForKey('a', true)).toBe(DashQLShellPromptInput.START);
-        expect(terminalPromptInputForKey('A', true)).toBe(DashQLShellPromptInput.START);
-        expect(terminalPromptInputForKey('e', true)).toBe(DashQLShellPromptInput.END);
+    it('maps GNU Readline control bindings', () => {
+        expect(terminalPromptInputForKey('a', true)).toBe(DashQLShellPromptInput.LINE_START);
+        expect(terminalPromptInputForKey('A', true)).toBe(DashQLShellPromptInput.LINE_START);
+        expect(terminalPromptInputForKey('b', true)).toBe(DashQLShellPromptInput.LEFT);
+        expect(terminalPromptInputForKey('d', true)).toBe(DashQLShellPromptInput.EOF);
+        expect(terminalPromptInputForKey('e', true)).toBe(DashQLShellPromptInput.LINE_END);
+        expect(terminalPromptInputForKey('f', true)).toBe(DashQLShellPromptInput.RIGHT);
+        expect(terminalPromptInputForKey('g', true)).toBe(DashQLShellPromptInput.ABORT);
+        expect(terminalPromptInputForKey('h', true)).toBe(DashQLShellPromptInput.BACKSPACE);
+        expect(terminalPromptInputForKey('i', true)).toBe(DashQLShellPromptInput.TAB);
+        expect(terminalPromptInputForKey('j', true)).toBe(DashQLShellPromptInput.ENTER);
+        expect(terminalPromptInputForKey('k', true)).toBe(DashQLShellPromptInput.KILL_LINE);
+        expect(terminalPromptInputForKey('l', true)).toBe(DashQLShellPromptInput.CLEAR_SCREEN);
+        expect(terminalPromptInputForKey('m', true)).toBe(DashQLShellPromptInput.ENTER);
+        expect(terminalPromptInputForKey('n', true)).toBe(DashQLShellPromptInput.HISTORY_NEXT);
+        expect(terminalPromptInputForKey('p', true)).toBe(DashQLShellPromptInput.HISTORY_PREVIOUS);
+        expect(terminalPromptInputForKey('t', true)).toBe(DashQLShellPromptInput.TRANSPOSE);
+        expect(terminalPromptInputForKey('u', true)).toBe(DashQLShellPromptInput.BACKWARD_KILL_LINE);
+        expect(terminalPromptInputForKey('w', true)).toBe(DashQLShellPromptInput.BACKWARD_KILL_WORD);
+        expect(terminalPromptInputForKey('y', true)).toBe(DashQLShellPromptInput.YANK);
         expect(terminalPromptInputForKey('a')).toBeNull();
+    });
+
+    it('maps GNU Readline meta bindings', () => {
+        expect(terminalPromptInputForKey('Backspace', false, true)).toBe(DashQLShellPromptInput.BACKWARD_KILL_WORD);
+        expect(terminalPromptInputForKey('b', false, true)).toBe(DashQLShellPromptInput.WORD_LEFT);
+        expect(terminalPromptInputForKey('d', false, true)).toBe(DashQLShellPromptInput.KILL_WORD);
+        expect(terminalPromptInputForKey('f', false, true)).toBe(DashQLShellPromptInput.WORD_RIGHT);
+        expect(terminalPromptInputForKey('∫', false, true, false, 'KeyB')).toBe(DashQLShellPromptInput.WORD_LEFT);
+    });
+
+    it('preserves the existing macOS Command boundary shortcuts', () => {
+        expect(terminalPromptInputForKey('a', false, false, true)).toBe(DashQLShellPromptInput.START);
+        expect(terminalPromptInputForKey('e', false, false, true)).toBe(DashQLShellPromptInput.END);
+        expect(terminalPromptInputForKey('w', false, false, true)).toBeNull();
     });
 });
 

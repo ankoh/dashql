@@ -92,6 +92,19 @@ enum class PromptInputKey : uint32_t {
     kDown = 13,
     kStart = 14,
     kEnd = 15,
+    kLineStart = 16,
+    kLineEnd = 17,
+    kWordLeft = 18,
+    kWordRight = 19,
+    kKillLine = 20,
+    kBackwardKillLine = 21,
+    kKillWord = 22,
+    kBackwardKillWord = 23,
+    kYank = 24,
+    kTranspose = 25,
+    kClearScreen = 26,
+    kEof = 27,
+    kAbort = 28,
 };
 
 enum class PromptInputAction : uint32_t {
@@ -202,6 +215,7 @@ class ShellSession {
     std::deque<std::string> history_;
     size_t history_cursor_ = 0;
     std::string history_draft_;
+    std::string kill_buffer_;
     uint64_t next_effect_id_ = 1;
     std::unordered_map<uint64_t, PendingEffect> pending_effects_;
     std::optional<OutgoingEffect> outgoing_effect_;

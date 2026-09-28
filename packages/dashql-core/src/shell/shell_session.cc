@@ -574,6 +574,50 @@ PromptSnapshot ShellSession::ConsumePromptInput(PromptInputKey key, std::string_
         case PromptInputKey::kEnd:
             prompt_.MoveToEnd();
             break;
+        case PromptInputKey::kLineStart:
+            prompt_.MoveToLineStart();
+            break;
+        case PromptInputKey::kLineEnd:
+            prompt_.MoveToLineEnd();
+            break;
+        case PromptInputKey::kWordLeft:
+            prompt_.MoveWordLeft();
+            break;
+        case PromptInputKey::kWordRight:
+            prompt_.MoveWordRight();
+            break;
+        case PromptInputKey::kKillLine:
+            if (prompt_.DeleteToLineEnd(&kill_buffer_)) ResetHistoryCursor();
+            break;
+        case PromptInputKey::kBackwardKillLine:
+            if (prompt_.DeleteToLineStart(&kill_buffer_)) ResetHistoryCursor();
+            break;
+        case PromptInputKey::kKillWord:
+            if (prompt_.DeleteWordForward(&kill_buffer_)) ResetHistoryCursor();
+            break;
+        case PromptInputKey::kBackwardKillWord:
+            if (prompt_.DeleteWordBackward(&kill_buffer_)) ResetHistoryCursor();
+            break;
+        case PromptInputKey::kYank:
+            if (!kill_buffer_.empty()) {
+                prompt_.Insert(kill_buffer_);
+                ResetHistoryCursor();
+            }
+            break;
+        case PromptInputKey::kTranspose:
+            if (prompt_.TransposeCharacters()) ResetHistoryCursor();
+            break;
+        case PromptInputKey::kClearScreen:
+        case PromptInputKey::kAbort:
+            break;
+        case PromptInputKey::kEof:
+            if (prompt_.Text().empty()) {
+                action = PromptInputAction::kExit;
+            } else {
+                prompt_.DeleteForward();
+                ResetHistoryCursor();
+            }
+            break;
         case PromptInputKey::kUp:
             if (history_cursor_ == history_.size() && prompt_.MoveUp()) break;
             [[fallthrough]];
@@ -653,13 +697,14 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
             }
         }
         if (key == PromptInputKey::kTab) return AcceptTerminalCompletion();
-        if (key == PromptInputKey::kEscape) {
+        if (key == PromptInputKey::kEscape || key == PromptInputKey::kAbort) {
             auto output = ClearTerminalCompletionOverlay();
             terminal_completion_overlays.erase(this);
             output.append(RenderTerminalPrompt());
             return {ShellStatus::kOk, std::move(output)};
         }
     }
+    if (key == PromptInputKey::kAbort) return {ShellStatus::kOk, {}};
     if (key == PromptInputKey::kEscape) {
         terminal_action_ = PromptInputAction::kExit;
         return {ShellStatus::kOk, std::string{vt100::kEnableAutoWrap}};
@@ -669,11 +714,24 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
         output_prefix = ClearTerminalCompletionOverlay();
         terminal_completion_overlays.erase(this);
     }
+    if (key == PromptInputKey::kClearScreen) {
+        output_prefix.clear();
+        terminal_prompt_rows_ = 1;
+        terminal_prompt_cursor_row_ = 0;
+        output_prefix.append(vt100::kClearScreen);
+        output_prefix.append(RenderTerminalPrompt());
+        return {ShellStatus::kOk, std::move(output_prefix)};
+    }
     auto snapshot = ConsumePromptInput(key, text);
     if (snapshot.status != ShellStatus::kOk) {
         return {snapshot.status, std::move(snapshot.message)};
     }
     const auto action = static_cast<PromptInputAction>(snapshot.action);
+    if (action == PromptInputAction::kExit) {
+        terminal_action_ = action;
+        output_prefix.append(vt100::kEnableAutoWrap);
+        return {ShellStatus::kOk, std::move(output_prefix)};
+    }
     if (action == PromptInputAction::kSubmit) {
         if (!output_prefix.empty()) output_prefix.append(RenderTerminalPrompt());
         terminal_action_ = action;
@@ -712,8 +770,10 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
     }
     output_prefix.append(RenderTerminalPrompt());
     const bool navigation_key = key == PromptInputKey::kLeft || key == PromptInputKey::kRight ||
-                                key == PromptInputKey::kUp || key == PromptInputKey::kDown ||
-                                key == PromptInputKey::kStart || key == PromptInputKey::kEnd;
+                                 key == PromptInputKey::kUp || key == PromptInputKey::kDown ||
+                                 key == PromptInputKey::kStart || key == PromptInputKey::kEnd ||
+                                 key == PromptInputKey::kLineStart || key == PromptInputKey::kLineEnd ||
+                                 key == PromptInputKey::kWordLeft || key == PromptInputKey::kWordRight;
     if (key != PromptInputKey::kForceSubmit && key != PromptInputKey::kTab && !navigation_key) {
         output_prefix.append(RefreshTerminalCompletionOverlay());
     }

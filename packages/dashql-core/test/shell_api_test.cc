@@ -502,6 +502,104 @@ TEST(ShellApiTest, NavigatesToPromptStartAndEnd) {
     dashql_shell_destroy(shell);
 }
 
+TEST(ShellApiTest, AppliesReadlineEditingActions) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellPromptResult prompt{};
+    constexpr std::string_view query = "SELECT one two\nFROM table";
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_TEXT,
+                                          reinterpret_cast<const uint8_t*>(query.data()), query.size(), &prompt),
+              DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_LINE_START, nullptr, 0, &prompt),
+              DASHQL_SHELL_OK);
+    EXPECT_EQ(prompt.cursor_byte_offset, std::string_view{"SELECT one two\n"}.size());
+    dashql_shell_prompt_result_destroy(&prompt);
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_KILL_WORD, nullptr, 0, &prompt),
+              DASHQL_SHELL_OK);
+    EXPECT_EQ(PromptText(prompt), "SELECT one two\n table");
+    dashql_shell_prompt_result_destroy(&prompt);
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_YANK, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(PromptText(prompt), query);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_LINE_END, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_BACKWARD_KILL_WORD, nullptr, 0, &prompt),
+              DASHQL_SHELL_OK);
+    EXPECT_EQ(PromptText(prompt), "SELECT one two\nFROM ");
+    dashql_shell_prompt_result_destroy(&prompt);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, TreatsReadlineEofAsDeleteOrExit) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellPromptResult prompt{};
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_EOF, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(prompt.action, DASHQL_SHELL_INPUT_EXIT);
+    dashql_shell_prompt_result_destroy(&prompt);
+
+    constexpr std::string_view query = "ab";
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_TEXT,
+                                          reinterpret_cast<const uint8_t*>(query.data()), query.size(), &prompt),
+              DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_LINE_START, nullptr, 0, &prompt),
+              DASHQL_SHELL_OK);
+    dashql_shell_prompt_result_destroy(&prompt);
+    ASSERT_EQ(dashql_shell_prompt_consume(shell, DASHQL_SHELL_INPUT_EOF, nullptr, 0, &prompt), DASHQL_SHELL_OK);
+    EXPECT_EQ(prompt.action, DASHQL_SHELL_INPUT_NONE);
+    EXPECT_EQ(PromptText(prompt), "b");
+    dashql_shell_prompt_result_destroy(&prompt);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, ClearsTerminalForReadlineClearScreen) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "SELECT 1"), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+
+    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_CLEAR_SCREEN, &output), DASHQL_SHELL_OK);
+    EXPECT_TRUE(TerminalData(output).starts_with(dashql::shell::vt100::kClearScreen)) << TerminalData(output);
+    EXPECT_NE(TerminalData(output).find("SELECT"), std::string_view::npos) << TerminalData(output);
+    dashql_shell_terminal_result_destroy(&output);
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, AbortsReadlineCompletionWithoutExiting) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "sel"), DASHQL_SHELL_OK);
+    EXPECT_NE(TerminalData(output).find(dashql::shell::vt100::kReverseVideo), std::string_view::npos);
+    dashql_shell_terminal_result_destroy(&output);
+
+    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_ABORT, &output), DASHQL_SHELL_OK);
+    EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_NONE);
+    dashql_shell_terminal_result_destroy(&output);
+    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_ABORT, &output), DASHQL_SHELL_OK);
+    EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_NONE);
+    EXPECT_TRUE(TerminalData(output).empty());
+    dashql_shell_terminal_result_destroy(&output);
+    dashql_shell_destroy(shell);
+}
+
 TEST(ShellApiTest, RendersHighlightedTerminalPrompt) {
     dashql::Catalog catalog;
     auto* shell = dashql_shell_new(&catalog, 80);

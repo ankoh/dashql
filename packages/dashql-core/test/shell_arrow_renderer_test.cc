@@ -335,6 +335,20 @@ TEST(ShellSessionTest, AlignsContinuationMarkerWithPromptMarker) {
     EXPECT_NE(long_output.data.find("              -> "), std::string::npos);
 }
 
+TEST(ShellSessionTest, AppliesReadlineBindingsToMultilinePrompt) {
+    Catalog catalog;
+    ShellSession session{catalog, 80};
+
+    session.SetPrompt("SELECT one\nFROM table");
+    EXPECT_EQ(session.ConsumePromptInput(PromptInputKey::kLineStart).cursor_byte_offset,
+              std::string_view{"SELECT one\n"}.size());
+    EXPECT_EQ(session.ConsumePromptInput(PromptInputKey::kKillWord).text, "SELECT one\n table");
+    EXPECT_EQ(session.ConsumePromptInput(PromptInputKey::kYank).text, "SELECT one\nFROM table");
+    EXPECT_EQ(session.ConsumePromptInput(PromptInputKey::kLineEnd).cursor_byte_offset,
+              std::string_view{"SELECT one\nFROM table"}.size());
+    EXPECT_EQ(session.ConsumePromptInput(PromptInputKey::kBackwardKillWord).text, "SELECT one\nFROM ");
+}
+
 TEST(ShellSessionTest, RendersShellPrefixesInBold) {
     Catalog catalog;
     ShellSession session{catalog, 80};

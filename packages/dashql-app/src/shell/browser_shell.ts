@@ -85,13 +85,72 @@ export function isTerminalCancelData(data: string): boolean {
     return data === '\x03';
 }
 
-export function terminalPromptInputForKey(key: string, primaryModifier = false): DashQLShellPromptInput | null {
-    if (primaryModifier) {
-        switch (key.toLowerCase()) {
+export function terminalPromptInputForKey(
+    key: string,
+    controlModifier = false,
+    metaModifier = false,
+    commandModifier = false,
+    code = '',
+): DashQLShellPromptInput | null {
+    const modifierKey = code.startsWith('Key') ? code.substring(3).toLowerCase() : key.toLowerCase();
+    if (metaModifier) {
+        switch (modifierKey) {
+            case 'backspace':
+                return DashQLShellPromptInput.BACKWARD_KILL_WORD;
+            case 'b':
+                return DashQLShellPromptInput.WORD_LEFT;
+            case 'd':
+                return DashQLShellPromptInput.KILL_WORD;
+            case 'f':
+                return DashQLShellPromptInput.WORD_RIGHT;
+        }
+    }
+    if (commandModifier) {
+        switch (modifierKey) {
             case 'a':
                 return DashQLShellPromptInput.START;
             case 'e':
                 return DashQLShellPromptInput.END;
+        }
+    }
+    if (controlModifier) {
+        switch (modifierKey) {
+            case 'a':
+                return DashQLShellPromptInput.LINE_START;
+            case 'b':
+                return DashQLShellPromptInput.LEFT;
+            case 'd':
+                return DashQLShellPromptInput.EOF;
+            case 'e':
+                return DashQLShellPromptInput.LINE_END;
+            case 'f':
+                return DashQLShellPromptInput.RIGHT;
+            case 'g':
+                return DashQLShellPromptInput.ABORT;
+            case 'h':
+                return DashQLShellPromptInput.BACKSPACE;
+            case 'i':
+                return DashQLShellPromptInput.TAB;
+            case 'j':
+                return DashQLShellPromptInput.ENTER;
+            case 'k':
+                return DashQLShellPromptInput.KILL_LINE;
+            case 'l':
+                return DashQLShellPromptInput.CLEAR_SCREEN;
+            case 'm':
+                return DashQLShellPromptInput.ENTER;
+            case 'n':
+                return DashQLShellPromptInput.HISTORY_NEXT;
+            case 'p':
+                return DashQLShellPromptInput.HISTORY_PREVIOUS;
+            case 't':
+                return DashQLShellPromptInput.TRANSPOSE;
+            case 'u':
+                return DashQLShellPromptInput.BACKWARD_KILL_LINE;
+            case 'w':
+                return DashQLShellPromptInput.BACKWARD_KILL_WORD;
+            case 'y':
+                return DashQLShellPromptInput.YANK;
         }
     }
     switch (key) {
@@ -237,7 +296,13 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
             event.stopPropagation();
             return false;
         }
-        let key = terminalPromptInputForKey(event.key, (event.ctrlKey || event.metaKey) && !event.altKey);
+        let key = terminalPromptInputForKey(
+            event.key,
+            event.ctrlKey && !event.altKey && !event.metaKey,
+            event.altKey && !event.ctrlKey && !event.metaKey,
+            event.metaKey && !event.altKey && !event.ctrlKey,
+            event.code,
+        );
         if (event.key === 'Enter') {
             if (event.ctrlKey || event.metaKey) key = DashQLShellPromptInput.FORCE_SUBMIT;
             else if (event.shiftKey) {

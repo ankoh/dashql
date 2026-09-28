@@ -20,11 +20,20 @@ class PromptBuffer {
     bool MoveRight();
     bool MoveToStart();
     bool MoveToEnd();
+    bool MoveToLineStart();
+    bool MoveToLineEnd();
+    bool MoveWordLeft();
+    bool MoveWordRight();
     bool MoveUp();
     bool MoveDown();
     bool MoveToByteOffset(size_t byte_offset);
     bool DeleteBackward();
     bool DeleteForward();
+    bool DeleteToLineStart(std::string* deleted = nullptr);
+    bool DeleteToLineEnd(std::string* deleted = nullptr);
+    bool DeleteWordBackward(std::string* deleted = nullptr);
+    bool DeleteWordForward(std::string* deleted = nullptr);
+    bool TransposeCharacters();
     bool ReplaceByteRange(size_t byte_offset, size_t byte_length, std::string_view text);
 
     std::string Text();

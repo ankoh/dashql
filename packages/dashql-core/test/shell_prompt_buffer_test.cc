@@ -57,6 +57,21 @@ TEST_F(PromptBufferTest, MovesToPromptStartAndEnd) {
     EXPECT_FALSE(prompt.MoveToEnd());
 }
 
+TEST_F(PromptBufferTest, MovesToLineAndWordBoundaries) {
+    ASSERT_TRUE(prompt.SetText("first line\nalpha_2 界 beta"));
+
+    EXPECT_TRUE(prompt.MoveToLineStart());
+    EXPECT_EQ(prompt.cursor_byte_offset(), std::string_view{"first line\n"}.size());
+    EXPECT_TRUE(prompt.MoveWordRight());
+    EXPECT_EQ(prompt.cursor_byte_offset(), std::string_view{"first line\nalpha_2"}.size());
+    EXPECT_TRUE(prompt.MoveWordRight());
+    EXPECT_EQ(prompt.cursor_byte_offset(), std::string_view{"first line\nalpha_2 界"}.size());
+    EXPECT_TRUE(prompt.MoveWordLeft());
+    EXPECT_EQ(prompt.cursor_byte_offset(), std::string_view{"first line\nalpha_2 "}.size());
+    EXPECT_TRUE(prompt.MoveToLineEnd());
+    EXPECT_EQ(prompt.cursor_byte_offset(), prompt.Text().size());
+}
+
 TEST_F(PromptBufferTest, MovesVerticallyAcrossLinesByGraphemeColumn) {
     ASSERT_TRUE(prompt.SetText("ab界\nx\n1234"));
 
@@ -92,6 +107,34 @@ TEST_F(PromptBufferTest, InsertsAndDeletesWholeGraphemeClusters) {
     EXPECT_EQ(prompt.revision(), 4);
     EXPECT_FALSE(prompt.DeleteForward());
     EXPECT_EQ(prompt.revision(), 4);
+}
+
+TEST_F(PromptBufferTest, KillsAndTransposesAtGraphemeBoundaries) {
+    ASSERT_TRUE(prompt.SetText("one two\n👩‍💻界x"));
+    ASSERT_TRUE(prompt.MoveToLineStart());
+
+    std::string killed;
+    EXPECT_TRUE(prompt.DeleteWordForward(&killed));
+    EXPECT_EQ(killed, "👩‍💻界x");
+    EXPECT_EQ(prompt.Text(), "one two\n");
+    EXPECT_TRUE(prompt.Insert("a界"));
+    EXPECT_TRUE(prompt.TransposeCharacters());
+    EXPECT_EQ(prompt.Text(), "one two\n界a");
+
+    EXPECT_TRUE(prompt.DeleteToLineStart(&killed));
+    EXPECT_EQ(killed, "界a");
+    EXPECT_EQ(prompt.Text(), "one two\n");
+    EXPECT_TRUE(prompt.MoveToStart());
+    EXPECT_TRUE(prompt.MoveWordRight());
+    EXPECT_TRUE(prompt.DeleteWordBackward(&killed));
+    EXPECT_EQ(killed, "one");
+    EXPECT_EQ(prompt.Text(), " two\n");
+    EXPECT_TRUE(prompt.DeleteToLineEnd(&killed));
+    EXPECT_EQ(killed, " two");
+    EXPECT_EQ(prompt.Text(), "\n");
+    EXPECT_TRUE(prompt.DeleteToLineEnd(&killed));
+    EXPECT_EQ(killed, "\n");
+    EXPECT_TRUE(prompt.Text().empty());
 }
 
 TEST_F(PromptBufferTest, KeepsCursorOnBoundaryWhenInsertionJoinsGraphemes) {

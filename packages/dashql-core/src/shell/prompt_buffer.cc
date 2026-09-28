@@ -5,6 +5,26 @@
 #include "utf8proc/utf8proc_wrapper.hpp"
 
 namespace dashql::shell {
+namespace {
+
+bool IsWordGrapheme(std::string_view grapheme) {
+    if (grapheme.empty()) return false;
+    const auto byte = static_cast<unsigned char>(grapheme.front());
+    if (byte >= 0x80) return true;
+    return (byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z') || (byte >= '0' && byte <= '9') ||
+           byte == '_';
+}
+
+size_t PreviousGrapheme(std::string_view text, size_t offset) {
+    return utf8::Utf8Proc::PreviousGraphemeCluster(text, offset);
+}
+
+size_t NextGrapheme(std::string_view text, size_t offset) {
+    const auto next = utf8::Utf8Proc::NextGraphemeCluster(text, offset);
+    return next > offset ? next : offset + 1;
+}
+
+}  // namespace
 
 PromptBuffer::PromptBuffer(Catalog& catalog) : script_{catalog} {}
 
@@ -65,6 +85,51 @@ bool PromptBuffer::MoveToEnd() {
     }
     cursor_grapheme_offset_ = end;
     return true;
+}
+
+bool PromptBuffer::MoveToLineStart() {
+    const auto text = script_.text.ToString();
+    const auto cursor = cursor_byte_offset();
+    const auto line_break = cursor == 0 ? std::string::npos : text.rfind('\n', cursor - 1);
+    return MoveToByteOffset(line_break == std::string::npos ? 0 : line_break + 1);
+}
+
+bool PromptBuffer::MoveToLineEnd() {
+    const auto text = script_.text.ToString();
+    const auto line_break = text.find('\n', cursor_byte_offset());
+    return MoveToByteOffset(line_break == std::string::npos ? text.size() : line_break);
+}
+
+bool PromptBuffer::MoveWordLeft() {
+    const auto text = script_.text.ToString();
+    auto cursor = cursor_byte_offset();
+    const auto original = cursor;
+    while (cursor > 0) {
+        const auto previous = PreviousGrapheme(text, cursor);
+        if (IsWordGrapheme(std::string_view{text}.substr(previous, cursor - previous))) break;
+        cursor = previous;
+    }
+    while (cursor > 0) {
+        const auto previous = PreviousGrapheme(text, cursor);
+        if (!IsWordGrapheme(std::string_view{text}.substr(previous, cursor - previous))) break;
+        cursor = previous;
+    }
+    return cursor != original && MoveToByteOffset(cursor);
+}
+
+bool PromptBuffer::MoveWordRight() {
+    const auto text = script_.text.ToString();
+    auto cursor = cursor_byte_offset();
+    const auto original = cursor;
+    while (cursor < text.size() &&
+           !IsWordGrapheme(std::string_view{text}.substr(cursor, NextGrapheme(text, cursor) - cursor))) {
+        cursor = NextGrapheme(text, cursor);
+    }
+    while (cursor < text.size() &&
+           IsWordGrapheme(std::string_view{text}.substr(cursor, NextGrapheme(text, cursor) - cursor))) {
+        cursor = NextGrapheme(text, cursor);
+    }
+    return cursor != original && MoveToByteOffset(cursor);
 }
 
 bool PromptBuffer::MoveUp() {
@@ -134,6 +199,58 @@ bool PromptBuffer::DeleteForward() {
     script_.EraseTextRange(begin.utf8_codepoints, end.utf8_codepoints - begin.utf8_codepoints);
     ++revision_;
     return true;
+}
+
+bool PromptBuffer::DeleteToLineStart(std::string* deleted) {
+    const auto text = script_.text.ToString();
+    const auto end = cursor_byte_offset();
+    const auto line_break = end == 0 ? std::string::npos : text.rfind('\n', end - 1);
+    const auto begin = line_break == std::string::npos ? 0 : line_break + 1;
+    if (begin == end) return false;
+    if (deleted != nullptr) deleted->assign(text, begin, end - begin);
+    return ReplaceByteRange(begin, end - begin, {});
+}
+
+bool PromptBuffer::DeleteToLineEnd(std::string* deleted) {
+    const auto text = script_.text.ToString();
+    const auto begin = cursor_byte_offset();
+    const auto line_break = text.find('\n', begin);
+    const auto end = line_break == begin ? line_break + 1 : line_break == std::string::npos ? text.size() : line_break;
+    if (begin == end) return false;
+    if (deleted != nullptr) deleted->assign(text, begin, end - begin);
+    return ReplaceByteRange(begin, end - begin, {});
+}
+
+bool PromptBuffer::DeleteWordBackward(std::string* deleted) {
+    const auto end = cursor_byte_offset();
+    if (!MoveWordLeft()) return false;
+    const auto begin = cursor_byte_offset();
+    const auto text = script_.text.ToString();
+    if (deleted != nullptr) deleted->assign(text, begin, end - begin);
+    return ReplaceByteRange(begin, end - begin, {});
+}
+
+bool PromptBuffer::DeleteWordForward(std::string* deleted) {
+    const auto begin = cursor_byte_offset();
+    if (!MoveWordRight()) return false;
+    const auto end = cursor_byte_offset();
+    const auto text = script_.text.ToString();
+    if (deleted != nullptr) deleted->assign(text, begin, end - begin);
+    return ReplaceByteRange(begin, end - begin, {});
+}
+
+bool PromptBuffer::TransposeCharacters() {
+    const auto count = grapheme_count();
+    if (count < 2 || cursor_grapheme_offset_ == 0) return false;
+    const auto left_index = cursor_grapheme_offset_ == count ? count - 2 : cursor_grapheme_offset_ - 1;
+    const auto right_index = left_index + 1;
+    const auto begin = script_.text.ResolveGrapheme(left_index).text_bytes;
+    const auto middle = script_.text.ResolveGrapheme(right_index).text_bytes;
+    const auto end = script_.text.ResolveGrapheme(right_index + 1).text_bytes;
+    const auto text = script_.text.ToString();
+    std::string replacement{text.substr(middle, end - middle)};
+    replacement.append(text, begin, middle - begin);
+    return ReplaceByteRange(begin, end - begin, replacement);
 }
 
 bool PromptBuffer::ReplaceByteRange(size_t byte_offset, size_t byte_length, std::string_view text) {
