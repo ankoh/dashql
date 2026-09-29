@@ -48,7 +48,7 @@
     "electron-updater": "^6.8.9",
     "eslint": "^10.4.1",
     "flatbuffers": "^25.9.23",
-    "hyperdb-wasm": "0.0.26792-dev.wasm.g72cc44c1",
+    "hyperdb-wasm": "0.0.26772-dev.wasm.g94d5c8ef",
     "immutable": "^5.1.9",
     "json-schema-to-typescript": "^15.0.4",
     "jszip": "^3.10.1",
