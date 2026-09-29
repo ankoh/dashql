@@ -88,6 +88,25 @@ formatter-snapshots:
               select *
               from raw_sql_subquery(descriptor(foo integer), 'bar');
 
+  - name: coverage_explain_convert_currency_table_argument
+    input: |-
+      explain (format sql, sql_dialect hyper)
+      select convert_currency(2.4, 'EUR', 'USD', exchange_rate_table=>table(exchange_rate_table));
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain (format sql, sql_dialect hyper) select convert_currency(2.4, 'EUR', 'USD', exchange_rate_table => table(exchange_rate_table));
+          - mode: compact
+            expected: |-
+              explain (format sql, sql_dialect hyper)
+              select convert_currency(2.4, 'EUR', 'USD', exchange_rate_table => table(exchange_rate_table));
+          - mode: pretty
+            expected: |-
+              explain (format sql, sql_dialect hyper)
+              select convert_currency(2.4, 'EUR', 'USD', exchange_rate_table => table(exchange_rate_table));
+
   - name: explain_streaming_options
     input: |-
       explain (

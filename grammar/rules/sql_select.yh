@@ -135,6 +135,7 @@
 %type <buffers::parser::Node> sql_qual_all_op;
 %type <buffers::parser::Node> sql_qual_op;
 %type <buffers::parser::Node> sql_qualified_name;
+%type <buffers::parser::Node> sql_relation_arg;
 %type <buffers::parser::Node> sql_rowsfrom_item;
 %type <buffers::parser::Node> sql_sample_clause;
 %type <buffers::parser::Node> sql_select_fetch_first_value;

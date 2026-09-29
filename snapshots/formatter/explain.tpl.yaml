@@ -39,6 +39,13 @@ formatter-snapshots:
       select * from raw_sql_subquery(descriptor(foo int), 'bar')
     dialects:
       hyper:
+  # Explain Hyper SQL with a named table-valued function argument
+  - name: coverage_explain_convert_currency_table_argument
+    input: |
+      explain (format sql, sql_dialect hyper)
+      select convert_currency(2.4, 'EUR', 'USD', exchange_rate_table=>table(exchange_rate_table));
+    dialects:
+      hyper:
   # Explain streaming SQL with structured option values
   - name: explain_streaming_options
     input: |
