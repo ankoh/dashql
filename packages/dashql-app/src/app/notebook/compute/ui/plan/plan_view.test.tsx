@@ -303,7 +303,7 @@ describe('PlanView keyboard navigation', () => {
 
         const highlight = container.querySelector('[data-plan-edge-highlight-id="10"]')!;
         expect(edge(10).compareDocumentPosition(highlight) & Node.DOCUMENT_POSITION_FOLLOWING).not.toEqual(0);
-        expect((highlight as SVGPathElement).style.strokeWidth).toEqual('2');
+        expect(Number.parseFloat((highlight as SVGPathElement).style.strokeWidth)).toEqual(2);
         expect(badge(10)?.getAttribute('data-highlighted')).toEqual('true');
         expect(badge(11)?.getAttribute('data-highlighted')).toBeNull();
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('hsl(211, 100%, 45%)');

@@ -407,14 +407,19 @@ function TestFile(props: {
 }
 
 function FileDetails(props: { file: BrowserTestFileResult }): React.ReactElement {
-    const failure = props.file.error ?? props.file.tests.find(test => test.error)?.error ?? null;
+    const failedTest = props.file.tests.find(test => test.error) ?? null;
+    const failure = props.file.error ?? failedTest?.error ?? null;
     return <div className={styles.details_body}>
         <div className={styles.details_title}>
             <StatusGlyph status={props.file.status} />
             <h2>{props.file.file}</h2>
         </div>
         <div className={styles.meta}>{props.file.tests.length} tests · {formatDuration(props.file.duration)}</div>
-        {failure && <pre className={styles.error}>{failure.stack ?? `${failure.name}: ${failure.message}`}</pre>}
+        {failure && <div className={styles.error}>
+            {failedTest && <div className={styles.error_test}>{failedTest.titlePath.join(' / ')}</div>}
+            <div className={styles.error_message}>{failure.name}: {failure.message || 'No error message was provided'}</div>
+            {failure.stack && <pre className={styles.error_stack}>{failure.stack}</pre>}
+        </div>}
     </div>;
 }
 

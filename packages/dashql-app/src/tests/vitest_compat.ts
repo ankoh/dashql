@@ -76,7 +76,9 @@ const rootContext: BrowserMochaContext = {
     it: mochaIt,
 };
 
-mochaAfterEach(() => act(() => {}));
+mochaAfterEach(() => {
+    act(() => {});
+});
 
 const fileContexts = new Map<string, BrowserMochaContext>();
 
