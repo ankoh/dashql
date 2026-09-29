@@ -91,6 +91,11 @@ export function NameRow(props: { name: string | null; onCommit: (name: string) =
         }
         e.stopPropagation();
     }, [props.name]);
+    const onPointerDown = React.useCallback((e: React.PointerEvent<HTMLInputElement>) => {
+        // The overlay is portaled from a sortable notebook row. Keep selection gestures from
+        // bubbling through the React tree and activating that row's drag sensor.
+        e.stopPropagation();
+    }, []);
 
     return (
         <input
@@ -103,6 +108,7 @@ export function NameRow(props: { name: string | null; onCommit: (name: string) =
             spellCheck={false}
             onBlur={commit}
             onKeyDown={onKeyDown}
+            onPointerDown={onPointerDown}
         />
     );
 }

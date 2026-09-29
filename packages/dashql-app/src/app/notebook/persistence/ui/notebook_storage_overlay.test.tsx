@@ -17,15 +17,17 @@ describe('NameRow', () => {
     let root: Root;
     const commitName = vi.fn();
     const parentKeyDown = vi.fn();
+    const parentPointerDown = vi.fn();
 
     beforeEach(() => {
         commitName.mockReset();
         parentKeyDown.mockReset();
+        parentPointerDown.mockReset();
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
         act(() => root.render(
-            <div onKeyDown={parentKeyDown}>
+            <div onKeyDown={parentKeyDown} onPointerDown={parentPointerDown}>
                 <NameRow name="Original name" onCommit={commitName} />
             </div>,
         ));
@@ -75,6 +77,16 @@ describe('NameRow', () => {
         });
 
         expect(parentKeyDown).not.toHaveBeenCalled();
+    });
+
+    it('keeps text-selection gestures from activating a parent drag sensor', () => {
+        const input = nameInput();
+
+        act(() => {
+            input.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+        });
+
+        expect(parentPointerDown).not.toHaveBeenCalled();
     });
 
     it('cancels on Escape without renaming', () => {
