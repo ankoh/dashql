@@ -696,7 +696,9 @@ ShellOperation ShellSession::ConsumeTerminalInput(PromptInputKey key, std::strin
                 return MoveTerminalCompletionVariant(1);
             }
         }
-        if (key == PromptInputKey::kTab) return AcceptTerminalCompletion();
+        if (key == PromptInputKey::kTab || (key == PromptInputKey::kEnter && !overlay.hint_only)) {
+            return AcceptTerminalCompletion();
+        }
         if (key == PromptInputKey::kEscape || key == PromptInputKey::kAbort) {
             auto output = ClearTerminalCompletionOverlay();
             terminal_completion_overlays.erase(this);

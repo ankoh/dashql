@@ -1201,7 +1201,7 @@ TEST(ShellApiTest, ShowsOnlyInlineHintBeforeCompletionPrefix) {
     dashql_shell_destroy(shell);
 }
 
-TEST(ShellApiTest, KeepsEnterAvailableForNewlineWhileCompletionIsOpen) {
+TEST(ShellApiTest, AcceptsSelectedCompletionWithEnter) {
     dashql::Catalog catalog;
     auto* shell = dashql_shell_new(&catalog, 80);
     ASSERT_NE(shell, nullptr);
@@ -1213,13 +1213,21 @@ TEST(ShellApiTest, KeepsEnterAvailableForNewlineWhileCompletionIsOpen) {
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "sel"), DASHQL_SHELL_OK);
     dashql_shell_terminal_result_destroy(&output);
 
+    DashQLShellCompletionResult completions{};
+    ASSERT_EQ(dashql_shell_prompt_complete(shell, 50, &completions), DASHQL_SHELL_OK);
+    ASSERT_GT(completions.count, 1u);
+    const auto* candidates = static_cast<const DashQLShellCompletionCandidate*>(completions.candidates_ptr);
+    const std::string selected{reinterpret_cast<const char*>(candidates[0].completion_text_ptr),
+                               candidates[0].completion_text_length};
+    dashql_shell_completion_result_destroy(&completions);
+
     ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_ENTER, &output), DASHQL_SHELL_OK);
     EXPECT_EQ(output.action, DASHQL_SHELL_INPUT_NONE);
     dashql_shell_terminal_result_destroy(&output);
 
     DashQLShellPromptResult prompt{};
     ASSERT_EQ(dashql_shell_prompt_move_right(shell, &prompt), DASHQL_SHELL_OK);
-    EXPECT_EQ(PromptText(prompt), "sel\n");
+    EXPECT_EQ(PromptText(prompt), selected);
     dashql_shell_prompt_result_destroy(&prompt);
     dashql_shell_destroy(shell);
 }

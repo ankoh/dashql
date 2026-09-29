@@ -609,12 +609,17 @@ describe('DashQL shell Wasm', () => {
         expect(shell.movePromptRight().text).toBe(candidates[0].completionText);
     });
 
-    it('keeps Enter available for a newline while completion is open', () => {
+    it('accepts a selected dot command completion with Enter before submitting it', () => {
         shell.openTerminal('db> ');
-        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'sel');
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, '.');
+        const candidates = shell.completePrompt(50);
+        const helpIndex = candidates.findIndex(candidate => candidate.completionText === '.help');
+        expect(helpIndex).toBeGreaterThanOrEqual(0);
+        for (let i = 0; i < helpIndex; ++i) shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
 
         expect(shell.consumeTerminalInput(DashQLShellPromptInput.ENTER).action).toBe(DashQLShellPromptAction.NONE);
-        expect(shell.movePromptRight().text).toBe('sel\n');
+        expect(shell.movePromptRight().text).toBe('.help');
+        expect(shell.consumeTerminalInput(DashQLShellPromptInput.ENTER).action).toBe(DashQLShellPromptAction.SUBMIT);
     });
 
     it('accepts keyword completion and its inline continuation in steps', () => {
