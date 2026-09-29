@@ -260,7 +260,7 @@ The relevant Bazel targets are:
 
 ```bash
 bazel test //packages/dashql-app:tsc_typecheck_test
-bazel test //packages/dashql-app:test
+bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
 ```
 
 ## Future work

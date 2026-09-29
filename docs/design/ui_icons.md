@@ -228,7 +228,7 @@ decorative in one place and meaningful in another.
 bazel test //packages/dashql-app:tsc_typecheck_test
 ```
 
-Run `bazel test //packages/dashql-app:test` as well when behavior or components changed. An SVG-only
+Run `bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox` as well when behavior or components changed. An SVG-only
 change has no dedicated visual test, so standalone preview and in-context inspection remain important.
 
 ## Common Failures

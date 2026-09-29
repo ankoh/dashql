@@ -2,10 +2,11 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
+load(":bazel/browser_test.bzl", "browser_test")
 
 copy_to_directory(
     name = "dep_flatbuf",
@@ -417,26 +418,27 @@ copy_to_directory(
     visibility = ["//visibility:public"],
 )
 
-js_test(
-    name = "test",
-    size = "large",
-    args = ["$(rootpath :pages)"],
-    data = [
-        ":pages",
-        ":tsc_typecheck",
-        "//:node_modules/playwright-core",
-        "@playwright_chromium//:chromium",
-        "@playwright_chromium//:runtime",
-    ],
-    entry_point = "test/browser_test_driver.mjs",
-    env = {
-        "DASHQL_CHROMIUM_EXECUTABLE": "$(rootpath @playwright_chromium//:chromium)",
-    },
-    no_copy_to_bin = [
-        "@playwright_chromium//:chromium",
-        "@playwright_chromium//:runtime",
-    ],
-    visibility = ["//visibility:public"],
+copy_to_directory(
+    name = "playwright_firefox",
+    srcs = ["@playwright_firefox//:firefox_files"],
+    include_external_repositories = ["*playwright_firefox"],
+    out = "playwright_firefox",
+    visibility = ["//visibility:private"],
+)
+
+browser_test(
+    name = "test_chromium",
+    browser = "chromium",
+    executable = "@playwright_chromium//:chromium",
+    runtime = "@playwright_chromium//:runtime",
+)
+
+browser_test(
+    name = "test_firefox",
+    browser = "firefox",
+    env = {"MOZ_DISABLE_CONTENT_SANDBOX": "1"},
+    executable = ":playwright_firefox",
+    executable_root = True,
 )
 
 sh_binary(

@@ -96,7 +96,8 @@ bazel test //packages/dashql-core:*_tests
 | `//packages/dashql-core:formatter_validation_hyper_tests` | Execute formatted SQL against Hyper |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
-| `//packages/dashql-app:test` | TypeScript/Jest tests for web app |
+| `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
+| `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 
 ### Test Output
 
@@ -250,7 +251,7 @@ bazel run //snapshots/parser:update
 ```bash
 # Type check and run tests
 bazel test //packages/dashql-app:tsc_typecheck_test
-bazel test //packages/dashql-app:test
+bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
 ```
 
 ### After Changing Rust Code

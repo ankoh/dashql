@@ -1,12 +1,19 @@
-import { createReadStream, statSync } from 'node:fs';
+import { createReadStream, realpathSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
-const { chromium } = await import('playwright-core');
+const playwright = await import('playwright-core');
 
 const root = resolve(process.argv[2]);
 const requestedFile = process.argv[3] ?? '';
 const timeout = Number.parseInt(process.env.DASHQL_BROWSER_TEST_TIMEOUT ?? '600000', 10);
+const browserName = process.env.DASHQL_BROWSER ?? 'chromium';
+const browserType = playwright[browserName];
+if (!browserType) throw new Error(`Unsupported browser: ${browserName}`);
+const executableRoot = process.env.DASHQL_BROWSER_EXECUTABLE_ROOT;
+const executablePath = executableRoot
+    ? join(executableRoot, process.platform === 'darwin' ? 'firefox/Nightly.app/Contents/MacOS/firefox' : 'firefox/firefox')
+    : process.env.DASHQL_BROWSER_EXECUTABLE;
 
 const mimeTypes = {
     '.br': 'application/octet-stream',
@@ -55,8 +62,9 @@ await new Promise((resolveListening, reject) => {
 
 const address = server.address();
 if (!address || typeof address === 'string') throw new Error('Static server did not bind a TCP port');
-const browser = await chromium.launch({
-    executablePath: process.env.DASHQL_CHROMIUM_EXECUTABLE,
+const browser = await browserType.launch({
+    // Firefox resolves XPCOM resources relative to the physical app bundle, not a runfiles symlink.
+    executablePath: realpathSync(executablePath),
     headless: true,
 });
 

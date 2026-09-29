@@ -194,7 +194,7 @@ Verify that:
 All build and test verification must run through Bazel:
 
 ```bash
-bazel test //packages/dashql-app:test
+bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
 bazel test //packages/dashql-app:tsc_typecheck_test
 bazel test //packages/dashql-app:tsc_transitive_typecheck_test
 ```
