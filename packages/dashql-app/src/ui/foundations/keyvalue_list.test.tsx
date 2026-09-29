@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 
 import { KeyValueListBuilder } from './keyvalue_list.js';

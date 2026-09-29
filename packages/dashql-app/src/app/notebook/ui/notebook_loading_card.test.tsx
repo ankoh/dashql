@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { NotebookBundle } from '../persistence/notebook_bundle.js';
-import { NotebookImportCard } from './notebook_import_card.js';
+import { NotebookImportCard, type NotebookImportCardDependencies } from './notebook_import_card.js';
 
 const FILE_BUNDLE: NotebookBundle = {
     notebook: {
@@ -31,8 +31,11 @@ const FILE_BUNDLE: NotebookBundle = {
 };
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-vi.mock('../../ui/navbar.js', () => ({ CompactNavBar: () => null }));
-vi.mock('../../../ui/particle_flow/particle_flow_background.js', () => ({ ParticleFlowBackground: () => null }));
+
+const dependencies: NotebookImportCardDependencies = {
+    CompactNavBar: () => <></>,
+    ParticleFlowBackground: () => null,
+};
 
 describe('NotebookImportCard loading state', () => {
     let container: HTMLDivElement;
@@ -59,6 +62,7 @@ describe('NotebookImportCard loading state', () => {
                 sourceUrl="https://example.com/dashql-notebook.json"
                 progress={{ phase: 'manifest' }}
                 onClose={onCancel}
+                dependencies={dependencies}
             />,
         ));
 
@@ -87,6 +91,7 @@ describe('NotebookImportCard loading state', () => {
                     totalScriptCount: 4,
                 }}
                 onClose={() => { }}
+                dependencies={dependencies}
             />,
         ));
 
@@ -102,7 +107,7 @@ describe('NotebookImportCard loading state', () => {
         const onImport = vi.fn();
         act(() => render(
             <NotebookImportCard phase="file-ready" sourcePath="/tmp/local.dashql" fileByteCount={1200}
-                bundle={FILE_BUNDLE} busy={false} onImport={onImport} onClose={() => {}} />,
+                bundle={FILE_BUNDLE} busy={false} onImport={onImport} onClose={() => {}} dependencies={dependencies} />,
         ));
         expect(container.querySelector('h1')?.textContent).toBe('Import Notebook');
         expect(container.textContent).toContain('Local notebook');
@@ -112,7 +117,7 @@ describe('NotebookImportCard loading state', () => {
 
         act(() => render(
             <NotebookImportCard phase="file-error" sourcePath="/tmp/local.dashql" fileByteCount={1200}
-                failedStage="validating" errorMessage="Invalid ZIP" onRetry={() => {}} onClose={() => {}} />,
+                failedStage="validating" errorMessage="Invalid ZIP" onRetry={() => {}} onClose={() => {}} dependencies={dependencies} />,
         ));
         expect(container.querySelector('[role="alert"]')?.textContent).toContain('not a valid DashQL notebook archive');
         expect(container.textContent).toContain('Invalid ZIP');

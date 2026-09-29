@@ -1,22 +1,18 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ScriptEditor, type ScriptEditorDependencies } from './script_editor.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const state = vi.hoisted(() => ({ codeMirrorProps: null as any }));
-vi.mock('../scripts/editor/codemirror.js', async () => {
-    const React = await import('react');
-    return {
-        createCodeMirrorExtensions: () => [],
-        CodeMirror: React.forwardRef((_props: any, _ref) => {
-            state.codeMirrorProps = _props;
-            return React.createElement('div', { 'data-testid': 'codemirror' });
-        }),
-    };
-});
-vi.mock('../scripts/notebook_scripts_registry.js', () => ({
+const state = { codeMirrorProps: null as any };
+const dependencies = {
+    createCodeMirrorExtensions: () => [],
+    CodeMirror: React.forwardRef((props: any, _ref) => {
+        state.codeMirrorProps = props;
+        return <div data-testid="codemirror" />;
+    }),
     useNotebookScripts: () => [{
         scripts: {
             7: {
@@ -25,11 +21,9 @@ vi.mock('../scripts/notebook_scripts_registry.js', () => ({
             },
         },
     }, vi.fn()],
-}));
-vi.mock('../../config/app_config.js', () => ({ useAppConfig: () => ({ settings: {} }) }));
-vi.mock('../../../platform/logger/logger_provider.js', () => ({ useLogger: () => ({ debug: vi.fn() }) }));
-
-import { ScriptEditor } from './script_editor.js';
+    useAppConfig: () => ({ settings: {} }),
+    useLogger: () => ({ debug: vi.fn() }),
+} as unknown as ScriptEditorDependencies;
 
 describe('ScriptEditor', () => {
     let container: HTMLDivElement;
@@ -48,7 +42,7 @@ describe('ScriptEditor', () => {
     });
 
     it('seeds CodeMirror with the loaded script before its first layout', () => {
-        act(() => root.render(<ScriptEditor notebookId="notebook" scriptKey={7} autoHeight />));
+        act(() => root.render(<ScriptEditor notebookId="notebook" scriptKey={7} autoHeight dependencies={dependencies} />));
 
         expect(state.codeMirrorProps.initialDoc).toBe('SELECT\n    1;');
         expect(state.codeMirrorProps.style).toEqual({ height: 'auto' });

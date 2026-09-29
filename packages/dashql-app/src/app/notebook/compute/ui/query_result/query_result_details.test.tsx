@@ -1,35 +1,28 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { fakeButtonModule, fakeSymbolIconModule } from '../../../../../test/view_mocks.js';
-
-const mockState = vi.hoisted(() => ({
+const mockState = {
     computationState: {
         tableComputations: {},
     } as any,
     dispatch: vi.fn(),
-    dataFrameMemory: { acquire: vi.fn(), release: vi.fn() },
-}));
-
-vi.mock('../../../../../compute/computation_registry.js', () => ({
-    useComputationRegistry: () => [mockState.computationState, mockState.dispatch],
-    useDataFrameRegistry: () => mockState.dataFrameMemory,
-}));
-vi.mock('../../../../../ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
-vi.mock('../../../../../ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
-vi.mock('./query_result_view.js', async () => {
-    const React = await import('react');
-    return { QueryResultView: () => React.createElement('div', { 'data-testid': 'query-result-view' }) };
-});
+};
 
 import { MOST_FREQUENT_FILTER, CrossFilters } from '../../../../../compute/cross_filters.js';
 import { SET_CROSS_FILTERS } from '../../../../../compute/computation_state.js';
 import { QueryExecutionStatus } from '../../../connections/query_execution_state.js';
-import { QueryResultDetails } from './query_result_details.js';
+import { QueryResultDetails, type QueryResultDetailsDependencies } from './query_result_details.js';
+
+const dependencies = {
+    QueryResultToolbar: () => null,
+    QueryResultView: () => <div data-testid="query-result-view" />,
+    useComputationRegistry: () => [mockState.computationState, mockState.dispatch],
+    useQueryResultRowCounts: () => ({ totalRows: 3, currentRows: 3, matchingRows: null }),
+} as QueryResultDetailsDependencies;
 
 describe('QueryResultDetails', () => {
     let container: HTMLDivElement;
@@ -67,6 +60,7 @@ describe('QueryResultDetails', () => {
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 debugMode={false}
                 actions={<button type="button">Close</button>}
+                dependencies={dependencies}
             />,
         ));
 
@@ -99,6 +93,7 @@ describe('QueryResultDetails', () => {
             <QueryResultDetails
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 debugMode={false}
+                dependencies={dependencies}
             />,
         ));
 

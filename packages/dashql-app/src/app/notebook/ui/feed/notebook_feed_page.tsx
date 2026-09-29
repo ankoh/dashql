@@ -20,14 +20,34 @@ interface FeedScrollTarget {
     version: number;
 }
 
+export interface NotebookFeedPageDependencies {
+    NotebookFeed: typeof NotebookFeed;
+    ScriptDetails: typeof ScriptDetails;
+    NotebookWorkbenchSidebar: typeof NotebookWorkbenchSidebar;
+    NotebookNavigationDrawer: typeof NotebookNavigationDrawer;
+    ThreeBarsIcon: typeof ThreeBarsIcon;
+    IconButton: typeof IconButton;
+}
+
+const DEFAULT_DEPENDENCIES: NotebookFeedPageDependencies = {
+    NotebookFeed,
+    ScriptDetails,
+    NotebookWorkbenchSidebar,
+    NotebookNavigationDrawer,
+    ThreeBarsIcon,
+    IconButton,
+};
+
 interface Props {
     notebookScripts: NotebookScripts;
     modifyNotebookScripts: ModifyNotebookScripts;
     connection: AttachedDatabaseState | null;
     active: boolean;
+    dependencies?: NotebookFeedPageDependencies;
 }
 
 export const NotebookFeedPage: React.FC<Props> = (props) => {
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const [showDetails, setShowDetails] = React.useState(false);
     const [detailsScriptId, setDetailsScriptId] = React.useState<number | undefined>(undefined);
     const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
@@ -52,7 +72,7 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
 
     const feedActive = props.active && !showDetails;
     const workbench = (closeAfterSelection: boolean) => (
-        <NotebookWorkbenchSidebar
+        <dependencies.NotebookWorkbenchSidebar
             notebookScripts={props.notebookScripts}
             closeAfterSelection={closeAfterSelection ? () => setNavigationDrawerOpen(false) : undefined}
         />
@@ -61,16 +81,16 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
     return (
         <div className={styles.page}>
             <header className={styles.mobile_header} data-electron-drag-region>
-                <IconButton ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open notebook workbench" onClick={() => setNavigationDrawerOpen(true)}>
-                    <ThreeBarsIcon />
-                </IconButton>
+                <dependencies.IconButton ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open notebook workbench" onClick={() => setNavigationDrawerOpen(true)}>
+                    <dependencies.ThreeBarsIcon />
+                </dependencies.IconButton>
             </header>
             <aside className={styles.navigation_sidebar}>
                 {workbench(false)}
             </aside>
             <main className={styles.body_container} id="notebook-body">
                 <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
-                    <NotebookFeed
+                    <dependencies.NotebookFeed
                         notebookScripts={props.notebookScripts}
                         modifyNotebookScripts={props.modifyNotebookScripts}
                         active={feedActive}
@@ -85,7 +105,7 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
                     />
                 </div>
                 {showDetails
-                            ? <ScriptDetails
+                            ? <dependencies.ScriptDetails
                                 notebookScripts={props.notebookScripts}
                                 modifyNotebookScripts={props.modifyNotebookScripts}
                                 connection={props.connection}
@@ -110,9 +130,9 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
                             : null}
             </main>
             {navigationDrawerOpen && (
-                <NotebookNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
+                <dependencies.NotebookNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
                     {workbench(true)}
-                </NotebookNavigationDrawer>
+                </dependencies.NotebookNavigationDrawer>
             )}
         </div>
     );

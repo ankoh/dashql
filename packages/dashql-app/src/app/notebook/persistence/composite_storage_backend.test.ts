@@ -1,8 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-vi.mock('../../../platform/electron_fs.js', async () => ({
-    ...(await import('./test_fs_mock.js')).makeFsMock(),
-    ...(await import('./test_fs_mock.js')).makePathMock(),
-}));
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { TestLogger } from '../../../platform/logger/test_logger.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
@@ -59,6 +55,10 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         registry = new Registry();
         backend = new CompositeStorageBackend(registry, new TestLogger());
         await backend.initialize();
+    });
+
+    afterEach(() => {
+        delete globalThis.dashqlElectron;
     });
 
     it('routes unknown and OPFS notebooks to the registry backend', async () => {

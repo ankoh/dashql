@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -12,11 +12,12 @@ vi.stubGlobal('ResizeObserver', class {
     unobserve() { }
     disconnect() { }
 });
-vi.mock('../../platform/logger/logger_provider.js', () => ({
-    useLogger: () => ({ error: vi.fn() }),
-}));
 
-import { BundledNotebooksOverlay } from './bundled_notebooks_overlay.js';
+import { BundledNotebooksOverlay, type BundledNotebooksOverlayDependencies } from './bundled_notebooks_overlay.js';
+
+const dependencies: BundledNotebooksOverlayDependencies = {
+    useLogger: () => ({ error: vi.fn() }),
+};
 
 describe('BundledNotebooksOverlay', () => {
     let container: HTMLDivElement;
@@ -38,7 +39,7 @@ describe('BundledNotebooksOverlay', () => {
     });
 
     it('copies a public link and dispatches a bundled notebook URL', async () => {
-        act(() => root.render(<BundledNotebooksOverlay dispatchNotebookUrl={dispatchNotebookUrl} />));
+        act(() => root.render(<BundledNotebooksOverlay dispatchNotebookUrl={dispatchNotebookUrl} dependencies={dependencies} />));
         act(() => (container.querySelector('[aria-label="Example notebooks"]') as HTMLButtonElement).click());
 
         expect(document.querySelector('[aria-label="Add Property Graphs notebook"]')).toBeInstanceOf(HTMLButtonElement);

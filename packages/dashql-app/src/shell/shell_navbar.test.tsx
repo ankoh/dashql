@@ -1,12 +1,13 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 
 import { ResizeObserverMock } from '../test/view_mocks.js';
 import { ShellNavBar } from './shell_navbar.js';
 
-vi.mock('./internals.js', () => ({ ShellInternals: () => null }));
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+
+const EmptyInternals = () => null;
 
 describe('ShellNavBar', () => {
     let container: HTMLDivElement;
@@ -25,7 +26,9 @@ describe('ShellNavBar', () => {
 
     it('resets the shell when the Hyper logo is clicked', () => {
         const onReset = vi.fn();
-        act(() => root.render(<ShellNavBar engineVersion="1.0.0" onReset={onReset} />));
+        act(() => root.render(
+            <ShellNavBar engineVersion="1.0.0" onReset={onReset} Internals={EmptyInternals} />,
+        ));
 
         const resetButton = container.querySelector<HTMLButtonElement>('button[aria-label="Reset shell"]');
         expect(resetButton).not.toBeNull();

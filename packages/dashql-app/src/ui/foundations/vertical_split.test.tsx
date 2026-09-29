@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -27,6 +27,7 @@ describe('VerticalSplit', () => {
     beforeEach(() => {
         ResizeObserverMock.reset();
         container = document.createElement('div');
+        container.style.height = '516px';
         document.body.appendChild(container);
         root = createRoot(container);
     });

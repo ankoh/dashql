@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import type { EmbeddedComputeDatabase } from './embedded_database.js';
+import type { Logger } from '../logger/logger.js';
 import { useLogger } from '../logger/logger_provider.js';
 
 const SETUP_CTX = React.createContext<EmbeddedDatabaseSetupFn | null>(null);
@@ -12,7 +13,19 @@ export interface SetupProgress {
 
 interface Props {
     children: React.ReactElement;
+    setupDatabase?: EmbeddedDatabaseFactory;
 }
+
+type EmbeddedDatabaseFactory = (
+    context: string,
+    logger: Logger,
+    onSetupProgress?: (progress: SetupProgress) => void,
+) => Promise<EmbeddedComputeDatabase>;
+
+const setupDefaultDatabase: EmbeddedDatabaseFactory = async (context, logger, onSetupProgress) => {
+    const { setupWebHyperDB } = await import('../hyperdb/hyperdb_provider_web.js');
+    return await setupWebHyperDB(context, logger, onSetupProgress);
+};
 
 export const EmbeddedDatabaseProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
@@ -26,17 +39,15 @@ export const EmbeddedDatabaseProvider: React.FC<Props> = (props: Props) => {
             return await instantiation.current;
         }
 
-        const instantiate = async (): Promise<EmbeddedComputeDatabase> => {
-            const { setupWebHyperDB } = await import('../hyperdb/hyperdb_provider_web.js');
-            return await setupWebHyperDB(context, logger, onSetupProgress);
-        };
+        const instantiate = (): Promise<EmbeddedComputeDatabase> =>
+            (props.setupDatabase ?? setupDefaultDatabase)(context, logger, onSetupProgress);
 
         instantiation.current = instantiate().catch(error => {
             instantiation.current = null;
             throw error;
         });
         return await instantiation.current;
-    }, [logger]);
+    }, [logger, props.setupDatabase]);
 
     React.useEffect(() => {
         return () => {

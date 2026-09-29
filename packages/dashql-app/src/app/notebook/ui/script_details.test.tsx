@@ -1,69 +1,51 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ConnectionHealth } from '../connections/attached_database_state.js';
+import { DELETE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_TEXT, type NotebookScripts } from '../scripts/notebook_scripts.js';
+import { ScriptDetails, type ScriptDetailsDependencies } from './script_details.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
-const state = vi.hoisted(() => ({ keyHandlers: [] as any[], executeQuery: vi.fn(), formatScriptEditor: vi.fn() }));
-vi.mock('../../config/app_config.js', () => ({ useAppConfig: () => ({ settings: {} }) }));
-vi.mock('../../../platform/logger/logger_provider.js', () => ({ useLogger: () => ({ debug: vi.fn(), warn: vi.fn() }) }));
-vi.mock('../../../utils/key_events.js', async () => {
-    const React = await import('react');
-    return {
-        useKeyEvents: (handlers: any[]) => {
-            React.useEffect(() => { state.keyHandlers = handlers; }, [handlers]);
-        },
-    };
-});
-vi.mock('../connections/query_executor.js', () => ({
-    useQueryState: () => null, useCancelQuery: () => vi.fn(), useQueryExecutor: () => state.executeQuery,
-}));
-vi.mock('../agent/agent_run_provider.js', () => ({ useAgentRunState: () => null, useCancelAgentRun: () => vi.fn() }));
-vi.mock('../persistence/storage_provider.js', () => ({ useStorageReader: () => ({ backend: { deleteQueryResultCache: vi.fn() } }) }));
-vi.mock('./script_editor.js', async () => {
-    const React = await import('react');
-    return { ScriptEditor: () => React.createElement('div', { 'data-testid': 'details-editor' }) };
-});
-vi.mock('./script_details_panes.js', async () => {
-    const React = await import('react');
-    return {
-        ScriptDetailsEditorPane: (props: any) => {
-            React.useEffect(() => props.onEditorView({}), [props.onEditorView]);
-            return React.createElement('div', null,
-                React.createElement('button', { 'aria-label': 'Rename script', onClick: props.onStartEditingName }, 'rename'),
-                React.createElement('button', { 'aria-label': 'Shrink script details', onClick: props.onHide }, 'shrink'),
-                props.formatMenu,
-                props.isEditingName ? React.createElement('input', {
-                    ref: props.editInputRef,
-                    value: props.draftFileName,
-                    onChange: (event: any) => props.onDraftFileNameChange(event.target.value),
-                    onKeyDown: (event: any) => event.key === 'Enter' && props.onSaveName(),
-                }) : null,
-                React.createElement('div', { 'data-testid': 'details-editor' }, props.scriptDisplay),
-            );
-        },
-        ScriptDetailsOutputPane: () => React.createElement('div', { 'data-testid': 'output-pane' }),
-    };
-});
-vi.mock('./script_diagnostics.js', () => ({ ScriptDiagnosticsButton: () => null }));
-vi.mock('./script_format.js', () => ({
+const state = { keyHandlers: [] as any[], executeQuery: vi.fn(), formatScriptEditor: vi.fn() };
+const dependencies = {
+    useAppConfig: () => ({ settings: {} }),
+    useLogger: () => ({ debug: vi.fn(), warn: vi.fn() }),
+    useKeyEvents: (handlers: any[]) => {
+        React.useEffect(() => { state.keyHandlers = handlers; }, [handlers]);
+    },
+    useQueryState: () => null,
+    useCancelQuery: () => vi.fn(),
+    useQueryExecutor: () => state.executeQuery,
+    useAgentRunState: () => null,
+    useCancelAgentRun: () => vi.fn(),
+    useStorageReader: () => ({ backend: { deleteQueryResultCache: vi.fn() } }),
     isScriptFormattable: () => true,
     formatScriptEditor: (...args: any[]) => {
         state.formatScriptEditor(...args);
         args[3]('SELECT 2;');
     },
-}));
-vi.mock('./rerun_query.js', () => ({ runNotebookScript: (_databaseId: string, _scripts: unknown, script: any, execute: any) => execute('database', { query: script.scriptSession.getText() }) }));
-vi.mock('../../../ui/foundations/vertical_split.js', async () => {
-    const React = await import('react');
-    return { VerticalSplit: (props: any) => React.createElement('div', null, props.first, props.second) };
-});
-
-import { ConnectionHealth } from '../connections/attached_database_state.js';
-import { DELETE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_TEXT, type NotebookScripts } from '../scripts/notebook_scripts.js';
-import { ScriptDetails } from './script_details.js';
+    runNotebookScript: (_databaseId: string, _scripts: unknown, script: any, execute: any) => execute('database', { query: script.scriptSession.getText() }),
+    ScriptDetailsEditorPane: (props: any) => {
+        React.useEffect(() => props.onEditorView({}), [props.onEditorView]);
+        return <div>
+            <button aria-label="Rename script" onClick={props.onStartEditingName}>rename</button>
+            <button aria-label="Shrink script details" onClick={props.onHide}>shrink</button>
+            {props.formatMenu}
+            {props.isEditingName ? <input
+                ref={props.editInputRef}
+                value={props.draftFileName}
+                onChange={(event: any) => props.onDraftFileNameChange(event.target.value)}
+                onKeyDown={(event: any) => event.key === 'Enter' && props.onSaveName()}
+            /> : null}
+            <div data-testid="details-editor">{props.scriptDisplay}</div>
+        </div>;
+    },
+    ScriptDetailsOutputPane: () => <div data-testid="output-pane" />,
+    VerticalSplit: (props: any) => <div>{props.first}{props.second}</div>,
+} as unknown as ScriptDetailsDependencies;
 
 function scripts(): NotebookScripts {
     const scriptSession = {
@@ -93,7 +75,7 @@ describe('ScriptDetails V2 flat scripts', () => {
 
     it('pins a flat script by id rather than current focus', () => {
         act(() => root.render(<ScriptDetails notebookScripts={scripts()} modifyNotebookScripts={vi.fn()}
-            connection={null} hideDetails={() => {}} scriptId={2} />));
+            connection={null} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
         expect(container.textContent).toContain('second');
         expect(container.querySelector('[data-testid="details-editor"]')).not.toBeNull();
     });
@@ -101,7 +83,7 @@ describe('ScriptDetails V2 flat scripts', () => {
     it('renames with the raw flat filename and clean requested name', () => {
         const modify = vi.fn();
         act(() => root.render(<ScriptDetails notebookScripts={scripts()} modifyNotebookScripts={modify}
-            connection={null} hideDetails={() => {}} scriptId={2} />));
+            connection={null} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
         const edit = container.querySelector('[aria-label="Rename script"]') as HTMLButtonElement;
         act(() => edit.click());
         const input = container.querySelector('input') as HTMLInputElement;
@@ -118,7 +100,7 @@ describe('ScriptDetails V2 flat scripts', () => {
         const modify = vi.fn();
         const connection = { databaseId: 'database', connectionHealth: ConnectionHealth.ONLINE } as any;
         act(() => root.render(<ScriptDetails notebookScripts={scripts()} modifyNotebookScripts={modify}
-            connection={connection} hideDetails={() => {}} scriptId={2} />));
+            connection={connection} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
         const handler = state.keyHandlers.find(value => value.key === 'e' && value.ctrlKey === true);
         expect(handler).toBeDefined();
         act(() => handler.callback({ preventDefault: vi.fn(), stopImmediatePropagation: vi.fn() }));
@@ -128,7 +110,7 @@ describe('ScriptDetails V2 flat scripts', () => {
     it('offers pretty and compact formatting modes', () => {
         const modify = vi.fn();
         act(() => root.render(<ScriptDetails notebookScripts={scripts()} modifyNotebookScripts={modify}
-            connection={null} hideDetails={() => {}} scriptId={2} />));
+            connection={null} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
 
         act(() => (container.querySelector('[aria-label="More actions for second script"]') as HTMLButtonElement).click());
         const labels = Array.from(document.querySelectorAll('button')).map(button => button.textContent);
@@ -148,7 +130,7 @@ describe('ScriptDetails V2 flat scripts', () => {
         const modify = vi.fn();
         const hideDetails = vi.fn();
         act(() => root.render(<ScriptDetails notebookScripts={scripts()} modifyNotebookScripts={modify}
-            connection={null} hideDetails={hideDetails} scriptId={2} />));
+            connection={null} hideDetails={hideDetails} scriptId={2} dependencies={dependencies} />));
 
         act(() => (container.querySelector('[aria-label="More actions for second script"]') as HTMLButtonElement).click());
         const deleteButton = Array.from(document.querySelectorAll('button')).find(button => button.textContent === 'Delete') as HTMLButtonElement;
@@ -160,7 +142,7 @@ describe('ScriptDetails V2 flat scripts', () => {
 
     it('exposes one control to shrink back to the feed', () => {
         act(() => root.render(<ScriptDetails notebookScripts={scripts()} modifyNotebookScripts={vi.fn()}
-            connection={null} hideDetails={() => {}} scriptId={2} />));
+            connection={null} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
 
         expect(container.querySelectorAll('[aria-label="Shrink script details"]')).toHaveLength(1);
         expect(container.querySelector('[aria-label="Close script details"]')).toBeNull();

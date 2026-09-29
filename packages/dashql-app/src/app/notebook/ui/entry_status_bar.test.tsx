@@ -1,39 +1,26 @@
 import * as React from 'react';
 
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fakeButtonModule, fakeStatusIndicatorModule, fakeSymbolIconModule } from '../../../test/view_mocks.js';
+import { EntryStatusBar, type EntryStatusBarDependencies } from './entry_status_bar.js';
+import { EntryStatusKind } from './entry_status_model.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-vi.mock('../../../ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
-vi.mock('../../../ui/foundations/status_indicator.js', async () => fakeStatusIndicatorModule(await import('react')));
-vi.mock('../../../ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
-vi.mock('../../../ui/foundations/anchored_overlay.js', async () => {
-    const React = await import('react');
-    return {
-        AnchoredOverlay: (props: {
-            open: boolean;
-            onOpen: () => void;
-            onClose: () => void;
-            renderAnchor: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => React.ReactElement;
-            children: React.ReactNode;
-        }) => React.createElement(
-            React.Fragment,
-            null,
-            props.renderAnchor({
+
+const dependencies: EntryStatusBarDependencies = {
+    AnchoredOverlay: props => (
+        <>
+            {props.renderAnchor?.({
                 'aria-expanded': props.open,
                 'aria-haspopup': 'true',
-                onClick: props.open ? props.onClose : props.onOpen,
-            }),
-            props.open ? props.children : null,
-        ),
-    };
-});
-
-import { EntryStatusBar } from './entry_status_bar.js';
-import { EntryStatusKind } from './entry_status_model.js';
+                onClick: props.open ? () => props.onClose?.('anchor-click') : () => props.onOpen?.('anchor-click'),
+            })}
+            {props.open ? props.children : null}
+        </>
+    ),
+};
 
 describe('EntryStatusBar', () => {
     let container: HTMLDivElement;
@@ -62,7 +49,7 @@ describe('EntryStatusBar', () => {
                     queryId: 7,
                     details: { sqlState: '42P01' },
                 },
-            }} />,
+            }} dependencies={dependencies} />,
         ));
 
         const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Show error details"]')!;
@@ -94,7 +81,7 @@ describe('EntryStatusBar', () => {
                 message: 'Statement executed successfully',
                 traceId: 42,
                 errorDetail: null,
-            }} />,
+            }} dependencies={dependencies} />,
         ));
 
         expect(container.querySelector('[aria-label="Show error details"]')).toBeNull();

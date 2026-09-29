@@ -106,6 +106,18 @@ export interface DashQLModuleOptions {
     mainScriptUrlOrBlob?: string | Blob;
 }
 
+declare global {
+    var DASHQL_CORE_WORKER_URL: string | undefined;
+    var DASHQL_PRECOMPILED: Promise<Uint8Array> | undefined;
+    var __DASHQL_TEST_CORE_WASM_MODULE__: Promise<WebAssembly.Module> | undefined;
+    var __DASHQL_TEST_CORE_INSTANCE__: Promise<DashQL> | undefined;
+    var __DASHQL_TEST_DASHBOARD_CORE_INSTANCE__: Promise<DashQL> | undefined;
+    var __DASHQL_TEST_CORE_CREATIONS__: number | undefined;
+    var __DASHQL_TEST_CORE_FACTORY__: ((options?: DashQLModuleOptions) => Promise<DashQL>) | undefined;
+    var __DASHQL_TEST_SHARE_CORE_INSTANCE__: boolean | undefined;
+    var __DASHQL_TEST_RESET_CORE_INSTANCE__: (() => void) | undefined;
+}
+
 // Our cleaned-up API interface (without underscores)
 interface DashQLModuleExports {
     dashql_malloc: (length: number) => number;
@@ -405,26 +417,54 @@ export class DashQL {
     }
 
     public static async create(options?: DashQLModuleOptions): Promise<DashQL> {
+        if (typeof window !== 'undefined' && window.parent !== window && globalThis.__DASHQL_TEST_CORE_FACTORY__) {
+            const instance = await globalThis.__DASHQL_TEST_CORE_FACTORY__(options);
+            globalThis.__DASHQL_TEST_RESET_CORE_INSTANCE__ = () => instance.resetUnsafe();
+            return instance;
+        }
+        if (!globalThis.__DASHQL_TEST_SHARE_CORE_INSTANCE__) {
+            return new DashQL(await DashQL.createModule(options));
+        }
+        globalThis.__DASHQL_TEST_CORE_INSTANCE__ ??= DashQL.createModule(options).then(module => {
+            return new DashQL(module);
+        }).catch(error => {
+            delete globalThis.__DASHQL_TEST_CORE_INSTANCE__;
+            throw error;
+        });
+        const instance = await globalThis.__DASHQL_TEST_CORE_INSTANCE__;
+        globalThis.__DASHQL_TEST_RESET_CORE_INSTANCE__ = () => instance.resetUnsafe();
+        return instance;
+    }
+
+    private static async createModule(options?: DashQLModuleOptions): Promise<EmscriptenModule> {
         const testWorkerUrl = (globalThis as typeof globalThis & { DASHQL_CORE_WORKER_URL?: string })
             .DASHQL_CORE_WORKER_URL;
+        const testWasmModule = globalThis.__DASHQL_TEST_CORE_WASM_MODULE__;
+        const instantiateWasm = options?.instantiateWasm ?? (testWasmModule
+            ? async (imports, successCallback) => {
+                const module = await testWasmModule;
+                const instance = await WebAssembly.instantiate(module, imports);
+                successCallback(instance, module);
+                return instance.exports;
+            }
+            : undefined);
         // Call the Emscripten-generated factory function
         // All WASI stubs and initialization are handled automatically!
-        const module = await createDashQLModule({
+        return await createDashQLModule({
             // Optional hooks for console output
             print: options?.print || ((text: string) => console.log(text)),
             printErr: options?.printErr || ((text: string) => console.error(text)),
 
             // Optional: preloaded WASM binary for faster instantiation (used in tests)
-            wasmBinary: options?.wasmBinary,
+            wasmBinary: testWasmModule ? undefined : options?.wasmBinary,
 
             // Optional: intercept WASM instantiation for progress tracking
-            instantiateWasm: options?.instantiateWasm,
+            instantiateWasm,
 
             locateFile: options?.locateFile,
             mainScriptUrlOrBlob: options?.mainScriptUrlOrBlob ?? testWorkerUrl,
         });
 
-        return new DashQL(module);
     }
 
     public copyString(text: string): [number, number] {

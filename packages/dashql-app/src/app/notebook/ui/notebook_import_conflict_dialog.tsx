@@ -4,7 +4,7 @@ import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { Button } from '../../../ui/foundations/button.js';
 import { OverlaySize } from '../../../ui/foundations/overlay.js';
-import { NotebookImportCard } from './notebook_import_card.js';
+import { NotebookImportCard, type NotebookImportCardDependencies } from './notebook_import_card.js';
 
 import * as styles from './notebook_import_conflict_dialog.module.css';
 
@@ -19,6 +19,7 @@ interface NotebookImportConflictDialogBaseProps {
     onReplace: () => void;
     onCreateNew: () => void;
     onCancel: () => void;
+    dependencies?: NotebookImportCardDependencies;
 }
 
 interface CenteredNotebookImportConflictDialogProps extends NotebookImportConflictDialogBaseProps {
@@ -112,6 +113,7 @@ function CenteredConflictCard(props: CenteredNotebookImportConflictDialogProps) 
             onClose={props.onCancel}
             onReplace={props.onReplace}
             onCreateNew={props.onCreateNew}
+            dependencies={props.dependencies}
         />
     );
 }

@@ -21,11 +21,21 @@ export interface BundledNotebooksOverlayProps {
     triggerSize?: ButtonSize;
     triggerIconSize?: number;
     dispatchNotebookUrl?: (url: string) => void;
+    dependencies?: BundledNotebooksOverlayDependencies;
 }
 
+export interface BundledNotebooksOverlayDependencies {
+    useLogger: () => Pick<ReturnType<typeof useLogger>, 'error'>;
+}
+
+const DEFAULT_DEPENDENCIES: BundledNotebooksOverlayDependencies = {
+    useLogger,
+};
+
 export function BundledNotebooksOverlay(props: BundledNotebooksOverlayProps = {}): React.ReactElement {
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const appEvents = usePlatformEventListener();
-    const logger = useLogger();
+    const logger = dependencies.useLogger();
     const anchorRef = React.useRef<HTMLButtonElement>(null);
     const [open, setOpen] = React.useState(false);
     const [copiedId, setCopiedId] = React.useState<string | null>(null);

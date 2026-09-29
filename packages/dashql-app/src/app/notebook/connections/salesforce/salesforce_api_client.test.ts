@@ -43,7 +43,9 @@ function makeDataCloudAccessToken(customAttributes: unknown): connection.Salesfo
 }
 
 function encodeJwtPart(value: unknown): string {
-    return Buffer.from(JSON.stringify(value)).toString('base64url');
+    const bytes = new TextEncoder().encode(JSON.stringify(value));
+    const base64 = btoa(String.fromCharCode(...bytes));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 describe('SalesforceApiClient metadata', () => {

@@ -1,8 +1,6 @@
 import { vi } from 'vitest';
 import * as arrow from 'apache-arrow';
 
-import * as computationLogic from './computation_logic.js';
-
 import { AsyncValue } from '../utils/async_value.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
@@ -31,11 +29,13 @@ import {
     COLUMN_AGGREGATION_TASK,
     DATA_SEARCH_TASK,
     FILTERED_COLUMN_AGGREGATION_TASK,
+    COMPUTATION_OPERATIONS,
 } from './computation_scheduler.js';
+const computationLogic = COMPUTATION_OPERATIONS;
 import { Dispatch } from '../utils/variant.js';
 import type { ComputeQueryExecution } from './computation_logic.js';
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { ComputationRegistry, useComputationRegistry } from './computation_registry.js';
 import { ComputeQueryExecutionProvider } from './computation_query_execution.js';
@@ -95,7 +95,7 @@ describe('ComputationScheduler', () => {
             await new Promise(resolve => setTimeout(resolve, 0));
         });
 
-        expect(createExecution).toHaveBeenCalled();
+        await vi.waitFor(() => expect(createExecution).toHaveBeenCalled());
         expect(computationLogic.filterTable).toHaveBeenCalledWith(expect.anything(), expect.anything(), executeQuery);
     });
 });

@@ -16,10 +16,23 @@ import { getPlanResultText } from '../../../shell/shell_result.js';
 import { classNames } from '../../../utils/classnames.js';
 import * as styles from './shell_query_result_overlay.module.css';
 
+export interface ShellQueryResultOverlayDependencies {
+    QueryResultDetails: typeof QueryResultDetails;
+    PlanView: typeof PlanView;
+    useHyperPlan: typeof useHyperPlan;
+}
+
+const DEFAULT_DEPENDENCIES: ShellQueryResultOverlayDependencies = {
+    QueryResultDetails,
+    PlanView,
+    useHyperPlan,
+};
+
 interface Props {
     query: QueryExecutionState;
     onClose: () => void;
     dismissOnClickOutside?: boolean;
+    dependencies?: ShellQueryResultOverlayDependencies;
 }
 
 const MAX_OVERLAY_HEIGHT = 600;
@@ -31,14 +44,21 @@ const enum ResultTab {
     Plan = 1,
 }
 
-export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose, dismissOnClickOutside = true }) => {
+export const ShellQueryResultOverlay: React.FC<Props> = ({
+    query,
+    onClose,
+    dismissOnClickOutside = true,
+    dependencies = DEFAULT_DEPENDENCIES,
+}) => {
+    const ResultDetails = dependencies.QueryResultDetails;
+    const PlanViewComponent = dependencies.PlanView;
     const closeRef = React.useRef<HTMLButtonElement>(null);
     const dialogRef = React.useRef<HTMLElement>(null);
     const [lockedHeight, setLockedHeight] = React.useState<{ queryId: number; height: number } | null>(null);
     const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
     const CloseIcon = SymbolIcon('x_16');
     const planText = React.useMemo(() => getPlanResultText(query.resultTable), [query.resultTable]);
-    const { plan } = useHyperPlan(planText);
+    const { plan } = dependencies.useHyperPlan(planText);
     const hasPlan = plan != null;
     const [selectedTab, setSelectedTab] = React.useState<ResultTab>(ResultTab.Data);
     const selectedPlanRef = React.useRef(false);
@@ -90,7 +110,7 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose, dismi
     const tabKeys = React.useMemo(() => hasPlan ? [ResultTab.Data, ResultTab.Plan] : [ResultTab.Data], [hasPlan]);
     const tabRenderers = React.useMemo(() => ({
         [ResultTab.Data]: () => (
-            <QueryResultDetails
+            <ResultDetails
                 query={query}
                 debugMode={false}
                 fitHeight
@@ -102,10 +122,10 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({ query, onClose, dismi
         [ResultTab.Plan]: () => (
             <div className={styles.plan_tab}>
                 <TabHeader title="Query Plan" actions={closeButton} />
-                <div className={styles.plan_body}>{plan != null && <PlanView plan={plan} />}</div>
+                <div className={styles.plan_body}>{plan != null && <PlanViewComponent plan={plan} />}</div>
             </div>
         ),
-    }), [closeButton, plan, query]);
+    }), [closeButton, plan, PlanViewComponent, query, ResultDetails]);
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,
         initialFocusRef: closeRef as React.RefObject<HTMLElement>,

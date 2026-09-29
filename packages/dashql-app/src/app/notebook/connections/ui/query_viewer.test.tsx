@@ -1,20 +1,22 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 import { fakeReactWindowModule, ResizeObserverMock } from '../../../../test/view_mocks.js';
 
-vi.mock('react-window', async () => fakeReactWindowModule(await import('react'), vi.fn()));
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 import { createQueryExecutionState, QueryType } from '../query_execution_state.js';
 import {
     getQueryTarget,
     QueryHistoryViewer,
+    type QueryHistoryViewerDependencies,
     QueryTarget,
     type QueryEntry,
 } from './query_viewer.js';
+
+const dependencies = fakeReactWindowModule(React, vi.fn()) as QueryHistoryViewerDependencies;
 
 function createExecution(queryType: QueryType, userProvided: boolean) {
     return createQueryExecutionState(
@@ -63,7 +65,7 @@ describe('QueryHistoryViewer', () => {
             query,
         }];
 
-        act(() => root.render(<QueryHistoryViewer entries={entries} onClose={() => {}} />));
+        act(() => root.render(<QueryHistoryViewer entries={entries} onClose={() => {}} dependencies={dependencies} />));
 
         expect(container.textContent).toContain('Source');
         expect(container.textContent).toContain('Target');

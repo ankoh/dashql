@@ -1,13 +1,24 @@
-// @vitest-environment node
 import * as arrow from 'apache-arrow';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { DataFrame, generateTableName } from '../../compute/data_frame.js';
-import { createIsolatedNodeTestClient, createNodeTestClient } from './hyperdb_test_client.js';
+import { createWebHyperDBClient } from './hyperdb_provider_web.js';
 import { HyperDB, type HyperDBEngineClient, type HyperDBResult } from './hyperdb_wasm.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));
+}
+
+function persistentDatabaseName(prefix: string): string {
+    return `${prefix}_${crypto.randomUUID().replace(/-/g, '_')}`;
+}
+
+async function ignoreCleanupFailure(cleanup: () => Promise<void>): Promise<void> {
+    try {
+        await cleanup();
+    } catch {
+        // Preserve the test failure that triggered cleanup.
+    }
 }
 
 class CountingClient implements HyperDBEngineClient {
@@ -116,28 +127,80 @@ class CountingClient implements HyperDBEngineClient {
 
 describe('HyperDB embedded database integration', () => {
     let client: CountingClient;
+    let engineClient: HyperDBEngineClient;
     let database: HyperDB | null = null;
-    let releaseClient: (() => Promise<void>) | null = null;
+    let nextDatabase = 1;
+
+    beforeAll(async () => {
+        engineClient = globalThis.__DASHQL_TEST_HYPERDB_CLIENT__
+            ? await globalThis.__DASHQL_TEST_HYPERDB_CLIENT__()
+            : await createWebHyperDBClient();
+    });
 
     beforeEach(async () => {
-        const { client: rawClient, release } = await createIsolatedNodeTestClient();
-        releaseClient = release;
-        client = new CountingClient(rawClient);
-        database = await HyperDB.create(client, {
-            experimental_hyper_introspection_functions: true,
-            log_json_export: true,
-            log_file_size_limit: '1M',
-            log_file_max_count: 10,
+        client = new CountingClient(engineClient);
+        database = await HyperDB.create(client, undefined, {
+            databasePrefix: `__dashql_integration_${nextDatabase++}_`,
+            terminateClient: false,
         });
     }, 60_000);
 
     afterEach(async () => {
-        try {
-            await database?.terminate();
-        } finally {
-            await releaseClient?.();
-        }
+        await database?.terminate();
+        database = null;
     });
+
+    afterAll(async () => {
+        if (!globalThis.__DASHQL_TEST_HYPERDB_CLIENT__) await engineClient.terminate();
+    });
+
+    it('keeps a persistent database available across wrapper lifecycles', async () => {
+        const databaseName = persistentDatabaseName('dashql_shell_persisted');
+        let persistentDatabaseCreated = false;
+        try {
+            await database!.terminate();
+            database = null;
+            const first = await HyperDB.create(engineClient, undefined, {
+                databasePrefix: `__dashql_persistence_${nextDatabase++}_`,
+                terminateClient: false,
+            });
+            await first.createPersistentDatabase(databaseName);
+            persistentDatabaseCreated = true;
+            const writer = await first.connect();
+            await writer.attachPersistentDatabase(databaseName, 'saved');
+            await writer.query('CREATE TABLE saved.public.rows(id INTEGER)');
+            await writer.query('INSERT INTO saved.public.rows VALUES (42)');
+            await writer.close();
+            await first.checkpointPersistentDatabase(databaseName);
+            await first.terminate();
+
+            const second = await HyperDB.create(engineClient, undefined, {
+                databasePrefix: `__dashql_persistence_${nextDatabase++}_`,
+                terminateClient: false,
+            });
+            const reader = await second.connect();
+            await reader.attachPersistentDatabase(databaseName, 'saved');
+            expect(toPlainObjects(await reader.query('SELECT id FROM saved.public.rows'))).toEqual([{ id: 42 }]);
+            await reader.close();
+            await second.dropPersistentDatabase(databaseName);
+            persistentDatabaseCreated = false;
+            await second.terminate();
+        } finally {
+            if (persistentDatabaseCreated) {
+                await ignoreCleanupFailure(async () => {
+                    const cleanup = await HyperDB.create(engineClient, undefined, {
+                        databasePrefix: `__dashql_cleanup_${nextDatabase++}_`,
+                        terminateClient: false,
+                    });
+                    try {
+                        await cleanup.dropPersistentDatabase(databaseName);
+                    } finally {
+                        await cleanup.terminate();
+                    }
+                });
+            }
+        }
+    }, 60_000);
 
     it('queries Hyper through Arrow IPC using the DashQL Arrow runtime', async () => {
         const connection = await database!.connect();
@@ -186,59 +249,39 @@ describe('HyperDB embedded database integration', () => {
     });
 
     it('keeps compute and hyper as separate in-memory databases', async () => {
+        const sourceDatabaseName = persistentDatabaseName('dashql_source');
         const localConnection = await database!.connect({ defaultDatabase: 'hyper' });
-        await localConnection.query('CREATE TABLE local_state(user_id INT)');
-
         const computeConnection = await database!.connect();
-        await computeConnection.query('CREATE TABLE compute_state(value INT)');
-
-        await database!.createPersistentDatabase('source');
-        await localConnection.attachPersistentDatabase('source', 'source');
-
-        expect(toPlainObjects(await localConnection.query(
-            'SELECT COUNT(*)::INTEGER AS row_count FROM hyper.public.local_state',
-        ))).toEqual([{ row_count: 0 }]);
-        expect(toPlainObjects(await computeConnection.query(
-            'SELECT COUNT(*)::INTEGER AS row_count FROM compute_state',
-        ))).toEqual([{ row_count: 0 }]);
-        await expect(localConnection.query(
-            'SELECT * FROM hyper.public.compute_state',
-        )).rejects.toThrow();
-        await expect(computeConnection.query(
-            'SELECT * FROM local_state',
-        )).rejects.toThrow();
-        await localConnection.close();
-        await computeConnection.close();
-    });
-
-    it('reopens a persistent database after a new engine instance starts', async () => {
-        const { mkdtemp, readdir, rm } = await import('node:fs/promises');
-        const { join } = await import('node:path');
-        const hostPath = await mkdtemp(join(process.env.TEST_TMPDIR ?? process.cwd(), 'hyperdb-wasm-persistent-'));
-        const databaseName = 'shell_persisted';
+        let sourceCreated = false;
+        let sourceAttached = false;
         try {
-            const first = await HyperDB.create(await createNodeTestClient(hostPath));
-            await first.createPersistentDatabase(databaseName);
-            const writer = await first.connect();
-            await writer.attachPersistentDatabase(databaseName, 'saved');
-            await writer.query('CREATE TABLE saved.public.rows(id INTEGER)');
-            await writer.query('INSERT INTO saved.public.rows VALUES (42)');
-            await writer.close();
-            await first.checkpointPersistentDatabase(databaseName);
-            expect(await readdir(join(hostPath, 'hyperdb'))).toContain(`${databaseName}.hyper`);
-            await first.terminate();
+            await localConnection.query('CREATE TABLE local_state(user_id INT)');
+            await computeConnection.query('CREATE TABLE compute_state(value INT)');
 
-            const second = await HyperDB.create(await createNodeTestClient(hostPath));
-            await second.openPersistentDatabase(databaseName);
-            const reader = await second.connect();
-            await reader.attachPersistentDatabase(databaseName, 'saved');
-            expect(toPlainObjects(await reader.query('SELECT id FROM saved.public.rows'))).toEqual([{ id: 42 }]);
-            await reader.close();
-            await second.terminate();
+            await database!.createPersistentDatabase(sourceDatabaseName);
+            sourceCreated = true;
+            await localConnection.attachPersistentDatabase(sourceDatabaseName, 'source');
+            sourceAttached = true;
+
+            expect(toPlainObjects(await localConnection.query(
+                'SELECT COUNT(*)::INTEGER AS row_count FROM hyper.public.local_state',
+            ))).toEqual([{ row_count: 0 }]);
+            expect(toPlainObjects(await computeConnection.query(
+                'SELECT COUNT(*)::INTEGER AS row_count FROM compute_state',
+            ))).toEqual([{ row_count: 0 }]);
+            await expect(localConnection.query(
+                'SELECT * FROM hyper.public.compute_state',
+            )).rejects.toThrow();
+            await expect(computeConnection.query(
+                'SELECT * FROM local_state',
+            )).rejects.toThrow();
         } finally {
-            await rm(hostPath, { recursive: true, force: true });
+            if (sourceAttached) await ignoreCleanupFailure(() => localConnection.detachPersistentDatabase('source'));
+            if (sourceCreated) await ignoreCleanupFailure(() => database!.dropPersistentDatabase(sourceDatabaseName));
+            await ignoreCleanupFailure(() => localConnection.close());
+            await ignoreCleanupFailure(() => computeConnection.close());
         }
-    }, 60_000);
+    });
 
     it('keeps shared tables visible across physical DataFrame connections', async () => {
         const inputName = generateTableName('__hyper_input');

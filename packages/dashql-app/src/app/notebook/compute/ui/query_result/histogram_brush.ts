@@ -3,6 +3,16 @@ import * as d3 from 'd3';
 
 const BRUSH_SETTLE_DELAY_MS = 120;
 
+function hideBrushSelection(container: SVGGElement): void {
+    d3.select(container)
+        .selectAll<SVGRectElement, unknown>('.selection, .handle')
+        .style('display', 'none')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', 0)
+        .attr('height', 0);
+}
+
 export class SettledBrushUpdates<T> {
     private timeout: number | null = null;
     private pending: T | null = null;
@@ -108,6 +118,9 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
             .selectAll('rect')
             .attr('y', 0)
             .attr('height', options.height);
+        if (options.selection == null) {
+            hideBrushSelection(brushContainer.current!);
+        }
         return () => {
             brushBehavior.current = null;
         };
@@ -128,6 +141,9 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
         syncingSelection.current = true;
         try {
             d3.select(container).call(brush.move, next);
+            if (next == null) {
+                hideBrushSelection(container);
+            }
         } finally {
             syncingSelection.current = false;
         }
@@ -138,6 +154,7 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
         const brush = brushBehavior.current;
         if (container != null && brush != null) {
             d3.select(container).call(brush.move, null);
+            hideBrushSelection(container);
             return;
         }
         options.onClear();

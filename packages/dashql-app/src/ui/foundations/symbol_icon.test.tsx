@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -27,6 +27,10 @@ describe('SymbolIcon', () => {
         return container.querySelector('svg')!;
     }
 
+    function expectSymbol(svg: SVGSVGElement, symbol: string) {
+        expect(svg.querySelector('use')?.getAttribute('xlink:href')).toMatch(new RegExp(`#${symbol}$`));
+    }
+
     it('renders a decorative 16px atlas symbol by default', () => {
         const svg = render(<CheckIcon className="check" />);
 
@@ -35,25 +39,25 @@ describe('SymbolIcon', () => {
         expect(svg.getAttribute('aria-hidden')).toBe('true');
         expect(svg.getAttribute('role')).toBeNull();
         expect(svg.classList.contains('check')).toBe(true);
-        expect(svg.querySelector('use')?.getAttribute('xlink:href')).toBe('/dependencies/svg-symbols/symbols.generated.svg#check_16');
+        expectSymbol(svg, 'check_16');
     });
 
     it('selects the closest natural symbol without exceeding the rendered size', () => {
         let svg = render(<XIcon size={12} />);
-        expect(svg.querySelector('use')?.getAttribute('xlink:href')).toBe('/dependencies/svg-symbols/symbols.generated.svg#x_12');
+        expectSymbol(svg, 'x_12');
 
         svg = render(<XIcon size={20} />);
-        expect(svg.querySelector('use')?.getAttribute('xlink:href')).toBe('/dependencies/svg-symbols/symbols.generated.svg#x_16');
+        expectSymbol(svg, 'x_16');
 
         svg = render(<XIcon size="medium" />);
         expect(svg.getAttribute('width')).toBe('32');
-        expect(svg.querySelector('use')?.getAttribute('xlink:href')).toBe('/dependencies/svg-symbols/symbols.generated.svg#x_24');
+        expectSymbol(svg, 'x_24');
     });
 
     it('uses the 16px beaker artwork at notebook-card sizes', () => {
         const svg = render(<BeakerIcon size={14} />);
 
-        expect(svg.querySelector('use')?.getAttribute('xlink:href')).toBe('/dependencies/svg-symbols/symbols.generated.svg#beaker_16');
+        expectSymbol(svg, 'beaker_16');
     });
 
     it('forwards SVG properties and exposes explicitly labelled graphics', () => {
@@ -84,6 +88,6 @@ describe('SymbolIcon', () => {
 
         const svg = render(React.createElement(first, { size: 14 }));
         expect(svg.getAttribute('width')).toBe('14');
-        expect(svg.querySelector('use')?.getAttribute('xlink:href')).toBe('/dependencies/svg-symbols/symbols.generated.svg#custom_symbol');
+        expectSymbol(svg, 'custom_symbol');
     });
 });

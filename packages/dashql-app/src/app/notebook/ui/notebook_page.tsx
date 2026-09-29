@@ -13,16 +13,43 @@ const NotebookShellPage = React.lazy(() => import('../shell/notebook_shell_page.
 
 const LOG_CTX = 'notebook_page';
 
-interface Props { }
+export interface NotebookPageDependencies {
+    useNotebookScriptsRegistry: typeof useNotebookScriptsRegistry;
+    useNotebookScripts: typeof useNotebookScripts;
+    useAttachedDatabaseState: typeof useAttachedDatabaseState;
+    useLogger: typeof useLogger;
+    useRouteContext: typeof useRouteContext;
+    useRouterNavigate: typeof useRouterNavigate;
+    useNotebookViewMode: typeof useNotebookViewMode;
+    NotebookFeedPage: typeof NotebookFeedPage;
+    NotebookShellPage: typeof NotebookShellPage;
+}
 
-export const NotebookPage: React.FC<Props> = (_props: Props) => {
-    const route = useRouteContext();
-    const navigate = useRouterNavigate();
-    const logger = useLogger();
-    const notebookScriptsRegistry = useNotebookScriptsRegistry()[0];
-    const [notebookScripts, modifyNotebookScripts] = useNotebookScripts(route.notebookId ?? null);
-    const [conn] = useAttachedDatabaseState(notebookScripts?.notebookId ?? null);
-    const { mode: notebookMode } = useNotebookViewMode();
+const DEFAULT_DEPENDENCIES: NotebookPageDependencies = {
+    useNotebookScriptsRegistry,
+    useNotebookScripts,
+    useAttachedDatabaseState,
+    useLogger,
+    useRouteContext,
+    useRouterNavigate,
+    useNotebookViewMode,
+    NotebookFeedPage,
+    NotebookShellPage,
+};
+
+interface Props {
+    dependencies?: NotebookPageDependencies;
+}
+
+export const NotebookPage: React.FC<Props> = (props: Props) => {
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    const route = dependencies.useRouteContext();
+    const navigate = dependencies.useRouterNavigate();
+    const logger = dependencies.useLogger();
+    const notebookScriptsRegistry = dependencies.useNotebookScriptsRegistry()[0];
+    const [notebookScripts, modifyNotebookScripts] = dependencies.useNotebookScripts(route.notebookId ?? null);
+    const [conn] = dependencies.useAttachedDatabaseState(notebookScripts?.notebookId ?? null);
+    const { mode: notebookMode } = dependencies.useNotebookViewMode();
 
     React.useEffect(() => {
         if (route.notebookId === null) {
@@ -46,7 +73,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     return (
         <div className={styles.page}>
             <div className={notebookMode === NotebookViewMode.Notebook ? styles.view : styles.view_hidden}>
-                <NotebookFeedPage
+                <dependencies.NotebookFeedPage
                     notebookScripts={notebookScripts}
                     modifyNotebookScripts={modifyNotebookScripts}
                     connection={conn ?? null}
@@ -60,7 +87,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             <strong>[ RUN ]</strong> Loading shell
                         </div>
                     )}>
-                        <NotebookShellPage notebookId={notebookScripts.notebookId} notebookName={notebookScripts.name} connection={conn ?? null} active />
+                        <dependencies.NotebookShellPage notebookId={notebookScripts.notebookId} notebookName={notebookScripts.name} connection={conn ?? null} active />
                     </React.Suspense>
                 </div>
             )}

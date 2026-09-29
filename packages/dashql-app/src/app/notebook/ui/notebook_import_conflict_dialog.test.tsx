@@ -1,7 +1,10 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { NotebookImportCardDependencies } from './notebook_import_card.js';
+import { NotebookImportConflictDialog, type NotebookImportConflictDialogProps } from './notebook_import_conflict_dialog.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class {
@@ -9,10 +12,11 @@ vi.stubGlobal('ResizeObserver', class {
     unobserve() { }
     disconnect() { }
 });
-vi.mock('../../ui/navbar.js', () => ({ CompactNavBar: () => null }));
-vi.mock('../../../ui/particle_flow/particle_flow_background.js', () => ({ ParticleFlowBackground: () => null }));
 
-import { NotebookImportConflictDialog, type NotebookImportConflictDialogProps } from './notebook_import_conflict_dialog.js';
+const dependencies: NotebookImportCardDependencies = {
+    CompactNavBar: () => <></>,
+    ParticleFlowBackground: () => null,
+};
 
 const DETAILS = {
     notebookName: 'Quarterly pipeline',
@@ -62,6 +66,7 @@ describe('NotebookImportConflictDialog', () => {
                 onReplace={onReplace}
                 onCreateNew={onCreateNew}
                 onCancel={onCancel}
+                dependencies={dependencies}
                 {...props}
             />,
         ));
@@ -137,6 +142,7 @@ describe('NotebookImportConflictDialog', () => {
                 onReplace={onReplace}
                 onCreateNew={onCreateNew}
                 onCancel={onCancel}
+                dependencies={dependencies}
             />,
         ));
 

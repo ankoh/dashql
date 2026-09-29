@@ -1,8 +1,8 @@
-// @vitest-environment node
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
 import * as arrow from 'apache-arrow';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-import { createIsolatedNodeTestClient } from '../platform/hyperdb/hyperdb_test_client.js';
+import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
 import {
     HyperDB,
     HyperDBConnection,
@@ -765,11 +765,8 @@ describe('DashQL shell Wasm', () => {
     it('runs the asynchronous query workflow through a C++ coroutine', async () => {
         let database: HyperDB | null = null;
         let connection: HyperDBConnection | null = null;
-        let releaseClient: (() => Promise<void>) | null = null;
         try {
-            const { client, release } = await createIsolatedNodeTestClient();
-            releaseClient = release;
-            database = await HyperDB.create(client);
+            database = await setupWebHyperDB('shell_api_test', new TestLogger());
             connection = await database.connect();
             const environment = createEmbeddedDatabaseShellEnvironment(connection);
             executeQuery = async (query, signal) => {
@@ -792,7 +789,6 @@ describe('DashQL shell Wasm', () => {
         } finally {
             if (connection) await connection.close();
             await database?.terminate();
-            await releaseClient?.();
         }
     }, 60_000);
 

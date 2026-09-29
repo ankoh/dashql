@@ -121,8 +121,26 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
     );
 };
 
-export function QueryHistoryViewer(props: { entries: QueryEntry[]; onClose: () => void }) {
+export interface QueryHistoryViewerDependencies {
+    List: React.ComponentType<any>;
+    useListRef(): React.RefObject<{
+        scrollToRow(options: { index: number; align: 'center' | 'end' }): void;
+    } | null>;
+}
+
+const DEFAULT_DEPENDENCIES: QueryHistoryViewerDependencies = {
+    List,
+    useListRef: () => useListRef(null),
+};
+
+export function QueryHistoryViewer(props: {
+    entries: QueryEntry[];
+    onClose: () => void;
+    dependencies?: QueryHistoryViewerDependencies;
+}) {
     const { entries } = props;
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    const ListComponent = dependencies.List;
     // Container dimensions
     const containerRef = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerRef);
@@ -169,7 +187,7 @@ export function QueryHistoryViewer(props: { entries: QueryEntry[]; onClose: () =
     );
 
     // Auto-scroll to bottom when entries change; scroll to selected row when modal opens
-    const listRef = useListRef(null);
+    const listRef = dependencies.useListRef();
     React.useEffect(() => {
         if (modalIndex >= 0 && listRef.current) {
             listRef.current.scrollToRow({ index: modalIndex, align: 'center' });
@@ -220,7 +238,7 @@ export function QueryHistoryViewer(props: { entries: QueryEntry[]; onClose: () =
                     {entries.length === 0 ? (
                         <div className={styles.empty_state}>Nothing to see here</div>
                     ) : (
-                        <List
+                        <ListComponent
                             listRef={listRef}
                             style={{ width: containerWidth, height: containerHeight }}
                             rowCount={entries.length}

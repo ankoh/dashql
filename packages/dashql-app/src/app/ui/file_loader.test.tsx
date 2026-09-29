@@ -1,33 +1,29 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PlatformFile } from '../../platform/file/file.js';
 
-const state = vi.hoisted(() => ({
+const state = {
     importPortableBundle: vi.fn(),
     navigate: vi.fn(),
     readNotebookBundleFromZip: vi.fn(),
-}));
+};
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-vi.mock('../router/router.js', () => ({
-    OPEN_LINK_NOTEBOOK: Symbol('OPEN_LINK_NOTEBOOK'),
-    useRouterNavigate: () => state.navigate,
-}));
-vi.mock('../notebook/persistence/notebook_import.js', () => ({
-    readNotebookBundleFromZip: state.readNotebookBundleFromZip,
-}));
-vi.mock('../notebook/persistence/notebook_import_provider.js', () => ({
-    useNotebookImport: () => ({ importPortableBundle: state.importPortableBundle }),
-}));
-vi.mock('./navbar.js', () => ({ CompactNavBar: () => null }));
-vi.mock('../../ui/particle_flow/particle_flow_background.js', () => ({
-    ParticleFlowBackground: () => <div data-testid="particles" />,
-}));
 
-import { FileLoader } from './file_loader.js';
+import { FileLoader, type FileLoaderDependencies } from './file_loader.js';
+
+const dependencies = {
+    notebookImportCard: {
+        CompactNavBar: () => <></>,
+        ParticleFlowBackground: () => <div data-testid="particles" />,
+    },
+    readNotebookBundleFromZip: state.readNotebookBundleFromZip,
+    useNotebookImport: () => ({ importPortableBundle: state.importPortableBundle }),
+    useRouterNavigate: () => state.navigate,
+} as FileLoaderDependencies;
 
 const BUNDLE = {
     notebook: {
@@ -47,8 +43,8 @@ function file(readAsArrayBuffer: PlatformFile['readAsArrayBuffer'] = vi.fn().moc
     return { path: '/tmp/Explain.dashql', readAsArrayBuffer };
 }
 
-function button(container: HTMLElement, label: string): HTMLButtonElement {
-    return Array.from(container.querySelectorAll('button')).find(value => value.textContent === label)!;
+function button(container: HTMLElement, label: string): HTMLButtonElement | null {
+    return Array.from(container.querySelectorAll('button')).find(value => value.textContent === label) ?? null;
 }
 
 describe('FileLoader', () => {
@@ -71,18 +67,18 @@ describe('FileLoader', () => {
 
     it('validates the file and waits for permission before importing', async () => {
         const onDone = vi.fn();
-        await act(async () => root.render(<FileLoader file={file()} onDone={onDone} />));
+        await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
 
+        await vi.waitFor(() => expect(container.querySelector('h1')?.textContent).toBe('Import Notebook'));
         expect(container.querySelector('[data-testid="particles"]')).not.toBeNull();
-        expect(container.querySelector('h1')?.textContent).toBe('Import Notebook');
         expect(container.querySelector('section')?.getAttribute('aria-busy')).toBeNull();
         expect(container.textContent).toContain('Explain');
         expect(container.textContent).toContain('1 script');
         expect(state.importPortableBundle).not.toHaveBeenCalled();
 
-        await act(async () => button(container, 'Import').click());
+        await act(async () => button(container, 'Import')!.click());
 
-        expect(state.importPortableBundle).toHaveBeenCalledOnce();
+        await vi.waitFor(() => expect(state.importPortableBundle).toHaveBeenCalledOnce());
         expect(state.navigate).toHaveBeenCalledOnce();
         expect(onDone).toHaveBeenCalledOnce();
     });
@@ -94,19 +90,18 @@ describe('FileLoader', () => {
         const validation = new Promise<typeof BUNDLE>(resolve => { finishValidation = resolve; });
         state.readNotebookBundleFromZip.mockReturnValue(validation);
 
-        act(() => root.render(<FileLoader file={file(() => read)} onDone={() => {}} />));
+        act(() => root.render(<FileLoader file={file(() => read)} onDone={() => {}} dependencies={dependencies} />));
         expect(container.querySelector('section')?.getAttribute('aria-busy')).toBe('true');
         expect(container.textContent).toContain('Reading notebook file...');
 
         await act(async () => {
             finishRead(new Uint8Array([1, 2, 3]));
-            await Promise.resolve();
         });
-        expect(container.textContent).toContain('Checking the notebook archive...');
+        await vi.waitFor(() => expect(container.textContent).toContain('Checking the notebook archive...'));
         expect(container.textContent).toContain('3 bytes');
 
         await act(async () => finishValidation(BUNDLE));
-        expect(button(container, 'Import')).not.toBeNull();
+        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
     });
 
     it('ignores a cancelled stale read when callbacks change', async () => {
@@ -115,13 +110,13 @@ describe('FileLoader', () => {
         const input = file(() => read);
         const onDone = vi.fn();
 
-        act(() => root.render(<FileLoader file={input} onDone={onDone} />));
+        act(() => root.render(<FileLoader file={input} onDone={onDone} dependencies={dependencies} />));
         await act(async () => {
-            root.render(<FileLoader file={input} onDone={() => onDone()} />);
+            root.render(<FileLoader file={input} onDone={() => onDone()} dependencies={dependencies} />);
             finishRead(new Uint8Array([1, 2, 3]));
-            await Promise.resolve();
         });
 
+        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')).toBeNull();
         expect(state.readNotebookBundleFromZip).toHaveBeenCalledOnce();
         expect(state.importPortableBundle).not.toHaveBeenCalled();
@@ -129,22 +124,27 @@ describe('FileLoader', () => {
 
     it('shows an accessible validation error and retries', async () => {
         state.readNotebookBundleFromZip.mockRejectedValueOnce(new Error('Invalid ZIP: missing dashql-notebook.json'));
-        await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} />));
+        await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
 
+        await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
         const alert = container.querySelector('[role="alert"]');
         expect(alert?.textContent).toContain('not a valid DashQL notebook archive');
         expect(alert?.textContent).toContain('missing dashql-notebook.json');
 
-        await act(async () => button(container, 'Try Again').click());
+        await act(async () => button(container, 'Try Again')!.click());
+        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')).toBeNull();
         expect(container.querySelector('h1')?.textContent).toBe('Import Notebook');
     });
 
     it('returns to the permission screen when import is cancelled', async () => {
         state.importPortableBundle.mockResolvedValueOnce(null);
-        await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} />));
-        await act(async () => button(container, 'Import').click());
+        await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
+        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
+        await act(async () => button(container, 'Import')!.click());
 
+        await vi.waitFor(() => expect(state.importPortableBundle).toHaveBeenCalledOnce());
+        await vi.waitFor(() => expect(button(container, 'Import')?.disabled).toBe(false));
         expect(container.querySelector('h1')?.textContent).toBe('Import Notebook');
         expect(button(container, 'Import')).not.toBeNull();
     });
@@ -152,9 +152,11 @@ describe('FileLoader', () => {
     it('shows import failures without falsely completing the dropzone', async () => {
         const onDone = vi.fn();
         state.importPortableBundle.mockRejectedValueOnce(new Error('Storage is unavailable'));
-        await act(async () => root.render(<FileLoader file={file()} onDone={onDone} />));
-        await act(async () => button(container, 'Import').click());
+        await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
+        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
+        await act(async () => button(container, 'Import')!.click());
 
+        await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')?.textContent).toContain('could not import this notebook');
         expect(container.textContent).toContain('Storage is unavailable');
         expect(onDone).not.toHaveBeenCalled();

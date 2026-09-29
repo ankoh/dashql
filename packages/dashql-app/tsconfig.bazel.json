@@ -17,9 +17,10 @@
             "@ankoh/dashql-protobuf": ["./dependencies/dashql-protobuf"],
             "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
             "@ankoh/dashql-jsonschema": ["./dependencies/dashql-jsonschema"],
-            "@ankoh/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"]
+            "@ankoh/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"],
+            "@dashql/browser-test-act": ["./src/tests/react_act.ts"]
         },
-        "types": ["node", "vitest/globals", "@webgpu/types"],
+        "types": ["node", "vitest/globals", "vite/client", "@webgpu/types"],
         "lib": ["es6", "es2020", "dom"],
         "allowJs": true,
         "noEmit": true,

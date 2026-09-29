@@ -1,30 +1,20 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const commandDispatch = vi.hoisted(() => vi.fn());
-
-vi.mock('../scripts/notebook_commands.js', () => ({
-    NotebookCommandType: {
-        ExecuteEditorQuery: 1,
-        RefreshCatalog: 2,
-    },
-    useNotebookCommandDispatch: () => commandDispatch,
-}));
-vi.mock('../../../ui/foundations/status_indicator.js', async () => {
-    const React = await import('react');
-    return {
-        IndicatorStatus: { Running: 1 },
-        StatusIndicator: () => React.createElement('span', { 'data-testid': 'status-indicator' }),
-    };
-});
+const commandDispatch = vi.fn();
 
 import { ConnectionHealth, type AttachedDatabaseState } from '../connections/attached_database_state.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../connections/connector_info.js';
-import { ConnectionCommandList } from './notebook_command_lists.js';
+import { ConnectionCommandList, type ConnectionCommandListDependencies } from './notebook_command_lists.js';
+
+const dependencies: ConnectionCommandListDependencies = {
+    StatusIndicator: () => <span data-testid="status-indicator" />,
+    useNotebookCommandDispatch: () => commandDispatch,
+};
 
 function createConnection(currentFullRefresh: number | null, runningTaskIds: number[]): AttachedDatabaseState {
     return {
@@ -62,7 +52,7 @@ describe('ConnectionCommandList', () => {
 
     function renderConnection(connection: AttachedDatabaseState) {
         act(() => {
-            root.render(<ConnectionCommandList conn={connection} notebookScripts={null} />);
+            root.render(<ConnectionCommandList conn={connection} notebookScripts={null} dependencies={dependencies} />);
         });
         return Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes('Catalog'))!;
     }

@@ -1,63 +1,45 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '../../../../core/index.js';
+import { ScriptFeedRow, type ScriptFeedRowDependencies } from './notebook_feed_row.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const state = vi.hoisted(() => ({ query: null as any, agent: null as any, sortableTransform: null as any, formatScriptEditor: vi.fn() }));
-vi.mock('../../connections/query_executor.js', () => ({
-    useQueryState: () => state.query,
-    useCancelQuery: () => vi.fn(),
-    computeQueryCacheKeyForConnection: vi.fn(),
-}));
-vi.mock('../../agent/agent_run_provider.js', () => ({ useAgentRunState: () => state.agent, useCancelAgentRun: () => vi.fn() }));
-vi.mock('../script_editor.js', async () => {
-    const React = await import('react');
-    return { ScriptEditor: (props: any) => {
-        React.useEffect(() => props.setView?.({}), [props.setView]);
-        return React.createElement('div', { 'data-testid': 'editor' });
-    } };
-});
-vi.mock('../script_diagnostics.js', async () => {
-    const React = await import('react');
-    return { ScriptDiagnosticsButton: () => React.createElement('button', null, 'diagnostics') };
-});
-vi.mock('../script_statistics_bar.js', () => ({ ScriptStatisticsBar: () => null }));
-vi.mock('../script_format.js', () => ({
-    isScriptFormattable: () => true,
-    formatScriptEditor: (...args: any[]) => {
-        state.formatScriptEditor(...args);
-        args[3]('SELECT 1;');
-    },
-}));
-vi.mock('../query_result_cache_controls.js', () => ({ CachedResultBean: () => null, QueryResultCacheLabel: () => null, QueryResultRerunButton: () => null }));
-vi.mock('../entry_status_bar.js', async () => {
-    const React = await import('react');
-    return { EntryStatusBar: (props: any) => React.createElement('button', { 'data-testid': 'status', onClick: props.onToggleExpanded }, props.status.message) };
-});
-vi.mock('./feed_entry_footer.js', async () => {
-    const React = await import('react');
-    return { FeedEntryFooter: () => React.createElement('div', { 'data-testid': 'integrated-footer' }, 'footer') };
-});
-vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
-vi.mock('@dnd-kit/sortable', () => ({
+const state = { query: null as any, agent: null as any, sortableTransform: null as any, formatScriptEditor: vi.fn() };
+const dependencies = {
     useSortable: () => ({
         attributes: {}, listeners: {}, setNodeRef: vi.fn(), transform: state.sortableTransform, transition: undefined, isDragging: false,
     }),
-}));
-vi.mock('@dnd-kit/utilities', () => ({
-    CSS: {
-        Translate: {
-            toString: (transform: { x: number; y: number } | null) => transform == null
-                ? undefined
-                : `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    translateTransform: (transform: { x: number; y: number } | null) => transform == null
+        ? undefined
+        : `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    scriptCard: {
+        useQueryState: () => state.query,
+        useCancelQuery: () => vi.fn(),
+        computeQueryCacheKeyForConnection: vi.fn(),
+        useAgentRunState: () => state.agent,
+        useCancelAgentRun: () => vi.fn(),
+        ScriptEditor: (props: any) => {
+            React.useEffect(() => props.setView?.({}), [props.setView]);
+            return <div data-testid="editor" />;
         },
+        ScriptDiagnosticsButton: () => <button>diagnostics</button>,
+        ScriptStatisticsBar: () => null,
+        isScriptFormattable: () => true,
+        formatScriptEditor: (...args: any[]) => {
+            state.formatScriptEditor(...args);
+            args[3]('SELECT 1;');
+        },
+        CachedResultBean: () => null,
+        QueryResultCacheLabel: () => null,
+        QueryResultRerunButton: () => null,
+        EntryStatusBar: (props: any) => <button data-testid="status" onClick={props.onToggleExpanded}>{props.status.message}</button>,
+        FeedEntryFooter: () => <div data-testid="integrated-footer">footer</div>,
     },
-}));
-
-import { ScriptFeedRow } from './notebook_feed_row.js';
+} as unknown as ScriptFeedRowDependencies;
+vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
 function baseProps() {
     return {
@@ -69,7 +51,7 @@ function baseProps() {
         onShowAgentStatus: vi.fn(), onShowTable: vi.fn(), onShowVisualization: vi.fn(), onShowDetails: vi.fn(), onRerun: vi.fn(),
         onFormat: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
         onAutoCollapseResult: vi.fn(), onResetAutoCollapsedResult: vi.fn(), topPadding: 16,
-        onCreate: vi.fn(), onEditorView: vi.fn(), onRowHeightChange: vi.fn(),
+        onCreate: vi.fn(), onEditorView: vi.fn(), onRowHeightChange: vi.fn(), dependencies,
     };
 }
 
@@ -153,7 +135,7 @@ describe('V2 notebook feed rows', () => {
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
 
         const item = container.querySelector('[aria-label="Drag alpha script to reorder"]')!.parentElement as HTMLElement;
-        expect(item.style.transform).toBe('translate3d(0px, 120px, 0)');
+        expect(item.style.transform).toBe('translate3d(0px, 120px, 0px)');
         expect(item.style.transform).not.toContain('scale');
     });
 });

@@ -2,11 +2,10 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_js//js:defs.bzl", "js_library", "js_test")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
-load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
 copy_to_directory(
     name = "dep_flatbuf",
@@ -234,11 +233,12 @@ copy_to_bin(
         "src/**/*.tsx",
         "src/**/*.js",
         "src/**/*.wgsl",
-        "utils/**/*.ts",
         "hyperdb-capability.html",
         "index.html",
         "oauth.html",
         "shell.html",
+        "tests-frame.html",
+        "tests.html",
         "_headers",
         "_redirects",
         "static/**/*.css",
@@ -323,8 +323,11 @@ _vite_web_deps = [
     "//:node_modules/@dnd-kit/utilities",
     "//:node_modules/@lezer/highlight",
     "//:node_modules/@primer/behaviors",
+    "//:node_modules/@sinonjs/fake-timers",
     "//:node_modules/@react-hook/resize-observer",
     "//:node_modules/@vitejs/plugin-react",
+    "//:node_modules/@vitest/expect",
+    "//:node_modules/@vitest/spy",
     "//:node_modules/@xterm/addon-fit",
     "//:node_modules/@xterm/addon-webgl",
     "//:node_modules/@xterm/xterm",
@@ -335,6 +338,7 @@ _vite_web_deps = [
     "//:node_modules/hyperdb-wasm",
     "//:node_modules/immutable",
     "//:node_modules/jszip",
+    "//:node_modules/mocha",
     "//:node_modules/react",
     "//:node_modules/react-dom",
     "//:node_modules/react-router-dom",
@@ -413,14 +417,25 @@ copy_to_directory(
     visibility = ["//visibility:public"],
 )
 
-vitest_bin.vitest_test(
+js_test(
     name = "test",
-    size = "medium",
-    args = ["run", "--config", "vite.config.generated.ts"],
-    node_options = ["--experimental-wasm-exnref"],
-    tags = [],
-    chdir = "packages/dashql-app",
-    data = _vite_web_deps + [":tsc_typecheck", "//:example_notebooks_test_data"],
+    size = "large",
+    args = ["$(rootpath :pages)"],
+    data = [
+        ":pages",
+        ":tsc_typecheck",
+        "//:node_modules/playwright-core",
+        "@playwright_chromium//:chromium",
+        "@playwright_chromium//:runtime",
+    ],
+    entry_point = "test/browser_test_driver.mjs",
+    env = {
+        "DASHQL_CHROMIUM_EXECUTABLE": "$(rootpath @playwright_chromium//:chromium)",
+    },
+    no_copy_to_bin = [
+        "@playwright_chromium//:chromium",
+        "@playwright_chromium//:runtime",
+    ],
     visibility = ["//visibility:public"],
 )
 

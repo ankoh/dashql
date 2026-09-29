@@ -1,7 +1,7 @@
-// @vitest-environment node
 import * as arrow from 'apache-arrow';
 import { SQLFrame } from './sqlframe_builder.js';
-import { createIsolatedNodeTestClient } from '../../platform/hyperdb/hyperdb_test_client.js';
+import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
+import { TestLogger } from '../../platform/logger/test_logger.js';
 import {
     HyperDB,
     HyperDBConnection,
@@ -20,22 +20,15 @@ function toPlainObjects(table: arrow.Table): any[] {
 describe('SQLFrame execution', () => {
     let database: HyperDB | null = null;
     let conn!: HyperDBConnection;
-    let releaseClient: (() => Promise<void>) | null = null;
 
     beforeEach(async () => {
-        const { client, release } = await createIsolatedNodeTestClient();
-        releaseClient = release;
-        database = await HyperDB.create(client);
+        database = await setupWebHyperDB('sqlframe_builder_exec_test', new TestLogger());
         conn = await database.connect();
     }, 60_000);
 
     afterEach(async () => {
-        try {
-            if (conn) await conn.close();
-            await database?.terminate();
-        } finally {
-            await releaseClient?.();
-        }
+        if (conn) await conn.close();
+        await database?.terminate();
     });
 
     it('order by Float64', async () => {

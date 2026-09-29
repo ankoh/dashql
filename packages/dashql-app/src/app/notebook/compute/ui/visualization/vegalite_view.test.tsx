@@ -1,31 +1,36 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-vi.mock('../../../../../compute/computation_registry.js', () => ({
-    useComputationRegistry: () => [{ tableComputations: {} }, vi.fn()],
-}));
-vi.mock('vega-embed', () => ({
-    default: vi.fn(() => new Promise(() => { })),
-}));
-vi.mock('vega-interpreter', () => ({
-    expressionInterpreter: vi.fn(),
-}));
-
 import { QueryExecutionStatus, type QueryExecutionState } from '../../../connections/query_execution_state.js';
-import { VegaLiteView } from './vegalite_view.js';
-import vegaEmbed from 'vega-embed';
+import { VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
+
+const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
+const expressionInterpreter: typeof import('vega-interpreter').expressionInterpreter = {
+    operator: vi.fn(),
+    parameter: vi.fn(),
+    event: vi.fn(),
+    handler: vi.fn(),
+    encode: vi.fn(),
+};
+const dependencies = {
+    loadVega: async () => ({
+        embed: vegaEmbed,
+        expressionInterpreter,
+    }),
+    useComputationRegistry: () => [{ tableComputations: {}, schedulerTasks: {}, nextSchedulerTaskId: 1 }],
+} as VegaLiteViewDependencies;
 
 describe('VegaLiteView', () => {
     let container: HTMLDivElement;
     let root: Root;
 
     beforeEach(() => {
-        vi.mocked(vegaEmbed).mockClear();
+        vegaEmbed.mockClear();
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -53,6 +58,7 @@ describe('VegaLiteView', () => {
                         encoding: { x: { field: 'value' } },
                     }}
                     height={180}
+                    dependencies={dependencies}
                 />,
             );
         });
@@ -69,7 +75,7 @@ describe('VegaLiteView', () => {
             resultTable: arrow.tableFromArrays({ value: [1] }),
         } as QueryExecutionState;
         const render = (spec: object) => root.render(
-            <VegaLiteView query={query} vegaLiteSpec={spec as any} height={180} />,
+            <VegaLiteView query={query} vegaLiteSpec={spec as any} height={180} dependencies={dependencies} />,
         );
 
         await act(async () => {

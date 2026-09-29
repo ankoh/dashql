@@ -1,12 +1,14 @@
-import * as fs from 'node:fs/promises';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import * as dashql from '../../../core/index.js';
-import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions, qualifyPrefetchedHyperFunctions } from './prefetched_hyper_functions.js';
+import {
+    fetchPrefetchedHyperFunctions,
+    loadPrefetchedHyperFunctions,
+    PREFETCHED_HYPER_FUNCTIONS_SQL,
+    qualifyPrefetchedHyperFunctions,
+} from './prefetched_hyper_functions.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
-const ASSET_PATH = 'static/catalog/hyper/dashql-functions.sql';
 
 let dql: dashql.DashQL;
 
@@ -20,7 +22,7 @@ afterEach(() => {
 
 describe('prefetched Hyper functions', () => {
     it('parses the bundled function catalog', async () => {
-        const sql = await fs.readFile(ASSET_PATH, 'utf8');
+        const sql = PREFETCHED_HYPER_FUNCTIONS_SQL;
         const catalog = dql.createCatalog();
         const script = dql.createScript(catalog);
 

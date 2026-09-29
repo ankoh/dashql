@@ -79,23 +79,38 @@ interface FileErrorState {
 export type NotebookImportCardState = LoadingState | ReadyState | ConflictState
     | FileLoadingState | FileReadyState | FileErrorState;
 
-export function NotebookImportCard(props: NotebookImportCardState): React.ReactElement {
-    if (props.phase === 'loading') return <LoadingCard state={props} />;
-    if (props.phase === 'conflict') return <ConflictCard state={props} />;
-    if (props.phase === 'file-loading') return <FileLoadingCard state={props} />;
-    if (props.phase === 'file-ready') return <FileReadyCard state={props} />;
-    if (props.phase === 'file-error') return <FileErrorCard state={props} />;
-    return <ReadyCard state={props} />;
+export interface NotebookImportCardDependencies {
+    CompactNavBar: typeof CompactNavBar;
+    ParticleFlowBackground: typeof ParticleFlowBackground;
 }
 
-function LoadingCard({ state }: { state: LoadingState }): React.ReactElement {
+const DEFAULT_DEPENDENCIES: NotebookImportCardDependencies = {
+    CompactNavBar,
+    ParticleFlowBackground,
+};
+
+export type NotebookImportCardProps = NotebookImportCardState & {
+    dependencies?: NotebookImportCardDependencies;
+};
+
+export function NotebookImportCard(props: NotebookImportCardProps): React.ReactElement {
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    if (props.phase === 'loading') return <LoadingCard state={props} dependencies={dependencies} />;
+    if (props.phase === 'conflict') return <ConflictCard state={props} dependencies={dependencies} />;
+    if (props.phase === 'file-loading') return <FileLoadingCard state={props} dependencies={dependencies} />;
+    if (props.phase === 'file-ready') return <FileReadyCard state={props} dependencies={dependencies} />;
+    if (props.phase === 'file-error') return <FileErrorCard state={props} dependencies={dependencies} />;
+    return <ReadyCard state={props} dependencies={dependencies} />;
+}
+
+function LoadingCard({ state, dependencies }: { state: LoadingState; dependencies: NotebookImportCardDependencies }): React.ReactElement {
     const details = progressDetails(state.progress);
     const fileProgress = state.progress.phase === 'files' ? state.progress : null;
     const percentage = fileProgress == null
         ? null
         : fileProgress.completedFileCount / fileProgress.totalFileCount * 100;
     return (
-        <CardShell title="Loading Notebook" busy onClose={state.onClose}>
+        <CardShell title="Loading Notebook" busy onClose={state.onClose} dependencies={dependencies}>
             <div className={styles.status} role="status" aria-live="polite">
                 <span aria-hidden="true">
                     <StatusIndicator status={IndicatorStatus.Running} width="18px" height="18px" />
@@ -118,7 +133,7 @@ function LoadingCard({ state }: { state: LoadingState }): React.ReactElement {
     );
 }
 
-function ReadyCard({ state }: { state: ReadyState }): React.ReactElement {
+function ReadyCard({ state, dependencies }: { state: ReadyState; dependencies: NotebookImportCardDependencies }): React.ReactElement {
     const { bundle, indexedScriptCount, loadedScriptCount, incomplete } = state.result;
     const notebookName = bundle.notebook.name?.trim() || bundle.notebook.metadata.originalFileName || 'Unnamed notebook';
     const scriptCount = incomplete
@@ -137,7 +152,7 @@ function ReadyCard({ state }: { state: ReadyState }): React.ReactElement {
     );
 
     return (
-        <CardShell title="Import Notebook" busy={state.busy} closeDisabled={state.busy} onClose={state.onClose} actions={actions}>
+        <CardShell title="Import Notebook" busy={state.busy} closeDisabled={state.busy} onClose={state.onClose} actions={actions} dependencies={dependencies}>
             {hasConflict && <ConflictWarning native={state.conflictIsNative} />}
             {incomplete && (
                 <div className={styles.warning} role="status">
@@ -156,10 +171,10 @@ function ReadyCard({ state }: { state: ReadyState }): React.ReactElement {
     );
 }
 
-function FileLoadingCard({ state }: { state: FileLoadingState }): React.ReactElement {
+function FileLoadingCard({ state, dependencies }: { state: FileLoadingState; dependencies: NotebookImportCardDependencies }): React.ReactElement {
     const status = state.stage === 'reading' ? 'Reading notebook file...' : 'Checking the notebook archive...';
     return (
-        <CardShell title="Loading Notebook" busy onClose={state.onClose}>
+        <CardShell title="Loading Notebook" busy onClose={state.onClose} dependencies={dependencies}>
             <div className={styles.status} role="status" aria-live="polite">
                 <span aria-hidden="true">
                     <StatusIndicator status={IndicatorStatus.Running} width="18px" height="18px" />
@@ -174,7 +189,7 @@ function FileLoadingCard({ state }: { state: FileLoadingState }): React.ReactEle
     );
 }
 
-function FileReadyCard({ state }: { state: FileReadyState }): React.ReactElement {
+function FileReadyCard({ state, dependencies }: { state: FileReadyState; dependencies: NotebookImportCardDependencies }): React.ReactElement {
     const notebookName = state.bundle.notebook.name?.trim()
         || state.bundle.notebook.metadata.originalFileName
         || 'Unnamed notebook';
@@ -185,6 +200,7 @@ function FileReadyCard({ state }: { state: FileReadyState }): React.ReactElement
             closeDisabled={state.busy}
             onClose={state.onClose}
             actions={<Button autoFocus variant={ButtonVariant.Primary} disabled={state.busy} onClick={state.onImport}>Import</Button>}
+            dependencies={dependencies}
         >
             {state.busy ? (
                 <div className={styles.status} role="status" aria-live="polite">
@@ -203,7 +219,7 @@ function FileReadyCard({ state }: { state: FileReadyState }): React.ReactElement
     );
 }
 
-function FileErrorCard({ state }: { state: FileErrorState }): React.ReactElement {
+function FileErrorCard({ state, dependencies }: { state: FileErrorState; dependencies: NotebookImportCardDependencies }): React.ReactElement {
     const summary = state.failedStage === 'reading'
         ? 'DashQL could not read this file.'
         : state.failedStage === 'validating'
@@ -214,6 +230,7 @@ function FileErrorCard({ state }: { state: FileErrorState }): React.ReactElement
             title="Notebook Import Failed"
             onClose={state.onClose}
             actions={<Button autoFocus variant={ButtonVariant.Primary} onClick={state.onRetry}>Try Again</Button>}
+            dependencies={dependencies}
         >
             <div className={styles.error} role="alert">
                 <AlertIcon size={16} aria-hidden="true" />
@@ -230,7 +247,7 @@ function FileErrorCard({ state }: { state: FileErrorState }): React.ReactElement
     );
 }
 
-function ConflictCard({ state }: { state: ConflictState }): React.ReactElement {
+function ConflictCard({ state, dependencies }: { state: ConflictState; dependencies: NotebookImportCardDependencies }): React.ReactElement {
     return (
         <CardShell
             title="Import Notebook"
@@ -241,6 +258,7 @@ function ConflictCard({ state }: { state: ConflictState }): React.ReactElement {
                 <Button disabled={state.busy} onClick={state.onReplace}>Replace</Button>
                 <Button disabled={state.busy} onClick={state.onCreateNew}>Create New</Button>
             </>}
+            dependencies={dependencies}
         >
             <ConflictWarning native={state.existingIsNative} />
             <NotebookImportDetails>
@@ -272,13 +290,15 @@ interface ShellProps {
     busy?: boolean;
     closeDisabled?: boolean;
     onClose?: () => void;
+    dependencies: NotebookImportCardDependencies;
 }
 
 function CardShell(props: ShellProps): React.ReactElement {
+    const { CompactNavBar: NavBar, ParticleFlowBackground: Background } = props.dependencies;
     return (
         <div className={`${baseStyles.page} ${styles.page}`} data-electron-drag-region>
-            <ParticleFlowBackground />
-            <CompactNavBar />
+            <Background />
+            <NavBar />
             <main className={`${baseStyles.banner_and_content_container} ${styles.foreground}`}>
                 <div className={baseStyles.content_container}>
                     <section className={`${baseStyles.card} ${styles.card}`} aria-labelledby="notebook-import-card-title" aria-busy={props.busy || undefined}>

@@ -1,9 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('../../../platform/electron_fs.js', async () => ({
-    ...(await import('./test_fs_mock.js')).makeFsMock(),
-    ...(await import('./test_fs_mock.js')).makePathMock(),
-}));
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
@@ -19,6 +14,10 @@ describe('NativeStorageBackend V2 flat storage', () => {
         globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
         backend = new NativeStorageBackend(DIR);
         await backend.initialize();
+    });
+
+    afterEach(() => {
+        delete globalThis.dashqlElectron;
     });
 
     it('round-trips manifest, catalog, and naturally ordered flat scripts', async () => {

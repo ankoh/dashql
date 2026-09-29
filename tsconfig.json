@@ -35,11 +35,15 @@
             ],
             "@ankoh/dashql-svg-symbols": [
                 "./bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg"
+            ],
+            "@dashql/browser-test-act": [
+                "./packages/dashql-app/src/tests/react_act.ts"
             ]
         },
         "types": [
             "node",
             "vitest/globals",
+            "vite/client",
             "@webgpu/types"
         ],
         "lib": [

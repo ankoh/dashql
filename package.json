@@ -25,6 +25,7 @@
     "@lezer/highlight": "^1.2.3",
     "@primer/behaviors": "^1.10.3",
     "@react-hook/resize-observer": "^2.0.2",
+    "@sinonjs/fake-timers": "^15.4.0",
     "@types/d3": "^7.4.3",
     "@types/d3-color": "^3.1.3",
     "@types/node": "^24.12.4",
@@ -32,6 +33,8 @@
     "@types/react-dom": "^19.2.5",
     "@types/three": "^0.179.0",
     "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/expect": "^4.1.7",
+    "@vitest/spy": "^4.1.7",
     "@webgpu/types": "^0.1.72",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-webgl": "^0.19.0",
@@ -47,10 +50,11 @@
     "flatbuffers": "^25.9.23",
     "hyperdb-wasm": "0.0.26792-dev.wasm.g72cc44c1",
     "immutable": "^5.1.9",
-    "jsdom": "^29.1.1",
     "json-schema-to-typescript": "^15.0.4",
     "jszip": "^3.10.1",
+    "mocha": "^12.0.0",
     "oauth-pkce": "^0.0.7",
+    "playwright-core": "1.63.0",
     "prettier": "^3.8.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -68,13 +72,6 @@
     "vite": "^8.0.14",
     "vite-plugin-checker": "^0.14.5",
     "vitest": "^4.1.7"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@bufbuild/buf",
-      "@parcel/watcher",
-      "electron"
-    ]
   },
   "browserslist": [
     "last 1 version",

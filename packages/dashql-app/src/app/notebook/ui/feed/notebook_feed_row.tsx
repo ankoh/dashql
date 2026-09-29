@@ -67,9 +67,47 @@ export interface ScriptCardProps {
     onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
     onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
     onEditorView: (scriptKey: number, view: EditorView) => void;
+    dependencies?: ScriptCardDependencies;
 }
 
+export interface ScriptCardDependencies {
+    useQueryState: typeof useQueryState;
+    useCancelQuery: typeof useCancelQuery;
+    computeQueryCacheKeyForConnection: typeof computeQueryCacheKeyForConnection;
+    useAgentRunState: typeof useAgentRunState;
+    useCancelAgentRun: typeof useCancelAgentRun;
+    ScriptEditor: typeof ScriptEditor;
+    ScriptDiagnosticsButton: typeof ScriptDiagnosticsButton;
+    ScriptStatisticsBar: typeof ScriptStatisticsBar;
+    formatScriptEditor: typeof formatScriptEditor;
+    isScriptFormattable: typeof isScriptFormattable;
+    CachedResultBean: typeof CachedResultBean;
+    QueryResultCacheLabel: typeof QueryResultCacheLabel;
+    QueryResultRerunButton: typeof QueryResultRerunButton;
+    EntryStatusBar: typeof EntryStatusBar;
+    FeedEntryFooter: typeof FeedEntryFooter;
+}
+
+const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
+    useQueryState,
+    useCancelQuery,
+    computeQueryCacheKeyForConnection,
+    useAgentRunState,
+    useCancelAgentRun,
+    ScriptEditor,
+    ScriptDiagnosticsButton,
+    ScriptStatisticsBar,
+    formatScriptEditor,
+    isScriptFormattable,
+    CachedResultBean,
+    QueryResultCacheLabel,
+    QueryResultRerunButton,
+    EntryStatusBar,
+    FeedEntryFooter,
+};
+
 export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) => {
+    const dependencies = props.dependencies ?? DEFAULT_SCRIPT_CARD_DEPENDENCIES;
     const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
     const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
     const PencilIcon: Icon = SymbolIcon('pencil_16');
@@ -77,14 +115,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
     const CrossIcon: Icon = SymbolIcon('x_16');
     const ExpandIcon: Icon = SymbolIcon('screen_full_16');
 
-    const queryState = useQueryState(props.notebookId, props.scriptData?.latestQueryId ?? null);
-    const cancelQuery = useCancelQuery();
-    const cancelAgentRun = useCancelAgentRun();
+    const queryState = dependencies.useQueryState(props.notebookId, props.scriptData?.latestQueryId ?? null);
+    const cancelQuery = dependencies.useCancelQuery();
+    const cancelAgentRun = dependencies.useCancelAgentRun();
     const queryActive = queryState != null && !queryIsDone(queryState.status);
 
     // Resolve the agent run by its id (handle) just like the query above — the run carries its
     // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
-    const agentRunState = useAgentRunState(props.scriptData?.latestAgentRunId ?? null);
+    const agentRunState = dependencies.useAgentRunState(props.scriptData?.latestAgentRunId ?? null);
     const agentTraceId = agentRunState?.traceId ?? null;
 
     // A staged rewrite waiting to be accepted/rejected. The editable editor renders the
@@ -112,7 +150,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                     return;
                 }
                 // Compute the query cache key
-                const cacheKey = await computeQueryCacheKeyForConnection(props.connection.details, compiled.cacheSignature);
+                const cacheKey = await dependencies.computeQueryCacheKeyForConnection(props.connection.details, compiled.cacheSignature);
                 // Cache key is null, then clear the cache if required
                 if (cacheKey == null) {
                     if ((wasCached == null || wasCached) && !cancel.signal.aborted) {
@@ -161,7 +199,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
     const [isEditing, setIsEditing] = React.useState(false);
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     const isFormattable = React.useMemo(
-        () => isScriptFormattable(props.scriptData ?? null),
+        () => dependencies.isScriptFormattable(props.scriptData ?? null),
         [props.scriptData?.scriptSession, props.scriptData?.editorUpdate?.stateRevision],
     );
     const handleEditorView = React.useCallback((view: EditorView) => {
@@ -169,7 +207,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
         if (props.scriptData != null) props.onEditorView(props.scriptData.scriptKey, view);
     }, [props.onEditorView, props.scriptData?.scriptKey]);
     const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
-        formatScriptEditor(
+        dependencies.formatScriptEditor(
             editorView,
             props.scriptData ?? null,
             mode,
@@ -259,11 +297,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                     </div>
                     {props.scriptDebugMode && props.scriptData != null && (
                         <div className={styles.feed_entry_stats_bar}>
-                            <ScriptStatisticsBar stats={props.scriptData.statistics} />
+                            <dependencies.ScriptStatisticsBar stats={props.scriptData.statistics} />
                         </div>
                     )}
                     {props.scriptData != null && (
-                        <ScriptDiagnosticsButton
+                        <dependencies.ScriptDiagnosticsButton
                             scriptData={props.scriptData}
                             isFormattable={isFormattable}
                         />
@@ -303,7 +341,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                 <div className={styles.feed_body}>
                     <div className={styles.feed_editor_container}>
                         {props.scriptData == null || !props.active ? null : (
-                            <ScriptEditor
+                            <dependencies.ScriptEditor
                                 notebookId={props.notebookId}
                                 scriptKey={props.scriptData.scriptKey}
                                 className={styles.feed_script_editor}
@@ -340,7 +378,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                 </div>
                 {hasFooterContent && (
                     <div className={styles.feed_entry_footer}>
-                        <EntryStatusBar
+                        <dependencies.EntryStatusBar
                             status={entryStatus}
                             onToggleExpanded={() => {
                                 if (scriptKey != null) props.onToggleResultExpanded(scriptKey);
@@ -352,9 +390,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                             compact
                             actions={
                                 <>
-                                    {isCached && <CachedResultBean />}
-                                    <QueryResultCacheLabel query={queryState} />
-                                    <QueryResultRerunButton
+                                    {isCached && <dependencies.CachedResultBean />}
+                                    <dependencies.QueryResultCacheLabel query={queryState} />
+                                    <dependencies.QueryResultRerunButton
                                         query={queryState}
                                         onRerun={(cacheKey) => props.onRerun(props.scriptFileName, cacheKey)}
                                     />
@@ -363,7 +401,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                         />
                         {(queryState != null || agentTraceId != null) ? (
                             <div id={resultContentId} hidden={!props.resultExpanded}>
-                                <FeedEntryFooter
+                                <dependencies.FeedEntryFooter
                                     notebookId={props.notebookId}
                                     queryState={queryState}
                                     agentTraceId={agentTraceId}
@@ -416,9 +454,23 @@ export interface ScriptFeedRowProps {
     onCreate: (index: number) => void;
     onEditorView: (scriptKey: number, view: EditorView) => void;
     onRowHeightChange: (index: number, height: number) => void;
+    dependencies?: ScriptFeedRowDependencies;
 }
 
+export interface ScriptFeedRowDependencies {
+    useSortable: typeof useSortable;
+    translateTransform: typeof CSS.Translate.toString;
+    scriptCard: ScriptCardDependencies;
+}
+
+const DEFAULT_SCRIPT_FEED_ROW_DEPENDENCIES: ScriptFeedRowDependencies = {
+    useSortable,
+    translateTransform: CSS.Translate.toString,
+    scriptCard: DEFAULT_SCRIPT_CARD_DEPENDENCIES,
+};
+
 export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
+    const dependencies = props.dependencies ?? DEFAULT_SCRIPT_FEED_ROW_DEPENDENCIES;
     const isSeparator = props.index % 2 === 0;
     const entryIndex = Math.floor(props.index / 2);
     const entry = !isSeparator ? props.entries[entryIndex] : undefined;
@@ -435,7 +487,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         transform,
         transition,
         isDragging,
-    } = useSortable({
+    } = dependencies.useSortable({
         id: entry?.scriptId ?? `separator-${entryIndex}`,
         disabled: { draggable: isSeparator, droppable: isSeparator },
         // The optimistic order is already the final dropped layout. Suppress dnd-kit's derived
@@ -491,7 +543,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 style={{
                     // dnd-kit may scale the active item toward a differently sized target row.
                     // Feed cards have variable heights, so scaling visibly squashes or stretches them.
-                    transform: CSS.Translate.toString(transform),
+                    transform: dependencies.translateTransform(transform),
                     transition,
                     zIndex: isDragging ? 1 : undefined,
                 }}
@@ -540,6 +592,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onAutoCollapseResult={props.onAutoCollapseResult}
                     onResetAutoCollapsedResult={props.onResetAutoCollapsedResult}
                     onEditorView={props.onEditorView}
+                    dependencies={dependencies.scriptCard}
                 />
             </div>
         </div>

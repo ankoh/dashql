@@ -59,3 +59,9 @@
 
 /shell.html
   Cache-Control: public, max-age=0, must-revalidate
+
+/tests.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/tests-frame.html
+  Cache-Control: public, max-age=0, must-revalidate

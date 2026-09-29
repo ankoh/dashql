@@ -47,11 +47,49 @@ export interface ScriptDetailsProps {
     scriptId?: number;
     initialTab?: ScriptDetailsTab;
     navigateToScript?: (scriptKey: number) => void;
+    dependencies?: ScriptDetailsDependencies;
 }
 
+export interface ScriptDetailsDependencies {
+    useAppConfig: typeof useAppConfig;
+    useLogger: typeof useLogger;
+    useKeyEvents: typeof useKeyEvents;
+    useQueryState: typeof useQueryState;
+    useCancelQuery: typeof useCancelQuery;
+    useQueryExecutor: typeof useQueryExecutor;
+    useAgentRunState: typeof useAgentRunState;
+    useCancelAgentRun: typeof useCancelAgentRun;
+    useStorageReader: typeof useStorageReader;
+    formatScriptEditor: typeof formatScriptEditor;
+    isScriptFormattable: typeof isScriptFormattable;
+    runNotebookScript: typeof runNotebookScript;
+    ScriptDetailsEditorPane: typeof ScriptDetailsEditorPane;
+    ScriptDetailsOutputPane: typeof ScriptDetailsOutputPane;
+    VerticalSplit: typeof VerticalSplit;
+}
+
+const DEFAULT_DEPENDENCIES: ScriptDetailsDependencies = {
+    useAppConfig,
+    useLogger,
+    useKeyEvents,
+    useQueryState,
+    useCancelQuery,
+    useQueryExecutor,
+    useAgentRunState,
+    useCancelAgentRun,
+    useStorageReader,
+    formatScriptEditor,
+    isScriptFormattable,
+    runNotebookScript,
+    ScriptDetailsEditorPane,
+    ScriptDetailsOutputPane,
+    VerticalSplit,
+};
+
 export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
-    const config = useAppConfig();
-    const logger = useLogger();
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    const config = dependencies.useAppConfig();
+    const logger = dependencies.useLogger();
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
 
     const notebookEntry = props.scriptId != null
@@ -106,11 +144,11 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
 
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const isFormattable = React.useMemo(
-        () => isScriptFormattable(scriptData),
+        () => dependencies.isScriptFormattable(scriptData),
         [scriptData?.scriptSession, scriptData?.editorUpdate?.stateRevision],
     );
     const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
-        formatScriptEditor(editorView, scriptData, mode, (text) => {
+        dependencies.formatScriptEditor(editorView, scriptData, mode, (text) => {
             if (scriptData == null) return;
             props.modifyNotebookScripts({
                 type: SET_SCRIPT_TEXT,
@@ -156,7 +194,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     }, [props.navigateToScript, props.notebookScripts.scripts, props.modifyNotebookScripts]);
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
-    const activeQueryState = useQueryState(props.notebookScripts?.notebookId ?? null, activeQueryId);
+    const activeQueryState = dependencies.useQueryState(props.notebookScripts?.notebookId ?? null, activeQueryId);
     const autoCollapsedQueryIdRef = React.useRef<number | null>(null);
     React.useEffect(() => {
         const queryId = activeQueryState?.queryId ?? activeQueryId;
@@ -175,19 +213,19 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const handleToggleResultExpanded = React.useCallback(() => {
         setResultExpanded(expanded => !expanded);
     }, []);
-    const cancelQuery = useCancelQuery();
-    const cancelAgentRun = useCancelAgentRun();
+    const cancelQuery = dependencies.useCancelQuery();
+    const cancelAgentRun = dependencies.useCancelAgentRun();
 
     // Refresh: drop the stale cache entry for this result, then re-execute — a plain cacheable run
     // then misses the cache and re-populates it. Surfaced on the Data/Chart tab headers when the
     // current result was served from cache.
-    const executeQuery = useQueryExecutor();
-    const storageReader = useStorageReader();
+    const executeQuery = dependencies.useQueryExecutor();
+    const storageReader = dependencies.useStorageReader();
     const handleExecute = React.useCallback(() => {
         if (scriptData == null || props.connection?.connectionHealth !== ConnectionHealth.ONLINE) {
             return;
         }
-        runNotebookScript(props.connection.databaseId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+        dependencies.runNotebookScript(props.connection.databaseId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
     }, [props.connection?.connectionHealth, props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, logger]);
     const handleRerun = React.useCallback(async (cacheKey: string | null) => {
         if (scriptData == null) {
@@ -199,11 +237,11 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
             await storageReader.backend.deleteQueryResultCache(props.notebookScripts.notebookId, cacheKey).catch(() => { });
         }
         if (props.connection != null) {
-            runNotebookScript(props.connection.databaseId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
+            dependencies.runNotebookScript(props.connection.databaseId, props.notebookScripts, scriptData, executeQuery, props.modifyNotebookScripts, logger);
         }
     }, [props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, storageReader, logger]);
 
-    const agentRunState = useAgentRunState(scriptData?.latestAgentRunId ?? null);
+    const agentRunState = dependencies.useAgentRunState(scriptData?.latestAgentRunId ?? null);
     const visualizeQuery = scriptData?.annotations.visualizeQuery ?? null;
 
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
@@ -244,7 +282,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         ],
         [props.hideDetails, isEditingName, cancelNameEdit, editorView, handleExecute],
     );
-    useKeyEvents(keyHandlers);
+    dependencies.useKeyEvents(keyHandlers);
 
     React.useEffect(() => {
         if (editorView == null || (props.initialTab != null && props.initialTab !== ScriptDetailsTab.Editor)) {
@@ -270,7 +308,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 key={notebookEntry?.scriptId}
                 className={styles.entry_single}
             >
-                <VerticalSplit
+                <dependencies.VerticalSplit
                     className={styles.entry_split}
                     defaultRatio={0.4}
                     minFirstSize={160}
@@ -279,7 +317,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                     collapsedSecondSize={40}
                     separatorLabel="Resize script editor and result"
                     first={(
-                        <ScriptDetailsEditorPane
+                        <dependencies.ScriptDetailsEditorPane
                             notebookId={props.notebookScripts.notebookId}
                             scriptData={scriptData}
                             scriptDisplay={scriptDisplay}
@@ -316,7 +354,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                         />
                     )}
                     second={(
-                        <ScriptDetailsOutputPane
+                        <dependencies.ScriptDetailsOutputPane
                             query={activeQueryState}
                             agentRun={agentRunState}
                             visualizeQuery={visualizeQuery}

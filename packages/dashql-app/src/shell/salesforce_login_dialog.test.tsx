@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -136,9 +136,10 @@ describe('useSalesforceLoginDialog', () => {
 
         await act(async () => {
             historyButton.click();
-            await Promise.resolve();
-            await Promise.resolve();
         });
+        await vi.waitFor(() => expect(
+            document.querySelector('ul[aria-label="Recent Salesforce logins"]'),
+        ).not.toBeNull());
 
         expect(historyButton.getAttribute('aria-expanded')).toBe('true');
         expect(loadHistory).toHaveBeenCalledOnce();
@@ -191,14 +192,18 @@ describe('useSalesforceLoginDialog', () => {
         const historyButton = document.querySelector<HTMLButtonElement>('button[aria-label="Recent Salesforce logins"]')!;
         await act(async () => {
             historyButton.click();
-            await Promise.resolve();
-            await Promise.resolve();
         });
+        await vi.waitFor(() => expect(
+            document.querySelector('button[aria-label="Delete production from recent logins"]'),
+        ).not.toBeNull());
 
         const deleteButton = document.querySelector<HTMLButtonElement>(
             'button[aria-label="Delete production from recent logins"]',
         )!;
         await act(async () => deleteButton.click());
+        await vi.waitFor(() => expect(
+            document.querySelector('ul[aria-label="Recent Salesforce logins"]'),
+        ).toBeNull());
 
         expect(deleteHistoryEntry).toHaveBeenCalledWith('00D000000000001');
         expect(document.querySelector('ul[aria-label="Recent Salesforce logins"]')).toBeNull();

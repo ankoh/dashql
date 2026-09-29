@@ -17,6 +17,15 @@ import { useCreateComputeQueryExecution } from './computation_query_execution.js
 
 const LOG_CTX = 'scheduler';
 
+export const COMPUTATION_OPERATIONS = {
+    computeColumnAggregates: computationLogic.computeColumnAggregates,
+    computeFilteredColumnAggregates: computationLogic.computeFilteredColumnAggregates,
+    computeSystemColumns: computationLogic.computeSystemColumns,
+    computeTableAggregates: computationLogic.computeTableAggregates,
+    filterTable: computationLogic.filterTable,
+    searchData: computationLogic.searchData,
+    sortTable: computationLogic.sortTable,
+};
 
 export type ComputationTask<Type, Task, Result> = VariantKind<Type, Task> & {
     result: AsyncValue<Result, LoggableException>,
@@ -112,7 +121,7 @@ export async function processTask(
         switch (task.type) {
             case TABLE_FILTERING_TASK: {
                 // Filter the table
-                const filter = await computationLogic.filterTable(task.value, traced, executeQuery);
+                const filter = await COMPUTATION_OPERATIONS.filterTable(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: TABLE_FILTERING_SUCCEEDED,
@@ -124,7 +133,7 @@ export async function processTask(
             }
             case TABLE_ORDERING_TASK: {
                 // Sort the table
-                const ordered = await computationLogic.sortTable(task.value, traced, executeQuery);
+                const ordered = await COMPUTATION_OPERATIONS.sortTable(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: TABLE_ORDERING_SUCCEDED,
@@ -135,7 +144,7 @@ export async function processTask(
                 break;
             }
             case DATA_SEARCH_TASK: {
-                const searchTable = await computationLogic.searchData(task.value, traced, executeQuery);
+                const searchTable = await COMPUTATION_OPERATIONS.searchData(task.value, traced, executeQuery);
                 dispatchComputation({
                     type: DATA_SEARCH_SUCCEEDED,
                     value: [task.value.tableId, task.value.inputDataFrame, task.value.requestId, searchTable],
@@ -145,7 +154,7 @@ export async function processTask(
             }
             case TABLE_AGGREGATION_TASK: {
                 // Aggregate the table
-                const [tableAgg, colEntries] = await computationLogic.computeTableAggregates(task.value, traced, executeQuery);
+                const [tableAgg, colEntries] = await COMPUTATION_OPERATIONS.computeTableAggregates(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: TABLE_AGGREGATION_SUCCEEDED,
@@ -157,7 +166,7 @@ export async function processTask(
             }
             case SYSTEM_COLUMN_COMPUTATION_TASK: {
                 // Compute the system columns
-                const [table, dataFrame, columnGroups] = await computationLogic.computeSystemColumns(task.value, traced, executeQuery);
+                const [table, dataFrame, columnGroups] = await COMPUTATION_OPERATIONS.computeSystemColumns(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: SYSTEM_COLUMN_COMPUTATION_SUCCEEDED,
@@ -169,7 +178,7 @@ export async function processTask(
             }
             case COLUMN_AGGREGATION_TASK:
                 // Compute column aggregates
-                const columnAgg = await computationLogic.computeColumnAggregates(task.value, traced, executeQuery);
+                const columnAgg = await COMPUTATION_OPERATIONS.computeColumnAggregates(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: COLUMN_AGGREGATION_SUCCEEDED,
@@ -180,7 +189,7 @@ export async function processTask(
                 break;
             case FILTERED_COLUMN_AGGREGATION_TASK:
                 // Filtered column aggregates
-                const filteredColumnAgg = await computationLogic.computeFilteredColumnAggregates(task.value, traced, executeQuery);
+                const filteredColumnAgg = await COMPUTATION_OPERATIONS.computeFilteredColumnAggregates(task.value, traced, executeQuery);
                 // Mark as succeeded
                 dispatchComputation({
                     type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED,

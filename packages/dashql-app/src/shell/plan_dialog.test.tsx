@@ -2,30 +2,28 @@ import * as React from 'react';
 import * as dashql from '../core/index.js';
 
 import { EditorView } from '@codemirror/view';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { usePlanDialog, type PlanDialogController } from './plan_dialog.js';
+import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import {
+    usePlanDialog,
+    type PlanDialogController,
+    type PlanDialogDependencies,
+} from './plan_dialog.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-vi.mock('../platform/logger/logger_provider.js', () => ({
-    useLogger: () => ({ debug: vi.fn() }),
-}));
-vi.mock('../app/notebook/compute/ui/plan/plan_view.js', async () => {
-    const React = await import('react');
-    const dashql = await import('../core/index.js');
-    return {
-        createPlanLayoutConfig: () => new dashql.buffers.view.PlanLayoutConfigT(),
-        PlanView: (props: { plan: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>; autoFocus?: boolean }) => React.createElement(
-            'div',
-            {
-                'aria-label': `Query execution plan with ${props.plan.read().operatorsLength()} operators`,
-                'data-auto-focus': props.autoFocus,
-            },
-        ),
-    };
-});
+
+const dependencies: PlanDialogDependencies = {
+    createPlanLayoutConfig: () => new dashql.buffers.view.PlanLayoutConfigT(),
+    PlanView: props => (
+        <div
+            aria-label={`Query execution plan with ${props.plan.read().operatorsLength()} operators`}
+            data-auto-focus={props.autoFocus}
+        />
+    ),
+};
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -81,9 +79,13 @@ describe('query plan dialog', () => {
     };
 
     const Harness = () => {
-        const planDialog = usePlanDialog(appEvents);
+        const planDialog = usePlanDialog(appEvents, dependencies);
         controller = planDialog.controller;
-        return <div><button type="button">Open plan</button>{planDialog.dialog}</div>;
+        return (
+            <LoggerProvider>
+                <div><button type="button">Open plan</button>{planDialog.dialog}</div>
+            </LoggerProvider>
+        );
     };
 
     beforeEach(() => {

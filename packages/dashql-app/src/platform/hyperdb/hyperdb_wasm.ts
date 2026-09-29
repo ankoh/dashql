@@ -14,6 +14,11 @@ const COMPUTE_DATABASE_NAME = '__dashql_compute';
 const DEFAULT_DATABASE_NAME = 'hyper';
 const DATABASE_SCHEMA = 'public';
 
+export interface HyperDBOptions {
+    databasePrefix?: string;
+    terminateClient?: boolean;
+}
+
 export type HyperDBResult =
     | { state: 'ok'; payload: Uint8Array }
     | { state: 'pending' }
@@ -158,14 +163,27 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
     private termination: Promise<void> | null = null;
     private terminated = false;
     private databaseOperation: Promise<void> = Promise.resolve();
+    private readonly computeDatabaseName: string;
+    private readonly defaultDatabaseName: string;
+    private readonly terminateClient: boolean;
 
     constructor(
         private readonly client: HyperDBEngineClient,
         private readonly settings?: HyperDBSettings,
-    ) {}
+        options: HyperDBOptions = {},
+    ) {
+        const prefix = options.databasePrefix ?? '';
+        this.computeDatabaseName = `${prefix}${COMPUTE_DATABASE_NAME}`;
+        this.defaultDatabaseName = `${prefix}${DEFAULT_DATABASE_NAME}`;
+        this.terminateClient = options.terminateClient ?? true;
+    }
 
-    static async create(client: HyperDBEngineClient, settings?: HyperDBSettings): Promise<HyperDB> {
-        const database = new HyperDB(client, settings);
+    static async create(
+        client: HyperDBEngineClient,
+        settings?: HyperDBSettings,
+        options?: HyperDBOptions,
+    ): Promise<HyperDB> {
+        const database = new HyperDB(client, settings, options);
         await database.initialize();
         return database;
     }
@@ -177,10 +195,11 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
         }
 
         const connectionHandle = readHandle(await this.client.connect(), 'connect');
-        const databaseName = options.defaultDatabase === 'hyper' ? DEFAULT_DATABASE_NAME : COMPUTE_DATABASE_NAME;
+        const databaseName = options.defaultDatabase === 'hyper' ? this.defaultDatabaseName : this.computeDatabaseName;
+        const databaseAlias = options.defaultDatabase === 'hyper' ? DEFAULT_DATABASE_NAME : COMPUTE_DATABASE_NAME;
         try {
             expectOK(
-                await this.client.attachDatabase(connectionHandle, databaseName, databaseName),
+                await this.client.attachDatabase(connectionHandle, databaseName, databaseAlias),
                 'attach database',
             );
         } catch (error) {
@@ -189,12 +208,12 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
         }
 
         if (this.termination || this.terminated) {
-            expectOK(await this.client.detachDatabase(connectionHandle, databaseName), 'detach database');
+            expectOK(await this.client.detachDatabase(connectionHandle, databaseAlias), 'detach database');
             expectOK(await this.client.disconnect(connectionHandle), 'disconnect');
             throw new Error('database is terminated');
         }
 
-        const connection = new HyperDBConnection(this.client, connectionHandle, databaseName, () => {
+        const connection = new HyperDBConnection(this.client, connectionHandle, databaseAlias, () => {
             this.connections.delete(connection);
         });
         this.connections.add(connection);
@@ -251,10 +270,12 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
             this.termination = (async () => {
                 try {
                     await Promise.all([...this.connections].map(connection => connection.closeForTermination()));
-                    expectOK(await this.client.dropDatabase(DEFAULT_DATABASE_NAME), 'drop default database');
-                    expectOK(await this.client.dropDatabase(COMPUTE_DATABASE_NAME), 'drop compute database');
-                    expectOK(await this.client.shutdown(), 'shutdown');
-                    await this.client.terminate();
+                    expectOK(await this.client.dropDatabase(this.defaultDatabaseName), 'drop default database');
+                    expectOK(await this.client.dropDatabase(this.computeDatabaseName), 'drop compute database');
+                    if (this.terminateClient) {
+                        expectOK(await this.client.shutdown(), 'shutdown');
+                        await this.client.terminate();
+                    }
                     this.terminated = true;
                 } catch (error) {
                     this.termination = null;
@@ -278,8 +299,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
                         'initialize HyperDB settings',
                     );
                 }
-                expectOK(await this.client.createDatabase(COMPUTE_DATABASE_NAME, false), 'create compute database');
-                expectOK(await this.client.createDatabase(DEFAULT_DATABASE_NAME, false), 'create default database');
+                expectOK(await this.client.createDatabase(this.computeDatabaseName, false), 'create compute database');
+                expectOK(await this.client.createDatabase(this.defaultDatabaseName, false), 'create default database');
             })().catch(error => {
                 this.initialization = null;
                 throw error;

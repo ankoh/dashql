@@ -36,12 +36,30 @@ export interface ScriptEditorProps {
     setView?: (view: EditorView) => void;
     onFocus?: () => void;
     onNavigateToScript?: (scriptKey: number) => void;
+    dependencies?: ScriptEditorDependencies;
 }
 
+export interface ScriptEditorDependencies {
+    CodeMirror: typeof CodeMirror;
+    createCodeMirrorExtensions: typeof createCodeMirrorExtensions;
+    useNotebookScripts: typeof useNotebookScripts;
+    useAppConfig: typeof useAppConfig;
+    useLogger: typeof useLogger;
+}
+
+const DEFAULT_DEPENDENCIES: ScriptEditorDependencies = {
+    CodeMirror,
+    createCodeMirrorExtensions,
+    useNotebookScripts,
+    useAppConfig,
+    useLogger,
+};
+
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
-    const logger = useLogger();
-    const config = useAppConfig();
-    const [scripts, modifyScripts] = useNotebookScripts(props.notebookId);
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    const logger = dependencies.useLogger();
+    const config = dependencies.useAppConfig();
+    const [scripts, modifyScripts] = dependencies.useNotebookScripts(props.notebookId);
 
     const scriptData = scripts?.scripts[props.scriptKey] ?? null;
 
@@ -61,7 +79,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
         if (config == null || view == null || scriptData == null || scripts == null) return;
-        updateEditor(view, scripts, scriptData, modifyScripts, logger, config, props.onNavigateToScript);
+        updateEditor(view, scripts, scriptData, modifyScripts, logger, config, dependencies.createCodeMirrorExtensions, props.onNavigateToScript);
     }, [
         config,
         view,
@@ -86,7 +104,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
 
     return (
         <div className={containerClass} onFocusCapture={props.onFocus}>
-            <CodeMirror
+            <dependencies.CodeMirror
                 ref={setViewState}
                 initialDoc={scriptData?.scriptSession.getText() ?? ''}
                 style={props.autoHeight ? { height: 'auto' } : undefined}
@@ -95,7 +113,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     );
 };
 
-function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: ScriptData, modifyScripts: ModifyNotebookScripts, logger: Logger, _config: AppConfig, onNavigateToScript?: (scriptKey: number) => void) {
+function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: ScriptData, modifyScripts: ModifyNotebookScripts, logger: Logger, _config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
@@ -114,7 +132,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
         }, LOG_CTX);
         // When that happens we have to reset the editor state.
         // It means that someone gave us a new notebook script that requires a state update
-        const extensions = createCodeMirrorExtensions();
+        const extensions = createExtensions();
         const newState = EditorState.create({ doc: scriptText, extensions });
         view.setState(newState);
     }

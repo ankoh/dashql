@@ -4,7 +4,7 @@ import { PlatformFile } from '../../platform/file/file.js';
 import type { NotebookBundle } from '../notebook/persistence/notebook_bundle.js';
 import { readNotebookBundleFromZip } from '../notebook/persistence/notebook_import.js';
 import { useNotebookImport } from '../notebook/persistence/notebook_import_provider.js';
-import { NotebookImportCard } from '../notebook/ui/notebook_import_card.js';
+import { NotebookImportCard, type NotebookImportCardDependencies } from '../notebook/ui/notebook_import_card.js';
 import { OPEN_LINK_NOTEBOOK, useRouterNavigate } from '../router/router.js';
 
 type PreparationPhase = 'reading' | 'validating';
@@ -16,14 +16,28 @@ type FileLoadState =
     | { phase: 'importing'; bundle: NotebookBundle; fileByteCount: number }
     | { phase: 'failed'; failedPhase: PreparationPhase | 'importing'; error: Error; fileByteCount: number | null };
 
+export interface FileLoaderDependencies {
+    notebookImportCard?: NotebookImportCardDependencies;
+    readNotebookBundleFromZip: typeof readNotebookBundleFromZip;
+    useNotebookImport(): Pick<ReturnType<typeof useNotebookImport>, 'importPortableBundle'>;
+    useRouterNavigate: typeof useRouterNavigate;
+}
+
+const DEFAULT_DEPENDENCIES: FileLoaderDependencies = {
+    readNotebookBundleFromZip,
+    useNotebookImport,
+    useRouterNavigate,
+};
+
 interface Props {
     file: PlatformFile;
     onDone(): void;
+    dependencies?: FileLoaderDependencies;
 }
 
-export function FileLoader({ file, onDone }: Props): React.ReactElement {
-    const navigate = useRouterNavigate();
-    const { importPortableBundle } = useNotebookImport();
+export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }: Props): React.ReactElement {
+    const navigate = dependencies.useRouterNavigate();
+    const { importPortableBundle } = dependencies.useNotebookImport();
     const [attempt, setAttempt] = React.useState(0);
     const [state, setState] = React.useState<FileLoadState>({ phase: 'reading' });
     const prepareFile = React.useEffectEvent(async (input: PlatformFile, signal: AbortSignal) => {
@@ -35,7 +49,7 @@ export function FileLoader({ file, onDone }: Props): React.ReactElement {
             setState({ phase: 'validating', fileByteCount: bytes.byteLength });
             const zipBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
             const zipBlob = new Blob([zipBuffer], { type: 'application/zip' });
-            const bundle = await readNotebookBundleFromZip(zipBlob);
+            const bundle = await dependencies.readNotebookBundleFromZip(zipBlob);
             signal.throwIfAborted();
 
             setState({ phase: 'ready', bundle, fileByteCount: bytes.byteLength });
@@ -87,18 +101,18 @@ export function FileLoader({ file, onDone }: Props): React.ReactElement {
 
     switch (state.phase) {
         case 'reading':
-            return <NotebookImportCard phase="file-loading" sourcePath={file.path} stage="reading" fileByteCount={null} onClose={requestClose} />;
+            return <NotebookImportCard phase="file-loading" sourcePath={file.path} stage="reading" fileByteCount={null} onClose={requestClose} dependencies={dependencies.notebookImportCard} />;
         case 'validating':
-            return <NotebookImportCard phase="file-loading" sourcePath={file.path} stage="validating" fileByteCount={state.fileByteCount} onClose={requestClose} />;
+            return <NotebookImportCard phase="file-loading" sourcePath={file.path} stage="validating" fileByteCount={state.fileByteCount} onClose={requestClose} dependencies={dependencies.notebookImportCard} />;
         case 'ready':
             return <NotebookImportCard phase="file-ready" sourcePath={file.path} fileByteCount={state.fileByteCount}
-                bundle={state.bundle} busy={false} onImport={requestImport} onClose={requestClose} />;
+                bundle={state.bundle} busy={false} onImport={requestImport} onClose={requestClose} dependencies={dependencies.notebookImportCard} />;
         case 'importing':
             return <NotebookImportCard phase="file-ready" sourcePath={file.path} fileByteCount={state.fileByteCount}
-                bundle={state.bundle} busy onImport={requestImport} onClose={requestClose} />;
+                bundle={state.bundle} busy onImport={requestImport} onClose={requestClose} dependencies={dependencies.notebookImportCard} />;
         case 'failed':
             return <NotebookImportCard phase="file-error" sourcePath={file.path} fileByteCount={state.fileByteCount}
-                failedStage={state.failedPhase} errorMessage={state.error.message} onRetry={retry} onClose={requestClose} />;
+                failedStage={state.failedPhase} errorMessage={state.error.message} onRetry={retry} onClose={requestClose} dependencies={dependencies.notebookImportCard} />;
     }
 }
 

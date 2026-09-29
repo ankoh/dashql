@@ -17,14 +17,27 @@ import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status
 import type { NotebookFileTreeNavigationLevel } from './notebook_file_tree.js';
 import { getHyperConnectionDetails } from '../connections/hyper/hyper_connection_state.js';
 
+export interface ConnectionCommandListDependencies {
+    StatusIndicator: typeof StatusIndicator;
+    useNotebookCommandDispatch: typeof useNotebookCommandDispatch;
+}
+
+const DEFAULT_CONNECTION_COMMAND_LIST_DEPENDENCIES: ConnectionCommandListDependencies = {
+    StatusIndicator,
+    useNotebookCommandDispatch,
+};
+
 export const ConnectionCommandList: React.FC<{
     conn: AttachedDatabaseState | null;
     notebookScripts: NotebookScripts | null;
     navigationDisabled?: boolean;
     onOpenSettings?: () => void;
     settingsRef?: React.Ref<HTMLButtonElement>;
+    dependencies?: ConnectionCommandListDependencies;
 }> = (props) => {
-    const notebookCommand = useNotebookCommandDispatch();
+    const dependencies = props.dependencies ?? DEFAULT_CONNECTION_COMMAND_LIST_DEPENDENCIES;
+    const notebookCommand = dependencies.useNotebookCommandDispatch();
+    const StatusIndicatorComponent = dependencies.StatusIndicator;
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
 
@@ -76,7 +89,7 @@ export const ConnectionCommandList: React.FC<{
             >
                 <ActionList.Leading>
                     {isRefreshing
-                        ? <StatusIndicator status={IndicatorStatus.Running} width="16px" height="16px" />
+                        ? <StatusIndicatorComponent status={IndicatorStatus.Running} width="16px" height="16px" />
                         : <SyncIcon />}
                 </ActionList.Leading>
                 <ActionList.ItemText>

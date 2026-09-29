@@ -155,6 +155,7 @@ interface DashQLShellModuleCacheEntry {
 
 const shellModuleGlobal = globalThis as typeof globalThis & {
     __dashqlShellModuleCache?: DashQLShellModuleCacheEntry;
+    __DASHQL_TEST_SHARE_SHELL_MODULE__?: boolean;
 };
 
 export interface DashQLShellPrompt {
@@ -318,7 +319,8 @@ export class DashQLShell {
         };
 
         let module: DashQLShellModule;
-        if (options.wasmBinary != null || options.instantiateWasm != null) {
+        if ((options.wasmBinary != null || options.instantiateWasm != null)
+            && !shellModuleGlobal.__DASHQL_TEST_SHARE_SHELL_MODULE__) {
             module = await instantiateModule(options.onProgress);
         } else {
             let entry = shellModuleGlobal.__dashqlShellModuleCache;

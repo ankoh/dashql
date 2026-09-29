@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type * as dashql from '../../../../../core/index.js';
 import { ResizeObserverMock } from '../../../../../test/view_mocks.js';
 import type { PlanScene, PlanSceneOperator } from './plan_scene.js';
-import { formatEstimateSymbol, PlanView } from './plan_view.js';
+import { formatEstimateSymbol, PlanView, type PlanViewDependencies } from './plan_view.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
@@ -117,10 +117,9 @@ const scene: PlanScene = {
     pipelines: [],
 };
 
-vi.mock('./plan_scene.js', async importOriginal => ({
-    ...await importOriginal<typeof import('./plan_scene.js')>(),
+const dependencies: PlanViewDependencies = {
     materializePlanScene: () => scene,
-}));
+};
 
 describe('formatEstimateSymbol', () => {
     it('maps estimate-relative differences to seven ordered bands', () => {
@@ -149,7 +148,7 @@ describe('PlanView keyboard navigation', () => {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        act(() => root.render(<PlanView plan={plan} />));
+        act(() => root.render(<PlanView plan={plan} dependencies={dependencies} />));
     });
 
     afterEach(() => {
@@ -179,7 +178,7 @@ describe('PlanView keyboard navigation', () => {
     }
 
     function renderPlan(edgeRendering?: React.ComponentProps<typeof PlanView>['edgeRendering']) {
-        act(() => root.render(<PlanView plan={plan} edgeRendering={edgeRendering} />));
+        act(() => root.render(<PlanView plan={plan} edgeRendering={edgeRendering} dependencies={dependencies} />));
     }
 
     function selectAnnotation(label: string) {
@@ -355,7 +354,7 @@ describe('PlanView keyboard navigation', () => {
 
     it('focuses the plan viewport on mount when requested', () => {
         act(() => root.render(
-            <PlanView plan={plan} autoFocus />,
+            <PlanView plan={plan} autoFocus dependencies={dependencies} />,
         ));
 
         expect(document.activeElement).toBe(container.querySelector('[role="region"]'));

@@ -1,16 +1,23 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type AttachedDatabaseState } from '../connections/attached_database_state.js';
 
-const state = vi.hoisted(() => ({ refreshCatalog: vi.fn() }));
+const refreshCatalog = vi.fn();
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
-vi.mock('../connections/catalog_loader.js', () => ({ useCatalogLoaderQueue: () => state.refreshCatalog }));
 
-import { AttachedDatabaseRefreshButton, AttachedDatabaseRowMenu } from './notebook_workbench_sidebar.js';
+import {
+    AttachedDatabaseRefreshButton,
+    AttachedDatabaseRowMenu,
+    type AttachedDatabaseRefreshDependencies,
+} from './notebook_workbench_sidebar.js';
+
+const dependencies: AttachedDatabaseRefreshDependencies = {
+    useCatalogLoaderQueue: () => refreshCatalog,
+};
 
 function database(): AttachedDatabaseState {
     return {
@@ -34,7 +41,7 @@ describe('AttachedDatabaseRowMenu', () => {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        state.refreshCatalog.mockReset();
+        refreshCatalog.mockReset();
     });
 
     afterEach(() => {
@@ -48,6 +55,7 @@ describe('AttachedDatabaseRowMenu', () => {
                 database={database()}
                 label="Hyper / WASM"
                 onOpenSettings={onOpenSettings}
+                dependencies={dependencies}
             />,
         ));
         act(() => {
@@ -73,17 +81,17 @@ describe('AttachedDatabaseRowMenu', () => {
         renderMenu();
         clickAction('Refresh');
 
-        expect(state.refreshCatalog).toHaveBeenCalledWith('database-1', true);
+        expect(refreshCatalog).toHaveBeenCalledWith('database-1', true);
     });
 
     it('also exposes the inline catalog refresh action', () => {
         act(() => root.render(
-            <AttachedDatabaseRefreshButton database={database()} label="Hyper / WASM" />,
+            <AttachedDatabaseRefreshButton database={database()} label="Hyper / WASM" dependencies={dependencies} />,
         ));
         act(() => {
             (container.querySelector('[aria-label="Refresh catalog for Hyper / WASM"]') as HTMLButtonElement).click();
         });
 
-        expect(state.refreshCatalog).toHaveBeenCalledWith('database-1', true);
+        expect(refreshCatalog).toHaveBeenCalledWith('database-1', true);
     });
 });

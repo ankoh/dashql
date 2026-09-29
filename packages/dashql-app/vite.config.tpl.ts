@@ -11,7 +11,7 @@ const HYPERDB_WASM_VERSION = "__HYPERDB_WASM_VERSION__";
 export default vite.defineConfig(({ mode, command }) => {
     const isElectronBuild = mode === 'electron';
     const isReloc = mode === 'reloc' || isElectronBuild;
-    const isTest = mode === 'test';
+    const includesBrowserTests = mode === 'pages' || mode === 'development';
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
     const PUBLIC_DIR = path.resolve(rootDir, "__PUBLIC_DIR__");
@@ -36,7 +36,7 @@ export default vite.defineConfig(({ mode, command }) => {
             // output fileName as a deep ../../execroot/... traversal, which Rolldown rejects.
             // Intercept absolute HTML resolution and return the id unchanged to preserve the
             // sandbox symlink path.
-            ...(!isTest ? [{
+            {
                 name: 'bazel-preserve-html-entry-symlinks',
                 enforce: 'pre' as const,
                 resolveId(id: string): string | undefined {
@@ -44,11 +44,23 @@ export default vite.defineConfig(({ mode, command }) => {
                         return id;
                     }
                 },
+            },
+            ...(includesBrowserTests ? [{
+                name: 'dashql-browser-test-file',
+                enforce: 'pre' as const,
+                transform(code: string, id: string): string | undefined {
+                    const cleanId = id.split('?', 1)[0]?.split(path.sep).join('/');
+                    if (!cleanId || !/\.test\.(ts|tsx)$/.test(cleanId)) return;
+                    const sourceIndex = cleanId.lastIndexOf('/src/');
+                    if (sourceIndex < 0) return;
+                    const file = cleanId.slice(sourceIndex + 1);
+                    return `globalThis.__DASHQL_SET_CURRENT_TEST_FILE__(${JSON.stringify(file)});\n${code}`;
+                },
             }] : []),
-            ...(isTest ? [] : [checker({
+            checker({
                 enableBuild: false,
                 typescript: true,
-            })]),
+            }),
         ],
         root: rootDir,
         publicDir: PUBLIC_DIR,
@@ -63,6 +75,10 @@ export default vite.defineConfig(({ mode, command }) => {
                     ...(isElectronBuild
                         ? { hyperdb_capability: path.resolve(rootDir, "hyperdb-capability.html") }
                         : {}),
+                    ...(includesBrowserTests ? {
+                        tests: path.resolve(rootDir, "tests.html"),
+                        tests_frame: path.resolve(rootDir, "tests-frame.html"),
+                    } : {}),
                 },
                 external: (id) => {
                     if (typeof id !== 'string') return false;
@@ -99,11 +115,6 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),
         },
         resolve: {
-            // In the Bazel sandbox, source files are symlinks pointing to the execroot.
-            // Rolldown follows symlinks during module resolution, converting sandbox paths
-            // to /@fs/[execroot-path] URLs that Vite 8 then blocks via server.fs.allow.
-            // Preserving symlinks in test mode keeps paths as sandbox paths (under rootDir).
-            ...(isTest ? { preserveSymlinks: true } : {}),
             alias: [
                 { find: /@ankoh\/dashql-flatbuf/, replacement: FLATBUF_PATH },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
@@ -124,7 +135,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@ankoh\/dashql-shell-wasm(\?.*)?$/,
                     replacement: SHELL_WASM_PATH + "$1",
                 },
-                ...(!isTest ? [{
+                {
                     find: /^@dashql\/hyperdb-wasm-worker\?url$/,
                     replacement: path.resolve(rootDir, '../../node_modules/hyperdb-wasm/dist/browser_worker.js') + '?url',
                 }, {
@@ -133,27 +144,20 @@ export default vite.defineConfig(({ mode, command }) => {
                 }, {
                     find: /^@dashql\/hyperdb-wasm\?url$/,
                     replacement: path.resolve(rootDir, '../../node_modules/hyperdb-wasm/dist/hyperdb-wasm.wasm.br') + '?url',
-                }] : []),
+                },
                 {
                     find: /^@dashql\/umap-wasm(\?.*)?$/,
                     replacement: UMAP_JS_PATH + "$1",
                 },
                 { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
-                // Test-only mocks for asset imports (replacing Jest moduleNameMapper)
-                ...(isTest ? [
-                    {
-                        find: /^@dashql\/hyperdb-wasm(?:-js|-worker)?(?:\?url)?$/,
-                        replacement: path.resolve(rootDir, "utils/file_mock.ts"),
-                    },
-                    {
-                        find: /^.+\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$/,
-                        replacement: path.resolve(rootDir, "utils/file_mock.ts")
-                    },
-                    {
-                        find: /^.+\.(css|styl|less|sass|scss)$/,
-                        replacement: path.resolve(rootDir, "utils/style_mock.ts")
-                    },
-                ] : []),
+                {
+                    find: /^@dashql\/browser-test-act$/,
+                    replacement: path.resolve(rootDir, "src/tests/react_act.ts"),
+                },
+                ...(includesBrowserTests ? [{
+                    find: /^vitest$/,
+                    replacement: path.resolve(rootDir, "src/tests/vitest_compat.ts"),
+                }] : []),
             ],
         },
         css: {
@@ -192,14 +196,6 @@ export default vite.defineConfig(({ mode, command }) => {
                         path.join(path.dirname(UMAP_JS_PATH), "pkg"),
                     ]
                         .map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } });
-                    // In the Bazel processwrapper sandbox, source files are symlinks pointing
-                    // into the execroot. Vite 8 strictly enforces server.fs.allow, so we must
-                    // add the real execroot app root. Follow vitest_setup.ts (dirname x2) to
-                    // find it: utils/vitest_setup.ts -> packages/dashql-app/ in bazel-out.
-                    try {
-                        const real = nodeFs.realpathSync(path.resolve(rootDir, "utils/vitest_setup.ts"));
-                        paths.push(path.dirname(path.dirname(real)));
-                    } catch { /* not in Bazel sandbox */ }
                     return paths;
                 })()),
             },
@@ -227,23 +223,6 @@ export default vite.defineConfig(({ mode, command }) => {
                     },
                 },
             },
-        },
-        test: {
-            globals: true,
-            environment: 'jsdom',
-            // HyperDB WASM owns native file descriptors, which are process-wide and
-            // unsafe to share between Node worker threads.
-            pool: 'forks',
-            execArgv: ['--experimental-wasm-exnref'],
-            maxWorkers: 4,
-            testTimeout: 60_000,
-            hookTimeout: 60_000,
-            setupFiles: [
-                path.resolve(rootDir, "utils/vitest_setup.ts")
-            ],
-            include: ["src/**/*.test.{ts,tsx}"],
-            reporter: 'default',
-            coverage: { reporter: [], provider: undefined, enabled: false },
         },
     };
 });

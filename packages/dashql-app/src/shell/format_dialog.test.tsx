@@ -1,17 +1,15 @@
 import * as React from 'react';
 import * as dashql from '../core/index.js';
 
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { EditorView } from '@codemirror/view';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { useFormatDialog, type FormatDialogController } from './format_dialog.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-vi.mock('../platform/logger/logger_provider.js', () => ({
-    useLogger: () => ({ debug: vi.fn() }),
-}));
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -56,7 +54,11 @@ describe('SQL formatter dialog', () => {
     const Harness = () => {
         const formatDialog = useFormatDialog();
         controller = formatDialog.controller;
-        return <div><button type="button">Open formatter</button>{formatDialog.dialog}</div>;
+        return (
+            <LoggerProvider>
+                <div><button type="button">Open formatter</button>{formatDialog.dialog}</div>
+            </LoggerProvider>
+        );
     };
 
     beforeEach(() => {
@@ -99,7 +101,7 @@ describe('SQL formatter dialog', () => {
     it('shows Compact and Pretty as immutable reversible views', async () => {
         const result = open();
         const raw = 'select count(*) from items where value > 1';
-        setEditorText(raw);
+        act(() => setEditorText(raw));
 
         act(() => modeButton('Compact').click());
         expect(editorText()).toBe('select count(*) from items where value > 1;');
@@ -159,7 +161,7 @@ describe('SQL formatter dialog', () => {
 
     it('opens shared editor search and closes search before the dialog on Escape', async () => {
         const result = open();
-        setEditorText('select one\nselect two');
+        act(() => setEditorText('select one\nselect two'));
 
         const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
         act(() => editorContent().dispatchEvent(new KeyboardEvent('keydown', {

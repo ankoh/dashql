@@ -1,13 +1,11 @@
-import * as fs from 'node:fs/promises';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '../../../../core/index.js';
+import { PREFETCHED_HYPER_FUNCTIONS_SQL } from '../prefetched_hyper_functions.js';
 import { updateSalesforceCatalog } from './salesforce_catalog_update.js';
 import type { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
-const FUNCTIONS_PATH = 'static/catalog/hyper/dashql-functions.sql';
 
 let dql: dashql.DashQL;
 
@@ -22,7 +20,7 @@ afterEach(() => {
 
 describe('updateSalesforceCatalog', () => {
     it('loads metadata relations and the prefetched function catalog', async () => {
-        const functionsSQL = await fs.readFile(FUNCTIONS_PATH, 'utf8');
+        const functionsSQL = PREFETCHED_HYPER_FUNCTIONS_SQL;
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(functionsSQL)));
         const api = {
             getDataCloudMetadata: vi.fn().mockResolvedValue({

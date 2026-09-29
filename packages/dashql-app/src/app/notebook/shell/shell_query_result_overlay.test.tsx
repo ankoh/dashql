@@ -1,41 +1,28 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
-import { act } from 'react';
+import type * as dashql from '../../../core/index.js';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { fakeButtonModule, fakeSymbolIconModule } from '../../../test/view_mocks.js';
+import { QueryExecutionStatus } from '../connections/query_execution_state.js';
+import {
+    ShellQueryResultOverlay,
+    type ShellQueryResultOverlayDependencies,
+} from './shell_query_result_overlay.js';
 
-vi.mock('../../../ui/foundations/button.js', async () => fakeButtonModule(await import('react')));
-vi.mock('../../../ui/foundations/symbol_icon.js', async () => fakeSymbolIconModule(await import('react')));
-vi.mock('../compute/ui/query_result/query_result_details.js', async () => {
-    const React = await import('react');
-    return { QueryResultDetails: () => React.createElement('div', { style: { height: 240 } }, 'Query results') };
-});
-vi.mock('../compute/ui/plan/hyper_plan_view.js', () => ({
+const dependencies: ShellQueryResultOverlayDependencies = {
+    QueryResultDetails: () => <div aria-label="Query results panel" style={{ height: 240 }}>Query results</div>,
     useHyperPlan: (planText: string | null) => ({
-        plan: planText?.includes('executiontarget') ? { read: () => ({}) } : null,
+        plan: planText?.includes('executiontarget')
+            ? { read: () => ({}) } as unknown as dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>
+            : null,
         rejected: planText != null && !planText.includes('executiontarget'),
     }),
-}));
-vi.mock('../compute/ui/plan/plan_view.js', async () => {
-    const React = await import('react');
-    return { PlanView: () => React.createElement('div', null, 'Query plan viewer') };
-});
-vi.mock('../ui/tab_header.js', async () => {
-    const React = await import('react');
-    return { TabHeader: (props: { title: string; actions?: React.ReactNode }) => React.createElement(
-        'div',
-        null,
-        props.title,
-        props.actions,
-    ) };
-});
-
-import { QueryExecutionStatus } from '../connections/query_execution_state.js';
-import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
+    PlanView: () => <div aria-label="Query plan viewer">Query plan viewer</div>,
+};
 
 describe('ShellQueryResultOverlay', () => {
     let container: HTMLDivElement;
@@ -61,6 +48,7 @@ describe('ShellQueryResultOverlay', () => {
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 onClose={onClose}
                 dismissOnClickOutside={false}
+                dependencies={dependencies}
             />,
         ));
 
@@ -76,6 +64,7 @@ describe('ShellQueryResultOverlay', () => {
             <ShellQueryResultOverlay
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 onClose={onClose}
+                dependencies={dependencies}
             />,
         ));
 
@@ -94,21 +83,31 @@ describe('ShellQueryResultOverlay', () => {
                     resultTable: arrow.tableFromArrays({ value: [plan] }),
                 } as any}
                 onClose={vi.fn()}
+                dependencies={dependencies}
             />,
         ));
 
-        expect(document.querySelector('button[aria-label="Query plan"]')).not.toBeNull();
-        expect(document.body.textContent).toContain('Query plan viewer');
-        expect(document.body.textContent).not.toContain('Query results');
+        const planButton = document.querySelector<HTMLButtonElement>('button[aria-label="Query plan"]')!;
+        const resultsButton = document.querySelector<HTMLButtonElement>('button[aria-label="Query results"]')!;
+        expect(planButton.getAttribute('aria-current')).toBe('page');
+        expect(resultsButton.getAttribute('aria-current')).toBeNull();
+        expect(document.querySelector('[aria-label="Query plan viewer"]')).not.toBeNull();
+        expect(document.querySelector('[aria-label="Query results panel"]')).toBeNull();
         expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight)
             .toBe('min(360px, 80vh)');
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Query results"]')!.click());
-        expect(document.body.textContent).toContain('Query results');
+        act(() => resultsButton.click());
+        expect(resultsButton.getAttribute('aria-current')).toBe('page');
+        expect(planButton.getAttribute('aria-current')).toBeNull();
+        expect(document.querySelector('[aria-label="Query results panel"]')).not.toBeNull();
+        expect(document.querySelector('[aria-label="Query plan viewer"]')).toBeNull();
         expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight).toBe('');
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Query plan"]')!.click());
-        expect(document.body.textContent).toContain('Query plan viewer');
+        act(() => planButton.click());
+        expect(planButton.getAttribute('aria-current')).toBe('page');
+        expect(resultsButton.getAttribute('aria-current')).toBeNull();
+        expect(document.querySelector('[aria-label="Query plan viewer"]')).not.toBeNull();
+        expect(document.querySelector('[aria-label="Query results panel"]')).toBeNull();
         expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight)
             .toBe('min(360px, 80vh)');
     });
@@ -122,11 +121,12 @@ describe('ShellQueryResultOverlay', () => {
                     resultTable: arrow.tableFromArrays({ value: ['{"key":1}'] }),
                 } as any}
                 onClose={vi.fn()}
+                dependencies={dependencies}
             />,
         ));
 
         expect(document.querySelector('button[aria-label="Query plan"]')).toBeNull();
-        expect(document.body.textContent).toContain('Query results');
+        expect(document.querySelector('[aria-label="Query results panel"]')).not.toBeNull();
         expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.height).toBe('');
     });
 
@@ -143,6 +143,7 @@ describe('ShellQueryResultOverlay', () => {
                     resultTable: arrow.tableFromArrays({ value: [plan] }),
                 } as any}
                 onClose={vi.fn()}
+                dependencies={dependencies}
             />,
         ));
 

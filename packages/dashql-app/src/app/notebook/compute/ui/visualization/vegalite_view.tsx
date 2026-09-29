@@ -14,6 +14,31 @@ import {
     VegaStableScaleDomain,
 } from './vegalite_crossfilter.js';
 
+type VegaEmbed = typeof import('vega-embed').default;
+type VegaExpressionInterpreter = typeof import('vega-interpreter').expressionInterpreter;
+
+export interface VegaLiteViewDependencies {
+    loadVega(): Promise<{
+        embed: VegaEmbed;
+        expressionInterpreter: VegaExpressionInterpreter;
+    }>;
+    useComputationRegistry(): [ReturnType<typeof useComputationRegistry>[0]];
+}
+
+const DEFAULT_DEPENDENCIES: VegaLiteViewDependencies = {
+    async loadVega() {
+        const [embed, interpreter] = await Promise.all([import('vega-embed'), import('vega-interpreter')]);
+        return {
+            embed: embed.default,
+            expressionInterpreter: interpreter.expressionInterpreter,
+        };
+    },
+    useComputationRegistry: () => {
+        const [state] = useComputationRegistry();
+        return [state];
+    },
+};
+
 interface Props {
     query: QueryExecutionState | null;
     vegaLiteSpec: TopLevelSpec | null;
@@ -32,6 +57,7 @@ interface Props {
     /// thumbnail), so the compact rendering strips them by injecting `legend: null` into every
     /// encoding channel. Defaults to false (legends shown as authored).
     hideLegend?: boolean;
+    dependencies?: VegaLiteViewDependencies;
 }
 
 /// The encoding channels that can produce a legend in Vega-Lite. Setting `legend: null` on any of
@@ -97,7 +123,8 @@ export function VegaLiteView(props: Props): React.ReactElement {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const crossFilterUpdaterRef = React.useRef<VegaCrossFilterUpdater | null>(null);
     const [error, setError] = React.useState<string | null>(null);
-    const [computationState] = useComputationRegistry();
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    const [computationState] = dependencies.useComputationRegistry();
 
     const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
     // Analysis emits a fresh spec object for editor transactions, including cursor-only updates.
@@ -172,16 +199,16 @@ export function VegaLiteView(props: Props): React.ReactElement {
         // Lazy-load vega-embed (and vega-interpreter, which avoids the
         // CSP-violating `Function()` eval that vega's default expression
         // compiler does) to keep them out of the import graph for non-vis paths.
-        Promise.all([import('vega-embed'), import('vega-interpreter')]).then(([embed, interp]) => {
+        dependencies.loadVega().then(({ embed, expressionInterpreter }) => {
             if (disposed) return;
             // `ast: true` makes vega parse expressions to an AST and gates the
             // `expr` option on, so vega-interpreter actually replaces the
             // default `new Function()` evaluator (which CSP forbids).
-            return embed.default(el, runtimeSpec, {
+            return embed(el, runtimeSpec, {
                 actions: false,
                 renderer: 'canvas',
                 ast: true,
-                expr: interp.expressionInterpreter,
+                expr: expressionInterpreter,
                 patch: compiledSpec => {
                     const stableScales = injectVegaStableScaleDomains(compiledSpec);
                     stableScaleDomains = stableScales.domains;
@@ -224,7 +251,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
             finalizeView?.();
             if (el) el.replaceChildren();
         };
-    }, [spec, rows, crossFilterBinding, width, height, scale, props.hideLegend]);
+    }, [spec, rows, crossFilterBinding, width, height, scale, props.hideLegend, dependencies]);
 
     if (!spec) {
         return <div className={styles.empty}>No visualization available</div>;

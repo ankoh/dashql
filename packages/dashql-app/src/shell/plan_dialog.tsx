@@ -6,7 +6,7 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
-import { createPlanLayoutConfig, PlanView } from '../app/notebook/compute/ui/plan/plan_view.js';
+import { createPlanLayoutConfig, PlanView, type PlanViewProps } from '../app/notebook/compute/ui/plan/plan_view.js';
 import { CodeMirror } from '../app/notebook/scripts/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
@@ -44,7 +44,20 @@ export interface PlanDialogHookResult {
 
 type PlanDialogEvents = Pick<PlatformEventListener, 'subscribeFallbackPasteEvents' | 'unsubscribeFallbackPasteEvents'>;
 
-export function usePlanDialog(appEvents: PlanDialogEvents): PlanDialogHookResult {
+export interface PlanDialogDependencies {
+    createPlanLayoutConfig: typeof createPlanLayoutConfig;
+    PlanView: React.ComponentType<PlanViewProps>;
+}
+
+const DEFAULT_DEPENDENCIES: PlanDialogDependencies = {
+    createPlanLayoutConfig,
+    PlanView,
+};
+
+export function usePlanDialog(
+    appEvents: PlanDialogEvents,
+    dependencies: PlanDialogDependencies = DEFAULT_DEPENDENCIES,
+): PlanDialogHookResult {
     const [resources, setResources] = React.useState<PlanResources | null>(null);
     const pendingRequestRef = React.useRef<PendingRequest | null>(null);
 
@@ -85,12 +98,20 @@ export function usePlanDialog(appEvents: PlanDialogEvents): PlanDialogHookResult
     const controller = React.useMemo<PlanDialogController>(() => ({ request }), [request]);
     return {
         controller,
-        dialog: resources == null ? null : <PlanDialog appEvents={appEvents} core={resources.core} onClose={dismiss} />,
+        dialog: resources == null ? null : (
+            <PlanDialog
+                appEvents={appEvents}
+                core={resources.core}
+                dependencies={dependencies}
+                onClose={dismiss}
+            />
+        ),
     };
 }
 
 interface PlanDialogProps extends PlanResources {
     appEvents: PlanDialogEvents;
+    dependencies: PlanDialogDependencies;
     onClose: () => void;
 }
 
@@ -99,6 +120,7 @@ function errorMessage(error: unknown): string {
 }
 
 function PlanDialog(props: PlanDialogProps) {
+    const PlanViewComponent = props.dependencies.PlanView;
     const headingId = React.useId();
     const dialogRef = React.useRef<HTMLElement>(null);
     const editorFocusRef = React.useRef<HTMLElement>(null);
@@ -110,7 +132,7 @@ function PlanDialog(props: PlanDialogProps) {
     const [diagnostic, setDiagnostic] = React.useState<string | null>(null);
     const onRawChangeRef = React.useRef<(text: string) => void>(() => {});
     const rawTextIsValidRef = React.useRef(false);
-    const layoutConfig = React.useMemo(() => createPlanLayoutConfig(false), []);
+    const layoutConfig = React.useMemo(() => props.dependencies.createPlanLayoutConfig(false), [props.dependencies]);
 
     const validate = React.useCallback((text: string): boolean => {
         setPlan(null);
@@ -238,7 +260,7 @@ function PlanDialog(props: PlanDialogProps) {
                     )}
                     {mode === PlanMode.Viewer && plan != null && (
                         <div className={styles.viewer}>
-                            <PlanView plan={plan} autoFocus />
+                            <PlanViewComponent plan={plan} autoFocus />
                         </div>
                     )}
                 </div>

@@ -56,7 +56,16 @@ export interface PlanViewProps {
     controllerRef?: React.RefObject<PlanExecutionController | null>;
     autoFocus?: boolean;
     edgeRendering?: PlanEdgeRenderingConfig;
+    dependencies?: PlanViewDependencies;
 }
+
+export interface PlanViewDependencies {
+    materializePlanScene: typeof materializePlanScene;
+}
+
+const DEFAULT_DEPENDENCIES: PlanViewDependencies = {
+    materializePlanScene,
+};
 
 export type PlanEdgeColorScheme = (value: number) => string;
 export const PLAN_EDGE_COLOR_SCHEME_PU_OR: PlanEdgeColorScheme = interpolatePuOr;
@@ -117,8 +126,8 @@ function formatRowCount(value: number): string {
     return Intl.NumberFormat('en-US').format(value);
 }
 
-export function PlanView({ plan, showProgress = false, controllerRef, autoFocus = false, edgeRendering }: PlanViewProps) {
-    const scene = React.useMemo(() => materializePlanScene(plan), [plan]);
+export function PlanView({ plan, showProgress = false, controllerRef, autoFocus = false, edgeRendering, dependencies = DEFAULT_DEPENDENCIES }: PlanViewProps) {
+    const scene = React.useMemo(() => dependencies.materializePlanScene(plan), [dependencies, plan]);
     const ownController = React.useRef<PlanExecutionController | null>(null);
     ownController.current ??= new PlanExecutionController();
     const controller = controllerRef?.current ?? ownController.current;

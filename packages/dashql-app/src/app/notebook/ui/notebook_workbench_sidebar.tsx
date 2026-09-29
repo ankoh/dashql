@@ -164,7 +164,64 @@ export function notebookSwitchMode(database: AttachedDatabaseState, hyperSetupAv
 interface Props {
     notebookScripts: NotebookScripts;
     closeAfterSelection?: () => void;
+    dependencies?: NotebookWorkbenchSidebarDependencies;
 }
+
+export interface NotebookWorkbenchSidebarDependencies {
+    useRouterNavigate: typeof useRouterNavigate;
+    useRouteContext: typeof useRouteContext;
+    useDynamicAttachedDatabaseDispatch: typeof useDynamicAttachedDatabaseDispatch;
+    useNotebookScriptsRegistry: typeof useNotebookScriptsRegistry;
+    useAttachedDatabaseRegistry: typeof useAttachedDatabaseRegistry;
+    useAttachedDatabaseStateAllocator: typeof useAttachedDatabaseStateAllocator;
+    useNotebookScriptsSetup: typeof useNotebookScriptsSetup;
+    useNotebookScriptsDeletion: typeof useNotebookScriptsDeletion;
+    useCancelAgentRun: typeof useCancelAgentRun;
+    useComputationRegistry: typeof useComputationRegistry;
+    useStorageReader: typeof useStorageReader;
+    useStorageWriter: typeof useStorageWriter;
+    useHyperSetup: typeof useHyperSetup;
+    useDashQLCoreSetup: typeof useDashQLCoreSetup;
+    useNotebookImport: typeof useNotebookImport;
+    usePlatformType: typeof usePlatformType;
+    useLogger: typeof useLogger;
+    useInvalidNotebookRegistry: typeof useInvalidNotebookRegistry;
+    useNotebookAttachedDatabases: typeof useNotebookAttachedDatabases;
+    createDefaultHyperWasmAttachedDatabaseState: typeof createDefaultHyperWasmAttachedDatabaseState;
+    BundledNotebooksOverlay: typeof BundledNotebooksOverlay;
+    ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
+    NotebookStorageOverlay: typeof NotebookStorageOverlay;
+    NotebookURLShareOverlay: typeof NotebookURLShareOverlay;
+    NotebookFileSaveOverlay: typeof NotebookFileSaveOverlay;
+}
+
+const DEFAULT_NOTEBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: NotebookWorkbenchSidebarDependencies = {
+    useRouterNavigate,
+    useRouteContext,
+    useDynamicAttachedDatabaseDispatch,
+    useNotebookScriptsRegistry,
+    useAttachedDatabaseRegistry,
+    useAttachedDatabaseStateAllocator,
+    useNotebookScriptsSetup,
+    useNotebookScriptsDeletion,
+    useCancelAgentRun,
+    useComputationRegistry,
+    useStorageReader,
+    useStorageWriter,
+    useHyperSetup,
+    useDashQLCoreSetup,
+    useNotebookImport,
+    usePlatformType,
+    useLogger,
+    useInvalidNotebookRegistry,
+    useNotebookAttachedDatabases,
+    createDefaultHyperWasmAttachedDatabaseState,
+    BundledNotebooksOverlay,
+    ConnectionSettingsOverlay,
+    NotebookStorageOverlay,
+    NotebookURLShareOverlay,
+    NotebookFileSaveOverlay,
+};
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const ColumnsIcon = SymbolIcon('columns_16');
@@ -470,9 +527,10 @@ interface NotebookRowMenuProps {
     item: NotebookItem;
     onDuplicate: () => void;
     onDelete: () => void;
+    dependencies: NotebookWorkbenchSidebarDependencies;
 }
 
-const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, onDelete }) => {
+const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, onDelete, dependencies }) => {
     const [open, setOpen] = React.useState(false);
     const [shareOpen, setShareOpen] = React.useState(false);
     const [exportOpen, setExportOpen] = React.useState(false);
@@ -508,7 +566,7 @@ const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, on
         >
             <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${item.label}`}>
                 <ActionList.List aria-label={`Actions for ${item.label}`}>
-                    <NotebookStorageOverlay
+                    <dependencies.NotebookStorageOverlay
                         notebookId={item.notebookId}
                         isOpen={storageOpen}
                         onClose={() => setStorageOpen(false)}
@@ -534,7 +592,7 @@ const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, on
                         <ActionList.Leading><LinkIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>
                             Share as URL
-                            <NotebookURLShareOverlay
+                            <dependencies.NotebookURLShareOverlay
                                 notebookId={item.notebookId}
                                 isOpen={shareOpen}
                                 setIsOpen={setShareOpen}
@@ -548,7 +606,7 @@ const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, on
                         <ActionList.Leading><FileZipIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>
                             Export .dashql
-                            <NotebookFileSaveOverlay
+                            <dependencies.NotebookFileSaveOverlay
                                 isOpen={exportOpen}
                                 setIsOpen={setExportOpen}
                                 conn={item.database}
@@ -575,12 +633,21 @@ interface AttachedDatabaseRowMenuProps {
     database: AttachedDatabaseState;
     label: string;
     onOpenSettings: (anchor: HTMLButtonElement) => void;
+    dependencies?: AttachedDatabaseRefreshDependencies;
 }
 
-export const AttachedDatabaseRowMenu: React.FC<AttachedDatabaseRowMenuProps> = ({ database, label, onOpenSettings }) => {
+export interface AttachedDatabaseRefreshDependencies {
+    useCatalogLoaderQueue: typeof useCatalogLoaderQueue;
+}
+
+const DEFAULT_ATTACHED_DATABASE_REFRESH_DEPENDENCIES: AttachedDatabaseRefreshDependencies = {
+    useCatalogLoaderQueue,
+};
+
+export const AttachedDatabaseRowMenu: React.FC<AttachedDatabaseRowMenuProps> = ({ database, label, onOpenSettings, dependencies = DEFAULT_ATTACHED_DATABASE_REFRESH_DEPENDENCIES }) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
-    const refreshCatalog = useCatalogLoaderQueue();
+    const refreshCatalog = dependencies.useCatalogLoaderQueue();
     const isRefreshing = isCatalogRefreshRunning(database);
     const canRefresh = canRefreshAttachedDatabase(database);
 
@@ -645,10 +712,11 @@ export const AttachedDatabaseRowMenu: React.FC<AttachedDatabaseRowMenuProps> = (
 interface AttachedDatabaseRefreshButtonProps {
     database: AttachedDatabaseState;
     label: string;
+    dependencies?: AttachedDatabaseRefreshDependencies;
 }
 
-export const AttachedDatabaseRefreshButton: React.FC<AttachedDatabaseRefreshButtonProps> = ({ database, label }) => {
-    const refreshCatalog = useCatalogLoaderQueue();
+export const AttachedDatabaseRefreshButton: React.FC<AttachedDatabaseRefreshButtonProps> = ({ database, label, dependencies = DEFAULT_ATTACHED_DATABASE_REFRESH_DEPENDENCIES }) => {
+    const refreshCatalog = dependencies.useCatalogLoaderQueue();
     const isRefreshing = isCatalogRefreshRunning(database);
     const canRefresh = canRefreshAttachedDatabase(database);
 
@@ -675,9 +743,10 @@ interface NotebookRowProps {
     onOpen: (anchor: HTMLButtonElement) => void;
     onDuplicate: () => void;
     onDelete: () => void;
+    dependencies: NotebookWorkbenchSidebarDependencies;
 }
 
-const NotebookRow: React.FC<NotebookRowProps> = ({ item, selected, onOpen, onDuplicate, onDelete }) => {
+const NotebookRow: React.FC<NotebookRowProps> = ({ item, selected, onOpen, onDuplicate, onDelete, dependencies }) => {
     const title = item.scripts.name?.trim() || null;
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.notebookId });
     return (
@@ -706,7 +775,7 @@ const NotebookRow: React.FC<NotebookRowProps> = ({ item, selected, onOpen, onDup
                 <BookIcon size={14} aria-hidden="true" />
                 <span className={title ? styles.notebook_name : styles.notebook_path}>{title ?? item.path}</span>
             </button>
-            <NotebookRowMenu item={item} onDuplicate={onDuplicate} onDelete={onDelete} />
+            <NotebookRowMenu item={item} onDuplicate={onDuplicate} onDelete={onDelete} dependencies={dependencies} />
         </li>
     );
 };
@@ -736,25 +805,26 @@ const InvalidNotebookRow: React.FC<{ item: InvalidNotebookItem; onDelete: () => 
 );
 
 export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
-    const navigate = useRouterNavigate();
-    const route = useRouteContext();
-    const [databaseRegistry, databaseDispatch] = useDynamicAttachedDatabaseDispatch();
-    const [scriptsRegistry, setScriptsRegistry] = useNotebookScriptsRegistry();
-    const [, setDatabaseRegistry] = useAttachedDatabaseRegistry();
-    const allocateDatabase = useAttachedDatabaseStateAllocator();
-    const setupNotebookScripts = useNotebookScriptsSetup();
-    const deleteNotebookScripts = useNotebookScriptsDeletion();
-    const cancelAgentRun = useCancelAgentRun();
-    const [, computationDispatch] = useComputationRegistry();
-    const storageReader = useStorageReader();
-    const storageWriter = useStorageWriter();
-    const hyperSetup = useHyperSetup();
-    const setupCore = useDashQLCoreSetup();
-    const notebookImport = useNotebookImport();
-    const platform = usePlatformType();
-    const logger = useLogger();
-    const { invalidNotebooks, deleteInvalidNotebook } = useInvalidNotebookRegistry();
-    const attached = useNotebookAttachedDatabases(props.notebookScripts.notebookId);
+    const dependencies = props.dependencies ?? DEFAULT_NOTEBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES;
+    const navigate = dependencies.useRouterNavigate();
+    const route = dependencies.useRouteContext();
+    const [databaseRegistry, databaseDispatch] = dependencies.useDynamicAttachedDatabaseDispatch();
+    const [scriptsRegistry, setScriptsRegistry] = dependencies.useNotebookScriptsRegistry();
+    const [, setDatabaseRegistry] = dependencies.useAttachedDatabaseRegistry();
+    const allocateDatabase = dependencies.useAttachedDatabaseStateAllocator();
+    const setupNotebookScripts = dependencies.useNotebookScriptsSetup();
+    const deleteNotebookScripts = dependencies.useNotebookScriptsDeletion();
+    const cancelAgentRun = dependencies.useCancelAgentRun();
+    const [, computationDispatch] = dependencies.useComputationRegistry();
+    const storageReader = dependencies.useStorageReader();
+    const storageWriter = dependencies.useStorageWriter();
+    const hyperSetup = dependencies.useHyperSetup();
+    const setupCore = dependencies.useDashQLCoreSetup();
+    const notebookImport = dependencies.useNotebookImport();
+    const platform = dependencies.usePlatformType();
+    const logger = dependencies.useLogger();
+    const { invalidNotebooks, deleteInvalidNotebook } = dependencies.useInvalidNotebookRegistry();
+    const attached = dependencies.useNotebookAttachedDatabases(props.notebookScripts.notebookId);
     const attachedDatabaseRows = React.useMemo(
         () => attached == null ? [] : attachedDatabaseDisplayOrder(attached),
         [attached?.main, attached?.attached],
@@ -859,7 +929,7 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
     const beginCreateNotebook = React.useCallback((anchor: HTMLButtonElement) => {
         if (pendingNotebookRef.current != null) return;
         const notebookId = crypto.randomUUID();
-        const database = allocateDatabase(notebookId, createDefaultHyperWasmAttachedDatabaseState(
+        const database = allocateDatabase(notebookId, dependencies.createDefaultHyperWasmAttachedDatabaseState(
             props.notebookScripts.instance,
             databaseRegistry.attachedDatabasesBySignature,
         ));
@@ -1062,7 +1132,7 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
                 <header className={styles.section_header}>
                     <h2 id="workbench-notebooks-heading" className={styles.section_heading}>Notebooks</h2>
                     <div className={styles.section_actions}>
-                        <BundledNotebooksOverlay
+                        <dependencies.BundledNotebooksOverlay
                             side={AnchorSide.OutsideBottom}
                             align={AnchorAlignment.End}
                             triggerSize={ButtonSize.Small}
@@ -1114,6 +1184,7 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
                                     onOpen={anchor => openNotebook(item, anchor)}
                                     onDuplicate={() => { void duplicateNotebook(item); }}
                                     onDelete={() => { void deleteNotebook(item); }}
+                                    dependencies={dependencies}
                                 />
                             ))}
                             {invalidItems.map(item => (
@@ -1150,7 +1221,7 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
                     />}
                 </div>
             </section>
-            <ConnectionSettingsOverlay
+            <dependencies.ConnectionSettingsOverlay
                 databaseId={connectionOverlayDatabaseId}
                 isOpen={connectionOverlayDatabaseId != null}
                 onClose={closeConnectionOverlay}

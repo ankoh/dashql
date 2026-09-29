@@ -11,6 +11,14 @@ import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { ChevronDownIcon, ChevronRightIcon } from '../../../ui/foundations/symbol_icon.js';
 import { classNames } from '../../../utils/classnames.js';
 
+export interface EntryStatusBarDependencies {
+    AnchoredOverlay: typeof AnchoredOverlay;
+}
+
+const DEFAULT_DEPENDENCIES: EntryStatusBarDependencies = {
+    AnchoredOverlay,
+};
+
 interface EntryStatusBarProps {
     /// The derived status to show. When null the caller shouldn't render the bar at all.
     status: EntryStatus;
@@ -26,6 +34,7 @@ interface EntryStatusBarProps {
     /// so the bar never nests interactive controls.
     actions?: React.ReactNode;
     compact?: boolean;
+    dependencies?: EntryStatusBarDependencies;
 }
 
 const ErrorDetailCard: React.FC<{
@@ -59,11 +68,12 @@ const ErrorDetailCard: React.FC<{
 /// The result-card header: it renders a spinner (or check/cross) plus a one-line status message and
 /// optionally toggles the result content below it. Failed-query details are available from a
 /// separate control so the toggle never contains nested interactive elements.
-export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggleExpanded, expanded, controls, onCancel, cancelLabel = 'Cancel operation', actions, compact }) => {
+export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggleExpanded, expanded, controls, onCancel, cancelLabel = 'Cancel operation', actions, compact, dependencies = DEFAULT_DEPENDENCIES }) => {
     const [showDetail, setShowDetail] = React.useState(false);
     const hasErrorDetail = status.errorDetail != null;
     const CancelIcon = SymbolIcon('x_16');
     const InfoIcon = SymbolIcon('info_circle_16');
+    const AnchoredOverlayComponent = dependencies.AnchoredOverlay;
 
     const message = (
         <span className={styles.status_bar_message}>
@@ -73,7 +83,7 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
     // Keep error details separate from the log button. Nesting the overlay's focusable anchor inside
     // that button would create two interactive controls in one another.
     const errorDetail = hasErrorDetail ? (
-        <AnchoredOverlay
+        <AnchoredOverlayComponent
             open={showDetail}
             onOpen={() => setShowDetail(true)}
             onClose={() => setShowDetail(false)}
@@ -95,7 +105,7 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
             }}
         >
             <ErrorDetailCard detail={status.errorDetail!} onClose={() => setShowDetail(false)} />
-        </AnchoredOverlay>
+        </AnchoredOverlayComponent>
     ) : null;
     const indicator = (
         <StatusIndicator

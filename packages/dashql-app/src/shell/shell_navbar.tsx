@@ -93,18 +93,22 @@ const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) 
 interface ShellNavBarProps {
     engineVersion: string | null;
     onReset: () => void;
+    Internals?: React.ComponentType;
 }
 
-export const ShellNavBar: React.FC<ShellNavBarProps> = (props: ShellNavBarProps) => (
-    <header className={styles.navbar}>
-        <button type="button" className={styles.brand} aria-label="Reset shell" onClick={props.onReset}>
-            <svg className={styles.brand_logo} width="100%" height="100%" aria-hidden="true">
-                <use xlinkHref={`${symbols}#hyper_banner`} />
-            </svg>
-        </button>
-        <nav className={styles.actions} aria-label="Shell utilities">
-            <ShellInternals />
-            <VersionButton engineVersion={props.engineVersion} />
-        </nav>
-    </header>
-);
+export const ShellNavBar: React.FC<ShellNavBarProps> = (props: ShellNavBarProps) => {
+    const Internals = props.Internals ?? ShellInternals;
+    return (
+        <header className={styles.navbar}>
+            <button type="button" className={styles.brand} aria-label="Reset shell" onClick={props.onReset}>
+                <svg className={styles.brand_logo} width="100%" height="100%" aria-hidden="true">
+                    <use xlinkHref={`${symbols}#hyper_banner`} />
+                </svg>
+            </button>
+            <nav className={styles.actions} aria-label="Shell utilities">
+                <Internals />
+                <VersionButton engineVersion={props.engineVersion} />
+            </nav>
+        </header>
+    );
+};

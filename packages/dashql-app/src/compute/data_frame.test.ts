@@ -1,8 +1,7 @@
-// @vitest-environment node
 import * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createIsolatedNodeTestClient } from '../platform/hyperdb/hyperdb_test_client.js';
+import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
 import { DataFrame, DataFrameRegistry, generateTableName } from './data_frame.js';
@@ -19,20 +18,13 @@ function toPlainObjects(table: arrow.Table): any[] {
 
 describe('DataFrame', () => {
     let database: HyperDB | null = null;
-    let releaseClient: (() => Promise<void>) | null = null;
 
     beforeEach(async () => {
-        const { client, release } = await createIsolatedNodeTestClient();
-        releaseClient = release;
-        database = await HyperDB.create(client);
+        database = await setupWebHyperDB('data_frame_test', new TestLogger());
     }, 60_000);
 
     afterEach(async () => {
-        try {
-            await database?.terminate();
-        } finally {
-            await releaseClient?.();
-        }
+        await database?.terminate();
     });
 
     it('keeps named tables readable across ad-hoc connections', async () => {

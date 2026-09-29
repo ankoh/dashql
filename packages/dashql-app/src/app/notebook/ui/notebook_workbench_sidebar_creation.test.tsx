@@ -1,13 +1,16 @@
 import * as React from 'react';
-import { act } from 'react';
+import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type AttachedDatabaseState } from '../connections/attached_database_state.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connections/connector_info.js';
+import { NotebookSetupStatus } from '../../router/notebook_setup_status.js';
+import { NotebookWorkbenchSidebar, type NotebookWorkbenchSidebarDependencies } from './notebook_workbench_sidebar.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
-const state = vi.hoisted(() => ({
+const state = {
     navigate: vi.fn(),
     dispatchDatabase: vi.fn(),
     setupNotebookScripts: vi.fn(),
@@ -20,25 +23,15 @@ const state = vi.hoisted(() => ({
     attachedDatabases: new Map<string, AttachedDatabaseState>(),
     attachedDatabasesByNotebook: new Map<string, { mainDatabaseId: string; attachedDatabaseIds: string[] }>(),
     notebookScriptsMap: new Map<string, unknown>(),
-}));
+};
 
-vi.mock('../../router/router.js', () => ({
-    CHANGE_NOTEBOOK: Symbol.for('change-notebook'),
-    OPEN_NOTEBOOK: Symbol.for('open-notebook'),
-    SELECT_NOTEBOOK: Symbol('SELECT_NOTEBOOK'),
-    useRouteContext: () => ({ notebookId: 'current-notebook', notebookSetupStatus: 0 }),
+const dependencies = {
     useRouterNavigate: () => state.navigate,
-}));
-vi.mock('../connections/connection_params.js', () => ({
-    createDefaultHyperWasmAttachedDatabaseState: () => ({ type: 'local' }),
-    getConnectionParamsFromStateDetails: () => null,
-}));
-vi.mock('../connections/attached_database_registry.js', () => ({
-    resolveNotebookAttachedDatabases: () => null,
+    useRouteContext: () => ({ notebookId: 'current-notebook', notebookSetupStatus: NotebookSetupStatus.NONE }),
     useAttachedDatabaseRegistry: () => [{
         attachedDatabases: state.attachedDatabases,
         attachedDatabasesByNotebook: state.attachedDatabasesByNotebook,
-    }],
+    }, vi.fn()],
     useNotebookAttachedDatabases: () => null,
     useDynamicAttachedDatabaseDispatch: () => [{
         attachedDatabases: state.attachedDatabases,
@@ -46,23 +39,13 @@ vi.mock('../connections/attached_database_registry.js', () => ({
         attachedDatabasesBySignature: new Map(),
     }, state.dispatchDatabase],
     useAttachedDatabaseStateAllocator: () => () => state.local,
-}));
-vi.mock('../connections/ui/connection_settings_overlay.js', () => ({
     ConnectionSettingsOverlay: (props: typeof state.overlayProps) => {
         state.overlayProps = props;
         return props?.isOpen ? <button onClick={() => props.onConnected?.(state.local!)}>Complete setup</button> : null;
     },
-}));
-vi.mock('../connections/catalog_loader.js', () => ({ useCatalogLoaderQueue: () => state.refreshCatalog }));
-vi.mock('../scripts/notebook_scripts_registry.js', () => ({
-    useNotebookScripts: () => [null, vi.fn()],
     useNotebookScriptsDeletion: () => vi.fn(),
     useNotebookScriptsRegistry: () => [{ notebookScriptsMap: state.notebookScriptsMap }],
-}));
-vi.mock('../scripts/notebook_scripts_setup.js', () => ({
     useNotebookScriptsSetup: () => state.setupNotebookScripts,
-}));
-vi.mock('../persistence/storage_provider.js', () => ({
     useStorageReader: () => ({
         backend: {},
         getNotebookLocation: () => ({ type: 'opfs' }),
@@ -73,32 +56,26 @@ vi.mock('../persistence/storage_provider.js', () => ({
         backend: {},
         cancelPendingWritesForNotebook: vi.fn(),
     }),
-}));
-vi.mock('../agent/agent_run_provider.js', () => ({ useCancelAgentRun: () => vi.fn() }));
-vi.mock('../../../compute/computation_registry.js', () => ({ useComputationRegistry: () => [null, vi.fn()] }));
-vi.mock('../../../platform/file/file_downloader_provider.js', () => ({ useFileDownloader: () => ({}) }));
-vi.mock('../../ui/bundled_notebooks_overlay.js', () => ({ BundledNotebooksOverlay: () => null }));
-vi.mock('./notebook_url_share_overlay.js', () => ({
+    useCancelAgentRun: () => vi.fn(),
+    useComputationRegistry: () => [null, vi.fn()],
+    BundledNotebooksOverlay: () => null,
+    NotebookStorageOverlay: () => null,
     NotebookURLShareOverlay: (props: typeof state.shareProps) => {
         state.shareProps = props;
         return props?.isOpen ? <div data-testid="share-url-overlay" /> : null;
     },
-}));
-vi.mock('./notebook_file_save_overlay.js', () => ({
     NotebookFileSaveOverlay: (props: typeof state.fileSaveProps) => {
         state.fileSaveProps = props;
         return props?.isOpen ? <div data-testid="file-save-overlay" /> : null;
     },
-}));
-vi.mock('../persistence/notebook_import_provider.js', () => ({ useNotebookImport: () => ({}) }));
-vi.mock('../persistence/invalid_notebook_registry.js', () => ({ useInvalidNotebookRegistry: () => ({ invalidNotebooks: new Map(), deleteInvalidNotebook: vi.fn() }) }));
-vi.mock('../../providers/core_provider.js', () => ({ useDashQLCoreSetup: () => vi.fn() }));
-vi.mock('../../../platform/logger/logger_provider.js', () => ({ useLogger: () => ({ warn: vi.fn(), error: vi.fn() }) }));
-vi.mock('../../../platform/platform_type.js', () => ({ PlatformType: { WEB: 0, MACOS: 1 }, usePlatformType: () => 0 }));
-vi.mock('../../router/notebook_setup_status.js', () => ({ NotebookSetupStatus: { NONE: 0, OPENING: 1, CONFIGURING: 2 } }));
-
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connections/connector_info.js';
-import { NotebookWorkbenchSidebar } from './notebook_workbench_sidebar.js';
+    useNotebookImport: () => ({}),
+    useInvalidNotebookRegistry: () => ({ invalidNotebooks: new Map(), deleteInvalidNotebook: vi.fn() }),
+    useDashQLCoreSetup: () => vi.fn(),
+    usePlatformType: () => 0,
+    useLogger: () => ({ warn: vi.fn(), error: vi.fn() }),
+    useHyperSetup: () => null,
+    createDefaultHyperWasmAttachedDatabaseState: () => ({ type: 'local' }),
+} as unknown as NotebookWorkbenchSidebarDependencies;
 
 describe('NotebookWorkbenchSidebar notebook creation', () => {
     let container: HTMLDivElement;
@@ -128,7 +105,7 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
         act(() => root.render(<NotebookWorkbenchSidebar notebookScripts={{
             notebookId: 'current-notebook',
             instance: {},
-        } as any} />));
+        } as any} dependencies={dependencies} />));
     });
 
     afterEach(() => {
@@ -184,7 +161,7 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
         act(() => root.render(<NotebookWorkbenchSidebar notebookScripts={{
             notebookId: 'current-notebook',
             instance: {},
-        } as any} />));
+        } as any} dependencies={dependencies} />));
 
         act(() => {
             Array.from(container.querySelectorAll('button'))
@@ -226,7 +203,7 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
         act(() => root.render(<NotebookWorkbenchSidebar notebookScripts={{
             notebookId,
             instance: {},
-        } as any} />));
+        } as any} dependencies={dependencies} />));
 
         click('More actions for Current notebook');
         const share = Array.from(document.querySelectorAll('button'))
@@ -253,7 +230,7 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
         act(() => root.render(<NotebookWorkbenchSidebar notebookScripts={{
             notebookId,
             instance: {},
-        } as any} />));
+        } as any} dependencies={dependencies} />));
 
         click('More actions for Current notebook');
         const exportItem = Array.from(document.querySelectorAll('button'))
