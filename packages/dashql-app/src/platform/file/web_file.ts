@@ -11,6 +11,18 @@ export class WebFile implements PlatformFile {
         this.path = path;
         this.file = file;
     }
+    /// The file size in bytes
+    get size(): number {
+        return this.file.size;
+    }
+    /// The browser Blob backing the file
+    get blob(): Blob {
+        return this.file;
+    }
+    /// Open a stream for reading the file
+    stream(): ReadableStream<Uint8Array> {
+        return this.file.stream();
+    }
     /// Read the file as array buffer
     async readAsArrayBuffer(): Promise<Uint8Array> {
         const fileBytes = await this.file.arrayBuffer();

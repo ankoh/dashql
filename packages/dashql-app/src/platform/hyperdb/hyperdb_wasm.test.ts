@@ -22,6 +22,7 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
     readonly calls: string[] = [];
     readonly queryResults = new Map<string, Uint8Array>();
     readonly temporaryFiles = new Map<string, Uint8Array>();
+    readonly externalFiles = new Map<string, { url: string; size: number }>();
     readonly insertedTables = new Map<string, arrow.Table>();
 
     connectCount = 0;
@@ -36,6 +37,7 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
     activeOperationCount = 0;
     maximumActiveOperationCount = 0;
     failStartQuery = false;
+    failExternalFileRemoval = false;
 
     private nextConnection = 7;
     private nextQuery = 100;
@@ -166,6 +168,20 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
         return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
     }
 
+    registerExternalFile(name: string, url: string, size: number): Promise<HyperDBResult> {
+        const path = `/mnt/files/${this.nextFile++}/${name}`;
+        this.calls.push(`register-external-file:${path}:${url}:${size}`);
+        this.externalFiles.set(path, { url, size });
+        return Promise.resolve({ state: 'ok', payload: new TextEncoder().encode(path) });
+    }
+
+    removeExternalFile(path: string): Promise<HyperDBResult> {
+        this.calls.push(`remove-external-file:${path}`);
+        if (this.failExternalFileRemoval) return Promise.resolve({ state: 'busy', error: 'External file has active readers' });
+        this.externalFiles.delete(path);
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
     pollQuery(query: number): Promise<HyperDBResult> {
         this.calls.push(`poll:${query}`);
         const results = this.queries.get(query);
@@ -206,6 +222,59 @@ function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
 }
 
 describe('HyperDB embedded database adapter', () => {
+    it('owns browser object URLs for external files', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const revoked: string[] = [];
+        const database = await HyperDB.create(client, undefined, {
+            createObjectURL: () => 'blob:test-file',
+            revokeObjectURL: url => { revoked.push(url); },
+        });
+
+        const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
+        expect(path).toBe('/mnt/files/1/data.csv');
+        expect(client.externalFiles.get(path)).toEqual({ url: 'blob:test-file', size: 5 });
+        expect(revoked).toEqual([]);
+
+        await database.removeExternalFile(path);
+        expect(revoked).toEqual(['blob:test-file']);
+        await database.terminate();
+    });
+
+    it('retains object URLs when external-file removal is busy', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const revoked: string[] = [];
+        const database = await HyperDB.create(client, undefined, {
+            createObjectURL: () => 'blob:busy-file',
+            revokeObjectURL: url => { revoked.push(url); },
+        });
+        const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
+        client.failExternalFileRemoval = true;
+
+        await expect(database.removeExternalFile(path)).rejects.toThrow('External file has active readers');
+        expect(revoked).toEqual([]);
+
+        client.failExternalFileRemoval = false;
+        await database.terminate();
+        expect(revoked).toEqual(['blob:busy-file']);
+    });
+
+    it('cleans external files during wrapper termination with a shared client', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const revoked: string[] = [];
+        const database = await HyperDB.create(client, undefined, {
+            terminateClient: false,
+            createObjectURL: () => 'blob:shared-file',
+            revokeObjectURL: url => { revoked.push(url); },
+        });
+        const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
+
+        await database.terminate();
+
+        expect(client.calls).toContain(`remove-external-file:${path}`);
+        expect(revoked).toEqual(['blob:shared-file']);
+        expect(client.terminateCount).toBe(0);
+    });
+
     it('attaches the compute database to each physical connection', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await HyperDB.create(client);

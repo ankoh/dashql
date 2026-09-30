@@ -2,8 +2,11 @@ import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { DataFrame, generateTableName } from '../../compute/data_frame.js';
+import { WebFile } from '../file/web_file.js';
+import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { createWebHyperDBClient } from './hyperdb_provider_web.js';
 import { HyperDB, type HyperDBEngineClient, type HyperDBResult } from './hyperdb_wasm.js';
+import type { OPFSFileImportOptions } from '../database/embedded_database.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));
@@ -102,6 +105,44 @@ class CountingClient implements HyperDBEngineClient {
 
     removeFile(path: string): Promise<HyperDBResult> {
         return this.client.removeFile(path);
+    }
+
+    registerExternalFile(name: string, url: string, size: number): Promise<HyperDBResult> {
+        return this.client.registerExternalFile(name, url, size);
+    }
+
+    removeExternalFile(path: string): Promise<HyperDBResult> {
+        return this.client.removeExternalFile(path);
+    }
+
+    importOPFSFile(path: string, blob: Blob, options?: OPFSFileImportOptions): Promise<void> {
+        if (this.client.importOPFSFile == null) throw new Error('importing OPFS files is not supported');
+        return this.client.importOPFSFile(path, blob, options);
+    }
+
+    prepareOPFSFile(path: string): Promise<void> {
+        if (this.client.prepareOPFSFile == null) throw new Error('preparing OPFS files is not supported');
+        return this.client.prepareOPFSFile(path);
+    }
+
+    writeOPFSFile(path: string, chunk: Uint8Array, offset: number): Promise<void> {
+        if (this.client.writeOPFSFile == null) throw new Error('writing OPFS files is not supported');
+        return this.client.writeOPFSFile(path, chunk, offset);
+    }
+
+    finishOPFSFile(path: string): Promise<void> {
+        if (this.client.finishOPFSFile == null) throw new Error('finishing OPFS files is not supported');
+        return this.client.finishOPFSFile(path);
+    }
+
+    abortOPFSFile(path: string): Promise<void> {
+        if (this.client.abortOPFSFile == null) throw new Error('aborting OPFS files is not supported');
+        return this.client.abortOPFSFile(path);
+    }
+
+    removeOPFSFile(path: string): Promise<void> {
+        if (this.client.removeOPFSFile == null) throw new Error('removing OPFS files is not supported');
+        return this.client.removeOPFSFile(path);
     }
 
     pollQuery(query: number): Promise<HyperDBResult> {
@@ -211,6 +252,67 @@ describe('HyperDB embedded database integration', () => {
 
         await connection.close();
     });
+
+    it('queries a browser Blob through a registered WasmFS path', async () => {
+        const connection = await database!.connect();
+        const blob = new Blob(['value,name\n1,alpha\n2,beta\n'], { type: 'text/csv' });
+        let path: string | null = null;
+        try {
+            path = await database!.registerExternalFile('values.csv', blob);
+            expect(path).toMatch(/^\/mnt\/files\/[^/]+\/values\.csv$/);
+            const result = await connection.query(`
+                SELECT sum(value) AS total
+                FROM external('${path}', format => 'csv', header => true,
+                    columns => descriptor(value bigint, name text))
+            `);
+            expect(toPlainObjects(result)).toEqual([{ total: 3n }]);
+
+            await database!.removeExternalFile(path);
+            await expect(connection.query(`SELECT * FROM external('${path}', format => 'csv')`)).rejects.toThrow();
+            path = null;
+        } finally {
+            if (path != null) await ignoreCleanupFailure(() => database!.removeExternalFile(path!));
+            await connection.close();
+        }
+    }, 60_000);
+
+    it('queries shell-mounted and streamed OPFS files', async () => {
+        const connection = await database!.connect();
+        const name = `values-${crypto.randomUUID()}.csv`;
+        const file = new WebFile(new File(['value,name\n1,alpha\n2,beta\n'], name, { type: 'text/csv' }), name);
+        const registry = new ShellFileRegistry(false, undefined, undefined, database!);
+        let mounted: string | null = null;
+        let imported: string | null = null;
+        try {
+            mounted = await registry.mountFile(file);
+            expect(toPlainObjects(await connection.query(`
+                SELECT sum(value) AS total
+                FROM external('${mounted}', format => 'csv', header => true,
+                    columns => descriptor(value bigint, name text))
+            `))).toEqual([{ total: 3n }]);
+
+            imported = await registry.importFile(file);
+            expect(imported).toMatch(/^\/mnt\/opfs\/dashql-shell-files\//);
+            expect(new TextDecoder().decode(await (await registry.get(imported))!.read()))
+                .toBe('value,name\n1,alpha\n2,beta\n');
+            expect(toPlainObjects(await connection.query(`
+                SELECT sum(value) AS total
+                FROM external('${imported}', format => 'csv', header => true,
+                    columns => descriptor(value bigint, name text))
+            `))).toEqual([{ total: 3n }]);
+            const legacyPath = imported.replace(/^\/mnt\/opfs\//, '/opfs/');
+            expect(toPlainObjects(await connection.query(`
+                SELECT sum(value) AS total
+                FROM external('${legacyPath}', format => 'csv', header => true,
+                    columns => descriptor(value bigint, name text))
+            `))).toEqual([{ total: 3n }]);
+        } finally {
+            if (mounted != null) await ignoreCleanupFailure(async () => { await registry.drop(mounted!); });
+            if (imported != null) await ignoreCleanupFailure(async () => { await registry.drop(imported!); });
+            await registry.dispose();
+            await connection.close();
+        }
+    }, 60_000);
 
     it('initializes Hyper log introspection and rotation settings', async () => {
         const connection = await database!.connect();

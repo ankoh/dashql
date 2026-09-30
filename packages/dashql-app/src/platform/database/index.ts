@@ -2,6 +2,8 @@ export type {
     EmbeddedComputeDatabase,
     EmbeddedConnection,
     EmbeddedDatabase,
+    EmbeddedExternalFileDatabase,
+    OPFSFileImportOptions,
     EmbeddedPersistentDatabase,
     EmbeddedPersistentDatabaseConnection,
     EmbeddedTableImportConnection,

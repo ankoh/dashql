@@ -3,6 +3,8 @@ import * as arrow from 'apache-arrow';
 import type {
     EmbeddedComputeDatabase,
     EmbeddedConnectionOptions,
+    EmbeddedExternalFileDatabase,
+    OPFSFileImportOptions,
     EmbeddedPersistentDatabase,
     EmbeddedPersistentDatabaseConnection,
     EmbeddedTableImportConnection,
@@ -17,6 +19,8 @@ const DATABASE_SCHEMA = 'public';
 export interface HyperDBOptions {
     databasePrefix?: string;
     terminateClient?: boolean;
+    createObjectURL?: (blob: Blob) => string;
+    revokeObjectURL?: (url: string) => void;
 }
 
 export type HyperDBResult =
@@ -55,6 +59,14 @@ export interface HyperDBEngineClient {
     ): Promise<HyperDBResult>;
     createTemporaryFile(bytes: Uint8Array): Promise<HyperDBResult>;
     removeFile(path: string): Promise<HyperDBResult>;
+    registerExternalFile(name: string, url: string, size: number): Promise<HyperDBResult>;
+    removeExternalFile(path: string): Promise<HyperDBResult>;
+    importOPFSFile?(path: string, blob: Blob, options?: OPFSFileImportOptions): Promise<void>;
+    prepareOPFSFile?(path: string): Promise<void>;
+    writeOPFSFile?(path: string, chunk: Uint8Array, offset: number): Promise<void>;
+    finishOPFSFile?(path: string): Promise<void>;
+    abortOPFSFile?(path: string): Promise<void>;
+    removeOPFSFile?(path: string): Promise<void>;
     pollQuery(query: number): Promise<HyperDBResult>;
     cancelQuery(query: number): Promise<HyperDBResult>;
     releaseQuery(query: number): Promise<HyperDBResult>;
@@ -157,7 +169,7 @@ function yieldToEventLoop(): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, 0));
 }
 
-export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatabase {
+export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatabase, EmbeddedExternalFileDatabase {
     private readonly connections = new Set<HyperDBConnection>();
     private initialization: Promise<void> | null = null;
     private termination: Promise<void> | null = null;
@@ -166,6 +178,9 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
     private readonly computeDatabaseName: string;
     private readonly defaultDatabaseName: string;
     private readonly terminateClient: boolean;
+    private readonly createObjectURL: (blob: Blob) => string;
+    private readonly revokeObjectURL: (url: string) => void;
+    private readonly externalFiles = new Map<string, string>();
 
     constructor(
         private readonly client: HyperDBEngineClient,
@@ -176,6 +191,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
         this.computeDatabaseName = `${prefix}${COMPUTE_DATABASE_NAME}`;
         this.defaultDatabaseName = `${prefix}${DEFAULT_DATABASE_NAME}`;
         this.terminateClient = options.terminateClient ?? true;
+        this.createObjectURL = options.createObjectURL ?? (blob => URL.createObjectURL(blob));
+        this.revokeObjectURL = options.revokeObjectURL ?? (url => URL.revokeObjectURL(url));
     }
 
     static async create(
@@ -262,6 +279,78 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
         });
     }
 
+    async registerExternalFile(name: string, blob: Blob, signal?: AbortSignal): Promise<string> {
+        return await this.runDatabaseOperation(async () => {
+            throwIfAborted(signal);
+            const url = this.createObjectURL(blob);
+            let path: string | null = null;
+            let registered = false;
+            try {
+                const result = await this.client.registerExternalFile(name, url, blob.size);
+                expectOK(result, 'register external file');
+                registered = true;
+                path = new TextDecoder('utf-8', { fatal: true }).decode(result.payload);
+                if (!path.startsWith('/mnt/files/')) {
+                    const removal = await this.client.removeExternalFile(path);
+                    if (removal.state === 'ok') registered = false;
+                    else this.externalFiles.set(path, url);
+                    throw new Error('register external file returned an invalid path');
+                }
+                if (signal?.aborted) {
+                    const removal = await this.client.removeExternalFile(path);
+                    if (removal.state === 'ok') registered = false;
+                    else this.externalFiles.set(path, url);
+                    throw signal.reason ?? new DOMException('The operation was aborted', 'AbortError');
+                }
+                this.externalFiles.set(path, url);
+                return path;
+            } catch (error) {
+                if (!registered) this.revokeObjectURL(url);
+                throw error;
+            }
+        });
+    }
+
+    async removeExternalFile(path: string): Promise<void> {
+        await this.runDatabaseOperation(async () => {
+            const url = this.externalFiles.get(path);
+            if (url == null) throw new Error(`external file is not registered: ${path}`);
+            expectOK(await this.client.removeExternalFile(path), 'remove external file');
+            this.externalFiles.delete(path);
+            this.revokeObjectURL(url);
+        });
+    }
+
+    async importOPFSFile(path: string, blob: Blob, options?: OPFSFileImportOptions): Promise<void> {
+        if (this.client.importOPFSFile == null) throw new Error('importing OPFS files is not supported');
+        await this.client.importOPFSFile(path, blob, options);
+    }
+
+    async prepareOPFSFile(path: string): Promise<void> {
+        if (this.client.prepareOPFSFile == null) throw new Error('preparing OPFS files is not supported');
+        await this.client.prepareOPFSFile(path);
+    }
+
+    async writeOPFSFile(path: string, chunk: Uint8Array, offset: number): Promise<void> {
+        if (this.client.writeOPFSFile == null) throw new Error('writing OPFS files is not supported');
+        await this.client.writeOPFSFile(path, chunk, offset);
+    }
+
+    async finishOPFSFile(path: string): Promise<void> {
+        if (this.client.finishOPFSFile == null) throw new Error('finishing OPFS files is not supported');
+        await this.client.finishOPFSFile(path);
+    }
+
+    async abortOPFSFile(path: string): Promise<void> {
+        if (this.client.abortOPFSFile == null) throw new Error('aborting OPFS files is not supported');
+        await this.client.abortOPFSFile(path);
+    }
+
+    async removeOPFSFile(path: string): Promise<void> {
+        if (this.client.removeOPFSFile == null) throw new Error('removing OPFS files is not supported');
+        await this.client.removeOPFSFile(path);
+    }
+
     async terminate(): Promise<void> {
         if (this.terminated) {
             return;
@@ -269,7 +358,13 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
         if (!this.termination) {
             this.termination = (async () => {
                 try {
+                    await this.databaseOperation;
                     await Promise.all([...this.connections].map(connection => connection.closeForTermination()));
+                    for (const [path, url] of this.externalFiles) {
+                        expectOK(await this.client.removeExternalFile(path), 'remove external file during termination');
+                        this.externalFiles.delete(path);
+                        this.revokeObjectURL(url);
+                    }
                     expectOK(await this.client.dropDatabase(this.defaultDatabaseName), 'drop default database');
                     expectOK(await this.client.dropDatabase(this.computeDatabaseName), 'drop compute database');
                     if (this.terminateClient) {
@@ -321,6 +416,10 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
             release();
         }
     }
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+    if (signal?.aborted) throw signal.reason ?? new DOMException('The operation was aborted', 'AbortError');
 }
 
 export class HyperDBConnection implements EmbeddedTableImportConnection, EmbeddedPersistentDatabaseConnection {

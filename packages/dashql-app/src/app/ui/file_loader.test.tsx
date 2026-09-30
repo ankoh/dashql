@@ -40,7 +40,11 @@ const BUNDLE = {
 };
 
 function file(readAsArrayBuffer: PlatformFile['readAsArrayBuffer'] = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]))): PlatformFile {
-    return { path: '/tmp/Explain.dashql', readAsArrayBuffer };
+    return {
+        path: '/tmp/Explain.dashql',
+        stream: () => new Blob().stream(),
+        readAsArrayBuffer,
+    };
 }
 
 function button(container: HTMLElement, label: string): HTMLButtonElement | null {

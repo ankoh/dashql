@@ -3,6 +3,7 @@ import * as React from 'react';
 import * as connectionTypes from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { EmbeddedConnection } from '../platform/database/embedded_database.js';
+import type { EmbeddedExternalFileDatabase } from '../platform/database/embedded_database.js';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -45,6 +46,15 @@ import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';
 
+function externalFileDatabase(database: unknown): EmbeddedExternalFileDatabase | undefined {
+    if (database == null || typeof database !== 'object') return undefined;
+    if (!('registerExternalFile' in database) || !('removeExternalFile' in database) ||
+        !('importOPFSFile' in database) || !('prepareOPFSFile' in database) || !('writeOPFSFile' in database) ||
+        !('finishOPFSFile' in database) || !('abortOPFSFile' in database) ||
+        !('removeOPFSFile' in database)) return undefined;
+    return database as EmbeddedExternalFileDatabase;
+}
+
 interface ShellPageProps {
     onEngineVersion: (version: string) => void;
 }
@@ -76,7 +86,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const { controller: formatDialog, dialog: formatterDialog } = useFormatDialog();
     const { controller: planDialog, dialog: queryPlanDialog } = usePlanDialog(appEvents);
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const fileRegistryRef = React.useRef(new ShellFileRegistry());
     const databaseRegistryRef = React.useRef(new OPFSPersistentDatabaseRegistry());
     const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
@@ -90,6 +99,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         let connection: EmbeddedConnection | null = null;
         let shell: DashQLShell | null = null;
         let controller: BrowserShellController | null = null;
+        let fileRegistry: ShellFileRegistry | null = null;
 
         const setup = async () => {
             setStatus('Instantiating hyperdb-wasm');
@@ -234,6 +244,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 },
                 refreshCatalog: (alias, catalog, signal) => attachmentManager.refreshCatalog(alias, catalog, signal),
             });
+            fileRegistry = new ShellFileRegistry(false, undefined, logger, externalFileDatabase(database));
             const commands: DashQLShellCommand[] = [
                 examplesCommand,
                 createFormatCommand({
@@ -251,7 +262,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 loginCommand,
                 refreshCommand,
                 createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
-                createShellFilesCommand(fileRegistryRef.current, fileDownloader),
+                createShellFilesCommand(fileRegistry, fileDownloader, undefined, logger),
             ];
             const databaseCommand = createDatabaseCommand(
                 database,
@@ -337,7 +348,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             shell?.destroy();
             attachmentManagerRef.current = null;
             setConnected(false);
-            void connection?.close();
+            void fileRegistry?.dispose().finally(() => connection?.close());
         };
     }, [appConfig, appEvents, dispatchComputation, fileDownloader, formatDialog, httpClient, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase, showResultQuery]);
 
