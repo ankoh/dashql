@@ -19,10 +19,12 @@ export class FeedRowHeightCache {
     constructor(
         private entries: FeedLayoutEntry[],
         private readonly onChange: (index: number, previousHeight: number, height: number) => void = () => {},
+        private firstSeparatorHeight = FIRST_SEPARATOR_HEIGHT,
     ) {}
 
-    updateEntries(entries: FeedLayoutEntry[]) {
+    updateEntries(entries: FeedLayoutEntry[], firstSeparatorHeight = this.firstSeparatorHeight) {
         this.entries = entries;
+        this.firstSeparatorHeight = firstSeparatorHeight;
     }
 
     getAverageRowHeight() {
@@ -30,12 +32,12 @@ export class FeedRowHeightCache {
         const totalEntryHeight = this.entries.reduce((total, entry) => (
             total + (this.measuredHeights.get(entry.scriptId) ?? entry.estimatedHeight)
         ), 0);
-        const totalSeparatorHeight = FIRST_SEPARATOR_HEIGHT + this.entries.length * SEPARATOR_HEIGHT;
+        const totalSeparatorHeight = this.firstSeparatorHeight + this.entries.length * SEPARATOR_HEIGHT;
         return (totalEntryHeight + totalSeparatorHeight) / (this.entries.length * 2 + 1);
     }
 
     getRowHeight(index: number) {
-        if (index % 2 === 0) return index === 0 ? FIRST_SEPARATOR_HEIGHT : SEPARATOR_HEIGHT;
+        if (index % 2 === 0) return index === 0 ? this.firstSeparatorHeight : SEPARATOR_HEIGHT;
         const entry = this.entries[Math.floor(index / 2)];
         return entry == null ? undefined : this.measuredHeights.get(entry.scriptId) ?? entry.estimatedHeight;
     }
@@ -54,7 +56,7 @@ export class FeedRowHeightCache {
     }
 }
 
-export function useNotebookFeedLayout(entries: FeedLayoutEntry[]) {
+export function useNotebookFeedLayout(entries: FeedLayoutEntry[], firstSeparatorHeight = FIRST_SEPARATOR_HEIGHT) {
     const listContainerRef = React.useRef<HTMLDivElement>(null);
     const listRef = useListRef(null);
     const [heightsVersion, setHeightsVersion] = React.useState(0);
@@ -62,16 +64,16 @@ export function useNotebookFeedLayout(entries: FeedLayoutEntry[]) {
     if (rowHeightsRef.current == null) {
         rowHeightsRef.current = new FeedRowHeightCache(entries, () => {
             setHeightsVersion(version => version + 1);
-        });
+        }, firstSeparatorHeight);
     }
-    rowHeightsRef.current.updateEntries(entries);
+    rowHeightsRef.current.updateEntries(entries, firstSeparatorHeight);
     const rowHeightCache = rowHeightsRef.current;
     const rowHeights = React.useMemo(() => ({
         getAverageRowHeight: () => rowHeightCache.getAverageRowHeight(),
         getRowHeight: (index: number) => rowHeightCache.getRowHeight(index),
         setRowHeight: rowHeightCache.setRowHeight,
         observeRowElements: () => () => {},
-    }), [rowHeightCache, heightsVersion]);
+    }), [rowHeightCache, heightsVersion, firstSeparatorHeight]);
     const listContainerSize = observeSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;
     const listHeight = listContainerSize?.height ?? 0;

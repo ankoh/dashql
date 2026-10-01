@@ -53,6 +53,9 @@ export interface NotebookFeedProps {
 
 const OVERSCAN_ROW_COUNT = 16;
 const FEED_TOP_PADDING = 16;
+const COMPACT_FEED_TOP_PADDING = 8;
+const FIRST_SEPARATOR_HEIGHT = 48;
+const COMPACT_FIRST_SEPARATOR_HEIGHT = 40;
 const FEED_ENTRY_CHROME_HEIGHT = 50;
 const FEED_EDITOR_LINE_HEIGHT = 18;
 const restrictToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 });
@@ -61,11 +64,26 @@ function estimateFeedEntryHeight(scriptText: string) {
     return FEED_ENTRY_CHROME_HEIGHT + Math.max(1, scriptText.split('\n').length) * FEED_EDITOR_LINE_HEIGHT;
 }
 
+function useCompactFeedLayout() {
+    const [compact, setCompact] = React.useState(() => (
+        typeof window !== 'undefined' && window.matchMedia('(max-width: 799px)').matches
+    ));
+    React.useEffect(() => {
+        const media = window.matchMedia('(max-width: 799px)');
+        const update = () => setCompact(media.matches);
+        update();
+        media.addEventListener('change', update);
+        return () => media.removeEventListener('change', update);
+    }, []);
+    return compact;
+}
+
 export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const config = useAppConfig();
     const logger = useLogger();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
+    const compactLayout = useCompactFeedLayout();
     const scriptRefs = props.notebookScripts.scriptRefs;
     const canonicalEntries = React.useMemo(
         () => getSelectedScriptRefs(props.notebookScripts).map(entry => ({
@@ -349,7 +367,10 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     ], [feedActive, props.notebookScripts, handleAcceptDiff, handleRejectDiff]);
     useKeyEvents(keyHandlers);
 
-    const feedLayout = useNotebookFeedLayout(entries);
+    const feedLayout = useNotebookFeedLayout(
+        entries,
+        compactLayout ? COMPACT_FIRST_SEPARATOR_HEIGHT : FIRST_SEPARATOR_HEIGHT,
+    );
 
     const handleEditorView = React.useCallback((scriptKey: number, view: EditorView) => {
         editorViewsRef.current.set(scriptKey, view);
@@ -405,11 +426,11 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onToggleResultExpanded: handleToggleResultExpanded,
         onAutoCollapseResult: handleAutoCollapseResult,
         onResetAutoCollapsedResult: handleResetAutoCollapsedResult,
-        topPadding: FEED_TOP_PADDING,
+        topPadding: compactLayout ? COMPACT_FEED_TOP_PADDING : FEED_TOP_PADDING,
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, compactLayout, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     return (

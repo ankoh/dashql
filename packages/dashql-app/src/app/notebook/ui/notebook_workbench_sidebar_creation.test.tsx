@@ -23,6 +23,7 @@ const state = {
     attachedDatabases: new Map<string, AttachedDatabaseState>(),
     attachedDatabasesByNotebook: new Map<string, { mainDatabaseId: string; attachedDatabaseIds: string[] }>(),
     notebookScriptsMap: new Map<string, unknown>(),
+    notebookAttachedDatabases: null as { main: AttachedDatabaseState; attached: AttachedDatabaseState[] } | null,
 };
 
 const dependencies = {
@@ -32,7 +33,7 @@ const dependencies = {
         attachedDatabases: state.attachedDatabases,
         attachedDatabasesByNotebook: state.attachedDatabasesByNotebook,
     }, vi.fn()],
-    useNotebookAttachedDatabases: () => null,
+    useNotebookAttachedDatabases: () => state.notebookAttachedDatabases,
     useDynamicAttachedDatabaseDispatch: () => [{
         attachedDatabases: state.attachedDatabases,
         attachedDatabasesByNotebook: state.attachedDatabasesByNotebook,
@@ -96,6 +97,7 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
         state.attachedDatabases.clear();
         state.attachedDatabasesByNotebook.clear();
         state.notebookScriptsMap.clear();
+        state.notebookAttachedDatabases = null;
         state.local = { databaseId: 'local-database' } as AttachedDatabaseState;
         state.local = {
             databaseId: 'local-database',
@@ -119,6 +121,40 @@ describe('NotebookWorkbenchSidebar notebook creation', () => {
             (container.querySelector(`[aria-label="${label}"]`) as HTMLButtonElement).click();
         });
     }
+
+    it('shows notebook and attached database counts', () => {
+        const main = {
+            ...state.local!,
+            connectorInfo: { icons: { colored: 'database' } },
+            catalog: {
+                createSnapshot: () => ({
+                    read: () => ({ catalogReader: { databasesLength: () => 0 } }),
+                }),
+            },
+            catalogUpdates: { currentFullRefresh: null, tasksRunning: new Map() },
+        } as AttachedDatabaseState;
+        const attached = { ...main, databaseId: 'attached-database' };
+        state.attachedDatabases.set(main.databaseId, main);
+        state.attachedDatabases.set(attached.databaseId, attached);
+        state.attachedDatabasesByNotebook.set('current-notebook', {
+            mainDatabaseId: main.databaseId,
+            attachedDatabaseIds: [attached.databaseId],
+        });
+        state.notebookScriptsMap.set('current-notebook', {
+            notebookId: 'current-notebook',
+            name: 'Current notebook',
+            notebookMetadata: {},
+        });
+        state.notebookAttachedDatabases = { main, attached: [attached] };
+
+        act(() => root.render(<NotebookWorkbenchSidebar notebookScripts={{
+            notebookId: 'current-notebook',
+            instance: {},
+        } as any} dependencies={dependencies} />));
+
+        expect(container.querySelector('[aria-label="1 notebook"]')?.textContent).toBe('1');
+        expect(container.querySelector('[aria-label="2 attached databases"]')?.textContent).toBe('2');
+    });
 
     it('creates a notebook only after the selected main database connects', async () => {
         click('Create notebook');

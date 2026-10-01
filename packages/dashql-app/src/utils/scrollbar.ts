@@ -2,6 +2,7 @@ let SCROLLBAR_WIDTH: number | null = null;
 let SCROLLBAR_HEIGHT: number | null = null;
 
 // Overlay scrollbars report no layout size but still paint over content.
+const OVERLAY_SCROLLBAR_WIDTH = 12;
 const OVERLAY_SCROLLBAR_HEIGHT = 12;
 
 // Kudos to: https://www.robinwieruch.de/react-hook-scrollbar-width/
@@ -23,7 +24,10 @@ export const useScrollbarWidth = () => {
     outer.appendChild(inner);
 
     // Calculating difference between container's full width and the child width
-    SCROLLBAR_WIDTH = outer.offsetWidth - inner.offsetWidth;
+    SCROLLBAR_WIDTH = Math.max(
+        outer.offsetWidth - inner.offsetWidth,
+        OVERLAY_SCROLLBAR_WIDTH,
+    );
 
     // Removing temporary elements from the DOM
     outer.parentNode?.removeChild(outer);

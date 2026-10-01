@@ -183,6 +183,7 @@ export function QueryCacheView(props: { notebookId: string | null; onClose: () =
                 <VerticalScrollShadows
                     getScrollElement={getScrollElement}
                     prominent
+                    strong
                     refreshKey={entries.length}
                 />
             </div>

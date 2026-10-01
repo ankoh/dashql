@@ -907,6 +907,8 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
             invalidReason: describeNotebookValidationError(invalid.error),
         };
     }), [invalidNotebooks, storageReader]);
+    const notebookCount = notebooks.length + invalidItems.length;
+    const attachedDatabaseCount = attachedDatabaseRows.length;
 
     const dndSensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -1137,7 +1139,15 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
         <nav className={styles.workbench} aria-label="Notebook workbench" data-electron-drag-region>
             <section className={styles.section} aria-labelledby="workbench-notebooks-heading">
                 <header className={styles.section_header}>
-                    <h2 id="workbench-notebooks-heading" className={styles.section_heading}>Notebooks</h2>
+                    <div className={styles.section_title}>
+                        <h2 id="workbench-notebooks-heading" className={styles.section_heading}>Notebooks</h2>
+                        <span
+                            className={styles.section_count}
+                            aria-label={`${notebookCount} ${notebookCount === 1 ? 'notebook' : 'notebooks'}`}
+                        >
+                            {notebookCount}
+                        </span>
+                    </div>
                     <div className={styles.section_actions}>
                         <dependencies.BundledNotebooksOverlay
                             side={AnchorSide.OutsideBottom}
@@ -1214,7 +1224,15 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
 
             <section className={classNames(styles.section, styles.database_section)} aria-labelledby="workbench-databases-heading">
                 <header className={styles.section_header}>
-                    <h2 id="workbench-databases-heading" className={styles.section_heading}>Attached Databases</h2>
+                    <div className={styles.section_title}>
+                        <h2 id="workbench-databases-heading" className={styles.section_heading}>Attached Databases</h2>
+                        <span
+                            className={styles.section_count}
+                            aria-label={`${attachedDatabaseCount} attached ${attachedDatabaseCount === 1 ? 'database' : 'databases'}`}
+                        >
+                            {attachedDatabaseCount}
+                        </span>
+                    </div>
                     <IconButton
                         size={ButtonSize.Small}
                         variant={ButtonVariant.Invisible}

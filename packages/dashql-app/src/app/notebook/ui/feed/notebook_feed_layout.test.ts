@@ -14,6 +14,15 @@ describe('FeedRowHeightCache', () => {
         ]);
     });
 
+    it('uses the compact first separator height on mobile', () => {
+        const heights = new FeedRowHeightCache([
+            { scriptId: 1, estimatedHeight: 122 },
+        ], undefined, 40);
+
+        expect([0, 1, 2].map(index => heights.getRowHeight(index))).toEqual([40, 122, 40]);
+        expect(heights.getAverageRowHeight()).toBe((40 + 122 + 40) / 3);
+    });
+
     it('retains measured script heights by identity while entries update', () => {
         const onChange = vi.fn();
         const heights = new FeedRowHeightCache([

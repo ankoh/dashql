@@ -295,6 +295,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                     <VerticalScrollShadows
                         getScrollElement={getScrollElement}
                         prominent
+                        strong
                         refreshKey={rowCount}
                     />
                 </div>

@@ -1,8 +1,11 @@
+:root {
+    --notebook_sidebar_background: hsla(210, 29%, 97%, 0.97);
+}
+
 .page {
     --notebook_header_height: 48px;
     --notebook_navigation_sidebar_width: 288px;
     --notebook_feed_background_color: hsl(210, 29%, 97%);
-    --notebook_sidebar_background: hsla(210, 29%, 97%, 0.97);
 }
 
 @media only screen and (max-width: 799px) {
@@ -22,6 +25,7 @@
         justify-content: space-between;
         padding: 0 8px;
         border-bottom: 1px solid var(--border_color_primary);
+        background-color: white;
     }
     .navigation_sidebar {
         display: none;
@@ -30,9 +34,10 @@
     .body_container {
         position: relative;
         grid-row: 2;
+        grid-column: 1;
         min-width: 0;
         min-height: 0;
-        background-color: var(--notebook_feed_background_color);
+        background-color: var(--notebook_sidebar_background);
     }
     .feed_shadow_layer {
         grid-row: 2;

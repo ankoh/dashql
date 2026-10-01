@@ -13,7 +13,7 @@
     display: grid;
     grid-template-rows: 48px minmax(0, 1fr);
     width: min(336px, calc(100vw - 40px));
-    background: white;
+    background: var(--notebook_sidebar_background);
     border-right: 1px solid var(--border_color_primary);
     border-radius: 0 var(--border_radius) var(--border_radius) 0;
     overflow: hidden;
@@ -27,6 +27,7 @@
     justify-content: flex-end;
     padding: 0 8px 0 16px;
     border-bottom: 1px solid var(--border_color_primary);
+    background: white;
 }
 
 .body {

@@ -253,6 +253,7 @@ export function QueryHistoryViewer(props: {
                     <VerticalScrollShadows
                         getScrollElement={getScrollElement}
                         prominent
+                        strong
                         refreshKey={entries.length}
                     />
                 </div>

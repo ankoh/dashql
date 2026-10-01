@@ -28,7 +28,7 @@
     display: flex;
     width: 100%;
     box-sizing: border-box;
-    padding: 0 16px;
+    padding: 0 calc(16px + var(--feed-scrollbar-inset, 0px)) 0 16px;
 }
 
 .feed_cell_separator {
@@ -37,7 +37,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 16px;
+    padding: 8px calc(16px + var(--feed-scrollbar-inset, 0px)) 8px 16px;
     border: 0;
     box-sizing: border-box;
     color: inherit;
@@ -131,18 +131,6 @@
     grid-template-rows: 40px;
     grid-auto-rows: auto;
     position: relative;
-}
-
-@media only screen and (max-width: 700px) {
-    .feed_list_item,
-    .feed_cell_separator {
-        padding-left: 8px;
-        padding-right: 8px;
-    }
-
-    .feed_entry_drag_handle {
-        left: 14px;
-    }
 }
 
 .feed_entry_action_bar {
