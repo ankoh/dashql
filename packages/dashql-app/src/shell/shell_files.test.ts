@@ -210,7 +210,7 @@ describe('shell files command', () => {
         );
         const command = createShellFilesCommand(registry, { downloadBufferAsFile: vi.fn() }, async () => [file]);
 
-        expect(await command[2](['mount'], {})).toBe('Mounted 1 file\r\n/mnt/external/1/data.csv');
+        expect(await command[2](['mount'], {})).toBe('/mnt/external/1/data.csv');
         expect(sourceReads).toBe(0);
         expect(stream).not.toHaveBeenCalled();
         expect(opfs.files.size).toBe(0);

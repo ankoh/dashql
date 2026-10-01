@@ -442,7 +442,7 @@ describe('DashQL shell Wasm', () => {
                 ['bare', 'Return output without a newline', () => 'bare'],
                 ['line-feed', 'Return output with a line feed', () => 'line feed\n'],
                 ['crlf', 'Return output with CRLF', () => 'crlf\r\n'],
-                ['files', 'Return multiline file output', () => 'Mounted 1 file\r\n/mnt/external/data.csv'],
+                ['files', 'Return file output', () => '/mnt/external/data.csv'],
             ],
             terminalColumns: 80,
             wasmBinary: await DASHQL_SHELL_PRECOMPILED,
@@ -453,7 +453,7 @@ describe('DashQL shell Wasm', () => {
             ['.bare', 'bare\r\n'],
             ['.line-feed', 'line feed\r\n'],
             ['.crlf', 'crlf\r\n'],
-            ['.files', 'Mounted 1 file\r\n/mnt/external/data.csv\r\n'],
+            ['.files', '/mnt/external/data.csv\r\n'],
         ]) {
             shell.setPrompt(command);
             await expect(shell.submitPrompt()).resolves.toBe(expected);

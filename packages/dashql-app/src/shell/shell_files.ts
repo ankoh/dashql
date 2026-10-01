@@ -389,7 +389,8 @@ export function createShellFilesCommand(
                             : await registry.importFile(file, context));
                     }
                     if (paths.length === 0) return 'No files selected';
-                    const verb = action === 'mount' ? 'Mounted' : action === 'import' ? 'Imported' : 'Added';
+                    if (action === 'mount') return paths.join('\r\n');
+                    const verb = action === 'import' ? 'Imported' : 'Added';
                     return `${verb} ${paths.length} file${paths.length === 1 ? '' : 's'}\r\n${paths.join('\r\n')}`;
                 }
                 case 'drop': {
