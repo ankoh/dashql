@@ -169,7 +169,7 @@ class FakeHyperDBEngineClient implements HyperDBEngineClient {
     }
 
     registerExternalFile(name: string, url: string, size: number): Promise<HyperDBResult> {
-        const path = `/mnt/files/${this.nextFile++}/${name}`;
+        const path = `/mnt/external/${this.nextFile++}/${name}`;
         this.calls.push(`register-external-file:${path}:${url}:${size}`);
         this.externalFiles.set(path, { url, size });
         return Promise.resolve({ state: 'ok', payload: new TextEncoder().encode(path) });
@@ -231,7 +231,7 @@ describe('HyperDB embedded database adapter', () => {
         });
 
         const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
-        expect(path).toBe('/mnt/files/1/data.csv');
+        expect(path).toBe('/mnt/external/1/data.csv');
         expect(client.externalFiles.get(path)).toEqual({ url: 'blob:test-file', size: 5 });
         expect(revoked).toEqual([]);
 

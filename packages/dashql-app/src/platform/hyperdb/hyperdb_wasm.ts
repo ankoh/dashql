@@ -290,7 +290,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedPersistentDatab
                 expectOK(result, 'register external file');
                 registered = true;
                 path = new TextDecoder('utf-8', { fatal: true }).decode(result.payload);
-                if (!path.startsWith('/mnt/files/')) {
+                if (!path.startsWith('/mnt/external/')) {
                     const removal = await this.client.removeExternalFile(path);
                     if (removal.state === 'ok') registered = false;
                     else this.externalFiles.set(path, url);

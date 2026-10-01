@@ -259,7 +259,7 @@ describe('HyperDB embedded database integration', () => {
         let path: string | null = null;
         try {
             path = await database!.registerExternalFile('values.csv', blob);
-            expect(path).toMatch(/^\/mnt\/files\/[^/]+\/values\.csv$/);
+            expect(path).toMatch(/^\/mnt\/external\/[^/]+\/values\.csv$/);
             const result = await connection.query(`
                 SELECT sum(value) AS total
                 FROM external('${path}', format => 'csv', header => true,
@@ -292,7 +292,7 @@ describe('HyperDB embedded database integration', () => {
             `))).toEqual([{ total: 3n }]);
 
             imported = await registry.importFile(file);
-            expect(imported).toMatch(/^\/mnt\/opfs\/dashql-shell-files\//);
+            expect(imported).toMatch(/^\/mnt\/opfs\/imported\//);
             expect(new TextDecoder().decode(await (await registry.get(imported))!.read()))
                 .toBe('value,name\n1,alpha\n2,beta\n');
             expect(toPlainObjects(await connection.query(`
