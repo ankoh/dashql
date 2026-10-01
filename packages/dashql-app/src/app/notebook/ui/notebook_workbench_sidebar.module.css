@@ -5,9 +5,9 @@
     width: 100%;
     min-width: 0;
     min-height: 0;
-    padding: 8px;
+    padding: 8px 16px 8px 8px;
     overflow: hidden;
-    background: var(--base_color_neutral_0);
+    border-right: 1px solid var(--border_color_primary);
 }
 
 .section {

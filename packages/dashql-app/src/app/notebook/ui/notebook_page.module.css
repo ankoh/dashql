@@ -28,6 +28,5 @@
     font-family: 'Roboto Mono';
     font-size: 13px;
     line-height: 1.2;
-    background: var(--shell_background_color);
     white-space: pre-wrap;
 }
