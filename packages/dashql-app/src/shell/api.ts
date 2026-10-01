@@ -753,7 +753,7 @@ export class DashQLShell {
                         return await this.environment.executeQuery(effectInput, signal, onProgress, onResult);
                     }
                     const command = await this.executeCommand(effectInput, signal, onProgress);
-                    const output = this.textEncoder.encode(withoutTrailingNewlines(command.output));
+                    const output = this.textEncoder.encode(withTrailingNewline(command.output));
                     const encoded = new Uint8Array(output.byteLength + 1);
                     encoded[0] = command.clearTerminal ? 1 : 0;
                     encoded.set(output, 1);
@@ -768,9 +768,7 @@ export class DashQLShell {
                         const message = error instanceof Error ? error.message : String(error);
                         finish({
                             status: DashQLShellEffectCompletionStatus.ERROR,
-                            data: this.textEncoder.encode(effect.type === DashQLShellEffectType.EXECUTE_COMMAND
-                                ? withoutTrailingNewlines(message)
-                                : withTrailingNewline(message)),
+                            data: this.textEncoder.encode(withTrailingNewline(message)),
                         });
                     },
                 );
@@ -939,10 +937,6 @@ function createShellCommands(
 function withTrailingNewline(output: string): string {
     if (output.length === 0) return output;
     return output.replace(/(?:\r\n|\n|\r)+$/, '') + '\r\n';
-}
-
-function withoutTrailingNewlines(output: string): string {
-    return output.replace(/(?:\r\n|\n|\r)+$/, '');
 }
 
 function formatElapsed(elapsedMs: number): string {
