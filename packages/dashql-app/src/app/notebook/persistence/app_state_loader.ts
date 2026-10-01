@@ -99,7 +99,7 @@ async function restoreNotebookScripts(
             connectionCatalog,
             scripts,
             scriptRefs,
-            scriptFocus: { fileName: initialFile, interactionCounter: 0 },
+            scriptFocus: { fileName: initialFile },
             semanticUserFocus: null,
         };
 

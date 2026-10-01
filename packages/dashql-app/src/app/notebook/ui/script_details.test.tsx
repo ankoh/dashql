@@ -63,7 +63,7 @@ function scripts(): NotebookScripts {
             '01_first.sql': { scriptId: 1, fileName: '01_first.sql' },
             '02_second.sql': { scriptId: 2, fileName: '02_second.sql' },
         },
-        scriptFocus: { fileName: '01_first.sql', interactionCounter: 0 }, semanticUserFocus: null,
+        scriptFocus: { fileName: '01_first.sql' }, semanticUserFocus: null,
     };
 }
 

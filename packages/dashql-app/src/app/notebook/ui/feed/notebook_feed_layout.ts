@@ -5,13 +5,7 @@ import { useListRef } from 'react-window';
 import { observeSize } from '../../../../ui/foundations/size_observer.js';
 import { useScrollbarWidth } from '../../../../utils/scrollbar.js';
 
-export interface FeedScrollTarget {
-    fileName: string;
-    version: number;
-}
-
 interface FeedLayoutEntry {
-    fileName: string;
     scriptId: number;
     estimatedHeight: number;
 }
@@ -46,14 +40,6 @@ export class FeedRowHeightCache {
         return entry == null ? undefined : this.measuredHeights.get(entry.scriptId) ?? entry.estimatedHeight;
     }
 
-    getRowOffset(index: number) {
-        let offset = 0;
-        for (let rowIndex = 0; rowIndex < index; rowIndex += 1) {
-            offset += this.getRowHeight(rowIndex) ?? 0;
-        }
-        return offset;
-    }
-
     setRowHeight = (index: number, height: number) => {
         const entry = index % 2 === 1 ? this.entries[Math.floor(index / 2)] : null;
         if (entry == null) return;
@@ -68,25 +54,13 @@ export class FeedRowHeightCache {
     }
 }
 
-export function useNotebookFeedLayout(
-    entries: FeedLayoutEntry[],
-    scrollTarget: FeedScrollTarget | null | undefined,
-) {
+export function useNotebookFeedLayout(entries: FeedLayoutEntry[]) {
     const listContainerRef = React.useRef<HTMLDivElement>(null);
     const listRef = useListRef(null);
     const [heightsVersion, setHeightsVersion] = React.useState(0);
-    const pendingScrollAdjustmentRef = React.useRef(0);
     const rowHeightsRef = React.useRef<FeedRowHeightCache | null>(null);
     if (rowHeightsRef.current == null) {
-        rowHeightsRef.current = new FeedRowHeightCache(entries, (index, previousHeight, height) => {
-            const list = listRef.current?.element;
-            const cache = rowHeightsRef.current;
-            if (list != null && cache != null) {
-                const anchoredScrollTop = list.scrollTop + pendingScrollAdjustmentRef.current;
-                if (cache.getRowOffset(index) + previousHeight <= anchoredScrollTop) {
-                    pendingScrollAdjustmentRef.current += height - previousHeight;
-                }
-            }
+        rowHeightsRef.current = new FeedRowHeightCache(entries, () => {
             setHeightsVersion(version => version + 1);
         });
     }
@@ -98,31 +72,10 @@ export function useNotebookFeedLayout(
         setRowHeight: rowHeightCache.setRowHeight,
         observeRowElements: () => () => {},
     }), [rowHeightCache, heightsVersion]);
-    React.useLayoutEffect(() => {
-        const adjustment = pendingScrollAdjustmentRef.current;
-        pendingScrollAdjustmentRef.current = 0;
-        const list = listRef.current?.element;
-        if (list != null && adjustment !== 0) list.scrollTop += adjustment;
-    }, [heightsVersion, listRef]);
     const listContainerSize = observeSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;
     const listHeight = listContainerSize?.height ?? 0;
     const listScrollbarInset = useScrollbarWidth();
-
-    const entriesRef = React.useRef(entries);
-    entriesRef.current = entries;
-    React.useEffect(() => {
-        if (scrollTarget == null || !listRef.current) return;
-        const currentEntries = entriesRef.current;
-        if (currentEntries.length === 0) return;
-        if (scrollTarget.fileName === '') {
-            listRef.current.scrollToRow({ index: 0, align: 'start' });
-            return;
-        }
-        const targetIndex = currentEntries.findIndex(entry => entry.fileName === scrollTarget.fileName);
-        if (targetIndex < 0) return;
-        listRef.current.scrollToRow({ index: targetIndex * 2 + 1, align: 'start' });
-    }, [listRef, scrollTarget]);
 
     return {
         listContainerRef,

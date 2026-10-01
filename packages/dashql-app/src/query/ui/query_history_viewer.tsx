@@ -13,6 +13,7 @@ import { JsonView } from '../../ui/json/json_view.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../query_execution_state.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { useKeyEvents } from '../../utils/key_events.js';
+import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
 
 export const ROW_HEIGHT = 32;
 
@@ -124,6 +125,7 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
 export interface QueryHistoryViewerDependencies {
     List: React.ComponentType<any>;
     useListRef(): React.RefObject<{
+        element?: HTMLDivElement | null;
         scrollToRow(options: { index: number; align: 'center' | 'end' }): void;
     } | null>;
 }
@@ -188,6 +190,7 @@ export function QueryHistoryViewer(props: {
 
     // Auto-scroll to bottom when entries change; scroll to selected row when modal opens
     const listRef = dependencies.useListRef();
+    const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
     React.useEffect(() => {
         if (modalIndex >= 0 && listRef.current) {
             listRef.current.scrollToRow({ index: modalIndex, align: 'center' });
@@ -247,6 +250,11 @@ export function QueryHistoryViewer(props: {
                             rowProps={rowProps}
                         />
                     )}
+                    <VerticalScrollShadows
+                        getScrollElement={getScrollElement}
+                        prominent
+                        refreshKey={entries.length}
+                    />
                 </div>
             </div>
             <AnchoredOverlay

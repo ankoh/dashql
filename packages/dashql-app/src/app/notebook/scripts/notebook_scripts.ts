@@ -34,8 +34,6 @@ export type ScriptDataMap = { [scriptKey: number]: ScriptData };
 export interface ScriptFocus {
     /// The file name of the selected cell (empty if none)
     fileName: string;
-    /// Monotonic counter incremented only by explicit navigation, used to trigger auto-scroll
-    interactionCounter: number;
 }
 
 /// The runtime state of a notebook's scripts
@@ -291,7 +289,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const fileName = files[nextIdx] ?? state.scriptFocus.fileName;
             return {
                 ...clearSemanticUserFocus(state),
-                scriptFocus: { ...state.scriptFocus, fileName, interactionCounter: state.scriptFocus.interactionCounter + 1 },
+                scriptFocus: { ...state.scriptFocus, fileName },
             };
         }
         case SELECT_PREV_SCRIPT: {
@@ -301,7 +299,7 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             const fileName = files[prevIdx] ?? state.scriptFocus.fileName;
             return {
                 ...clearSemanticUserFocus(state),
-                scriptFocus: { ...state.scriptFocus, fileName, interactionCounter: state.scriptFocus.interactionCounter + 1 },
+                scriptFocus: { ...state.scriptFocus, fileName },
             };
         }
         case SELECT_SCRIPT: {

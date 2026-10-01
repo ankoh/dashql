@@ -26,7 +26,7 @@ export function useNotebookScriptsSetup(): NotebookScriptsSetup {
                 [mainScriptData.scriptKey]: mainScriptData,
             },
             scriptRefs: { [fileName]: createScriptRef(mainScriptData.scriptKey, fileName) },
-            scriptFocus: { fileName, interactionCounter: 0 },
+            scriptFocus: { fileName },
             semanticUserFocus: null,
         }, database.catalogFunctionScript);
         return notebookScripts;

@@ -61,7 +61,7 @@ function state(names = ['1_alpha.sql', '2_beta.sql', '3_gamma.sql']): NotebookSc
         instance: dql, notebookId: crypto.randomUUID(), name: 'Test', databaseId: crypto.randomUUID(),
         notebookMetadata: createEmptyMetadata(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
         connectionCatalog: catalog, scripts, scriptRefs: refs,
-        scriptFocus: { fileName: names[1] ?? names[0] ?? '', interactionCounter: 0 }, semanticUserFocus: null,
+        scriptFocus: { fileName: names[1] ?? names[0] ?? '' }, semanticUserFocus: null,
     };
 }
 

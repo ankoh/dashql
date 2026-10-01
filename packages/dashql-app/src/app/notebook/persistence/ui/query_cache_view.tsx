@@ -13,6 +13,7 @@ import { formatRelativeTime } from '../../../../utils/time_format.js';
 import { observeSize } from '../../../../ui/foundations/size_observer.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useStorageReader } from '../storage_provider.js';
+import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scroll_shadows.js';
 
 const LOG_CTX = 'query_cache_view';
 
@@ -121,6 +122,7 @@ export function QueryCacheView(props: { notebookId: string | null; onClose: () =
     const containerHeight = containerSize?.height ?? 100;
 
     const listRef = useListRef(null);
+    const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
     const rowProps = React.useMemo<QueryCacheRowProps>(() => ({
         entries,
         deleteEntry,
@@ -178,6 +180,11 @@ export function QueryCacheView(props: { notebookId: string | null; onClose: () =
                         rowProps={rowProps}
                     />
                 )}
+                <VerticalScrollShadows
+                    getScrollElement={getScrollElement}
+                    prominent
+                    refreshKey={entries.length}
+                />
             </div>
         </div>
     );

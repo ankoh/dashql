@@ -15,11 +15,6 @@ import { NotebookWorkbenchSidebar } from '../notebook_workbench_sidebar.js';
 import { ScriptDetails, TabKey as DetailsTabKey } from '../script_details.js';
 import { NotebookFeed } from './notebook_feed.js';
 
-interface FeedScrollTarget {
-    fileName: string;
-    version: number;
-}
-
 export interface NotebookFeedPageDependencies {
     NotebookFeed: typeof NotebookFeed;
     ScriptDetails: typeof ScriptDetails;
@@ -51,26 +46,9 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
     const [showDetails, setShowDetails] = React.useState(false);
     const [detailsScriptId, setDetailsScriptId] = React.useState<number | undefined>(undefined);
     const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
-    const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
     const [feedShadowContainer, setFeedShadowContainer] = React.useState<HTMLDivElement | null>(null);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
-    const lastScrollInteractionRef = React.useRef<number | null>(null);
-    const requestFeedScroll = React.useCallback((fileName: string) => {
-        setFeedScrollTarget(previous => ({
-            fileName,
-            version: (previous?.version ?? 0) + 1,
-        }));
-    }, []);
-
-    React.useEffect(() => {
-        if (showDetails) return;
-        const interactionCounter = props.notebookScripts.scriptFocus.interactionCounter;
-        if (lastScrollInteractionRef.current === interactionCounter) return;
-        lastScrollInteractionRef.current = interactionCounter;
-        requestFeedScroll(props.notebookScripts.scriptFocus.fileName);
-    }, [props.notebookScripts.scriptFocus.interactionCounter, requestFeedScroll, showDetails]);
-
     const feedActive = props.active && !showDetails;
     const workbench = (closeAfterSelection: boolean) => (
         <dependencies.NotebookWorkbenchSidebar
@@ -102,7 +80,6 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
                             setDetailsInitialTab(initialTab);
                             setShowDetails(true);
                         }}
-                        scrollTarget={feedScrollTarget}
                         conn={props.connection}
                     />
                 </div>

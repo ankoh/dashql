@@ -35,7 +35,7 @@ import { registerNotebookScriptQuery, runNotebookScript } from '../rerun_query.j
 import { useStorageReader } from '../../persistence/storage_provider.js';
 import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scroll_shadows.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
-import { useNotebookFeedLayout, type FeedScrollTarget } from './notebook_feed_layout.js';
+import { useNotebookFeedLayout } from './notebook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './notebook_feed_row.js';
 import { reorderFeedEntries } from './notebook_feed_drag.js';
 
@@ -43,7 +43,6 @@ export interface NotebookFeedProps {
     notebookScripts: NotebookScripts;
     modifyNotebookScripts: ModifyNotebookScripts;
     showDetails: (fileName?: string, initialTab?: DetailsTabKey) => void;
-    scrollTarget?: FeedScrollTarget | null;
     conn: AttachedDatabaseState | null;
     /// Whether the feed is the visible, interactive layer. The feed stays mounted (just hidden) while
     /// the catalog/details overlay is open so it keeps its scroll position and measured row heights;
@@ -350,7 +349,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     ], [feedActive, props.notebookScripts, handleAcceptDiff, handleRejectDiff]);
     useKeyEvents(keyHandlers);
 
-    const feedLayout = useNotebookFeedLayout(entries, props.scrollTarget);
+    const feedLayout = useNotebookFeedLayout(entries);
 
     const handleEditorView = React.useCallback((scriptKey: number, view: EditorView) => {
         editorViewsRef.current.set(scriptKey, view);
@@ -366,7 +365,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
             if (next == null) return;
             const created = getSelectedScriptRef(next);
             if (created == null) return;
-            feedLayout.listRef.current?.scrollToRow({ index: index * 2 + 1, align: 'start' });
             const view = editorViewsRef.current.get(created.scriptId);
             if (view != null) {
                 view.focus();
@@ -374,7 +372,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                 pendingCreatedScriptKeyRef.current = created.scriptId;
             }
         });
-    }, [feedLayout.listRef, props.modifyNotebookScripts]);
+    }, [props.modifyNotebookScripts]);
 
     const canDelete = entries.length > 1;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({

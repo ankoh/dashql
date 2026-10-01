@@ -13,6 +13,7 @@ import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js
 import { useKeyEvents } from '../../utils/key_events.js';
 import { LogJsonModal } from './log_json_modal.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_provider.js';
+import { VerticalScrollShadows } from '../foundations/vertical_scroll_shadows.js';
 
 export const ROW_HEIGHT = 32;
 
@@ -161,6 +162,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     // Redraw whenever the log version changes or filtered logs change
     const seenLogRows = React.useRef<number>(0);
     const listRef = useListRef(null);
+    const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
     React.useEffect(() => {
         if (listRef.current) {
             const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
@@ -289,6 +291,11 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                         rowHeight={computeLogRowHeight}
                         rowComponent={LogRow}
                         rowProps={rowProps}
+                    />
+                    <VerticalScrollShadows
+                        getScrollElement={getScrollElement}
+                        prominent
+                        refreshKey={rowCount}
                     />
                 </div>
             </div>

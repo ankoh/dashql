@@ -15,6 +15,7 @@ import { StorageWriteKey, StorageWriterStatistics, StorageWriteStatisticsMap, st
 import { formatBytes, formatMilliseconds } from '../../../../utils/format.js';
 import { observeSize } from '../../../../ui/foundations/size_observer.js';
 import { useKeyEvents } from '../../../../utils/key_events.js';
+import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scroll_shadows.js';
 
 export const ROW_HEIGHT = 32;
 
@@ -169,6 +170,7 @@ export function StorageWriterView(props: { notebookId: string | null; onClose: (
 
     // Auto-scroll to bottom when entries change; scroll to selected row when modal opens
     const listRef = useListRef(null);
+    const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
     React.useEffect(() => {
         if (modalIndex >= 0 && listRef.current) {
             listRef.current.scrollToRow({ index: modalIndex, align: 'center' });
@@ -230,6 +232,11 @@ export function StorageWriterView(props: { notebookId: string | null; onClose: (
                             rowProps={rowProps}
                         />
                     )}
+                    <VerticalScrollShadows
+                        getScrollElement={getScrollElement}
+                        prominent
+                        refreshKey={entries.length}
+                    />
                 </div>
             </div>
             <AnchoredOverlay
