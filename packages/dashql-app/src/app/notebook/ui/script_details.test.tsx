@@ -29,7 +29,7 @@ const dependencies = {
     },
     runNotebookScript: (_databaseId: string, _scripts: unknown, script: any, execute: any) => execute('database', { query: script.scriptSession.getText() }),
     ScriptDetailsEditorPane: (props: any) => {
-        React.useEffect(() => props.onEditorView({}), [props.onEditorView]);
+        React.useEffect(() => props.onEditorView({ focus: vi.fn() }), [props.onEditorView]);
         return <div>
             <button aria-label="Rename script" onClick={props.onStartEditingName}>rename</button>
             <button aria-label="Shrink script details" onClick={props.onHide}>shrink</button>
