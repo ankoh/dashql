@@ -1,6 +1,7 @@
 import createDashQLShellModule from '@ankoh/dashql-shell-js';
 import shellWasmUrl from '@ankoh/dashql-shell-wasm?url';
 import { DashQL, DashQLCatalog, DashQLModuleOptions, DashQLScript, EmscriptenModule } from '../core/api.js';
+import { stringifyError } from '../platform/logger/logger.js';
 
 const RESULT_SIZE = 16;
 const RESULT_STATUS = 0;
@@ -787,10 +788,9 @@ export class DashQLShell {
                         data,
                     }),
                     error => {
-                        const message = error instanceof Error ? error.message : String(error);
                         finish({
                             status: DashQLShellEffectCompletionStatus.ERROR,
-                            data: this.textEncoder.encode(withTrailingNewline(message)),
+                            data: this.textEncoder.encode(withTrailingNewline(stringifyError(error))),
                         });
                     },
                 );

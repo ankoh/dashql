@@ -191,6 +191,19 @@ describe('DashQL shell Wasm', () => {
         expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'untracked')).toBe(false);
     });
 
+    it('reports messages from worker error events', async () => {
+        executeQuery = async () => {
+            throw {
+                message: 'Uncaught RangeError: Maximum call stack size exceeded',
+                toString: () => '[object ErrorEvent]',
+            };
+        };
+
+        await expect(shell.executeQuery('SELECT * FROM large_file')).resolves.toBe(
+            'Uncaught RangeError: Maximum call stack size exceeded\r\n',
+        );
+    });
+
     it('submits the prompt through the asynchronous effect interface', async () => {
         executeQuery = async query => {
             expect(query).toBe('SELECT 42');

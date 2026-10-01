@@ -26,6 +26,12 @@ export function stringifyError(e: unknown): string {
     }
     if (e && typeof e === 'object') {
         try {
+            const message = (e as { message?: unknown }).message;
+            if (typeof message === 'string' && message.length > 0) return message;
+        } catch {
+            // Fall through when an exotic object's message getter throws.
+        }
+        try {
             return JSON.stringify(e);
         } catch {
             return Object.prototype.toString.call(e);

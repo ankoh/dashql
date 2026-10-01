@@ -3,6 +3,7 @@ import type { FitAddon } from '@xterm/addon-fit';
 import type { WebglAddon } from '@xterm/addon-webgl';
 
 import { DashQLShell, DashQLShellPromptAction, DashQLShellPromptInput } from './api.js';
+import { stringifyError } from '../platform/logger/logger.js';
 import { VT100 } from './vt100.js';
 
 const QUERY_SPINNER_INTERVAL_MS = 80;
@@ -272,7 +273,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         } catch (error) {
             if (!disposed && shell === executingShell) {
                 progress.stop();
-                terminal.write(executingShell.finishTerminalQuery(error instanceof Error ? error.message : String(error), true).data);
+                terminal.write(executingShell.finishTerminalQuery(stringifyError(error), true).data);
             }
         } finally {
             progress.stop();
