@@ -470,7 +470,11 @@ describe('DashQL shell Wasm', () => {
         expect(renderedTimer).not.toContain(`Timer: on${VT100.NEW_LINE}${VT100.NEW_LINE}`);
 
         shell.setPrompt('SELECT 42;');
-        await expect(shell.submitPrompt()).resolves.toMatch(/test database is not configured\r\nElapsed: \d+ ms/);
+        const timedOutput = await shell.submitPrompt();
+        expect(timedOutput).toMatch(/test database is not configured\r\nElapsed: \d+ ms\r\n$/);
+        expect(shell.finishTerminalQuery(timedOutput).data).toContain(
+            ` ms${VT100.NEW_LINE}${VT100.NEW_LINE}`,
+        );
 
         shell.setPrompt('.timer off');
         await expect(shell.submitPrompt()).resolves.toBe('Timer: off');

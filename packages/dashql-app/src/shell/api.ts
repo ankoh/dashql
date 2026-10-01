@@ -629,7 +629,7 @@ export class DashQLShell {
             const output = this.requireComplete(operation);
             return queryElapsedMs == null
                 ? output
-                : `${output}${output.length === 0 || /(?:\r\n|\n|\r)$/.test(output) ? '' : '\r\n'}Elapsed: ${formatElapsed(queryElapsedMs)}`;
+                : `${output}${output.length === 0 || /(?:\r\n|\n|\r)$/.test(output) ? '' : '\r\n'}Elapsed: ${formatElapsed(queryElapsedMs)}\r\n`;
         } finally {
             this.lifecycleAbort.signal.removeEventListener('abort', abortExecution);
             signal?.removeEventListener('abort', abortExecution);
