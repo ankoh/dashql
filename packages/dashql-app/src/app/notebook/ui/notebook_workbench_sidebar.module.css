@@ -82,11 +82,20 @@
 
 .notebook_list {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: 4px;
     min-height: 0;
     padding: 8px;
     overflow-y: auto;
+}
+
+.scroll_shadow_container {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .notebook_row {
@@ -163,6 +172,7 @@
 }
 
 .database_list {
+    position: relative;
     flex: 1;
     min-height: 0;
     overflow: hidden;

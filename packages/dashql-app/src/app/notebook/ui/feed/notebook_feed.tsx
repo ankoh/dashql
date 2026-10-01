@@ -33,6 +33,7 @@ import { type KeyEventHandler, useKeyEvents } from '../../../../utils/key_events
 import { TabKey as DetailsTabKey } from '../script_details.js';
 import { registerNotebookScriptQuery, runNotebookScript } from '../rerun_query.js';
 import { useStorageReader } from '../../persistence/storage_provider.js';
+import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scroll_shadows.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useNotebookFeedLayout, type FeedScrollTarget } from './notebook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './notebook_feed_row.js';
@@ -48,6 +49,7 @@ export interface NotebookFeedProps {
     /// the catalog/details overlay is open so it keeps its scroll position and measured row heights;
     /// while inactive its global key handlers must stand down so Escape/Enter belong to the overlay.
     active: boolean;
+    scrollShadowContainer?: HTMLElement | null;
 }
 
 const OVERSCAN_ROW_COUNT = 16;
@@ -410,6 +412,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
     }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     return (
         <div
@@ -442,6 +445,14 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
                         />
                     </SortableContext>
                 </DndContext>
+                {props.active && (
+                    <VerticalScrollShadows
+                        getScrollElement={getScrollElement}
+                        portalContainer={props.scrollShadowContainer}
+                        prominent
+                        refreshKey={`${props.notebookScripts.notebookId}:${entries.length}:${feedLayout.rowHeightsVersion}`}
+                    />
+                )}
             </div>
         </div>
     );

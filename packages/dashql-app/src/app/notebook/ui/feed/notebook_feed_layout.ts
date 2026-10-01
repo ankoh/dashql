@@ -128,6 +128,7 @@ export function useNotebookFeedLayout(
         listContainerRef,
         listRef,
         rowHeights,
+        rowHeightsVersion: heightsVersion,
         listWidth,
         listHeight,
         listScrollbarInset,

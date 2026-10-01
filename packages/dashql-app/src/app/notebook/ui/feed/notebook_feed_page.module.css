@@ -33,6 +33,10 @@
         min-width: 0;
         min-height: 0;
     }
+    .feed_shadow_layer {
+        grid-row: 2;
+        grid-column: 1;
+    }
 }
 
 @media only screen and (min-width: 800px) {
@@ -64,6 +68,18 @@
         min-width: 0;
         min-height: 0;
     }
+    .feed_shadow_layer {
+        grid-row: 1;
+        grid-column: 1 / -1;
+    }
+}
+
+.feed_shadow_layer {
+    position: relative;
+    z-index: 20;
+    min-width: 0;
+    min-height: 0;
+    pointer-events: none;
 }
 
 /* Keep the feed laid out behind details so its virtual-list measurements and scroll position survive. */

@@ -16,7 +16,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { List, type RowComponentProps } from 'react-window';
+import { List, type RowComponentProps, useListRef } from 'react-window';
 
 import * as core from '../../../core/index.js';
 import { useComputationRegistry } from '../../../compute/computation_registry.js';
@@ -66,6 +66,7 @@ import { useCatalogLoaderQueue } from '../connections/catalog_loader.js';
 import { useHyperSetup } from '../connections/hyper/hyper_connection_setup.js';
 import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status_indicator.js';
 import { observeSize } from '../../../ui/foundations/size_observer.js';
+import { VerticalScrollShadows } from '../../../ui/foundations/vertical_scroll_shadows.js';
 import { displayPath } from '../persistence/notebook_locator.js';
 import { StorageBackendType } from '../persistence/storage_backend.js';
 import { NotebookStorageOverlay } from '../persistence/ui/notebook_storage_overlay.js';
@@ -488,6 +489,8 @@ export const AttachedDatabaseTree: React.FC<AttachedDatabaseTreeProps> = ({ data
     }, [catalogTrees, expanded]);
     const containerRef = React.useRef<HTMLDivElement>(null);
     const size = observeSize(containerRef);
+    const listRef = useListRef(null);
+    const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
     const toggle = React.useCallback((key: string) => {
         setExpanded(current => {
             const next = new Set(current);
@@ -505,12 +508,14 @@ export const AttachedDatabaseTree: React.FC<AttachedDatabaseTreeProps> = ({ data
     return (
         <div ref={containerRef} className={styles.database_list} aria-label="Attached databases and catalogs">
             <List
+                listRef={listRef}
                 style={{ width: size?.width ?? 200, height: size?.height ?? 200 }}
                 rowCount={rows.length}
                 rowHeight={attachedDatabaseTreeRowHeight}
                 rowComponent={AttachedDatabaseTreeRow}
                 rowProps={rowProps}
             />
+            <VerticalScrollShadows getScrollElement={getScrollElement} refreshKey={rows.length} />
         </div>
     );
 };
@@ -1125,6 +1130,8 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
         }
         props.closeAfterSelection?.();
     }, [databaseDispatch, hyperSetup, navigate, props.closeAfterSelection, props.notebookScripts.notebookId]);
+    const notebookListRef = React.useRef<HTMLUListElement>(null);
+    const getNotebookScrollElement = React.useCallback(() => notebookListRef.current, []);
 
     return (
         <nav className={styles.workbench} aria-label="Notebook workbench" data-electron-drag-region>
@@ -1173,30 +1180,36 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
                         </IconButton>
                     </div>
                 </header>
-                <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={reorderNotebooks}>
-                    <SortableContext items={notebooks.map(item => item.notebookId)} strategy={verticalListSortingStrategy}>
-                        <ul className={styles.notebook_list} aria-label="Notebooks" data-electron-drag-region="false">
-                            {notebooks.map(item => (
-                                <NotebookRow
-                                    key={item.notebookId}
-                                    item={item}
-                                    selected={item.notebookId === props.notebookScripts.notebookId}
-                                    onOpen={anchor => openNotebook(item, anchor)}
-                                    onDuplicate={() => { void duplicateNotebook(item); }}
-                                    onDelete={() => { void deleteNotebook(item); }}
-                                    dependencies={dependencies}
-                                />
-                            ))}
-                            {invalidItems.map(item => (
-                                <InvalidNotebookRow
-                                    key={item.notebookId}
-                                    item={item}
-                                    onDelete={() => { void deleteInvalidNotebook(item.notebookId); }}
-                                />
-                            ))}
-                        </ul>
-                    </SortableContext>
-                </DndContext>
+                <div className={styles.scroll_shadow_container}>
+                    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={reorderNotebooks}>
+                        <SortableContext items={notebooks.map(item => item.notebookId)} strategy={verticalListSortingStrategy}>
+                            <ul ref={notebookListRef} className={styles.notebook_list} aria-label="Notebooks" data-electron-drag-region="false">
+                                {notebooks.map(item => (
+                                    <NotebookRow
+                                        key={item.notebookId}
+                                        item={item}
+                                        selected={item.notebookId === props.notebookScripts.notebookId}
+                                        onOpen={anchor => openNotebook(item, anchor)}
+                                        onDuplicate={() => { void duplicateNotebook(item); }}
+                                        onDelete={() => { void deleteNotebook(item); }}
+                                        dependencies={dependencies}
+                                    />
+                                ))}
+                                {invalidItems.map(item => (
+                                    <InvalidNotebookRow
+                                        key={item.notebookId}
+                                        item={item}
+                                        onDelete={() => { void deleteInvalidNotebook(item.notebookId); }}
+                                    />
+                                ))}
+                            </ul>
+                        </SortableContext>
+                    </DndContext>
+                    <VerticalScrollShadows
+                        getScrollElement={getNotebookScrollElement}
+                        refreshKey={`${notebooks.length}:${invalidItems.length}`}
+                    />
+                </div>
             </section>
 
             <section className={classNames(styles.section, styles.database_section)} aria-labelledby="workbench-databases-heading">

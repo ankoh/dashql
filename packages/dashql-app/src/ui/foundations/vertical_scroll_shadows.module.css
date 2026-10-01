@@ -1,0 +1,55 @@
+.shadow {
+    position: absolute;
+    right: 0;
+    left: 0;
+    z-index: 5;
+    height: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 80ms ease-out;
+}
+
+.shadow[data-visible='true'] {
+    opacity: 1;
+}
+
+.top {
+    top: 0;
+    background: radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.05), transparent) center top;
+}
+
+.bottom {
+    bottom: 0;
+    background: radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.05), transparent) center bottom;
+}
+
+.prominent {
+    z-index: 20;
+    height: 24px;
+}
+
+.prominent.top {
+    background: linear-gradient(
+        to bottom,
+        rgba(31, 35, 40, 0.14) 0,
+        rgba(31, 35, 40, 0.07) 32%,
+        rgba(31, 35, 40, 0.025) 62%,
+        transparent 100%
+    );
+}
+
+.prominent.bottom {
+    background: linear-gradient(
+        to top,
+        rgba(31, 35, 40, 0.14) 0,
+        rgba(31, 35, 40, 0.07) 32%,
+        rgba(31, 35, 40, 0.025) 62%,
+        transparent 100%
+    );
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shadow {
+        transition: none;
+    }
+}

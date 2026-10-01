@@ -52,6 +52,7 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
     const [detailsScriptId, setDetailsScriptId] = React.useState<number | undefined>(undefined);
     const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
+    const [feedShadowContainer, setFeedShadowContainer] = React.useState<HTMLDivElement | null>(null);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
     const lastScrollInteractionRef = React.useRef<number | null>(null);
@@ -94,6 +95,7 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
                         notebookScripts={props.notebookScripts}
                         modifyNotebookScripts={props.modifyNotebookScripts}
                         active={feedActive}
+                        scrollShadowContainer={feedShadowContainer}
                         showDetails={(fileName?: string, initialTab?: DetailsTabKey) => {
                             const targetFileName = fileName ?? props.notebookScripts.scriptFocus.fileName;
                             setDetailsScriptId(props.notebookScripts.scriptRefs[targetFileName]?.scriptId);
@@ -129,6 +131,7 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
                             />
                             : null}
             </main>
+            <div ref={setFeedShadowContainer} className={styles.feed_shadow_layer} aria-hidden="true" />
             {navigationDrawerOpen && (
                 <dependencies.NotebookNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
                     {workbench(true)}
