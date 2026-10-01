@@ -83,6 +83,59 @@ describe('embedded database shell environment', () => {
         expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
     });
 
+    it('reports UI result analysis as postprocessing', async () => {
+        const table = arrow.tableFromArrays({ value: [42] });
+        const events: string[] = [];
+        const queryArrowIPC = vi.fn().mockResolvedValue(arrow.tableToIPC(table, 'file'));
+        const environment = createEmbeddedDatabaseShellEnvironment(
+            { queryArrowIPC } as any,
+            undefined,
+            {
+                getOutputMode: () => 'ui',
+                prepareResult: () => { events.push('prepare'); },
+            },
+        );
+
+        await environment.executeQuery(
+            'SELECT 42',
+            undefined,
+            undefined,
+            vi.fn(),
+            (label, elapsedMs) => {
+                expect(elapsedMs).toBeGreaterThanOrEqual(0);
+                events.push(label);
+            },
+        );
+
+        expect(events).toEqual(['Results', 'prepare', 'Postprocess']);
+    });
+
+    it('omits postprocessing when results stay in the terminal', async () => {
+        const table = arrow.tableFromArrays({ value: [42] });
+        const queryArrowIPC = vi.fn().mockResolvedValue(arrow.tableToIPC(table, 'file'));
+        const prepareResult = vi.fn();
+        const environment = createEmbeddedDatabaseShellEnvironment(
+            { queryArrowIPC } as any,
+            undefined,
+            {
+                getOutputMode: () => 'term',
+                prepareResult,
+            },
+        );
+        const timings: string[] = [];
+
+        await environment.executeQuery(
+            'SELECT 42',
+            undefined,
+            undefined,
+            undefined,
+            label => { timings.push(label); },
+        );
+
+        expect(prepareResult).not.toHaveBeenCalled();
+        expect(timings).toEqual(['Results', 'Postprocess']);
+    });
+
     it('prepares and opens a 1x1 plan candidate in auto mode', async () => {
         const plan = '{"operator":"executiontarget","operatorId":1}';
         const table = arrow.tableFromArrays({ value: [plan] });

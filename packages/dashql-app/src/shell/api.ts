@@ -88,6 +88,7 @@ export interface DashQLShellEnvironment {
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
         onResult?: (queryId: number, rowCount: number) => void,
+        onTiming?: (label: string, elapsedMs: number) => void,
     ): Promise<Uint8Array>;
 }
 
@@ -611,14 +612,22 @@ export class DashQLShell {
 
         try {
             let operation = start();
-            let queryElapsedMs: number | null = null;
+            let queryStartedAt: number | null = null;
+            const queryTimings: Array<{ label: string; elapsedMs: number }> = [];
             while (operation.status === DashQLShellStatus.PENDING) {
                 const effect = this.requireEffect(operation);
-                const timerStartedAt = effect.type === DashQLShellEffectType.EXECUTE_QUERY && this.settings.timer
-                    ? performance.now()
-                    : null;
-                const completion = await this.runEffect(effect, executionAbort.signal, onProgress, onResult);
-                if (timerStartedAt != null) queryElapsedMs = performance.now() - timerStartedAt;
+                if (effect.type === DashQLShellEffectType.EXECUTE_QUERY && this.settings.timer) {
+                    queryStartedAt = performance.now();
+                }
+                const completion = await this.runEffect(
+                    effect,
+                    executionAbort.signal,
+                    onProgress,
+                    onResult,
+                    queryStartedAt == null
+                        ? undefined
+                        : (label, elapsedMs) => { queryTimings.push({ label, elapsedMs }); },
+                );
                 if (this.shell === 0) {
                     throw new DashQLShellError(DashQLShellStatus.STALE_EFFECT, 'DashQL shell was destroyed');
                 }
@@ -627,9 +636,15 @@ export class DashQLShell {
                     : this.completeEffect(effect.id, completion.status, completion.data);
             }
             const output = this.requireComplete(operation);
-            return queryElapsedMs == null
-                ? output
-                : `${output}${output.length === 0 || /(?:\r\n|\n|\r)$/.test(output) ? '' : '\r\n'}Elapsed: ${formatElapsed(queryElapsedMs)}\r\n`;
+            if (queryTimings.length === 0) return output;
+            const separator = output.length === 0 || /(?:\r\n|\n|\r)$/.test(output) ? '' : '\r\n';
+            const timingsByLabel = new Map<string, number>();
+            for (const timing of queryTimings) {
+                timingsByLabel.set(timing.label, (timingsByLabel.get(timing.label) ?? 0) + timing.elapsedMs);
+            }
+            const timings = Array.from(timingsByLabel, ([label, elapsedMs]) => `${label}: ${formatElapsed(elapsedMs)}`)
+                .join(' | ');
+            return `${output}${separator}${timings}\r\n`;
         } finally {
             this.lifecycleAbort.signal.removeEventListener('abort', abortExecution);
             signal?.removeEventListener('abort', abortExecution);
@@ -717,6 +732,7 @@ export class DashQLShell {
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
         onResult?: (queryId: number, rowCount: number) => void,
+        onTiming?: (label: string, elapsedMs: number) => void,
     ): Promise<DashQLShellEffectResult> {
         if (
             effect.type !== DashQLShellEffectType.EXECUTE_QUERY &&
@@ -750,7 +766,13 @@ export class DashQLShell {
             Promise.resolve()
                 .then(async () => {
                     if (effect.type === DashQLShellEffectType.EXECUTE_QUERY) {
-                        return await this.environment.executeQuery(effectInput, signal, onProgress, onResult);
+                        return await this.environment.executeQuery(
+                            effectInput,
+                            signal,
+                            onProgress,
+                            onResult,
+                            onTiming,
+                        );
                     }
                     const command = await this.executeCommand(effectInput, signal, onProgress);
                     const output = this.textEncoder.encode(withTrailingNewline(command.output));

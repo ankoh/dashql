@@ -126,6 +126,32 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             errorTarget: LOG_CTX,
             execute: async tracked => {
                 const initialState = tracked.initialState;
+                let queryExecutionStartedAt: number | null = null;
+                let queryExecutionReported = false;
+                const startQueryExecution = () => {
+                    queryExecutionStartedAt = performance.now();
+                };
+                const reportQueryExecution = () => {
+                    if (queryExecutionStartedAt == null || queryExecutionReported) return;
+                    queryExecutionReported = true;
+                    try {
+                        args.onTiming?.('Results', performance.now() - queryExecutionStartedAt);
+                    } catch {
+                        // Timing observers must not interrupt query execution.
+                    }
+                };
+                const measurePostprocessing = async (process: () => Promise<void>) => {
+                    const startedAt = performance.now();
+                    try {
+                        await process();
+                    } finally {
+                        try {
+                            args.onTiming?.('Postprocess', performance.now() - startedAt);
+                        } catch {
+                            // Timing observers must not interrupt query execution.
+                        }
+                    }
+                };
                 traced.info("Executing query", {
                     notebookId,
                     "query": queryId.toString(),
@@ -176,13 +202,16 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                         computeDispatch({ type: DELETE_COMPUTATION, value: [args.replaceComputationId] });
                                     }
                                     queryTracker.dispatch({ type: QUERY_PROCESSING_RESULTS, value: [queryId] });
-                                    await analyzeTable(queryId, table, computeDispatch, computeDb, traced, args.projection);
-                                    initialState.cancellation.signal.throwIfAborted();
+                                    await measurePostprocessing(async () => {
+                                        await analyzeTable(queryId, table, computeDispatch, computeDb, traced, args.projection);
+                                        initialState.cancellation.signal.throwIfAborted();
+                                    });
                                     queryTracker.dispatch({ type: QUERY_PROCESSED_RESULTS, value: [queryId] });
                                 }
                                 return table;
                             }
                         }
+                        startQueryExecution();
                         const table = await executeScriptQuery({
                             execution: args.scriptExecution,
                             queryArgs: args,
@@ -235,13 +264,16 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                 },
                             },
                         });
+                        reportQueryExecution();
                         if (table && args.analyzeResults) {
                             if (args.replaceComputationId != null && args.replaceComputationId !== queryId) {
                                 computeDispatch({ type: DELETE_COMPUTATION, value: [args.replaceComputationId] });
                             }
                             queryTracker.dispatch({ type: QUERY_PROCESSING_RESULTS, value: [queryId] });
-                            await analyzeTable(queryId, table, computeDispatch, computeDb, traced, args.projection);
-                            initialState.cancellation.signal.throwIfAborted();
+                            await measurePostprocessing(async () => {
+                                await analyzeTable(queryId, table, computeDispatch, computeDb, traced, args.projection);
+                                initialState.cancellation.signal.throwIfAborted();
+                            });
                             queryTracker.dispatch({ type: QUERY_PROCESSED_RESULTS, value: [queryId] });
                         }
                         if (cacheHash != null && table != null) {
@@ -328,6 +360,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         tracked.sending();
 
                         // Start the query
+                        startQueryExecution();
                         resultStream = await executeConnectionQuery(conn.details, args, initialState.cancellation.signal);
                         traced.debug("Received query results", {
                             notebookId,
@@ -351,6 +384,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                     type: QUERY_RECEIVED_BATCH,
                                     value: [queryId, batch, stream.getMetrics()],
                                 }),
+                                onResultsReceived: reportQueryExecution,
                                 logger: traced,
                                 logContext: { notebookId, queryId, target: LOG_CTX },
                             });
@@ -371,6 +405,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                 value: [queryId, table!, metadata, resultStream!.getMetrics()],
                             });
                         } else {
+                            reportQueryExecution();
                             traced.warn("Query returned no results", { notebookId, "query": queryId.toString() }, LOG_CTX);
                         }
                     }
@@ -417,8 +452,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                             value: [queryId],
                         });
 
-                        await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
-                        initialState.cancellation.signal.throwIfAborted();
+                        await measurePostprocessing(async () => {
+                            await analyzeTable(queryId, table!, computeDispatch, computeDb, traced, args.projection);
+                            initialState.cancellation.signal.throwIfAborted();
+                        });
 
                         queryTracker.dispatch({
                             type: QUERY_PROCESSED_RESULTS,

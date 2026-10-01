@@ -472,10 +472,7 @@ describe('DashQL shell Wasm', () => {
 
         shell.setPrompt('SELECT 42;');
         const timedOutput = await shell.submitPrompt();
-        expect(timedOutput).toMatch(/test database is not configured\r\nElapsed: \d+ ms\r\n$/);
-        expect(shell.finishTerminalQuery(timedOutput).data).toContain(
-            ` ms${VT100.NEW_LINE}${VT100.NEW_LINE}`,
-        );
+        expect(timedOutput).toBe('test database is not configured\r\n');
 
         shell.setPrompt('.timer off');
         await expect(shell.submitPrompt()).resolves.toBe('Timer: off\r\n');
@@ -484,6 +481,29 @@ describe('DashQL shell Wasm', () => {
 
         shell.setPrompt('.timer invalid');
         await expect(shell.submitPrompt()).resolves.toBe('usage: .timer [on|off]\r\n');
+    });
+
+    it('reports labeled environment timings and total elapsed time', async () => {
+        shell.destroy();
+        shell = await DashQLShell.create({
+            environment: {
+                executeQuery: async (_query, _signal, _onProgress, _onResult, onTiming) => {
+                    onTiming?.('Results', 1234);
+                    onTiming?.('Postprocess', 12);
+                    onTiming?.('Postprocess', 3);
+                    return arrow.tableToIPC(arrow.tableFromArrays({ value: [42] }), 'file');
+                },
+            },
+            terminalColumns: 80,
+            wasmBinary: await DASHQL_SHELL_PRECOMPILED,
+        });
+        shell.setPrompt('.timer on');
+        await shell.submitPrompt();
+        shell.setPrompt('SELECT 42;');
+
+        await expect(shell.submitPrompt()).resolves.toMatch(
+            /Results: 1\.234 s \| Postprocess: 15 ms\r\n$/,
+        );
     });
 
     it('reports unknown dot commands without executing SQL', async () => {

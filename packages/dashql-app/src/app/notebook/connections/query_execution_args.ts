@@ -19,6 +19,8 @@ export interface QueryExecutionArgs {
     /// Receives trace-scoped query execution log messages as they are emitted. Intended for
     /// transient progress surfaces such as the notebook shell.
     onLog?: (message: string) => void;
+    /// Reports labeled query lifecycle timings before the complete execution promise resolves.
+    onTiming?: (label: string, elapsedMs: number) => void;
     /// Computation from the previous execution of the same notebook entry. It can be retired before
     /// analyzing this result so its temporary embedded-database tables do not accumulate across reruns.
     replaceComputationId?: number | null;

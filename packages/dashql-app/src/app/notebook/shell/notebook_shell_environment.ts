@@ -18,13 +18,21 @@ export function createNotebookShellEnvironment(
     getTerminalColumns: () => number = () => 100,
 ): DashQLShellEnvironment {
     return {
-        async executeQuery(query, signal, onProgress, onResult) {
+        async executeQuery(query, signal, onProgress, onResult, onTiming) {
+            const reportTiming = (label: string, elapsedMs: number) => {
+                try {
+                    onTiming?.(label, elapsedMs);
+                } catch {
+                    // Timing observers must not interrupt query execution.
+                }
+            };
             const [queryId, execution] = executeQuery(connectionId, {
                 query,
                 analyzeResults: true,
                 cacheable: false,
                 throwOnError: true,
                 onLog: onProgress,
+                onTiming: reportTiming,
                 metadata: {
                     queryType: QueryType.USER_PROVIDED,
                     title: 'Shell Query',
@@ -45,13 +53,18 @@ export function createNotebookShellEnvironment(
                     if (signal?.aborted) throw new DOMException('Query was cancelled', 'AbortError');
                     throw new Error('Query failed without an error');
                 }
-                const outputMode = getOutputMode();
-                if (table.numCols > 0 && shouldShowResultUI(outputMode, table, getTerminalColumns())) {
-                    onResult?.(queryId, table.numRows);
-                    return EMPTY_RESULT_IPC;
+                const outputStartedAt = performance.now();
+                try {
+                    const outputMode = getOutputMode();
+                    if (table.numCols > 0 && shouldShowResultUI(outputMode, table, getTerminalColumns())) {
+                        onResult?.(queryId, table.numRows);
+                        return EMPTY_RESULT_IPC;
+                    }
+                    if (outputMode === 'off') return EMPTY_RESULT_IPC;
+                    return arrow.tableToIPC(table, 'file');
+                } finally {
+                    reportTiming('Postprocess', performance.now() - outputStartedAt);
                 }
-                if (outputMode === 'off') return EMPTY_RESULT_IPC;
-                return arrow.tableToIPC(table, 'file');
             } finally {
                 signal?.removeEventListener('abort', abort);
             }

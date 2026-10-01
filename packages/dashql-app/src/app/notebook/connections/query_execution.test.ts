@@ -70,4 +70,24 @@ describe('consumeQueryResponseStream', () => {
         expect(onBatch).not.toHaveBeenCalled();
         expect(stream.getSchema).not.toHaveBeenCalled();
     });
+
+    it('reports execution completion before constructing the result table', async () => {
+        const input = arrow.tableFromArrays({ value: [1] });
+        const stream = createStream(input);
+        const events: string[] = [];
+        stream.produce = async () => {};
+        stream.getSchema = async () => {
+            events.push('schema');
+            return input.schema;
+        };
+
+        await consumeQueryResponseStream({
+            stream,
+            publishResults: true,
+            onProgress: vi.fn(),
+            onResultsReceived: () => events.push('execution'),
+        });
+
+        expect(events).toEqual(['execution', 'schema']);
+    });
 });

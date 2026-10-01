@@ -35,6 +35,20 @@ describe('notebook shell environment', () => {
         expect(cancel).not.toHaveBeenCalled();
     });
 
+    it('forwards labeled timings from the query executor', async () => {
+        const execute = vi.fn<QueryExecutor>((_connectionId, args) => {
+            args.onTiming?.('Results', 12.5);
+            return [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))];
+        });
+        const environment = createNotebookShellEnvironment('connection-7', execute, vi.fn());
+        const onTiming = vi.fn();
+
+        await environment.executeQuery('SELECT 42', undefined, undefined, undefined, onTiming);
+
+        expect(onTiming).toHaveBeenCalledWith('Results', 12.5);
+        expect(onTiming).toHaveBeenCalledWith('Postprocess', expect.any(Number));
+    });
+
     it('opens auto-mode results in the overlay above the row limit', async () => {
         const rowCount = SHELL_AUTO_OVERLAY_ROW_LIMIT + 1;
         const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({

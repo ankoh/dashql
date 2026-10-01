@@ -31,6 +31,7 @@ interface ConsumeQueryResponseStreamArgs {
     publishResults: boolean;
     onProgress: (progress: QueryExecutionProgress) => void;
     onBatch?: (batch: arrow.RecordBatch, stream: QueryExecutionResponseStream) => void;
+    onResultsReceived?: () => void;
     logger?: TracedLogger;
     logContext?: {
         notebookId: string;
@@ -61,6 +62,7 @@ export async function consumeQueryResponseStream(args: ConsumeQueryResponseStrea
     );
 
     await args.stream.produce(consumeBatches, consumeProgress, args.abort);
+    args.onResultsReceived?.();
     if (!args.publishResults) return null;
 
     const schema = batches.length > 0
