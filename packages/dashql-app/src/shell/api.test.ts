@@ -386,9 +386,9 @@ describe('DashQL shell Wasm', () => {
         expect(help).toContain('Clear the terminal screen');
         expect(help).toContain('.help');
         expect(help).toContain('List available dot commands');
-        expect(help.endsWith(VT100.NEW_LINE)).toBe(true);
+        expect(help.endsWith(VT100.NEW_LINE)).toBe(false);
 
-        expect(shell.finishTerminalQuery(help).data).toContain(VT100.NEW_LINE + VT100.NEW_LINE);
+        expect(shell.finishTerminalQuery(help).data).not.toContain(VT100.NEW_LINE + VT100.NEW_LINE);
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, '.clear');
         shell.consumeTerminalInput(DashQLShellPromptInput.ENTER);
         const cleared = shell.finishTerminalQuery(await shell.submitPrompt()).data;
@@ -407,7 +407,7 @@ describe('DashQL shell Wasm', () => {
         });
         shell.setPrompt('.login alice');
 
-        await expect(shell.submitPrompt()).resolves.toBe('logged in as alice\r\n');
+        await expect(shell.submitPrompt()).resolves.toBe('logged in as alice');
         expect(execute).toHaveBeenCalledWith(['alice'], expect.objectContaining({ signal: expect.any(AbortSignal) }));
 
         shell.setPrompt('.help');
@@ -429,11 +429,11 @@ describe('DashQL shell Wasm', () => {
         });
         shell.setPrompt('.login');
 
-        await expect(shell.submitPrompt(undefined, progress)).resolves.toBe('connected\r\n');
+        await expect(shell.submitPrompt(undefined, progress)).resolves.toBe('connected');
         expect(progress).toHaveBeenCalledWith('Waiting for authorization');
     });
 
-    it('normalizes trailing newlines in JavaScript dot command output', async () => {
+    it('strips trailing newlines from JavaScript dot command output', async () => {
         shell.destroy();
         shell = await DashQLShell.create({
             environment: { executeQuery: (query, signal) => executeQuery(query, signal) },
@@ -449,9 +449,9 @@ describe('DashQL shell Wasm', () => {
 
         for (const [command, expected] of [
             ['.none', ''],
-            ['.bare', 'bare\r\n'],
-            ['.line-feed', 'line feed\r\n'],
-            ['.crlf', 'crlf\r\n'],
+            ['.bare', 'bare'],
+            ['.line-feed', 'line feed'],
+            ['.crlf', 'crlf'],
         ]) {
             shell.setPrompt(command);
             await expect(shell.submitPrompt()).resolves.toBe(expected);
@@ -460,26 +460,30 @@ describe('DashQL shell Wasm', () => {
 
     it('configures and reports query timing', async () => {
         shell.setPrompt('.timer');
-        await expect(shell.submitPrompt()).resolves.toBe('Timer: off\r\n');
+        await expect(shell.submitPrompt()).resolves.toBe('Timer: off');
 
         shell.setPrompt('.timer on');
-        await expect(shell.submitPrompt()).resolves.toBe('Timer: on\r\n');
+        const timerOutput = await shell.submitPrompt();
+        expect(timerOutput).toBe('Timer: on');
+        const renderedTimer = shell.finishTerminalQuery(timerOutput).data;
+        expect(renderedTimer).toContain(`Timer: on${VT100.NEW_LINE}`);
+        expect(renderedTimer).not.toContain(`Timer: on${VT100.NEW_LINE}${VT100.NEW_LINE}`);
 
         shell.setPrompt('SELECT 42;');
         await expect(shell.submitPrompt()).resolves.toMatch(/test database is not configured\r\nElapsed: \d+ ms/);
 
         shell.setPrompt('.timer off');
-        await expect(shell.submitPrompt()).resolves.toBe('Timer: off\r\n');
+        await expect(shell.submitPrompt()).resolves.toBe('Timer: off');
         shell.setPrompt('SELECT 42;');
         await expect(shell.submitPrompt()).resolves.toBe('test database is not configured\r\n');
 
         shell.setPrompt('.timer invalid');
-        await expect(shell.submitPrompt()).resolves.toBe('usage: .timer [on|off]\r\n');
+        await expect(shell.submitPrompt()).resolves.toBe('usage: .timer [on|off]');
     });
 
     it('reports unknown dot commands without executing SQL', async () => {
         shell.setPrompt('.missing');
-        await expect(shell.submitPrompt()).resolves.toBe('unknown command: .missing\r\n');
+        await expect(shell.submitPrompt()).resolves.toBe('unknown command: .missing');
     });
 
     it('rejects duplicate and invalid dot command registrations', async () => {
