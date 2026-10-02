@@ -94,15 +94,15 @@ DATASETS = [
 # compiled against. Bump both (and the four hashes below) together; the hashes are
 # refreshed by scripts/update_bazel_hashes.py.
 # renovate: datasource=github-releases depName=duckdb/duckdb
-TPCH_DUCKDB_VERSION = "1.5.5"
+TPCH_DUCKDB_VERSION = "1.5.6"
 
 # sha256 of tpch.duckdb_extension.gz per platform, keyed by DuckDB's own `PRAGMA
 # platform` name (osx_amd64 == x86_64 macOS, linux_amd64 == x86_64 Linux, …).
 TPCH_EXTENSION_SHA256 = {
-    "osx_arm64": "8f4594b1fdeac4629f5ba70f9a5c4909d78107ff3b7807704e32bcfde16fd280",
-    "osx_amd64": "dd9f9cace23e5e9787ad7847db644685aa1cfbd770f845c90a6ca0465e48b9b8",
-    "linux_amd64": "e7cfefa4e18d32e2f8aaa0e6e265487da13cc0f4fbffbcc970030526051c2e9c",
-    "linux_arm64": "6bd3ec4a7925f8ec5e39ac59a0ba712762bab734408690e9d1a7876013ef0306",
+    "osx_arm64": "1b37b59168a14e1e147702f315ec9ef7cfa029ee5d4ca9342f01635132665733",
+    "osx_amd64": "bd4aed693742dc63e8f1ad23029ec4cb25161e4ee8a8b8d68958fdf85b9c1d13",
+    "linux_amd64": "51959cc795f6ea8c95cf8cc6cc4065358998ce959bf863e21ff1aa471c06bc41",
+    "linux_arm64": "2eb6c90160fed1d207d866650c4a67fd7144f7f781df8735f1231df8571fd952",
 }
 
 # The 8 TPC-H tables dbgen populates. Each becomes <dataset>/v<version>/<table>.parquet.
