@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './storage_writer_view.module.css';
 
-import { List, useListRef } from 'react-window';
+import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../../../../ui/foundations/symbol_icon.js';
 
@@ -169,15 +169,15 @@ export function StorageWriterView(props: { notebookId: string | null; onClose: (
     );
 
     // Auto-scroll to bottom when entries change; scroll to selected row when modal opens
-    const listRef = useListRef(null);
-    const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
+    const [listApi, setListApi] = useListCallbackRef(null);
+    const getScrollElement = React.useCallback(() => listApi?.element ?? null, [listApi]);
     React.useEffect(() => {
-        if (modalIndex >= 0 && listRef.current) {
-            listRef.current.scrollToRow({ index: modalIndex, align: 'center' });
-        } else if (listRef.current && entries.length > 0) {
-            listRef.current.scrollToRow({ index: entries.length - 1, align: 'end' });
+        if (modalIndex >= 0 && listApi) {
+            listApi.scrollToRow({ index: modalIndex, align: 'center' });
+        } else if (listApi && entries.length > 0) {
+            listApi.scrollToRow({ index: entries.length - 1, align: 'end' });
         }
-    }, [entries, modalIndex]);
+    }, [entries, modalIndex, listApi]);
 
     const rowProps = React.useMemo<StorageWriterRowProps>(() => ({
         entries,
@@ -224,7 +224,7 @@ export function StorageWriterView(props: { notebookId: string | null; onClose: (
                         </div>
                     ) : (
                         <List
-                            listRef={listRef}
+                            listRef={setListApi}
                             style={{ width: containerWidth, height: containerHeight }}
                             rowCount={entries.length}
                             rowHeight={() => ROW_HEIGHT}
@@ -234,8 +234,6 @@ export function StorageWriterView(props: { notebookId: string | null; onClose: (
                     )}
                     <VerticalScrollShadows
                         getScrollElement={getScrollElement}
-                        prominent
-                        strong
                         refreshKey={entries.length}
                     />
                 </div>

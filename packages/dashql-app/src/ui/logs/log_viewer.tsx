@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './log_viewer.module.css';
 
-import { List, useListRef } from 'react-window';
+import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon, DownloadIcon } from '../foundations/symbol_icon.js';
 
@@ -161,20 +161,20 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
 
     // Redraw whenever the log version changes or filtered logs change
     const seenLogRows = React.useRef<number>(0);
-    const listRef = useListRef(null);
-    const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
+    const [listApi, setListApi] = useListCallbackRef(null);
+    const getScrollElement = React.useCallback(() => listApi?.element ?? null, [listApi]);
     React.useEffect(() => {
-        if (listRef.current) {
+        if (listApi) {
             const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
             seenLogRows.current = rowCount;
 
             // Scroll to last row
-            listRef.current.scrollToRow({
+            listApi.scrollToRow({
                 index: Math.max(rowCount, 1) - 1,
                 align: 'end',
             });
         }
-    }, [logVersion, containerHeight, filteredLogs, props.traceId, logger]);
+    }, [logVersion, containerHeight, filteredLogs, props.traceId, logger, listApi]);
 
     // Helper to show JSON modal for a log record
     const showJsonRecord = React.useCallback((rowIndex: number) => {
@@ -230,13 +230,13 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
 
     // Scroll to the selected row when it changes
     React.useEffect(() => {
-        if (jsonModalRecordIndex >= 0 && listRef.current) {
-            listRef.current.scrollToRow({
+        if (jsonModalRecordIndex >= 0 && listApi) {
+            listApi.scrollToRow({
                 index: jsonModalRecordIndex,
                 align: 'center',
             });
         }
-    }, [jsonModalRecordIndex]);
+    }, [jsonModalRecordIndex, listApi]);
 
     // Row props passed to the row component
     const rowProps = React.useMemo<LogRowProps>(() => ({
@@ -285,7 +285,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                 </div>
                 <div className={styles.log_grid_container} ref={containerRef}>
                     <List
-                        listRef={listRef}
+                        listRef={setListApi}
                         style={{ width: containerWidth, height: containerHeight }}
                         rowCount={rowCount}
                         rowHeight={computeLogRowHeight}
@@ -294,8 +294,6 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                     />
                     <VerticalScrollShadows
                         getScrollElement={getScrollElement}
-                        prominent
-                        strong
                         refreshKey={rowCount}
                     />
                 </div>

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as styles from './query_history_viewer.module.css';
 
-import { List, useListRef } from 'react-window';
-import type { RowComponentProps } from 'react-window';
+import { List, useListCallbackRef } from 'react-window';
+import type { ListImperativeAPI, RowComponentProps } from 'react-window';
 import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';
 
 import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
@@ -124,15 +124,12 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
 
 export interface QueryHistoryViewerDependencies {
     List: React.ComponentType<any>;
-    useListRef(): React.RefObject<{
-        element?: HTMLDivElement | null;
-        scrollToRow(options: { index: number; align: 'center' | 'end' }): void;
-    } | null>;
+    useListCallbackRef(initialValue: ListImperativeAPI | null): [ListImperativeAPI | null, React.Dispatch<React.SetStateAction<ListImperativeAPI | null>>];
 }
 
 const DEFAULT_DEPENDENCIES: QueryHistoryViewerDependencies = {
     List,
-    useListRef: () => useListRef(null),
+    useListCallbackRef,
 };
 
 export function QueryHistoryViewer(props: {
@@ -189,15 +186,15 @@ export function QueryHistoryViewer(props: {
     );
 
     // Auto-scroll to bottom when entries change; scroll to selected row when modal opens
-    const listRef = dependencies.useListRef();
-    const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
+    const [listApi, setListApi] = dependencies.useListCallbackRef(null);
+    const getScrollElement = React.useCallback(() => listApi?.element ?? null, [listApi]);
     React.useEffect(() => {
-        if (modalIndex >= 0 && listRef.current) {
-            listRef.current.scrollToRow({ index: modalIndex, align: 'center' });
-        } else if (listRef.current && entries.length > 0) {
-            listRef.current.scrollToRow({ index: entries.length - 1, align: 'end' });
+        if (modalIndex >= 0 && listApi) {
+            listApi.scrollToRow({ index: modalIndex, align: 'center' });
+        } else if (listApi && entries.length > 0) {
+            listApi.scrollToRow({ index: entries.length - 1, align: 'end' });
         }
-    }, [entries, modalIndex]);
+    }, [entries, modalIndex, listApi]);
 
     const rowProps = React.useMemo<QueryRowProps>(() => ({
         entries,
@@ -242,7 +239,7 @@ export function QueryHistoryViewer(props: {
                         <div className={styles.empty_state}>Nothing to see here</div>
                     ) : (
                         <ListComponent
-                            listRef={listRef}
+                            listRef={setListApi}
                             style={{ width: containerWidth, height: containerHeight }}
                             rowCount={entries.length}
                             rowHeight={() => ROW_HEIGHT}
@@ -252,8 +249,6 @@ export function QueryHistoryViewer(props: {
                     )}
                     <VerticalScrollShadows
                         getScrollElement={getScrollElement}
-                        prominent
-                        strong
                         refreshKey={entries.length}
                     />
                 </div>

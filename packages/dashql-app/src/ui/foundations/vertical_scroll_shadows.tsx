@@ -23,7 +23,6 @@ interface VerticalScrollShadowsProps {
     getScrollElement: () => HTMLElement | null;
     portalContainer?: HTMLElement | null;
     prominent?: boolean;
-    strong?: boolean;
     refreshKey?: unknown;
     rightInset?: number;
 }
@@ -34,7 +33,6 @@ export const VerticalScrollShadows: React.FC<VerticalScrollShadowsProps> = ({
     getScrollElement,
     portalContainer,
     prominent = false,
-    strong = false,
     refreshKey,
     rightInset = 0,
 }) => {
@@ -63,14 +61,14 @@ export const VerticalScrollShadows: React.FC<VerticalScrollShadowsProps> = ({
     const shadows = (
         <>
             <div
-                className={classNames(styles.shadow, styles.top, prominent && styles.prominent, strong && styles.strong)}
+                className={classNames(styles.shadow, styles.top, prominent && styles.prominent)}
                 style={insetStyle}
                 data-scroll-shadow="top"
                 data-visible={overflow.top}
                 aria-hidden="true"
             />
             <div
-                className={classNames(styles.shadow, styles.bottom, prominent && styles.prominent, strong && styles.strong)}
+                className={classNames(styles.shadow, styles.bottom, prominent && styles.prominent)}
                 style={insetStyle}
                 data-scroll-shadow="bottom"
                 data-visible={overflow.bottom}

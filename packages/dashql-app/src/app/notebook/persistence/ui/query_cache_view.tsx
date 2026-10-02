@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './query_cache_view.module.css';
 
-import { List, useListRef } from 'react-window';
+import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon, TrashIcon, SyncIcon } from '../../../../ui/foundations/symbol_icon.js';
 
@@ -121,8 +121,8 @@ export function QueryCacheView(props: { notebookId: string | null; onClose: () =
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 
-    const listRef = useListRef(null);
-    const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
+    const [listApi, setListApi] = useListCallbackRef(null);
+    const getScrollElement = React.useCallback(() => listApi?.element ?? null, [listApi]);
     const rowProps = React.useMemo<QueryCacheRowProps>(() => ({
         entries,
         deleteEntry,
@@ -172,7 +172,7 @@ export function QueryCacheView(props: { notebookId: string | null; onClose: () =
                     </div>
                 ) : (
                     <List
-                        listRef={listRef}
+                        listRef={setListApi}
                         style={{ width: containerWidth, height: containerHeight }}
                         rowCount={entries.length}
                         rowHeight={() => ROW_HEIGHT}
@@ -182,8 +182,6 @@ export function QueryCacheView(props: { notebookId: string | null; onClose: () =
                 )}
                 <VerticalScrollShadows
                     getScrollElement={getScrollElement}
-                    prominent
-                    strong
                     refreshKey={entries.length}
                 />
             </div>

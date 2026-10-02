@@ -195,6 +195,10 @@ export function fakeReactWindowModule(
 ) {
     return {
         useListRef: () => React.useRef({ scrollToRow: scrollToRowMock }),
+        useListCallbackRef: (_initialValue: unknown) => React.useState({
+            element: null,
+            scrollToRow: scrollToRowMock,
+        }),
         List: (props: {
             rowCount: number;
             rowHeight: (rowIndex: number) => number;
