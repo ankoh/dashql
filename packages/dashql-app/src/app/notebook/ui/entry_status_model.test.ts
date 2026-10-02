@@ -32,7 +32,7 @@ describe('getQueryStatusText', () => {
     });
 
     it('includes the statement position in a custom failure message', () => {
-        const status = deriveEntryStatus(null, {
+        const status = deriveEntryStatus({
             queryId: 7,
             status: QueryExecutionStatus.FAILED,
             statementIndex: 2,
@@ -64,7 +64,7 @@ describe('getQueryStatusText', () => {
     });
 
     it('provides error details even when the connector only supplies a message', () => {
-        const status = deriveEntryStatus(null, {
+        const status = deriveEntryStatus({
             queryId: 7,
             status: QueryExecutionStatus.FAILED,
             statementIndex: null,
@@ -86,7 +86,7 @@ describe('getQueryStatusText', () => {
     });
 
     it('includes the statement position in a cached result message when available', () => {
-        const status = deriveEntryStatus(null, {
+        const status = deriveEntryStatus({
             status: QueryExecutionStatus.SUCCEEDED,
             statementIndex: 3,
             statementCount: 3,

@@ -21,7 +21,6 @@ import type { AttachedDatabaseState } from '../connections/attached_database_sta
 import { useNotebookScriptsRegistry } from '../scripts/notebook_scripts_registry.js';
 import { useDashQLCoreSetup } from '../../providers/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
-import { useCancelAgentRun } from '../agent/agent_run_provider.js';
 import { useCancelQuery } from '../connections/query_executor.js';
 import { NotebookImportConflictDialog } from '../ui/notebook_import_conflict_dialog.js';
 import { StorageBackendType } from './storage_backend.js';
@@ -72,7 +71,6 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
     const [reader, writer] = useStorage();
     const [connections, setConnections] = useAttachedDatabaseRegistry();
     const [, setScripts] = useNotebookScriptsRegistry();
-    const cancelAgentRun = useCancelAgentRun();
     const cancelQuery = useCancelQuery();
     const [dialog, setDialog] = React.useState<ConflictDialogState | null>(null);
 
@@ -99,7 +97,6 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
         await Promise.all(databases.flatMap(database => database.queriesActiveOrdered.map(queryId =>
             cancelQuery(database.databaseId, queryId)
         )));
-        await cancelAgentRun(notebookId);
         writer.pause();
         try {
             await writer.flush();
@@ -107,7 +104,7 @@ export function NotebookImportProvider(props: React.PropsWithChildren) {
             writer.resume();
             throw error;
         }
-    }, [cancelAgentRun, cancelQuery, connections, writer]);
+    }, [cancelQuery, connections, writer]);
 
     const restoreFreshPortable = React.useCallback(async (
         bundle: NotebookBundle,

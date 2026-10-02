@@ -99,14 +99,12 @@ export interface ScriptData {
     statistics: Immutable.List<core.buffers.editor.EditorProcessingStatisticsT>;
     /// The completion state.
     completion: DashQLCompletionState | null;
-    /// A pending, staged rewrite (agent suggestion or formatting) shown as an in-place diff.
+    /// A pending, staged formatting rewrite shown as an in-place diff.
     /// Set by SET_SCRIPT_TEXT; cleared once the user accepts/rejects it in the
     /// editor (which round-trips back through UPDATE_FROM_PROCESSOR).
     pendingDiff: DashQLPendingDiff | null;
     /// The latest query id
     latestQueryId: number | null;
-    /// The latest agent-run id
-    latestAgentRunId: number | null;
     /// The file name of this committed script
     fileName: string;
 }
@@ -118,13 +116,11 @@ export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
-export const REGISTER_AGENT_RUN = Symbol('REGISTER_AGENT_RUN');
 export const CREATE_SCRIPT = Symbol('CREATE_SCRIPT');
 export const DELETE_SCRIPT = Symbol('DELETE_SCRIPT');
 export const RENAME_SCRIPT = Symbol('RENAME_SCRIPT');
 export const REORDER_SCRIPTS = Symbol('REORDER_SCRIPTS');
 export const SET_SCRIPT_TEXT = Symbol('SET_SCRIPT_TEXT');
-export const CREATE_SCRIPT_WITH_TEXT = Symbol('CREATE_SCRIPT_WITH_TEXT');
 export const ACCEPT_PENDING_DIFF = Symbol('ACCEPT_PENDING_DIFF');
 export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
 export const RENAME_NOTEBOOK = Symbol('RENAME_NOTEBOOK');
@@ -137,13 +133,11 @@ export type NotebookScriptsAction =
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
     | VariantKind<typeof REGISTER_QUERY, [ScriptKey, number]>
-    | VariantKind<typeof REGISTER_AGENT_RUN, [ScriptKey, number]>
     | VariantKind<typeof CREATE_SCRIPT, number | null>
     | VariantKind<typeof DELETE_SCRIPT, string>
     | VariantKind<typeof RENAME_SCRIPT, { fileName: string, newFileName: string }>
     | VariantKind<typeof REORDER_SCRIPTS, string[]>
     | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string, withDiff?: boolean }>
-    | VariantKind<typeof CREATE_SCRIPT_WITH_TEXT, { text: string }>
     | VariantKind<typeof ACCEPT_PENDING_DIFF, ScriptKey>
     | VariantKind<typeof REJECT_PENDING_DIFF, ScriptKey>
     | VariantKind<typeof RENAME_NOTEBOOK, string | null>
@@ -164,7 +158,6 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
         completion: null,
         pendingDiff: null,
         latestQueryId: null,
-        latestAgentRunId: null,
         fileName,
     };
     return [scriptKey, scriptData];
@@ -490,25 +483,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             }
         }
 
-        case REGISTER_AGENT_RUN: {
-            const [scriptKey, runId] = action.value;
-            const scriptData = state.scripts[scriptKey];
-            if (!scriptData) {
-                logger.warn("Orphan agent run references invalid script", {
-                    scriptKey: scriptKey.toString(),
-                    runId: runId.toString(),
-                }, LOG_CTX);
-                return state;
-            } else {
-                const next = { ...state };
-                next.scripts[scriptKey] = {
-                    ...scriptData,
-                    latestAgentRunId: runId,
-                };
-                return next;
-            }
-        }
-
         case DELETE_SCRIPT: {
             const deletedFileName = action.value;
             const deletedEntry = state.scriptRefs[deletedFileName];
@@ -564,7 +538,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                 completion: null,
                 pendingDiff: null,
                 latestQueryId: null,
-                latestAgentRunId: null,
                 fileName,
             };
 
@@ -877,52 +850,6 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             return nextState;
         }
 
-        case CREATE_SCRIPT_WITH_TEXT: {
-            const { text } = action.value;
-            // Plan the insertion (new script sorts last; re-pad existing scripts on a width change).
-            const plan = planScriptInsertion(state.scriptRefs);
-            const fileName = plan.newFileName;
-            const repadded = applyScriptRepad(plan.repad, state.scriptRefs, state.scripts, state.scriptFocus.fileName, state.notebookId, storage);
-
-            // Create a new script seeded with the provided text
-            const scriptSession = state.instance.createScriptSession(state.connectionCatalog);
-            const scriptKey = scriptSession.getCatalogEntryId();
-            replaceScriptSessionText(scriptSession, text);
-
-            let scriptData: ScriptData = {
-                scriptKey,
-                scriptSession,
-                analysisOutdated: true,
-                statistics: Immutable.List(),
-                annotations: createEmptyAnnotations(),
-                completion: null,
-                pendingDiff: null,
-                latestQueryId: null,
-                latestAgentRunId: null,
-                fileName,
-            };
-
-            const entry: ScriptRef = createScriptRef(scriptKey, fileName);
-            const newScripts: ScriptDataMap = { ...repadded.scripts, [scriptKey]: scriptData };
-
-            // Analyze before persisting so derived annotations are ready.
-            scriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
-            newScripts[scriptKey] = scriptData;
-
-            const next: NotebookScripts = {
-                ...clearSemanticUserFocus(state),
-                scripts: newScripts,
-                scriptRefs: { ...repadded.scriptRefs, [fileName]: entry },
-                scriptFocus: { ...state.scriptFocus, fileName },
-            };
-            const sql = scriptData.scriptSession.getText();
-            storage?.write(
-                groupScriptWrites(next.notebookId, fileName),
-                { type: WRITE_SCRIPT, value: [next.notebookId, fileName, sql] },
-                DEBOUNCE_DURATION_SCRIPT_WRITE
-            );
-            return next;
-        }
     }
 }
 

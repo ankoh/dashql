@@ -138,7 +138,7 @@ std::string_view VisFieldDefKeyName(AttributeKey key) {
 
 /// Emit a WARNING-level diagnostic that a field-def key is accepted by the grammar but
 /// not carried through to the generated Vega-Lite spec. It underlines the key in the
-/// editor (it has a text span) but must not gate the agent verify loop.
+/// editor (it has a text span) without making the script invalid.
 void WarnUnsupportedVisKey(AnalysisState& state, const buffers::parser::Node& child, std::string_view key_name) {
     auto& warning = state.analyzed->errors.emplace_back();
     warning.error_type = buffers::analyzer::AnalyzerErrorType::UNSUPPORTED_VIS_KEY;
@@ -651,7 +651,7 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
 
                 // Warn about field-def keys the grammar accepts but we do not (yet) carry
                 // through to the generated spec. These underline in the editor without
-                // gating the agent verify loop (WARNING severity).
+                // making the script invalid (WARNING severity).
                 for (size_t i = 0; i < node.children_count(); ++i) {
                     auto& child = state.ast[node.children_begin_or_value() + i];
                     auto key_name = VisFieldDefKeyName(child.attribute_key());

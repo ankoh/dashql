@@ -9,9 +9,9 @@ gatekept by an Apple account allowlist. One Cloudflare Worker (Rust /
 | `ai.dashql.app`      | Machine API: `GET /v1/models`, `POST /v1/chat/completions`    |
 | `account.dashql.app` | Human dashboard: Sign in with Apple + API-key management      |
 
-dashql points its AI-settings **Endpoint URL** at `https://ai.dashql.app` and adds an
-`Authorization: Bearer <key>` header — no dashql code changes required. Full design and
-rationale live in [`../../docs/wip/account.md`](../../docs/wip/account.md).
+The DashQL application no longer embeds an AI client, but this standalone service remains
+available for future use and for other OpenAI-compatible clients. Full design and rationale
+live in [`../../docs/wip/account.md`](../../docs/wip/account.md).
 
 > **Repo isolation:** this crate is deliberately outside the root Cargo workspace (it has its
 > own `[workspace]` table and is not in the root `members` list) and is listed in the repo

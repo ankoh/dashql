@@ -10,7 +10,6 @@ import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
 import { ConnectionHealth, AttachedDatabaseState } from '../connections/attached_database_state.js';
 import { useCancelQuery, useQueryState, useQueryExecutor } from '../connections/query_executor.js';
 import { QueryExecutionStatus } from '../connections/query_execution_state.js';
-import { useAgentRunState, useCancelAgentRun } from '../agent/agent_run_provider.js';
 import { ScriptDetailsTab } from './script_output_details.js';
 import { QueryResultCacheLabel, QueryResultRerunButton } from './query_result_cache_controls.js';
 import {
@@ -57,8 +56,6 @@ export interface ScriptDetailsDependencies {
     useQueryState: typeof useQueryState;
     useCancelQuery: typeof useCancelQuery;
     useQueryExecutor: typeof useQueryExecutor;
-    useAgentRunState: typeof useAgentRunState;
-    useCancelAgentRun: typeof useCancelAgentRun;
     useStorageReader: typeof useStorageReader;
     formatScriptEditor: typeof formatScriptEditor;
     isScriptFormattable: typeof isScriptFormattable;
@@ -75,8 +72,6 @@ const DEFAULT_DEPENDENCIES: ScriptDetailsDependencies = {
     useQueryState,
     useCancelQuery,
     useQueryExecutor,
-    useAgentRunState,
-    useCancelAgentRun,
     useStorageReader,
     formatScriptEditor,
     isScriptFormattable,
@@ -96,7 +91,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         ? Object.values(props.notebookScripts.scriptRefs).find(entry => entry.scriptId === props.scriptId)
         : getSelectedScriptRef(props.notebookScripts);
     const scriptData = notebookEntry != null ? props.notebookScripts.scripts[notebookEntry.scriptId] : null;
-    const hasExecution = scriptData?.latestQueryId != null || scriptData?.latestAgentRunId != null;
+    const hasExecution = scriptData?.latestQueryId != null;
     const [resultExpanded, setResultExpanded] = React.useState(hasExecution);
 
     // Get folder name and script file name (display-only: strip the on-disk ordering prefix). The
@@ -214,7 +209,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         setResultExpanded(expanded => !expanded);
     }, []);
     const cancelQuery = dependencies.useCancelQuery();
-    const cancelAgentRun = dependencies.useCancelAgentRun();
 
     // Refresh: drop the stale cache entry for this result, then re-execute — a plain cacheable run
     // then misses the cache and re-populates it. Surfaced on the Data/Chart tab headers when the
@@ -241,7 +235,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         }
     }, [props.notebookScripts, props.modifyNotebookScripts, scriptData, executeQuery, storageReader, logger]);
 
-    const agentRunState = dependencies.useAgentRunState(scriptData?.latestAgentRunId ?? null);
     const visualizeQuery = scriptData?.annotations.visualizeQuery ?? null;
 
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
@@ -356,7 +349,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                     second={(
                         <dependencies.ScriptDetailsOutputPane
                             query={activeQueryState}
-                            agentRun={agentRunState}
                             visualizeQuery={visualizeQuery}
                             initialTab={props.initialTab}
                             tableDebugMode={tableDebugMode}
@@ -366,7 +358,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             onCancelQuery={activeQueryId != null
                                 ? () => props.connection && cancelQuery(props.connection.databaseId, activeQueryId)
                                 : undefined}
-                            onCancelAgent={() => cancelAgentRun(props.notebookScripts.notebookId)}
                             statusActions={(
                                 <>
                                     <QueryResultCacheLabel query={activeQueryState} />

@@ -12,13 +12,8 @@ Cloudflare Workers AI hosts small language models (SLMs) at a very cheap price p
 these models over an **OpenAI-compatible API**, gatekept by a **simple account system**, so
 that dashql (and any OpenAI-compatible client) can use it.
 
-dashql already speaks this protocol. `packages/dashql-app/src/platform/ai_client.ts` calls
-`GET /v1/models` (Test button) and `POST /v1/chat/completions` with
-`{model, messages, stream:false}`, expecting `{choices:[{message:{content}}]}` back, and
-authenticates via a **user-configured `Authorization: Bearer …` header** set in the AI
-settings UI (`packages/dashql-app/src/view/internals/ai_settings_view.tsx`). So a gateway
-that matches this contract drops in with **zero dashql code changes** — the user just points
-the "Endpoint URL" at the gateway and adds an `Authorization` header.
+The DashQL application no longer contains an AI client or agent loop. The gateway remains a
+standalone OpenAI-compatible service for future use and for other compatible clients.
 
 ## Decisions
 
@@ -44,18 +39,17 @@ the "Endpoint URL" at the gateway and adds an `Authorization` header.
   - **Add `packages/dashql-cloud` to `.bazelignore`** so `//...` never scans it (matches the
     existing pattern that excludes node_modules / build trees).
   - **Do NOT add it to the root `Cargo.toml` `members`**.
-  - The only coupling to dashql is the endpoint URL pasted into AI settings.
+  - The service has no build-time coupling to the DashQL application.
 - **Public domains (two, one Worker):** a single Worker is bound to **both** custom domains
   and routes by hostname (assumes `dashql.app` is a zone on the same Cloudflare account):
-  - **`ai.dashql.app`** — the machine API (`/v1/models`, `/v1/chat/completions`). This is the
-    endpoint dashql points at.
+  - **`ai.dashql.app`** — the machine API (`/v1/models`, `/v1/chat/completions`).
   - **`account.dashql.app`** — the human login/dashboard (`/`, `/auth/apple/callback`,
     `/keys`). The SIWA return origin registered with Apple lives here.
   - Splitting the surfaces keeps the inference URL clean and puts the Apple callback under an
     "account" host where it semantically belongs. The Worker's router branches on
     `url.hostname` first, then method+path.
-- **Client contract:** dashql-shaped, i.e. implement the `/v1/models` shim too (Workers AI's
-  compat layer does **not** provide `/v1/models`, but dashql's Test button needs it).
+- **Client contract:** OpenAI-compatible, including a `/v1/models` shim because Workers AI's
+  compatibility layer does **not** provide that endpoint.
 - **Language: Rust** (`workers-rs`), not TypeScript — fits the repo's existing Cargo/Rust
   packages. Confirmed support: the Workers **AI binding** (`worker::Ai`), KV, secrets/vars,
   `fetch`, `Router`, and custom domains; compiles to `wasm32-unknown-unknown`, deploys via
@@ -68,8 +62,8 @@ the "Endpoint URL" at the gateway and adds an `Authorization` header.
 
 ```mermaid
 flowchart TD
-    subgraph client [dashql / any OpenAI client]
-        A[AIClient: Authorization Bearer key]
+    subgraph client [OpenAI-compatible client]
+        A[Client: Authorization Bearer key]
     end
     subgraph worker [Cloudflare Worker: dashql-cloud — one Worker, routed by host]
         R[Router: switch on url.hostname]
@@ -95,13 +89,13 @@ Two front doors on one Worker, split by hostname:
 
 1. **`account.dashql.app`** — human dashboard (browser): Sign in with Apple → if allowlisted,
    "Create API key". Serves `/`, `/auth/apple/callback`, `/keys`.
-2. **`ai.dashql.app`** — machine API (dashql): OpenAI-compatible, authenticated by the minted
+2. **`ai.dashql.app`** — machine API: OpenAI-compatible, authenticated by the minted
    key. Serves `/v1/models`, `/v1/chat/completions`.
 
-## API contract (must match dashql's AIClient)
+## API contract
 
 - `GET /v1/models` → `{ "object":"list", "data":[{"id":"@cf/meta/llama-3.2-1b-instruct"}, …] }`
-  — a **static allowlist** of enabled CF model ids. This is what dashql's Test button hits.
+  — a **static allowlist** of enabled CF model ids.
 - `POST /v1/chat/completions` with `{model, messages, stream:false}`:
   - verify `Authorization: Bearer <key>`; reject 401 if unknown/revoked.
   - enforce two **rolling-window** budgets per key, both reset on a **deployment-wide** cadence
@@ -114,10 +108,7 @@ Two front doors on one Worker, split by hostname:
   - reshape Workers AI's `{ response, usage }` into `{ choices:[{ message:{ role:"assistant",
     content } }], model, object:"chat.completion", usage }` (serde structs) — the `usage` token
     counts are echoed back and also drive neuron accounting.
-  - Non-streaming only (all dashql uses). Streaming can be added later.
-
-Reuse note: no dashql changes required — the existing `AIClient.generate`/`listModels`
-already produce/consume exactly these shapes (`ai_client.ts:57-101`).
+  - Non-streaming only. Streaming can be added later.
 
 ## Sign in with Apple (web) flow — no runtime private key needed
 
@@ -282,9 +273,9 @@ hand-written TS.) Secrets via `wrangler secret put`: `SESSION_SECRET`.
   `https://account.dashql.app/` with the registered return URL (Apple rejects localhost). Log
   in with an allowlisted account → key appears; log in with a non-allowlisted account →
   authorization error, no key.
-- **dashql end-to-end:** in dashql AI settings, set Endpoint URL to `https://ai.dashql.app`,
-  Model to an enabled `@cf/…` id, add header `Authorization: Bearer <key>`; click **Test**
-  (hits `/v1/models`) → "Reachable"; then run an agent action → completion flows through it.
+- **Client end-to-end:** configure an OpenAI-compatible client with endpoint
+  `https://ai.dashql.app`, an enabled `@cf/…` model id, and
+  `Authorization: Bearer <key>`; verify model listing and a chat completion.
 
 Rust-specific verification notes: build with `worker-build --release` and watch the WASM
 bundle size (Workers has a compressed-size limit; LTO + `strip` + `wasm-opt` keep it small).

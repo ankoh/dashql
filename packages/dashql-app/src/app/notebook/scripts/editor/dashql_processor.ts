@@ -29,7 +29,7 @@ export enum DashQLCompletionStatus {
     SELECTED_CATALOG_OBJECT,
 }
 
-/// A pending, staged script rewrite (e.g. an agent suggestion or formatting) shown as an in-place diff.
+/// A pending, staged formatting rewrite shown as an in-place diff.
 ///
 /// The editor already holds the *new* (target) text; `priorText` is the verbatim text that was in
 /// the script before the rewrite, restored on reject. `diffBuffer` is the statement-level semantic
@@ -670,7 +670,7 @@ function updateDiff(state: DashQLProcessorState, prevState: DashQLProcessorState
     }
 
     // Auto-accept as soon as the user genuinely edits the document. User-originated doc changes
-    // always carry a userEvent annotation; the agent's external text replacement does not (and is
+    // always carry a userEvent annotation; an external text replacement does not (and is
     // additionally guarded by `externalUpdate`), so staging a rewrite never self-accepts.
     if (transaction.docChanged && !externalUpdate && transaction.annotation(Transaction.userEvent) != null) {
         state = copyLazily(state, prevState);

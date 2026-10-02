@@ -423,8 +423,8 @@ void AppendVegaLiteSpecLines(const rapidjson::Value& spec, std::vector<std::stri
 
 /// Emit the query input before the trailing VISUALIZE clause from the spec's `data` member.
 ///
-/// Recognised conventions (the analyzer-driven generator emits `name` / `$sql`; the agent loop
-/// injects `$ref` / `$raw` for qualified- and verbatim-source edits):
+/// Recognised conventions (the analyzer-driven generator emits `name` / `$sql`; callers may
+/// provide `$ref` / `$raw` for qualified or verbatim source text):
 ///   - `{ "$sql": "SELECT …" }`           -> query text
 ///   - `{ "$raw": "<text>" }`             -> verbatim query text
 std::optional<std::string> EmitSource(const rapidjson::Value& data) {

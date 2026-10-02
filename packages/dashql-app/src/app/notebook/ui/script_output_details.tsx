@@ -2,7 +2,6 @@ import * as React from 'react';
 
 import icons from '@ankoh/dashql-svg-symbols';
 
-import type { AgentRunState } from '../agent/agent_run_state.js';
 import type { QueryExecutionState } from '../connections/query_execution_state.js';
 import { QueryExecutionStatus } from '../connections/query_execution_state.js';
 import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
@@ -24,39 +23,34 @@ export enum ScriptDetailsTab {
     QueryStatusPanel = 1,
     QueryResultView = 2,
     Visualization = 3,
-    AgentStatusPanel = 4,
 }
 
 interface Props {
     className?: string;
     embedded?: boolean;
     query: QueryExecutionState | null;
-    agentRun?: AgentRunState | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
     initialTab?: ScriptDetailsTab;
     tableDebugMode: boolean;
     statusActions?: React.ReactNode;
     onCancelQuery?: () => void;
-    onCancelAgent?: () => void;
     expanded?: boolean;
     onToggleExpanded?: () => void;
     contentId?: string;
 }
 
 export const ScriptOutputDetails: React.FC<Props> = (props) => {
-    const agentRun = props.agentRun ?? null;
     const queryTraceId = props.query?.traceId ?? null;
-    const agentTraceId = agentRun?.traceId ?? null;
     const { hasResult, totalRows } = useResultRowCount(props.query);
     const hasVisualization = hasResult && props.visualizeQuery != null;
-    const entryStatus = deriveEntryStatus(agentRun, props.query);
+    const entryStatus = deriveEntryStatus(props.query);
 
     const defaultTab = () => {
         if (props.initialTab != null && props.initialTab !== ScriptDetailsTab.Editor) return props.initialTab;
         if (hasVisualization) return ScriptDetailsTab.Visualization;
         if (hasResult) return ScriptDetailsTab.QueryResultView;
         if (queryTraceId != null) return ScriptDetailsTab.QueryStatusPanel;
-        return ScriptDetailsTab.AgentStatusPanel;
+        return ScriptDetailsTab.QueryStatusPanel;
     };
     const [selectedTab, selectTab] = React.useState<ScriptDetailsTab>(defaultTab);
 
@@ -75,14 +69,6 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
             description: 'Execution log',
             disabled: queryTraceId == null,
         },
-        [ScriptDetailsTab.AgentStatusPanel]: {
-            tabId: ScriptDetailsTab.AgentStatusPanel,
-            icon: `${icons}#sparkles_fill_24`,
-            labelShort: 'Agent',
-            ariaLabel: 'Agent log',
-            description: 'Agent log',
-            disabled: agentTraceId == null,
-        },
         [ScriptDetailsTab.QueryResultView]: {
             tabId: ScriptDetailsTab.QueryResultView,
             icon: `${icons}#table_24`,
@@ -99,15 +85,14 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
             description: 'Visualization',
             disabled: !hasVisualization,
         },
-    }), [agentTraceId, hasResult, hasVisualization, queryTraceId]);
+    }), [hasResult, hasVisualization, queryTraceId]);
 
     const tabKeys = React.useMemo(() => {
         const tabs = [ScriptDetailsTab.QueryStatusPanel];
-        if (agentTraceId != null) tabs.push(ScriptDetailsTab.AgentStatusPanel);
         if (hasResult) tabs.push(ScriptDetailsTab.QueryResultView);
         if (hasVisualization) tabs.push(ScriptDetailsTab.Visualization);
         return tabs;
-    }, [agentTraceId, hasResult, hasVisualization]);
+    }, [hasResult, hasVisualization]);
     const enabledTabs = React.useMemo(
         () => tabKeys.filter(tab => !tabProps[tab].disabled),
         [tabKeys, tabProps],
@@ -146,20 +131,11 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
     }], [enabledTabs]);
     useKeyEvents(keyHandlers);
 
-    const cancel = entryStatus.kind === EntryStatusKind.Agent
-        ? props.onCancelAgent
-        : entryStatus.kind === EntryStatusKind.Query
-            ? props.onCancelQuery
-            : undefined;
+    const cancel = entryStatus.kind === EntryStatusKind.Query ? props.onCancelQuery : undefined;
     const tabRenderers = React.useMemo(() => ({
         [ScriptDetailsTab.QueryStatusPanel]: () => (
             <div className={styles.tab_body}>
                 <TraceLogPanel traceId={queryTraceId} title="Execution Logs" />
-            </div>
-        ),
-        [ScriptDetailsTab.AgentStatusPanel]: () => (
-            <div className={styles.tab_body}>
-                <TraceLogPanel traceId={agentTraceId} title="Agent Logs" />
             </div>
         ),
         [ScriptDetailsTab.QueryResultView]: () => (
@@ -174,7 +150,7 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
                 </div>
             </div>
         ),
-    }), [agentTraceId, props.query, props.tableDebugMode, props.visualizeQuery, queryTraceId, totalRows]);
+    }), [props.query, props.tableDebugMode, props.visualizeQuery, queryTraceId, totalRows]);
 
     return (
         <div className={classNames(styles.card, props.className, { [styles.embedded]: props.embedded })}>
@@ -184,7 +160,7 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
                 expanded={props.expanded}
                 controls={props.contentId}
                 onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancel : undefined}
-                cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
+                cancelLabel="Cancel query"
                 actions={props.statusActions}
             />
             <div id={props.contentId} className={styles.content} hidden={props.expanded === false}>

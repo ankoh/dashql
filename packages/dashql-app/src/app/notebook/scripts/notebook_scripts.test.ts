@@ -53,7 +53,7 @@ function state(names = ['1_alpha.sql', '2_beta.sql', '3_gamma.sql']): NotebookSc
         scripts[scriptKey] = {
             scriptKey, scriptSession: session, editorUpdate: null, analysisOutdated: true,
             annotations: createEmptyAnnotations(), statistics: Immutable.List(), completion: null,
-            pendingDiff: null, latestQueryId: null, latestAgentRunId: null, fileName: name,
+            pendingDiff: null, latestQueryId: null, fileName: name,
         };
         refs[name] = createScriptRef(scriptKey, name);
     }

@@ -8,9 +8,6 @@
 #include "dashql/script.h"
 #include "dashql/view/plan_view_model.h"
 
-namespace dashql::agent {
-class AgentSession;
-}
 namespace dashql::execution {
 class ScriptExecution;
 }
@@ -44,21 +41,6 @@ struct FFIResult {
 extern "C" void dashql_delete_owner(void* owner_ptr, void (*owner_deleter)(void*));
 
 // -----------------------------------------------------------------------------
-
-/// Create an agent session borrowing the catalog and optional focused editor target.
-/// Destroy it before destroying either borrowed object.
-extern "C" void dashql_agent_session_new(FFIResult* result, dashql::Catalog* catalog,
-                                             dashql::ScriptSession* target,
-                                            size_t dialect, size_t mode, size_t max_width,
-                                            size_t indentation_width, bool debug_mode);
-/// Start an agent session from a serialized AgentStartRequest.
-extern "C" void dashql_agent_session_start(FFIResult* result, dashql::agent::AgentSession* session,
-                                            const uint8_t* request_ptr, size_t request_length);
-/// Complete the pending effect from a serialized AgentEffectCompletion.
-extern "C" void dashql_agent_session_complete_effect(FFIResult* result, dashql::agent::AgentSession* session,
-                                                      const uint8_t* completion_ptr, size_t completion_length);
-/// Cancel the active agent operation.
-extern "C" void dashql_agent_session_cancel(FFIResult* result, dashql::agent::AgentSession* session);
 
 extern "C" void dashql_script_execution_new(FFIResult* result, dashql::ScriptSession* session,
                                                size_t dialect, size_t mode, size_t max_width,

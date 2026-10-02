@@ -35,9 +35,3 @@
     overflow: visible;
     max-height: none;
 }
-
-/* The prompt editor has no line-number gutter, so its content needs explicit left
-   padding to align with the gutter-offset SQL editor and not sit flush on the border. */
-.prompt_editor :global(.cm-content) {
-    padding-left: 12px;
-}

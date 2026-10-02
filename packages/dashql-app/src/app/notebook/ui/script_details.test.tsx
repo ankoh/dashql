@@ -19,8 +19,6 @@ const dependencies = {
     useQueryState: () => null,
     useCancelQuery: () => vi.fn(),
     useQueryExecutor: () => state.executeQuery,
-    useAgentRunState: () => null,
-    useCancelAgentRun: () => vi.fn(),
     useStorageReader: () => ({ backend: { deleteQueryResultCache: vi.fn() } }),
     isScriptFormattable: () => true,
     formatScriptEditor: (...args: any[]) => {
@@ -57,8 +55,8 @@ function scripts(): NotebookScripts {
     return {
         notebookId: 'notebook', name: 'Test', databaseId: 'database', instance: {} as any, notebookMetadata: {} as any,
         connectorInfo: {} as any, connectionCatalog: {} as any,
-        scripts: { 1: { scriptKey: 1, fileName: '01_first.sql', scriptSession, annotations: {}, latestQueryId: null, latestAgentRunId: null } as any,
-            2: { scriptKey: 2, fileName: '02_second.sql', scriptSession, annotations: {}, latestQueryId: null, latestAgentRunId: null } as any },
+        scripts: { 1: { scriptKey: 1, fileName: '01_first.sql', scriptSession, annotations: {}, latestQueryId: null } as any,
+            2: { scriptKey: 2, fileName: '02_second.sql', scriptSession, annotations: {}, latestQueryId: null } as any },
         scriptRefs: {
             '01_first.sql': { scriptId: 1, fileName: '01_first.sql' },
             '02_second.sql': { scriptId: 2, fileName: '02_second.sql' },

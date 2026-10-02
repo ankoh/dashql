@@ -133,7 +133,6 @@ export const RowsIcon = createIcon({ 16: 'rows_16', 24: 'rows' });
 export const SaveIcon = createIcon({ 16: 'save_16' });
 export const SearchIcon = createIcon({ 16: 'search_16' });
 export const ScreenFullIcon = createIcon({ 16: 'screen_full_16', 24: 'screen_full_24' });
-export const SparklesFillIcon = createIcon({ 16: 'sparkles_fill_16', 24: 'sparkles_fill_24' });
 export const SquareFillIcon = createIcon({ 16: 'square_fill_16' });
 export const SyncIcon = createIcon({ 16: 'sync_16' });
 export const TableIcon = createIcon({ 16: 'table_16' });

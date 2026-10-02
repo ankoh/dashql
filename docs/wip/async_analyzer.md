@@ -469,7 +469,7 @@ The reducer and CodeMirror processor must reject decreasing document, state, or 
 values. Session identity checks alone are not enough once worker results and React round-trips can
 arrive later.
 
-Explicit callers that need current analysis, such as execution, agent context, diagnostics, staged
+Explicit callers that need current analysis, such as execution, diagnostics, staged
 diff generation, and visualization metadata, await the same session ensure-current operation. They
 must not call a synchronous fallback.
 
@@ -545,7 +545,7 @@ desired revision. Otherwise clear the ticket and schedule according to the lates
 - Completion waits for matching analysis and does not reopen after Escape or cursor movement.
 - Text persistence happens on the immediate edit update, not only after analysis.
 - Annotations and statistics change only on a current analysis update.
-- Execution and agent workflows await current analysis without invoking a synchronous fallback.
+- Execution workflows await current analysis without invoking a synchronous fallback.
 - Editor teardown ignores later native notifications.
 
 ### Capacity Tests

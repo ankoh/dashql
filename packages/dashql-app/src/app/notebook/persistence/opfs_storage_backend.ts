@@ -532,7 +532,15 @@ export class OPFSStorageBackend implements NotebookRegistryBackend {
             const file = await indexFile.getFile();
             const text = await file.text();
             const manifest: StorageManifest = JSON.parse(text);
-            return manifest.appSettings ?? null;
+            const settings = manifest.appSettings as (AppSettings & { aiProvider?: unknown }) | undefined;
+            if (settings == null) return null;
+            if ('aiProvider' in settings) {
+                const { aiProvider: _aiProvider, ...retained } = settings;
+                manifest.appSettings = retained;
+                await this.writeManifest(root, manifest);
+                return retained;
+            }
+            return settings;
         } catch (error) {
             if ((error as any).name === 'NotFoundError') {
                 return null;

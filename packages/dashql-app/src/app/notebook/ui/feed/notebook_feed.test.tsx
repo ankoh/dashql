@@ -7,7 +7,7 @@ import { ScriptFeedRow, type ScriptFeedRowDependencies } from './notebook_feed_r
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const state = { query: null as any, agent: null as any, sortableTransform: null as any, formatScriptEditor: vi.fn() };
+const state = { query: null as any, sortableTransform: null as any, formatScriptEditor: vi.fn() };
 const dependencies = {
     useSortable: () => ({
         attributes: {}, listeners: {}, setNodeRef: vi.fn(), transform: state.sortableTransform, transition: undefined, isDragging: false,
@@ -19,8 +19,6 @@ const dependencies = {
         useQueryState: () => state.query,
         useCancelQuery: () => vi.fn(),
         computeQueryCacheKeyForConnection: vi.fn(),
-        useAgentRunState: () => state.agent,
-        useCancelAgentRun: () => vi.fn(),
         ScriptEditor: (props: any) => {
             React.useEffect(() => props.setView?.({}), [props.setView]);
             return <div data-testid="editor" />;
@@ -48,7 +46,7 @@ function baseProps() {
         scripts: { 1: script(1, '01_alpha.sql'), 2: script(2, '02_beta.sql') }, scriptDebugMode: false, formattingDebugMode: false,
         focusedFileName: '01_alpha.sql', canDelete: true, active: true, onFocus: vi.fn(), onDelete: vi.fn(),
         onRename: vi.fn(), onMoveUp: vi.fn(), onMoveDown: vi.fn(), onExecute: vi.fn(), onShowStatus: vi.fn(),
-        onShowAgentStatus: vi.fn(), onShowTable: vi.fn(), onShowVisualization: vi.fn(), onShowDetails: vi.fn(), onRerun: vi.fn(),
+         onShowTable: vi.fn(), onShowVisualization: vi.fn(), onShowDetails: vi.fn(), onRerun: vi.fn(),
         onFormat: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
         onAutoCollapseResult: vi.fn(), onResetAutoCollapsedResult: vi.fn(), topPadding: 16,
         onCreate: vi.fn(), onEditorView: vi.fn(), onRowHeightChange: vi.fn(), dependencies,
@@ -57,13 +55,13 @@ function baseProps() {
 
 function script(scriptKey: number, fileName: string) {
     return { scriptKey, fileName, scriptSession: { getText: () => 'SELECT 1' }, analysisOutdated: true,
-        annotations: {}, statistics: [], completion: null, pendingDiff: null, latestQueryId: null, latestAgentRunId: null };
+        annotations: {}, statistics: [], completion: null, pendingDiff: null, latestQueryId: null };
 }
 
 describe('V2 notebook feed rows', () => {
     let container: HTMLDivElement;
     let root: Root;
-    beforeEach(() => { state.query = null; state.agent = null; state.sortableTransform = null; state.formatScriptEditor.mockReset(); container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
+    beforeEach(() => { state.query = null; state.sortableTransform = null; state.formatScriptEditor.mockReset(); container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
     afterEach(() => { act(() => root.unmount()); container.remove(); });
 
     it('renders insertion separators before, between, and after flat scripts', () => {

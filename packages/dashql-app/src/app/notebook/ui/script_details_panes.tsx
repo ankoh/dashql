@@ -5,7 +5,6 @@ import type { EditorView } from '@codemirror/view';
 import type { Icon } from '../../../ui/foundations/symbol_icon.js';
 import { PaperAirplaneIcon } from '../../../ui/foundations/symbol_icon.js';
 
-import type { AgentRunState } from '../agent/agent_run_state.js';
 import type { QueryExecutionState } from '../connections/query_execution_state.js';
 import type { ScriptData } from '../scripts/notebook_scripts.js';
 import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
@@ -128,13 +127,11 @@ export const ScriptDetailsEditorPane: React.FC<ScriptDetailsEditorPaneProps> = (
 
 interface ScriptDetailsOutputPaneProps {
     query: QueryExecutionState | null;
-    agentRun: AgentRunState | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
     initialTab?: ScriptDetailsTab;
     tableDebugMode: boolean;
     statusActions: React.ReactNode;
     onCancelQuery?: () => void;
-    onCancelAgent: () => void;
     expanded: boolean;
     onToggleExpanded: () => void;
     contentId: string;
@@ -145,12 +142,10 @@ export const ScriptDetailsOutputPane: React.FC<ScriptDetailsOutputPaneProps> = (
         className={styles.entry_output_section}
         embedded
         query={props.query}
-        agentRun={props.agentRun}
         visualizeQuery={props.visualizeQuery}
         initialTab={props.initialTab}
         tableDebugMode={props.tableDebugMode}
         onCancelQuery={props.onCancelQuery}
-        onCancelAgent={props.onCancelAgent}
         expanded={props.expanded}
         onToggleExpanded={props.onToggleExpanded}
         contentId={props.contentId}

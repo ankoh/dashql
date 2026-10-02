@@ -11,11 +11,10 @@ enum EditorOffsetUnit: uint8 {
 }
 
 enum EditorEventOrigin: uint8 {
-    UNSPECIFIED,
-    USER,
-    SYSTEM,
-    AGENT,
-    REMOTE,
+    UNSPECIFIED = 0,
+    USER = 1,
+    SYSTEM = 2,
+    REMOTE = 4,
 }
 
 enum EditorEventIntent: uint8 {

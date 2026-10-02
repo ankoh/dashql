@@ -131,9 +131,9 @@ npx wrangler kv key put --remote --binding DASHQL_CLOUD_ACCOUNTS "me@icloud.com"
 - **Login:** open `https://account.dashql.app/`, Sign in with Apple.
   - Allowlisted account → "Create API key" works; copy the shown key.
   - Non-allowlisted account → "not authorized" message, no key.
-- **API:** in dashql AI settings, set Endpoint URL `https://ai.dashql.app`, Model an enabled
-  `@cf/…` id, add header `Authorization: Bearer <key>`; click **Test** (→ "Reachable"), then
-  run an agent action.
+- **API:** configure an OpenAI-compatible client with endpoint `https://ai.dashql.app`, an
+  enabled `@cf/…` model id, and `Authorization: Bearer <key>`; verify model listing and a chat
+  completion.
 - **Quota:** repeat requests past `REQUEST_LIMIT`, or run enough tokens to exceed
   `NEURON_LIMIT`, within one window → HTTP 429 (the message says which budget was hit); both
   counters reset at the next `QUOTA_WINDOW_SECS` boundary. The dashboard shows live

@@ -23,20 +23,16 @@ const FEED_VISUALIZATION_HEIGHT = 180;
 
 const enum FooterTab {
     ExecutionLog = 0,
-    AgentLog = 1,
-    Table = 2,
-    Visualization = 3,
+    Table = 1,
+    Visualization = 2,
 }
 
 interface FeedEntryFooterProps {
     notebookId: string;
-    /// The latest query execution for this script (null if only an agent run has happened).
+    /// The latest query execution for this script.
     queryState: QueryExecutionState | null;
-    /// The latest agent-run trace id for this script (null if no agent run has happened).
-    agentTraceId: number | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
     onShowStatus?: () => void;
-    onShowAgentStatus?: () => void;
     onShowTable?: () => void;
     onShowVisualization?: () => void;
 }
@@ -46,15 +42,12 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     const searchRows = useQueryResultRowCounts(props.queryState);
     const hasVisualization = hasResult && props.visualizeQuery != null;
 
-    // Query execution and agent traces are separate vertical tabs. Each TraceLogPanel only owns its
-    // selected trace's viewer and row count.
     const queryTraceId = props.queryState?.traceId ?? null;
-    const agentTraceId = props.agentTraceId;
 
     const [selectedTab, setSelectedTab] = React.useState<FooterTab>(
         () => hasVisualization ? FooterTab.Visualization
             : hasResult ? FooterTab.Table
-                : queryTraceId != null ? FooterTab.ExecutionLog : FooterTab.AgentLog
+                : FooterTab.ExecutionLog
     );
 
     const prevHasResult = React.useRef(hasResult);
@@ -62,7 +55,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
         if (hasResult && !prevHasResult.current) {
             setSelectedTab(hasVisualization ? FooterTab.Visualization : FooterTab.Table);
         } else if (!hasResult && prevHasResult.current) {
-            setSelectedTab(queryTraceId != null ? FooterTab.ExecutionLog : FooterTab.AgentLog);
+            setSelectedTab(FooterTab.ExecutionLog);
         }
         prevHasResult.current = hasResult;
     }, [hasResult, hasVisualization, queryTraceId]);
@@ -75,14 +68,6 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             ariaLabel: 'Execution log',
             description: 'Execution log',
             disabled: queryTraceId == null,
-        },
-        [FooterTab.AgentLog]: {
-            tabId: FooterTab.AgentLog,
-            icon: `${icons}#sparkles_fill_24`,
-            labelShort: 'Agent',
-            ariaLabel: 'Agent log',
-            description: 'Agent log',
-            disabled: agentTraceId == null,
         },
         [FooterTab.Table]: {
             tabId: FooterTab.Table,
@@ -100,18 +85,17 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             description: 'Visualization',
             disabled: !hasVisualization,
         },
-    }), [queryTraceId, agentTraceId, hasResult, hasVisualization]);
+    }), [queryTraceId, hasResult, hasVisualization]);
 
     // Only surface tabs that are actually usable in the sidebar. Rendering the disabled tabs
     // (e.g. Data/Chart before a result exists) padded the vertical tab bar out to its full height,
     // which looked odd next to a footer body that only holds a one-row table or a short log.
     const tabKeys = React.useMemo(() => {
         const keys: FooterTab[] = [FooterTab.ExecutionLog];
-        if (agentTraceId != null) keys.push(FooterTab.AgentLog);
         if (hasResult) keys.push(FooterTab.Table);
         if (hasVisualization) keys.push(FooterTab.Visualization);
         return keys;
-    }, [agentTraceId, hasResult, hasVisualization]);
+    }, [hasResult, hasVisualization]);
     const enabledTabKeys = React.useMemo(
         () => tabKeys.filter(tab => !tabProps[tab].disabled),
         [tabKeys, tabProps],
@@ -145,14 +129,6 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 title="Execution Logs"
                 maxRows={FEED_LIMIT_LOG_ROWS}
                 onHeaderClick={props.onShowStatus}
-            />
-        ),
-        [FooterTab.AgentLog]: () => (
-            <TraceLogPanel
-                traceId={agentTraceId}
-                title="Agent Logs"
-                maxRows={FEED_LIMIT_LOG_ROWS}
-                onHeaderClick={props.onShowAgentStatus}
             />
         ),
         [FooterTab.Table]: () => (
@@ -196,7 +172,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 )}
             </div>
         ),
-    }), [queryTraceId, agentTraceId, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, props.onShowStatus, props.onShowAgentStatus, props.onShowTable, props.onShowVisualization]);
+    }), [queryTraceId, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, props.onShowStatus, props.onShowTable, props.onShowVisualization]);
 
     return (
         <VerticalTabs

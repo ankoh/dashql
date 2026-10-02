@@ -258,8 +258,7 @@ enum AnalyzerErrorType: uint8 {
 }
 
 /// The severity of an analyzer error. WARNING-level diagnostics still carry a
-/// text span (so they underline in the editor) but must not gate the agent
-/// verify loop, which treats a script as failing only on ERROR-level diagnostics.
+/// text span (so they underline in the editor) without making the script fail.
 enum AnalyzerErrorSeverity: uint8 {
     ERROR = 0,
     WARNING = 1,

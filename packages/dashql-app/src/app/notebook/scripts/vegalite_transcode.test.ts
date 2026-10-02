@@ -1,6 +1,6 @@
 import * as core from '../../../core/index.js';
 
-import { verifyScript } from '../agent/agent_verify.js';
+import { verifyScript } from './scratch_script_verify.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -189,7 +189,7 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
 });
 
 /// Parse + analyze the transcoded DSL against a catalog seeded with the given source table,
-/// using the same scratch-script verifier the agent loop uses.
+/// using the scratch-script verifier.
 function verifyAgainstSource(sourceSql: string, visText: string) {
     const catalog = dql!.createCatalog();
     const sourceScript = dql!.createScript(catalog);

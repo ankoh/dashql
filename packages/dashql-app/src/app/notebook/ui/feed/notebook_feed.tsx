@@ -22,16 +22,12 @@ import {
 } from '@dnd-kit/sortable';
 
 import { ConnectionHealth, AttachedDatabaseState } from '../../connections/attached_database_state.js';
-import { compileNotebookQuery, createScriptExecution, getSelectedScriptRef, getSelectedScriptRefs, getSortedScriptFileNames, NotebookScripts, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
-import { useLatestAgentRunState } from '../../agent/agent_run_provider.js';
-import { AgentRunPhase } from '../../agent/agent_run_state.js';
-import { QueryType } from '../../connections/query_execution_state.js';
+import { getSelectedScriptRef, getSelectedScriptRefs, getSortedScriptFileNames, NotebookScripts, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/notebook_scripts.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
 import { type ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
-import { projectionForVisualizeQuery } from '../../scripts/script_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../../../utils/key_events.js';
 import { TabKey as DetailsTabKey } from '../script_details.js';
-import { registerNotebookScriptQuery, runNotebookScript } from '../rerun_query.js';
+import { runNotebookScript } from '../rerun_query.js';
 import { useStorageReader } from '../../persistence/storage_provider.js';
 import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scroll_shadows.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
@@ -111,8 +107,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     // Presence means collapsed. A query id marks an automatic no-result collapse; null marks a
     // manual collapse, which must not be reset when a later query starts.
     const [collapsedResults, setCollapsedResults] = React.useState<ReadonlyMap<number, number | null>>(() => new Map());
-    const notebookId = props.notebookScripts.notebookId;
-    const agentState = useLatestAgentRunState(notebookId);
 
     const handleFocus = React.useCallback((fileName: string) => {
         props.modifyNotebookScripts({ type: SELECT_SCRIPT, value: fileName });
@@ -121,11 +115,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const handleShowStatus = React.useCallback((fileName: string) => {
         props.modifyNotebookScripts({ type: SELECT_SCRIPT, value: fileName });
         props.showDetails(fileName, DetailsTabKey.QueryStatusPanel);
-    }, [props.modifyNotebookScripts, props.showDetails]);
-
-    const handleShowAgentStatus = React.useCallback((fileName: string) => {
-        props.modifyNotebookScripts({ type: SELECT_SCRIPT, value: fileName });
-        props.showDetails(fileName, DetailsTabKey.AgentStatusPanel);
     }, [props.modifyNotebookScripts, props.showDetails]);
 
     const handleShowTable = React.useCallback((fileName: string) => {
@@ -145,61 +134,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
 
     const isDisconnected = props.conn?.connectionHealth !== ConnectionHealth.ONLINE;
     const executeQuery = useQueryExecutor();
-
-    // Re-execute the visualization after the agent finishes editing it.
-    //
-    // The reducer that applies the agent's result (SET_SCRIPT_TEXT) already *reevaluates* the
-    // script: it re-analyzes and refreshes annotations.visualizeQuery, and the editor/preview
-    // re-sync from the new scriptData. What it can't do is re-run the resolved query — so a
-    // VISUALIZE the agent just rewrote would still render its stale result. We kick that
-    // re-execution here, where the live notebookScripts, executor and connection state are available.
-    //
-    // Scope: only in-place edits of a VISUALIZE script (the run's context script now resolves a
-    // visualizeQuery). SQL scripts are intentionally left alone for now — re-running them will be
-    // covered by query-result caching later. A visualize run that *creates* a new entry over a SQL
-    // script isn't covered either: its context script is the SQL source, not the new chart entry.
-    const executedAgentRunRef = React.useRef<number | null>(null);
-    React.useEffect(() => {
-        if (agentState == null || agentState.phase !== AgentRunPhase.SUCCEEDED) {
-            return;
-        }
-        // Handle each successful run exactly once (the effect re-runs as NotebookScripts settles).
-        if (executedAgentRunRef.current === agentState.runId) {
-            return;
-        }
-        const scriptKey = agentState.contextScriptKey;
-        if (scriptKey == null || isDisconnected) {
-            return;
-        }
-        const scriptData = props.notebookScripts.scripts[scriptKey];
-        if (scriptData == null || scriptData.annotations.visualizeQuery == null) {
-            return;
-        }
-        executedAgentRunRef.current = agentState.runId;
-        // Resolve against the current notebookScripts so a freshly rewritten VISUALIZE source is reflected.
-        const compiled = compileNotebookQuery(scriptData, logger);
-        const queryText = compiled.sql;
-        if (queryText.trim().length === 0) {
-            return;
-        }
-        const [queryId, execution] = executeQuery(props.conn!.databaseId, {
-             query: queryText,
-             scriptExecution: createScriptExecution(scriptData),
-            analyzeResults: true,
-            replaceComputationId: scriptData.latestQueryId,
-            cacheable: compiled.cacheable,
-            cacheSignature: compiled.cacheSignature,
-            projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
-            metadata: {
-                queryType: QueryType.USER_PROVIDED,
-                title: 'Notebook Query',
-                description: null,
-                issuer: 'Agent Visualization Re-execution',
-                userProvided: true,
-            },
-        });
-        registerNotebookScriptQuery(scriptData, queryId, queryText, execution, props.modifyNotebookScripts);
-    }, [agentState, props.notebookScripts, props.modifyNotebookScripts, isDisconnected, executeQuery, logger]);
 
     // Refresh: drop the stale cache entry for a script's result, then re-execute — a plain cacheable
     // run then misses the cache and re-populates it. Resolves the script by feed file name.
@@ -414,7 +348,6 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onMoveDown: handleMoveDown,
         onExecute: handleExecuteEntry,
         onShowStatus: handleShowStatus,
-        onShowAgentStatus: handleShowAgentStatus,
         onShowTable: handleShowTable,
         onShowVisualization: handleShowVisualization,
         onShowDetails: handleShowDetails,
@@ -430,7 +363,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, compactLayout, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowAgentStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, compactLayout, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     return (

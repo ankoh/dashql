@@ -33,7 +33,7 @@ export interface RunningProjection {
 }
 
 /// Progress callback: `stage` is the UMAP phase ("knn", "optimize", ...), `progress`
-/// is in [0, 1]. Wired to the notebook AI-bar/log surface.
+/// is in [0, 1]. Wired to the notebook status/log surface.
 export type ProjectionProgress = (progress: number, stage: string) => void;
 
 let nextRunId = 1;

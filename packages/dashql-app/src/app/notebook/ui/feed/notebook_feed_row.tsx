@@ -13,7 +13,6 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundation
 import { ButtonGroup } from '../../../../ui/foundations/button_group.js';
 import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js';
 import { SymbolIcon } from '../../../../ui/foundations/symbol_icon.js';
-import { useAgentRunState, useCancelAgentRun } from '../../agent/agent_run_provider.js';
 import type { AttachedDatabaseState } from '../../connections/attached_database_state.js';
 import { QueryExecutionStatus, queryIsDone } from '../../connections/query_execution_state.js';
 import { computeQueryCacheKeyForConnection, useCancelQuery, useQueryState } from '../../connections/query_executor.js';
@@ -54,7 +53,6 @@ export interface ScriptCardProps {
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
-    onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
     onShowDetails: (fileName: string) => void;
@@ -74,8 +72,6 @@ export interface ScriptCardDependencies {
     useQueryState: typeof useQueryState;
     useCancelQuery: typeof useCancelQuery;
     computeQueryCacheKeyForConnection: typeof computeQueryCacheKeyForConnection;
-    useAgentRunState: typeof useAgentRunState;
-    useCancelAgentRun: typeof useCancelAgentRun;
     ScriptEditor: typeof ScriptEditor;
     ScriptDiagnosticsButton: typeof ScriptDiagnosticsButton;
     ScriptStatisticsBar: typeof ScriptStatisticsBar;
@@ -92,8 +88,6 @@ const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
     useQueryState,
     useCancelQuery,
     computeQueryCacheKeyForConnection,
-    useAgentRunState,
-    useCancelAgentRun,
     ScriptEditor,
     ScriptDiagnosticsButton,
     ScriptStatisticsBar,
@@ -117,13 +111,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
 
     const queryState = dependencies.useQueryState(props.notebookId, props.scriptData?.latestQueryId ?? null);
     const cancelQuery = dependencies.useCancelQuery();
-    const cancelAgentRun = dependencies.useCancelAgentRun();
     const queryActive = queryState != null && !queryIsDone(queryState.status);
-
-    // Resolve the agent run by its id (handle) just like the query above — the run carries its
-    // own trace id, so the footer no longer needs a denormalized trace id on ScriptData.
-    const agentRunState = dependencies.useAgentRunState(props.scriptData?.latestAgentRunId ?? null);
-    const agentTraceId = agentRunState?.traceId ?? null;
 
     // A staged rewrite waiting to be accepted/rejected. The editable editor renders the
     // in-place diff and these actions provide the same explicit accept/reject alternatives.
@@ -171,7 +159,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
 
     // The result header persists for active and terminal execution states. It can collapse the
     // result body without affecting its cancel, cache, and rerun actions.
-    const entryStatus = deriveEntryStatus(agentRunState, queryState);
+    const entryStatus = deriveEntryStatus(queryState);
     const scriptKey = props.scriptData?.scriptKey ?? null;
     React.useEffect(() => {
         if (scriptKey == null) return;
@@ -182,12 +170,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
         props.onAutoCollapseResult(scriptKey, queryState.queryId);
     }, [props.onAutoCollapseResult, props.onResetAutoCollapsedResult, props.scriptData?.latestQueryId, queryState, scriptKey]);
     const cancelEntryOperation = React.useCallback(() => {
-        if (entryStatus?.kind === EntryStatusKind.Agent) {
-            cancelAgentRun(props.notebookId);
-        } else if (entryStatus?.kind === EntryStatusKind.Query && props.scriptData?.latestQueryId != null) {
+        if (entryStatus?.kind === EntryStatusKind.Query && props.scriptData?.latestQueryId != null) {
             if (props.connection != null) cancelQuery(props.connection.databaseId, props.scriptData.latestQueryId);
         }
-    }, [cancelAgentRun, cancelQuery, entryStatus?.kind, props.scriptData?.latestQueryId, props.notebookId]);
+    }, [cancelQuery, entryStatus?.kind, props.connection, props.scriptData?.latestQueryId]);
 
     const acceptDiff = React.useCallback(() => {
         if (scriptKey != null) props.onAcceptDiff(scriptKey);
@@ -386,7 +372,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                             expanded={props.resultExpanded}
                             controls={resultContentId}
                             onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelEntryOperation : undefined}
-                            cancelLabel={entryStatus.kind === EntryStatusKind.Agent ? 'Cancel agent run' : 'Cancel query'}
+                            cancelLabel="Cancel query"
                             compact
                             actions={
                                 <>
@@ -399,15 +385,13 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                                 </>
                             }
                         />
-                        {(queryState != null || agentTraceId != null) ? (
+                        {queryState != null ? (
                             <div id={resultContentId} hidden={!props.resultExpanded}>
                                 <dependencies.FeedEntryFooter
                                     notebookId={props.notebookId}
                                     queryState={queryState}
-                                    agentTraceId={agentTraceId}
                                     visualizeQuery={props.scriptData?.annotations.visualizeQuery ?? null}
                                     onShowStatus={() => props.onShowStatus(props.scriptFileName)}
-                                    onShowAgentStatus={() => props.onShowAgentStatus(props.scriptFileName)}
                                     onShowTable={() => props.onShowTable(props.scriptFileName)}
                                     onShowVisualization={() => props.onShowVisualization(props.scriptFileName)}
                                 />
@@ -438,7 +422,6 @@ export interface ScriptFeedRowProps {
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
     onShowStatus: (fileName: string) => void;
-    onShowAgentStatus: (fileName: string) => void;
     onShowTable: (fileName: string) => void;
     onShowVisualization: (fileName: string) => void;
     onShowDetails: (fileName: string) => void;
@@ -579,7 +562,6 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onMoveDown={props.onMoveDown}
                     onExecute={props.onExecute}
                     onShowStatus={props.onShowStatus}
-                    onShowAgentStatus={props.onShowAgentStatus}
                     onShowTable={props.onShowTable}
                     onShowVisualization={props.onShowVisualization}
                     onShowDetails={props.onShowDetails}

@@ -22,7 +22,6 @@ import { HyperPlanDemoPage } from './ui/demos/plan_demo.js';
 import { JsonViewerExperimentPage } from './ui/demos/json_demo.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
 import { NavBarContainer } from './ui/navbar.js';
-import { AIClientProvider } from './notebook/agent/ai/ai_client_provider.js';
 import { PlatformEventListenerProvider } from '../platform/events/event_listener_provider.js';
 import { PlatformTypeProvider } from '../platform/platform_type.js';
 import { ProcessProvider } from '../platform/process.js';
@@ -38,7 +37,6 @@ import { VersionCheck } from '../platform/version/version_check.js';
 import { NotebookCommands } from './notebook/scripts/notebook_commands.js';
 import { NotebookPage } from './notebook/ui/notebook_page.js';
 import { NotebookScriptsRegistryProvider } from './notebook/scripts/notebook_scripts_registry.js';
-import { AgentRunProvider } from './notebook/agent/agent_run_provider.js';
 import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
@@ -61,27 +59,25 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
         <SalesforceConnector>
             <HyperConnector>
                 <TrinoConnector>
-                        <ComputationRegistry>
-                            <NotebookComputeQueryExecutionProvider>
-                                <ComputationScheduler />
-                                <QueryExecutorProvider>
-                                    <NotebookScriptsRegistryProvider>
-                                        <NativeNotebookSync />
-                                        <CatalogLoaderProvider>
-                                            <AgentRunProvider>
-                                                <NotebookImportProvider>
-                                                    <NotebookCommands>
-                                                        <AppLoader>
-                                                            {props.children}
-                                                        </AppLoader>
-                                                    </NotebookCommands>
-                                                </NotebookImportProvider>
-                                            </AgentRunProvider>
-                                        </CatalogLoaderProvider>
-                                    </NotebookScriptsRegistryProvider>
-                                </QueryExecutorProvider>
-                            </NotebookComputeQueryExecutionProvider>
-                        </ComputationRegistry>
+                    <ComputationRegistry>
+                        <NotebookComputeQueryExecutionProvider>
+                            <ComputationScheduler />
+                            <QueryExecutorProvider>
+                                <NotebookScriptsRegistryProvider>
+                                    <NativeNotebookSync />
+                                    <CatalogLoaderProvider>
+                                        <NotebookImportProvider>
+                                            <NotebookCommands>
+                                                <AppLoader>
+                                                    {props.children}
+                                                </AppLoader>
+                                            </NotebookCommands>
+                                        </NotebookImportProvider>
+                                    </CatalogLoaderProvider>
+                                </NotebookScriptsRegistryProvider>
+                            </QueryExecutorProvider>
+                        </NotebookComputeQueryExecutionProvider>
+                    </ComputationRegistry>
                 </TrinoConnector>
             </HyperConnector>
         </SalesforceConnector>
@@ -102,19 +98,17 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                         <HttpClientProvider>
                                             <DockerClientProvider>
                                             <AppSettingsSync>
-                                                <AIClientProvider>
-                                                    <HyperDatabaseClientProvider>
-                                                        <DashQLCoreProvider>
-                                                            <EmbeddedDatabaseProvider>
-                                                                <ComputeConnectionProvider>
-                                                                    <NotebookProviders>
-                                                                        {props.children}
-                                                                    </NotebookProviders>
-                                                                </ComputeConnectionProvider>
-                                                            </EmbeddedDatabaseProvider>
-                                                        </DashQLCoreProvider>
-                                                    </HyperDatabaseClientProvider>
-                                                </AIClientProvider>
+                                                <HyperDatabaseClientProvider>
+                                                    <DashQLCoreProvider>
+                                                        <EmbeddedDatabaseProvider>
+                                                            <ComputeConnectionProvider>
+                                                                <NotebookProviders>
+                                                                    {props.children}
+                                                                </NotebookProviders>
+                                                            </ComputeConnectionProvider>
+                                                        </EmbeddedDatabaseProvider>
+                                                    </DashQLCoreProvider>
+                                                </HyperDatabaseClientProvider>
                                             </AppSettingsSync>
                                             </DockerClientProvider>
                                         </HttpClientProvider>

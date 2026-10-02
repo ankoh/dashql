@@ -44,7 +44,6 @@ import {
 import { classNames } from '../../../utils/classnames.js';
 import { OPEN_NOTEBOOK, SELECT_NOTEBOOK, useRouteContext, useRouterNavigate } from '../../router/router.js';
 import { NotebookSetupStatus } from '../../router/notebook_setup_status.js';
-import { useCancelAgentRun } from '../agent/agent_run_provider.js';
 import {
     AttachedDatabaseState,
     ConnectionHealth,
@@ -177,7 +176,6 @@ export interface NotebookWorkbenchSidebarDependencies {
     useAttachedDatabaseStateAllocator: typeof useAttachedDatabaseStateAllocator;
     useNotebookScriptsSetup: typeof useNotebookScriptsSetup;
     useNotebookScriptsDeletion: typeof useNotebookScriptsDeletion;
-    useCancelAgentRun: typeof useCancelAgentRun;
     useComputationRegistry: typeof useComputationRegistry;
     useStorageReader: typeof useStorageReader;
     useStorageWriter: typeof useStorageWriter;
@@ -205,7 +203,6 @@ const DEFAULT_NOTEBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: NotebookWorkbenchSidebarD
     useAttachedDatabaseStateAllocator,
     useNotebookScriptsSetup,
     useNotebookScriptsDeletion,
-    useCancelAgentRun,
     useComputationRegistry,
     useStorageReader,
     useStorageWriter,
@@ -819,7 +816,6 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
     const allocateDatabase = dependencies.useAttachedDatabaseStateAllocator();
     const setupNotebookScripts = dependencies.useNotebookScriptsSetup();
     const deleteNotebookScripts = dependencies.useNotebookScriptsDeletion();
-    const cancelAgentRun = dependencies.useCancelAgentRun();
     const [, computationDispatch] = dependencies.useComputationRegistry();
     const storageReader = dependencies.useStorageReader();
     const storageWriter = dependencies.useStorageWriter();
@@ -1062,7 +1058,6 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
     const deleteNotebook = React.useCallback(async (item: NotebookItem) => {
         const action = item.isNative ? 'Unlink' : 'Delete';
         if (!window.confirm(`${action} "${item.label}"?${item.isNative ? ' The folder and its files will remain on disk.' : ''}`)) return;
-        await cancelAgentRun(item.notebookId);
         try {
             await storageWriter.backend.deleteNotebook(item.notebookId);
         } catch (error) {
@@ -1085,7 +1080,7 @@ export const NotebookWorkbenchSidebar: React.FC<Props> = (props) => {
             const next = notebooks.find(notebook => notebook.notebookId !== item.notebookId);
             if (next != null) navigate({ type: OPEN_NOTEBOOK, value: next.notebookId });
         }
-    }, [cancelAgentRun, computationDispatch, databaseDispatch, databaseRegistry, deleteNotebookScripts, navigate, notebooks, props.notebookScripts.notebookId, storageWriter.backend]);
+    }, [computationDispatch, databaseDispatch, databaseRegistry, deleteNotebookScripts, navigate, notebooks, props.notebookScripts.notebookId, storageWriter.backend]);
 
     const openNotebook = React.useCallback((item: NotebookItem, anchor: HTMLButtonElement) => {
         if (item.notebookId === props.notebookScripts.notebookId) {

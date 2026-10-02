@@ -27,10 +27,6 @@ export interface EmscriptenModule {
     _dashql_malloc: (length: number) => number;
     _dashql_free: (ptr: number) => void;
     _dashql_delete_owner: (owner_ptr: number, owner_deleter: number) => void;
-    _dashql_agent_session_new: (result: number, catalog: number, target: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean) => void;
-    _dashql_agent_session_start: (result: number, ptr: number, request: number, requestLength: number) => void;
-    _dashql_agent_session_complete_effect: (result: number, ptr: number, completion: number, completionLength: number) => void;
-    _dashql_agent_session_cancel: (result: number, ptr: number) => void;
     _dashql_script_execution_new: (result: number, session: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean) => void;
     _dashql_script_execution_start: (result: number, ptr: number) => void;
     _dashql_script_execution_resume: (result: number, ptr: number, statementResult: number, statementResultLength: number) => void;
@@ -123,11 +119,6 @@ interface DashQLModuleExports {
     dashql_malloc: (length: number) => number;
     dashql_free: (ptr: number) => void;
     dashql_delete_owner: (owner_ptr: number, owner_deleter: number) => void;
-
-    dashql_agent_session_new: (result: number, catalog: number, target: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean) => void;
-    dashql_agent_session_start: (result: number, ptr: number, request: number, requestLength: number) => void;
-    dashql_agent_session_complete_effect: (result: number, ptr: number, completion: number, completionLength: number) => void;
-    dashql_agent_session_cancel: (result: number, ptr: number) => void;
 
     dashql_script_execution_new: (result: number, session: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean) => void;
     dashql_script_execution_start: (result: number, ptr: number) => void;
@@ -235,8 +226,6 @@ class WasmFlatBufferByteBuffer extends flatbuffers.ByteBuffer {
 }
 
 const ANALYZED_SCRIPT_TYPE = Symbol('ANALYZED_SCRIPT_TYPE');
-const AGENT_SESSION_TYPE = Symbol('AGENT_SESSION_TYPE');
-const AGENT_OPERATION_TYPE = Symbol('AGENT_OPERATION_TYPE');
 const CATALOG_ENTRIES_TYPE = Symbol('CATALOG_ENTRIES_TYPE');
 const CATALOG_STATISTICS_TYPE = Symbol('CATALOG_STATISTICS_TYPE');
 const CATALOG_TYPE = Symbol('CATALOG_TYPE');
@@ -257,8 +246,6 @@ const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
 const TEMPORARY = Symbol('TEMPORARY');
 
 export type DashQLRegisteredMemory =
-    | VariantKind<typeof AGENT_SESSION_TYPE, Ptr<typeof AGENT_SESSION_TYPE>>
-    | VariantKind<typeof AGENT_OPERATION_TYPE, FlatBufferPtr<buffers.agent.AgentOperation>>
     | VariantKind<typeof ANALYZED_SCRIPT_TYPE, FlatBufferPtr<buffers.analyzer.AnalyzedScript>>
     | VariantKind<typeof CATALOG_ENTRIES_TYPE, FlatBufferPtr<buffers.catalog.CatalogEntries>>
     | VariantKind<typeof CATALOG_STATISTICS_TYPE, FlatBufferPtr<buffers.catalog.CatalogStatistics>>
@@ -312,10 +299,6 @@ export class DashQL {
             dashql_malloc: module._dashql_malloc,
             dashql_free: module._dashql_free,
             dashql_delete_owner: module._dashql_delete_owner,
-            dashql_agent_session_new: module._dashql_agent_session_new,
-            dashql_agent_session_start: module._dashql_agent_session_start,
-            dashql_agent_session_complete_effect: module._dashql_agent_session_complete_effect,
-            dashql_agent_session_cancel: module._dashql_agent_session_cancel,
             dashql_script_execution_new: module._dashql_script_execution_new,
             dashql_script_execution_start: module._dashql_script_execution_start,
             dashql_script_execution_resume: module._dashql_script_execution_resume,
@@ -602,36 +585,6 @@ export class DashQL {
         return script;
     }
 
-    public createAgentSession(
-        catalog: DashQLCatalog,
-        target: DashQLScriptSession | null = null,
-        formattingConfig: buffers.formatting.FormattingConfigT = new buffers.formatting.FormattingConfigT(
-            buffers.formatting.FormattingDialect.HYPER,
-            buffers.formatting.FormattingMode.PRETTY,
-            120,
-            2,
-            false,
-        ),
-    ): DashQLAgentSession {
-        const catalogPtr = catalog.ptr.assertNotNull();
-        const targetPtr = target?.ptr.assertNotNull() ?? 0;
-        const ptr = this.callSRetPtr(AGENT_SESSION_TYPE, (resultPtr) =>
-            this.instanceExports.dashql_agent_session_new(
-                resultPtr,
-                catalogPtr,
-                targetPtr,
-                formattingConfig.dialect,
-                formattingConfig.mode,
-                formattingConfig.maxWidth,
-                formattingConfig.indentationWidth,
-                formattingConfig.debugMode,
-            )
-        );
-        const session = new DashQLAgentSession(ptr);
-        this.registerMemory({ type: AGENT_SESSION_TYPE, value: session.ptr });
-        return session;
-    }
-
     public createCatalog(): DashQLCatalog {
         const ptr = this.callSRetPtr(CATALOG_TYPE, (resultPtr) =>
             this.instanceExports.dashql_catalog_new(resultPtr)
@@ -876,70 +829,6 @@ export class AsyncAnalysisError extends Error {
         super(message || `asynchronous analysis failed with error code ${code}`);
         this.name = 'AsyncAnalysisError';
         this.code = code;
-    }
-}
-
-export class DashQLAgentSession {
-    public readonly ptr: Ptr<typeof AGENT_SESSION_TYPE>;
-
-    public constructor(ptr: Ptr<typeof AGENT_SESSION_TYPE>) {
-        this.ptr = ptr;
-    }
-
-    public destroy(): void {
-        this.ptr.destroy();
-    }
-
-    public start(request: buffers.agent.AgentStartRequestT): buffers.agent.AgentOperationT {
-        return this.callWithInput(request, (resultPtr, inputPtr, inputLength) =>
-            this.ptr.api.instanceExports.dashql_agent_session_start(
-                resultPtr,
-                this.ptr.assertNotNull(),
-                inputPtr,
-                inputLength,
-            )
-        );
-    }
-
-    public completeEffect(completion: buffers.agent.AgentEffectCompletionT): buffers.agent.AgentOperationT {
-        return this.callWithInput(completion, (resultPtr, inputPtr, inputLength) =>
-            this.ptr.api.instanceExports.dashql_agent_session_complete_effect(
-                resultPtr,
-                this.ptr.assertNotNull(),
-                inputPtr,
-                inputLength,
-            )
-        );
-    }
-
-    public cancel(): buffers.agent.AgentOperationT {
-        return this.readOperation((resultPtr) =>
-            this.ptr.api.instanceExports.dashql_agent_session_cancel(resultPtr, this.ptr.assertNotNull())
-        );
-    }
-
-    private callWithInput(
-        input: flatbuffers.IGeneratedObject,
-        invoke: (resultPtr: number, inputPtr: number, inputLength: number) => void,
-    ): buffers.agent.AgentOperationT {
-        const builder = new flatbuffers.Builder();
-        builder.finish(input.pack(builder));
-        const [inputPtr, inputLength] = this.ptr.api.copyBuffer(builder.asUint8Array());
-        try {
-            return this.readOperation((resultPtr) => invoke(resultPtr, inputPtr, inputLength));
-        } finally {
-            this.ptr.api.instanceExports.dashql_free(inputPtr);
-        }
-    }
-
-    private readOperation(fn: (resultPtr: number) => void): buffers.agent.AgentOperationT {
-        const result = this.ptr.api.callSRetFlatBufPtr<buffers.agent.AgentOperation, buffers.agent.AgentOperationT>(
-            AGENT_OPERATION_TYPE,
-            fn,
-            () => new buffers.agent.AgentOperation(),
-        );
-        this.ptr.api.registerMemory({ type: AGENT_OPERATION_TYPE, value: result });
-        return result.unpackAndDestroy();
     }
 }
 

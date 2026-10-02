@@ -67,7 +67,6 @@ Ensure an outdated script is analyzed before operations that require those resul
 
 - Mounting the editable script editor. This boundary already exists in `script_editor.tsx`.
 - Executing or rerunning a script.
-- Building agent context or deciding whether the focused script is a visualization.
 - Opening diagnostics or details that consume parsed or analyzed buffers.
 - Any explicit request for visualization metadata.
 
@@ -75,7 +74,7 @@ Execution must not rely only on `compileQuery`. The core compiler can parse lazi
 `VISUALIZE` statement internally, but that does not update the React notebook state, derived
 annotations, visualization projection, or catalog invalidation state.
 
-Use one shared analysis-before-use path where possible so execute, rerun, agent, and details flows do
+Use one shared analysis-before-use path where possible so execute, rerun, and details flows do
 not implement subtly different behavior.
 
 ### 3. Avoid Analysis From Passive Rendering
@@ -116,7 +115,7 @@ After all call sites have migrated:
 - Remove the `Analyze Scripts` row from the loading page.
 - Update stale comments describing eager startup analysis.
 
-Analysis performed in response to direct edits, renames, accepted agent rewrites, or newly created
+Analysis performed in response to direct edits, renames, or newly created
 scripts should remain eager where it is required to keep the edited script and its catalog entry
 coherent. This change targets bulk analysis during restoration and reconciliation, not all analysis
 following user mutations.
@@ -140,13 +139,6 @@ first synchronize analysis through notebook state.
 The relation and function catalog scripts must be analyzed before ordinary scripts are available for
 lazy analysis. A catalog update must invalidate ordinary scripts so their next analysis resolves
 against the new catalog.
-
-### Agent Context
-
-Agent context reads analyzed table references and visualization annotations. Starting an agent run is
-an explicit request for those results, so the context script must be analyzed first. Otherwise an
-outdated visualization can be mistaken for plain SQL and referenced-table schema context can be
-omitted.
 
 ### Analysis Failures
 
@@ -177,7 +169,6 @@ Update `notebook_scripts.test.ts` and relevant UI tests to verify:
 - Executing an outdated `VISUALIZE` script derives visualization metadata and projection before
   execution.
 - Rerun paths use the same behavior.
-- Starting an agent run analyzes its context script before chart detection and context generation.
 - Passive feed rendering and cache checks do not analyze outdated scripts.
 
 ### Native Synchronization

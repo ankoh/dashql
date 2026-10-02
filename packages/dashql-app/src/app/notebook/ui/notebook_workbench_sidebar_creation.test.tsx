@@ -57,7 +57,6 @@ const dependencies = {
         backend: {},
         cancelPendingWritesForNotebook: vi.fn(),
     }),
-    useCancelAgentRun: () => vi.fn(),
     useComputationRegistry: () => [null, vi.fn()],
     BundledNotebooksOverlay: () => null,
     NotebookStorageOverlay: () => null,

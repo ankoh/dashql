@@ -33,7 +33,7 @@ interface TraceLogPanelProps {
     onHeaderClick?: () => void;
 }
 
-/// One trace-log surface. Execution and agent logs use separate vertical tabs, so this component no
+/// One trace-log surface. Independent logs use separate vertical tabs, so this component no
 /// longer owns source selection; it only renders the selected trace and its row count.
 export const TraceLogPanel: React.FC<TraceLogPanelProps> = (props) => {
     const totalLogRows = useTraceLogCount(props.traceId);

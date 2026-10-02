@@ -125,7 +125,7 @@ Notebook scripts reconciliation stays in
 - Existing page/script focus is retained when that path still exists; otherwise focus falls back to
   the first sorted entry.
 - Any notebook or catalog change invalidates affected notebook analysis. Scripts are reanalyzed on
-  demand when an editor, execution, agent, or diagnostics flow needs current analysis.
+  demand when an editor, execution, or diagnostics flow needs current analysis.
 
 ## Reload Protocol
 
