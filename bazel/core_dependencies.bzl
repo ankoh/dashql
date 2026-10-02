@@ -31,7 +31,7 @@ _RAPIDYAML_VERSION = "0.12.1"
 # renovate: datasource=github-releases depName=google/benchmark
 _BENCHMARK_VERSION = "1.9.5"
 # renovate: datasource=github-releases depName=duckdb/duckdb
-_DUCKDB_VERSION = "1.5.5"
+_DUCKDB_VERSION = "1.5.6"
 # renovate: datasource=github-releases depName=apache/arrow
 _ARROW_VERSION = "19.0.0"
 
@@ -99,14 +99,14 @@ def _dashql_core_deps_impl(mctx):
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_cli_osx",
-        sha256 = "7a4bc3a93f7f92f5b40cd09c21afaf98e415c6cb9d9170064993782e779f4115",
+        sha256 = "80a80c68736bd7dea53e8b02447e9759db0c8596ea156476ba396c44f54c5810",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/duckdb_cli-osx-universal.zip"],
         build_file = "//bazel:external_duckdb_cli.BUILD",
     )
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_cli_linux_amd64",
-        sha256 = "08c0ca117111fcede14239d0093792352befdc174218c344d232c13279643d05",
+        sha256 = "6e89deac1ebbc36eed0291caf8b567b030c7b86ac35998f71854e22b3c5d5e2f",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/duckdb_cli-linux-amd64.zip"],
         build_file = "//bazel:external_duckdb_cli.BUILD",
     )
