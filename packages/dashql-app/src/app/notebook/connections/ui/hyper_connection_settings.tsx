@@ -4,9 +4,7 @@ import * as buf from '@bufbuild/protobuf';
 import * as pb from '../../../../proto.js';
 import * as style from './connection_settings.module.css';
 
-import { ChecklistIcon, CircleSlashIcon, DashIcon, DatabaseIcon, FileBadgeIcon, KeyIcon, PlusIcon } from '../../../../ui/foundations/symbol_icon.js';
-
-import { ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
+import { ChecklistIcon, DatabaseIcon, FileBadgeIcon, KeyIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { classNames } from '../../../../utils/classnames.js';
 import {
@@ -30,7 +28,6 @@ import { useAnyConnectionNotebookScripts } from './connection_notebook_scripts.j
 import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
 import { isNativePlatform } from '../../../../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { HyperDockerPanelMode, HyperDockerSettingsPanel } from './hyper_docker_settings.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../../../../platform/hyperdb/hyperdb_settings.js';
 
 const LOG_CTX = "hyper_connector";
@@ -141,11 +138,9 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
 
     const protocol = pageState.protocol;
 
-    // Docker and direct gRPC both require the native platform
-    const wrongPlatform = (protocol === "V3_GRPC" || protocol === "V3_DOCKER") && !isNativePlatform();
-    const isDocker = protocol === "V3_DOCKER";
+    const wrongPlatform = protocol === "V3_GRPC" && !isNativePlatform();
     const protocols: connection.HyperProtocol[] = isNativePlatform()
-        ? ["WASM", "V3_DOCKER", "V3_GRPC", "V3_HTTP"]
+        ? ["WASM", "V3_GRPC", "V3_HTTP"]
         : ["WASM", "V3_HTTP"];
     const setProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, protocol: v }));
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
@@ -169,10 +164,6 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
         setClientIdentityValidation({ type: VALIDATION_UNKNOWN, value: null });
         setEndpointValidation({ type: VALIDATION_UNKNOWN, value: null });
     }, [hyperConnection?.proto.setupParams, pageState.protocol, pageState.endpoint, pageState.mTlsKeyPath, pageState.mTlsPubPath, pageState.mTlsCaPath]);
-
-    // Docker panel state — lifted so the +/− IconButtons can live in the connection header.
-    const [dockerMode, setDockerMode] = React.useState<HyperDockerPanelMode>('list');
-    const [dockerEditMode, setDockerEditMode] = React.useState(false);
 
     // Helper to setup the connection
     const setupParams = React.useMemo<connection.HyperConnectionParams>(() => buildHyperConnectionSetupParams(pageState), [pageState]);
@@ -264,9 +255,9 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 connector={connectorInfo}
                 connection={connectionState}
                 wrongPlatform={wrongPlatform}
-                setupConnection={isDocker ? undefined : setupConnection}
-                cancelSetup={isDocker ? undefined : cancelSetup}
-                resetSetup={isDocker ? undefined : resetSetup}
+                setupConnection={setupConnection}
+                cancelSetup={cancelSetup}
+                resetSetup={resetSetup}
                 notebookScripts={connectionNotebookScripts}
                 protocol={protocol}
                 protocols={protocols}
@@ -274,39 +265,8 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 freezeInput={freezeInput}
                 embedded={protocol === 'WASM'}
                 onClose={props.onClose}
-                trailingStatusActions={isDocker && dockerMode === 'list' && (
-                    <>
-                        <IconButton
-                            variant={dockerEditMode ? ButtonVariant.Default : ButtonVariant.Invisible}
-                            aria-label={dockerEditMode ? 'Done removing' : 'Remove containers'}
-                            aria-pressed={dockerEditMode}
-                            onClick={() => setDockerEditMode(v => !v)}
-                        >
-                            {dockerEditMode ? <CircleSlashIcon /> : <DashIcon />}
-                        </IconButton>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Create container"
-                            description="Create a new container"
-                            onClick={() => setDockerMode('create')}
-                        >
-                            <PlusIcon />
-                        </IconButton>
-                    </>
-                )}
             />
-            {isDocker ? (
-                <div className={style.body_container}>
-                    <HyperDockerSettingsPanel
-                        databaseId={props.databaseId}
-                        freezeInput={freezeInput}
-                        mode={dockerMode}
-                        setMode={setDockerMode}
-                        isEditMode={dockerEditMode}
-                        onClose={props.onClose}
-                    />
-                </div>
-            ) : protocol === 'WASM' ? (
+            {protocol === 'WASM' ? (
                 <div className={style.body_container}>
                     <div className={style.section}>
                         <div className={`${style.section_layout} ${style.body_section_layout}`}>

@@ -11,13 +11,12 @@ export function attachedDatabaseLabel(database: AttachedDatabaseState): string {
     let protocol = 'HTTP';
     if (database.details.type === HYPER_CONNECTOR) {
         const value = database.details.value.proto.setupParams?.protocol;
-        protocol = value === 'V3_DOCKER' ? 'Docker'
-            : value === 'V3_GRPC' ? 'gRPC'
+        protocol = value === 'V3_GRPC' ? 'gRPC'
                 : value === 'V3_HTTP' ? 'HTTP'
                     : 'WASM';
     } else if (database.details.type === SALESFORCE_DATA_CLOUD_CONNECTOR) {
         const value = database.details.value.proto.setupParams?.hyperProtocol;
-        protocol = value === 'V3_GRPC' ? 'gRPC' : value === 'V3_DOCKER' ? 'Docker' : value === 'WASM' ? 'WASM' : 'HTTP';
+        protocol = value === 'V3_GRPC' ? 'gRPC' : value === 'WASM' ? 'WASM' : 'HTTP';
     }
     return `${database.connectorInfo.names.displayLong} / ${protocol}`;
 }

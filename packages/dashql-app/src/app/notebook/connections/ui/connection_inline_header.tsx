@@ -31,8 +31,6 @@ interface Props {
     freezeInput?: boolean;
     embedded?: boolean;
     onClose?: () => void;
-    /// Extra actions rendered fully right in the status bar, after the connect button.
-    trailingStatusActions?: React.ReactNode;
     connectorNameAction?: React.ReactNode;
     statusText?: string;
     indicatorStatus?: IndicatorStatus;
@@ -42,7 +40,6 @@ interface Props {
 
 const PROTOCOL_LABELS: Record<connection.HyperProtocol, string> = {
     WASM: "WASM",
-    V3_DOCKER: "Docker",
     V3_GRPC: "gRPC",
     V3_HTTP: "HTTP",
 };
@@ -51,8 +48,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
     const logger = useLogger();
 
     // Get the action button.
-    // If no setup/cancel/reset handler is provided, the caller is taking over the connect action
-    // (e.g. the Docker panel uses per-row Connect buttons), so suppress the header button entirely.
+    // Suppress the header button when no setup/cancel/reset handler is provided.
     const headerActionsProvided = props.setupConnection || props.cancelSetup || props.resetSetup;
     let connectButton: React.ReactElement = <div />;
     if (props.connector.features.manualSetup && headerActionsProvided) {
@@ -180,7 +176,6 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     )}
                     <div className={style.status_right}>
                         {connectButton}
-                        {props.trailingStatusActions}
                     </div>
                 </div>
             )}

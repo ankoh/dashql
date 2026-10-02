@@ -67,6 +67,7 @@ describe("validateNativeProxyRequest", () => {
         {...validRequest, url: "https://localhost/http/streams"},
         {...validRequest, url: "dashql-native://remote/http/streams"},
         {...validRequest, url: "dashql-native://localhost/database/files"},
+        {...validRequest, url: "dashql-native://localhost/docker/containers"},
         {...validRequest, url: "dashql-native://user@localhost/http/streams"},
     ])("rejects a request outside the native proxy surface", (request) => {
         expect(() => validateNativeProxyRequest(request)).toThrow("Rejected native proxy");

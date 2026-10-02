@@ -15,7 +15,6 @@ import { FileDownloaderProvider } from '../platform/file/file_downloader_provide
 import { FileDropzone } from './ui/file_dropzone.js';
 import { GitHubTheme } from '../theme/github_theme.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
-import { DockerClientProvider } from '../platform/docker/docker_client_provider.js';
 import { HyperConnector } from './notebook/connections/hyper/hyper_connector.js';
 import { HyperDatabaseClientProvider } from './notebook/connections/hyper/hyperdb_grpc_client_provider.js';
 import { HyperPlanDemoPage } from './ui/demos/plan_demo.js';
@@ -96,7 +95,6 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                 <VersionCheck>
                                     <StorageProvider>
                                         <HttpClientProvider>
-                                            <DockerClientProvider>
                                             <AppSettingsSync>
                                                 <HyperDatabaseClientProvider>
                                                     <DashQLCoreProvider>
@@ -110,7 +108,6 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                                     </DashQLCoreProvider>
                                                 </HyperDatabaseClientProvider>
                                             </AppSettingsSync>
-                                            </DockerClientProvider>
                                         </HttpClientProvider>
                                     </StorageProvider>
                                 </VersionCheck>

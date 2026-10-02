@@ -29,7 +29,7 @@ The current Tauri stack provides useful native behavior with a compact bundle:
 - `dashql://` deep links and OAuth callback delivery.
 - Native windows, dialogs, filesystem access, file watching, shell integration,
   process restart, logging, and drag and drop.
-- A Rust custom-protocol backend for DuckDB, gRPC, HTTP, and Docker access.
+- A Rust custom-protocol backend for DuckDB, gRPC, and HTTP access.
 - Signed incremental updates hosted on Cloudflare R2.
 - Universal arm64/x86_64 macOS builds with signing and notarization.
 
@@ -72,7 +72,7 @@ dependencies.
 ## Target Architecture
 
 The renderer must remain an unprivileged web application. It must not receive
-Node.js, filesystem, process, shell, Docker, or arbitrary IPC access.
+Node.js, filesystem, process, shell, or arbitrary IPC access.
 
 ```text
 app://bundle/index.html
@@ -95,7 +95,6 @@ Rust `napi-rs` addon
         |
         +-- gRPC and TLS
         +-- streaming HTTP
-        +-- Docker socket and registry
 
 Electron renderer
         |
@@ -160,7 +159,7 @@ after the installed-product migration is complete.
 The existing non-database Rust proxy implementation is compiled into a Node-API
 addon with `napi-rs`. The addon is loaded in an Electron utility process rather
 than the Electron main process. This avoids a custom Rust sidecar wire protocol
-while preserving crash isolation for native code, Tokio, Docker, and network
+while preserving crash isolation for native code, Tokio, and network
 operations.
 
 The utility process communicates with Electron main through Electron's
@@ -174,7 +173,7 @@ Migration steps:
 1. Compile a Tauri- and DuckDB-independent Rust proxy library.
 2. Expose its request router through a `napi-rs` Node-API addon.
 3. Load and supervise the addon in an Electron utility process.
-4. Prove unary gRPC, streaming gRPC, HTTP, and Docker operations.
+4. Prove unary gRPC, streaming gRPC, and HTTP operations.
 5. Measure utility-process message CPU, memory, latency, and allocation overhead.
 6. Add request cancellation, backpressure, process-exit propagation, bounded
    message sizes, startup timeout, and graceful shutdown.
@@ -339,7 +338,7 @@ DuckDB binary or route is packaged in the Electron application.
 
 - Build a Tauri-independent `napi-rs` addon without DuckDB.
 - Load it in a supervised Electron utility process.
-- Prove unary and streaming gRPC, HTTP streaming, and Docker operations.
+- Prove unary and streaming gRPC and HTTP streaming operations.
 - Add crash, cancellation, timeout, malformed-message, and shutdown tests.
 - Measure bridge overhead with representative protobuf and stream payloads.
 
@@ -538,7 +537,7 @@ Implemented:
 
 - A new `packages/dashql-native-napi` Rust workspace crate.
 - A Bazel `rust_shared_library` compiled as a Tauri-free `.node` addon.
-- A DuckDB-free Rust router containing gRPC, streaming HTTP, and Docker routes.
+- A DuckDB-free Rust router containing gRPC and streaming HTTP routes.
 - Direct `http` crate imports in reusable proxy modules instead of Tauri's HTTP
   re-exports.
 - `napi-rs` exports using Node `Buffer` values for request and response bodies.
@@ -571,7 +570,7 @@ Bazel Rust cdylib -> .node -> Electron utilityProcess -> Node-API Buffer -> Rust
 
 The next native-proxy slice is replacing the test-only main-process call with a
 long-lived request multiplexer and preload API, followed by loopback gRPC and
-HTTP streaming tests and Docker integration when a daemon is available.
+HTTP streaming tests.
 
 ### 2026-08-28: Long-Lived Native Proxy And HTTP Streaming
 
@@ -585,7 +584,7 @@ utility process and provides:
 - Per-request timeouts.
 - Rejection of all pending calls when the utility process exits or fails.
 - Bounded request bodies, header count, and header value sizes.
-- Explicit allowed methods and `dashql-native://localhost/{grpc,http,docker}`
+- Explicit allowed methods and `dashql-native://localhost/{grpc,http}`
   route validation.
 - Shutdown of the utility process during application quit.
 
@@ -630,8 +629,7 @@ stream deletion. Observed result:
 
 The next proxy work is loopback unary and server-streaming gRPC coverage,
 followed by replacing the generic renderer-facing request shape with
-operation-specific APIs where practical. Docker tests remain conditional on a
-locally available daemon.
+operation-specific APIs where practical.
 
 ### 2026-08-28: Unary And Streaming gRPC
 

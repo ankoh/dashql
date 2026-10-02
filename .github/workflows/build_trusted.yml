@@ -126,10 +126,6 @@ jobs:
                     --test_output=errors \
                     --test_summary=detailed
 
-            - name: Build Hyper Docker image
-              shell: bash
-              run: bazel build --config=release //packages/hyper-docker:image
-
     linux_release:
         name: Linux Release
         runs-on: ubuntu-24.04

@@ -45,10 +45,6 @@ bazel_dep(name = "rules_nodejs", version = "6.7.3")
 bazel_dep(name = "rules_shell", version = "0.7.1")
 bazel_dep(name = "rules_python", version = "1.9.0")
 
-# OCI container image rules (packages/hyper-docker)
-bazel_dep(name = "rules_oci", version = "2.3.0")
-bazel_dep(name = "rules_pkg", version = "1.2.0")
-
 # Node.js toolchain (for app_bundle postprocess script).
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain(node_version = "24.4.1")
@@ -255,21 +251,7 @@ register_execution_platforms(
     "//bazel/platforms:wasm_tool_exec",
 )
 
-# Pull ubi9-minimal base image for //packages/hyper-docker.
-# Pin the digest for reproducible builds; update with:
-#   crane digest registry.access.redhat.com/ubi9/ubi-minimal:9.7-1773939694
-oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
-oci.pull(
-    name = "ubi9_minimal",
-    image = "registry.access.redhat.com/ubi9/ubi-minimal:9.7-1773939694",
-    # renovate: depName=registry.access.redhat.com/ubi9/ubi-minimal
-    digest = "sha256:83006d535923fcf1345067873524a3980316f51794f01d8655be55d6e9387183",
-    platforms = ["linux/amd64"],
-)
-use_repo(oci, "ubi9_minimal", "ubi9_minimal_linux_amd64")
-
-# Native Tableau Hyper API C++ distributions for //packages/hyper-api and
-# //packages/hyper-docker.
+# Native Tableau Hyper API C++ distributions for //packages/hyper-api.
 tableauhyperapi = use_extension("//bazel:external_tableauhyperapi.bzl", "tableauhyperapi_ext")
 use_repo(
     tableauhyperapi,
@@ -277,11 +259,6 @@ use_repo(
     "tableauhyperapi_cxx_macos_arm64",
     "tableauhyperapi_cxx_macos_x86_64",
 )
-
-# hyperd Docker image: resolves the Linux x86_64 hyperd binary (C++ archive,
-# or HYPERD_BINARY override) and the image repo_tag. See //packages/hyper-docker.
-hyperd_image = use_extension("//packages/hyper-docker:version.bzl", "hyperd_image_ext")
-use_repo(hyperd_image, "hyperd_image")
 
 # Hedron's Compile Commands Extractor for Bazel
 # https://github.com/hedronvision/bazel-compile-commands-extractor

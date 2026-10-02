@@ -1,14 +1,6 @@
 use http::header::CONTENT_TYPE;
 use http::{Method, Request, Response};
 
-use crate::docker_proxy_globals::{
-    create_container as docker_create_container, delete_container as docker_delete_container,
-    delete_log_stream as docker_delete_log_stream, list_containers as docker_list_containers,
-    list_registry_tags as docker_list_registry_tags, read_log_stream as docker_read_log_stream,
-    start_container as docker_start_container, start_log_stream as docker_start_log_stream,
-    start_pull_stream as docker_start_pull_stream, stop_container as docker_stop_container,
-};
-use crate::docker_proxy_routes::{parse_docker_proxy_path, DockerProxyRoute};
 use crate::grpc_proxy_globals::{
     call_grpc_unary, create_grpc_channel, delete_grpc_channel, delete_grpc_server_stream,
     read_grpc_server_stream, start_grpc_server_stream,
@@ -64,26 +56,6 @@ pub async fn route_proxy_request(mut request: Request<Vec<u8>>) -> Response<Vec<
                 delete_grpc_server_stream(channel_id, stream_id, std::mem::take(&mut request)).await
             }
             _ => not_found(format!("cannot find handler for grpc proxy route={:?}, method={:?}", request.uri().path(), request.method())),
-        };
-    }
-
-    if let Some(route) = parse_docker_proxy_path(request.uri().path()) {
-        return match (request.method().clone(), route) {
-            (Method::GET, DockerProxyRoute::Containers) => docker_list_containers(std::mem::take(&mut request)).await,
-            (Method::POST, DockerProxyRoute::Containers) => docker_create_container(std::mem::take(&mut request)).await,
-            (Method::DELETE, DockerProxyRoute::Container { id }) => docker_delete_container(id, std::mem::take(&mut request)).await,
-            (Method::POST, DockerProxyRoute::ContainerStart { id }) => docker_start_container(id, std::mem::take(&mut request)).await,
-            (Method::POST, DockerProxyRoute::ContainerStop { id }) => docker_stop_container(id, std::mem::take(&mut request)).await,
-            (Method::POST, DockerProxyRoute::ImagesPull) => docker_start_pull_stream(std::mem::take(&mut request)).await,
-            (Method::POST, DockerProxyRoute::LogStreams) => docker_start_log_stream(std::mem::take(&mut request)).await,
-            (Method::GET, DockerProxyRoute::LogStream { stream_id }) => {
-                docker_read_log_stream(stream_id, std::mem::take(&mut request)).await
-            }
-            (Method::DELETE, DockerProxyRoute::LogStream { stream_id }) => {
-                docker_delete_log_stream(stream_id, std::mem::take(&mut request)).await
-            }
-            (Method::GET, DockerProxyRoute::RegistryTags) => docker_list_registry_tags(std::mem::take(&mut request)).await,
-            _ => not_found(format!("cannot find handler for docker proxy route={:?}, method={:?}", request.uri().path(), request.method())),
         };
     }
 

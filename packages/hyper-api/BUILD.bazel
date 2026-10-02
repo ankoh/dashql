@@ -62,17 +62,6 @@ alias(
     }),
 )
 
-# Docker targets Linux/amd64 regardless of the host platform.
-alias(
-    name = "hyperd_linux_x86_64",
-    actual = "@tableauhyperapi_cxx_linux_x86_64//:hyperd",
-)
-
-alias(
-    name = "licenses_linux_x86_64",
-    actual = "@tableauhyperapi_cxx_linux_x86_64//:licenses",
-)
-
 cc_test(
     name = "smoke_test",
     size = "medium",

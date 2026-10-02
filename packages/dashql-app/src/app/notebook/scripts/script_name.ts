@@ -1,7 +1,7 @@
 /// Random two-word name generator for new scripts.
 ///
 /// Instead of naming every new script "script", we compose a memorable "<adjective>_<animal>" base
-/// (e.g. "brave_otter") in the spirit of Ubuntu releases and Docker container names. The two curated
+/// (e.g. "brave_otter") in the spirit of whimsical generated names. The two curated
 /// word lists give ADJECTIVES.length * ANIMALS.length combinations, so collisions on a single page
 /// are rare; when one does occur the caller's uniqueScriptBase still disambiguates with a "-2" suffix.
 

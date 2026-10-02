@@ -1,8 +1,3 @@
-mod docker_log_stream_manager;
-mod docker_proxy;
-mod docker_proxy_globals;
-mod docker_proxy_routes;
-mod docker_registry_client;
 mod grpc_client;
 mod grpc_proxy;
 mod grpc_proxy_globals;

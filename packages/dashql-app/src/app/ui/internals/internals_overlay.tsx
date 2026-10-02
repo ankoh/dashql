@@ -10,8 +10,6 @@ import { OverlaySize } from '../../../ui/foundations/overlay.js';
 import { QueryViewer } from '../../notebook/connections/ui/query_viewer.js';
 import { QueryCacheView } from '../../notebook/persistence/ui/query_cache_view.js';
 import { VerticalTabs, VerticalTabVariant } from '../../../ui/foundations/vertical_tabs.js';
-import { DockerManager } from './docker_manager.js';
-import { useDockerClient } from '../../../platform/docker/docker_client_provider.js';
 
 interface InternalsViewerProps {
     /// The active notebook UUID, used by notebook-scoped tabs (e.g. the query cache inspector).
@@ -24,23 +22,12 @@ enum TabKey {
     QueryViewer = 1,
     AppSettings = 2,
     StorageWriter = 3,
-    Docker = 4,
-    QueryCache = 5,
+    QueryCache = 4,
 }
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.LogViewer);
-    const dockerClient = useDockerClient();
-    const dockerEnabled = dockerClient != null;
-
-    const tabKeys = React.useMemo(() => {
-        const keys: TabKey[] = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageWriter];
-        if (dockerEnabled) {
-            keys.push(TabKey.Docker);
-        }
-        keys.push(TabKey.AppSettings);
-        return keys;
-    }, [dockerEnabled]);
+    const tabKeys = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageWriter, TabKey.AppSettings];
 
     return (
         <VerticalTabs
@@ -80,14 +67,6 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     description: 'Inspect and evict cached query results',
                     disabled: false,
                 },
-                [TabKey.Docker]: {
-                    tabId: TabKey.Docker,
-                    icon: `${icons}#package`,
-                    labelShort: 'Docker',
-                    ariaLabel: 'Docker containers',
-                    description: 'Manage local Hyper containers',
-                    disabled: false,
-                },
                 [TabKey.AppSettings]: {
                     tabId: TabKey.AppSettings,
                     icon: `${icons}#settings_24`,
@@ -110,9 +89,6 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 ),
                 [TabKey.QueryCache]: _props => (
                     <QueryCacheView notebookId={props.notebookId} onClose={props.onClose} />
-                ),
-                [TabKey.Docker]: _props => (
-                    <DockerManager onClose={props.onClose} />
                 ),
                 [TabKey.AppSettings]: _props => (
                     <AppSettings onClose={props.onClose} />

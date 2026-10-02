@@ -39,12 +39,6 @@ pub enum Status {
     HttpStreamReadFailed { stream_id: usize, error: String },
     HttpStreamReadTimedOut { stream_id: usize },
     HttpUrlIsInvalid{ message: String },
-    DockerSocketConnectFailed { message: String },
-    DockerRequestFailed { error: String },
-    DockerRegistryFailed { message: String },
-    DockerStreamIsUnknown { stream_id: usize },
-    DockerStreamClosed { stream_id: usize },
-    DockerStreamFailed { stream_id: usize, error: String },
 }
 
 #[derive(Serialize)]
@@ -216,43 +210,6 @@ impl TryFrom<&Status> for StatusMessage {
                     ("error", message.to_string()),
                 ]),
             }),
-            Status::DockerSocketConnectFailed { message } => Ok(StatusMessage {
-                message: "could not connect to docker socket".to_string(),
-                details: HashMap::from_iter([
-                    ("error", message.to_string()),
-                ]),
-            }),
-            Status::DockerRequestFailed { error } => Ok(StatusMessage {
-                message: "docker request failed".to_string(),
-                details: HashMap::from_iter([
-                    ("error", error.to_string()),
-                ]),
-            }),
-            Status::DockerRegistryFailed { message } => Ok(StatusMessage {
-                message: "docker registry request failed".to_string(),
-                details: HashMap::from_iter([
-                    ("error", message.to_string()),
-                ]),
-            }),
-            Status::DockerStreamIsUnknown { stream_id } => Ok(StatusMessage {
-                message: "docker stream is unknown".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                ]),
-            }),
-            Status::DockerStreamClosed { stream_id } => Ok(StatusMessage {
-                message: "docker stream is closed".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                ]),
-            }),
-            Status::DockerStreamFailed { stream_id, error } => Ok(StatusMessage {
-                message: "docker stream failed".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                    ("error", error.to_string()),
-                ]),
-            }),
         }
     }
 }
@@ -283,12 +240,6 @@ impl From<&Status> for StatusCode {
             Status::HttpStreamReadFailed { stream_id: _, error: _ } => StatusCode::BAD_REQUEST,
             Status::HttpStreamReadTimedOut { stream_id: _ } => StatusCode::BAD_REQUEST,
             Status::HttpUrlIsInvalid { message: _ } => StatusCode::BAD_REQUEST,
-            Status::DockerSocketConnectFailed { message: _ } => StatusCode::SERVICE_UNAVAILABLE,
-            Status::DockerRequestFailed { error: _ } => StatusCode::BAD_REQUEST,
-            Status::DockerRegistryFailed { message: _ } => StatusCode::BAD_GATEWAY,
-            Status::DockerStreamIsUnknown { stream_id: _ } => StatusCode::NOT_FOUND,
-            Status::DockerStreamClosed { stream_id: _ } => StatusCode::BAD_REQUEST,
-            Status::DockerStreamFailed { stream_id: _, error: _ } => StatusCode::BAD_REQUEST,
         }
     }
 }

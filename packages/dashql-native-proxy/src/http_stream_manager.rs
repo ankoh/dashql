@@ -1,4 +1,4 @@
-use hyper::header::{HeaderValue, HeaderMap};
+use http::header::{HeaderMap, HeaderValue};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Display;
