@@ -1,5 +1,6 @@
 include "dashql/parsed_script.fbs";
 include "dashql/markdown.fbs";
+include "dashql/umap.fbs";
 
 namespace dashql.buffers.execution;
 
@@ -36,7 +37,7 @@ table ScriptCompilationError {
 table CompiledVisualization {
     renderer: string;
     vegalite_spec: string;
-    umap_spec: string;
+    umap_spec: visualization.UmapSpec;
     markdown_spec: visualization.MarkdownSpec;
 }
 

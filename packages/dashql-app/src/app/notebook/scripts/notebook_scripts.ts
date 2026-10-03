@@ -22,7 +22,6 @@ import {
 import type { NotebookScriptsInput } from './notebook_scripts_registry.js';
 import { Logger, LoggerLike, LoggableException, stringifyError } from '../../../platform/logger/logger.js';
 import { ScriptAnnotations, ScriptRef, NotebookMetadata as NotebookMetadataType, ResolvedVisualizeQuery, createEmptyAnnotations, createScriptRef, planScriptInsertion, normalizeScriptName, scriptOrderPrefixString, formatScriptOrderPrefix, scriptDisplayName, uniqueScriptBase } from './script_types.js';
-import { parseUmapSpec } from '../compute/ui/visualization/umap/umap_spec.js';
 
 const LOG_CTX = 'notebook_scripts';
 
@@ -1113,9 +1112,10 @@ function compileVisualizeQuery(scriptSession: core.DashQLScriptSession, logger?:
         logger?.debug('Compiled visualization for execution', { sql }, LOG_CTX);
         switch (visualization.renderer()) {
             case 'umap': {
-                const raw = visualization.umapSpec();
-                const umapSpec = raw ? parseUmapSpec(raw) : null;
-                return umapSpec ? { renderer: 'umap', sql, umapSpec } : null;
+                const umapSpec = visualization.umapSpec()?.unpack();
+                return umapSpec && typeof umapSpec.vectorColumn === 'string' && umapSpec.vectorColumn.length > 0
+                    ? { renderer: 'umap', sql, umapSpec }
+                    : null;
             }
             case 'markdown': {
                 const markdownSpec = visualization.markdownSpec()?.unpack();

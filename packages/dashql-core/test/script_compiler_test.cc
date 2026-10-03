@@ -178,8 +178,27 @@ VISUALIZE USING umap (
     ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
     ASSERT_TRUE(result.visualization.has_value());
     EXPECT_EQ(result.visualization->renderer, "umap");
-    EXPECT_FALSE(result.visualization->umap_spec.empty());
+    ASSERT_NE(result.visualization->umap_spec, nullptr);
+    EXPECT_EQ(result.visualization->umap_spec->vector_column, "embedding");
+    EXPECT_EQ(result.visualization->umap_spec->category_column, "cluster_id");
+    ASSERT_NE(result.visualization->umap_spec->projection, nullptr);
+    EXPECT_EQ(result.visualization->umap_spec->projection->metric, "cosine");
+    EXPECT_EQ(result.visualization->umap_spec->projection->neighbors, 15);
+    EXPECT_DOUBLE_EQ(*result.visualization->umap_spec->projection->min_dist, 0.1);
     EXPECT_EQ(result.sql.find("visualize"), std::string::npos);
+
+    flatbuffers::FlatBufferBuilder builder;
+    builder.Finish(result.Pack(builder));
+    auto* packed = flatbuffers::GetRoot<buffers::execution::ScriptCompilationResult>(builder.GetBufferPointer());
+    ASSERT_NE(packed->visualization(), nullptr);
+    ASSERT_NE(packed->visualization()->umap_spec(), nullptr);
+    auto* packed_umap = packed->visualization()->umap_spec();
+    EXPECT_EQ(packed_umap->vector_column()->string_view(), "embedding");
+    EXPECT_EQ(packed_umap->category_column()->string_view(), "cluster_id");
+    ASSERT_NE(packed_umap->projection(), nullptr);
+    EXPECT_EQ(packed_umap->projection()->metric()->string_view(), "cosine");
+    EXPECT_EQ(packed_umap->projection()->neighbors(), 15);
+    EXPECT_DOUBLE_EQ(*packed_umap->projection()->min_dist(), 0.1);
 }
 
 TEST(ScriptCompilerTest, CompilesMarkdownVisualization) {

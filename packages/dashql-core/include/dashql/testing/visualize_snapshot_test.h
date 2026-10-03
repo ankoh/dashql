@@ -6,6 +6,7 @@
 
 #include "gtest/gtest.h"
 #include "dashql/visualize/markdown.h"
+#include "dashql/visualize/umap.h"
 #include "ryml.hpp"
 
 namespace dashql::testing {
@@ -30,6 +31,7 @@ struct VisualizeSnapshotTest {
 
 /// Encode the generated Markdown object model as a native YAML subtree.
 void EncodeMarkdownSpec(c4::yml::NodeRef out, const visualize::MarkdownDocument& spec);
+void EncodeUmapSpec(c4::yml::NodeRef out, const visualize::UmapDocument& spec);
 
 extern void operator<<(std::ostream& out, const VisualizeSnapshotTest& p);
 

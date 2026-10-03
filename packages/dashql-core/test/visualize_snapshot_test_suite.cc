@@ -3,6 +3,7 @@
 #include "dashql/testing/visualize_snapshot_test.h"
 #include "dashql/testing/yaml_tests.h"
 #include "dashql/visualize/markdown.h"
+#include "dashql/visualize/umap.h"
 #include "dashql/visualize/vegalite.h"
 #include "gtest/gtest.h"
 #include "ryml.hpp"
@@ -48,16 +49,15 @@ TEST_P(VisualizeSnapshotTestSuite, Test) {
     }
 
     if (is_umap) {
-        std::string umap_json = visualize::GenerateUmapSpec(spec, analyzed);
-        ASSERT_FALSE(umap_json.empty());
+        auto umap = visualize::CompileUmapSpec(spec, analyzed);
+        ASSERT_NE(umap, nullptr);
         if (test->tree && test->node_id != c4::yml::NONE) {
             auto test_node = test->tree->ref(test->node_id);
             if (test_node.has_child("umap")) {
-                c4::csubstr expected_v = test_node["umap"].val();
-                std::string expected_json =
-                    expected_v.str ? std::string(expected_v.str, expected_v.len) : std::string();
-                while (!expected_json.empty() && expected_json.back() == '\n') expected_json.pop_back();
-                EXPECT_EQ(umap_json, expected_json);
+                c4::yml::Tree actual;
+                auto root = actual.rootref();
+                EncodeUmapSpec(root, *umap);
+                EXPECT_TRUE(MatchesContent(root, test_node["umap"]));
             }
         }
         return;

@@ -29,13 +29,10 @@ visualize-snapshots:
         SELECT * FROM embeddings VISUALIZE USING umap (
           vector => embedding
         );
-    umap: |-
-      {
-        "vectorColumn": "embedding",
-        "projection": {
-          "method": "umap"
-        }
-      }
+    umap:
+      vector-column: embedding
+      projection:
+        method: umap
 
   - name: vis_umap_category_label
     catalog:
@@ -68,15 +65,12 @@ visualize-snapshots:
           category => cluster_id,
           label => name
         );
-    umap: |-
-      {
-        "vectorColumn": "embedding",
-        "categoryColumn": "cluster_id",
-        "labelColumn": "name",
-        "projection": {
-          "method": "umap"
-        }
-      }
+    umap:
+      vector-column: embedding
+      category-column: cluster_id
+      label-column: name
+      projection:
+        method: umap
 
   - name: vis_umap_projection
     catalog:
@@ -111,17 +105,14 @@ visualize-snapshots:
           min_dist => 0.1,
           metric => cosine
         );
-    umap: |-
-      {
-        "vectorColumn": "embedding",
-        "categoryColumn": "cluster_id",
-        "projection": {
-          "method": "umap",
-          "metric": "cosine",
-          "neighbors": 15,
-          "minDist": 0.1
-        }
-      }
+    umap:
+      vector-column: embedding
+      category-column: cluster_id
+      projection:
+        method: umap
+        metric: cosine
+        neighbors: 15
+        min-dist: 0.1
 
   - name: vis_umap_select_source
     catalog:
@@ -153,11 +144,8 @@ visualize-snapshots:
           vector => embedding,
           category => cluster_id
         );
-    umap: |-
-      {
-        "vectorColumn": "embedding",
-        "categoryColumn": "cluster_id",
-        "projection": {
-          "method": "umap"
-        }
-      }
+    umap:
+      vector-column: embedding
+      category-column: cluster_id
+      projection:
+        method: umap

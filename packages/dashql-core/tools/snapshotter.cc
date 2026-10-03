@@ -25,6 +25,7 @@
 #include "dashql/testing/visualize_snapshot_test.h"
 #include "dashql/testing/yaml_tests.h"
 #include "dashql/visualize/markdown.h"
+#include "dashql/visualize/umap.h"
 #include "dashql/visualize/vegalite.h"
 #include "dashql/utils/string_trimming.h"
 #include "dashql/view/plan_view_model.h"
@@ -719,10 +720,11 @@ static void generate_visualize_snapshots(const std::filesystem::path& snapshot_d
             if (test_ref.has_child("markdown")) test_ref.remove_child("markdown");
 
             if (is_umap) {
-                std::string umap_json = visualize::GenerateUmapSpec(spec, analyzed);
+                auto umap = visualize::CompileUmapSpec(spec, analyzed);
+                if (!umap) continue;
                 auto umap_node = test_ref.append_child();
-                umap_node << c4::yml::key("umap") << umap_json;
-                umap_node.set_val_style(c4::yml::VAL_LITERAL);
+                umap_node << c4::yml::key("umap");
+                EncodeUmapSpec(umap_node, *umap);
             } else if (is_markdown) {
                 auto markdown = visualize::CompileMarkdownSpec(spec);
                 if (!markdown) continue;

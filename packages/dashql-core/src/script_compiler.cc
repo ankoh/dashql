@@ -4,6 +4,7 @@
 #include "dashql/script.h"
 #include "dashql/utils/ast_attributes.h"
 #include "dashql/visualize/markdown.h"
+#include "dashql/visualize/umap.h"
 #include "dashql/visualize/vegalite.h"
 
 namespace dashql {
@@ -77,7 +78,10 @@ flatbuffers::Offset<buffers::execution::CompiledVisualization> PackVisualization
     flatbuffers::FlatBufferBuilder& builder, const CompiledVisualization& visualization) {
     auto renderer = builder.CreateString(visualization.renderer);
     auto vegalite = builder.CreateString(visualization.vegalite_spec);
-    auto umap = builder.CreateString(visualization.umap_spec);
+    flatbuffers::Offset<buffers::visualization::UmapSpec> umap;
+    if (visualization.umap_spec) {
+        umap = visualize::PackUmapSpec(builder, *visualization.umap_spec);
+    }
     flatbuffers::Offset<buffers::visualization::MarkdownSpec> markdown;
     if (visualization.markdown_spec) {
         markdown = visualize::PackMarkdownSpec(builder, *visualization.markdown_spec);
@@ -233,7 +237,7 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
         if (*visualization->renderer == "vegalite") {
             compiled.vegalite_spec = visualize::GenerateVegaLiteSpec(*visualization, *script.analyzed_script);
         } else if (*visualization->renderer == "umap") {
-            compiled.umap_spec = visualize::GenerateUmapSpec(*visualization, *script.analyzed_script);
+            compiled.umap_spec = visualize::CompileUmapSpec(*visualization, *script.analyzed_script);
         } else if (*visualization->renderer == "markdown") {
             auto markdown = visualize::CompileMarkdownSpec(*visualization);
             if (markdown) compiled.markdown_spec = std::move(markdown);

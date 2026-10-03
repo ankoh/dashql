@@ -2,6 +2,7 @@ include "dashql/parsed_script.fbs";
 include "dashql/parsed_script_enums.fbs";
 include "dashql/algebra_expressions.fbs";
 include "dashql/markdown.fbs";
+include "dashql/umap.fbs";
 
 namespace dashql.buffers.analyzer;
 
@@ -306,11 +307,10 @@ table VisualizationSpec {
     /// The pretty-printed Vega-Lite JSON specification (without the `data` field).
     /// Only populated when `renderer` is `vegalite`.
     vegalite_spec: string;
-    /// The UMAP projection spec as JSON:
-    /// `{vectorColumn, categoryColumn?, labelColumn?, projection:{method, neighbors, minDist, metric}}`.
+    /// The compiled UMAP projection spec.
     /// Only populated when `renderer` is `umap`. The 2D projection itself runs
     /// client-side at render time; the analyzer records only column names + projection params.
-    umap_spec: string;
+    umap_spec: visualization.UmapSpec;
     /// The compiled Markdown row-template AST. Only populated when `renderer`
     /// is `markdown`.
     markdown_spec: visualization.MarkdownSpec;

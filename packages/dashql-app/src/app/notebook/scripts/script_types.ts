@@ -3,7 +3,7 @@ import type { TopLevelSpec } from 'vega-lite';
 
 import type * as core_buffers from '../../../core/buffers.js';
 import type { UmapRequest } from '../../../compute/umap/umap_projection.js';
-import { UmapSpec, umapRequestFromSpec } from '../compute/ui/visualization/umap/umap_spec.js';
+import { umapRequestFromSpec } from '../compute/ui/visualization/umap/umap_spec.js';
 import { randomScriptName } from './script_name.js';
 
 /// Script collection type definitions.
@@ -31,8 +31,8 @@ export type ResolvedVisualizeQuery =
           renderer: 'umap';
           // The SQL to execute against the backend
           sql: string;
-          // The UMAP projection spec parsed from the analyzer output
-          umapSpec: UmapSpec;
+          // The UMAP projection spec compiled by dashql-core.
+          umapSpec: core_buffers.visualization.UmapSpecT;
       }
     | {
           renderer: 'markdown';

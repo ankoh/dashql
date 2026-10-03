@@ -84,6 +84,33 @@ void EncodeMarkdownSpec(c4::yml::NodeRef out, const visualize::MarkdownDocument&
     EncodeMarkdownNode(document, *spec.document);
 }
 
+void EncodeUmapSpec(c4::yml::NodeRef out, const visualize::UmapDocument& spec) {
+    out |= c4::yml::MAP;
+    out.append_child() << c4::yml::key("vector-column") << spec.vector_column;
+    if (!spec.category_column.empty()) {
+        out.append_child() << c4::yml::key("category-column") << spec.category_column;
+    }
+    if (!spec.label_column.empty()) {
+        out.append_child() << c4::yml::key("label-column") << spec.label_column;
+    }
+
+    auto projection = out.append_child();
+    projection << c4::yml::key("projection");
+    projection |= c4::yml::MAP;
+    projection.append_child() << c4::yml::key("method") << "umap";
+    if (spec.projection) {
+        if (!spec.projection->metric.empty()) {
+            projection.append_child() << c4::yml::key("metric") << spec.projection->metric;
+        }
+        if (spec.projection->neighbors) {
+            projection.append_child() << c4::yml::key("neighbors") << *spec.projection->neighbors;
+        }
+        if (spec.projection->min_dist) {
+            projection.append_child() << c4::yml::key("min-dist") << *spec.projection->min_dist;
+        }
+    }
+}
+
 struct VisualizeSnapshotFile {
     std::string content;
     c4::yml::Tree tree;

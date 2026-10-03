@@ -48,6 +48,7 @@ LIB_SRCS = [
     "src/view/plan_view_model.cc",
     "src/view/plan_layout.cc",
     "src/visualize/markdown.cc",
+    "src/visualize/umap.cc",
     "src/visualize/vegalite_generator.cc",
     "src/visualize/vegalite_parser.cc",
 ]

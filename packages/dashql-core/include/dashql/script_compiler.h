@@ -15,6 +15,7 @@ namespace dashql {
 
 namespace visualize {
 using MarkdownDocument = buffers::visualization::MarkdownSpecT;
+using UmapDocument = buffers::visualization::UmapSpecT;
 }
 
 struct ScriptCompilationError {
@@ -28,7 +29,7 @@ struct ScriptCompilationError {
 struct CompiledVisualization {
     std::string renderer;
     std::string vegalite_spec;
-    std::string umap_spec;
+    std::shared_ptr<visualize::UmapDocument> umap_spec;
     std::shared_ptr<visualize::MarkdownDocument> markdown_spec;
 };
 

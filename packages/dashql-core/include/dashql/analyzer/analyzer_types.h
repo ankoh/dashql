@@ -844,8 +844,9 @@ struct VisualizationSpec {
     std::string vegalite_json;
     /// The umap spec, present when `renderer` is `umap`.
     std::optional<UmapSpec> umap;
-    /// The umap projection spec as JSON. Generated lazily during AnalyzedScript::Pack.
-    std::string umap_json;
+    /// The compiled UMAP FlatBuffer object model. Generated lazily and shared by
+    /// analyzer and execution-result packing.
+    mutable std::shared_ptr<buffers::visualization::UmapSpecT> umap_model;
     /// The markdown spec, present when `renderer` is `markdown`.
     std::optional<MarkdownSpec> markdown;
     /// The compiled Markdown FlatBuffer object model. Generated lazily and

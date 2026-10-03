@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import * as styles from '../visualization.module.css';
+import type * as buffers from '../../../../../../core/buffers.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../../../../connections/query_execution_state.js';
 import { EmbeddingScatter, EmbeddingPoints } from './embedding_scatter.js';
-import { UmapSpec } from './umap_spec.js';
 import { extractCategories } from './umap_categories.js';
 import { UmapInfoPanel, UmapAttribute } from './umap_info_panel.js';
 import { useComputationRegistry } from '../../../../../../compute/computation_registry.js';
@@ -14,7 +14,7 @@ import { resolveVisibleRowIndices } from '../../query_result/visible_rows.js';
 
 interface Props {
     query: QueryExecutionState | null;
-    spec: UmapSpec | null;
+    spec: buffers.visualization.UmapSpecT | null;
     /// Render the scatter with a transparent background so it blends into its container.
     transparent?: boolean;
     /// Enable pan/drag on the scatter. Defaults to true.
@@ -101,9 +101,10 @@ export function UmapView(props: Props): React.ReactElement {
         const y = extractFloat32Column(dataTable, umapGroup.value.umapProjection.yFieldName);
         if (!x || !y) return null;
 
-        const categories = spec?.categoryColumn ? extractCategories(dataTable, spec.categoryColumn) : null;
+        const categoryColumn = typeof spec?.categoryColumn === 'string' ? spec.categoryColumn : null;
+        const categories = categoryColumn ? extractCategories(dataTable, categoryColumn) : null;
         const category = categories?.category ?? null;
-        const categoryCount = spec?.categoryColumn ? (categories?.categoryCount ?? 0) : null;
+        const categoryCount = categoryColumn ? (categories?.categoryCount ?? 0) : null;
 
         // Build a selection bitmask from the filtered row set (1-based row numbers → 0-based
         // positional indices, already resolved by `resolveVisibleRowIndices`). A null result

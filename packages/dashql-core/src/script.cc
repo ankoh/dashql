@@ -25,6 +25,7 @@
 #include "dashql/script_compiler.h"
 #include "dashql/utils/ast_attributes.h"
 #include "dashql/visualize/markdown.h"
+#include "dashql/visualize/umap.h"
 #include "dashql/visualize/vegalite.h"
 
 namespace dashql {
@@ -1217,15 +1218,10 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                 }
             }
 
-            flatbuffers::Offset<flatbuffers::String> umap_ofs;
+            flatbuffers::Offset<buffers::visualization::UmapSpec> umap_ofs;
             if (is_umap) {
-                // Generate the umap projection JSON once, lazily.
-                if (spec.umap_json.empty()) {
-                    spec.umap_json = visualize::GenerateUmapSpec(spec, *this);
-                }
-                if (!spec.umap_json.empty()) {
-                    umap_ofs = builder.CreateString(spec.umap_json);
-                }
+                auto umap = visualize::CompileUmapSpec(spec, *this);
+                if (umap) umap_ofs = visualize::PackUmapSpec(builder, *umap);
             }
 
             flatbuffers::Offset<buffers::visualization::MarkdownSpec> markdown_ofs;

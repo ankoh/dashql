@@ -16,3 +16,4 @@ include "dashql/script_execution.fbs";
 include "dashql/script_diff.fbs";
 include "dashql/script_statistics.fbs";
 include "dashql/status.fbs";
+include "dashql/umap.fbs";

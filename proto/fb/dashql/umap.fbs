@@ -1,0 +1,19 @@
+namespace dashql.buffers.visualization;
+
+enum UmapProjectionMethod: uint8 {
+    UMAP = 0,
+}
+
+table UmapProjectionSpec {
+    method: UmapProjectionMethod = UMAP;
+    metric: string;
+    neighbors: double = null;
+    min_dist: double = null;
+}
+
+table UmapSpec {
+    vector_column: string;
+    category_column: string;
+    label_column: string;
+    projection: UmapProjectionSpec;
+}
