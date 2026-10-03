@@ -51,7 +51,7 @@
     "hyperdb-wasm": "0.0.26776-dev.wasm.ge19fa803",
     "immutable": "^5.1.9",
     "json-schema-to-typescript": "^15.0.4",
-    "jszip": "^3.10.1",
+    "jszip": "^3.10.2",
     "mocha": "^12.0.0",
     "oauth-pkce": "^0.0.7",
     "playwright-core": "1.63.0",
