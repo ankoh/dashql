@@ -1,0 +1,51 @@
+visualize-snapshots:
+  - name: vis_umap_minimal
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+    script:
+      input: |
+        SELECT * FROM embeddings VISUALIZE USING umap (
+          vector => embedding
+        );
+
+  - name: vis_umap_category_label
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+    script:
+      input: |
+        SELECT * FROM embeddings VISUALIZE USING umap (
+          vector => embedding,
+          category => cluster_id,
+          label => name
+        );
+
+  - name: vis_umap_projection
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+    script:
+      input: |
+        SELECT * FROM embeddings VISUALIZE USING umap (
+          vector => embedding,
+          category => cluster_id,
+          neighbors => 15,
+          min_dist => 0.1,
+          metric => cosine
+        );
+
+  - name: vis_umap_select_source
+    catalog:
+      script:
+        input: |-
+          create table embeddings (id int, embedding float[], cluster_id int, name text);
+    script:
+      input: |
+        SELECT embedding, cluster_id FROM embeddings VISUALIZE USING umap (
+          vector => embedding,
+          category => cluster_id
+        );

@@ -1,6 +1,8 @@
 #include "dashql/catalog.h"
 #include "dashql/script.h"
 #include "dashql/testing/visualize_snapshot_test.h"
+#include "dashql/testing/yaml_tests.h"
+#include "dashql/visualize/markdown.h"
 #include "dashql/visualize/vegalite.h"
 #include "gtest/gtest.h"
 #include "ryml.hpp"
@@ -36,6 +38,7 @@ TEST_P(VisualizeSnapshotTestSuite, Test) {
 
     auto& spec = analyzed.visualization_specs[0];
     bool is_umap = spec.renderer.has_value() && *spec.renderer == "umap";
+    bool is_markdown = spec.renderer.has_value() && *spec.renderer == "markdown";
 
     if (test->name == "vis_layer_resolve") {
         EXPECT_EQ(spec.encoding_channels.size(), 1u);
@@ -55,6 +58,21 @@ TEST_P(VisualizeSnapshotTestSuite, Test) {
                     expected_v.str ? std::string(expected_v.str, expected_v.len) : std::string();
                 while (!expected_json.empty() && expected_json.back() == '\n') expected_json.pop_back();
                 EXPECT_EQ(umap_json, expected_json);
+            }
+        }
+        return;
+    }
+
+    if (is_markdown) {
+        auto markdown = visualize::CompileMarkdownSpec(spec);
+        ASSERT_NE(markdown, nullptr);
+        if (test->tree && test->node_id != c4::yml::NONE) {
+            auto test_node = test->tree->ref(test->node_id);
+            if (test_node.has_child("markdown")) {
+                c4::yml::Tree actual;
+                auto root = actual.rootref();
+                EncodeMarkdownSpec(root, *markdown);
+                EXPECT_TRUE(MatchesContent(root, test_node["markdown"]));
             }
         }
         return;
@@ -101,5 +119,8 @@ VISUALIZE USING vegalite (mark => bar)
 
 // clang-format off
 INSTANTIATE_TEST_SUITE_P(Basic, VisualizeSnapshotTestSuite, ::testing::ValuesIn(VisualizeSnapshotTest::GetTests("basic.yaml")), VisualizeSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(VegaLite, VisualizeSnapshotTestSuite, ::testing::ValuesIn(VisualizeSnapshotTest::GetTests("vegalite.yaml")), VisualizeSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Umap, VisualizeSnapshotTestSuite, ::testing::ValuesIn(VisualizeSnapshotTest::GetTests("umap.yaml")), VisualizeSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Markdown, VisualizeSnapshotTestSuite, ::testing::ValuesIn(VisualizeSnapshotTest::GetTests("markdown.yaml")), VisualizeSnapshotTest::TestPrinter());
 
 }  // namespace

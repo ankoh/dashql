@@ -167,6 +167,7 @@ std::string_view GetVisAttributeKeyText(AttributeKey key) {
         case AttributeKey::VIS_UMAP_SPEC_METRIC: return "metric";
         case AttributeKey::VIS_UMAP_SPEC_NEIGHBORS: return "neighbors";
         case AttributeKey::VIS_UMAP_SPEC_MIN_DIST: return "min_dist";
+        case AttributeKey::VIS_MARKDOWN_SPEC_TEMPLATE: return "template";
         default: return "";
     }
 }
@@ -276,8 +277,9 @@ FmtReg Formatter::FormatVisPropertyList(const buffers::parser::Node& node) {
 
     bool eager_break = config.mode == buffers::formatting::FormattingMode::PRETTY;
     bool inline_mode = config.mode == buffers::formatting::FormattingMode::INLINE;
-    bool is_top_level_spec =
-        node.node_type() == NodeType::OBJECT_VIS_SPEC || node.node_type() == NodeType::OBJECT_VIS_UMAP_SPEC;
+    bool is_top_level_spec = node.node_type() == NodeType::OBJECT_VIS_SPEC ||
+                             node.node_type() == NodeType::OBJECT_VIS_UMAP_SPEC ||
+                             node.node_type() == NodeType::OBJECT_VIS_MARKDOWN_SPEC;
     auto inline_separator = fmt.Text(", ");
     auto break_separator = fmt.Concat({fmt.Text(","), fmt.Break()});
     if (eager_break) {

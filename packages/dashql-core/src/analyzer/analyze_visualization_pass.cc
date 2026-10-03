@@ -1,6 +1,7 @@
 #include "dashql/analyzer/analyze_visualization_pass.h"
 
 #include <cstdlib>
+#include <string>
 #include "dashql/analyzer/analysis_state.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
@@ -83,6 +84,24 @@ std::optional<std::string_view> ReadTextValue(AnalysisState& state, const buffer
         default:
             return std::nullopt;
     }
+}
+
+std::optional<std::string> ReadSqlStringValue(AnalysisState& state, const buffers::parser::Node* node) {
+    if (!node || node->node_type() != NodeType::LITERAL_STRING) return std::nullopt;
+    auto source = state.scanned.ReadTextAtSymbolSpan(node->symbol_span());
+    if (source.size() < 2 || source.front() != '\'' || source.back() != '\'') return std::nullopt;
+
+    std::string decoded;
+    decoded.reserve(source.size() - 2);
+    for (size_t i = 1; i + 1 < source.size(); ++i) {
+        if (source[i] == '\'' && i + 2 < source.size() && source[i + 1] == '\'') {
+            decoded.push_back('\'');
+            ++i;
+        } else {
+            decoded.push_back(source[i]);
+        }
+    }
+    return decoded;
 }
 
 /// Read a textual value with surrounding single quotes stripped, so a string
@@ -285,6 +304,16 @@ UmapSpec ExtractUmapSpec(AnalysisState& state, const buffers::parser::Node& node
             default:
                 break;
         }
+    }
+    return spec;
+}
+
+MarkdownSpec ExtractMarkdownSpec(AnalysisState& state, const buffers::parser::Node& node) {
+    MarkdownSpec spec;
+    spec.ast_node_id = NodeId(state, &node);
+    auto [template_node] = state.GetAttributes<AttributeKey::VIS_MARKDOWN_SPEC_TEMPLATE>(node);
+    if (auto row_template = ReadSqlStringValue(state, template_node)) {
+        spec.row_template = std::move(*row_template);
     }
     return spec;
 }
@@ -748,6 +777,8 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                 // of the vega-lite encoding channels. Extract its column refs + projection here.
                 if (spec_node && spec_node->node_type() == NodeType::OBJECT_VIS_UMAP_SPEC) {
                     spec.umap = ExtractUmapSpec(state, *spec_node);
+                } else if (spec_node && spec_node->node_type() == NodeType::OBJECT_VIS_MARKDOWN_SPEC) {
+                    spec.markdown = ExtractMarkdownSpec(state, *spec_node);
                 }
 
                 if (select_node) {

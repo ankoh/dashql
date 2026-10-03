@@ -81,6 +81,12 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  - name: vis_markdown
+    input: |-
+      select product, revenue from product_summary visualize using markdown (template => '## {{product}}: {{revenue}}')
+    dialects:
+      hyper:
+
   - name: vis_full_example
     input: |-
       select * from sales visualize using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800)

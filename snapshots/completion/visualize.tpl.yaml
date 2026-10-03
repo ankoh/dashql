@@ -27,6 +27,19 @@ completion-snapshots:
     completions:
       limit: 3
 
+  - name: vis_markdown_template_key
+    catalog:
+      script:
+        input: create table product_summary(product text, revenue decimal);
+    editor:
+      input: select * from product_summary visualize using markdown (temp
+    cursor:
+      search:
+        text: temp
+        index: 4
+    completions:
+      limit: 3
+
   # ---------------------------------------------------------------------------
   # Level 1: Top-level spec keys
 

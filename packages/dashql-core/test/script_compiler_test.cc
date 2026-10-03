@@ -2,6 +2,7 @@
 
 #include "dashql/catalog.h"
 #include "dashql/script.h"
+#include "dashql/visualize/markdown.h"
 #include "gtest/gtest.h"
 
 namespace dashql {
@@ -64,13 +65,16 @@ TEST(ScriptCompilerTest, ExcludesTerminalVisualizationFromCacheSignature) {
     auto select = Compile("SELECT value FROM metrics");
     auto bars = Compile("SELECT value FROM metrics VISUALIZE USING vegalite (mark => bar)");
     auto lines = Compile("SELECT value FROM metrics VISUALIZE USING vegalite (mark => line)");
+    auto markdown = Compile("SELECT value FROM metrics VISUALIZE USING markdown (template => '{{value}}')");
 
     ASSERT_TRUE(select.errors.empty());
     ASSERT_TRUE(bars.errors.empty());
     ASSERT_TRUE(lines.errors.empty());
+    ASSERT_TRUE(markdown.errors.empty());
     EXPECT_TRUE(bars.cacheable);
     EXPECT_EQ(select.cache_signature, bars.cache_signature);
     EXPECT_EQ(bars.cache_signature, lines.cache_signature);
+    EXPECT_EQ(lines.cache_signature, markdown.cache_signature);
 }
 
 TEST(ScriptCompilerTest, CachesExplainButNotCreateStatements) {
@@ -176,6 +180,40 @@ VISUALIZE USING umap (
     EXPECT_EQ(result.visualization->renderer, "umap");
     EXPECT_FALSE(result.visualization->umap_spec.empty());
     EXPECT_EQ(result.sql.find("visualize"), std::string::npos);
+}
+
+TEST(ScriptCompilerTest, CompilesMarkdownVisualization) {
+    auto result = Compile(R"SQL(
+SELECT product, revenue
+FROM product_summary
+VISUALIZE USING markdown (
+    template => '## {{product}}: {{revenue}}'
+)
+)SQL");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    EXPECT_EQ(result.kind, buffers::execution::ScriptCompilationStatementKind::VISUALIZE);
+    ASSERT_TRUE(result.visualization.has_value());
+    EXPECT_EQ(result.visualization->renderer, "markdown");
+    EXPECT_NE(result.sql.find("select product, revenue"), std::string::npos);
+    EXPECT_EQ(result.sql.find("visualize"), std::string::npos);
+    ASSERT_NE(result.visualization->markdown_spec, nullptr);
+    EXPECT_EQ(result.visualization->markdown_spec->fields,
+              (std::vector<std::string>{"product", "revenue"}));
+
+    flatbuffers::FlatBufferBuilder builder;
+    builder.Finish(result.Pack(builder));
+    auto* packed = flatbuffers::GetRoot<buffers::execution::ScriptCompilationResult>(builder.GetBufferPointer());
+    ASSERT_NE(packed->visualization(), nullptr);
+    EXPECT_TRUE(packed->visualization()->vegalite_spec()->string_view().empty());
+    ASSERT_NE(packed->visualization()->markdown_spec(), nullptr);
+    auto* packed_markdown = packed->visualization()->markdown_spec();
+    EXPECT_EQ(packed_markdown->fields()->size(), 2u);
+    ASSERT_NE(packed_markdown->document(), nullptr);
+    EXPECT_EQ(packed_markdown->document()->node_type(), buffers::visualization::MarkdownNodeType::DOCUMENT);
+    ASSERT_EQ(packed_markdown->document()->children()->size(), 1u);
+    EXPECT_EQ(packed_markdown->document()->children()->Get(0)->node_type(),
+              buffers::visualization::MarkdownNodeType::HEADING);
 }
 
 TEST(ScriptCompilerTest, RejectsVisualizationWhenExtensionsDisabled) {

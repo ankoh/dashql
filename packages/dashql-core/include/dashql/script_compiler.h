@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -11,6 +12,10 @@
 #include "dashql/script.h"
 
 namespace dashql {
+
+namespace visualize {
+using MarkdownDocument = buffers::visualization::MarkdownSpecT;
+}
 
 struct ScriptCompilationError {
     buffers::execution::ScriptCompilationErrorCode code;
@@ -24,6 +29,7 @@ struct CompiledVisualization {
     std::string renderer;
     std::string vegalite_spec;
     std::string umap_spec;
+    std::shared_ptr<visualize::MarkdownDocument> markdown_spec;
 };
 
 struct CompiledScriptStatement {

@@ -47,6 +47,7 @@ LIB_SRCS = [
     "src/view/hyper_plan_parser.cc",
     "src/view/plan_view_model.cc",
     "src/view/plan_layout.cc",
+    "src/visualize/markdown.cc",
     "src/visualize/vegalite_generator.cc",
     "src/visualize/vegalite_parser.cc",
 ]
@@ -83,6 +84,7 @@ CORE_DEPS = [
     ":dashql_core_headers",
     "@ankerl_unordered_dense//:ankerl",
     "@com_google_flatbuffers//:flatbuffers",
+    "@md4c//:md4c",
     "@rapidjson//:rapidjson",
 ]
 

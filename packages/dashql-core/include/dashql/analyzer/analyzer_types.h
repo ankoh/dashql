@@ -781,6 +781,16 @@ struct UmapSpec {
     UmapProjection projection;
 };
 
+/// A Markdown renderer spec. The template is decoded from its SQL string
+/// literal during analysis and compiled into a typed AST when the renderer
+/// artifact is generated.
+struct MarkdownSpec {
+    /// The AST node id of the OBJECT_VIS_MARKDOWN_SPEC.
+    uint32_t ast_node_id = 0;
+    /// Decoded row template.
+    std::string row_template;
+};
+
 /// The kind of source resolved for a VISUALIZE statement
 enum class VisSourceKind : uint8_t {
     Unresolved = 0,
@@ -836,6 +846,11 @@ struct VisualizationSpec {
     std::optional<UmapSpec> umap;
     /// The umap projection spec as JSON. Generated lazily during AnalyzedScript::Pack.
     std::string umap_json;
+    /// The markdown spec, present when `renderer` is `markdown`.
+    std::optional<MarkdownSpec> markdown;
+    /// The compiled Markdown FlatBuffer object model. Generated lazily and
+    /// shared by analyzer and execution-result packing.
+    mutable std::shared_ptr<buffers::visualization::MarkdownSpecT> markdown_ast;
 };
 
 }  // namespace dashql

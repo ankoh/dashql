@@ -1,6 +1,7 @@
 include "dashql/parsed_script.fbs";
 include "dashql/parsed_script_enums.fbs";
 include "dashql/algebra_expressions.fbs";
+include "dashql/markdown.fbs";
 
 namespace dashql.buffers.analyzer;
 
@@ -310,6 +311,9 @@ table VisualizationSpec {
     /// Only populated when `renderer` is `umap`. The 2D projection itself runs
     /// client-side at render time; the analyzer records only column names + projection params.
     umap_spec: string;
+    /// The compiled Markdown row-template AST. Only populated when `renderer`
+    /// is `markdown`.
+    markdown_spec: visualization.MarkdownSpec;
 }
 
 /// The confidence of a schema-inference result

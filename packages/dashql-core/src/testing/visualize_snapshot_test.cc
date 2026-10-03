@@ -4,12 +4,85 @@
 #include <sstream>
 #include <unordered_map>
 
+#include "c4/format.hpp"
 #include "c4/yml/std/std.hpp"
 #include "dashql/testing/runfiles_dir.h"
 #include "dashql/utils/string_trimming.h"
 #include "ryml.hpp"
 
 namespace dashql::testing {
+
+namespace {
+
+std::string_view MarkdownNodeName(buffers::visualization::MarkdownNodeType type) {
+    using NodeType = buffers::visualization::MarkdownNodeType;
+    switch (type) {
+        case NodeType::DOCUMENT: return "document";
+        case NodeType::PARAGRAPH: return "paragraph";
+        case NodeType::BLOCKQUOTE: return "blockquote";
+        case NodeType::LIST_ITEM: return "listItem";
+        case NodeType::EMPHASIS: return "emphasis";
+        case NodeType::STRONG: return "strong";
+        case NodeType::SPAN: return "span";
+        case NodeType::HEADING: return "heading";
+        case NodeType::LIST: return "list";
+        case NodeType::TEXT: return "text";
+        case NodeType::FIELD: return "field";
+        case NodeType::INLINE_CODE: return "inlineCode";
+        case NodeType::CODE_BLOCK: return "codeBlock";
+        case NodeType::LINK: return "link";
+        case NodeType::IMAGE: return "image";
+        case NodeType::HARD_BREAK: return "hardBreak";
+        case NodeType::THEMATIC_BREAK: return "thematicBreak";
+        case NodeType::NONE: return "none";
+    }
+}
+
+void EncodeMarkdownNode(c4::yml::NodeRef out, const visualize::MarkdownNode& node) {
+    using NodeType = buffers::visualization::MarkdownNodeType;
+    out |= c4::yml::MAP;
+    out.append_child() << c4::yml::key("type") << std::string(MarkdownNodeName(node.node_type));
+    if (node.node_type == NodeType::TEXT) {
+        out.append_child() << c4::yml::key("value") << node.value;
+    } else if (node.node_type == NodeType::FIELD) {
+        out.append_child() << c4::yml::key("field") << node.value;
+    } else if (node.node_type == NodeType::HEADING) {
+        out.append_child() << c4::yml::key("level") << node.level;
+    } else if (node.node_type == NodeType::LIST) {
+        out.append_child() << c4::yml::key("ordered") << c4::fmt::boolalpha(node.ordered);
+        out.append_child() << c4::yml::key("tight") << c4::fmt::boolalpha(node.tight);
+        if (node.ordered) out.append_child() << c4::yml::key("start") << node.start;
+    } else if (node.node_type == NodeType::LINK || node.node_type == NodeType::IMAGE) {
+        out.append_child() << c4::yml::key("url") << node.url;
+        if (!node.title.empty()) out.append_child() << c4::yml::key("title") << node.title;
+    } else if (node.node_type == NodeType::CODE_BLOCK && !node.language.empty()) {
+        out.append_child() << c4::yml::key("language") << node.language;
+    }
+    if (!node.children.empty()) {
+        auto children = out.append_child();
+        children << c4::yml::key("children");
+        children |= c4::yml::SEQ;
+        for (const auto& child : node.children) EncodeMarkdownNode(children.append_child(), *child);
+    }
+}
+
+}  // namespace
+
+void EncodeMarkdownSpec(c4::yml::NodeRef out, const visualize::MarkdownDocument& spec) {
+    out |= c4::yml::MAP;
+    auto row_template = out.append_child();
+    row_template << c4::yml::key("template") << spec.template_;
+    if (spec.template_.find('\n') != std::string::npos) row_template.set_val_style(c4::yml::VAL_LITERAL);
+
+    auto fields = out.append_child();
+    fields << c4::yml::key("fields");
+    fields |= c4::yml::SEQ;
+    for (const auto& field : spec.fields) fields.append_child() << field;
+
+    auto document = out.append_child();
+    document << c4::yml::key("document");
+    EncodeMarkdownNode(document, *spec.document);
+}
 
 struct VisualizeSnapshotFile {
     std::string content;

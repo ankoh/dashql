@@ -74,6 +74,47 @@ completion-snapshots:
           objects: []
       text: "using"
 
+  - name: vis_markdown_template_key
+    catalog:
+      script:
+        input: create table product_summary(product text, revenue decimal);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: product_summary
+            text: "create tab..e decimal)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: product
+                text: "product text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue decimal"
+        errors: []
+    editor:
+      input: select * from product_summary visualize using markdown (temp
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          text: "product_summary"
+    cursor:
+      search:
+        text: temp
+        index: 4
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 55
+          value: template
+          keyword-continuation: =>
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "temp"
+          location-qualified: "temp"
+          objects: []
+      text: "temp"
+
   - name: vis_spec_key_m
     catalog: {}
     editor:

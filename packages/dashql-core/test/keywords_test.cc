@@ -22,6 +22,8 @@ TEST(KeywordsTest, ScannerTokenIdsMatchGeneratedParser) {
     EXPECT_EQ(Keyword::Find("select")->scanner_token, Parser::token::FQL_SELECT);
     ASSERT_NE(Keyword::Find("graph_table"), nullptr);
     EXPECT_EQ(Keyword::Find("graph_table")->scanner_token, Parser::token::FQL_GRAPH_TABLE);
+    ASSERT_NE(Keyword::Find("markdown"), nullptr);
+    EXPECT_EQ(Keyword::Find("markdown")->scanner_token, Parser::token::FQL_MARKDOWN);
 }
 
 }  // namespace

@@ -34,6 +34,8 @@ _BENCHMARK_VERSION = "1.9.5"
 _DUCKDB_VERSION = "1.5.6"
 # renovate: datasource=github-releases depName=apache/arrow
 _ARROW_VERSION = "19.0.0"
+# renovate: datasource=github-releases depName=mity/md4c
+_MD4C_VERSION = "0.5.2"
 
 def _dashql_core_deps_impl(mctx):
     bison_prebuilt_repository(name = "bison_src")
@@ -117,6 +119,13 @@ def _dashql_core_deps_impl(mctx):
         strip_prefix = "arrow-apache-arrow-" + _ARROW_VERSION,
         urls = ["https://github.com/apache/arrow/archive/refs/tags/apache-arrow-" + _ARROW_VERSION + ".tar.gz"],
         build_file = "//bazel:external_arrow.BUILD",
+    )
+    http_archive(
+        name = "md4c",
+        sha256 = "55d0111d48fb11883aaee91465e642b8b640775a4d6993c2d0e7a8092758ef21",
+        strip_prefix = "md4c-release-" + _MD4C_VERSION,
+        urls = ["https://github.com/mity/md4c/archive/refs/tags/release-" + _MD4C_VERSION + ".tar.gz"],
+        build_file = "//bazel:external_md4c.BUILD",
     )
 
 dashql_core_dependencies = module_extension(

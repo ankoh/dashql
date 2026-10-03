@@ -1,6 +1,7 @@
 import type * as app_notebook from '@ankoh/dashql-jsonschema/app_notebook.js';
 import type { TopLevelSpec } from 'vega-lite';
 
+import type * as core_buffers from '../../../core/buffers.js';
 import type { UmapRequest } from '../../../compute/umap/umap_projection.js';
 import { UmapSpec, umapRequestFromSpec } from '../compute/ui/visualization/umap/umap_spec.js';
 import { randomScriptName } from './script_name.js';
@@ -32,6 +33,13 @@ export type ResolvedVisualizeQuery =
           sql: string;
           // The UMAP projection spec parsed from the analyzer output
           umapSpec: UmapSpec;
+      }
+    | {
+          renderer: 'markdown';
+          // The SQL to execute against the backend
+          sql: string;
+          // The row template compiled by dashql-core.
+          markdownSpec: core_buffers.visualization.MarkdownSpecT;
       };
 
 /// Derive the compute-layer UMAP projection request from a resolved visualize query.

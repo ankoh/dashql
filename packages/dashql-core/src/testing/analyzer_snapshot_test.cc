@@ -389,7 +389,7 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                                script.parsed_script->scanned_script->GetInput());
         });
     }
-    // Write visualization specs
+    // Write visualization specs, including renderer-specific payloads.
     if (!script.visualization_specs.IsEmpty()) {
         auto list_node = out.append_child();
         list_node << c4::yml::key("visualizations");

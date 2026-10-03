@@ -1,0 +1,180 @@
+visualize-snapshots:
+
+  - name: vis_markdown_rows
+    catalog:
+      script:
+        input: |-
+          create table product_summary (product text, revenue decimal, growth float);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: product_summary
+            text: "create tab..wth float)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: growth
+                text: "growth float"
+              - catalog-id: "256.65536.4294967296.1"
+                name: product
+                text: "product text"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue decimal"
+        errors: []
+    script:
+      input: |
+        SELECT product, revenue, growth FROM product_summary VISUALIZE USING markdown (
+          template => '## {{product}}
+
+          **Revenue:** {{revenue}}
+
+          **Growth:** {{growth}}'
+        );
+    markdown:
+      template: |-
+        ## {{product}}
+
+          **Revenue:** {{revenue}}
+
+          **Growth:** {{growth}}
+      fields:
+        - product
+        - revenue
+        - growth
+      document:
+        type: document
+        children:
+          - type: heading
+            level: 2
+            children:
+              - type: field
+                field: product
+          - type: paragraph
+            children:
+              - type: strong
+                children:
+                  - type: text
+                    value: 'Revenue:'
+              - type: text
+                value: " "
+              - type: field
+                field: revenue
+          - type: paragraph
+            children:
+              - type: strong
+                children:
+                  - type: text
+                    value: 'Growth:'
+              - type: text
+                value: " "
+              - type: field
+                field: growth
+
+  - name: vis_markdown_escaping
+    script:
+      input: |
+        SELECT 'Ada' AS author VISUALIZE USING markdown (
+          template => 'It''s by {{ author }}. Repeated: {{author}}. Literal: {value}.'
+        );
+    markdown:
+      template: 'It''s by {{ author }}. Repeated: {{author}}. Literal: {value}.'
+      fields:
+        - author
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: text
+                value: "It's by "
+              - type: field
+                field: author
+              - type: text
+                value: ". Repeated: "
+              - type: field
+                field: author
+              - type: text
+                value: '. Literal: {value}.'
+
+  - name: vis_markdown_safe_ast
+    script:
+      input: |
+        SELECT 'Ada' AS author VISUALIZE USING markdown (
+          template => '# Report
+
+          > **Author:** {{author}}
+
+          1. [Safe](https://example.com "Details")
+          2. [Unsafe](javascript:alert(1))
+          3. [Dynamic]({{author}})
+
+          `{{author}}`
+
+          <script>bad()</script>'
+        );
+    markdown:
+      template: |-
+        # Report
+
+          > **Author:** {{author}}
+
+          1. [Safe](https://example.com "Details")
+          2. [Unsafe](javascript:alert(1))
+          3. [Dynamic]({{author}})
+
+          `{{author}}`
+
+          <script>bad()</script>
+      fields:
+        - author
+      document:
+        type: document
+        children:
+          - type: heading
+            level: 1
+            children:
+              - type: text
+                value: Report
+          - type: blockquote
+            children:
+              - type: paragraph
+                children:
+                  - type: strong
+                    children:
+                      - type: text
+                        value: 'Author:'
+                  - type: text
+                    value: " "
+                  - type: field
+                    field: author
+          - type: list
+            ordered: true
+            tight: true
+            start: 1
+            children:
+              - type: listItem
+                children:
+                  - type: link
+                    url: 'https://example.com'
+                    title: Details
+                    children:
+                      - type: text
+                        value: Safe
+              - type: listItem
+                children:
+                  - type: span
+                    children:
+                      - type: text
+                        value: Unsafe
+              - type: listItem
+                children:
+                  - type: span
+                    children:
+                      - type: text
+                        value: Dynamic
+          - type: paragraph
+            children:
+              - type: inlineCode
+                children:
+                  - type: field
+                    field: author

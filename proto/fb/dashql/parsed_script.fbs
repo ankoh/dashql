@@ -165,6 +165,7 @@ enum NodeType: uint16 {
     OBJECT_SQL_GRAPH_LABEL_EXPRESSION,
     OBJECT_SQL_GRAPH_ROWS,
     OBJECT_EXT_EXPLAIN_EXPRESSIONS,
+    OBJECT_VIS_MARKDOWN_SPEC,
 }
 
 enum AttributeKey: uint16 {
@@ -636,6 +637,7 @@ enum AttributeKey: uint16 {
     SQL_RESULT_TARGET_EXCLUDE,
     SQL_VIEW_OR_REPLACE,
     EXT_EXPLAIN_EXPRESSIONS,
+    VIS_MARKDOWN_SPEC_TEMPLATE,
 }
 
 enum StatementType: uint8 {

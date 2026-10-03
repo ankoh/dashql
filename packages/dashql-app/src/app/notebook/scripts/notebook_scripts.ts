@@ -1111,17 +1111,27 @@ function compileVisualizeQuery(scriptSession: core.DashQLScriptSession, logger?:
         const visualization = reader.visualization();
         if (!sql || !visualization) return null;
         logger?.debug('Compiled visualization for execution', { sql }, LOG_CTX);
-        if (visualization.renderer() === 'umap') {
-            const raw = visualization.umapSpec();
-            const umapSpec = raw ? parseUmapSpec(raw) : null;
-            return umapSpec ? { renderer: 'umap', sql, umapSpec } : null;
-        }
-        const raw = visualization.vegaliteSpec();
-        if (!raw) return null;
-        try {
-            return { renderer: 'vegalite', sql, vegaLiteSpec: JSON.parse(raw) };
-        } catch {
-            return null;
+        switch (visualization.renderer()) {
+            case 'umap': {
+                const raw = visualization.umapSpec();
+                const umapSpec = raw ? parseUmapSpec(raw) : null;
+                return umapSpec ? { renderer: 'umap', sql, umapSpec } : null;
+            }
+            case 'markdown': {
+                const markdownSpec = visualization.markdownSpec()?.unpack();
+                return markdownSpec?.document ? { renderer: 'markdown', sql, markdownSpec } : null;
+            }
+            case 'vegalite': {
+                const raw = visualization.vegaliteSpec();
+                if (!raw) return null;
+                try {
+                    return { renderer: 'vegalite', sql, vegaLiteSpec: JSON.parse(raw) };
+                } catch {
+                    return null;
+                }
+            }
+            default:
+                return null;
         }
     } finally {
         compiled.destroy();

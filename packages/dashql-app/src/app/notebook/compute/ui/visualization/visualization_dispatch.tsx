@@ -4,6 +4,7 @@ import { QueryExecutionState } from '../../../connections/query_execution_state.
 import { ResolvedVisualizeQuery } from '../../../scripts/script_types.js';
 import { VegaLiteView } from './vegalite_view.js';
 import { UmapView } from './umap/umap_view.js';
+import { MarkdownView } from './markdown_view.js';
 
 interface Props {
     query: QueryExecutionState | null;
@@ -46,7 +47,8 @@ export function VisualizationDispatch(props: Props): React.ReactElement | null {
                 />
             );
         case 'vegalite':
-        default:
             return <VegaLiteView query={props.query} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} scale={props.scale} hideLegend={props.hideLegend} />;
+        case 'markdown':
+            return <MarkdownView query={props.query} spec={vq.markdownSpec} />;
     }
 }

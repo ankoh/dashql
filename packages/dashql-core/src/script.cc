@@ -24,6 +24,7 @@
 #include "dashql/parser/scanner.h"
 #include "dashql/script_compiler.h"
 #include "dashql/utils/ast_attributes.h"
+#include "dashql/visualize/markdown.h"
 #include "dashql/visualize/vegalite.h"
 
 namespace dashql {
@@ -1204,6 +1205,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             // unknown renderers, so only the branches below can produce output here.
             bool is_vegalite = spec.renderer.has_value() && *spec.renderer == "vegalite";
             bool is_umap = spec.renderer.has_value() && *spec.renderer == "umap";
+            bool is_markdown = spec.renderer.has_value() && *spec.renderer == "markdown";
             flatbuffers::Offset<flatbuffers::String> vegalite_ofs;
             if (is_vegalite) {
                 // Generate the Vega-Lite JSON once, lazily, and cache it on the spec.
@@ -1226,6 +1228,12 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                 }
             }
 
+            flatbuffers::Offset<buffers::visualization::MarkdownSpec> markdown_ofs;
+            if (is_markdown) {
+                auto markdown = visualize::CompileMarkdownSpec(spec);
+                if (markdown) markdown_ofs = visualize::PackMarkdownSpec(builder, *markdown);
+            }
+
             flatbuffers::Offset<flatbuffers::String> renderer_ofs;
             if (spec.renderer.has_value()) {
                 renderer_ofs = builder.CreateString(std::string(*spec.renderer));
@@ -1241,6 +1249,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             sb.add_renderer(renderer_ofs);
             sb.add_vegalite_spec(vegalite_ofs);
             sb.add_umap_spec(umap_ofs);
+            sb.add_markdown_spec(markdown_ofs);
             spec_offsets.push_back(sb.Finish());
         });
         visualization_specs_ofs = builder.CreateVector(spec_offsets);

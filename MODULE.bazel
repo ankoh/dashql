@@ -138,6 +138,7 @@ use_repo(
     "duckdb_cli_osx",
     "flex_src",
     "m4_src",
+    "md4c",
     "rapidjson",
     "rapidyaml",
     "wabt",

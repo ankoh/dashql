@@ -8,6 +8,7 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
+#include <vector>
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"

@@ -1,12 +1,25 @@
-analyzer-snapshots:
-  - name: vis_basic_mark
+visualize-snapshots:
+  - name: vis_mark_def_simple
     catalog:
       script:
         input: |-
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
+        SELECT * FROM sales VISUALIZE USING vegalite (
+          mark => (type => bar, filled => true, opacity => 0.8)
+        );
+
+  - name: vis_mark_def_point_toggle
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        SELECT * FROM sales VISUALIZE USING vegalite (
+          mark => (type => line, point => true)
+        );
 
   - name: vis_mark_def_nested_overlay
     catalog:
@@ -92,7 +105,7 @@ analyzer-snapshots:
         SELECT * FROM sales VISUALIZE USING vegalite (
           mark => bar,
           encoding => (
-            x => (field => category, type => nominal, axis => (label_angle => -45))
+            x => (field => category, type => nominal, axis => (label_angle => -45, title => 'Category'))
           )
         );
 
@@ -142,16 +155,6 @@ analyzer-snapshots:
           )
         );
 
-  - name: vis_no_source
-    script:
-      input: |
-        SELECT * FROM sales VISUALIZE USING vegalite (
-          mark => line,
-          encoding => (
-            x => (field => date, type => temporal)
-          )
-        );
-
   - name: vis_aggregate
     catalog:
       script:
@@ -164,6 +167,22 @@ analyzer-snapshots:
           encoding => (
             x => (field => category, type => nominal),
             y => (field => revenue, type => quantitative, aggregate => sum)
+          )
+        );
+
+  - name: vis_stack
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+    script:
+      input: |
+        SELECT * FROM sales VISUALIZE USING vegalite (
+          mark => bar,
+          encoding => (
+            x => (field => date, type => temporal),
+            y => (field => revenue, type => quantitative, aggregate => sum, stack => 'normalize'),
+            color => (field => category, type => nominal)
           )
         );
 
@@ -182,7 +201,7 @@ analyzer-snapshots:
           )
         );
 
-  - name: vis_unsupported_key_warns
+  - name: vis_unsupported_key
     catalog:
       script:
         input: |-
@@ -197,13 +216,48 @@ analyzer-snapshots:
           )
         );
 
-  - name: vis_markdown
+  - name: vis_width_height
     catalog:
       script:
         input: |-
-          create table product_summary (product text, revenue decimal);
+          create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        SELECT product, revenue FROM product_summary VISUALIZE USING markdown (
-          template => '## {{product}}: {{revenue}}'
+        SELECT * FROM sales VISUALIZE USING vegalite (
+          mark => bar,
+          width => 800,
+          height => 400
+        );
+
+  - name: vis_layer_resolve
+    catalog:
+      script:
+        input: |-
+          create table sales (date timestamp, revenue int, target int, category text);
+    script:
+      input: |
+        SELECT * FROM sales VISUALIZE USING vegalite (
+          encoding => (
+            x => (field => date, type => temporal)
+          ),
+          layer => [
+            (
+              mark => line,
+              encoding => (
+                y => (field => revenue, type => quantitative),
+                color => (field => category, type => nominal)
+              )
+            ),
+            (
+              mark => point,
+              encoding => (
+                y => (field => target, type => quantitative)
+              )
+            )
+          ],
+          resolve => (
+            scale => (y => 'independent'),
+            axis => (y => 'independent'),
+            legend => (color => 'shared')
+          )
         );

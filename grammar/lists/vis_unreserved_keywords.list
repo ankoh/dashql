@@ -1,6 +1,7 @@
 // Visualization renderers (named after `USING`)
 X(VIS_UNRESERVED, "vegalite",       VEGALITE)
 X(VIS_UNRESERVED, "umap",           UMAP)
+X(VIS_UNRESERVED, "markdown",       MARKDOWN)
 
 // UMAP renderer spec keys (see ext_visualize.y). `label` reuses the existing
 // SQL unreserved keyword LABEL.

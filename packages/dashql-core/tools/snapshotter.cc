@@ -22,7 +22,9 @@
 #include "dashql/testing/diff_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
+#include "dashql/testing/visualize_snapshot_test.h"
 #include "dashql/testing/yaml_tests.h"
+#include "dashql/visualize/markdown.h"
 #include "dashql/visualize/vegalite.h"
 #include "dashql/utils/string_trimming.h"
 #include "dashql/view/plan_view_model.h"
@@ -706,6 +708,7 @@ static void generate_visualize_snapshots(const std::filesystem::path& snapshot_d
 
             auto& spec = analyzed.visualization_specs[0];
             bool is_umap = spec.renderer.has_value() && *spec.renderer == "umap";
+            bool is_markdown = spec.renderer.has_value() && *spec.renderer == "markdown";
 
             auto test_ref = tree.ref(test_node.id());
             // Stale keys from either renderer are cleared so switching a test's renderer
@@ -713,12 +716,19 @@ static void generate_visualize_snapshots(const std::filesystem::path& snapshot_d
             if (test_ref.has_child("vegalite")) test_ref.remove_child("vegalite");
             if (test_ref.has_child("roundtrip")) test_ref.remove_child("roundtrip");
             if (test_ref.has_child("umap")) test_ref.remove_child("umap");
+            if (test_ref.has_child("markdown")) test_ref.remove_child("markdown");
 
             if (is_umap) {
                 std::string umap_json = visualize::GenerateUmapSpec(spec, analyzed);
                 auto umap_node = test_ref.append_child();
                 umap_node << c4::yml::key("umap") << umap_json;
                 umap_node.set_val_style(c4::yml::VAL_LITERAL);
+            } else if (is_markdown) {
+                auto markdown = visualize::CompileMarkdownSpec(spec);
+                if (!markdown) continue;
+                auto markdown_node = test_ref.append_child();
+                markdown_node << c4::yml::key("markdown");
+                EncodeMarkdownSpec(markdown_node, *markdown);
             } else {
                 std::string vegalite_json = visualize::GenerateVegaLiteSpec(spec, analyzed);
                 std::string roundtrip = visualize::ParseVegaLiteToVisualize(vegalite_json);

@@ -6,6 +6,8 @@
 namespace dashql {
 namespace parser {
 
+// Keep the scanner keyword table sourced from the generated grammar lists so
+// renderer keywords and parser terminals always share one definition.
 constexpr size_t KEYWORD_COUNT = 0
 #define X(CATEGORY, NAME, TOKEN) +1
 #include "grammar_lists/sql_column_name_keywords.list"

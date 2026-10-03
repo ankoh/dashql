@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "dashql/visualize/markdown.h"
 #include "ryml.hpp"
 
 namespace dashql::testing {
@@ -26,6 +27,9 @@ struct VisualizeSnapshotTest {
     static void LoadTests(const std::filesystem::path& snapshots_dir);
     static std::vector<const VisualizeSnapshotTest*> GetTests(std::string_view filename);
 };
+
+/// Encode the generated Markdown object model as a native YAML subtree.
+void EncodeMarkdownSpec(c4::yml::NodeRef out, const visualize::MarkdownDocument& spec);
 
 extern void operator<<(std::ostream& out, const VisualizeSnapshotTest& p);
 

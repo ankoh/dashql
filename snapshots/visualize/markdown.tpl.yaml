@@ -1,0 +1,39 @@
+visualize-snapshots:
+  - name: vis_markdown_rows
+    catalog:
+      script:
+        input: |-
+          create table product_summary (product text, revenue decimal, growth float);
+    script:
+      input: |
+        SELECT product, revenue, growth FROM product_summary VISUALIZE USING markdown (
+          template => '## {{product}}
+
+          **Revenue:** {{revenue}}
+
+          **Growth:** {{growth}}'
+        );
+
+  - name: vis_markdown_escaping
+    script:
+      input: |
+        SELECT 'Ada' AS author VISUALIZE USING markdown (
+          template => 'It''s by {{ author }}. Repeated: {{author}}. Literal: {value}.'
+        );
+
+  - name: vis_markdown_safe_ast
+    script:
+      input: |
+        SELECT 'Ada' AS author VISUALIZE USING markdown (
+          template => '# Report
+
+          > **Author:** {{author}}
+
+          1. [Safe](https://example.com "Details")
+          2. [Unsafe](javascript:alert(1))
+          3. [Dynamic]({{author}})
+
+          `{{author}}`
+
+          <script>bad()</script>'
+        );

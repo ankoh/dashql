@@ -1,0 +1,35 @@
+.root {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 16px;
+    overflow: auto;
+    line-height: 1.5;
+    user-select: text;
+}
+
+.row {
+    overflow-wrap: anywhere;
+}
+
+.row + .row {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border_color_primary);
+}
+
+.row > :first-child {
+    margin-top: 0;
+}
+
+.row > :last-child {
+    margin-bottom: 0;
+}
+
+.row pre {
+    overflow: auto;
+}
+
+.empty {
+    padding: 16px;
+    color: var(--text_color_secondary);
+}

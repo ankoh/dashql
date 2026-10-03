@@ -185,3 +185,8 @@ parser-snapshots:
   - name: vis_statement_umap_keywords_as_columns
     input: |
       SELECT vector, category, neighbors, min_dist, metric, umap FROM t;
+  - name: vis_statement_markdown
+    input: |
+      SELECT product, revenue FROM product_summary VISUALIZE USING markdown (
+        template => '## {{product}}: {{revenue}}'
+      );

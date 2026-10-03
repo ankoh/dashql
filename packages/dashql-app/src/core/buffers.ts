@@ -10,4 +10,5 @@ export * as parser from '@ankoh/dashql-flatbuf/dashql/buffers/parser.js';
 export * as statistics from '@ankoh/dashql-flatbuf/dashql/buffers/statistics.js';
 export * as status from '@ankoh/dashql-flatbuf/dashql/buffers/status.js';
 export * as view from '@ankoh/dashql-flatbuf/dashql/buffers/view.js';
+export * as visualization from '@ankoh/dashql-flatbuf/dashql/buffers/visualization.js';
 export * as formatting from '@ankoh/dashql-flatbuf/dashql/buffers/formatting.js';

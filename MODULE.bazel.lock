@@ -326,7 +326,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "YyRXrQa3SKF0KSv3Mwsr75s0Pt++O+kjamCct0LPI68=",
+        "bzlTransitiveDigest": "lytjghWfbTC7QX/fH/itYCSU+wi82309v5ii7OD2emE=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -451,6 +451,17 @@
                 "https://github.com/apache/arrow/archive/refs/tags/apache-arrow-19.0.0.tar.gz"
               ],
               "build_file": "@@//bazel:external_arrow.BUILD"
+            }
+          },
+          "md4c": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "sha256": "55d0111d48fb11883aaee91465e642b8b640775a4d6993c2d0e7a8092758ef21",
+              "strip_prefix": "md4c-release-0.5.2",
+              "urls": [
+                "https://github.com/mity/md4c/archive/refs/tags/release-0.5.2.tar.gz"
+              ],
+              "build_file": "@@//bazel:external_md4c.BUILD"
             }
           }
         }

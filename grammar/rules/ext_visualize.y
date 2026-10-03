@@ -27,7 +27,8 @@ vis_visualise_keyword:
 // The visualization renderer named after `USING` is a closed keyword set. Rather than
 // reduce it to a shared `vis_renderer` nonterminal (which would erase the lookahead the
 // parser needs to pick the renderer-specific spec body), each renderer keyword is inlined
-// as a terminal so `USING vegalite (...)` and `USING umap (...)` branch to their
+// as a terminal so `USING vegalite (...)`, `USING umap (...)`, and
+// `USING markdown (...)` branch to their
 // own spec grammar. Adding a future renderer is a new alternative here plus its spec rules.
 vis_visualise_stmt:
     sql_select_stmt vis_visualise_keyword USING VEGALITE LRB vis_spec_list RRB {
@@ -58,6 +59,43 @@ vis_visualise_stmt:
                  ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_UMAP_SPEC, std::move($6), false)),
         }, false);
     }
+  | sql_select_stmt vis_visualise_keyword USING MARKDOWN LRB vis_markdown_spec_list RRB {
+        if (!ctx.IsVisEnabled()) {
+            error(@2, "VISUALISE syntax is disabled in this ParseContext");
+            YYERROR;
+        }
+        ctx.MarkVisSpecSpan(@6);
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
+            Attr(Key::VIS_VISUALISE_SELECT,
+                 ctx.Object(@1, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($1))),
+            Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@4, $4)),
+            Attr(Key::VIS_VISUALISE_SPEC,
+                 ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_MARKDOWN_SPEC, std::move($6), false)),
+        }, false);
+    }
+    ;
+
+// ---------------------------------------------------------------------------
+// markdown renderer spec
+//
+// Shape:
+//   SELECT * FROM t VISUALIZE USING markdown (
+//       template => '## {{title}}'
+//   )
+
+// Every query result row is rendered with the same template. `{{field}}`
+// placeholders are compiled into text/field segments by dashql-core.
+
+vis_markdown_spec_list:
+    vis_markdown_spec_list COMMA opt_vis_markdown_spec_field  { $1->push_back($3); $$ = std::move($1); }
+  | opt_vis_markdown_spec_field                               { $$ = ctx.List({$1}); }
+    ;
+
+opt_vis_markdown_spec_field:
+    TEMPLATE EQUALS_GREATER SCONST {
+        $$ = Attr(Key::VIS_MARKDOWN_SPEC_TEMPLATE, Const(@3, buffers::parser::AConstType::STRING));
+    }
+  | %empty { $$ = Null(); }
     ;
 
 // ---------------------------------------------------------------------------

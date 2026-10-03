@@ -9,6 +9,9 @@
 %type <buffers::parser::Node> vis_umap_metric;
 %type <buffers::parser::Node> vis_umap_number;
 
+%type <BackedUniquePtr<NodeList>> vis_markdown_spec_list;
+%type <buffers::parser::Node> opt_vis_markdown_spec_field;
+
 %type <BackedUniquePtr<NodeList>> vis_spec_list;
 %type <buffers::parser::Node> opt_vis_spec_field;
 %type <buffers::parser::AttributeKey> vis_spec_key;

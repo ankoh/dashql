@@ -1,0 +1,41 @@
+namespace dashql.buffers.visualization;
+
+enum MarkdownNodeType: uint8 {
+    NONE = 0,
+    DOCUMENT,
+    PARAGRAPH,
+    BLOCKQUOTE,
+    LIST_ITEM,
+    EMPHASIS,
+    STRONG,
+    SPAN,
+    HEADING,
+    LIST,
+    TEXT,
+    FIELD,
+    INLINE_CODE,
+    CODE_BLOCK,
+    LINK,
+    IMAGE,
+    HARD_BREAK,
+    THEMATIC_BREAK,
+}
+
+table MarkdownNode {
+    node_type: MarkdownNodeType = NONE;
+    value: string;
+    url: string;
+    title: string;
+    language: string;
+    level: uint8;
+    start: uint32;
+    ordered: bool;
+    tight: bool;
+    children: [MarkdownNode];
+}
+
+table MarkdownSpec {
+    template: string;
+    fields: [string];
+    document: MarkdownNode;
+}
