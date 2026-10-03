@@ -42,7 +42,7 @@
     "apache-arrow": "^21.1.0",
     "d3": "^7.9.0",
     "d3-color": "^3.1.0",
-    "dexie": "^4.4.5",
+    "dexie": "^4.4.6",
     "electron": "^41.10.7",
     "electron-builder": "^26.16.3",
     "electron-updater": "^6.8.9",
