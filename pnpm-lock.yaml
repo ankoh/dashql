@@ -136,7 +136,7 @@ importers:
         specifier: ^3.10.2
         version: 3.10.2
       mocha:
-        specifier: ^12.0.0
+        specifier: ^12.0.2
         version: 12.0.2
       oauth-pkce:
         specifier: ^0.0.7
