@@ -26,7 +26,9 @@ ScriptExecution::Update ScriptExecution::Start() {
     if (phase_ != Phase::IDLE || pending_statement_state_) {
         return MakeUpdate(ProtocolError::BUSY, "the script execution has already started");
     }
-    if (!compilation_.errors.empty()) {
+    // Syntax diagnostics can accompany a raw SQL pass-through plan. Other compiler errors
+    // do not produce executable SQL and must still stop execution.
+    if (!compilation_.errors.empty() && compilation_.sql.empty()) {
         return MakeUpdate(ProtocolError::INVALID_ARGUMENT, compilation_.errors.front().message);
     }
     auto task = Run();

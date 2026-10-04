@@ -1,5 +1,8 @@
 #include "dashql/script_compiler.h"
 
+#include <algorithm>
+#include <cctype>
+
 #include "dashql/formatter/formatter.h"
 #include "dashql/script.h"
 #include "dashql/utils/ast_attributes.h"
@@ -148,7 +151,17 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
         result.errors.push_back(MakeError(ErrorCode::PARSER_ERROR, error.message, PROTO_NULL_U32, PROTO_NULL_U32,
                                           parsed.scanned_script->ResolveTextSpan(error.location)));
     }
-    if (!result.errors.empty()) return result;
+    if (!result.errors.empty()) {
+        const auto sql = script.ToString();
+        if (std::any_of(sql.begin(), sql.end(), [](unsigned char c) { return !std::isspace(c); })) {
+            // The remote dialect may accept SQL that our scanner/parser does not. Without a
+            // reliable AST, send the original text once and do not cache or split it locally.
+            result.sql = sql;
+            result.terminal_statement_id = 0;
+            result.statements.push_back({.statement_id = 0, .kind = CompiledKind::OUTPUT, .sql = sql});
+        }
+        return result;
+    }
     if (parsed.statements.empty()) {
         result.errors.push_back(MakeError(ErrorCode::EMPTY_SCRIPT, "script has no executable statement"));
         return result;

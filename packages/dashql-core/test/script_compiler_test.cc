@@ -36,6 +36,21 @@ TEST(ScriptCompilerTest, ReturnsPlainSQLVerbatim) {
     EXPECT_EQ(result.cache_signature.size(), 32);
 }
 
+TEST(ScriptCompilerTest, PassesUnparseableRemoteSQLThroughUncached) {
+    constexpr std::string_view sql = "  SELECT * FROM remote_table QUALIFY row_number() OVER (PARTITION BY id) = 1;\n";
+    auto result = Compile(sql);
+
+    ASSERT_FALSE(result.errors.empty());
+    EXPECT_EQ(result.errors.front().code, buffers::execution::ScriptCompilationErrorCode::PARSER_ERROR);
+    EXPECT_EQ(result.kind, buffers::execution::ScriptCompilationStatementKind::QUERY);
+    EXPECT_EQ(result.sql, sql);
+    EXPECT_FALSE(result.cacheable);
+    EXPECT_TRUE(result.cache_signature.empty());
+    ASSERT_EQ(result.statements.size(), 1);
+    EXPECT_EQ(result.statements[0].kind, buffers::execution::CompiledScriptStatementKind::OUTPUT);
+    EXPECT_EQ(result.statements[0].sql, sql);
+}
+
 TEST(ScriptCompilerTest, ClassifiesInsertAsQuery) {
     constexpr std::string_view sql = "INSERT INTO target VALUES (1);";
     auto result = Compile(sql);
@@ -244,10 +259,12 @@ TEST(ScriptCompilerTest, RejectsVisualizationWhenExtensionsDisabled) {
     EXPECT_EQ(result.errors.front().code, buffers::execution::ScriptCompilationErrorCode::EXTENSIONS_DISABLED);
 }
 
-TEST(ScriptCompilerTest, RejectsOldPipeSyntax) {
+TEST(ScriptCompilerTest, PassesUnparseablePipeSyntaxThrough) {
     auto result = Compile("SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);");
     ASSERT_FALSE(result.errors.empty());
     EXPECT_EQ(result.errors.front().code, buffers::execution::ScriptCompilationErrorCode::PARSER_ERROR);
+    EXPECT_EQ(result.sql, "SELECT * FROM sales |> VISUALIZE USING vegalite (mark => bar);");
+    EXPECT_FALSE(result.cacheable);
 }
 
 }  // namespace

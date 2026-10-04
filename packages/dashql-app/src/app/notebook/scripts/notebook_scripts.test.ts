@@ -1,13 +1,14 @@
 import * as core from '../../../core/index.js';
 import * as Immutable from 'immutable';
 
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '../../../platform/logger/logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { NotebookTestBackend } from '../persistence/notebook_test_backend.js';
 import { StorageWriter, type StorageWriteTaskVariant } from '../persistence/storage_writer.js';
 import {
+    ANALYZE_OUTDATED_SCRIPT,
     CREATE_SCRIPT,
     DELETE_SCRIPT,
     getSortedScriptFileNames,
@@ -19,6 +20,7 @@ import {
     replaceNotebookScriptsFromStorage,
     replaceScriptSessionText,
 } from './notebook_scripts.js';
+import { runNotebookScript } from '../ui/rerun_query.js';
 import { createEmptyAnnotations, createEmptyMetadata, createScriptRef } from './script_types.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -70,6 +72,36 @@ function reduce(current: NotebookScripts, action: Parameters<typeof reduceNotebo
 }
 
 describe('V2 flat notebook script mutations', () => {
+    it('executes a stale unparseable script verbatim after analysis', async () => {
+        const current = state(['1_remote.sql']);
+        const sql = 'SELECT * FROM remote_table QUALIFY row_number() OVER (ORDER BY id) = 1;';
+        const scriptKey = current.scriptRefs['1_remote.sql'].scriptId;
+        replaceScriptSessionText(current.scripts[scriptKey].scriptSession, sql);
+        const compiled = current.scripts[scriptKey].scriptSession.compileQuery(new core.buffers.formatting.FormattingConfigT(
+            core.buffers.formatting.FormattingDialect.HYPER,
+            core.buffers.formatting.FormattingMode.INLINE,
+            120,
+            2,
+            false,
+        ));
+        expect(compiled.read().errorsLength()).toBeGreaterThan(0);
+        expect(compiled.read().sql()).toBe(sql);
+        compiled.destroy();
+        const executeQuery = vi.fn(() => [11, Promise.resolve(null)] as [number, Promise<null>]);
+        const modifyNotebookScripts = vi.fn((action) => action.type === ANALYZE_OUTDATED_SCRIPT
+            ? Promise.resolve(reduce(current, action))
+            : Promise.resolve(current));
+
+        await runNotebookScript('database', current, current.scripts[scriptKey], executeQuery,
+            modifyNotebookScripts, logger);
+
+        expect(executeQuery).toHaveBeenCalledWith('database', expect.objectContaining({
+            query: sql,
+            cacheable: false,
+            cacheSignature: '',
+        }));
+    });
+
     it('inserts at an indexed feed boundary and persists the new flat file', () => {
         const current = state(['1_alpha.sql', '2_beta.sql']);
         const writer = new RecordingWriter(logger, new NotebookTestBackend());

@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConnectionHealth } from '../connections/attached_database_state.js';
 import { DELETE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_TEXT, type NotebookScripts } from '../scripts/notebook_scripts.js';
+import { runNotebookScript } from './rerun_query.js';
 import { ScriptDetails, type ScriptDetailsDependencies } from './script_details.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -12,7 +13,7 @@ vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect()
 const state = { keyHandlers: [] as any[], executeQuery: vi.fn(), formatScriptEditor: vi.fn() };
 const dependencies = {
     useAppConfig: () => ({ settings: {} }),
-    useLogger: () => ({ debug: vi.fn(), warn: vi.fn() }),
+    useLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn() }),
     useKeyEvents: (handlers: any[]) => {
         React.useEffect(() => { state.keyHandlers = handlers; }, [handlers]);
     },
@@ -25,7 +26,7 @@ const dependencies = {
         state.formatScriptEditor(...args);
         args[3]('SELECT 2;');
     },
-    runNotebookScript: (_databaseId: string, _scripts: unknown, script: any, execute: any) => execute('database', { query: script.scriptSession.getText() }),
+    runNotebookScript,
     ScriptDetailsEditorPane: (props: any) => {
         React.useEffect(() => props.onEditorView({ focus: vi.fn() }), [props.onEditorView]);
         return <div>
@@ -55,8 +56,8 @@ function scripts(): NotebookScripts {
     return {
         notebookId: 'notebook', name: 'Test', databaseId: 'database', instance: {} as any, notebookMetadata: {} as any,
         connectorInfo: {} as any, connectionCatalog: {} as any,
-        scripts: { 1: { scriptKey: 1, fileName: '01_first.sql', scriptSession, annotations: {}, latestQueryId: null } as any,
-            2: { scriptKey: 2, fileName: '02_second.sql', scriptSession, annotations: {}, latestQueryId: null } as any },
+        scripts: { 1: { scriptKey: 1, fileName: '01_first.sql', scriptSession, analysisOutdated: false, annotations: {}, latestQueryId: null } as any,
+            2: { scriptKey: 2, fileName: '02_second.sql', scriptSession, analysisOutdated: false, annotations: {}, latestQueryId: null } as any },
         scriptRefs: {
             '01_first.sql': { scriptId: 1, fileName: '01_first.sql' },
             '02_second.sql': { scriptId: 2, fileName: '02_second.sql' },
@@ -103,6 +104,35 @@ describe('ScriptDetails V2 flat scripts', () => {
         expect(handler).toBeDefined();
         act(() => handler.callback({ preventDefault: vi.fn(), stopImmediatePropagation: vi.fn() }));
         expect(state.executeQuery).toHaveBeenCalledWith('database', expect.objectContaining({ query: 'SELECT 2' }));
+    });
+
+    it('executes unparseable remote SQL from Ctrl+E without caching', () => {
+        const notebookScripts = scripts();
+        const sql = 'SELECT * FROM t QUALIFY row_number() OVER (ORDER BY id) = 1';
+        notebookScripts.scripts[2].scriptSession = {
+            getText: () => sql,
+            compileQuery: () => ({
+                read: () => ({
+                    errorsLength: () => 1,
+                    errors: () => ({ message: () => 'syntax error' }),
+                    sql: () => sql,
+                    cacheSignature: () => '',
+                    cacheable: () => false,
+                }),
+                destroy: () => {},
+            }),
+            startExecution: () => ({}),
+        } as any;
+        const connection = { databaseId: 'database', connectionHealth: ConnectionHealth.ONLINE } as any;
+        act(() => root.render(<ScriptDetails notebookScripts={notebookScripts} modifyNotebookScripts={vi.fn()}
+            connection={connection} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
+
+        const handler = state.keyHandlers.find(value => value.key === 'e' && value.ctrlKey === true);
+        expect(handler).toBeDefined();
+        act(() => handler.callback({ preventDefault: vi.fn(), stopImmediatePropagation: vi.fn() }));
+        expect(state.executeQuery).toHaveBeenCalledWith('database', expect.objectContaining({
+            query: sql, cacheable: false, cacheSignature: '',
+        }));
     });
 
     it('offers pretty and compact formatting modes', () => {

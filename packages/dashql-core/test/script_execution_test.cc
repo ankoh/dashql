@@ -64,5 +64,31 @@ TEST(ScriptExecutionTest, StopsAfterStatementError) {
     EXPECT_EQ(operation.pending_statement, nullptr);
 }
 
+TEST(ScriptExecutionTest, SendsUnparseableSQLToRemoteAsOneOutputStatement) {
+    Catalog catalog;
+    ScriptSession session{catalog};
+    constexpr std::string_view sql = "SELECT * FROM remote_table QUALIFY rank() OVER (ORDER BY id) = 1;";
+    session.ReplaceText(0, sql);
+    ScriptExecution execution{session, ExecutionConfig()};
+
+    auto operation = execution.Start();
+    ASSERT_EQ(operation.protocol_error, buffers::execution::ScriptExecutionProtocolError::NONE);
+    ASSERT_NE(operation.pending_statement, nullptr);
+    EXPECT_EQ(operation.pending_statement->sql, sql);
+    EXPECT_EQ(operation.pending_statement->statement_count, 1);
+    EXPECT_TRUE(operation.pending_statement->produces_output);
+}
+
+TEST(ScriptExecutionTest, DoesNotRunInvalidCompilationWithoutPassThroughSQL) {
+    Catalog catalog;
+    ScriptSession session{catalog};
+    session.ReplaceText(0, "SELECT 1; CREATE TABLE t (v INT);");
+    ScriptExecution execution{session, ExecutionConfig()};
+
+    auto operation = execution.Start();
+    EXPECT_EQ(operation.protocol_error, buffers::execution::ScriptExecutionProtocolError::INVALID_ARGUMENT);
+    EXPECT_EQ(operation.pending_statement, nullptr);
+}
+
 }  // namespace
 }  // namespace dashql::execution

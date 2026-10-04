@@ -118,6 +118,19 @@ describe('V2 notebook feed rows', () => {
         expect(container.querySelector('[aria-label="Move script down"]')?.hasAttribute('disabled')).toBe(false);
     });
 
+    it('keeps Play available for SQL with parser diagnostics', () => {
+        const props = baseProps();
+        props.connection = { databaseId: 'database' } as any;
+        props.scripts[1] = { ...props.scripts[1], analysisOutdated: false,
+            editorUpdate: { analysisAvailable: true }, scriptSession: { getText: () => 'SELECT * FROM t QUALIFY x = 1' } } as any;
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+
+        const play = container.querySelector('[aria-label="Execute alpha query"]') as HTMLButtonElement;
+        expect(play.disabled).toBe(false);
+        act(() => play.click());
+        expect(props.onExecute).toHaveBeenCalledWith('01_alpha.sql');
+    });
+
     it('lets the virtual list observe the row content height', () => {
         const props = baseProps();
         const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 312 } as DOMRect);

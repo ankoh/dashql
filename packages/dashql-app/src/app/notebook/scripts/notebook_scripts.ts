@@ -1050,7 +1050,14 @@ export function compileNotebookQuery(
     const compiled = scriptData.scriptSession.compileQuery(executionFormattingConfig());
     try {
         const reader = compiled.read();
-        if (reader.errorsLength() > 0) {
+        const sql = reader.sql() ?? '';
+        if (reader.errorsLength() > 0 && sql.length > 0) {
+            logger?.warn('Passing unparseable SQL through to the remote database', {
+                scriptKey: scriptData.scriptKey.toString(),
+                fileName: scriptData.fileName,
+                diagnostic: reader.errors(0)?.message() ?? '',
+            }, LOG_CTX);
+        } else if (reader.errorsLength() > 0) {
             const error = reader.errors(0);
             throw new LoggableException(error?.message() ?? 'Could not compile query', {
                 scriptKey: scriptData.scriptKey.toString(),
@@ -1058,7 +1065,6 @@ export function compileNotebookQuery(
                 errorCode: error?.code().toString(),
             }, LOG_CTX);
         }
-        const sql = reader.sql() ?? '';
         if (sql.trim().length == 0) {
             throw new LoggableException('Compile query is empty', {
                 scriptKey: scriptData.scriptKey.toString(),
