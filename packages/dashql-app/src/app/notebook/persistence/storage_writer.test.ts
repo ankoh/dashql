@@ -72,4 +72,41 @@ describe('V2 storage writer flat mutations', () => {
         ]);
         expect(await backend.loadScript(id, '01_new.sql')).toEqual({ name: '01_new.sql', sql: 'new' });
     });
+
+    it('does not overlap mutations of different files in the same notebook', async () => {
+        let beginDelete!: () => void;
+        let finishDelete!: () => void;
+        const deleting = new Promise<void>(resolve => { beginDelete = resolve; });
+        const releaseDelete = new Promise<void>(resolve => { finishDelete = resolve; });
+        class PausedBackend extends NotebookTestBackend {
+            override async deleteScript(notebookId: string, scriptName: string): Promise<void> {
+                beginDelete();
+                await releaseDelete;
+                await super.deleteScript(notebookId, scriptName);
+            }
+        }
+        const backend = new PausedBackend();
+        const writer = new StorageWriter(new NullLogger(), backend);
+        const id = '11111111-2222-4333-8444-555555555555';
+
+        const deletion = writer.write(groupScriptDeletes(id, '02_old.sql'), {
+            type: DELETE_SCRIPT, value: [id, '02_old.sql'],
+        });
+        await deleting;
+        const write = writer.write(groupScriptWrites(id, '03_new.sql'), {
+            type: WRITE_SCRIPT, value: [id, '03_new.sql', 'SELECT 3'],
+        }, 10_000);
+        const flushing = writer.flush();
+        try {
+            // Flush has started the next mutation, but it must wait for the first one.
+            expect(backend.calls).not.toContain(`write:${id}/03_new.sql=SELECT 3`);
+        } finally {
+            finishDelete();
+        }
+        await expect(Promise.all([deletion, write, flushing])).resolves.toEqual([true, true, undefined]);
+        expect(backend.calls).toEqual([
+            `delete:${id}/02_old.sql`,
+            `write:${id}/03_new.sql=SELECT 3`,
+        ]);
+    });
 });

@@ -167,6 +167,8 @@ export class StorageWriter {
     pausedNotebooks: Set<string>;
     /// The executions that are currently in flight (used by flush() to await completion).
     inFlight: Set<Promise<void>>;
+    /// Latest execution per notebook, so mutations and their index rebuilds cannot overlap.
+    notebookExecutions: Map<string, Promise<void>>;
     /// Last content known to have been persisted by this writer, keyed by storage-relative path.
     completedFileContents: Map<string, string | null>;
     /// Monotonic scheduled-write generation per key, used to revalidate destructive prompts.
@@ -182,6 +184,7 @@ export class StorageWriter {
         this.paused = false;
         this.pausedNotebooks = new Set();
         this.inFlight = new Set();
+        this.notebookExecutions = new Map();
         this.completedFileContents = new Map();
         this.writeKeyGenerations = new Map();
         this.nextWriteGeneration = 1;
@@ -348,7 +351,12 @@ export class StorageWriter {
             return;
         }
         this.pendingTasks.delete(key);
+        const notebookId = key.split('/')[0];
+        const previousExecution = this.notebookExecutions.get(notebookId);
         const execution = (async () => {
+            if (previousExecution) {
+                await previousExecution;
+            }
             try {
                 await this.executeTask(key, task.latestTask);
                 task.resolveLatestTask(true);
@@ -360,11 +368,15 @@ export class StorageWriter {
                 task.resolveLatestTask(false);
             }
         })();
+        this.notebookExecutions.set(notebookId, execution);
         this.inFlight.add(execution);
         try {
             await execution;
         } finally {
             this.inFlight.delete(execution);
+            if (this.notebookExecutions.get(notebookId) === execution) {
+                this.notebookExecutions.delete(notebookId);
+            }
         }
     }
 
