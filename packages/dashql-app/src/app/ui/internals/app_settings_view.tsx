@@ -49,6 +49,15 @@ export function AppSettings(props: { onClose: () => void; }) {
             }
         }));
     }, [reconfigure]);
+    const toggleDashboards = React.useCallback(() => {
+        reconfigure((value: AppConfig | null) => (value == null ? null : {
+            ...value,
+            settings: {
+                ...(value.settings ?? {}),
+                enableDashboards: !value.settings?.enableDashboards,
+            }
+        }));
+    }, [reconfigure]);
     const toggleForceReLogin = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
@@ -213,6 +222,18 @@ export function AppSettings(props: { onClose: () => void; }) {
                             onClick={toggleForceReLogin}
                             disabled={config == null}
                             aria-labelledby="app-setting-force-relogin"
+                        />
+                    </div>
+                    <div id="app-setting-dashboards" className={styles.setting_name}>
+                        Dashboard View
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={config?.settings?.enableDashboards ?? false}
+                            onClick={toggleDashboards}
+                            disabled={config == null}
+                            aria-labelledby="app-setting-dashboards"
                         />
                     </div>
                     <div className={styles.setting_name}>

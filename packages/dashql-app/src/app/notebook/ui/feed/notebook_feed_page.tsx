@@ -17,6 +17,7 @@ import { NotebookFeed } from './notebook_feed.js';
 import { Dashboard } from '../../dashboard/dashboard.js';
 import { NotebookViewMode, useNotebookViewMode } from '../../scripts/notebook_commands.js';
 import { SegmentedControl, SegmentedControlSize } from '../../../../ui/foundations/segmented_control.js';
+import { useAppConfig } from '../../../config/app_config.js';
 
 export interface NotebookFeedPageDependencies {
     NotebookFeed: typeof NotebookFeed;
@@ -27,6 +28,7 @@ export interface NotebookFeedPageDependencies {
     IconButton: typeof IconButton;
     Dashboard: typeof Dashboard;
     useNotebookViewMode: typeof useNotebookViewMode;
+    useAppConfig: typeof useAppConfig;
     SegmentedControl: typeof SegmentedControl;
 }
 
@@ -39,6 +41,7 @@ const DEFAULT_DEPENDENCIES: NotebookFeedPageDependencies = {
     IconButton,
     Dashboard,
     useNotebookViewMode,
+    useAppConfig,
     SegmentedControl,
 };
 
@@ -59,7 +62,8 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
     const { mode, setMode } = dependencies.useNotebookViewMode();
-    const dashboardActive = mode === NotebookViewMode.Dashboard;
+    const dashboardsEnabled = dependencies.useAppConfig()?.settings?.enableDashboards === true;
+    const dashboardActive = dashboardsEnabled && mode === NotebookViewMode.Dashboard;
     const feedActive = props.active && !dashboardActive && !showDetails;
     const workbench = (closeAfterSelection: boolean) => (
         <dependencies.NotebookWorkbenchSidebar
@@ -78,8 +82,8 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
             <aside className={styles.navigation_sidebar}>
                 {workbench(false)}
             </aside>
-            <main className={styles.body_container} id="notebook-body">
-                <div className={styles.view_bar}>
+            <main className={`${styles.body_container} ${!dashboardsEnabled ? styles.body_container_no_view_bar : ''}`} id="notebook-body">
+                {dashboardsEnabled && <div className={styles.view_bar}>
                     <dependencies.SegmentedControl
                         aria-label="Notebook view"
                         size={SegmentedControlSize.Small}
@@ -90,7 +94,7 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
                         <dependencies.SegmentedControl.Button selected={!dashboardActive}>Notebook</dependencies.SegmentedControl.Button>
                         <dependencies.SegmentedControl.Button selected={dashboardActive}>Dashboard</dependencies.SegmentedControl.Button>
                     </dependencies.SegmentedControl>
-                </div>
+                </div>}
                 <div className={styles.content_container}>
                     <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
                         <dependencies.NotebookFeed

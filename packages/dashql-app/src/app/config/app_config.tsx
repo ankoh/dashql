@@ -10,6 +10,7 @@ const CONFIG_URL = new URL('../../../static/config.json', import.meta.url);
 export interface AppSettings {
     pauseAfterAppSetup?: boolean;
     enableTableColumnPlots?: boolean;
+    enableDashboards?: boolean;
     scriptDebugMode?: boolean;
     tableDebugMode?: boolean;
     formattingDebugMode?: boolean;

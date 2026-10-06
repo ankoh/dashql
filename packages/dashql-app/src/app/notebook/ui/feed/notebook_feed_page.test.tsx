@@ -10,6 +10,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const state = {
     feedProps: null as any,
+    dashboardsEnabled: false,
     mode: NotebookViewMode.Notebook,
     setMode: vi.fn(),
     dashboardProps: null as any,
@@ -29,6 +30,7 @@ const dependencies = {
         return <div data-testid="dashboard" />;
     },
     useNotebookViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
+    useAppConfig: () => ({ settings: { enableDashboards: state.dashboardsEnabled } }),
     SegmentedControl,
 } as unknown as NotebookFeedPageDependencies;
 
@@ -51,6 +53,7 @@ describe('NotebookFeedPage', () => {
 
     beforeEach(() => {
         state.feedProps = null;
+        state.dashboardsEnabled = false;
         state.mode = NotebookViewMode.Notebook;
         state.setMode.mockReset();
         state.dashboardProps = null;
@@ -77,7 +80,40 @@ describe('NotebookFeedPage', () => {
         expect(state.feedProps).not.toHaveProperty('scrollTarget');
     });
 
-    it('switches between Notebook and Dashboard from the content view bar', () => {
+    it('hides the Dashboard switch by default', () => {
+        act(() => root.render(
+            <NotebookFeedPage
+                notebookScripts={scripts()}
+                modifyNotebookScripts={vi.fn()}
+                connection={null}
+                active
+                dependencies={dependencies}
+            />,
+        ));
+
+        expect(container.querySelector('[aria-label="Notebook view"]')).toBeNull();
+        expect(container.querySelector('[data-testid="dashboard"]')).toBeNull();
+        expect(state.feedProps.active).toBe(true);
+    });
+
+    it('does not render a Dashboard requested while disabled', () => {
+        state.mode = NotebookViewMode.Dashboard;
+        act(() => root.render(
+            <NotebookFeedPage
+                notebookScripts={scripts()}
+                modifyNotebookScripts={vi.fn()}
+                connection={null}
+                active
+                dependencies={dependencies}
+            />,
+        ));
+
+        expect(container.querySelector('[data-testid="dashboard"]')).toBeNull();
+        expect(state.feedProps.active).toBe(true);
+    });
+
+    it('switches between Notebook and Dashboard from the content view bar when enabled', () => {
+        state.dashboardsEnabled = true;
         act(() => root.render(
             <NotebookFeedPage
                 notebookScripts={scripts()}
@@ -95,6 +131,7 @@ describe('NotebookFeedPage', () => {
     });
 
     it('renders the Dashboard beneath the view bar without activating the feed', () => {
+        state.dashboardsEnabled = true;
         state.mode = NotebookViewMode.Dashboard;
         const notebookScripts = scripts();
         const modifyNotebookScripts = vi.fn();

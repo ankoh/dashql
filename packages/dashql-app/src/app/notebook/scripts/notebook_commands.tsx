@@ -13,6 +13,8 @@ import { useNotebookScriptsRegistry, useNotebookScripts } from './notebook_scrip
 import { isCatalogRefreshRunning } from '../connections/catalog_update_state.js';
 import { runNotebookScript } from '../ui/rerun_query.js';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAppConfig } from '../../config/app_config.js';
+import { useAppSettingsReady } from '../../config/app_settings_sync.js';
 
 const LOG_CTX = "notebook_commands";
 
@@ -50,8 +52,8 @@ export interface NotebookViewModeContextValue {
 const NOTEBOOK_VIEW_MODE_CTX = React.createContext<NotebookViewModeContextValue | null>(null);
 export const useNotebookViewMode = () => React.useContext(NOTEBOOK_VIEW_MODE_CTX)!;
 
-export function notebookViewModeFromSearch(search: string): NotebookViewMode {
-    return new URLSearchParams(search).get('view') === 'dashboard'
+export function notebookViewModeFromSearch(search: string, dashboardsEnabled: boolean): NotebookViewMode {
+    return dashboardsEnabled && new URLSearchParams(search).get('view') === 'dashboard'
         ? NotebookViewMode.Dashboard
         : NotebookViewMode.Notebook;
 }
@@ -83,37 +85,55 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const location = useLocation();
     const navigate = useNavigate();
     const logger = useLogger();
+    const dashboardsEnabled = useAppConfig()?.settings?.enableDashboards === true;
+    const settingsReady = useAppSettingsReady();
 
     const registry = useNotebookScriptsRegistry()[0];
     const [notebookScripts, modifyNotebookScripts] = useNotebookScripts(route.notebookId ?? null);
     const [connection, _dispatchConnection] = useAttachedDatabaseState(notebookScripts?.notebookId ?? null);
     const executeQuery = useQueryExecutor();
     const refreshCatalog = useCatalogLoaderQueue();
-    const [notebookViewMode, setNotebookViewModeState] = React.useState(() => notebookViewModeFromSearch(location.search));
-    const notebookViewModeRef = React.useRef(notebookViewMode);
+    const [notebookViewMode, setNotebookViewModeState] = React.useState(() => notebookViewModeFromSearch(location.search, dashboardsEnabled));
+    const visibleViewMode = !dashboardsEnabled && notebookViewMode === NotebookViewMode.Dashboard
+        ? NotebookViewMode.Notebook : notebookViewMode;
+    const notebookViewModeRef = React.useRef(visibleViewMode);
     const pendingViewSearchRef = React.useRef<string | null>(null);
-    notebookViewModeRef.current = notebookViewMode;
+    notebookViewModeRef.current = visibleViewMode;
     const setNotebookViewMode = React.useCallback<React.Dispatch<React.SetStateAction<NotebookViewMode>>>((update) => {
         const next = typeof update === 'function' ? update(notebookViewModeRef.current) : update;
-        notebookViewModeRef.current = next;
-        setNotebookViewModeState(next);
-        const navigation = notebookViewNavigation(location, next);
+        const allowed = next === NotebookViewMode.Dashboard && !dashboardsEnabled ? NotebookViewMode.Notebook : next;
+        notebookViewModeRef.current = allowed;
+        setNotebookViewModeState(allowed);
+        const navigation = notebookViewNavigation(location, allowed);
         if (navigation.to.search !== location.search) {
             pendingViewSearchRef.current = navigation.to.search;
             navigate(navigation.to, navigation.options);
         }
-    }, [location.pathname, location.search, location.hash, location.state, navigate]);
+    }, [dashboardsEnabled, location.pathname, location.search, location.hash, location.state, navigate]);
     const notebookViewModeValue = React.useMemo<NotebookViewModeContextValue>(
-        () => ({ mode: notebookViewMode, setMode: setNotebookViewMode }),
-        [notebookViewMode, setNotebookViewMode],
+        () => ({ mode: visibleViewMode, setMode: setNotebookViewMode }),
+        [visibleViewMode, setNotebookViewMode],
     );
 
     React.useEffect(() => {
+        if (!settingsReady) return;
+        if (!dashboardsEnabled) {
+            pendingViewSearchRef.current = null;
+            if (notebookViewMode === NotebookViewMode.Dashboard) {
+                notebookViewModeRef.current = NotebookViewMode.Notebook;
+                setNotebookViewModeState(NotebookViewMode.Notebook);
+            }
+            if (new URLSearchParams(location.search).get('view') === 'dashboard') {
+                const navigation = notebookViewNavigation(location, NotebookViewMode.Notebook);
+                navigate(navigation.to, navigation.options);
+            }
+            return;
+        }
         if (pendingViewSearchRef.current != null) {
             if (pendingViewSearchRef.current === location.search) pendingViewSearchRef.current = null;
             return;
         }
-        const requested = notebookViewModeFromSearch(location.search);
+        const requested = notebookViewModeFromSearch(location.search, dashboardsEnabled);
         if (requested === NotebookViewMode.Dashboard && notebookViewModeRef.current !== requested) {
             notebookViewModeRef.current = requested;
             setNotebookViewModeState(requested);
@@ -121,7 +141,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
             notebookViewModeRef.current = NotebookViewMode.Notebook;
             setNotebookViewModeState(NotebookViewMode.Notebook);
         }
-    }, [location.search]);
+    }, [dashboardsEnabled, settingsReady, location.search, navigate]);
 
     // Setup command dispatch logic
     const commandDispatch = React.useCallback(

@@ -73,7 +73,11 @@
 
 .body_container {
     display: grid;
-    grid-template-rows: max-content 1fr;
+    grid-template-rows: max-content minmax(0, 1fr);
+}
+
+.body_container_no_view_bar {
+    grid-template-rows: minmax(0, 1fr);
 }
 
 .view_bar {

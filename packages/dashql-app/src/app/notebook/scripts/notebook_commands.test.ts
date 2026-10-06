@@ -8,9 +8,10 @@ import {
 } from './notebook_commands.js';
 
 describe('notebook view URL state', () => {
-    it('reads Dashboard from the view query parameter', () => {
-        expect(notebookViewModeFromSearch('?view=dashboard')).toBe(NotebookViewMode.Dashboard);
-        expect(notebookViewModeFromSearch('?view=notebook')).toBe(NotebookViewMode.Notebook);
+    it('reads Dashboard from the view query parameter only when enabled', () => {
+        expect(notebookViewModeFromSearch('?view=dashboard', false)).toBe(NotebookViewMode.Notebook);
+        expect(notebookViewModeFromSearch('?view=dashboard', true)).toBe(NotebookViewMode.Dashboard);
+        expect(notebookViewModeFromSearch('?view=notebook', true)).toBe(NotebookViewMode.Notebook);
     });
 
     it('replaces only the view parameter and preserves other query state', () => {
