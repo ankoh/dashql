@@ -11,6 +11,7 @@ import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ModifyNotebookScripts, useNotebookScripts } from '../scripts/notebook_scripts_registry.js';
 import { Logger } from '../../../platform/logger/logger.js';
+import { getKeywordCase } from './script_format.js';
 
 const LOG_CTX = "notebook_editor";
 const WRITABLE_SESSION_VIEWS = new WeakMap<object, EditorView>();
@@ -113,7 +114,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     );
 };
 
-function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: ScriptData, modifyScripts: ModifyNotebookScripts, logger: Logger, _config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
+function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: ScriptData, modifyScripts: ModifyNotebookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
@@ -216,6 +217,7 @@ function updateEditor(view: EditorView, scripts: NotebookScripts, scriptData: Sc
             scriptPendingDiff: scriptData.pendingDiff,
 
             derivedFocus: scripts.semanticUserFocus,
+            keywordCase: getKeywordCase(config.settings),
 
             lookupScriptSession: (scriptKey) => scripts.scripts[scriptKey]?.scriptSession ?? null,
             onNavigateToScript,

@@ -39,6 +39,7 @@ import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { useAppConfig } from '../app/config/app_config.js';
+import { getKeywordCase } from '../app/notebook/ui/script_format.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
 import { useFormatDialog } from './format_dialog.js';
 import { usePlanDialog } from './plan_dialog.js';
@@ -75,6 +76,9 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const appEvents = usePlatformEventListener();
     const platformType = usePlatformType();
     const appConfig = useAppConfig();
+    const keywordCase = getKeywordCase(appConfig?.settings);
+    const keywordCaseRef = React.useRef(keywordCase);
+    keywordCaseRef.current = keywordCase;
     const loginHistoryRef = React.useRef(new SalesforceLoginHistoryStore());
     const attachmentManagerRef = React.useRef<SalesforceRemoteAttachmentManager | null>(null);
     const { controller: loginDialog, dialog } = useSalesforceLoginDialog({
@@ -90,6 +94,10 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
     const [status, setStatus] = React.useState('Instantiating hyperdb-wasm');
+    const shellRef = React.useRef<DashQLShell | null>(null);
+    React.useEffect(() => {
+        shellRef.current?.setKeywordCase(keywordCase);
+    }, [keywordCase]);
     const { resultQuery, showResultQuery, closeResultQuery } = useShellQueryResult(queryExecutions);
 
     React.useEffect(() => {
@@ -297,6 +305,8 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 return;
             }
             shell = nextShell;
+            shellRef.current = nextShell;
+            nextShell.setKeywordCase(keywordCaseRef.current);
             attachmentManager = new SalesforceRemoteAttachmentManager(connection, shell, {
                 loadPrefetchedFunctionSql: fetchPrefetchedHyperFunctions,
                 logger,
@@ -346,11 +356,12 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             cancelled = true;
             controller?.dispose();
             shell?.destroy();
+            shellRef.current = null;
             attachmentManagerRef.current = null;
             setConnected(false);
             void fileRegistry?.dispose().finally(() => connection?.close());
         };
-    }, [appConfig, appEvents, dispatchComputation, fileDownloader, formatDialog, httpClient, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase, showResultQuery]);
+    }, [appConfig?.connectors, appConfig?.settings?.forceReLogin, appEvents, dispatchComputation, fileDownloader, formatDialog, httpClient, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setConnected, setupEmbeddedDatabase, showResultQuery]);
 
     return (
         <main className={styles.page} aria-label="HyperDB Shell">

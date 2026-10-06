@@ -127,6 +127,7 @@ DASHQL_SHELL_EXPORT DashQLShell* dashql_shell_new(dashql::Catalog* catalog, uint
                                                   bool auto_qualify_non_default_database_tables = false);
 DASHQL_SHELL_EXPORT void dashql_shell_destroy(DashQLShell* shell);
 DASHQL_SHELL_EXPORT void dashql_shell_resize(DashQLShell* shell, uint32_t terminal_columns);
+DASHQL_SHELL_EXPORT void dashql_shell_keyword_case_set(DashQLShell* shell, uint32_t keyword_case);
 DASHQL_SHELL_EXPORT uint32_t dashql_shell_session_relations_set(DashQLShell* shell, bool enabled);
 DASHQL_SHELL_EXPORT uint32_t dashql_shell_commands_set(DashQLShell* shell, const uint8_t* commands,
                                                        size_t commands_length);

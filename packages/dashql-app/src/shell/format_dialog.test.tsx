@@ -7,6 +7,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { AppConfigProvider, useAppConfig, useAppReconfigure } from '../app/config/app_config.js';
 import { useFormatDialog, type FormatDialogController } from './format_dialog.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -50,9 +51,16 @@ describe('SQL formatter dialog', () => {
     let catalog: dashql.DashQLCatalog;
     let controller: FormatDialogController;
     let mounted: boolean;
+    let setKeywordCase: (value: 'lower' | 'upper') => void;
+    let settingsReady = false;
 
     const Harness = () => {
         const formatDialog = useFormatDialog();
+        const reconfigure = useAppReconfigure();
+        settingsReady = useAppConfig() != null;
+        setKeywordCase = value => reconfigure(config => config == null ? null : {
+            ...config, settings: { ...config.settings, keywordCase: value },
+        });
         controller = formatDialog.controller;
         return (
             <LoggerProvider>
@@ -67,7 +75,7 @@ describe('SQL formatter dialog', () => {
         root = createRoot(container);
         catalog = core.createCatalog();
         mounted = true;
-        act(() => root.render(<Harness />));
+        act(() => root.render(<LoggerProvider><AppConfigProvider><Harness /></AppConfigProvider></LoggerProvider>));
     });
 
     afterEach(() => {
@@ -117,6 +125,19 @@ describe('SQL formatter dialog', () => {
         expect(editorContent().getAttribute('contenteditable')).toBe('true');
         expect(editorContent().getAttribute('aria-readonly')).toBe('false');
 
+        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close SQL formatter"]')!.click());
+        await result;
+    });
+
+    it('refreshes an open formatted view when keyword case changes', async () => {
+        await vi.waitFor(() => expect(settingsReady).toBe(true));
+        const result = open();
+        act(() => setEditorText('select count(*) from items'));
+        act(() => modeButton('Pretty').click());
+        expect(editorText()).toContain('select count(*)');
+        act(() => setKeywordCase('upper'));
+        expect(editorText()).toContain('SELECT count(*)');
+        expect(editorText()).toContain('FROM items');
         act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close SQL formatter"]')!.click());
         await result;
     });

@@ -16,6 +16,8 @@ import {
 } from './notebook_shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { createShellOutputCommand, type ShellOutputMode } from '../../../shell/shell_result.js';
+import { useAppConfig } from '../../config/app_config.js';
+import { getKeywordCase } from '../ui/script_format.js';
 
 const LOG_CTX = 'notebook_shell_page';
 
@@ -33,6 +35,9 @@ interface Props {
 }
 
 export const NotebookShellPage: React.FC<Props> = ({ notebookId, notebookName, connection, active }) => {
+    const keywordCase = getKeywordCase(useAppConfig()?.settings);
+    const keywordCaseRef = React.useRef(keywordCase);
+    keywordCaseRef.current = keywordCase;
     const logger = useLogger();
     const executeQuery = useQueryExecutor();
     const cancelQuery = useCancelQuery();
@@ -40,6 +45,9 @@ export const NotebookShellPage: React.FC<Props> = ({ notebookId, notebookName, c
     const containerRef = React.useRef<HTMLDivElement>(null);
     const controllerRef = React.useRef<BrowserShellController | null>(null);
     const shellRef = React.useRef<DashQLShell | null>(null);
+    React.useEffect(() => {
+        shellRef.current?.setKeywordCase(keywordCase);
+    }, [keywordCase]);
     const generationRef = React.useRef(0);
     const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
@@ -75,6 +83,7 @@ export const NotebookShellPage: React.FC<Props> = ({ notebookId, notebookName, c
                 }
             },
         }).then(async nextShell => {
+            nextShell.setKeywordCase(keywordCaseRef.current);
             if (cancelled || generation !== generationRef.current) {
                 nextShell.destroy();
                 return;

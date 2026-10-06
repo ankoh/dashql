@@ -506,13 +506,18 @@ void Formatter::IdentifyParentheses(size_t node_id) {
 }
 
 FmtReg Formatter::FormatLeaf(const buffers::parser::Node& node) {
-    return fmt.Text(scanned.ReadTextAtSymbolSpan(node.symbol_span()));
+    auto text = scanned.ReadTextAtSymbolSpan(node.symbol_span());
+    if (node.node_type() == NodeType::BOOL || node.node_type() == NodeType::LITERAL_NULL ||
+        node.node_type() == NodeType::OPERATOR) {
+        return fmt.Text(text);
+    }
+    return fmt.Verbatim(text);
 }
 
 FmtReg Formatter::FormatUnimplemented(const buffers::parser::Node& node) {
     unformattable_nodes.push_back(static_cast<uint32_t>(&node - ast.data()));
     std::string_view type_name = buffers::parser::EnumNameNodeType(node.node_type());
-    return fmt.Concat({fmt.Text("'<"), fmt.Text(type_name), fmt.Text(">'")});
+    return fmt.Concat({fmt.Text("'<"), fmt.Verbatim(type_name), fmt.Text(">'")});
 }
 
 FmtReg Formatter::FormatCommaList(const buffers::parser::Node& node, bool indent_after_breaks) {
@@ -2602,6 +2607,7 @@ std::string Formatter::WriteOutput() const {
         .indentation_width = config.indentation_width,
         .debug_mode = config.debug_mode,
         .mode = config.mode,
+        .keyword_case = config.keyword_case,
     };
 
     std::string output;
@@ -2710,6 +2716,7 @@ std::string Formatter::Render(FmtReg reg) const {
         .indentation_width = config.indentation_width,
         .debug_mode = config.debug_mode,
         .mode = config.mode,
+        .keyword_case = config.keyword_case,
     };
     return fmt.Render(reg, options);
 }

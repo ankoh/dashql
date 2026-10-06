@@ -109,6 +109,12 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         expect(await backend.loadAppSettings()).toEqual({ theme: 'dark' });
     });
 
+    it('round-trips the SQL keyword case preference in the app manifest', async () => {
+        await backend.saveAppSettings({ keywordCase: 'upper' });
+        expect(await backend.loadAppSettings()).toEqual({ keywordCase: 'upper' });
+        expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)!).appSettings.keywordCase).toBe('upper');
+    });
+
     it('removes obsolete AI provider settings from the manifest', async () => {
         files.set(STORAGE_MANIFEST_FILE, JSON.stringify({
             notebooks: [],

@@ -60,6 +60,10 @@
         "formattingDebugMode": {
           "type": "boolean"
         },
+        "keywordCase": {
+          "type": "string",
+          "enum": ["lower", "upper"]
+        },
         "forceReLogin": {
           "type": "boolean"
         },

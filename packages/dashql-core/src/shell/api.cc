@@ -204,6 +204,12 @@ void dashql_shell_resize(DashQLShell* shell, uint32_t terminal_columns) {
     }
 }
 
+void dashql_shell_keyword_case_set(DashQLShell* shell, uint32_t keyword_case) {
+    if (shell != nullptr) {
+        shell->session.SetKeywordCase(static_cast<dashql::buffers::formatting::KeywordCase>(keyword_case));
+    }
+}
+
 uint32_t dashql_shell_session_relations_set(DashQLShell* shell, bool enabled) {
     if (shell == nullptr) return DASHQL_SHELL_INVALID_ARGUMENT;
     try {

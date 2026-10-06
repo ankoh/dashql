@@ -542,7 +542,7 @@ TEST(CompletionTest, FunctionCallIsAtomic) {
 
     auto completion = script.CompleteAtCursor(10);
     flatbuffers::FlatBufferBuilder builder;
-    builder.Finish(completion->Pack(builder));
+    builder.Finish(completion->Pack(builder, buffers::formatting::KeywordCase::LOWER));
     auto* packed = flatbuffers::GetRoot<buffers::completion::Completion>(builder.GetBufferPointer());
     const buffers::completion::CompletionCandidate* candidate = nullptr;
     for (auto* value : *packed->candidates()) {

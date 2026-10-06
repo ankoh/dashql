@@ -16,6 +16,8 @@ import { useDashQLCoreSetup } from '../../../../providers/core_provider.js';
 import { CopyToClipboardButton } from '../../../../../utils/clipboard.js';
 import { useKeyEvents } from '../../../../../utils/key_events.js';
 import { peekFormat } from './format_peek.js';
+import { useAppConfig } from '../../../../config/app_config.js';
+import { getKeywordCase } from '../../../ui/script_format.js';
 import { HyperPlanView } from '../plan/hyper_plan_view.js';
 
 const LOG_CTX = 'cell_detail_overlay';
@@ -60,7 +62,7 @@ function projectSqlText(
     }
 }
 
-export function detectFormats(core: dashql.DashQL | null, value: string | null): DetectedFormats {
+export function detectFormats(core: dashql.DashQL | null, value: string | null, keywordCase = dashql.buffers.formatting.KeywordCase.LOWER): DetectedFormats {
     const result: DetectedFormats = { json: null, sql: null, plan: null };
     if (value == null) return result;
 
@@ -98,6 +100,8 @@ export function detectFormats(core: dashql.DashQL | null, value: string | null):
                     dashql.buffers.formatting.FormattingMode.PRETTY,
                     80,
                     4,
+                    false,
+                    keywordCase,
                 );
                 formattedScript = script.format(config, null);
                 const text = formattedScript.toString();
@@ -259,6 +263,7 @@ const EMPTY_FORMATS: DetectedFormats = { json: null, sql: null, plan: null };
 
 /// Inner component — only mounted when overlay is open
 function CellDetailOverlayInner(props: CellDetailOverlayProps) {
+    const keywordCase = getKeywordCase(useAppConfig()?.settings);
     const coreSetup = useDashQLCoreSetup();
     const [core, setCore] = React.useState<dashql.DashQL | null>(null);
     const [formats, setFormats] = React.useState<DetectedFormats>(EMPTY_FORMATS);
@@ -274,11 +279,11 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
 
     React.useEffect(() => {
         const f = props.structuredValue == null
-            ? detectFormats(core, props.formattedValue)
+            ? detectFormats(core, props.formattedValue, keywordCase)
             : detectStructuredFormats(props.structuredValue);
         setFormats(f);
         setSelectedFormat(pickDefaultMode(f));
-    }, [props.formattedValue, props.structuredValue, core]);
+    }, [props.formattedValue, props.structuredValue, core, keywordCase]);
 
     const availableModes = React.useMemo(() => getAvailableModes(formats), [formats]);
 

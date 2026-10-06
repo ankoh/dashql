@@ -287,6 +287,41 @@ TEST(ShellApiTest, ReturnsCompletionCandidates) {
     dashql_shell_destroy(shell);
 }
 
+TEST(ShellApiTest, SwitchesKeywordCompletionCaseWithoutRecreatingShell) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+    EXPECT_TRUE(HasCompletion(shell, "sel", "select"));
+    dashql_shell_keyword_case_set(shell, 1);
+    EXPECT_TRUE(HasCompletion(shell, "sel", "SELECT"));
+    EXPECT_FALSE(HasCompletion(shell, "sel", "\"SELECT\""));
+    dashql_shell_keyword_case_set(shell, 0);
+    EXPECT_TRUE(HasCompletion(shell, "sel", "select"));
+    dashql_shell_destroy(shell);
+}
+
+TEST(ShellApiTest, UppercaseTerminalHintExtendsLowercaseTypedKeyword) {
+    dashql::Catalog catalog;
+    auto* shell = dashql_shell_new(&catalog, 80);
+    ASSERT_NE(shell, nullptr);
+    dashql_shell_keyword_case_set(shell, 1);
+
+    DashQLShellTerminalResult output{};
+    ASSERT_EQ(dashql_shell_terminal_open(shell, nullptr, 0, &output), DASHQL_SHELL_OK);
+    dashql_shell_terminal_result_destroy(&output);
+    ASSERT_EQ(ConsumeTerminal(shell, DASHQL_SHELL_INPUT_TEXT, &output, "sel"), DASHQL_SHELL_OK);
+    const auto rendered = TerminalData(output);
+    EXPECT_NE(rendered.find("SELECT"), std::string_view::npos) << rendered;
+    EXPECT_NE(rendered.find(std::string{dashql::shell::vt100::kForegroundBrightBlack} + "ECT"),
+              std::string_view::npos)
+        << rendered;
+    EXPECT_EQ(rendered.find(std::string{dashql::shell::vt100::kForegroundBrightBlack} + "SELECT"),
+              std::string_view::npos)
+        << rendered;
+    dashql_shell_terminal_result_destroy(&output);
+    dashql_shell_destroy(shell);
+}
+
 TEST(ShellApiTest, DrivesPromptInteractionAndHistory) {
     dashql::Catalog catalog;
     auto* shell = dashql_shell_new(&catalog, 80);

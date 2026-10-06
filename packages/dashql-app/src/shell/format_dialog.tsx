@@ -6,7 +6,8 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { Compartment, EditorState, type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
-import { createScriptFormatConfig, measureScriptFormatWidth } from '../app/notebook/ui/script_format.js';
+import { createScriptFormatConfig, getKeywordCase, measureScriptFormatWidth } from '../app/notebook/ui/script_format.js';
+import { useAppConfig } from '../app/config/app_config.js';
 import { CodeMirror } from '../app/notebook/scripts/editor/codemirror.js';
 import {
     DashQLScannerDecorationUpdateEffect,
@@ -176,6 +177,7 @@ function formatSql(
     text: string,
     mode: FormatMode,
     compactWidth: number,
+    keywordCase: dashql.buffers.formatting.KeywordCase,
 ): string {
     if (text.length === 0) return '';
 
@@ -187,7 +189,7 @@ function formatSql(
             ? dashql.buffers.formatting.FormattingMode.COMPACT
             : dashql.buffers.formatting.FormattingMode.PRETTY;
         const width = mode === FormatMode.Compact ? compactWidth : 80;
-        const config = createScriptFormatConfig(formattingMode, false, width);
+        const config = createScriptFormatConfig(formattingMode, false, width, keywordCase);
         formatted = session.format(config);
         return formatted.toString();
     } finally {
@@ -197,6 +199,7 @@ function formatSql(
 }
 
 function FormatDialog(props: FormatDialogProps) {
+    const keywordCase = getKeywordCase(useAppConfig()?.settings);
     const headingId = React.useId();
     const dialogRef = React.useRef<HTMLElement>(null);
     const editorFocusRef = React.useRef<HTMLElement>(null);
@@ -259,9 +262,9 @@ function FormatDialog(props: FormatDialogProps) {
         view?.focus();
     }, []);
 
-    const showMode = React.useCallback((nextMode: FormatMode) => {
+    const showMode = React.useCallback((nextMode: FormatMode, refresh = false) => {
         const view = editorViewRef.current;
-        if (view == null || nextMode === mode) return;
+        if (view == null || (nextMode === mode && !refresh)) return;
 
         let text = rawTextRef.current;
         let update = rawUpdateRef.current;
@@ -273,7 +276,7 @@ function FormatDialog(props: FormatDialogProps) {
                 return;
             }
             try {
-                text = formatSql(props.core, props.catalog, text, nextMode, measureWidth());
+                text = formatSql(props.core, props.catalog, text, nextMode, measureWidth(), keywordCase);
                 update = analyzeSql(props.core, props.catalog, text, measureWidth()).update;
                 readonly = true;
             } catch (error) {
@@ -301,7 +304,13 @@ function FormatDialog(props: FormatDialogProps) {
             changingViewRef.current = false;
         }
         setMode(nextMode);
-    }, [measureWidth, mode, props.catalog, props.core, validateRaw]);
+    }, [measureWidth, mode, props.catalog, props.core, validateRaw, keywordCase]);
+
+    const renderedCase = React.useRef(keywordCase);
+    React.useEffect(() => {
+        if (renderedCase.current !== keywordCase && mode !== FormatMode.Raw) showMode(mode, true);
+        renderedCase.current = keywordCase;
+    }, [keywordCase, mode, showMode]);
 
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,

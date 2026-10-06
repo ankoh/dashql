@@ -82,6 +82,7 @@ export interface DashQLProcessorUpdateOut {
 };
 /// A state that is propagated from the outside into processor
 export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
+    keywordCase?: dashql.buffers.formatting.KeywordCase;
     /// The derive focus info
     derivedFocus: SemanticUserFocus | null;
 
@@ -223,6 +224,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             scriptPendingDiff: null,
 
             derivedFocus: null as SemanticUserFocus | null,
+            keywordCase: dashql.buffers.formatting.KeywordCase.LOWER,
             lookupScriptSession: undefined,
             onNavigateToScript: undefined,
 
@@ -250,6 +252,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 state = {
                     ...state,
                     ...effect.value,
+                    keywordCase: effect.value.keywordCase ?? dashql.buffers.formatting.KeywordCase.LOWER,
                     // Completion is editor-owned interaction state. An asynchronous notebook
                     // round-trip must not resurrect a completion that was locally dismissed.
                     scriptCompletion: keepLocalCompletion
@@ -271,11 +274,22 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                     && prevState.editorUpdate?.stateRevision == effect.value.editorUpdate?.stateRevision
                     && prevState.scriptPendingDiff == effect.value.scriptPendingDiff
                     && prevState.derivedFocus == effect.value.derivedFocus
+                    && prevState.keywordCase == state.keywordCase
                     && !transaction.docChanged
                     && !selectionChanged;
 
                 if (redundantUpdate) {
                     return prevState;
+                }
+                if (prevState.keywordCase !== state.keywordCase && state.scriptCompletion != null) {
+                    state = tryStartCompletion(
+                        state, prevState,
+                        state.scriptSession?.completeAtCursor(DASHQL_COMPLETION_LIMIT, state.keywordCase) ?? null,
+                        transaction.newDoc, Number(state.editorUpdate?.primaryCursorState?.textOffset ?? 0),
+                    );
+                    // Persist the new buffer so the notebook can release the superseded one.
+                    state.onUpdate(state);
+                    return state;
                 }
                 externalUpdate = true;
             }
@@ -459,7 +473,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
     // Check additional completion effects
     for (const effect of transaction.effects) {
         if (effect.is(DashQLCompletionStartEffect)) {
-            const buffer = scriptSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
+            const buffer = scriptSession.completeAtCursor(DASHQL_COMPLETION_LIMIT, state.keywordCase);
             state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
             continue;
 
@@ -607,7 +621,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
         // Get a completion going.
         const noActiveCompletion = !state.scriptCompletion || state.scriptCompletion.status != DashQLCompletionStatus.AVAILABLE;
         if (noActiveCompletion && userEventCanStartCompletion(transaction, prevState)) {
-            const buffer = scriptSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
+            const buffer = scriptSession.completeAtCursor(DASHQL_COMPLETION_LIMIT, state.keywordCase);
             state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
         }
 
@@ -628,7 +642,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                         state.scriptCompletion = null;
                         break;
                     }
-                    const buffer = scriptSession.completeAtCursor(DASHQL_COMPLETION_LIMIT);
+                    const buffer = scriptSession.completeAtCursor(DASHQL_COMPLETION_LIMIT, state.keywordCase);
                     state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
                     break;
                 default:

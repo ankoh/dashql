@@ -93,7 +93,7 @@ extern "C" bool dashql_script_analysis_job_cancel(uint32_t job_id);
 extern "C" void dashql_script_analysis_job_release(uint32_t job_id);
 /// Get a pretty-printed version of the SQL query
 extern "C" void dashql_script_format(FFIResult* result, dashql::Script* script, size_t dialect, size_t mode,
-                                       size_t max_width, size_t indentation_width, bool debug_mode,
+                                        size_t max_width, size_t indentation_width, bool debug_mode, size_t keyword_case,
                                        bool parse_if_outdated, dashql::Catalog* catalog);
 /// Whether formatting this script can complete without placeholders.
 extern "C" uint32_t dashql_script_is_fully_formattable(dashql::Script* script, size_t dialect, size_t mode,
@@ -118,7 +118,8 @@ extern "C" void dashql_script_get_statistics(FFIResult* result, dashql::Script* 
 /// Move the cursor in a script to a position
 extern "C" void dashql_script_move_cursor(FFIResult* result, dashql::Script* script, size_t text_offset);
 /// Complete at a cursor in the script
-extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit);
+extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit,
+                                                   size_t keyword_case);
 
 // -----------------------------------------------------------------------------
 
@@ -148,7 +149,8 @@ extern "C" void dashql_script_session_set_primary_cursor(FFIResult* result, dash
 /// Analyze and publish the session script synchronously, returning an owned EditorUpdate FlatBuffer.
 extern "C" void dashql_script_session_analyze(FFIResult* result, dashql::ScriptSession* session);
 extern "C" void dashql_script_session_complete_at_cursor(FFIResult* result,
-                                                           dashql::ScriptSession* session, size_t limit);
+                                                           dashql::ScriptSession* session, size_t limit,
+                                                           size_t keyword_case);
 /// Compile the session script into an executable query FlatBuffer.
 extern "C" void dashql_script_session_compile_query(FFIResult* result, dashql::ScriptSession* session,
                                                       size_t dialect, size_t mode, size_t max_width,
@@ -156,8 +158,8 @@ extern "C" void dashql_script_session_compile_query(FFIResult* result, dashql::S
                                                       bool parse_if_outdated);
 /// Format the session into a separately owned normal Script.
 extern "C" void dashql_script_session_format(FFIResult* result, dashql::ScriptSession* session,
-                                                size_t dialect, size_t mode, size_t max_width,
-                                                size_t indentation_width, bool debug_mode, bool parse_if_outdated,
+                                                 size_t dialect, size_t mode, size_t max_width,
+                                                 size_t indentation_width, bool debug_mode, size_t keyword_case, bool parse_if_outdated,
                                                 dashql::Catalog* catalog);
 /// Rewrite dashboard placement and return the resulting UTF-8 source text.
 /// Negative row/column values mean that the corresponding coordinate is omitted.

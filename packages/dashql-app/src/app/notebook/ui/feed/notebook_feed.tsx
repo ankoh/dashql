@@ -33,6 +33,7 @@ import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scrol
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { useNotebookFeedLayout } from './notebook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './notebook_feed_row.js';
+import { getKeywordCase } from '../script_format.js';
 import { reorderFeedEntries } from './notebook_feed_drag.js';
 
 export interface NotebookFeedProps {
@@ -79,6 +80,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
     const logger = useLogger();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
+    const keywordCase = getKeywordCase(config?.settings);
     const compactLayout = useCompactFeedLayout();
     const scriptRefs = props.notebookScripts.scriptRefs;
     const canonicalEntries = React.useMemo(
@@ -338,6 +340,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         scripts: props.notebookScripts.scripts,
         scriptDebugMode,
         formattingDebugMode,
+        keywordCase,
         focusedFileName: props.notebookScripts.scriptFocus.fileName,
         canDelete,
         active: props.active,
@@ -363,7 +366,7 @@ export const NotebookFeed: React.FC<NotebookFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, compactLayout, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, props.active, props.notebookScripts.scripts, props.notebookScripts.scriptFocus.fileName, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, canDelete, handleFocus, handleDelete, handleRename, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     return (

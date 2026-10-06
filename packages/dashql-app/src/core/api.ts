@@ -42,9 +42,9 @@ export interface EmscriptenModule {
     _dashql_script_session_apply: (result: number, ptr: number, event: number, eventLength: number) => void;
     _dashql_script_session_set_primary_cursor: (result: number, ptr: number, expectedDocumentRevision: bigint, offset: bigint) => void;
     _dashql_script_session_analyze: (result: number, ptr: number) => void;
-    _dashql_script_session_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
+    _dashql_script_session_complete_at_cursor: (result: number, ptr: number, limit: number, keywordCase: number) => void;
     _dashql_script_session_compile_query: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, allowExtensions: boolean, parseIfOutdated: boolean) => void;
-    _dashql_script_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean, catalog: number) => void;
+    _dashql_script_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, keywordCase: number, parseIfOutdated: boolean, catalog: number) => void;
     _dashql_script_session_rewrite_dashboard: (result: number, ptr: number, row: number, column: number, width: number, height: number, parseIfOutdated: boolean) => void;
     _dashql_script_session_is_fully_formattable: (ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean) => number;
     _dashql_script_session_compute_diff: (result: number, ptr: number, target: number) => void;
@@ -66,13 +66,13 @@ export interface EmscriptenModule {
     _dashql_script_analysis_job_cancel: (job: number) => boolean;
     _dashql_script_analysis_job_release: (job: number) => void;
     _dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
-    _dashql_script_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
+    _dashql_script_complete_at_cursor: (result: number, ptr: number, limit: number, keywordCase: number) => void;
     _dashql_script_get_catalog_entry_id: (ptr: number) => number;
     _dashql_script_get_parsed: (result: number, ptr: number) => void;
     _dashql_script_get_analyzed: (result: number, ptr: number) => void;
     _dashql_script_compute_diff: (result: number, source: number, target: number) => void;
     _dashql_script_get_statistics: (result: number, ptr: number) => void;
-    _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
+    _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, keywordCase: number, parse_if_outdated: boolean, catalog: number) => void;
     _dashql_script_is_fully_formattable: (ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean) => number;
     _dashql_script_get_unformattable_nodes: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean) => void;
     _dashql_catalog_new: (result: number) => void;
@@ -137,9 +137,9 @@ interface DashQLModuleExports {
     dashql_script_session_apply: (result: number, ptr: number, event: number, eventLength: number) => void;
     dashql_script_session_set_primary_cursor: (result: number, ptr: number, expectedDocumentRevision: bigint, offset: bigint) => void;
     dashql_script_session_analyze: (result: number, ptr: number) => void;
-    dashql_script_session_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
+    dashql_script_session_complete_at_cursor: (result: number, ptr: number, limit: number, keywordCase: number) => void;
     dashql_script_session_compile_query: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, allowExtensions: boolean, parseIfOutdated: boolean) => void;
-    dashql_script_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean, catalog: number) => void;
+    dashql_script_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, keywordCase: number, parseIfOutdated: boolean, catalog: number) => void;
     dashql_script_session_rewrite_dashboard: (result: number, ptr: number, row: number, column: number, width: number, height: number, parseIfOutdated: boolean) => void;
     dashql_script_session_is_fully_formattable: (ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean) => number;
     dashql_script_session_compute_diff: (result: number, ptr: number, target: number) => void;
@@ -162,13 +162,13 @@ interface DashQLModuleExports {
     dashql_script_analysis_job_cancel: (job: number) => boolean;
     dashql_script_analysis_job_release: (job: number) => void;
     dashql_script_move_cursor: (result: number, ptr: number, offset: number) => void;
-    dashql_script_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
+    dashql_script_complete_at_cursor: (result: number, ptr: number, limit: number, keywordCase: number) => void;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
     dashql_script_get_parsed: (result: number, ptr: number) => void;
     dashql_script_get_analyzed: (result: number, ptr: number) => void;
     dashql_script_compute_diff: (result: number, source: number, target: number) => void;
     dashql_script_get_statistics: (result: number, ptr: number) => void;
-    dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
+    dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, keywordCase: number, parse_if_outdated: boolean, catalog: number) => void;
     dashql_script_is_fully_formattable: (ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean) => number;
     dashql_script_get_unformattable_nodes: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean) => void;
 
@@ -1005,7 +1005,7 @@ export class DashQLScriptSession {
         );
     }
 
-    public completeAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> {
+    public completeAtCursor(limit: number, keywordCase = buffers.formatting.KeywordCase.LOWER): FlatBufferPtr<buffers.completion.Completion> {
         const sessionPtr = this.ptr.assertNotNull();
         const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.completion.Completion, buffers.completion.CompletionT>(
             COMPLETION_TYPE,
@@ -1013,6 +1013,7 @@ export class DashQLScriptSession {
                 resultPtr,
                 sessionPtr,
                 limit,
+                keywordCase,
             ),
             () => new buffers.completion.Completion(),
         );
@@ -1060,6 +1061,7 @@ export class DashQLScriptSession {
                 config.maxWidth,
                 config.indentationWidth,
                 config.debugMode,
+                config.keywordCase,
                 parseIfOutdated,
                 catalogPtr,
             )
@@ -1346,12 +1348,12 @@ export class DashQLScript {
         return resultBuffer;
     }
     /// Complete at the cursor
-    public completeAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> {
+    public completeAtCursor(limit: number, keywordCase = buffers.formatting.KeywordCase.LOWER): FlatBufferPtr<buffers.completion.Completion> {
         this.assertIdle();
         const scriptPtr = this.ptr.assertNotNull();
         const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.completion.Completion, buffers.completion.CompletionT>(
             COMPLETION_TYPE,
-            (resultPtr) => this.ptr.api.instanceExports.dashql_script_complete_at_cursor(resultPtr, scriptPtr, limit),
+            (resultPtr) => this.ptr.api.instanceExports.dashql_script_complete_at_cursor(resultPtr, scriptPtr, limit, keywordCase),
             () => new buffers.completion.Completion()
         );
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
@@ -1399,6 +1401,7 @@ export class DashQLScript {
                 config.maxWidth,
                 config.indentationWidth,
                 config.debugMode,
+                config.keywordCase,
                 parseIfOutdated,
                 catalogPtr)
         );

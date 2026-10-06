@@ -453,14 +453,14 @@ std::string ScriptSession::RewriteDashboard(std::optional<int32_t> row, std::opt
 }
 
 flatbuffers::Offset<buffers::completion::Completion> ScriptSession::PackCompletion(
-    flatbuffers::FlatBufferBuilder& builder, size_t limit) {
+    flatbuffers::FlatBufferBuilder& builder, size_t limit, buffers::formatting::KeywordCase keyword_case) {
     auto completion = script_.CompleteAtCursor(limit);
     if (offset_unit_ == buffers::editor::EditorOffsetUnit::UTF8_BYTES) {
-        return completion->Pack(builder);
+        return completion->Pack(builder, keyword_case);
     }
 
     flatbuffers::FlatBufferBuilder utf8_builder;
-    utf8_builder.Finish(completion->Pack(utf8_builder));
+    utf8_builder.Finish(completion->Pack(utf8_builder, keyword_case));
     auto projected = std::unique_ptr<buffers::completion::CompletionT>{
         flatbuffers::GetRoot<buffers::completion::Completion>(utf8_builder.GetBufferPointer())->UnPack()};
     projected->cursor_offset = ProjectByteOffset(projected->cursor_offset);

@@ -241,7 +241,7 @@ extern "C" bool dashql_script_analysis_job_cancel(uint32_t job_id) { return Asyn
 extern "C" void dashql_script_analysis_job_release(uint32_t job_id) { AsyncAnalysisJobs::Release(job_id); }
 /// Format a script
 extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t dialect, size_t mode,
-                                      size_t max_width, size_t indentation_width, bool debug_mode,
+                                       size_t max_width, size_t indentation_width, bool debug_mode, size_t keyword_case,
                                       bool parse_if_outdated, Catalog* catalog) {
     buffers::formatting::FormattingConfigT config;
     config.dialect = static_cast<dashql::buffers::formatting::FormattingDialect>(dialect);
@@ -249,6 +249,7 @@ extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t d
     config.max_width = max_width;
     config.indentation_width = indentation_width;
     config.debug_mode = debug_mode;
+    config.keyword_case = static_cast<buffers::formatting::KeywordCase>(keyword_case);
 
     // Format the script
     auto text = script->Format(config, parse_if_outdated);
@@ -366,12 +367,13 @@ extern "C" void dashql_script_move_cursor(FFIResult* result, dashql::Script* scr
     packBuffer(result, std::move(detached));
 }
 
-extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit) {
+extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit,
+                                                    size_t keyword_case) {
     auto completion = script->CompleteAtCursor(limit);
 
     // Pack the completion
     flatbuffers::FlatBufferBuilder fb;
-    fb.Finish(completion->Pack(fb));
+    fb.Finish(completion->Pack(fb, static_cast<buffers::formatting::KeywordCase>(keyword_case)));
 
     // Store the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
@@ -461,8 +463,11 @@ extern "C" void dashql_script_session_analyze(FFIResult* result, ScriptSession* 
 }
 
 extern "C" void dashql_script_session_complete_at_cursor(FFIResult* result, ScriptSession* session,
-                                                             size_t limit) {
-    packFlatBuffer(result, [&](auto& builder) { builder.Finish(session->PackCompletion(builder, limit)); });
+                                                              size_t limit, size_t keyword_case) {
+    packFlatBuffer(result, [&](auto& builder) {
+        builder.Finish(session->PackCompletion(builder, limit,
+                                               static_cast<buffers::formatting::KeywordCase>(keyword_case)));
+    });
 }
 
 extern "C" void dashql_script_session_compile_query(FFIResult* result, ScriptSession* session,
@@ -478,8 +483,9 @@ extern "C" void dashql_script_session_compile_query(FFIResult* result, ScriptSes
 
 extern "C" void dashql_script_session_format(FFIResult* result, ScriptSession* session, size_t dialect,
                                                 size_t mode, size_t max_width, size_t indentation_width,
-                                                bool debug_mode, bool parse_if_outdated, Catalog* catalog) {
+                                                bool debug_mode, size_t keyword_case, bool parse_if_outdated, Catalog* catalog) {
     auto config = makeFormattingConfig(dialect, mode, max_width, indentation_width, debug_mode);
+    config.keyword_case = static_cast<buffers::formatting::KeywordCase>(keyword_case);
     packPtr(result, session->Format(config, parse_if_outdated, catalog));
 }
 

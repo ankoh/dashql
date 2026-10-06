@@ -1844,7 +1844,8 @@ std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size
     return completion;
 }
 
-flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffers::FlatBufferBuilder& builder) {
+flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(
+    flatbuffers::FlatBufferBuilder& builder, buffers::formatting::KeywordCase keyword_case) {
     auto& entries = top_candidates;
 
     // Reservie for packed candidates
@@ -1857,10 +1858,20 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
         // Verbatim candidates (identity) reproduce exactly what the user typed, so we never
         // re-quote them. Otherwise a quoted lower-case identifier `"year"` would be re-emitted
         // unquoted, and a quoted upper-case one `"Year"` would be quoted twice (`"""Year"""`).
-        auto display_text_offset = builder.CreateString(iter_entry->completion_text);
+        std::string keyword_text;
+        const bool upper_keyword = keyword_case == buffers::formatting::KeywordCase::UPPER &&
+                                   iter_entry->keyword_symbol.has_value();
+        if (upper_keyword) {
+            keyword_text = std::string{iter_entry->completion_text};
+            for (char& ch : keyword_text) {
+                if (ch >= 'a' && ch <= 'z') ch += 'A' - 'a';
+            }
+        }
+        auto display_text_offset = builder.CreateString(upper_keyword ? std::string_view{keyword_text}
+                                                                      : iter_entry->completion_text);
         std::string quoted;
-        std::string_view completion_text = iter_entry->completion_text;
-        if (!iter_entry->completion_text_is_verbatim) {
+        std::string_view completion_text = upper_keyword ? std::string_view{keyword_text} : iter_entry->completion_text;
+        if (!upper_keyword && !iter_entry->completion_text_is_verbatim) {
             completion_text = quote_anyupper_fuzzy(completion_text, quoted);
         }
 
@@ -1953,7 +1964,13 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
         auto completion_text_ofs = builder.CreateString(completion_text);
         flatbuffers::Offset<flatbuffers::String> keyword_continuation_ofs;
         if (!iter_entry->keyword_continuation.empty()) {
-            keyword_continuation_ofs = builder.CreateString(iter_entry->keyword_continuation);
+            std::string continuation{iter_entry->keyword_continuation};
+            if (keyword_case == buffers::formatting::KeywordCase::UPPER) {
+                for (char& ch : continuation) {
+                    if (ch >= 'a' && ch <= 'z') ch += 'A' - 'a';
+                }
+            }
+            keyword_continuation_ofs = builder.CreateString(continuation);
         }
         buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
         candidate_builder.add_display_text(display_text_offset);

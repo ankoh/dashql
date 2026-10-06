@@ -272,7 +272,7 @@ FmtReg Formatter::FormatVisPropertyList(const buffers::parser::Node& node) {
         auto value_reg = Reg(child);
         if (value_reg == 0) continue;
 
-        auto pair = fmt.Concat({fmt.Text(key_text), fmt.Text(" => "), value_reg});
+        auto pair = fmt.Concat({fmt.Verbatim(key_text), fmt.Text(" => "), value_reg});
         parts.push_back(pair);
     }
 
@@ -316,7 +316,7 @@ FmtReg Formatter::FormatVisualize(size_t node_id) {
     suffix_parts.reserve(4);
     suffix_parts.push_back(fmt.Text("visualize using "));
     if (renderer && renderer->node_type() != NodeType::NONE) {
-        suffix_parts.push_back(fmt.Text(scanned.ReadTextAtSymbolSpan(renderer->symbol_span())));
+        suffix_parts.push_back(fmt.Verbatim(scanned.ReadTextAtSymbolSpan(renderer->symbol_span())));
         suffix_parts.push_back(fmt.Text(" "));
     }
     suffix_parts.push_back(spec_reg);

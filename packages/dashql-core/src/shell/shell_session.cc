@@ -469,10 +469,19 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
     std::vector<CompletionCandidate> candidates;
     candidates.reserve(completion->GetResultCandidates().size());
     for (const auto& candidate : completion->GetResultCandidates()) {
+        const bool upper_keyword = keyword_case_ == buffers::formatting::KeywordCase::UPPER &&
+                                   candidate.keyword_symbol.has_value();
+        std::string keyword_text;
+        if (upper_keyword) {
+            keyword_text = candidate.completion_text;
+            for (char& ch : keyword_text) {
+                if (ch >= 'a' && ch <= 'z') ch += 'A' - 'a';
+            }
+        }
         std::string quoted;
-        std::string completion_text{candidate.completion_text_is_verbatim
-                                        ? candidate.completion_text
-                                        : quote_anyupper_fuzzy(candidate.completion_text, quoted)};
+        std::string completion_text{upper_keyword ? std::string_view{keyword_text}
+            : candidate.completion_text_is_verbatim ? candidate.completion_text
+                                                    : quote_anyupper_fuzzy(candidate.completion_text, quoted)};
         bool is_function = false;
         for (const auto& object : candidate.catalog_objects) {
             is_function |= object.catalog_object.GetObjectType() == CatalogObjectType::FunctionDeclaration;
@@ -506,10 +515,16 @@ std::vector<CompletionCandidate> ShellSession::CompletePrompt(size_t limit) {
                 }
             }
         }
+        std::string continuation{candidate.keyword_continuation};
+        if (keyword_case_ == buffers::formatting::KeywordCase::UPPER) {
+            for (char& ch : continuation) {
+                if (ch >= 'a' && ch <= 'z') ch += 'A' - 'a';
+            }
+        }
         candidates.push_back({
-            .display_text = std::string{candidate.completion_text},
+            .display_text = upper_keyword ? keyword_text : std::string{candidate.completion_text},
             .completion_text = std::string{completion_text},
-            .continuation_text = std::string{candidate.keyword_continuation},
+            .continuation_text = std::move(continuation),
             .is_identity = candidate.candidate_tags.contains(buffers::completion::CandidateTag::IDENTITY),
             .qualification_texts = std::move(qualification_texts),
             .completion_cursor_offset =
@@ -1429,9 +1444,11 @@ std::string ShellSession::RenderTerminalCompletionHint() {
             suffix = std::string{candidate.completion_text}.substr(typed + current.size());
             suffix.append(qualified.substr(completion + candidate.completion_text.size()));
         }
-    } else if (candidate.completion_text == current && !candidate.continuation_text.empty()) {
+    } else if (fuzzy_ci_string_view{candidate.completion_text.data(), candidate.completion_text.size()} ==
+                   fuzzy_ci_string_view{current.data(), current.size()} && !candidate.continuation_text.empty()) {
         suffix = " " + candidate.continuation_text;
-    } else if (std::string_view{candidate.completion_text}.starts_with(current)) {
+    } else if (fuzzy_ci_string_view{candidate.completion_text.data(), candidate.completion_text.size()}.starts_with(
+                   fuzzy_ci_string_view{current.data(), current.size()})) {
         suffix = std::string_view{candidate.completion_text}.substr(current.size());
     }
     if (prefix.empty() && suffix.empty() && !candidate.continuation_text.empty()) {

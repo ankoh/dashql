@@ -5,6 +5,7 @@ import { EditorView } from '@codemirror/view';
 import {
     analyzeScript,
     DashQLCompletionAbortEffect,
+    DashQLCompletionStartEffect,
     DashQLCompletionNextCandidateVariantEffect,
     DashQLCompletionStatus,
     DashQLProcessorPlugin,
@@ -394,6 +395,66 @@ describe('CodeMirror portable editor events', () => {
 });
 
 describe('DashQL processor completion triggers', () => {
+    it('refreshes an open keyword hint when the case preference changes', () => {
+        const catalog = dql!.createCatalog();
+        const text = 'sel';
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, text);
+        const onUpdate = vi.fn();
+        const projected: DashQLProcessorUpdateIn = {
+            scriptKey: 1,
+            scriptSession,
+            editorUpdate,
+            scriptBuffers: null,
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            keywordCase: dashql.buffers.formatting.KeywordCase.LOWER,
+            onUpdate,
+        };
+        let state = EditorState.create({
+            doc: text,
+            selection: EditorSelection.cursor(text.length),
+            extensions: [DashQLProcessorPlugin],
+        });
+        state = state.update({ effects: DashQLUpdateEffect.of(projected) }).state;
+        state = state.update({ effects: DashQLCompletionStartEffect.of(null) }).state;
+        const previous = state.field(DashQLProcessorPlugin).scriptCompletion;
+        expect(previous).not.toBeNull();
+        state = state.update({ effects: DashQLUpdateEffect.of({
+            ...projected,
+            scriptCompletion: previous,
+            keywordCase: dashql.buffers.formatting.KeywordCase.UPPER,
+        }) }).state;
+        const refreshed = state.field(DashQLProcessorPlugin).scriptCompletion;
+        expect(refreshed?.buffer).not.toBe(previous?.buffer);
+        expect(refreshed?.buffer.read().candidates(refreshed.candidateId)?.completionText()).toBe('SELECT');
+        expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ scriptCompletion: refreshed }));
+        refreshed?.buffer.destroy();
+        previous?.buffer.destroy();
+        scriptSession.destroy();
+        catalog.destroy();
+    });
+    it('cases keywords and continuations but not catalog identifiers', () => {
+        const catalog = dql!.createCatalog();
+        const schema = dql!.createScript(catalog);
+        schema.insertTextAt(0, 'create table orders(id int);');
+        schema.analyze();
+        catalog.loadScript(schema, 0);
+        const { scriptSession } = createScriptSession(catalog, 'select * from ord');
+        const objects = scriptSession.completeAtCursor(20, dashql.buffers.formatting.KeywordCase.UPPER);
+        expect(Array.from({ length: objects.read().candidatesLength() }, (_, i) => objects.read().candidates(i)?.completionText()))
+            .toContain('orders');
+        objects.destroy();
+        scriptSession.replaceText(scriptSession.getDocumentRevision(), 'select * from orders group');
+        scriptSession.setCursor(scriptSession.getDocumentRevision(), BigInt('select * from orders group'.length));
+        const keywords = scriptSession.completeAtCursor(30, dashql.buffers.formatting.KeywordCase.UPPER);
+        const candidates = Array.from({ length: keywords.read().candidatesLength() }, (_, i) => keywords.read().candidates(i));
+        expect(candidates.find(candidate => candidate?.completionText() === 'GROUP')?.keywordContinuation()).toBe('BY');
+        keywords.destroy();
+        scriptSession.destroy();
+        schema.destroy();
+        catalog.destroy();
+    });
     it('builds CodeMirror completion patches from UTF-8 candidate spans', () => {
         const catalog = dql!.createCatalog();
         const schemaScript = dql!.createScript(catalog);

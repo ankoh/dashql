@@ -83,6 +83,13 @@ export function AppSettings(props: { onClose: () => void; }) {
     }, [reconfigure]);
 
     const minLogLevel = config?.settings?.minLogLevel ?? LogLevel.Info;
+    const keywordCase = config?.settings?.keywordCase === 'upper' ? 'upper' : 'lower';
+    const setKeywordCase = (value: 'lower' | 'upper') => {
+        reconfigure(config => config == null ? null : {
+            ...config,
+            settings: { ...config.settings, keywordCase: value },
+        });
+    };
     const setMinLogLevel = React.useCallback((level: LogLevel) => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
@@ -173,6 +180,22 @@ export function AppSettings(props: { onClose: () => void; }) {
                             </SegmentedControl.Button>
                             <SegmentedControl.Button selected={minLogLevel === LogLevel.Error}>
                                 Error
+                            </SegmentedControl.Button>
+                        </SegmentedControl>
+                    </div>
+                    <div id="app-setting-keyword-case" className={styles.setting_name}>
+                        SQL Keyword Case
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <SegmentedControl
+                            aria-labelledby="app-setting-keyword-case"
+                            onChange={index => setKeywordCase(index === 0 ? 'lower' : 'upper')}
+                        >
+                            <SegmentedControl.Button selected={keywordCase === 'lower'} disabled={config == null}>
+                                Lowercase
+                            </SegmentedControl.Button>
+                            <SegmentedControl.Button selected={keywordCase === 'upper'} disabled={config == null}>
+                                Uppercase
                             </SegmentedControl.Button>
                         </SegmentedControl>
                     </div>

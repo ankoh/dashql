@@ -57,6 +57,51 @@ describe('DashQL formatting', () => {
         catalog.destroy();
     });
 
+    it('uppercases generated keywords without changing source names or strings', () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select "MixedName", 'from where' from "CaseTable" where "MixedName" is not null`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            120,
+            4,
+            false,
+            dashql.buffers.formatting.KeywordCase.UPPER,
+        );
+        const formatted = script.format(config);
+        try {
+            expect(formatted.toString()).toBe(`SELECT "MixedName", 'from where' FROM "CaseTable" WHERE "MixedName" IS NOT NULL;`);
+        } finally {
+            formatted.destroy();
+            script.destroy();
+            catalog.destroy();
+        }
+    });
+
+    it('uppercases boolean and null literals while preserving comments', () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, "select true, null, 'TRUE' from items -- where unchanged");
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            120,
+            4,
+            false,
+            dashql.buffers.formatting.KeywordCase.UPPER,
+        );
+        const formatted = script.format(config);
+        try {
+            expect(formatted.toString()).toContain("SELECT TRUE, NULL, 'TRUE' FROM items;");
+            expect(formatted.toString()).toContain('-- where unchanged');
+        } finally {
+            formatted.destroy();
+            script.destroy();
+            catalog.destroy();
+        }
+    });
+
     it('formats SQL/PGQ through WebAssembly', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

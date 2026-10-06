@@ -66,7 +66,8 @@ class ScriptSession {
     EditorUpdate Analyze();
     /// Compute completion candidates and pack them for embedding in the caller's active builder.
     flatbuffers::Offset<buffers::completion::Completion> PackCompletion(flatbuffers::FlatBufferBuilder& builder,
-                                                                         size_t limit);
+                                                                          size_t limit,
+                                                                          buffers::formatting::KeywordCase keyword_case);
     /// Compile the current revision into a native executable statement plan.
     ScriptCompilationResult CompileQuery(const buffers::formatting::FormattingConfigT& config,
                                          bool allow_extensions, bool parse_if_outdated);

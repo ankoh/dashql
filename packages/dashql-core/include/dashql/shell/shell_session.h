@@ -124,6 +124,7 @@ class ShellSession {
     ShellSession& operator=(const ShellSession&) = delete;
 
     void Resize(uint32_t terminal_columns);
+    void SetKeywordCase(buffers::formatting::KeywordCase value) { keyword_case_ = value; }
     void SetTrackSessionRelations(bool enabled);
     ShellStatus SetCommands(std::string_view commands);
     PromptBuffer& prompt() { return prompt_; }
@@ -222,6 +223,7 @@ class ShellSession {
     std::optional<ShellOperation> completed_operation_;
     bool clear_terminal_after_command_ = false;
     bool auto_qualify_non_default_database_tables_ = false;
+    buffers::formatting::KeywordCase keyword_case_ = buffers::formatting::KeywordCase::LOWER;
     std::vector<std::string> commands_;
     std::array<char, 256> terminal_prompt_storage_ = {};
     size_t terminal_prompt_length_ = 0;

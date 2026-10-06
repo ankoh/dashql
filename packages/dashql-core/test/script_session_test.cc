@@ -215,7 +215,7 @@ TEST(ScriptSessionTest, ProjectsCompletionAndDiffAsUtf16) {
     ASSERT_EQ(session.Analyze().status, EditorUpdateStatus::OK);
 
     flatbuffers::FlatBufferBuilder completion_builder;
-    completion_builder.Finish(session.PackCompletion(completion_builder, 10));
+    completion_builder.Finish(session.PackCompletion(completion_builder, 10, buffers::formatting::KeywordCase::LOWER));
     auto* completion = flatbuffers::GetRoot<buffers::completion::Completion>(completion_builder.GetBufferPointer());
     ASSERT_NE(completion->candidates(), nullptr);
     ASSERT_FALSE(completion->candidates()->empty());
@@ -656,8 +656,8 @@ TEST(ScriptSessionTest, CompletionApiMatchesNormalScript) {
 
     FFIResult expected_result;
     FFIResult actual_result;
-    dashql_script_complete_at_cursor(&expected_result, &script, 10);
-    dashql_script_session_complete_at_cursor(&actual_result, session, 10);
+    dashql_script_complete_at_cursor(&expected_result, &script, 10, 0);
+    dashql_script_session_complete_at_cursor(&actual_result, session, 10, 0);
     EXPECT_EQ(TakeBuffer(expected_result), TakeBuffer(actual_result));
 
     dashql_delete_owner(session_owner.owner_ptr, session_owner.owner_deleter);
@@ -690,7 +690,7 @@ TEST(ScriptSessionTest, CompatibilityQueryFormattingAndDiffApis) {
 
     EXPECT_EQ(dashql_script_session_is_fully_formattable(session, dialect, mode, 80, 4, false, true), 1);
     FFIResult formatted_result;
-    dashql_script_session_format(&formatted_result, session, dialect, mode, 80, 4, false, true, nullptr);
+    dashql_script_session_format(&formatted_result, session, dialect, mode, 80, 4, false, 0, true, nullptr);
     auto* formatted = formatted_result.CastOwnerPtr<Script>();
     ASSERT_NE(formatted, nullptr);
     EXPECT_EQ(formatted->ToString(), "select 1 as value;");

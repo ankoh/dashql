@@ -200,7 +200,9 @@ struct Completion {
     auto& GetResultCandidates() const { return top_candidates; }
 
     /// Pack the completion result
-    flatbuffers::Offset<buffers::completion::Completion> Pack(flatbuffers::FlatBufferBuilder& builder);
+    flatbuffers::Offset<buffers::completion::Completion> Pack(
+        flatbuffers::FlatBufferBuilder& builder,
+        buffers::formatting::KeywordCase keyword_case);
 
     // Compute completion at a cursor (throws Exception on error)
     static std::unique_ptr<Completion> Compute(const ScriptCursor& cursor, size_t k);

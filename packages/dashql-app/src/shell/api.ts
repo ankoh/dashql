@@ -1,6 +1,7 @@
 import createDashQLShellModule from '@ankoh/dashql-shell-js';
 import shellWasmUrl from '@ankoh/dashql-shell-wasm?url';
 import { DashQL, DashQLCatalog, DashQLModuleOptions, DashQLScript, EmscriptenModule } from '../core/api.js';
+import * as dashql from '../core/index.js';
 import { stringifyError } from '../platform/logger/logger.js';
 
 const RESULT_SIZE = 16;
@@ -41,6 +42,7 @@ export interface DashQLShellModule extends EmscriptenModule {
     _dashql_shell_new(catalog: number, terminalColumns: number, autoQualifyNonDefaultDatabaseTables: boolean): number;
     _dashql_shell_destroy(shell: number): void;
     _dashql_shell_resize(shell: number, terminalColumns: number): void;
+    _dashql_shell_keyword_case_set(shell: number, keywordCase: number): void;
     _dashql_shell_session_relations_set(shell: number, enabled: boolean): number;
     _dashql_shell_commands_set(shell: number, commands: number, commandsLength: number): number;
     _dashql_shell_prompt_set(shell: number, text: number, textLength: number, result: number): number;
@@ -404,6 +406,11 @@ export class DashQLShell {
     resize(terminalColumns: number): void {
         this.assertAlive();
         this.module._dashql_shell_resize(this.shell, terminalColumns);
+    }
+
+    setKeywordCase(keywordCase: dashql.buffers.formatting.KeywordCase): void {
+        this.assertAlive();
+        this.module._dashql_shell_keyword_case_set(this.shell, keywordCase);
     }
 
     setPrompt(text: string): DashQLShellPrompt {

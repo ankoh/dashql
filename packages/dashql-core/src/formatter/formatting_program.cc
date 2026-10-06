@@ -3,6 +3,8 @@
 #include <utility>
 #include <vector>
 
+#include "dashql/parser/grammar/keywords.h"
+
 namespace dashql {
 namespace {
 
@@ -191,6 +193,28 @@ void AppendLineBreak(std::string& output, size_t& current_line_width, size_t ind
     current_line_width = indentation;
 }
 
+void AppendGeneratedText(std::string& output, std::string_view text) {
+    size_t pos = 0;
+    while (pos < text.size()) {
+        const auto start = pos;
+        const auto is_word = [](char ch) {
+            return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+                   (ch >= '0' && ch <= '9') || ch == '_';
+        };
+        if (!is_word(text[pos])) {
+            output.push_back(text[pos++]);
+            continue;
+        }
+        while (pos < text.size() && is_word(text[pos])) ++pos;
+        auto word = text.substr(start, pos - start);
+        if (parser::Keyword::Find(word) == nullptr) {
+            output.append(word);
+        } else {
+            for (char ch : word) output.push_back(ch >= 'a' && ch <= 'z' ? ch - 'a' + 'A' : ch);
+        }
+    }
+}
+
 }  // namespace
 
 std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions& options) const {
@@ -281,7 +305,11 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
             case FormattingOpCode::Empty:
                 break;
             case FormattingOpCode::Text:
-                output += doc.text;
+                if (options.keyword_case == buffers::formatting::KeywordCase::UPPER && !doc.verbatim) {
+                    AppendGeneratedText(output, doc.text);
+                } else {
+                    output += doc.text;
+                }
                 current_line_width += doc.text.size();
                 break;
             case FormattingOpCode::Break: {

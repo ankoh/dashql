@@ -1,4 +1,5 @@
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus } from './api.js';
+import * as dashql from '../core/index.js';
 import * as arrow from 'apache-arrow';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
@@ -39,6 +40,20 @@ describe('DashQL shell Wasm', () => {
     it('rejects operations after destruction', () => {
         shell.destroy();
         expect(() => shell.resize(40)).toThrowError(DashQLShellError);
+    });
+
+    it('switches keyword completion case without changing catalog names or prompt state', () => {
+        shell.loadCatalogScript('create table orders(id int);', CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+        shell.setPrompt('sel');
+        expect(shell.completePrompt(50).some(candidate => candidate.completionText === 'select')).toBe(true);
+        shell.setKeywordCase(dashql.buffers.formatting.KeywordCase.UPPER);
+        expect(shell.completePrompt(50).some(candidate => candidate.completionText === 'SELECT')).toBe(true);
+        expect(shell.movePromptLeft().text).toBe('sel');
+        shell.setPrompt('select * from ord');
+        expect(shell.completePrompt(50).some(candidate => candidate.completionText === 'orders')).toBe(true);
+        shell.setKeywordCase(dashql.buffers.formatting.KeywordCase.LOWER);
+        shell.setPrompt('sel');
+        expect(shell.completePrompt(50).some(candidate => candidate.completionText === 'select')).toBe(true);
     });
 
     it('owns an independent catalog and completes from copied relation and function scripts', () => {

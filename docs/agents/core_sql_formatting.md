@@ -7,7 +7,7 @@ This guide documents the standard workflow to add or improve SQL formatter behav
 1. Update formatter logic in `packages/dashql-core/src/formatter/formatter.cc`.
 2. If needed, add declarations in `packages/dashql-core/include/dashql/formatter/formatter.h`.
 3. Ensure the node is handled in `Formatter::FormatNode(...)` dispatch.
-4. Keep output style consistent with existing formatter conventions (lowercase SQL keywords, current break/indent behavior).
+4. Keep lowercase SQL keywords as the default; honor the configured keyword case without changing identifiers, literals, comments, or current break/indent behavior.
 5. Don't use `ReadTextAtLocation` as escape hatch to copy over the AST node content, instead use a place holder similar to unsupported node types.
 6. Don't format children nodes in parent nodes, let the formatter format children when visiting them and look up the node Reg.
 7. We're scanning from left to right in FormatNodes, so we're guaranteed to have the Regs already computed for children nodes (if we can format them).

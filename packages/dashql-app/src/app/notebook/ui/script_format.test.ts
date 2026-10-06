@@ -58,6 +58,23 @@ describe('script formatting', () => {
         }
     });
 
+    it('uses uppercase keywords in both layout modes', () => {
+        const catalog = dql.createCatalog();
+        const session = dql.createScriptSession(catalog);
+        try {
+            session.replaceText(0n, 'select count(*) from items where value > 1');
+            for (const mode of [dashql.buffers.formatting.FormattingMode.COMPACT, dashql.buffers.formatting.FormattingMode.PRETTY]) {
+                const result = session.format(createScriptFormatConfig(mode, false, 80, dashql.buffers.formatting.KeywordCase.UPPER));
+                expect(result.toString()).toContain('SELECT count(*)');
+                expect(result.toString()).toContain('FROM items');
+                result.destroy();
+            }
+        } finally {
+            session.destroy();
+            catalog.destroy();
+        }
+    });
+
     it('applies pretty formatting as an edit to the writable editor', () => {
         const catalog = dql.createCatalog();
         const session = dql.createScriptSession(catalog);

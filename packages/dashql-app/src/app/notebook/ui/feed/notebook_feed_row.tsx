@@ -41,6 +41,7 @@ export interface ScriptCardProps {
     scriptFileName: string;
     scriptDebugMode: boolean;
     formattingDebugMode: boolean;
+    keywordCase: dashql.buffers.formatting.KeywordCase;
     canExecute: boolean;
     canDelete: boolean;
     active: boolean;
@@ -201,8 +202,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                 if (props.scriptData != null) props.onFormat(props.scriptData.scriptKey, text);
             },
             props.formattingDebugMode,
+            props.keywordCase,
         );
-    }, [editorView, props.formattingDebugMode, props.onFormat, props.scriptData]);
+    }, [editorView, props.formattingDebugMode, props.keywordCase, props.onFormat, props.scriptData]);
 
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
     // the raw scriptFileName remains the identity passed to handlers and to RENAME_SCRIPT.
@@ -412,6 +414,7 @@ export interface ScriptFeedRowProps {
     scripts: NotebookScripts['scripts'];
     scriptDebugMode: boolean;
     formattingDebugMode: boolean;
+    keywordCase: dashql.buffers.formatting.KeywordCase;
     focusedFileName: string;
     canDelete: boolean;
     active: boolean;
@@ -550,6 +553,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     scriptFileName={scriptFileName}
                     scriptDebugMode={props.scriptDebugMode}
                     formattingDebugMode={props.formattingDebugMode}
+                    keywordCase={props.keywordCase}
                     canExecute={scriptData != null && props.connection != null}
                     canDelete={props.canDelete}
                     active={props.active}

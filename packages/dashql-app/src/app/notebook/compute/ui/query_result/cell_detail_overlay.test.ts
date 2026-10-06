@@ -40,6 +40,12 @@ describe('result cell SQL formatting', () => {
             return range == null || Number(range.offset + range.length) <= text.length;
         })).toBe(true);
     });
+
+    it('formats SQL previews using the selected keyword case', () => {
+        const formats = detectFormats(dql, 'select id from items', dashql.buffers.formatting.KeywordCase.UPPER);
+        expect(formats.sql?.formattedText).toContain('SELECT id');
+        expect(formats.sql?.formattedText).toContain('FROM items');
+    });
 });
 
 describe('result cell structured formatting', () => {

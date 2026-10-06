@@ -44,6 +44,7 @@ function baseProps() {
         notebookId: 'notebook', connection: null, storageReader: { backend: { hasCachedQueryResult: vi.fn() } },
         entries: [{ scriptId: 1, fileName: '01_alpha.sql' }, { scriptId: 2, fileName: '02_beta.sql' }],
         scripts: { 1: script(1, '01_alpha.sql'), 2: script(2, '02_beta.sql') }, scriptDebugMode: false, formattingDebugMode: false,
+        keywordCase: dashql.buffers.formatting.KeywordCase.UPPER,
         focusedFileName: '01_alpha.sql', canDelete: true, active: true, onFocus: vi.fn(), onDelete: vi.fn(),
         onRename: vi.fn(), onMoveUp: vi.fn(), onMoveDown: vi.fn(), onExecute: vi.fn(), onShowStatus: vi.fn(),
          onShowTable: vi.fn(), onShowVisualization: vi.fn(), onShowDetails: vi.fn(), onRerun: vi.fn(),
@@ -100,6 +101,7 @@ describe('V2 notebook feed rows', () => {
             dashql.buffers.formatting.FormattingMode.COMPACT,
             expect.any(Function),
             false,
+            dashql.buffers.formatting.KeywordCase.UPPER,
         );
         expect(props.onFormat).toHaveBeenCalledWith(1, 'SELECT 1;');
         props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;

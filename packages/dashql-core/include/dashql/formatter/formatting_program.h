@@ -72,6 +72,7 @@ enum class FormattingJoinPolicy : uint8_t {
 struct FormattingOperation {
     FormattingOpCode code = FormattingOpCode::Empty;
     std::string_view text = {};
+    bool verbatim = false;
     std::vector<FmtReg> children = {};
     FmtReg inline_separator = 0;
     FmtReg break_separator = 0;
@@ -84,6 +85,7 @@ struct FormattingRenderOptions {
     size_t indentation_width = FORMATTING_DEFAULT_INDENTATION_WIDTH;
     bool debug_mode = false;
     buffers::formatting::FormattingMode mode = buffers::formatting::FormattingMode::COMPACT;
+    buffers::formatting::KeywordCase keyword_case = buffers::formatting::KeywordCase::LOWER;
 };
 
 /// A small document arena for width-aware SQL layout.
@@ -109,6 +111,14 @@ struct FormattingProgram {
         return Push(FormattingOperation{
             .code = FormattingOpCode::Text,
             .text = text,
+        });
+    }
+
+    FmtReg Verbatim(std::string_view text) {
+        return Push(FormattingOperation{
+            .code = FormattingOpCode::Text,
+            .text = text,
+            .verbatim = true,
         });
     }
 

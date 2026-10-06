@@ -12,6 +12,11 @@ enum FormattingMode: uint8 {
     PRETTY = 2,
 }
 
+enum KeywordCase: uint8 {
+    LOWER = 0,
+    UPPER = 1,
+}
+
 table FormattingConfig {
     /// The formatting dialect
     dialect: FormattingDialect;
@@ -23,4 +28,6 @@ table FormattingConfig {
     indentation_width: uint32;
     /// Emit debug comments before each inserted line break.
     debug_mode: bool;
+    /// Case of generated SQL keywords (not names or source literals).
+    keyword_case: KeywordCase;
 }
