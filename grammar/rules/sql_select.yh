@@ -73,7 +73,7 @@
 %type <buffers::parser::Node> sql_bit;
 %type <buffers::parser::Node> sql_bit_with_length;
 %type <buffers::parser::Node> sql_bit_without_length;
-%type <buffers::parser::Node> sql_c_expr;
+%type <ExpressionVariant> sql_c_expr;
 %type <buffers::parser::Node> sql_case_arg;
 %type <buffers::parser::Node> sql_case_default;
 %type <buffers::parser::Node> sql_case_expr;

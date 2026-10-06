@@ -22,3 +22,47 @@ formatter-snapshots:
       select date '1998-12-01' - interval '90' day
     dialects:
       hyper:
+
+  - name: bug_long_and_chain_indentation
+    input: |-
+      select * from store_sales, date_dim d1, customer_demographics cd1, household_demographics hd1, customer_address ad1, cs_ui
+      where ss_store_sk__c = s_store_sk__c
+        and ss_sold_date_sk__c = d1.d_date_sk__c
+        and ss_customer_sk__c = c_customer_sk__c
+        and ss_cdemo_sk__c = cd1.cd_demo_sk__c
+        and ss_hdemo_sk__c = hd1.hd_demo_sk__c
+        and ss_addr_sk__c = ad1.ca_address_sk__c
+        and ss_item_sk__c = i_item_sk__c
+        and ss_item_sk__c = sr_item_sk__c
+        and ss_ticket_number__c = sr_ticket_number__c
+        and ss_item_sk__c = cs_ui.cs_item_sk__c
+        and c_current_cdemo_sk__c = cd2.cd_demo_sk__c
+        and c_current_hdemo_sk__c = hd2.hd_demo_sk__c
+        and c_current_addr_sk__c = ad2.ca_address_sk__c
+        and c_first_sales_date_sk__c = d2.d_date_sk__c
+        and c_first_shipto_date_sk__c = d3.d_date_sk__c
+        and ss_promo_sk__c = p_promo_sk__c
+        and hd1.hd_income_band_sk__c = ib1.ib_income_band_sk__c
+        and hd2.hd_income_band_sk__c = ib2.ib_income_band_sk__c
+        and cd1.cd_marital_status__c <> cd2.cd_marital_status__c
+        and i_color__c in ('chocolate', 'green', 'moccasin', 'chartreuse', 'forest', 'magenta')
+        and i_current_price__c between 18 and 18 + 10
+        and i_current_price__c between 18 + 1 and 18 + 15
+    dialects:
+      hyper:
+
+  - name: bug_parenthesized_and_chain_indentation
+    input: |-
+      select * from test where (((((ss_store_sk__c = s_store_sk__c and ss_sold_date_sk__c = d1.d_date_sk__c)
+        and ss_customer_sk__c = c_customer_sk__c) and ss_cdemo_sk__c = cd1.cd_demo_sk__c)
+        and ss_hdemo_sk__c = hd1.hd_demo_sk__c) and ss_addr_sk__c = ad1.ca_address_sk__c)
+        and ss_item_sk__c = i_item_sk__c
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 80
+            indent: 4
+          - mode: pretty
+            width: 80
+            indent: 4

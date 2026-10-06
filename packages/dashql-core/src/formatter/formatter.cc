@@ -2329,6 +2329,7 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
                                      op == ExpressionOperator::IS_NOT_DISTINCT_FROM)) {
         reg = fmt.Concat({args[0], fmt.Text(" "), op_reg, fmt.Text(" "), args[1]});
     } else {
+        bool is_boolean_chain = known_operator && (op == ExpressionOperator::AND || op == ExpressionOperator::OR);
         FmtReg inline_separator = fmt.Empty();
         FmtReg break_separator = fmt.Empty();
         switch (GetOperatorBreakPreference(op)) {
@@ -2341,7 +2342,6 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
                 break_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Break()});
                 break;
         }
-        bool is_boolean_chain = known_operator && (op == ExpressionOperator::AND || op == ExpressionOperator::OR);
         reg = is_boolean_chain
                   ? fmt.Join(args, inline_separator, break_separator, std::nullopt, true)
                   : fmt.Join(args, inline_separator, break_separator, FormattingJoinPolicy::BreakOnOverflow, true);

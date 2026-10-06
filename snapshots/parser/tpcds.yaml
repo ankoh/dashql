@@ -90098,7 +90098,7 @@ parser-snapshots:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 302
+          ast-size: 299
           description:
             text: "SELECT cd_..LIMIT 100;"
             description-begin: 0
@@ -90540,359 +90540,349 @@ parser-snapshots:
                         children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
-                            value: AND
+                            value: NOT
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "NOT EXISTS..4 AND 4+2)"
                             children:
-                              - type: OBJECT_SQL_NARY_EXPRESSION
-                                text: "NOT EXISTS..4 AND 4+2)"
+                              - type: OBJECT_SQL_EXISTS_EXPRESSION
+                                text: "EXISTS\n   ..4 AND 4+2)"
                                 children:
-                                  - key: SQL_EXPRESSION_OPERATOR
-                                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                                    value: NOT
-                                  - key: SQL_EXPRESSION_ARGS
-                                    type: ARRAY
-                                    text: "NOT EXISTS..4 AND 4+2)"
+                                  - key: SQL_EXISTS_EXPRESSION_STATEMENT
+                                    type: OBJECT_SQL_SELECT
+                                    text: "(SELECT *\n..4 AND 4+2)"
                                     children:
-                                      - type: OBJECT_SQL_EXISTS_EXPRESSION
-                                        text: "EXISTS\n   ..4 AND 4+2)"
+                                      - key: SQL_SELECT_TARGETS
+                                        type: ARRAY
+                                        text: "*"
                                         children:
-                                          - key: SQL_EXISTS_EXPRESSION_STATEMENT
-                                            type: OBJECT_SQL_SELECT
-                                            text: "(SELECT *\n..4 AND 4+2)"
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "*"
                                             children:
-                                              - key: SQL_SELECT_TARGETS
+                                              - key: SQL_RESULT_TARGET_STAR
+                                                type: BOOL
+                                                value: 1
+                                      - key: SQL_SELECT_FROM
+                                        type: ARRAY
+                                        text: "FROM web_s..  date_dim"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "web_sales"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
                                                 type: ARRAY
-                                                text: "*"
+                                                text: "web_sales"
                                                 children:
-                                                  - type: OBJECT_SQL_RESULT_TARGET
-                                                    text: "*"
-                                                    children:
-                                                      - key: SQL_RESULT_TARGET_STAR
-                                                        type: BOOL
-                                                        value: 1
-                                              - key: SQL_SELECT_FROM
-                                                type: ARRAY
-                                                text: "FROM web_s..  date_dim"
-                                                children:
-                                                  - type: OBJECT_SQL_TABLEREF
+                                                  - type: NAME
                                                     text: "web_sales"
-                                                    children:
-                                                      - key: SQL_TABLEREF_NAME
-                                                        type: ARRAY
-                                                        text: "web_sales"
-                                                        children:
-                                                          - type: NAME
-                                                            text: "web_sales"
-                                                  - type: OBJECT_SQL_TABLEREF
-                                                    text: "date_dim"
-                                                    children:
-                                                      - key: SQL_TABLEREF_NAME
-                                                        type: ARRAY
-                                                        text: "date_dim"
-                                                        children:
-                                                          - type: NAME
-                                                            text: "date_dim"
-                                              - key: SQL_SELECT_WHERE
-                                                type: OBJECT_SQL_NARY_EXPRESSION
-                                                text: "c.c_custom.. 4 AND 4+2"
-                                                children:
-                                                  - key: SQL_EXPRESSION_OPERATOR
-                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                    value: AND
-                                                  - key: SQL_EXPRESSION_ARGS
-                                                    type: ARRAY
-                                                    text: "c.c_custom.. 4 AND 4+2"
-                                                    children:
-                                                      - type: OBJECT_SQL_NARY_EXPRESSION
-                                                        text: "c.c_custom..ustomer_sk"
-                                                        children:
-                                                          - key: SQL_EXPRESSION_OPERATOR
-                                                            type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                            value: EQUAL
-                                                          - key: SQL_EXPRESSION_ARGS
-                                                            type: ARRAY
-                                                            text: "c.c_custom..ustomer_sk"
-                                                            children:
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "c.c_customer_sk"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "c.c_customer_sk"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "c"
-                                                                      - type: NAME
-                                                                        text: "c_customer_sk"
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "ws_bill_customer_sk"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "ws_bill_customer_sk"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "ws_bill_customer_sk"
-                                                      - type: OBJECT_SQL_NARY_EXPRESSION
-                                                        text: "ws_sold_da.. d_date_sk"
-                                                        children:
-                                                          - key: SQL_EXPRESSION_OPERATOR
-                                                            type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                            value: EQUAL
-                                                          - key: SQL_EXPRESSION_ARGS
-                                                            type: ARRAY
-                                                            text: "ws_sold_da.. d_date_sk"
-                                                            children:
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "ws_sold_date_sk"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "ws_sold_date_sk"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "ws_sold_date_sk"
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "d_date_sk"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "d_date_sk"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "d_date_sk"
-                                                      - type: OBJECT_SQL_NARY_EXPRESSION
-                                                        text: "d_year = 2001"
-                                                        children:
-                                                          - key: SQL_EXPRESSION_OPERATOR
-                                                            type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                            value: EQUAL
-                                                          - key: SQL_EXPRESSION_ARGS
-                                                            type: ARRAY
-                                                            text: "d_year = 2001"
-                                                            children:
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "d_year"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "d_year"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "d_year"
-                                                              - type: LITERAL_INTEGER
-                                                                text: "2001"
-                                                      - type: OBJECT_SQL_NARY_EXPRESSION
-                                                        text: "d_moy BETW.. 4 AND 4+2"
-                                                        children:
-                                                          - key: SQL_EXPRESSION_OPERATOR
-                                                            type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                            value: BETWEEN_SYMMETRIC
-                                                          - key: SQL_EXPRESSION_ARGS
-                                                            type: ARRAY
-                                                            text: "d_moy BETW.. 4 AND 4+2"
-                                                            children:
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "d_moy"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "d_moy"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "d_moy"
-                                                              - type: LITERAL_INTEGER
-                                                                text: "4"
-                                                              - type: OBJECT_SQL_NARY_EXPRESSION
-                                                                text: "4+2"
-                                                                children:
-                                                                  - key: SQL_EXPRESSION_OPERATOR
-                                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                                    value: PLUS
-                                                                  - key: SQL_EXPRESSION_ARGS
-                                                                    type: ARRAY
-                                                                    text: "4+2"
-                                                                    children:
-                                                                      - type: LITERAL_INTEGER
-                                                                        text: "4"
-                                                                      - type: LITERAL_INTEGER
-                                                                        text: "2"
-                              - type: OBJECT_SQL_NARY_EXPRESSION
-                                text: "NOT EXISTS..4 AND 4+2)"
-                                children:
-                                  - key: SQL_EXPRESSION_OPERATOR
-                                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                                    value: NOT
-                                  - key: SQL_EXPRESSION_ARGS
-                                    type: ARRAY
-                                    text: "NOT EXISTS..4 AND 4+2)"
-                                    children:
-                                      - type: OBJECT_SQL_EXISTS_EXPRESSION
-                                        text: "EXISTS\n   ..4 AND 4+2)"
-                                        children:
-                                          - key: SQL_EXISTS_EXPRESSION_STATEMENT
-                                            type: OBJECT_SQL_SELECT
-                                            text: "(SELECT *\n..4 AND 4+2)"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "date_dim"
                                             children:
-                                              - key: SQL_SELECT_TARGETS
+                                              - key: SQL_TABLEREF_NAME
                                                 type: ARRAY
-                                                text: "*"
+                                                text: "date_dim"
                                                 children:
-                                                  - type: OBJECT_SQL_RESULT_TARGET
-                                                    text: "*"
-                                                    children:
-                                                      - key: SQL_RESULT_TARGET_STAR
-                                                        type: BOOL
-                                                        value: 1
-                                              - key: SQL_SELECT_FROM
-                                                type: ARRAY
-                                                text: "FROM catal..  date_dim"
-                                                children:
-                                                  - type: OBJECT_SQL_TABLEREF
-                                                    text: "catalog_sales"
-                                                    children:
-                                                      - key: SQL_TABLEREF_NAME
-                                                        type: ARRAY
-                                                        text: "catalog_sales"
-                                                        children:
-                                                          - type: NAME
-                                                            text: "catalog_sales"
-                                                  - type: OBJECT_SQL_TABLEREF
+                                                  - type: NAME
                                                     text: "date_dim"
-                                                    children:
-                                                      - key: SQL_TABLEREF_NAME
-                                                        type: ARRAY
-                                                        text: "date_dim"
-                                                        children:
-                                                          - type: NAME
-                                                            text: "date_dim"
-                                              - key: SQL_SELECT_WHERE
-                                                type: OBJECT_SQL_NARY_EXPRESSION
-                                                text: "c.c_custom.. 4 AND 4+2"
+                                      - key: SQL_SELECT_WHERE
+                                        type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "c.c_custom.. 4 AND 4+2"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: AND
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "c.c_custom.. 4 AND 4+2"
+                                            children:
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "c.c_custom..ustomer_sk"
                                                 children:
                                                   - key: SQL_EXPRESSION_OPERATOR
                                                     type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                    value: AND
+                                                    value: EQUAL
                                                   - key: SQL_EXPRESSION_ARGS
                                                     type: ARRAY
-                                                    text: "c.c_custom.. 4 AND 4+2"
+                                                    text: "c.c_custom..ustomer_sk"
                                                     children:
-                                                      - type: OBJECT_SQL_NARY_EXPRESSION
-                                                        text: "c.c_custom..ustomer_sk"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "c.c_customer_sk"
                                                         children:
-                                                          - key: SQL_EXPRESSION_OPERATOR
-                                                            type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                            value: EQUAL
-                                                          - key: SQL_EXPRESSION_ARGS
+                                                          - key: SQL_COLUMN_REF_PATH
                                                             type: ARRAY
-                                                            text: "c.c_custom..ustomer_sk"
+                                                            text: "c.c_customer_sk"
                                                             children:
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "c.c_customer_sk"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "c.c_customer_sk"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "c"
-                                                                      - type: NAME
-                                                                        text: "c_customer_sk"
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "cs_ship_customer_sk"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "cs_ship_customer_sk"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "cs_ship_customer_sk"
-                                                      - type: OBJECT_SQL_NARY_EXPRESSION
-                                                        text: "cs_sold_da.. d_date_sk"
+                                                              - type: NAME
+                                                                text: "c"
+                                                              - type: NAME
+                                                                text: "c_customer_sk"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "ws_bill_customer_sk"
                                                         children:
-                                                          - key: SQL_EXPRESSION_OPERATOR
-                                                            type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                            value: EQUAL
-                                                          - key: SQL_EXPRESSION_ARGS
+                                                          - key: SQL_COLUMN_REF_PATH
                                                             type: ARRAY
-                                                            text: "cs_sold_da.. d_date_sk"
+                                                            text: "ws_bill_customer_sk"
                                                             children:
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "cs_sold_date_sk"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "cs_sold_date_sk"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "cs_sold_date_sk"
-                                                              - type: OBJECT_SQL_COLUMN_REF
+                                                              - type: NAME
+                                                                text: "ws_bill_customer_sk"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "ws_sold_da.. d_date_sk"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "ws_sold_da.. d_date_sk"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "ws_sold_date_sk"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "ws_sold_date_sk"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "ws_sold_date_sk"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "d_date_sk"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "d_date_sk"
+                                                            children:
+                                                              - type: NAME
                                                                 text: "d_date_sk"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "d_date_sk"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "d_date_sk"
-                                                      - type: OBJECT_SQL_NARY_EXPRESSION
-                                                        text: "d_year = 2001"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "d_year = 2001"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "d_year = 2001"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "d_year"
                                                         children:
-                                                          - key: SQL_EXPRESSION_OPERATOR
-                                                            type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                            value: EQUAL
-                                                          - key: SQL_EXPRESSION_ARGS
+                                                          - key: SQL_COLUMN_REF_PATH
                                                             type: ARRAY
-                                                            text: "d_year = 2001"
+                                                            text: "d_year"
                                                             children:
-                                                              - type: OBJECT_SQL_COLUMN_REF
+                                                              - type: NAME
                                                                 text: "d_year"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "d_year"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "d_year"
-                                                              - type: LITERAL_INTEGER
-                                                                text: "2001"
+                                                      - type: LITERAL_INTEGER
+                                                        text: "2001"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "d_moy BETW.. 4 AND 4+2"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: BETWEEN_SYMMETRIC
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "d_moy BETW.. 4 AND 4+2"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "d_moy"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "d_moy"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "d_moy"
+                                                      - type: LITERAL_INTEGER
+                                                        text: "4"
                                                       - type: OBJECT_SQL_NARY_EXPRESSION
-                                                        text: "d_moy BETW.. 4 AND 4+2"
+                                                        text: "4+2"
                                                         children:
                                                           - key: SQL_EXPRESSION_OPERATOR
                                                             type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                            value: BETWEEN_SYMMETRIC
+                                                            value: PLUS
                                                           - key: SQL_EXPRESSION_ARGS
                                                             type: ARRAY
-                                                            text: "d_moy BETW.. 4 AND 4+2"
+                                                            text: "4+2"
                                                             children:
-                                                              - type: OBJECT_SQL_COLUMN_REF
-                                                                text: "d_moy"
-                                                                children:
-                                                                  - key: SQL_COLUMN_REF_PATH
-                                                                    type: ARRAY
-                                                                    text: "d_moy"
-                                                                    children:
-                                                                      - type: NAME
-                                                                        text: "d_moy"
                                                               - type: LITERAL_INTEGER
                                                                 text: "4"
-                                                              - type: OBJECT_SQL_NARY_EXPRESSION
-                                                                text: "4+2"
-                                                                children:
-                                                                  - key: SQL_EXPRESSION_OPERATOR
-                                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                                                                    value: PLUS
-                                                                  - key: SQL_EXPRESSION_ARGS
-                                                                    type: ARRAY
-                                                                    text: "4+2"
-                                                                    children:
-                                                                      - type: LITERAL_INTEGER
-                                                                        text: "4"
-                                                                      - type: LITERAL_INTEGER
-                                                                        text: "2"
+                                                              - type: LITERAL_INTEGER
+                                                                text: "2"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "NOT EXISTS..4 AND 4+2)"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "NOT EXISTS..4 AND 4+2)"
+                            children:
+                              - type: OBJECT_SQL_EXISTS_EXPRESSION
+                                text: "EXISTS\n   ..4 AND 4+2)"
+                                children:
+                                  - key: SQL_EXISTS_EXPRESSION_STATEMENT
+                                    type: OBJECT_SQL_SELECT
+                                    text: "(SELECT *\n..4 AND 4+2)"
+                                    children:
+                                      - key: SQL_SELECT_TARGETS
+                                        type: ARRAY
+                                        text: "*"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "*"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_STAR
+                                                type: BOOL
+                                                value: 1
+                                      - key: SQL_SELECT_FROM
+                                        type: ARRAY
+                                        text: "FROM catal..  date_dim"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "catalog_sales"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "catalog_sales"
+                                                children:
+                                                  - type: NAME
+                                                    text: "catalog_sales"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "date_dim"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "date_dim"
+                                                children:
+                                                  - type: NAME
+                                                    text: "date_dim"
+                                      - key: SQL_SELECT_WHERE
+                                        type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "c.c_custom.. 4 AND 4+2"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: AND
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "c.c_custom.. 4 AND 4+2"
+                                            children:
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "c.c_custom..ustomer_sk"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "c.c_custom..ustomer_sk"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "c.c_customer_sk"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "c.c_customer_sk"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "c"
+                                                              - type: NAME
+                                                                text: "c_customer_sk"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "cs_ship_customer_sk"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "cs_ship_customer_sk"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "cs_ship_customer_sk"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "cs_sold_da.. d_date_sk"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "cs_sold_da.. d_date_sk"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "cs_sold_date_sk"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "cs_sold_date_sk"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "cs_sold_date_sk"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "d_date_sk"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "d_date_sk"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "d_date_sk"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "d_year = 2001"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "d_year = 2001"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "d_year"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "d_year"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "d_year"
+                                                      - type: LITERAL_INTEGER
+                                                        text: "2001"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "d_moy BETW.. 4 AND 4+2"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: BETWEEN_SYMMETRIC
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "d_moy BETW.. 4 AND 4+2"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "d_moy"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "d_moy"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "d_moy"
+                                                      - type: LITERAL_INTEGER
+                                                        text: "4"
+                                                      - type: OBJECT_SQL_NARY_EXPRESSION
+                                                        text: "4+2"
+                                                        children:
+                                                          - key: SQL_EXPRESSION_OPERATOR
+                                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                            value: PLUS
+                                                          - key: SQL_EXPRESSION_ARGS
+                                                            type: ARRAY
+                                                            text: "4+2"
+                                                            children:
+                                                              - type: LITERAL_INTEGER
+                                                                text: "4"
+                                                              - type: LITERAL_INTEGER
+                                                                text: "2"
               - key: SQL_SELECT_GROUPS
                 type: ARRAY
                 text: "GROUP BY c..dit_rating"

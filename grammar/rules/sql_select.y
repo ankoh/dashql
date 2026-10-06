@@ -396,7 +396,7 @@ sql_select_offset_value:
 // builds.)
 
 sql_select_fetch_first_value:
-    sql_c_expr              { $$ = std::move($1); }
+    sql_c_expr              { $$ = ctx.Expression(std::move($1)); }
   | PLUS sql_i_or_f_const   { $$ = $2; }
   | MINUS sql_i_or_f_const  { $$ = ctx.Expression(Negate(ctx, @$, @1, $2)); }
 
@@ -1268,7 +1268,7 @@ sql_interval_second:
 
 sql_a_expr:
     error      { yyclearin; $$ = Null(); }
-  | sql_c_expr { $$ = $1; }
+  | sql_c_expr { $$ = std::move($1); }
   | sql_a_expr TYPECAST sql_typename {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_TYPECAST_EXPRESSION, {
             Attr(Key::SQL_TYPECAST_VALUE, ctx.Expression(std::move($1))),
@@ -1452,10 +1452,11 @@ sql_param_ref:
 
 sql_c_expr:
     sql_columnref     { $$ = $1; }
-  | sql_a_expr_const  { $$ = ctx.Expression(std::move($1)); }
+  | sql_a_expr_const  { $$ = std::move($1); }
   | LRB sql_a_expr RRB sql_opt_indirection {
         if  ($4->empty()) {
-            $$ = ctx.Expression(std::move($2));
+            // Keep boolean chains temporary so an enclosing AND/OR can merge them.
+            $$ = std::move($2);
         } else {
             $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_INDIRECTION, {
                 Attr(Key::SQL_INDIRECTION_VALUE, ctx.Expression(std::move($2))),

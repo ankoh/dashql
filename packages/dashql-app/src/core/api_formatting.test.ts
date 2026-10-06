@@ -221,6 +221,27 @@ visualize using vegalite (
         );
     });
 
+    it('aligns nested AND predicates in pretty mode', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, 'select * from t where ((a = 1 and b = 2) and c = 3) and d = 4');
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dashql.buffers.formatting.FormattingMode.PRETTY,
+            30,
+            4,
+        );
+
+        expect(script.format(config, catalog).toString()).toEqual(
+            'select *\n' +
+            'from t\n' +
+            'where a = 1\n' +
+            '    and b = 2\n' +
+            '    and c = 3\n' +
+            '    and d = 4;'
+        );
+    });
+
     it('preserves block comment formatting beyond max width', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

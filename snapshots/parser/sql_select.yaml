@@ -281,6 +281,731 @@ parser-snapshots:
       line-breaks: []
       comments: []
 
+  - name: select_parenthesized_and_chain
+    input: |-
+      select * from t where (((a = 1 and b = 2) and c = 3) and d = 4)
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 39
+          description:
+            text: "select * f..and d = 4)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..and d = 4)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "((a = 1 an.. and d = 4"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: AND
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "((a = 1 an.. and d = 4"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a = 1"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a = 1"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_INTEGER
+                                text: "1"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "b = 2"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "b = 2"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                              - type: LITERAL_INTEGER
+                                text: "2"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "c = 3"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "c = 3"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "c"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+                              - type: LITERAL_INTEGER
+                                text: "3"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "d = 4"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "d = 4"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                              - type: LITERAL_INTEGER
+                                text: "4"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_right_parenthesized_and_chain
+    input: |-
+      select * from t where a = 1 and (b = 2 and (c = 3 and d = 4))
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 39
+          description:
+            text: "select * f..nd d = 4))"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..nd d = 4))"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = 1 and ..nd d = 4))"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: AND
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = 1 and ..nd d = 4))"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a = 1"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a = 1"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_INTEGER
+                                text: "1"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "b = 2"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "b = 2"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                              - type: LITERAL_INTEGER
+                                text: "2"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "c = 3"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "c = 3"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "c"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+                              - type: LITERAL_INTEGER
+                                text: "3"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "d = 4"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "d = 4"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                              - type: LITERAL_INTEGER
+                                text: "4"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_parenthesized_or_chain
+    input: |-
+      select * from t where (((a = 1 or b = 2) or c = 3) or d = 4)
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 39
+          description:
+            text: "select * f.. or d = 4)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f.. or d = 4)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "((a = 1 or..) or d = 4"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: OR
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "((a = 1 or..) or d = 4"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a = 1"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a = 1"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_INTEGER
+                                text: "1"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "b = 2"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "b = 2"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                              - type: LITERAL_INTEGER
+                                text: "2"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "c = 3"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "c = 3"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "c"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+                              - type: LITERAL_INTEGER
+                                text: "3"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "d = 4"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "d = 4"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                              - type: LITERAL_INTEGER
+                                text: "4"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_parenthesized_mixed_boolean_groups
+    input: |-
+      select * from t where (a = 1 or b = 2) and c = 3 or d = 4
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 45
+          description:
+            text: "select * f..3 or d = 4"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..3 or d = 4"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "(a = 1 or ..3 or d = 4"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: OR
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "(a = 1 or ..3 or d = 4"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "(a = 1 or .. and c = 3"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: AND
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "(a = 1 or .. and c = 3"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "a = 1 or b = 2"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: OR
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "a = 1 or b = 2"
+                                    children:
+                                      - type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "a = 1"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: EQUAL
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "a = 1"
+                                            children:
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "a"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "a"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "a"
+                                              - type: LITERAL_INTEGER
+                                                text: "1"
+                                      - type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "b = 2"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: EQUAL
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "b = 2"
+                                            children:
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "b"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "b"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "b"
+                                              - type: LITERAL_INTEGER
+                                                text: "2"
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "c = 3"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: EQUAL
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "c = 3"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "c"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "c"
+                                            children:
+                                              - type: NAME
+                                                text: "c"
+                                      - type: LITERAL_INTEGER
+                                        text: "3"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "d = 4"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "d = 4"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                              - type: LITERAL_INTEGER
+                                text: "4"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
+  - name: select_right_parenthesized_mixed_boolean_groups
+    input: |-
+      select * from t where a = 1 and (b = 2 or c = 3) and d = 4
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 42
+          description:
+            text: "select * f.. and d = 4"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f.. and d = 4"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = 1 and .. and d = 4"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: AND
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = 1 and .. and d = 4"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a = 1"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a = 1"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_INTEGER
+                                text: "1"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "b = 2 or c = 3"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: OR
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "b = 2 or c = 3"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "b = 2"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: EQUAL
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "b = 2"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "b"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "b"
+                                            children:
+                                              - type: NAME
+                                                text: "b"
+                                      - type: LITERAL_INTEGER
+                                        text: "2"
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "c = 3"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: EQUAL
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "c = 3"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "c"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "c"
+                                            children:
+                                              - type: NAME
+                                                text: "c"
+                                      - type: LITERAL_INTEGER
+                                        text: "3"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "d = 4"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "d = 4"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                              - type: LITERAL_INTEGER
+                                text: "4"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+
   - name: select_sconst_quotes
     input: |-
       select 'foo'
