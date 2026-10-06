@@ -409,6 +409,14 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
             if (spec.renderer.has_value()) {
                 yml_ref.append_child() << c4::yml::key("renderer") << std::string(*spec.renderer);
             }
+            auto dashboard_node = yml_ref.append_child();
+            dashboard_node << c4::yml::key("dashboard");
+            dashboard_node |= c4::yml::MAP;
+            if (spec.dashboard.row) dashboard_node.append_child() << c4::yml::key("row") << *spec.dashboard.row;
+            if (spec.dashboard.column)
+                dashboard_node.append_child() << c4::yml::key("column") << *spec.dashboard.column;
+            dashboard_node.append_child() << c4::yml::key("width") << spec.dashboard.width;
+            dashboard_node.append_child() << c4::yml::key("height") << spec.dashboard.height;
             // The structured spec is renderer-specific and is emitted under a renderer-tagged
             // sub-map. Only `vegalite` is understood today; a future renderer adds its own block
             // rather than overloading these keys. Returns early for other/absent renderers.
@@ -423,10 +431,6 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
             }
             if (spec.title.has_value())
                 vl_node.append_child() << c4::yml::key("title") << std::string(*spec.title);
-            if (spec.width.has_value())
-                vl_node.append_child() << c4::yml::key("width") << *spec.width;
-            if (spec.height.has_value())
-                vl_node.append_child() << c4::yml::key("height") << *spec.height;
             if (!spec.layers.empty())
                 vl_node.append_child() << c4::yml::key("layer-count") << spec.layers.size();
             if (spec.resolve.has_value()) {

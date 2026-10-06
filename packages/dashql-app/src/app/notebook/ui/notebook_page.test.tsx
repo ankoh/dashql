@@ -65,4 +65,14 @@ describe('NotebookPage view transitions', () => {
         expect(state.feedUnmounts).toBe(0);
         expect(container.querySelector('[data-testid="feed"]')?.getAttribute('data-active')).toBe('true');
     });
+
+    it('keeps the feed page mounted for the Dashboard view', async () => {
+        await act(async () => root.render(<NotebookPage dependencies={dependencies} />));
+        state.mode = NotebookViewMode.Dashboard;
+        await act(async () => root.render(<NotebookPage dependencies={dependencies} />));
+
+        expect(container.querySelector('[data-testid="feed"]')?.getAttribute('data-active')).toBe('false');
+        expect(state.feedMounts).toBe(1);
+        expect(state.feedUnmounts).toBe(0);
+    });
 });

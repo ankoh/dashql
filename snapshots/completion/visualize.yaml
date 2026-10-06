@@ -63,7 +63,7 @@ completion-snapshots:
         text: 'using '
         index: 6
     completions:
-      limit: 3
+      limit: 5
       strategy: DEFAULT
       entries:
         - score: 0
@@ -110,6 +110,13 @@ completion-snapshots:
           value: template
           keyword-continuation: =>
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "temp"
+          location-qualified: "temp"
+          objects: []
+        - score: 0
+          value: dashboard
+          keyword-continuation: =>
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "temp"
           location-qualified: "temp"
           objects: []
@@ -195,10 +202,10 @@ completion-snapshots:
           objects: []
       text: "enc"
 
-  - name: vis_spec_key_w
+  - name: vis_dashboard_key_w
     catalog: {}
     editor:
-      input: select * from sales visualize using vegalite (mark => bar, w
+      input: select * from sales visualize using vegalite (mark => bar, dashboard => (w
       catalog-id: 1
       errors: []
       table-refs:
@@ -206,8 +213,8 @@ completion-snapshots:
           text: "sales"
     cursor:
       search:
-        text: ', w'
-        index: 3
+        text: '(w'
+        index: 2
     completions:
       limit: 3
       strategy: DEFAULT
@@ -220,14 +227,14 @@ completion-snapshots:
           location-qualified: "w"
           objects: []
         - score: 50
-          value: view
+          value: row
           keyword-continuation: =>
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "w"
           location-qualified: "w"
           objects: []
         - score: 0
-          value: autosize
+          value: column
           keyword-continuation: =>
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "w"
@@ -235,10 +242,10 @@ completion-snapshots:
           objects: []
       text: "w"
 
-  - name: vis_spec_key_h
+  - name: vis_dashboard_key_h
     catalog: {}
     editor:
-      input: select * from sales visualize using vegalite (mark => bar, h
+      input: select * from sales visualize using vegalite (mark => bar, dashboard => (h
       catalog-id: 1
       errors: []
       table-refs:
@@ -246,8 +253,8 @@ completion-snapshots:
           text: "sales"
     cursor:
       search:
-        text: ', h'
-        index: 3
+        text: '(h'
+        index: 2
     completions:
       limit: 3
       strategy: DEFAULT
@@ -267,7 +274,7 @@ completion-snapshots:
           location-qualified: "h"
           objects: []
         - score: 0
-          value: autosize
+          value: column
           keyword-continuation: =>
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "h"
@@ -1685,6 +1692,9 @@ completion-snapshots:
         - statement-id: 0
           source: "select\n  r..w_category"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             encodings:
               - channel: VIS_ENCODING_X
@@ -1783,6 +1793,9 @@ completion-snapshots:
         - statement-id: 0
           source: "select\n  r..w_category"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             encodings:
               - channel: VIS_ENCODING_X
@@ -1860,6 +1873,9 @@ completion-snapshots:
         - statement-id: 0
           source: "select raw..from sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             title: chart_c
             encodings:
@@ -2206,6 +2222,9 @@ completion-snapshots:
         - statement-id: 0
           source: "select * f..public.sal"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: BAR
     cursor:

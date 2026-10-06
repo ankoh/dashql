@@ -160,10 +160,10 @@ Legend properties emitted: `type`, `orient`, `title`, `format`, `formatType`,
 | VISUALIZE key | Vega-Lite JSON |
 |---------------|----------------|
 | `title => 'Sales'` | `"title": "Sales"` |
-| `width => 800` | `"width": 800` |
-| `height => 400` | `"height": 400` |
 
 The `$schema` key is always emitted pointing to Vega-Lite v5.
+Card dimensions are renderer-independent and belong under `dashboard`; they
+are not emitted into Vega-Lite JSON.
 
 ---
 

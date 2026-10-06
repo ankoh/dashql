@@ -111,6 +111,14 @@ void EncodeUmapSpec(c4::yml::NodeRef out, const visualize::UmapDocument& spec) {
     }
 }
 
+void EncodeDashboardSpec(c4::yml::NodeRef out, const DashboardSpec& spec) {
+    out |= c4::yml::MAP;
+    if (spec.row) out.append_child() << c4::yml::key("row") << *spec.row;
+    if (spec.column) out.append_child() << c4::yml::key("column") << *spec.column;
+    out.append_child() << c4::yml::key("width") << spec.width;
+    out.append_child() << c4::yml::key("height") << spec.height;
+}
+
 struct VisualizeSnapshotFile {
     std::string content;
     c4::yml::Tree tree;

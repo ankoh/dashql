@@ -25,7 +25,7 @@ This encoding is compact and efficient for simple passes, but is not directly su
 ### Building
 
 ```
-# Vite dev server for the browser (HMR is disabled because pthread workers crash Chrome).
+# Vite dev server for the browser with HMR.
 bazel run //packages/dashql-app:dev
 
 # For Electron renderer HMR, run these in separate terminals.

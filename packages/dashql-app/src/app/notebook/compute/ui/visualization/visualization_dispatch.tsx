@@ -5,6 +5,8 @@ import { ResolvedVisualizeQuery } from '../../../scripts/script_types.js';
 import { VegaLiteView } from './vegalite_view.js';
 import { UmapView } from './umap/umap_view.js';
 import { MarkdownView } from './markdown_view.js';
+import { QueryResultView } from '../query_result/query_result_view.js';
+import { TableColumnHeader } from '../query_result/data_table_cell.js';
 
 interface Props {
     query: QueryExecutionState | null;
@@ -50,5 +52,15 @@ export function VisualizationDispatch(props: Props): React.ReactElement | null {
             return <VegaLiteView query={props.query} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} scale={props.scale} hideLegend={props.hideLegend} />;
         case 'markdown':
             return <MarkdownView query={props.query} spec={vq.markdownSpec} />;
+        case 'table':
+            return (
+                <QueryResultView
+                    query={props.query}
+                    debugMode={false}
+                    columnHeader={TableColumnHeader.OnlyColumnName}
+                    fitHeight={false}
+                    compact
+                />
+            );
     }
 }

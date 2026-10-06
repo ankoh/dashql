@@ -447,6 +447,11 @@ ScriptSession::EditorUpdate ScriptSession::SetPrimaryCursor(uint64_t expected_do
     return Apply(event);
 }
 
+std::string ScriptSession::RewriteDashboard(std::optional<int32_t> row, std::optional<int32_t> column, int32_t width,
+                                            int32_t height, bool parse_if_outdated) {
+    return script_.RewriteDashboard(row, column, width, height, parse_if_outdated);
+}
+
 flatbuffers::Offset<buffers::completion::Completion> ScriptSession::PackCompletion(
     flatbuffers::FlatBufferBuilder& builder, size_t limit) {
     auto completion = script_.CompleteAtCursor(limit);

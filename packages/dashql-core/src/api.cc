@@ -477,10 +477,22 @@ extern "C" void dashql_script_session_compile_query(FFIResult* result, ScriptSes
 }
 
 extern "C" void dashql_script_session_format(FFIResult* result, ScriptSession* session, size_t dialect,
-                                               size_t mode, size_t max_width, size_t indentation_width,
-                                               bool debug_mode, bool parse_if_outdated, Catalog* catalog) {
+                                                size_t mode, size_t max_width, size_t indentation_width,
+                                                bool debug_mode, bool parse_if_outdated, Catalog* catalog) {
     auto config = makeFormattingConfig(dialect, mode, max_width, indentation_width, debug_mode);
     packPtr(result, session->Format(config, parse_if_outdated, catalog));
+}
+
+extern "C" void dashql_script_session_rewrite_dashboard(FFIResult* result, ScriptSession* session, int32_t row,
+                                                           int32_t column, int32_t width, int32_t height,
+                                                           bool parse_if_outdated) {
+    auto text = std::make_unique<std::string>(session->RewriteDashboard(
+        row < 0 ? std::nullopt : std::optional<int32_t>{row},
+        column < 0 ? std::nullopt : std::optional<int32_t>{column}, width, height, parse_if_outdated));
+    result->data_ptr = text->data();
+    result->data_length = text->size();
+    result->owner_ptr = text.release();
+    result->owner_deleter = [](void* ptr) { delete reinterpret_cast<std::string*>(ptr); };
 }
 
 extern "C" uint32_t dashql_script_session_is_fully_formattable(ScriptSession* session, size_t dialect,

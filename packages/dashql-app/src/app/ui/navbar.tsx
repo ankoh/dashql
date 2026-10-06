@@ -54,6 +54,8 @@ const NotebookShellButton = () => {
     return (
         <div className={`${styles.tab} ${shellActive ? styles.active : ''}`}>
             <NavBarButton
+                aria-label={shellActive ? 'Shell, return to notebook' : label}
+                aria-pressed={shellActive}
                 className={styles.tab_button}
                 hover={HoverMode.Darken}
                 onClick={() => setMode(shellActive ? NotebookViewMode.Notebook : NotebookViewMode.Shell)}

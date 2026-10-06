@@ -2560,6 +2560,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
         case NodeType::OBJECT_VIS_SPEC:
         case NodeType::OBJECT_VIS_UMAP_SPEC:
         case NodeType::OBJECT_VIS_MARKDOWN_SPEC:
+        case NodeType::OBJECT_VIS_TABLE_SPEC:
+        case NodeType::OBJECT_VIS_DASHBOARD_SPEC:
         case NodeType::OBJECT_VIS_MARK:
         case NodeType::OBJECT_VIS_ENCODING:
         case NodeType::OBJECT_VIS_FIELD_DEF:

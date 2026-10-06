@@ -66,7 +66,7 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
         expect(dsl).toContain('mark => line');
     });
 
-    it('single-quotes string values and keeps numbers/booleans bare', () => {
+    it('single-quotes strings, keeps supported values bare, and drops renderer dimensions', () => {
         const dsl = transcode(
             {
                 mark: 'bar',
@@ -83,7 +83,7 @@ describe('parseVegaLiteToVisualize (WASM)', () => {
             },
         );
         expect(dsl).toContain("title => 'My Chart'");
-        expect(dsl).toContain('width => 320');
+        expect(dsl).not.toContain('width => 320');
         expect(dsl).toContain('label_angle => -45');
         expect(dsl).toContain("format => '%Y'");
         expect(dsl).toContain('zero => false');

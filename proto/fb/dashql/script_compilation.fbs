@@ -1,6 +1,7 @@
 include "dashql/parsed_script.fbs";
 include "dashql/markdown.fbs";
 include "dashql/umap.fbs";
+include "dashql/visualization.fbs";
 
 namespace dashql.buffers.execution;
 
@@ -39,6 +40,8 @@ table CompiledVisualization {
     vegalite_spec: string;
     umap_spec: visualization.UmapSpec;
     markdown_spec: visualization.MarkdownSpec;
+    dashboard: visualization.DashboardSpec;
+    table_spec: visualization.TableSpec;
 }
 
 table CompiledScriptStatement {

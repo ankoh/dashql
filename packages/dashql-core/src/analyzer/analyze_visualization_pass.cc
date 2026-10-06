@@ -1,6 +1,8 @@
 #include "dashql/analyzer/analyze_visualization_pass.h"
 
+#include <algorithm>
 #include <cstdlib>
+#include <limits>
 #include <string>
 #include "dashql/analyzer/analysis_state.h"
 #include "dashql/buffers/index_generated.h"
@@ -20,8 +22,6 @@ void AnalyzeVisualizationPass::NodeState::Clear() {
     mark_type.reset();
     mark.reset();
     title.reset();
-    width.reset();
-    height.reset();
     layers.clear();
     resolve.reset();
     scale.reset();
@@ -40,12 +40,6 @@ void AnalyzeVisualizationPass::NodeState::MergeFrom(NodeState&& other) {
     }
     if (!title.has_value() && other.title.has_value()) {
         title = other.title;
-    }
-    if (!width.has_value() && other.width.has_value()) {
-        width = other.width;
-    }
-    if (!height.has_value() && other.height.has_value()) {
-        height = other.height;
     }
     if (layers.empty() && !other.layers.empty()) {
         layers = std::move(other.layers);
@@ -167,6 +161,67 @@ void WarnUnsupportedVisKey(AnalysisState& state, const buffers::parser::Node& ch
     warning.symbol_span = std::make_unique<buffers::parser::SymbolSpan>(sym_span);
     warning.text_span = std::make_unique<buffers::parser::TextSpan>(state.scanned.ResolveTextSpan(sym_span));
     warning.message = std::string(key_name) + " is not yet supported and will be ignored";
+}
+
+void WarnInvalidDashboardLayout(AnalysisState& state, const buffers::parser::Node& node, std::string message) {
+    auto& warning = state.analyzed->errors.emplace_back();
+    warning.error_type = buffers::analyzer::AnalyzerErrorType::INVALID_DASHBOARD_LAYOUT;
+    warning.severity = buffers::analyzer::AnalyzerErrorSeverity::WARNING;
+    warning.ast_node_id = NodeId(state, &node);
+    auto sym_span = node.symbol_span();
+    warning.symbol_span = std::make_unique<buffers::parser::SymbolSpan>(sym_span);
+    warning.text_span = std::make_unique<buffers::parser::TextSpan>(state.scanned.ResolveTextSpan(sym_span));
+    warning.message = std::move(message);
+}
+
+DashboardSpec ExtractDashboardSpec(AnalysisState& state, const buffers::parser::Node& node) {
+    DashboardSpec spec;
+    bool column_was_clamped = false;
+    auto [row_node, column_node, width_node, height_node] =
+        state.GetAttributes<AttributeKey::VIS_DASHBOARD_ROW, AttributeKey::VIS_DASHBOARD_COLUMN,
+                            AttributeKey::VIS_DASHBOARD_WIDTH, AttributeKey::VIS_DASHBOARD_HEIGHT>(node);
+
+    if (auto value = ReadNumericValue(state, row_node)) {
+        if (*value < 0) {
+            WarnInvalidDashboardLayout(state, *row_node, "dashboard row must be non-negative and was removed");
+        } else {
+            spec.row = static_cast<int32_t>(std::min(*value, static_cast<double>(std::numeric_limits<int32_t>::max())));
+        }
+    }
+    if (auto value = ReadNumericValue(state, column_node)) {
+        if (*value < 0) {
+            WarnInvalidDashboardLayout(state, *column_node,
+                                       "dashboard column must be non-negative and was removed");
+        } else {
+            spec.column = static_cast<int32_t>(std::min(*value, 11.0));
+            if (*value > 11) {
+                column_was_clamped = true;
+                WarnInvalidDashboardLayout(state, *column_node, "dashboard column was clamped to 11");
+            }
+        }
+    }
+    if (auto value = ReadNumericValue(state, width_node)) {
+        spec.width = static_cast<int32_t>(std::clamp(*value, 1.0, 12.0));
+        if (*value < 1 || *value > 12) {
+            WarnInvalidDashboardLayout(state, *width_node, "dashboard width was clamped to the range 1..12");
+        }
+    }
+    if (auto value = ReadNumericValue(state, height_node)) {
+        if (*value < 1) {
+            spec.height = 1;
+            WarnInvalidDashboardLayout(state, *height_node, "dashboard height was clamped to 1");
+        } else {
+            spec.height = static_cast<int32_t>(std::min(*value, static_cast<double>(std::numeric_limits<int32_t>::max())));
+        }
+    }
+    if (spec.column && *spec.column + spec.width > 12) {
+        spec.column = 12 - spec.width;
+        if (!column_was_clamped) {
+            WarnInvalidDashboardLayout(state, *column_node,
+                                       "dashboard column was moved so column + width does not exceed 12");
+        }
+    }
+    return spec;
 }
 
 /// Recursively extract a mark definition from an OBJECT_VIS_MARK node.
@@ -451,11 +506,10 @@ VisEncodingChannel ExtractEncodingChannel(AnalysisState& state, const buffers::p
 
 VegaLiteSpec ExtractVegaLiteSpec(AnalysisState& state, const buffers::parser::Node& node) {
     VegaLiteSpec spec;
-    auto [mark_node, encoding_node, layer_node, resolve_node, title_node, width_node, height_node] =
+    auto [mark_node, encoding_node, layer_node, resolve_node, title_node] =
         state.GetAttributes<AttributeKey::VIS_SPEC_MARK, AttributeKey::VIS_SPEC_ENCODING,
                             AttributeKey::VIS_SPEC_LAYER, AttributeKey::VIS_SPEC_RESOLVE,
-                            AttributeKey::VIS_SPEC_TITLE, AttributeKey::VIS_SPEC_WIDTH,
-                            AttributeKey::VIS_SPEC_HEIGHT>(node);
+                            AttributeKey::VIS_SPEC_TITLE>(node);
     if (mark_node && mark_node->node_type() == NodeType::ENUM_VIS_MARK_TYPE) {
         spec.mark_type = static_cast<buffers::parser::VisMarkType>(mark_node->children_begin_or_value());
     } else if (mark_node && mark_node->node_type() == NodeType::OBJECT_VIS_MARK) {
@@ -495,8 +549,6 @@ VegaLiteSpec ExtractVegaLiteSpec(AnalysisState& state, const buffers::parser::No
         spec.resolve = std::move(resolve);
     }
     spec.title = ReadTextValue(state, title_node);
-    if (auto value = ReadNumericValue(state, width_node)) spec.width = static_cast<int64_t>(*value);
-    if (auto value = ReadNumericValue(state, height_node)) spec.height = static_cast<int64_t>(*value);
     return spec;
 }
 
@@ -727,10 +779,9 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                 }
                 MergeChildStates(node_state, node);
 
-                auto [mark_node, layer_node, resolve_node, title_node, width_node, height_node] =
+                auto [mark_node, layer_node, resolve_node, title_node] =
                     state.GetAttributes<AttributeKey::VIS_SPEC_MARK, AttributeKey::VIS_SPEC_LAYER,
-                                        AttributeKey::VIS_SPEC_RESOLVE, AttributeKey::VIS_SPEC_TITLE,
-                                        AttributeKey::VIS_SPEC_WIDTH, AttributeKey::VIS_SPEC_HEIGHT>(node);
+                                        AttributeKey::VIS_SPEC_RESOLVE, AttributeKey::VIS_SPEC_TITLE>(node);
                 if (mark_node && mark_node->node_type() == NodeType::ENUM_VIS_MARK_TYPE) {
                     node_state.mark_type =
                         static_cast<buffers::parser::VisMarkType>(mark_node->children_begin_or_value());
@@ -745,10 +796,6 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                     node_state.resolve = std::move(composed.resolve);
                 }
                 node_state.title = ReadTextValue(state, title_node);
-                if (auto value = ReadNumericValue(state, width_node))
-                    node_state.width = static_cast<int64_t>(*value);
-                if (auto value = ReadNumericValue(state, height_node))
-                    node_state.height = static_cast<int64_t>(*value);
                 break;
             }
 
@@ -767,8 +814,6 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                 spec.mark_type = node_state.mark_type;
                 spec.mark = std::move(node_state.mark);
                 spec.title = node_state.title;
-                spec.width = node_state.width;
-                spec.height = node_state.height;
                 spec.encoding_channels = std::move(node_state.encoding_channels);
                 spec.layers = std::move(node_state.layers);
                 spec.resolve = std::move(node_state.resolve);
@@ -779,6 +824,12 @@ void AnalyzeVisualizationPass::Visit(std::span<const buffers::parser::Node> mors
                     spec.umap = ExtractUmapSpec(state, *spec_node);
                 } else if (spec_node && spec_node->node_type() == NodeType::OBJECT_VIS_MARKDOWN_SPEC) {
                     spec.markdown = ExtractMarkdownSpec(state, *spec_node);
+                }
+                if (spec_node) {
+                    auto [dashboard_node] = state.GetAttributes<AttributeKey::VIS_SPEC_DASHBOARD>(*spec_node);
+                    if (dashboard_node && dashboard_node->node_type() == NodeType::OBJECT_VIS_DASHBOARD_SPEC) {
+                        spec.dashboard = ExtractDashboardSpec(state, *dashboard_node);
+                    }
                 }
 
                 if (select_node) {

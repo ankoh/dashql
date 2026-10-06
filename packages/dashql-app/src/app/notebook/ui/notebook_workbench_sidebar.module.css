@@ -1,11 +1,9 @@
 .workbench {
     display: flex;
     flex-direction: column;
-    gap: 8px;
     width: 100%;
     min-width: 0;
     min-height: 0;
-    padding: 8px 16px 8px 8px;
     overflow: hidden;
     border-right: 1px solid var(--border_color_primary);
 }
@@ -15,8 +13,6 @@
     flex-direction: column;
     min-width: 0;
     min-height: 0;
-    border: 1px solid var(--border_color_primary);
-    border-radius: var(--border_radius);
     background: var(--base_color_white);
     overflow: hidden;
 }
@@ -24,6 +20,10 @@
 .section:first-child {
     flex: 0 1 42%;
 }
+.section:not(:first-child) {
+    border-top: 1px solid var(--border_color_primary);
+}
+
 
 .database_section {
     flex: 1 1 58%;
@@ -33,7 +33,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 40px;
+    min-height: 44px;
     padding: 0 6px 0 12px;
     border-bottom: 1px solid var(--border_color_primary);
 }
@@ -48,10 +48,8 @@
 .section_heading {
     margin: 0;
     color: var(--base_color_neutral_9);
-    font-size: var(--font_size_micro);
+    font-size: var(--font_size_body);
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
 }
 
 .section_count {

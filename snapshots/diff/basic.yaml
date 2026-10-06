@@ -164,9 +164,9 @@ diff-snapshots:
 
   - name: reorder_object_attributes
     source: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, width => 800, height => 400);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, dashboard => (width => 8, height => 4));
     target: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (height => 400, width => 800, mark => bar);
+      SELECT * FROM sales VISUALIZE USING vegalite (dashboard => (height => 4, width => 8), mark => bar);
     expected:
       ops:
         - code: KEEP

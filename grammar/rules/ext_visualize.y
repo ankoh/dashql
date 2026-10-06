@@ -8,7 +8,7 @@
 //       encoding => (
 //           x => (field => time, type => temporal, scale => (domain => [0, 100]))
 //       ),
-//       width => 800
+//       dashboard => (row => 0, column => 0, width => 6, height => 3)
 //   )
 //
 // 4-level structured grammar with dedicated object types and attribute keys:
@@ -28,7 +28,7 @@ vis_visualise_keyword:
 // reduce it to a shared `vis_renderer` nonterminal (which would erase the lookahead the
 // parser needs to pick the renderer-specific spec body), each renderer keyword is inlined
 // as a terminal so `USING vegalite (...)`, `USING umap (...)`, and
-// `USING markdown (...)` branch to their
+// `USING markdown (...)`, and `USING table (...)` branch to their
 // own spec grammar. Adding a future renderer is a new alternative here plus its spec rules.
 vis_visualise_stmt:
     sql_select_stmt vis_visualise_keyword USING VEGALITE LRB vis_spec_list RRB {
@@ -73,6 +73,54 @@ vis_visualise_stmt:
                  ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_MARKDOWN_SPEC, std::move($6), false)),
         }, false);
     }
+  | sql_select_stmt vis_visualise_keyword USING TABLE LRB vis_table_spec_list RRB {
+        if (!ctx.IsVisEnabled()) {
+            error(@2, "VISUALISE syntax is disabled in this ParseContext");
+            YYERROR;
+        }
+        ctx.MarkVisSpecSpan(@6);
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_VISUALISE, {
+            Attr(Key::VIS_VISUALISE_SELECT,
+                 ctx.Object(@1, buffers::parser::NodeType::OBJECT_SQL_SELECT, std::move($1))),
+            Attr(Key::VIS_VISUALISE_USING, ctx.NameFromKeyword(@4, $4)),
+            Attr(Key::VIS_VISUALISE_SPEC,
+                 ctx.Object(@6, buffers::parser::NodeType::OBJECT_VIS_TABLE_SPEC, std::move($6), false)),
+        }, false);
+    }
+    ;
+
+// ---------------------------------------------------------------------------
+// Shared dashboard grid placement. This is accepted only in renderer root
+// specs, not in nested Vega-Lite layer specs.
+
+vis_dashboard_field:
+    DASHBOARD EQUALS_GREATER LRB vis_dashboard_spec_list RRB {
+        $$ = Attr(Key::VIS_SPEC_DASHBOARD,
+             ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_DASHBOARD_SPEC, std::move($4), false));
+    }
+    ;
+
+vis_dashboard_spec_list:
+    vis_dashboard_spec_list COMMA opt_vis_dashboard_spec_field  { $1->push_back($3); $$ = std::move($1); }
+  | opt_vis_dashboard_spec_field                                { $$ = ctx.List({$1}); }
+    ;
+
+opt_vis_dashboard_spec_field:
+    vis_dashboard_spec_key EQUALS_GREATER vis_dashboard_integer { $$ = Attr($1, $3); }
+  | %empty { $$ = Null(); }
+    ;
+
+vis_dashboard_spec_key:
+    ROW     { $$ = Key::VIS_DASHBOARD_ROW; }
+  | COLUMN  { $$ = Key::VIS_DASHBOARD_COLUMN; }
+  | WIDTH   { $$ = Key::VIS_DASHBOARD_WIDTH; }
+  | HEIGHT  { $$ = Key::VIS_DASHBOARD_HEIGHT; }
+    ;
+
+vis_dashboard_integer:
+    ICONST        { $$ = Const(@$, buffers::parser::AConstType::INTEGER); }
+  | PLUS ICONST   { $$ = Const(@$, buffers::parser::AConstType::INTEGER); }
+  | MINUS ICONST  { $$ = Const(@$, buffers::parser::AConstType::INTEGER); }
     ;
 
 // ---------------------------------------------------------------------------
@@ -92,9 +140,25 @@ vis_markdown_spec_list:
     ;
 
 opt_vis_markdown_spec_field:
-    TEMPLATE EQUALS_GREATER SCONST {
+    vis_dashboard_field {
+        $$ = $1;
+    }
+  | TEMPLATE EQUALS_GREATER SCONST {
         $$ = Attr(Key::VIS_MARKDOWN_SPEC_TEMPLATE, Const(@3, buffers::parser::AConstType::STRING));
     }
+  | %empty { $$ = Null(); }
+    ;
+
+// ---------------------------------------------------------------------------
+// table renderer spec
+
+vis_table_spec_list:
+    vis_table_spec_list COMMA opt_vis_table_spec_field  { $1->push_back($3); $$ = std::move($1); }
+  | opt_vis_table_spec_field                            { $$ = ctx.List({$1}); }
+    ;
+
+opt_vis_table_spec_field:
+    vis_dashboard_field { $$ = $1; }
   | %empty { $$ = Null(); }
     ;
 
@@ -120,7 +184,10 @@ vis_umap_spec_list:
     ;
 
 opt_vis_umap_spec_field:
-    METRIC EQUALS_GREATER vis_umap_metric {
+    vis_dashboard_field {
+        $$ = $1;
+    }
+  | METRIC EQUALS_GREATER vis_umap_metric {
         $$ = Attr(Key::VIS_UMAP_SPEC_METRIC, $3);
     }
   | vis_umap_spec_num_key EQUALS_GREATER vis_umap_number {
@@ -175,6 +242,20 @@ vis_spec_list:
     ;
 
 opt_vis_spec_field:
+    vis_dashboard_field {
+        $$ = $1;
+    }
+  | opt_vis_layer_spec_field {
+        $$ = $1;
+    }
+    ;
+
+vis_layer_spec_field_list:
+    vis_layer_spec_field_list COMMA opt_vis_layer_spec_field  { $1->push_back($3); $$ = std::move($1); }
+  | opt_vis_layer_spec_field                                  { $$ = ctx.List({$1}); }
+    ;
+
+opt_vis_layer_spec_field:
     ENCODING EQUALS_GREATER LRB vis_encoding_list RRB {
         $$ = Attr(Key::VIS_SPEC_ENCODING,
              ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_ENCODING, std::move($4), false));
@@ -208,8 +289,6 @@ vis_spec_key:
   | VIEW            { $$ = Key::VIS_SPEC_VIEW; }
   | NAME_P          { $$ = Key::VIS_SPEC_NAME; }
   | TITLE           { $$ = Key::VIS_SPEC_TITLE; }
-  | WIDTH           { $$ = Key::VIS_SPEC_WIDTH; }
-  | HEIGHT          { $$ = Key::VIS_SPEC_HEIGHT; }
   | PADDING         { $$ = Key::VIS_SPEC_PADDING; }
   | BACKGROUND      { $$ = Key::VIS_SPEC_BACKGROUND; }
   | FILTER          { $$ = Key::VIS_SPEC_FILTER; }
@@ -223,7 +302,7 @@ vis_layer_list:
     ;
 
 vis_layer_spec:
-    LRB vis_spec_list RRB {
+    LRB vis_layer_spec_field_list RRB {
         $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_VIS_SPEC, std::move($2), false);
     }
     ;

@@ -12,8 +12,19 @@
 %type <BackedUniquePtr<NodeList>> vis_markdown_spec_list;
 %type <buffers::parser::Node> opt_vis_markdown_spec_field;
 
+%type <BackedUniquePtr<NodeList>> vis_table_spec_list;
+%type <buffers::parser::Node> opt_vis_table_spec_field;
+
+%type <BackedUniquePtr<NodeList>> vis_dashboard_spec_list;
+%type <buffers::parser::Node> opt_vis_dashboard_spec_field;
+%type <buffers::parser::AttributeKey> vis_dashboard_spec_key;
+%type <buffers::parser::Node> vis_dashboard_integer;
+%type <buffers::parser::Node> vis_dashboard_field;
+
 %type <BackedUniquePtr<NodeList>> vis_spec_list;
 %type <buffers::parser::Node> opt_vis_spec_field;
+%type <BackedUniquePtr<NodeList>> vis_layer_spec_field_list;
+%type <buffers::parser::Node> opt_vis_layer_spec_field;
 %type <buffers::parser::AttributeKey> vis_spec_key;
 %type <BackedUniquePtr<NodeList>> vis_layer_list;
 %type <buffers::parser::Node> vis_layer_spec;

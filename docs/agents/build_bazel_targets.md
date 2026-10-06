@@ -187,7 +187,7 @@ bazel query 'rdeps(//..., //packages/dashql-core:dashql_core)'
 For local development with hot module reloading:
 
 ```bash
-# Start browser dev server (Vite without HMR)
+# Start browser dev server with HMR
 bazel run //packages/dashql-app:dev
 
 # Start the Vite server in Electron mode with renderer HMR

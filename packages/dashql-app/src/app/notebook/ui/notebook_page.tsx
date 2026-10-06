@@ -50,6 +50,7 @@ export const NotebookPage: React.FC<Props> = (props: Props) => {
     const [notebookScripts, modifyNotebookScripts] = dependencies.useNotebookScripts(route.notebookId ?? null);
     const [conn] = dependencies.useAttachedDatabaseState(notebookScripts?.notebookId ?? null);
     const { mode: notebookMode } = dependencies.useNotebookViewMode();
+    const notebookPageVisible = notebookMode !== NotebookViewMode.Shell;
 
     React.useEffect(() => {
         if (route.notebookId === null) {
@@ -72,7 +73,7 @@ export const NotebookPage: React.FC<Props> = (props: Props) => {
     }
     return (
         <div className={styles.page}>
-            <div className={notebookMode === NotebookViewMode.Notebook ? styles.view : styles.view_hidden}>
+            <div className={notebookPageVisible ? styles.view : styles.view_hidden}>
                 <dependencies.NotebookFeedPage
                     notebookScripts={notebookScripts}
                     modifyNotebookScripts={modifyNotebookScripts}

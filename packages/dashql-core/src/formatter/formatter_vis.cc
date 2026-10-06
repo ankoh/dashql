@@ -27,8 +27,7 @@ std::string_view GetVisAttributeKeyText(AttributeKey key) {
         case AttributeKey::VIS_SPEC_VIEW: return "view";
         case AttributeKey::VIS_SPEC_NAME: return "name";
         case AttributeKey::VIS_SPEC_TITLE: return "title";
-        case AttributeKey::VIS_SPEC_WIDTH: return "width";
-        case AttributeKey::VIS_SPEC_HEIGHT: return "height";
+        case AttributeKey::VIS_SPEC_DASHBOARD: return "dashboard";
         case AttributeKey::VIS_SPEC_PADDING: return "padding";
         case AttributeKey::VIS_SPEC_BACKGROUND: return "background";
         case AttributeKey::VIS_SPEC_FILTER: return "filter";
@@ -168,6 +167,10 @@ std::string_view GetVisAttributeKeyText(AttributeKey key) {
         case AttributeKey::VIS_UMAP_SPEC_NEIGHBORS: return "neighbors";
         case AttributeKey::VIS_UMAP_SPEC_MIN_DIST: return "min_dist";
         case AttributeKey::VIS_MARKDOWN_SPEC_TEMPLATE: return "template";
+        case AttributeKey::VIS_DASHBOARD_ROW: return "row";
+        case AttributeKey::VIS_DASHBOARD_COLUMN: return "column";
+        case AttributeKey::VIS_DASHBOARD_WIDTH: return "width";
+        case AttributeKey::VIS_DASHBOARD_HEIGHT: return "height";
         default: return "";
     }
 }
@@ -278,8 +281,9 @@ FmtReg Formatter::FormatVisPropertyList(const buffers::parser::Node& node) {
     bool eager_break = config.mode == buffers::formatting::FormattingMode::PRETTY;
     bool inline_mode = config.mode == buffers::formatting::FormattingMode::INLINE;
     bool is_top_level_spec = node.node_type() == NodeType::OBJECT_VIS_SPEC ||
-                             node.node_type() == NodeType::OBJECT_VIS_UMAP_SPEC ||
-                             node.node_type() == NodeType::OBJECT_VIS_MARKDOWN_SPEC;
+                              node.node_type() == NodeType::OBJECT_VIS_UMAP_SPEC ||
+                              node.node_type() == NodeType::OBJECT_VIS_MARKDOWN_SPEC ||
+                              node.node_type() == NodeType::OBJECT_VIS_TABLE_SPEC;
     auto inline_separator = fmt.Text(", ");
     auto break_separator = fmt.Concat({fmt.Text(","), fmt.Break()});
     if (eager_break) {

@@ -22,10 +22,6 @@ struct AnalyzeVisualizationPass : public PassManager::LTRPass {
         std::optional<VisMark> mark;
         /// Top-level title
         std::optional<std::string_view> title;
-        /// Top-level width
-        std::optional<int64_t> width;
-        /// Top-level height
-        std::optional<int64_t> height;
         /// Nested Vega-Lite layers
         std::vector<VegaLiteSpec> layers;
         /// Vega-Lite composition resolution

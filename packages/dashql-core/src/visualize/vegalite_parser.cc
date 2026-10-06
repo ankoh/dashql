@@ -345,13 +345,6 @@ void AppendVegaLiteSpecLines(const rapidjson::Value& spec, std::vector<std::stri
     if (spec.HasMember("title") && spec["title"].IsString()) {
         lines.push_back(prefix + "title => " + EmitStringLiteral(spec["title"].GetString()));
     }
-    if (spec.HasMember("width") && spec["width"].IsNumber()) {
-        lines.push_back(prefix + "width => " + EmitNumber(spec["width"]));
-    }
-    if (spec.HasMember("height") && spec["height"].IsNumber()) {
-        lines.push_back(prefix + "height => " + EmitNumber(spec["height"]));
-    }
-
     if (spec.HasMember("encoding") && spec["encoding"].IsObject()) {
         const auto& encoding = spec["encoding"];
         std::vector<std::string> channels;

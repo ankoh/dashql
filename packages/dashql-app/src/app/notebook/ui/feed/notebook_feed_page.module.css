@@ -4,7 +4,7 @@
 
 .page {
     --notebook_header_height: 48px;
-    --notebook_navigation_sidebar_width: 288px;
+    --notebook_navigation_sidebar_width: 260px;
     --notebook_feed_background_color: hsl(210, 29%, 97%);
 }
 
@@ -32,16 +32,11 @@
         background-color: var(--notebook_sidebar_background);
     }
     .body_container {
-        position: relative;
         grid-row: 2;
         grid-column: 1;
         min-width: 0;
         min-height: 0;
         background-color: var(--notebook_sidebar_background);
-    }
-    .feed_shadow_layer {
-        grid-row: 2;
-        grid-column: 1;
     }
 }
 
@@ -68,28 +63,52 @@
         background-color: var(--notebook_sidebar_background);
     }
     .body_container {
-        position: relative;
         grid-row: 1;
         grid-column: 2;
         min-width: 0;
         min-height: 0;
         background-color: var(--notebook_feed_background_color);
     }
-    .feed_shadow_layer {
-        grid-row: 1;
-        grid-column: 2;
-    }
 }
 
-.feed_shadow_layer {
+.body_container {
+    display: grid;
+    grid-template-rows: max-content 1fr;
+}
+
+.view_bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 0;
+    padding: 0px 8px;
+    border-bottom: 1px solid var(--border_color_primary);
+    /* background: hsl(210, 29%, 98%); */
+    background: white;
+    height: 44px;
+}
+
+.content_container {
     position: relative;
+    min-width: 0;
+    min-height: 0;
+}
+
+.feed_shadow_layer,
+.feed_shadow_layer_hidden {
+    position: absolute;
+    inset: 0;
     z-index: 20;
     min-width: 0;
     min-height: 0;
     pointer-events: none;
 }
 
-/* Keep the feed laid out behind details so its virtual-list measurements and scroll position survive. */
+.feed_shadow_layer_hidden {
+    visibility: hidden;
+}
+
+/* Keep the feed laid out behind alternate content so its measurements and scroll position survive. */
 .feed_layer,
 .feed_layer_hidden {
     position: absolute;

@@ -89,7 +89,17 @@ flatbuffers::Offset<buffers::execution::CompiledVisualization> PackVisualization
     if (visualization.markdown_spec) {
         markdown = visualize::PackMarkdownSpec(builder, *visualization.markdown_spec);
     }
-    return buffers::execution::CreateCompiledVisualization(builder, renderer, vegalite, umap, markdown);
+    auto dashboard = buffers::visualization::CreateDashboardSpec(
+        builder, visualization.dashboard ? visualization.dashboard->row : flatbuffers::Optional<int32_t>{},
+        visualization.dashboard ? visualization.dashboard->column : flatbuffers::Optional<int32_t>{},
+        visualization.dashboard ? visualization.dashboard->width : 6,
+        visualization.dashboard ? visualization.dashboard->height : 3);
+    flatbuffers::Offset<buffers::visualization::TableSpec> table;
+    if (visualization.table_spec) {
+        table = buffers::visualization::CreateTableSpec(builder);
+    }
+    return buffers::execution::CreateCompiledVisualization(builder, renderer, vegalite, umap, markdown, dashboard,
+                                                             table);
 }
 
 }  // namespace
@@ -247,6 +257,11 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
             return result;
         }
         CompiledVisualization compiled{.renderer = std::string(*visualization->renderer)};
+        compiled.dashboard = std::make_shared<buffers::visualization::DashboardSpecT>();
+        compiled.dashboard->row = visualization->dashboard.row;
+        compiled.dashboard->column = visualization->dashboard.column;
+        compiled.dashboard->width = visualization->dashboard.width;
+        compiled.dashboard->height = visualization->dashboard.height;
         if (*visualization->renderer == "vegalite") {
             compiled.vegalite_spec = visualize::GenerateVegaLiteSpec(*visualization, *script.analyzed_script);
         } else if (*visualization->renderer == "umap") {
@@ -254,6 +269,8 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
         } else if (*visualization->renderer == "markdown") {
             auto markdown = visualize::CompileMarkdownSpec(*visualization);
             if (markdown) compiled.markdown_spec = std::move(markdown);
+        } else if (*visualization->renderer == "table") {
+            compiled.table_spec = std::make_shared<buffers::visualization::TableSpecT>();
         }
         result.visualization = std::move(compiled);
         auto& terminal = result.statements.back();

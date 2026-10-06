@@ -133,18 +133,18 @@ formatter-snapshots:
 
   - name: vis_multi_spec_keys
     input: |-
-      select * from sales visualize using vegalite (mark => line, width => 800, height => 400)
+      select * from sales visualize using vegalite (mark => line, dashboard => (row => 1, column => 2, width => 8, height => 4))
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              select * from sales visualize using vegalite (mark => line, width => 800, height => 400);
+              select * from sales visualize using vegalite (mark => line, dashboard => (row => 1, column => 2, width => 8, height => 4));
           - mode: compact
             expected: |-
               select * from sales
               visualize using vegalite (
-                mark => line, width => 800, height => 400
+                mark => line, dashboard => (row => 1, column => 2, width => 8, height => 4)
               );
           - mode: pretty
             expected: |-
@@ -152,8 +152,12 @@ formatter-snapshots:
               from sales
               visualize using vegalite (
                 mark => line,
-                width => 800,
-                height => 400
+                dashboard => (
+                  row => 1,
+                  column => 2,
+                  width => 8,
+                  height => 4
+                )
               );
 
   - name: vis_encoding_simple
@@ -287,18 +291,18 @@ formatter-snapshots:
 
   - name: vis_trailing_comma_spec
     input: |-
-      select * from sales visualize using vegalite (mark => line, width => 800,)
+      select * from sales visualize using vegalite (mark => line, dashboard => (width => 8,),)
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              select * from sales visualize using vegalite (mark => line, width => 800);
+              select * from sales visualize using vegalite (mark => line, dashboard => (width => 8));
           - mode: compact
             expected: |-
               select * from sales
               visualize using vegalite (
-                mark => line, width => 800
+                mark => line, dashboard => (width => 8)
               );
           - mode: pretty
             expected: |-
@@ -306,7 +310,9 @@ formatter-snapshots:
               from sales
               visualize using vegalite (
                 mark => line,
-                width => 800
+                dashboard => (
+                  width => 8
+                )
               );
 
   - name: vis_trailing_comma_nested
@@ -415,21 +421,47 @@ formatter-snapshots:
                 template => '## {{product}}: {{revenue}}'
               );
 
-  - name: vis_full_example
+  - name: vis_table
     input: |-
-      select * from sales visualize using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800)
+      select product, revenue from product_summary visualize using table (dashboard => (column => 3, width => 9))
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              select * from sales visualize using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800);
+              select product, revenue from product_summary visualize using table (dashboard => (column => 3, width => 9));
+          - mode: compact
+            expected: |-
+              select product, revenue from product_summary
+              visualize using table (
+                dashboard => (column => 3, width => 9)
+              );
+          - mode: pretty
+            expected: |-
+              select product, revenue
+              from product_summary
+              visualize using table (
+                dashboard => (
+                  column => 3,
+                  width => 9
+                )
+              );
+
+  - name: vis_full_example
+    input: |-
+      select * from sales visualize using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), dashboard => (width => 8))
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from sales visualize using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), dashboard => (width => 8));
           - mode: compact
             expected: |-
               select * from sales
               visualize using vegalite (
                 mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)),
-                width => 800
+                dashboard => (width => 8)
               );
           - mode: pretty
             expected: |-
@@ -447,5 +479,7 @@ formatter-snapshots:
                     type => quantitative
                   )
                 ),
-                width => 800
+                dashboard => (
+                  width => 8
+                )
               );

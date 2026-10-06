@@ -140,7 +140,8 @@
 }
 
 .tab_button:focus-visible {
-    outline: none;
+    outline: 2px solid var(--focus_outline_color, #0969da);
+    outline-offset: 1px;
 }
 
 .tab_navbar {

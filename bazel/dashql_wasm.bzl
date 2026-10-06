@@ -20,6 +20,7 @@ CORE_WASM_EXPORTS = [
     "'_dashql_script_session_complete_at_cursor'",
     "'_dashql_script_session_compile_query'",
     "'_dashql_script_session_format'",
+    "'_dashql_script_session_rewrite_dashboard'",
     "'_dashql_script_session_is_fully_formattable'",
     "'_dashql_script_session_compute_diff'",
     "'_dashql_script_session_load_into_catalog'",

@@ -16,7 +16,7 @@ parser-snapshots:
       SELECT * FROM sales VISUALIZE USING vegalite (mark => line);
   - name: vis_statement_multi_spec_keys
     input: |
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, width => 800, height => 400);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, dashboard => (width => 8, height => 4));
   - name: vis_statement_encoding_single_channel
     input: |
       SELECT * FROM sales VISUALIZE USING vegalite (
@@ -128,7 +128,7 @@ parser-snapshots:
       );
   - name: vis_statement_numeric_values
     input: |
-      SELECT * FROM sales VISUALIZE USING vegalite (width => 800, height => 400, padding => 20);
+      SELECT * FROM sales VISUALIZE USING vegalite (dashboard => (row => 1, column => 2, width => 8, height => 4), padding => 20);
   - name: vis_statement_full_pipeline
     input: |
       SELECT * FROM sales VISUALIZE USING vegalite (
@@ -138,13 +138,12 @@ parser-snapshots:
           y => (field => revenue, type => quantitative, scale => (zero => true)),
           color => (field => region, type => nominal, legend => (orient => 'right'))
         ),
-        width => 800,
-        height => 400,
+        dashboard => (width => 8, height => 4),
         title => 'Revenue by Region'
       );
   - name: vis_statement_trailing_comma_spec
     input: |
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, width => 800,);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, dashboard => (width => 8,),);
   - name: vis_statement_trailing_comma_encoding
     input: |
       SELECT * FROM sales VISUALIZE USING vegalite (
@@ -189,4 +188,14 @@ parser-snapshots:
     input: |
       SELECT product, revenue FROM product_summary VISUALIZE USING markdown (
         template => '## {{product}}: {{revenue}}'
+      );
+  - name: vis_statement_table
+    input: |
+      SELECT product, revenue FROM product_summary VISUALIZE USING table (
+        dashboard => (column => 3, width => 9)
+      );
+  - name: vis_statement_nested_dashboard_rejected
+    input: |
+      SELECT * FROM sales VISUALIZE USING vegalite (
+        layer => [(mark => bar, dashboard => (width => 6))]
       );

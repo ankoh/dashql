@@ -1207,6 +1207,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             bool is_vegalite = spec.renderer.has_value() && *spec.renderer == "vegalite";
             bool is_umap = spec.renderer.has_value() && *spec.renderer == "umap";
             bool is_markdown = spec.renderer.has_value() && *spec.renderer == "markdown";
+            bool is_table = spec.renderer.has_value() && *spec.renderer == "table";
             flatbuffers::Offset<flatbuffers::String> vegalite_ofs;
             if (is_vegalite) {
                 // Generate the Vega-Lite JSON once, lazily, and cache it on the spec.
@@ -1230,6 +1231,13 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                 if (markdown) markdown_ofs = visualize::PackMarkdownSpec(builder, *markdown);
             }
 
+            auto dashboard_ofs = buffers::visualization::CreateDashboardSpec(
+                builder, spec.dashboard.row, spec.dashboard.column, spec.dashboard.width, spec.dashboard.height);
+            flatbuffers::Offset<buffers::visualization::TableSpec> table_ofs;
+            if (is_table) {
+                table_ofs = buffers::visualization::CreateTableSpec(builder);
+            }
+
             flatbuffers::Offset<flatbuffers::String> renderer_ofs;
             if (spec.renderer.has_value()) {
                 renderer_ofs = builder.CreateString(std::string(*spec.renderer));
@@ -1246,6 +1254,8 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
             sb.add_vegalite_spec(vegalite_ofs);
             sb.add_umap_spec(umap_ofs);
             sb.add_markdown_spec(markdown_ofs);
+            sb.add_dashboard(dashboard_ofs);
+            sb.add_table_spec(table_ofs);
             spec_offsets.push_back(sb.Finish());
         });
         visualization_specs_ofs = builder.CreateVector(spec_offsets);
@@ -1423,6 +1433,67 @@ std::string Script::GetStatementText(bool parse_if_outdated) {
         return {};
     }
     return ToString(descriptions.front().statement_span);
+}
+
+std::string Script::RewriteDashboard(std::optional<int32_t> row, std::optional<int32_t> column, int32_t width,
+                                     int32_t height, bool parse_if_outdated) {
+    CheckNotBusy();
+    if (parse_if_outdated &&
+        (parsed_script == nullptr || parsed_script->scanned_script->text_version != text_version)) {
+        Parse();
+    }
+    if (!parsed_script || !parsed_script->errors.empty() || parsed_script->statements.empty()) {
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    }
+
+    const auto& statement = parsed_script->statements.back();
+    if (statement.type != StatementType::VIS_VISUALISE) {
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    }
+    const auto& root = parsed_script->nodes[statement.root];
+    auto children = std::span{parsed_script->nodes}.subspan(root.children_begin_or_value(), root.children_count());
+    auto [spec] = LookupAttributes<AttributeKey::VIS_VISUALISE_SPEC>(children);
+    if (!spec) throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+
+    width = std::clamp(width, 1, 12);
+    height = std::max(height, 1);
+    if (row && *row < 0) row.reset();
+    if (column) *column = std::clamp(*column, 0, 12 - width);
+
+    std::string replacement = "dashboard => (";
+    bool has_field = false;
+    auto append_field = [&](std::string_view name, int32_t value) {
+        if (has_field) replacement.append(", ");
+        replacement.append(name);
+        replacement.append(" => ");
+        replacement.append(std::to_string(value));
+        has_field = true;
+    };
+    if (row) append_field("row", *row);
+    if (column) append_field("column", *column);
+    append_field("width", width);
+    append_field("height", height);
+    replacement.push_back(')');
+
+    auto source = text.ToString();
+    auto spec_children = std::span{parsed_script->nodes}.subspan(spec->children_begin_or_value(), spec->children_count());
+    auto [dashboard] = LookupAttributes<AttributeKey::VIS_SPEC_DASHBOARD>(spec_children);
+    if (dashboard) {
+        auto span = parsed_script->scanned_script->ResolveTextSpan(dashboard->symbol_span());
+        source.replace(span.offset(), span.length(), replacement);
+        return source;
+    }
+
+    auto root_span = parsed_script->scanned_script->ResolveTextSpan(root.symbol_span());
+    auto insert_at = static_cast<size_t>(root_span.offset()) + root_span.length();
+    if (insert_at == 0 || source[insert_at - 1] != ')') {
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    }
+    --insert_at;
+    const bool has_spec_fields = std::any_of(spec_children.begin(), spec_children.end(),
+                                             [](const Node& child) { return child.node_type() != NodeType::NONE; });
+    source.insert(insert_at, has_spec_fields ? ", " + replacement : replacement);
+    return source;
 }
 
 std::string Script::ComputeSignature(bool parse_if_outdated) {

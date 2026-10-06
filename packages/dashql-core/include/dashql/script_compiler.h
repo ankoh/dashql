@@ -31,6 +31,8 @@ struct CompiledVisualization {
     std::string vegalite_spec;
     std::shared_ptr<visualize::UmapDocument> umap_spec;
     std::shared_ptr<visualize::MarkdownDocument> markdown_spec;
+    std::shared_ptr<buffers::visualization::DashboardSpecT> dashboard;
+    std::shared_ptr<buffers::visualization::TableSpecT> table_spec;
 };
 
 struct CompiledScriptStatement {

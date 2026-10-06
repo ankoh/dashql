@@ -1115,27 +1115,30 @@ function compileVisualizeQuery(scriptSession: core.DashQLScriptSession, logger?:
         const sql = reader.sql();
         const visualization = reader.visualization();
         if (!sql || !visualization) return null;
+        const dashboardSpec = visualization.dashboard()?.unpack() ?? null;
         logger?.debug('Compiled visualization for execution', { sql }, LOG_CTX);
         switch (visualization.renderer()) {
             case 'umap': {
                 const umapSpec = visualization.umapSpec()?.unpack();
                 return umapSpec && typeof umapSpec.vectorColumn === 'string' && umapSpec.vectorColumn.length > 0
-                    ? { renderer: 'umap', sql, umapSpec }
+                    ? { renderer: 'umap', sql, umapSpec, dashboardSpec }
                     : null;
             }
             case 'markdown': {
                 const markdownSpec = visualization.markdownSpec()?.unpack();
-                return markdownSpec?.document ? { renderer: 'markdown', sql, markdownSpec } : null;
+                return markdownSpec?.document ? { renderer: 'markdown', sql, markdownSpec, dashboardSpec } : null;
             }
             case 'vegalite': {
                 const raw = visualization.vegaliteSpec();
                 if (!raw) return null;
                 try {
-                    return { renderer: 'vegalite', sql, vegaLiteSpec: JSON.parse(raw) };
+                    return { renderer: 'vegalite', sql, vegaLiteSpec: JSON.parse(raw), dashboardSpec };
                 } catch {
                     return null;
                 }
             }
+            case 'table':
+                return { renderer: 'table', sql, dashboardSpec };
             default:
                 return null;
         }

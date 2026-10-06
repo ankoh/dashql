@@ -3,10 +3,17 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotebookFeedPage, type NotebookFeedPageDependencies } from './notebook_feed_page.js';
+import { NotebookViewMode } from '../../scripts/notebook_commands.js';
+import { SegmentedControl } from '../../../../ui/foundations/segmented_control.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const state = { feedProps: null as any };
+const state = {
+    feedProps: null as any,
+    mode: NotebookViewMode.Notebook,
+    setMode: vi.fn(),
+    dashboardProps: null as any,
+};
 const dependencies = {
     NotebookFeed: (props: any) => {
         state.feedProps = props;
@@ -17,6 +24,12 @@ const dependencies = {
     NotebookNavigationDrawer: () => null,
     ThreeBarsIcon: () => null,
     IconButton: React.forwardRef((props: any, ref: React.ForwardedRef<HTMLButtonElement>) => <button {...props} ref={ref} />),
+    Dashboard: (props: any) => {
+        state.dashboardProps = props;
+        return <div data-testid="dashboard" />;
+    },
+    useNotebookViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
+    SegmentedControl,
 } as unknown as NotebookFeedPageDependencies;
 
 function scripts() {
@@ -38,6 +51,9 @@ describe('NotebookFeedPage', () => {
 
     beforeEach(() => {
         state.feedProps = null;
+        state.mode = NotebookViewMode.Notebook;
+        state.setMode.mockReset();
+        state.dashboardProps = null;
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -59,5 +75,45 @@ describe('NotebookFeedPage', () => {
         ));
 
         expect(state.feedProps).not.toHaveProperty('scrollTarget');
+    });
+
+    it('switches between Notebook and Dashboard from the content view bar', () => {
+        act(() => root.render(
+            <NotebookFeedPage
+                notebookScripts={scripts()}
+                modifyNotebookScripts={vi.fn()}
+                connection={null}
+                active
+                dependencies={dependencies}
+            />,
+        ));
+
+        const buttons = container.querySelectorAll<HTMLButtonElement>('[aria-label="Notebook view"] button');
+        expect(buttons[0]?.getAttribute('aria-current')).toBe('true');
+        act(() => buttons[1]?.click());
+        expect(state.setMode).toHaveBeenCalledWith(NotebookViewMode.Dashboard);
+    });
+
+    it('renders the Dashboard beneath the view bar without activating the feed', () => {
+        state.mode = NotebookViewMode.Dashboard;
+        const notebookScripts = scripts();
+        const modifyNotebookScripts = vi.fn();
+        act(() => root.render(
+            <NotebookFeedPage
+                notebookScripts={notebookScripts}
+                modifyNotebookScripts={modifyNotebookScripts}
+                connection={null}
+                active
+                dependencies={dependencies}
+            />,
+        ));
+
+        expect(container.querySelector('[data-testid="dashboard"]')).not.toBeNull();
+        expect(state.dashboardProps).toMatchObject({ notebookScripts, modifyNotebookScripts });
+        expect(state.feedProps.active).toBe(false);
+        const buttons = container.querySelectorAll<HTMLButtonElement>('[aria-label="Notebook view"] button');
+        expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
+        act(() => buttons[0]?.click());
+        expect(state.setMode).toHaveBeenCalledWith(NotebookViewMode.Notebook);
     });
 });

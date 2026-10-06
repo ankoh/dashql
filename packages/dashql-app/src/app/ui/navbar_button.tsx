@@ -42,41 +42,42 @@ export const NavBarLink: React.FC<LinkProps> = (props: LinkProps) => (
     </Link>
 );
 
-type ButtonProps = {
+type ButtonProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
     className?: string;
     hover?: HoverMode;
     invert?: boolean;
-    children?: React.ReactElement | string;
-    onClick?: (event: React.MouseEvent) => void;
+    children?: React.ReactNode;
 };
 
-export const NavBarButton: React.FC<ButtonProps> = (props: ButtonProps) => (
+export const NavBarButton: React.FC<ButtonProps> = ({ className, hover, invert, children, type, ...props }) => (
     <button
-        className={classNames(props.className, {
-            [styles.button]: props.invert === undefined || !props.invert,
-            [styles.button_inverted]: props.invert,
-            [styles.hover_invert]: props.hover === undefined || props.hover === HoverMode.Invert,
-            [styles.hover_lighten]: props.hover === HoverMode.Lighten,
-            [styles.hover_darken]: props.hover === HoverMode.Darken,
+        {...props}
+        className={classNames(className, {
+            [styles.button]: invert === undefined || !invert,
+            [styles.button_inverted]: invert,
+            [styles.hover_invert]: hover === undefined || hover === HoverMode.Invert,
+            [styles.hover_lighten]: hover === HoverMode.Lighten,
+            [styles.hover_darken]: hover === HoverMode.Darken,
         })}
-        onClick={props.onClick}
+        type={type ?? 'button'}
     >
-        {props.children}
+        {children}
     </button>
 );
 
-export const NavBarButtonWithRef = React.forwardRef((props: ButtonProps, ref: React.ForwardedRef<HTMLButtonElement>) => (
+export const NavBarButtonWithRef = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, hover, invert, children, type, ...props }, ref) => (
     <button
+        {...props}
         ref={ref}
-        className={classNames(props.className, {
-            [styles.button]: props.invert === undefined || !props.invert,
-            [styles.button_inverted]: props.invert,
-            [styles.hover_invert]: props.hover === undefined || props.hover === HoverMode.Invert,
-            [styles.hover_lighten]: props.hover === HoverMode.Lighten,
-            [styles.hover_darken]: props.hover === HoverMode.Darken,
+        className={classNames(className, {
+            [styles.button]: invert === undefined || !invert,
+            [styles.button_inverted]: invert,
+            [styles.hover_invert]: hover === undefined || hover === HoverMode.Invert,
+            [styles.hover_lighten]: hover === HoverMode.Lighten,
+            [styles.hover_darken]: hover === HoverMode.Darken,
         })}
-        onClick={props.onClick}
+        type={type ?? 'button'}
     >
-        {props.children}
+        {children}
     </button>
-))
+));

@@ -13,7 +13,7 @@ X(VIS_UNRESERVED, "metric",         METRIC)
 X(VIS_UNRESERVED, "cosine",         COSINE)
 X(VIS_UNRESERVED, "euclidean",      EUCLIDEAN)
 
-// Vega-Lite top-level spec keys
+// Vega-Lite top-level spec keys and shared dashboard dimensions
 X(VIS_UNRESERVED, "autosize",       AUTOSIZE)
 X(VIS_UNRESERVED, "background",     BACKGROUND)
 X(VIS_UNRESERVED, "datasets",       DATASETS)
@@ -148,3 +148,6 @@ X(VIS_UNRESERVED, "corner_radius",  CORNERRADIUS)
 X(VIS_UNRESERVED, "filled",         FILLED)
 X(VIS_UNRESERVED, "tension",        TENSION)
 X(VIS_UNRESERVED, "thickness",      THICKNESS)
+
+// Shared renderer layout keys are append-only to preserve generated token ids.
+X(VIS_UNRESERVED, "dashboard",      DASHBOARD)

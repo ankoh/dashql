@@ -13,7 +13,7 @@ completion-snapshots:
     completions:
       limit: 3
 
-  # Renderer completion: the `vegalite` and `umap` keywords surface right after USING.
+  # Renderer completion: all closed renderer keywords surface right after USING.
   - name: vis_renderer_after_using
     catalog:
       script:
@@ -25,7 +25,7 @@ completion-snapshots:
         text: 'using '
         index: 6
     completions:
-      limit: 3
+      limit: 5
 
   - name: vis_markdown_template_key
     catalog:
@@ -67,27 +67,27 @@ completion-snapshots:
     completions:
       limit: 3
 
-  # Complete spec key: "w" => width
-  - name: vis_spec_key_w
+  # Complete dashboard key: "w" => width
+  - name: vis_dashboard_key_w
     catalog: {}
     editor:
-      input: select * from sales visualize using vegalite (mark => bar, w
+      input: select * from sales visualize using vegalite (mark => bar, dashboard => (w
     cursor:
       search:
-        text: ', w'
-        index: 3
+        text: '(w'
+        index: 2
     completions:
       limit: 3
 
-  # Complete spec key: "h" => height
-  - name: vis_spec_key_h
+  # Complete dashboard key: "h" => height
+  - name: vis_dashboard_key_h
     catalog: {}
     editor:
-      input: select * from sales visualize using vegalite (mark => bar, h
+      input: select * from sales visualize using vegalite (mark => bar, dashboard => (h
     cursor:
       search:
-        text: ', h'
-        index: 3
+        text: '(h'
+        index: 2
     completions:
       limit: 3
 

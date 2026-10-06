@@ -744,14 +744,20 @@ struct VegaLiteSpec {
     std::vector<VegaLiteSpec> layers;
     std::optional<VisResolve> resolve;
     std::optional<std::string_view> title;
-    std::optional<int64_t> width;
-    std::optional<int64_t> height;
 
     VegaLiteSpec() = default;
     VegaLiteSpec(VegaLiteSpec&&) = default;
     VegaLiteSpec& operator=(VegaLiteSpec&&) = default;
     VegaLiteSpec(const VegaLiteSpec&) = delete;
     VegaLiteSpec& operator=(const VegaLiteSpec&) = delete;
+};
+
+/// Normalized dashboard grid placement shared by every renderer.
+struct DashboardSpec {
+    std::optional<int32_t> row;
+    std::optional<int32_t> column;
+    int32_t width = 6;
+    int32_t height = 3;
 };
 
 /// The projection parameters for the umap renderer. The 2D projection itself runs
@@ -831,10 +837,8 @@ struct VisualizationSpec {
     std::vector<VisEncodingChannel> encoding_channels;
     /// The chart title
     std::optional<std::string_view> title;
-    /// The chart width in pixels
-    std::optional<int64_t> width;
-    /// The chart height in pixels
-    std::optional<int64_t> height;
+    /// Normalized dashboard grid placement.
+    DashboardSpec dashboard;
     /// Nested Vega-Lite layer specifications.
     std::vector<VegaLiteSpec> layers;
     /// Vega-Lite scale/axis/legend resolution settings.

@@ -710,6 +710,33 @@ TEST(ScriptSessionTest, CompatibilityQueryFormattingAndDiffApis) {
     dashql_delete_owner(session_owner.owner_ptr, session_owner.owner_deleter);
 }
 
+TEST(ScriptSessionTest, RewritesDashboardThroughParsedAst) {
+    Catalog catalog;
+    ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
+    constexpr std::string_view source =
+        "select '\xF0\x9F\x93\x8A dashboard => (ignored)' as label "
+        "visualize using table (dashboard => (row => 1, width => 4))";
+    auto update = session.ReplaceText(0, source);
+    ASSERT_EQ(update.status, EditorUpdateStatus::OK);
+
+    EXPECT_EQ(session.RewriteDashboard(2, 5, 6, 4),
+              "select '\xF0\x9F\x93\x8A dashboard => (ignored)' as label "
+              "visualize using table (dashboard => (row => 2, column => 5, width => 6, height => 4))");
+    EXPECT_EQ(session.RewriteDashboard(std::nullopt, std::nullopt, 6, 3),
+              "select '\xF0\x9F\x93\x8A dashboard => (ignored)' as label "
+              "visualize using table (dashboard => (width => 6, height => 3))");
+}
+
+TEST(ScriptSessionTest, InsertsDashboardIntoTerminalVisualization) {
+    Catalog catalog;
+    ScriptSession session{catalog};
+    auto update = session.ReplaceText(0, "select 1 visualize using table ()");
+    ASSERT_EQ(update.status, EditorUpdateStatus::OK);
+
+    EXPECT_EQ(session.RewriteDashboard(0, 0, 6, 3),
+              "select 1 visualize using table (dashboard => (row => 0, column => 0, width => 6, height => 3))");
+}
+
 TEST(ScriptSessionTest, CatalogLoadAndDropUseSessionOwnedScriptAndRank) {
     Catalog catalog;
     FFIResult session_owner;

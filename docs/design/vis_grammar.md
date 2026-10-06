@@ -18,8 +18,12 @@ SELECT * FROM <relation> VISUALIZE USING <renderer> (
         <channel> => (<field-def-key> => <value>, ...),
         ...
     ),
-    width => <number>,
-    height => <number>,
+    dashboard => (
+        row => <zero-based row>,
+        column => <zero-based column>,
+        width => <column span>,
+        height => <row span>
+    ),
     title => <string>,
     ...
 )
@@ -31,7 +35,7 @@ autocompletion:
 
 | Level | Node type | Contains |
 |-------|-----------|----------|
-| 1 | `OBJECT_VIS_SPEC` | Top-level spec properties: mark, encoding, width, height, title, layer, etc. |
+| 1 | `OBJECT_VIS_SPEC` | Top-level spec properties: mark, encoding, dashboard, title, layer, etc. |
 | 2 | `OBJECT_VIS_ENCODING` | Encoding channel definitions keyed by channel name |
 | 3 | `OBJECT_VIS_FIELD_DEF` | Field definition properties: field, type, aggregate, bin, scale, axis, legend |
 | 4 | `OBJECT_VIS_SCALE` / `OBJECT_VIS_AXIS` / `OBJECT_VIS_LEGEND` | Scale/axis/legend configuration |
@@ -41,13 +45,16 @@ autocompletion:
 The `USING <renderer>` clause selects the visualization renderer. `renderer` is a
 closed keyword set (like the mark/field/scale-type enums), so the parser
 validates it and offers it for autocompletion after `USING`; an unknown renderer
-is a parse error. The current renderers are `vegalite`, `umap`, and `markdown`:
+is a parse error. The current renderers are `vegalite`, `umap`, `markdown`, and `table`:
 
 ```sql
 SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
 SELECT * FROM embeddings VISUALIZE USING umap (vector => embedding);
 SELECT product, revenue FROM product_summary VISUALIZE USING markdown (
     template => '## {{product}}: {{revenue}}'
+);
+SELECT product, revenue FROM product_summary VISUALIZE USING table (
+    dashboard => (width => 12, height => 4)
 );
 ```
 
@@ -60,6 +67,20 @@ MD4C and encoded as a safe typed FlatBuffer AST. `{{field}}` placeholders become
 are not emitted as links. The app renders the generated FlatBuffer object model
 directly, substituting formatted Arrow values as React text without parsing them
 as Markdown, once per result row.
+
+`table` has no renderer-specific output. It opts the query into Dashboard and
+renders the existing result table directly.
+
+## Dashboard placement
+
+Every renderer accepts a root-level `dashboard` object. Dashboard uses a
+12-column grid with zero-based coordinates. `row` and `column` are optional
+starting hints; `width` defaults to 6 columns and `height` defaults to 3 rows.
+Dashboard placement is not accepted inside nested Vega-Lite layers.
+
+Invalid values produce analyzer warnings and are normalized: coordinates must
+be non-negative, width is clamped to 1 through 12, height is at least 1, and a
+specified column is moved left when necessary so the card fits the grid.
 
 ## Data source
 
@@ -193,7 +214,7 @@ color => (field => category, type => nominal, legend => (orient => right, title 
 Beyond `mark` and `encoding`, the level-1 spec accepts:
 
 `layer`, `data`, `transform`, `params`, `projection`, `autosize`, `resolve`,
-`datasets`, `view`, `name`, `title`, `width`, `height`, `padding`,
+`datasets`, `view`, `name`, `title`, `dashboard`, `padding`,
 `background`, `filter`, `describe`, `type`
 
 Unknown identifiers (`IDENT`) are accepted at every level with `Key::NONE` so
@@ -226,7 +247,8 @@ Per-level nodes:
 
 | Level | Node type | Example attributes |
 |-------|-----------|--------------------|
-| 1 | `OBJECT_VIS_SPEC` | `VIS_SPEC_MARK`, `VIS_SPEC_ENCODING`, `VIS_SPEC_WIDTH`, ... |
+| 1 | `OBJECT_VIS_SPEC` | `VIS_SPEC_MARK`, `VIS_SPEC_ENCODING`, `VIS_SPEC_DASHBOARD`, ... |
+| dashboard | `OBJECT_VIS_DASHBOARD_SPEC` | `VIS_DASHBOARD_ROW`, `VIS_DASHBOARD_COLUMN`, `VIS_DASHBOARD_WIDTH`, `VIS_DASHBOARD_HEIGHT` |
 | 2 | `OBJECT_VIS_ENCODING` | `VIS_ENCODING_X`, `VIS_ENCODING_Y`, `VIS_ENCODING_COLOR`, ... |
 | 3 | `OBJECT_VIS_FIELD_DEF` | `VIS_FIELD_DEF_FIELD`, `VIS_FIELD_DEF_TYPE`, `VIS_FIELD_DEF_SCALE`, ... |
 | 4 | `OBJECT_VIS_SCALE` | `VIS_SCALE_TYPE`, `VIS_SCALE_DOMAIN`, `VIS_SCALE_ZERO`, ... |

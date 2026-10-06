@@ -207,3 +207,10 @@ analyzer-snapshots:
         SELECT product, revenue FROM product_summary VISUALIZE USING markdown (
           template => '## {{product}}: {{revenue}}'
         );
+
+  - name: vis_table_dashboard
+    script:
+      input: |
+        SELECT product, revenue FROM product_summary VISUALIZE USING table (
+          dashboard => (row => 2, column => 9, width => 6, height => 0)
+        );

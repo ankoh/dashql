@@ -42,7 +42,7 @@ interface Props {
 export const ScriptOutputDetails: React.FC<Props> = (props) => {
     const queryTraceId = props.query?.traceId ?? null;
     const { hasResult, totalRows } = useResultRowCount(props.query);
-    const hasVisualization = hasResult && props.visualizeQuery != null;
+    const hasVisualization = hasResult && props.visualizeQuery != null && props.visualizeQuery.renderer !== 'table';
     const entryStatus = deriveEntryStatus(props.query);
 
     const defaultTab = () => {
@@ -110,7 +110,7 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
         if (status === previousStatus.current) return;
         previousStatus.current = status;
         if (status === QueryExecutionStatus.SUCCEEDED) {
-            selectTab(props.visualizeQuery != null
+            selectTab(props.visualizeQuery != null && props.visualizeQuery.renderer !== 'table'
                 ? ScriptDetailsTab.Visualization
                 : ScriptDetailsTab.QueryResultView);
         } else if (status != null) {

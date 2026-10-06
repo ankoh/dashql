@@ -156,9 +156,14 @@ extern "C" void dashql_script_session_compile_query(FFIResult* result, dashql::S
                                                       bool parse_if_outdated);
 /// Format the session into a separately owned normal Script.
 extern "C" void dashql_script_session_format(FFIResult* result, dashql::ScriptSession* session,
-                                               size_t dialect, size_t mode, size_t max_width,
-                                               size_t indentation_width, bool debug_mode, bool parse_if_outdated,
-                                               dashql::Catalog* catalog);
+                                                size_t dialect, size_t mode, size_t max_width,
+                                                size_t indentation_width, bool debug_mode, bool parse_if_outdated,
+                                                dashql::Catalog* catalog);
+/// Rewrite dashboard placement and return the resulting UTF-8 source text.
+/// Negative row/column values mean that the corresponding coordinate is omitted.
+extern "C" void dashql_script_session_rewrite_dashboard(FFIResult* result, dashql::ScriptSession* session,
+                                                          int32_t row, int32_t column, int32_t width,
+                                                          int32_t height, bool parse_if_outdated);
 /// Whether formatting the session can complete without placeholders.
 extern "C" uint32_t dashql_script_session_is_fully_formattable(dashql::ScriptSession* session,
                                                                  size_t dialect, size_t mode, size_t max_width,

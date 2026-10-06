@@ -35,6 +35,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: BAR
 
@@ -84,6 +87,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: LINE
 
@@ -184,6 +190,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: AREA
 
@@ -233,6 +242,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: BAR
             encodings:
@@ -292,6 +304,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: LINE
             encodings:
@@ -348,6 +363,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: POINT
             encodings:
@@ -412,6 +430,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: BAR
             encodings:
@@ -479,6 +500,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: BAR
             encodings:
@@ -544,6 +568,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: LINE
             encodings:
@@ -614,6 +641,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT cat..FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: BAR
             encodings:
@@ -648,6 +678,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: LINE
             encodings:
@@ -711,6 +744,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: BAR
             encodings:
@@ -774,6 +810,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: BAR
             encodings:
@@ -849,6 +888,9 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT * FROM sales"
           renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
           vegalite:
             mark: BAR
             encodings:
@@ -912,3 +954,82 @@ analyzer-snapshots:
         - statement-id: 0
           source: "SELECT pro..ct_summary"
           renderer: markdown
+          dashboard:
+            width: 6
+            height: 3
+
+  - name: vis_table_dashboard
+    script:
+      input: |
+        SELECT product, revenue FROM product_summary VISUALIZE USING table (
+          dashboard => (row => 2, column => 9, width => 6, height => 0)
+        );
+      catalog-id: 1
+      errors:
+        - type: INVALID_DASHBOARD_LAYOUT
+          severity: WARNING
+          message: dashboard height was clamped to 1
+          text: "0"
+        - type: INVALID_DASHBOARD_LAYOUT
+          severity: WARNING
+          message: dashboard column was moved so column + width does not exceed 12
+          text: "9"
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "product_summary"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "product"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "9"
+        - expression-idx: 4
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "6"
+        - expression-idx: 5
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "0"
+      constants:
+        - expression: 2
+          text: "2"
+        - expression: 3
+          text: "9"
+        - expression: 4
+          text: "6"
+        - expression: 5
+          text: "0"
+      visualizations:
+        - statement-id: 0
+          source: "SELECT pro..ct_summary"
+          renderer: table
+          dashboard:
+            row: 2
+            column: 6
+            width: 6
+            height: 1
+      inferred-tables:
+        - name: product_summary
+          confidence: confident
+          columns:
+            - name: product
+              confidence: confident
+            - name: revenue
+              confidence: confident

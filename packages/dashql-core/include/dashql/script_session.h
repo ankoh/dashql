@@ -73,6 +73,9 @@ class ScriptSession {
     /// Format the current script into a new independent Script associated with the selected catalog.
     std::unique_ptr<Script> Format(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated,
                                    Catalog* catalog = nullptr);
+    /// Return source with the terminal VISUALIZE statement's dashboard clause rewritten.
+    std::string RewriteDashboard(std::optional<int32_t> row, std::optional<int32_t> column, int32_t width,
+                                 int32_t height, bool parse_if_outdated = true);
     /// Return whether formatting can represent every parsed node without placeholders.
     bool IsFullyFormattable(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated);
     /// Compute and pack a statement-level semantic diff for embedding in the caller's active builder.

@@ -40,7 +40,7 @@ interface FeedEntryFooterProps {
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     const { hasResult, totalRows } = useResultRowCount(props.queryState);
     const searchRows = useQueryResultRowCounts(props.queryState);
-    const hasVisualization = hasResult && props.visualizeQuery != null;
+    const hasVisualization = hasResult && props.visualizeQuery != null && props.visualizeQuery.renderer !== 'table';
 
     const queryTraceId = props.queryState?.traceId ?? null;
 

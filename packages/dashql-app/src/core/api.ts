@@ -45,6 +45,7 @@ export interface EmscriptenModule {
     _dashql_script_session_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
     _dashql_script_session_compile_query: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, allowExtensions: boolean, parseIfOutdated: boolean) => void;
     _dashql_script_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean, catalog: number) => void;
+    _dashql_script_session_rewrite_dashboard: (result: number, ptr: number, row: number, column: number, width: number, height: number, parseIfOutdated: boolean) => void;
     _dashql_script_session_is_fully_formattable: (ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean) => number;
     _dashql_script_session_compute_diff: (result: number, ptr: number, target: number) => void;
     _dashql_script_session_load_into_catalog: (ptr: number, rank: number) => void;
@@ -139,6 +140,7 @@ interface DashQLModuleExports {
     dashql_script_session_complete_at_cursor: (result: number, ptr: number, limit: number) => void;
     dashql_script_session_compile_query: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, allowExtensions: boolean, parseIfOutdated: boolean) => void;
     dashql_script_session_format: (result: number, ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean, catalog: number) => void;
+    dashql_script_session_rewrite_dashboard: (result: number, ptr: number, row: number, column: number, width: number, height: number, parseIfOutdated: boolean) => void;
     dashql_script_session_is_fully_formattable: (ptr: number, dialect: number, mode: number, maxWidth: number, indentationWidth: number, debugMode: boolean, parseIfOutdated: boolean) => number;
     dashql_script_session_compute_diff: (result: number, ptr: number, target: number) => void;
     dashql_script_session_load_into_catalog: (ptr: number, rank: number) => void;
@@ -317,6 +319,7 @@ export class DashQL {
             dashql_script_session_complete_at_cursor: module._dashql_script_session_complete_at_cursor,
             dashql_script_session_compile_query: module._dashql_script_session_compile_query,
             dashql_script_session_format: module._dashql_script_session_format,
+            dashql_script_session_rewrite_dashboard: module._dashql_script_session_rewrite_dashboard,
             dashql_script_session_is_fully_formattable: module._dashql_script_session_is_fully_formattable,
             dashql_script_session_compute_diff: module._dashql_script_session_compute_diff,
             dashql_script_session_load_into_catalog: module._dashql_script_session_load_into_catalog,
@@ -1064,6 +1067,27 @@ export class DashQLScriptSession {
         const script = new DashQLScript(scriptPtr);
         this.ptr.api.registerMemory({ type: SCRIPT_TYPE, value: script.ptr });
         return script;
+    }
+
+    public rewriteDashboard(
+        row: number | null,
+        column: number | null,
+        width: number,
+        height: number,
+        parseIfOutdated: boolean = true,
+    ): string {
+        const sessionPtr = this.ptr.assertNotNull();
+        return this.ptr.api.readStringResult((resultPtr) =>
+            this.ptr.api.instanceExports.dashql_script_session_rewrite_dashboard(
+                resultPtr,
+                sessionPtr,
+                row ?? -1,
+                column ?? -1,
+                width,
+                height,
+                parseIfOutdated,
+            )
+        );
     }
 
     public isFullyFormattable(

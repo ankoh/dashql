@@ -24,6 +24,15 @@ ScriptCompilationResult Compile(std::string_view text, bool allow_extensions = t
     return script.CompileQuery(ExecutionConfig(), {.allow_extensions = allow_extensions});
 }
 
+ScriptCompilationResult CompileWithAnalysis(std::string_view text) {
+    static Catalog catalog;
+    Script script{catalog};
+    script.InsertTextAt(0, text);
+    script.Parse();
+    script.Analyze(false);
+    return script.CompileQuery(ExecutionConfig(), {.allow_extensions = true, .parse_if_outdated = false});
+}
+
 TEST(ScriptCompilerTest, ReturnsPlainSQLVerbatim) {
     constexpr std::string_view sql = "  SELECT 1 AS x; -- preserve formatting\n";
     auto result = Compile(sql);
@@ -248,6 +257,51 @@ VISUALIZE USING markdown (
     ASSERT_EQ(packed_markdown->document()->children()->size(), 1u);
     EXPECT_EQ(packed_markdown->document()->children()->Get(0)->node_type(),
               buffers::visualization::MarkdownNodeType::HEADING);
+}
+
+TEST(ScriptCompilerTest, CompilesTableVisualizationWithDashboardLayout) {
+    auto result = CompileWithAnalysis(R"SQL(
+SELECT product, revenue
+FROM product_summary
+VISUALIZE USING table (
+    dashboard => (row => 2, column => 4, width => 8, height => 5)
+)
+)SQL");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    ASSERT_TRUE(result.visualization.has_value());
+    EXPECT_EQ(result.visualization->renderer, "table");
+    ASSERT_NE(result.visualization->table_spec, nullptr);
+    ASSERT_NE(result.visualization->dashboard, nullptr);
+    EXPECT_EQ(result.visualization->dashboard->row, 2);
+    EXPECT_EQ(result.visualization->dashboard->column, 4);
+    EXPECT_EQ(result.visualization->dashboard->width, 8);
+    EXPECT_EQ(result.visualization->dashboard->height, 5);
+
+    flatbuffers::FlatBufferBuilder builder;
+    builder.Finish(result.Pack(builder));
+    auto* packed = flatbuffers::GetRoot<buffers::execution::ScriptCompilationResult>(builder.GetBufferPointer());
+    ASSERT_NE(packed->visualization(), nullptr);
+    ASSERT_NE(packed->visualization()->dashboard(), nullptr);
+    ASSERT_NE(packed->visualization()->table_spec(), nullptr);
+    ASSERT_TRUE(packed->visualization()->dashboard()->row().has_value());
+    EXPECT_EQ(*packed->visualization()->dashboard()->row(), 2);
+    ASSERT_TRUE(packed->visualization()->dashboard()->column().has_value());
+    EXPECT_EQ(*packed->visualization()->dashboard()->column(), 4);
+    EXPECT_EQ(packed->visualization()->dashboard()->width(), 8);
+    EXPECT_EQ(packed->visualization()->dashboard()->height(), 5);
+}
+
+TEST(ScriptCompilerTest, DefaultsDashboardLayout) {
+    auto result = CompileWithAnalysis("SELECT 1 AS value VISUALIZE USING table ();");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    ASSERT_TRUE(result.visualization.has_value());
+    ASSERT_NE(result.visualization->dashboard, nullptr);
+    EXPECT_FALSE(result.visualization->dashboard->row.has_value());
+    EXPECT_FALSE(result.visualization->dashboard->column.has_value());
+    EXPECT_EQ(result.visualization->dashboard->width, 6);
+    EXPECT_EQ(result.visualization->dashboard->height, 3);
 }
 
 TEST(ScriptCompilerTest, RejectsVisualizationWhenExtensionsDisabled) {

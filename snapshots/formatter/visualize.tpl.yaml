@@ -26,7 +26,7 @@ formatter-snapshots:
 
   - name: vis_multi_spec_keys
     input: |-
-      select * from sales visualize using vegalite (mark => line, width => 800, height => 400)
+      select * from sales visualize using vegalite (mark => line, dashboard => (row => 1, column => 2, width => 8, height => 4))
     dialects:
       hyper:
 
@@ -59,7 +59,7 @@ formatter-snapshots:
 
   - name: vis_trailing_comma_spec
     input: |-
-      select * from sales visualize using vegalite (mark => line, width => 800,)
+      select * from sales visualize using vegalite (mark => line, dashboard => (width => 8,),)
     dialects:
       hyper:
 
@@ -87,8 +87,14 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  - name: vis_table
+    input: |-
+      select product, revenue from product_summary visualize using table (dashboard => (column => 3, width => 9))
+    dialects:
+      hyper:
+
   - name: vis_full_example
     input: |-
-      select * from sales visualize using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), width => 800)
+      select * from sales visualize using vegalite (mark => line, encoding => (x => (field => time, type => temporal), y => (field => value, type => quantitative)), dashboard => (width => 8))
     dialects:
       hyper:

@@ -1,0 +1,12 @@
+namespace dashql.buffers.visualization;
+
+/// Dashboard grid placement shared by every visualization renderer.
+table DashboardSpec {
+    row: int32 = null;
+    column: int32 = null;
+    width: int32 = 6;
+    height: int32 = 3;
+}
+
+/// The table renderer has no renderer-specific options yet.
+table TableSpec {}

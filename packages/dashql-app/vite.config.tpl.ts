@@ -169,9 +169,7 @@ export default vite.defineConfig(({ mode, command }) => {
         server: {
             port: 9002,
             strictPort: true,
-            // Browser HMR remains disabled because hot-swapping the Core WASM worker
-            // graph stacks live instances. Electron tears down those instances safely.
-            hmr: isElectronBuild,
+            hmr: true,
             cors: true,
             // Enable Cross-Origin Isolation for SharedArrayBuffer (required for multi-threaded WASM)
             headers: {

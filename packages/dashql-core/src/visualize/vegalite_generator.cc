@@ -643,14 +643,6 @@ void WriteVegaLiteSpecFields(W& writer, const S& spec, const AnalyzedScript& scr
         writer.Key("title");
         writer.String(spec.title->data(), spec.title->size());
     }
-    if (spec.width.has_value()) {
-        writer.Key("width");
-        writer.Int64(*spec.width);
-    }
-    if (spec.height.has_value()) {
-        writer.Key("height");
-        writer.Int64(*spec.height);
-    }
     WriteEncoding(writer, spec.encoding_channels, script);
     if constexpr (std::is_same_v<S, VegaLiteSpec>) {
         if (write_layers && !spec.layers.empty()) {

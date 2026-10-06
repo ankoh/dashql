@@ -207,19 +207,19 @@ parser-snapshots:
 
   - name: vis_statement_multi_spec_keys
     input: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, width => 800, height => 400);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, dashboard => (width => 8, height => 4));
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 14
+          ast-size: 15
           description:
-            text: "SELECT * F..t => 400);"
+            text: "SELECT * F..ht => 4));"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "SELECT * F..ht => 400)"
+            text: "SELECT * F..ght => 4))"
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
@@ -253,18 +253,22 @@ parser-snapshots:
                 text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
-                text: "mark => li..ght => 400"
+                text: "mark => li..ight => 4)"
                 children:
                   - key: VIS_SPEC_MARK
                     type: ENUM_VIS_MARK_TYPE
                     text: "line"
                     children: []
-                  - key: VIS_SPEC_WIDTH
-                    type: LITERAL_INTEGER
-                    text: "800"
-                  - key: VIS_SPEC_HEIGHT
-                    type: LITERAL_INTEGER
-                    text: "400"
+                  - key: VIS_SPEC_DASHBOARD
+                    type: OBJECT_VIS_DASHBOARD_SPEC
+                    text: "dashboard ..ight => 4)"
+                    children:
+                      - key: VIS_DASHBOARD_WIDTH
+                        type: LITERAL_INTEGER
+                        text: "8"
+                      - key: VIS_DASHBOARD_HEIGHT
+                        type: LITERAL_INTEGER
+                        text: "4"
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -1550,12 +1554,12 @@ parser-snapshots:
 
   - name: vis_statement_numeric_values
     input: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (width => 800, height => 400, padding => 20);
+      SELECT * FROM sales VISUALIZE USING vegalite (dashboard => (row => 1, column => 2, width => 8, height => 4), padding => 20);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 14
+          ast-size: 17
           description:
             text: "SELECT * F..ng => 20);"
             description-begin: 0
@@ -1596,14 +1600,24 @@ parser-snapshots:
                 text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
-                text: "width => 8..ding => 20"
+                text: "dashboard ..ding => 20"
                 children:
-                  - key: VIS_SPEC_WIDTH
-                    type: LITERAL_INTEGER
-                    text: "800"
-                  - key: VIS_SPEC_HEIGHT
-                    type: LITERAL_INTEGER
-                    text: "400"
+                  - key: VIS_SPEC_DASHBOARD
+                    type: OBJECT_VIS_DASHBOARD_SPEC
+                    text: "dashboard ..ight => 4)"
+                    children:
+                      - key: VIS_DASHBOARD_ROW
+                        type: LITERAL_INTEGER
+                        text: "1"
+                      - key: VIS_DASHBOARD_COLUMN
+                        type: LITERAL_INTEGER
+                        text: "2"
+                      - key: VIS_DASHBOARD_WIDTH
+                        type: LITERAL_INTEGER
+                        text: "8"
+                      - key: VIS_DASHBOARD_HEIGHT
+                        type: LITERAL_INTEGER
+                        text: "4"
                   - key: VIS_SPEC_PADDING
                     type: LITERAL_INTEGER
                     text: "20"
@@ -1621,15 +1635,14 @@ parser-snapshots:
           y => (field => revenue, type => quantitative, scale => (zero => true)),
           color => (field => region, type => nominal, legend => (orient => 'right'))
         ),
-        width => 800,
-        height => 400,
+        dashboard => (width => 8, height => 4),
         title => 'Revenue by Region'
       );
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 37
+          ast-size: 38
           description:
             text: "SELECT * F..Region'\n);"
             description-begin: 0
@@ -1755,12 +1768,16 @@ parser-snapshots:
                               - key: VIS_LEGEND_ORIENT
                                 type: LITERAL_STRING
                                 text: "'right'"
-                  - key: VIS_SPEC_WIDTH
-                    type: LITERAL_INTEGER
-                    text: "800"
-                  - key: VIS_SPEC_HEIGHT
-                    type: LITERAL_INTEGER
-                    text: "400"
+                  - key: VIS_SPEC_DASHBOARD
+                    type: OBJECT_VIS_DASHBOARD_SPEC
+                    text: "dashboard ..ight => 4)"
+                    children:
+                      - key: VIS_DASHBOARD_WIDTH
+                        type: LITERAL_INTEGER
+                        text: "8"
+                      - key: VIS_DASHBOARD_HEIGHT
+                        type: LITERAL_INTEGER
+                        text: "4"
                   - key: VIS_SPEC_TITLE
                     type: LITERAL_STRING
                     text: "'Revenue by Region'"
@@ -1774,26 +1791,25 @@ parser-snapshots:
         - text: [227,228]
         - text: [306,307]
         - text: [311,312]
-        - text: [327,328]
-        - text: [344,345]
-        - text: [375,376]
+        - text: [353,354]
+        - text: [384,385]
       comments: []
 
   - name: vis_statement_trailing_comma_spec
     input: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, width => 800,);
+      SELECT * FROM sales VISUALIZE USING vegalite (mark => line, dashboard => (width => 8,),);
     expected:
       statements:
         - type: VIS_VISUALISE
           ast-begin: 0
-          ast-size: 13
+          ast-size: 14
           description:
-            text: "SELECT * F.. => 800,);"
+            text: "SELECT * F.. => 8,),);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_VIS_VISUALISE
-            text: "SELECT * F..h => 800,)"
+            text: "SELECT * F..h => 8,),)"
             children:
               - key: VIS_VISUALISE_SELECT
                 type: OBJECT_SQL_SELECT
@@ -1827,15 +1843,19 @@ parser-snapshots:
                 text: "vegalite"
               - key: VIS_VISUALISE_SPEC
                 type: OBJECT_VIS_SPEC
-                text: "mark => li..th => 800,"
+                text: "mark => li..th => 8,),"
                 children:
                   - key: VIS_SPEC_MARK
                     type: ENUM_VIS_MARK_TYPE
                     text: "line"
                     children: []
-                  - key: VIS_SPEC_WIDTH
-                    type: LITERAL_INTEGER
-                    text: "800"
+                  - key: VIS_SPEC_DASHBOARD
+                    type: OBJECT_VIS_DASHBOARD_SPEC
+                    text: "dashboard ..dth => 8,)"
+                    children:
+                      - key: VIS_DASHBOARD_WIDTH
+                        type: LITERAL_INTEGER
+                        text: "8"
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -2650,4 +2670,109 @@ parser-snapshots:
       line-breaks:
         - text: [71,72]
         - text: [115,116]
+      comments: []
+
+  - name: vis_statement_table
+    input: |-
+      SELECT product, revenue FROM product_summary VISUALIZE USING table (
+        dashboard => (column => 3, width => 9)
+      );
+    expected:
+      statements:
+        - type: VIS_VISUALISE
+          ast-begin: 0
+          ast-size: 20
+          description:
+            text: "SELECT pro..h => 9)\n);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_VIS_VISUALISE
+            text: "SELECT pro..th => 9)\n)"
+            children:
+              - key: VIS_VISUALISE_SELECT
+                type: OBJECT_SQL_SELECT
+                text: "SELECT pro..ct_summary"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "product, revenue"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "product"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "product"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "product"
+                                children:
+                                  - type: NAME
+                                    text: "product"
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "revenue"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "revenue"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "revenue"
+                                children:
+                                  - type: NAME
+                                    text: "revenue"
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM produ..ct_summary"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "product_summary"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "product_summary"
+                            children:
+                              - type: NAME
+                                text: "product_summary"
+              - key: VIS_VISUALISE_USING
+                type: NAME
+                text: "table"
+              - key: VIS_VISUALISE_SPEC
+                type: OBJECT_VIS_TABLE_SPEC
+                text: "dashboard ..idth => 9)"
+                children:
+                  - key: VIS_SPEC_DASHBOARD
+                    type: OBJECT_VIS_DASHBOARD_SPEC
+                    text: "dashboard ..idth => 9)"
+                    children:
+                      - key: VIS_DASHBOARD_COLUMN
+                        type: LITERAL_INTEGER
+                        text: "3"
+                      - key: VIS_DASHBOARD_WIDTH
+                        type: LITERAL_INTEGER
+                        text: "9"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [68,69]
+        - text: [109,110]
+      comments: []
+
+  - name: vis_statement_nested_dashboard_rejected
+    input: |-
+      SELECT * FROM sales VISUALIZE USING vegalite (
+        layer => [(mark => bar, dashboard => (width => 6))]
+      );
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected DASHBOARD'
+          text: "dashboard"
+      line-breaks:
+        - text: [46,47]
+        - text: [100,101]
       comments: []

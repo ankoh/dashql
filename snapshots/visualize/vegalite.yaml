@@ -839,7 +839,7 @@ visualize-snapshots:
         )
       );
 
-  - name: vis_width_height
+  - name: vis_dashboard
     catalog:
       script:
         input: |-
@@ -864,25 +864,25 @@ visualize-snapshots:
       input: |
         SELECT * FROM sales VISUALIZE USING vegalite (
           mark => bar,
-          width => 800,
-          height => 400
+          dashboard => (row => 1, column => 2, width => 8, height => 4)
         );
+    dashboard:
+      row: 1
+      column: 2
+      width: 8
+      height: 4
     vegalite: |-
       {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "data": {
           "$sql": "SELECT * FROM sales"
         },
-        "mark": "bar",
-        "width": 800,
-        "height": 400
+        "mark": "bar"
       }
     roundtrip: |-
       SELECT * FROM sales
       VISUALIZE USING vegalite (
-        mark => bar,
-        width => 800,
-        height => 400
+        mark => bar
       );
 
   - name: vis_layer_resolve

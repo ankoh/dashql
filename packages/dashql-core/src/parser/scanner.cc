@@ -194,7 +194,8 @@ std::shared_ptr<ScannedScript> Scanner::Scan(const rope::Rope& text, TextVersion
                     lookahead_symbols.push_back(std::move(renderer));
                     if (renderer_kind == Parser::symbol_kind::S_VEGALITE ||
                         renderer_kind == Parser::symbol_kind::S_UMAP ||
-                        renderer_kind == Parser::symbol_kind::S_MARKDOWN) {
+                        renderer_kind == Parser::symbol_kind::S_MARKDOWN ||
+                        renderer_kind == Parser::symbol_kind::S_TABLE) {
                         auto text = current_symbol.kind() == Parser::symbol_kind::S_VISUALISE
                                         ? std::string_view{"visualise"}
                                         : std::string_view{"visualize"};

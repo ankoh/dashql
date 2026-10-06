@@ -12,6 +12,7 @@ import { useRouteContext } from '../../router/router.js';
 import { useNotebookScriptsRegistry, useNotebookScripts } from './notebook_scripts_registry.js';
 import { isCatalogRefreshRunning } from '../connections/catalog_update_state.js';
 import { runNotebookScript } from '../ui/rerun_query.js';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const LOG_CTX = "notebook_commands";
 
@@ -39,6 +40,7 @@ export const useNotebookCommandDispatch = () => React.useContext(COMMAND_DISPATC
 export enum NotebookViewMode {
     Notebook = 0,
     Shell = 1,
+    Dashboard = 2,
 }
 
 export interface NotebookViewModeContextValue {
@@ -48,8 +50,38 @@ export interface NotebookViewModeContextValue {
 const NOTEBOOK_VIEW_MODE_CTX = React.createContext<NotebookViewModeContextValue | null>(null);
 export const useNotebookViewMode = () => React.useContext(NOTEBOOK_VIEW_MODE_CTX)!;
 
+export function notebookViewModeFromSearch(search: string): NotebookViewMode {
+    return new URLSearchParams(search).get('view') === 'dashboard'
+        ? NotebookViewMode.Dashboard
+        : NotebookViewMode.Notebook;
+}
+
+export function notebookViewSearch(search: string, mode: NotebookViewMode): string {
+    const params = new URLSearchParams(search);
+    if (mode === NotebookViewMode.Dashboard) params.set('view', 'dashboard');
+    else params.delete('view');
+    const next = params.toString();
+    return next ? `?${next}` : '';
+}
+
+export function notebookViewNavigation(
+    location: { pathname: string; search: string; hash: string; state: unknown },
+    mode: NotebookViewMode,
+) {
+    return {
+        to: {
+            pathname: location.pathname,
+            search: notebookViewSearch(location.search, mode),
+            hash: location.hash,
+        },
+        options: { replace: true as const, state: location.state },
+    };
+}
+
 export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const route = useRouteContext();
+    const location = useLocation();
+    const navigate = useNavigate();
     const logger = useLogger();
 
     const registry = useNotebookScriptsRegistry()[0];
@@ -57,13 +89,39 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const [connection, _dispatchConnection] = useAttachedDatabaseState(notebookScripts?.notebookId ?? null);
     const executeQuery = useQueryExecutor();
     const refreshCatalog = useCatalogLoaderQueue();
-    const [notebookViewMode, setNotebookViewMode] = React.useState(NotebookViewMode.Notebook);
+    const [notebookViewMode, setNotebookViewModeState] = React.useState(() => notebookViewModeFromSearch(location.search));
     const notebookViewModeRef = React.useRef(notebookViewMode);
+    const pendingViewSearchRef = React.useRef<string | null>(null);
     notebookViewModeRef.current = notebookViewMode;
+    const setNotebookViewMode = React.useCallback<React.Dispatch<React.SetStateAction<NotebookViewMode>>>((update) => {
+        const next = typeof update === 'function' ? update(notebookViewModeRef.current) : update;
+        notebookViewModeRef.current = next;
+        setNotebookViewModeState(next);
+        const navigation = notebookViewNavigation(location, next);
+        if (navigation.to.search !== location.search) {
+            pendingViewSearchRef.current = navigation.to.search;
+            navigate(navigation.to, navigation.options);
+        }
+    }, [location.pathname, location.search, location.hash, location.state, navigate]);
     const notebookViewModeValue = React.useMemo<NotebookViewModeContextValue>(
         () => ({ mode: notebookViewMode, setMode: setNotebookViewMode }),
-        [notebookViewMode],
+        [notebookViewMode, setNotebookViewMode],
     );
+
+    React.useEffect(() => {
+        if (pendingViewSearchRef.current != null) {
+            if (pendingViewSearchRef.current === location.search) pendingViewSearchRef.current = null;
+            return;
+        }
+        const requested = notebookViewModeFromSearch(location.search);
+        if (requested === NotebookViewMode.Dashboard && notebookViewModeRef.current !== requested) {
+            notebookViewModeRef.current = requested;
+            setNotebookViewModeState(requested);
+        } else if (requested !== NotebookViewMode.Dashboard && notebookViewModeRef.current === NotebookViewMode.Dashboard) {
+            notebookViewModeRef.current = NotebookViewMode.Notebook;
+            setNotebookViewModeState(NotebookViewMode.Notebook);
+        }
+    }, [location.search]);
 
     // Setup command dispatch logic
     const commandDispatch = React.useCallback(
