@@ -17,7 +17,7 @@ buffers::formatting::FormattingConfigT ExecutionConfig() {
 TEST(ScriptExecutionTest, SteersStatementsInOrder) {
     Catalog catalog;
     ScriptSession session{catalog};
-    session.ReplaceText(0, "create table t (v int); insert into t values (1); select * from t");
+    session.ReplaceText(0, "create table t (v int); insert into t values (1); select * from t;");
     ScriptExecution execution{session, ExecutionConfig()};
 
     auto operation = execution.Start();
@@ -26,6 +26,7 @@ TEST(ScriptExecutionTest, SteersStatementsInOrder) {
     EXPECT_EQ(operation.pending_statement->index, 1);
     EXPECT_EQ(operation.pending_statement->statement_count, 3);
     EXPECT_FALSE(operation.pending_statement->produces_output);
+    EXPECT_EQ(operation.pending_statement->sql, "create table t (v int)");
 
     for (uint32_t index = 2; index <= 3; ++index) {
         buffers::execution::StatementResultT result;
@@ -34,8 +35,10 @@ TEST(ScriptExecutionTest, SteersStatementsInOrder) {
         operation = execution.Resume(result);
         ASSERT_NE(operation.pending_statement, nullptr);
         EXPECT_EQ(operation.pending_statement->index, index);
+        if (index == 2) EXPECT_EQ(operation.pending_statement->sql, "insert into t values (1)");
     }
     EXPECT_TRUE(operation.pending_statement->produces_output);
+    EXPECT_EQ(operation.pending_statement->sql, "select * from t");
 
     buffers::execution::StatementResultT result;
     result.pending_statement_id = operation.pending_statement->id;

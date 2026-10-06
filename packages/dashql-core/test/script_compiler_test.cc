@@ -33,16 +33,27 @@ ScriptCompilationResult CompileWithAnalysis(std::string_view text) {
     return script.CompileQuery(ExecutionConfig(), {.allow_extensions = true, .parse_if_outdated = false});
 }
 
-TEST(ScriptCompilerTest, ReturnsPlainSQLVerbatim) {
+TEST(ScriptCompilerTest, UsesStatementRangeWithoutTerminalSemicolon) {
     constexpr std::string_view sql = "  SELECT 1 AS x; -- preserve formatting\n";
     auto result = Compile(sql);
 
     ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
     EXPECT_EQ(result.kind, buffers::execution::ScriptCompilationStatementKind::QUERY);
     EXPECT_EQ(result.terminal_statement_id, 0);
-    EXPECT_EQ(result.sql, sql);
+    EXPECT_EQ(result.sql, "SELECT 1 AS x");
+    ASSERT_EQ(result.statements.size(), 1);
+    EXPECT_EQ(result.statements[0].sql, "SELECT 1 AS x");
     EXPECT_TRUE(result.cacheable);
     EXPECT_EQ(result.cache_signature.size(), 32);
+}
+
+TEST(ScriptCompilerTest, PreservesSemicolonsInSQLLiterals) {
+    auto result = Compile("SELECT ';' AS value;");
+
+    ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
+    EXPECT_EQ(result.sql, "SELECT ';' AS value");
+    ASSERT_EQ(result.statements.size(), 1);
+    EXPECT_EQ(result.statements[0].sql, "SELECT ';' AS value");
 }
 
 TEST(ScriptCompilerTest, PassesUnparseableRemoteSQLThroughUncached) {
@@ -67,7 +78,7 @@ TEST(ScriptCompilerTest, ClassifiesInsertAsQuery) {
     ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
     EXPECT_EQ(result.kind, buffers::execution::ScriptCompilationStatementKind::QUERY);
     EXPECT_EQ(result.terminal_statement_id, 0);
-    EXPECT_EQ(result.sql, sql);
+    EXPECT_EQ(result.sql, "INSERT INTO target VALUES (1)");
     EXPECT_FALSE(result.cacheable);
 }
 
@@ -120,10 +131,11 @@ TEST(ScriptCompilerTest, CompilesStatementsInOrder) {
     ASSERT_TRUE(result.errors.empty()) << (result.errors.empty() ? "" : result.errors.front().message);
     ASSERT_EQ(result.statements.size(), 3);
     EXPECT_EQ(result.statements[0].kind, buffers::execution::CompiledScriptStatementKind::COMMAND);
-    EXPECT_EQ(result.statements[0].sql, "CREATE TABLE t (v INT);");
-    EXPECT_EQ(result.statements[1].sql, "INSERT INTO t VALUES (1);");
+    EXPECT_EQ(result.statements[0].sql, "CREATE TABLE t (v INT)");
+    EXPECT_EQ(result.statements[1].sql, "INSERT INTO t VALUES (1)");
     EXPECT_EQ(result.statements[2].kind, buffers::execution::CompiledScriptStatementKind::OUTPUT);
-    EXPECT_EQ(result.statements[2].sql, "SELECT * FROM t;");
+    EXPECT_EQ(result.statements[2].sql, "SELECT * FROM t");
+    EXPECT_EQ(result.sql, "SELECT * FROM t");
 }
 
 TEST(ScriptCompilerTest, RejectsOutputStatementBeforeEnd) {

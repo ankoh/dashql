@@ -203,12 +203,12 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
                                               statement_id, statement.root, span));
             continue;
         }
-        const auto& span = descriptions[statement_id].source_span;
+        const auto& statement_span = descriptions[statement_id].statement_span;
         result.statements.push_back({
             .statement_id = statement_id,
             .statement_type = statement.type,
             .kind = produces_output ? CompiledKind::OUTPUT : CompiledKind::COMMAND,
-            .sql = std::string{input.substr(span.offset(), span.length())},
+            .sql = std::string{input.substr(statement_span.offset(), statement_span.length())},
         });
     }
     if (!result.errors.empty()) return result;
@@ -216,7 +216,7 @@ ScriptCompilationResult ScriptCompiler::Compile(Script& script, const buffers::f
 
     if ((parsed.feature_flags & execution_features) == 0) {
         result.kind = StatementKind::QUERY;
-        result.sql = parsed.scanned_script->GetInput();
+        result.sql = result.statements.back().sql;
         return result;
     }
 
