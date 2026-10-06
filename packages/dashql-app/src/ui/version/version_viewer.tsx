@@ -29,6 +29,8 @@ import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js
 import { ProgressBar } from '../foundations/progress_bar.js';
 import { useProcess } from '../../platform/process.js';
 
+const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
 interface UpdateChannelProps {
     channel: ReleaseChannel;
     name: string;
@@ -125,6 +127,7 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
 
 interface VersionViewerProps {
     onClose: () => void;
+    onRefresh: () => void;
 }
 
 export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerProps) => {
@@ -136,7 +139,6 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
     const canaryUpdateManifest = useCanaryUpdateManifest();
     const installationStatus = useInstallationStatus();
     const versionCheck = useVersionCheck();
-    const refreshVersionCheck = useVersionCheckRefresh();
     const process = useProcess();
     const [relaunching, setRelaunching] = React.useState(false);
 
@@ -210,15 +212,7 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
                     <div className={styles.title}>Version</div>
                 </div>
                 <div className={styles.header_right_container}>
-                    {refreshVersionCheck != null && (
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Check for updates"
-                            onClick={() => refreshVersionCheck()}
-                        >
-                            <SyncIcon />
-                        </IconButton>
-                    )}
+                    <VersionRefreshButton onRefresh={props.onRefresh} />
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         aria-label="Close"
@@ -293,6 +287,22 @@ type VersionInfoOverlayProps = {
     anchorOffset?: number;
 }
 export function VersionInfoOverlay(props: VersionInfoOverlayProps) {
+    const refreshVersionCheck = useVersionCheckRefresh();
+    const lastOverlayCheckAt = React.useRef<number | null>(null);
+    const refresh = React.useCallback(() => {
+        lastOverlayCheckAt.current = Date.now();
+        refreshVersionCheck?.refresh();
+    }, [refreshVersionCheck?.refresh]);
+    React.useEffect(() => {
+        if (props.isOpen && refreshVersionCheck != null) {
+            const now = Date.now();
+            if (lastOverlayCheckAt.current != null && now - lastOverlayCheckAt.current < VERSION_CHECK_INTERVAL_MS) {
+                return;
+            }
+            refresh();
+        }
+    }, [props.isOpen, refresh]);
+
     return (
         <AnchoredOverlay
             open={props.isOpen}
@@ -303,8 +313,33 @@ export function VersionInfoOverlay(props: VersionInfoOverlayProps) {
             align={props.align}
             anchorOffset={props.anchorOffset}
         >
-            <VersionInfo onClose={props.onClose} />
+            <VersionInfo onClose={props.onClose} onRefresh={refresh} />
         </AnchoredOverlay>
+    );
+}
+
+function VersionRefreshButton(props: {onRefresh: () => void}) {
+    const refreshVersionCheck = useVersionCheckRefresh();
+    if (refreshVersionCheck == null) {
+        return null;
+    }
+    return (
+        <IconButton
+            variant={ButtonVariant.Invisible}
+            aria-label={refreshVersionCheck.isRefreshing ? 'Checking for updates' : 'Check for updates'}
+            aria-disabled={refreshVersionCheck.isRefreshing}
+            onClick={() => {
+                if (!refreshVersionCheck.isRefreshing) {
+                    props.onRefresh();
+                }
+            }}
+        >
+            <span aria-hidden="true">
+                {refreshVersionCheck.isRefreshing
+                    ? <StatusIndicator width="16px" height="16px" fill="currentColor" status={IndicatorStatus.Running} />
+                    : <SyncIcon />}
+            </span>
+        </IconButton>
     );
 }
 

@@ -1,11 +1,11 @@
 import * as React from 'react';
 
 import { useLogger } from '../logger/logger_provider.js';
-import { awaitAndSet, Result, RESULT_ERROR, RESULT_OK } from '../../utils/result.js';
+import { awaitAndSet, Result } from '../../utils/result.js';
 import { Logger, stringifyError } from '../logger/logger.js';
 import { createTrace } from '../logger/trace_context.js';
 import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
-import { CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VERSION_CHECK_REFRESH_CTX, VersionCheckStatusCode } from './version_check.js';
+import { CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VERSION_CHECK_REFRESH_CTX, VersionCheckStatusCode, useVersionCheckRefreshState } from './version_check.js';
 
 const LOG_CTX = "version_check";
 
@@ -145,14 +145,13 @@ export const WebVersionCheck: React.FC<Props> = (props: Props) => {
     const [stableRelease, setStableRelease] = React.useState<Result<ReleaseManifest> | null>(null);
     const [canaryRelease, setCanaryRelease] = React.useState<Result<ReleaseManifest> | null>(null);
 
-    const refresh = React.useCallback(() => {
-        awaitAndSet(loadReleaseManifest("stable", DASHQL_STABLE_RELEASE_MANIFEST, logger), setStableRelease);
-        awaitAndSet(loadReleaseManifest("canary", DASHQL_CANARY_RELEASE_MANIFEST, logger), setCanaryRelease);
+    const check = React.useCallback(async () => {
+        await Promise.all([
+            awaitAndSet(loadReleaseManifest("stable", DASHQL_STABLE_RELEASE_MANIFEST, logger), setStableRelease),
+            awaitAndSet(loadReleaseManifest("canary", DASHQL_CANARY_RELEASE_MANIFEST, logger), setCanaryRelease),
+        ]);
     }, [logger]);
-
-    React.useEffect(() => {
-        refresh();
-    }, [refresh]);
+    const refresh = useVersionCheckRefreshState(check);
 
     return (
         <VERSION_CHECK_CTX.Provider value={VersionCheckStatusCode.Disabled}>

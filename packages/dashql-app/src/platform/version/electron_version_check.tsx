@@ -15,6 +15,7 @@ import {
     VERSION_CHECK_CTX,
     VERSION_CHECK_REFRESH_CTX,
     VersionCheckStatusCode,
+    useVersionCheckRefreshState,
 } from './version_check.js';
 import { detectReleaseChannel, loadReleaseManifest, ReleaseChannel, ReleaseManifest } from './web_version_check.js';
 import { DASHQL_VERSION } from '../../globals.js';
@@ -110,22 +111,26 @@ export const ElectronVersionCheck: React.FC<Props> = ({children}) => {
         }
     });
 
-    const refresh = React.useCallback(() => {
-        void loadReleaseManifest('stable', DASHQL_STABLE_RELEASE_MANIFEST, logger)
-            .then(value => setStableRelease({type: RESULT_OK, value}))
-            .catch(error => setStableRelease({type: RESULT_ERROR, error}));
-        void loadReleaseManifest('canary', DASHQL_CANARY_RELEASE_MANIFEST, logger)
-            .then(value => setCanaryRelease({type: RESULT_OK, value}))
-            .catch(error => setCanaryRelease({type: RESULT_ERROR, error}));
-        void bridge.check(activeChannel).then(applyStatus).catch(error => applyStatus({status: 'error', channel: activeChannel, message: String(error)}));
+    const check = React.useCallback(async () => {
+        await Promise.all([
+            loadReleaseManifest('stable', DASHQL_STABLE_RELEASE_MANIFEST, logger)
+                .then(value => setStableRelease({type: RESULT_OK, value}))
+                .catch(error => setStableRelease({type: RESULT_ERROR, error})),
+            loadReleaseManifest('canary', DASHQL_CANARY_RELEASE_MANIFEST, logger)
+                .then(value => setCanaryRelease({type: RESULT_OK, value}))
+                .catch(error => setCanaryRelease({type: RESULT_ERROR, error})),
+            bridge.check(activeChannel)
+                .then(applyStatus)
+                .catch(error => applyStatus({status: 'error', channel: activeChannel, message: String(error)})),
+        ]);
     }, [bridge, logger]);
+    const refresh = useVersionCheckRefreshState(check);
 
     React.useEffect(() => {
         const unsubscribe = bridge.onStatus(applyStatus);
         void bridge.getStatus().then(applyStatus);
-        refresh();
         return unsubscribe;
-    }, [bridge, refresh]);
+    }, [bridge]);
 
     const stableInstallableUpdate = stableUpdate ?? (activeChannel === 'canary' ? {type: RESULT_OK, value: updates.stable} as const : null);
     const canaryInstallableUpdate = canaryUpdate ?? (activeChannel === 'stable' ? {type: RESULT_OK, value: updates.canary} as const : null);

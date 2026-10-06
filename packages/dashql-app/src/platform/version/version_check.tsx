@@ -43,8 +43,35 @@ export const STABLE_RELEASE_MANIFEST_CTX = React.createContext<Result<ReleaseMan
 export const STABLE_UPDATE_MANIFEST_CTX = React.createContext<Result<InstallableUpdate | null> | null>(null);
 export const CANARY_RELEASE_MANIFEST_CTX = React.createContext<Result<ReleaseManifest> | null>(null);
 export const CANARY_UPDATE_MANIFEST_CTX = React.createContext<Result<InstallableUpdate | null> | null>(null);
+export interface VersionCheckRefresh {
+    refresh: () => void;
+    isRefreshing: boolean;
+}
+
 /// Re-run the version check for all channels. Null when no check is available (unknown platform).
-export const VERSION_CHECK_REFRESH_CTX = React.createContext<(() => void) | null>(null);
+export const VERSION_CHECK_REFRESH_CTX = React.createContext<VersionCheckRefresh | null>(null);
+
+export function useVersionCheckRefreshState(check: () => Promise<void>): VersionCheckRefresh {
+    const pendingChecks = React.useRef(0);
+    const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+    const refresh = React.useCallback(() => {
+        pendingChecks.current += 1;
+        setIsRefreshing(true);
+        void check().finally(() => {
+            pendingChecks.current -= 1;
+            if (pendingChecks.current === 0) {
+                setIsRefreshing(false);
+            }
+        });
+    }, [check]);
+
+    React.useEffect(() => {
+        refresh();
+    }, [refresh]);
+
+    return {refresh, isRefreshing};
+}
 
 export const useVersionCheck = () => React.useContext(VERSION_CHECK_CTX)!;
 export const useInstallationStatus = () => React.useContext(INSTALLATION_STATUS_CTX);
