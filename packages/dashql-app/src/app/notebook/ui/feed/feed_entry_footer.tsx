@@ -12,6 +12,7 @@ import { ResolvedVisualizeQuery } from '../../scripts/script_types.js';
 import { TraceLogPanel } from '../trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from '../../compute/ui/query_result/query_result_toolbar.js';
+import { QueryResultDownloadButton } from '../../compute/ui/query_result/query_result_download_button.js';
 
 const FEED_LIMIT_RESULT_ROWS = 6;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
@@ -27,6 +28,22 @@ const enum FooterTab {
     Visualization = 2,
 }
 
+export interface FeedEntryFooterDependencies {
+    useResultRowCount: typeof useResultRowCount;
+    useQueryResultRowCounts: typeof useQueryResultRowCounts;
+    QueryResultToolbar: typeof QueryResultToolbar;
+    QueryResultDownloadButton: typeof QueryResultDownloadButton;
+    QueryResultView: typeof QueryResultView;
+}
+
+const DEFAULT_DEPENDENCIES: FeedEntryFooterDependencies = {
+    useResultRowCount,
+    useQueryResultRowCounts,
+    QueryResultToolbar,
+    QueryResultDownloadButton,
+    QueryResultView,
+};
+
 interface FeedEntryFooterProps {
     notebookId: string;
     /// The latest query execution for this script.
@@ -35,11 +52,13 @@ interface FeedEntryFooterProps {
     onShowStatus?: () => void;
     onShowTable?: () => void;
     onShowVisualization?: () => void;
+    dependencies?: FeedEntryFooterDependencies;
 }
 
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
-    const { hasResult, totalRows } = useResultRowCount(props.queryState);
-    const searchRows = useQueryResultRowCounts(props.queryState);
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    const { hasResult, totalRows } = dependencies.useResultRowCount(props.queryState);
+    const searchRows = dependencies.useQueryResultRowCounts(props.queryState);
     const hasVisualization = hasResult && props.visualizeQuery != null && props.visualizeQuery.renderer !== 'table';
 
     const queryTraceId = props.queryState?.traceId ?? null;
@@ -137,10 +156,15 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                     title="Query Results"
                     detail={rowCountDetail}
                     onClick={props.onShowTable}
-                    actions={props.queryState == null ? undefined : <QueryResultToolbar query={props.queryState} />}
+                    actions={props.queryState == null ? undefined : (
+                        <>
+                            <dependencies.QueryResultToolbar query={props.queryState} />
+                            <dependencies.QueryResultDownloadButton query={props.queryState} />
+                        </>
+                    )}
                 />
                 {props.queryState != null && (
-                    <QueryResultView
+                    <dependencies.QueryResultView
                         query={props.queryState}
                         debugMode={false}
                         maxRows={FEED_LIMIT_RESULT_ROWS}
