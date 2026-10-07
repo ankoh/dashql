@@ -1,5 +1,5 @@
 import { HttpClient, HttpFetchResult } from '../../../../platform/http/http_client.js';
-import { Logger } from '../../../../platform/logger/logger.js';
+import { Logger, LoggableException } from '../../../../platform/logger/logger.js';
 
 const LOG_CTX = "hyperdb_http_client";
 
@@ -104,12 +104,12 @@ export interface QueryErrorResponse {
     };
 }
 
-export class HyperHttpError extends Error {
+export class HyperHttpError extends LoggableException {
     public readonly httpStatus: number;
     public readonly errorResponse: QueryErrorResponse | null;
 
-    constructor(httpStatus: number, errorResponse: QueryErrorResponse | null) {
-        super(errorResponse?.message ?? `HTTP ${httpStatus}`);
+    constructor(httpStatus: number, errorResponse: QueryErrorResponse | null, diagnostics: Record<string, string | null> = {}) {
+        super(errorResponse?.message || errorResponse?.error || `HTTP ${httpStatus}`, diagnostics, LOG_CTX);
         this.httpStatus = httpStatus;
         this.errorResponse = errorResponse;
     }
@@ -161,12 +161,41 @@ export class HyperDatabaseHttpClient {
     private async throwIfError(response: HttpFetchResult): Promise<void> {
         if (response.status >= 400) {
             let errorBody: QueryErrorResponse | null = null;
+            let bodyType = 'unreadable';
+            let bodyKeys = '';
             try {
-                errorBody = await response.json() as QueryErrorResponse;
+                const body = await response.json();
+                bodyType = body == null ? 'null' : Array.isArray(body) ? 'array' : typeof body;
+                bodyKeys = body != null && typeof body === 'object'
+                    ? Object.keys(Array.isArray(body) ? (body[0] ?? {}) : body)
+                        .filter(key => ['message', 'error', 'errorCode', 'details', 'detail'].includes(key)).join(',')
+                    : '';
+                const firstError = Array.isArray(body) ? body[0] : body;
+                if (firstError && typeof firstError === 'object' &&
+                    ((typeof firstError.message === 'string' && firstError.message.trim()) ||
+                     (typeof firstError.error === 'string' && firstError.error.trim()) ||
+                     (typeof firstError.errorCode === 'string' && firstError.errorCode.trim()))) {
+                    errorBody = {
+                        ...firstError,
+                        message: typeof firstError.message === 'string' ? firstError.message : '',
+                        error: (typeof firstError.error === 'string' && firstError.error) ||
+                            (typeof firstError.errorCode === 'string' && firstError.errorCode) || `HTTP ${response.status}`,
+                    };
+                }
             } catch {
                 // Response body may not be valid JSON
             }
-            throw new HyperHttpError(response.status, errorBody);
+            const diagnostics = {
+                status: response.status.toString(),
+                statusText: response.statusText,
+                contentType: response.headers.get('content-type'),
+                hyperdbStatusPresent: response.headers.has('x-hyperdb-status').toString(),
+                bodyType,
+                bodyKeys,
+                hyperErrorRecognized: (errorBody != null).toString(),
+            };
+            this.logger.warn('Hyper HTTP error response', diagnostics, LOG_CTX);
+            throw new HyperHttpError(response.status, errorBody, diagnostics);
         }
     }
 

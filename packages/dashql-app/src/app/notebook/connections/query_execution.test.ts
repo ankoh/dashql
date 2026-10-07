@@ -8,6 +8,11 @@ import type {
     QueryExecutionResponseStream,
 } from '../../../query/query_execution_state.js';
 import { QueryExecutionStatus } from '../../../query/query_execution_state.js';
+import { LogLevel } from '../../../platform/logger/log_buffer.js';
+import { TestLogger } from '../../../platform/logger/test_logger.js';
+import { createTrace } from '../../../platform/logger/trace_context.js';
+import { HyperHttpError } from './hyper/hyperdb_http_client.js';
+import { logQueryFailure } from './query_executor.js';
 import { consumeQueryResponseStream } from './query_execution.js';
 
 function createStream(table: arrow.Table): QueryExecutionResponseStream {
@@ -89,5 +94,34 @@ describe('consumeQueryResponseStream', () => {
         });
 
         expect(events).toEqual(['execution', 'schema']);
+    });
+});
+
+describe('logQueryFailure', () => {
+    it('records HTTP diagnostics at error level on the query trace', () => {
+        const logger = new TestLogger();
+        const trace = createTrace();
+        const failure = new HyperHttpError(400, null, {
+            status: '400',
+            hyperdbStatusPresent: 'false',
+            bodyType: 'array',
+            bodyKeys: 'message,errorCode',
+        });
+
+        logQueryFailure(logger.withTrace(trace), failure, 2, 'notebook-1');
+
+        expect(logger.buffer.collectTraceLogs(trace.traceId)).toMatchObject([{
+            level: LogLevel.Error,
+            target: 'hyperdb_http_client',
+            message: 'HTTP 400',
+            keyValues: {
+                queryId: '2',
+                notebookId: 'notebook-1',
+                status: '400',
+                hyperdbStatusPresent: 'false',
+                bodyType: 'array',
+                bodyKeys: 'message,errorCode',
+            },
+        }]);
     });
 });

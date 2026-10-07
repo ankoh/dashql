@@ -28,13 +28,29 @@ import { computeQueryResultCacheKey } from '../../../query/query_result_cache_ke
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { createTrace, type TraceContext } from '../../../platform/logger/trace_context.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
-import { LoggableException, stringifyError } from '../../../platform/logger/logger.js';
+import { LoggableException, stringifyError, type TracedLogger } from '../../../platform/logger/logger.js';
 import type { LogRecord } from '../../../platform/logger/log_buffer.js';
 import { allocateQueryId, executeTrackedQuery } from '../../../query/tracked_query_execution.js';
 import { consumeQueryResponseStream, executeConnectionQuery } from './query_execution.js';
 import { executeScriptQuery } from './script_query_execution.js';
 
 const LOG_CTX = 'query_executor';
+
+export function logQueryFailure(logger: TracedLogger, error: unknown, queryId: number, notebookId: string): void {
+    if (error instanceof LoggableException) {
+        logger.error(error.message, {
+            ...error.keyValues,
+            queryId: queryId.toString(),
+            notebookId,
+        }, error.target);
+    } else {
+        logger.error('Query failed with unknown error', {
+            queryId: queryId.toString(),
+            notebookId,
+            raw: stringifyError(error),
+        }, LOG_CTX);
+    }
+}
 
 /// Compute the file-based cache key for a query against a connection, or null when the connection has
 /// no recoverable params/signature (e.g. before setup completes). This is the same derivation the
@@ -292,7 +308,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         const cancelled = initialState.cancellation.signal.aborted || error?.name === 'AbortError' || error?.message === 'AbortError';
                         const metrics = runtime.resultStream?.getMetrics() ?? null;
                         if (cancelled) tracked.cancel(error, metrics);
-                        else tracked.fail(error, metrics);
+                        else {
+                            logQueryFailure(traced, error, queryId, notebookId);
+                            tracked.fail(error, metrics);
+                        }
                         if (args.throwOnError) throw error;
                         return null;
                     } finally {
@@ -420,15 +439,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         }, LOG_CTX);
                         tracked.cancel(cancellationError, resultStream?.getMetrics() ?? null);
                     } else {
-                        if (e instanceof LoggableException) {
-                            traced.warn(e.message, e.keyValues, e.target);
-                        } else {
-                            traced.warn("Query failed with unknown error", {
-                                query: queryId.toString(),
-                                notebookId,
-                                raw: stringifyError(e),
-                            }, LOG_CTX);
-                        }
+                        logQueryFailure(traced, e, queryId, notebookId);
                         tracked.fail(e, resultStream?.getMetrics() ?? null);
                     }
                     if (args.throwOnError) {

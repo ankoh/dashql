@@ -79,6 +79,15 @@ describe('HyperDatabaseHttpClient (mock)', () => {
             }
         });
 
+        it('uses the error code when the Hyper message is empty', async () => {
+            mock.setHandler(() => ({
+                errorStatus: 400,
+                errorResponse: { error: 'INVALID_ARGUMENT', message: '' },
+            }));
+
+            await expect(client.executeQuery({ sql: 'SELECT 1' })).rejects.toThrow('INVALID_ARGUMENT');
+        });
+
         it('sets the Accept header to Arrow', async () => {
             let capturedHeaders: Headers | undefined;
             const origFetch = mock.fetch.bind(mock);

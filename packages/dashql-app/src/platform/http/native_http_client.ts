@@ -1,7 +1,6 @@
-import { DetailedError } from '../../utils/error.js';
 import { getProxyErrorData, RawProxyError } from '../channel_common.js';
 import { HttpClient, HttpFetchResult } from './http_client.js';
-import { Logger } from '../logger/logger.js';
+import { Logger, LoggableException } from '../logger/logger.js';
 import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_ERROR, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_RESPONSE_STARTED, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from '../native_proxy_headers.js';
 import { nativeProxyFetch } from '../electron_native_fetch.js';
 
@@ -18,13 +17,15 @@ export interface NativeHttpProxyConfig {
     proxyEndpoint: URL;
 };
 
-export class NativeHttpError extends Error implements DetailedError {
+export class NativeHttpError extends LoggableException {
     /// The data
     data: Record<string, string>;
 
     constructor(o: RawProxyError) {
-        super(o.message);
-        this.data = getProxyErrorData(o);
+        const data = getProxyErrorData(o);
+        const message = o.message || 'Native HTTP proxy request failed';
+        super(data.error ? `${message}: ${data.error}` : message, data, 'native_http_client');
+        this.data = data;
     }
 }
 
@@ -39,8 +40,6 @@ export class NativeHttpServerStream implements HttpFetchResult {
     status: number;
     /// The status text
     statusText: string;
-    /// The native http error (if any)
-    initialErrorBody: RawProxyError | null;
     /// The logger
     logger: Logger;
     /// The text decoder for decoding utf8
@@ -49,22 +48,18 @@ export class NativeHttpServerStream implements HttpFetchResult {
     initialBody: ArrayBuffer | null;
     /// Whether more response batches need to be fetched
     fetchNext: boolean;
-    /// Proxy error deferred until the response body is consumed
-    deferredError: NativeHttpError | null;
 
     /// Constructor
-    constructor(endpoint: NativeHttpProxyConfig, streamId: number | null, headers: Headers, status: number, statusText: string, initialErrorBody: RawProxyError | null, logger: Logger) {
+    constructor(endpoint: NativeHttpProxyConfig, streamId: number | null, headers: Headers, status: number, statusText: string, logger: Logger) {
         this.headers = headers;
         this.status = status;
         this.statusText = statusText;
-        this.initialErrorBody = initialErrorBody;
         this.endpoint = endpoint;
         this.streamId = streamId;
         this.logger = logger;
         this.textDecoder = new TextDecoder();
         this.initialBody = null;
         this.fetchNext = streamId != null;
-        this.deferredError = null;
     }
 
     private updateFetchState(batchEvent: string | null): void {
@@ -111,23 +106,21 @@ export class NativeHttpServerStream implements HttpFetchResult {
         const chunks = [];
         let totalChunkBytes = 0;
         while (this.fetchNext) {
-            let response: Response;
-            let buffer: ArrayBuffer;
-            try {
-                ({ response, buffer } = await this.readNextBatch());
-            } catch (error) {
-                if (error instanceof NativeHttpError) {
-                    this.deferredError = error;
-                    return;
-                }
-                throw error;
-            }
+            const { response, buffer } = await this.readNextBatch();
             chunks.push(buffer);
             totalChunkBytes += buffer.byteLength;
             if (response.headers.has(HEADER_NAME_RESPONSE_STARTED)) {
                 this.headers = response.headers;
                 this.status = response.status;
                 this.statusText = response.statusText;
+                if (response.status >= 400) {
+                    this.logger.warn('Native HTTP upstream error response', {
+                        status: response.status.toString(),
+                        streamId: this.streamId?.toString(),
+                        contentType: response.headers.get('content-type'),
+                        hyperdbStatusPresent: response.headers.has('x-hyperdb-status').toString(),
+                    }, 'native_http_client');
+                }
                 break;
             }
         }
@@ -142,9 +135,6 @@ export class NativeHttpServerStream implements HttpFetchResult {
     }
 
     async json(): Promise<any> {
-        if (this.initialErrorBody != null) {
-            return this.initialErrorBody;
-        }
         const buffer = await this.arrayBuffer();
         const text = this.textDecoder.decode(buffer);
         if (text == "") {
@@ -156,18 +146,12 @@ export class NativeHttpServerStream implements HttpFetchResult {
     }
 
     async text(): Promise<any> {
-        if (this.initialErrorBody != null) {
-            return this.initialErrorBody;
-        }
         const buffer = await this.arrayBuffer();
         return this.textDecoder.decode(buffer);
     }
 
     /// Get the response as array buffer
     async arrayBuffer(): Promise<ArrayBuffer> {
-        if (this.deferredError != null) {
-            throw this.deferredError;
-        }
         if (this.streamId == null) {
             return new ArrayBuffer(0);
         }
@@ -251,15 +235,14 @@ export class NativeHttpClient implements HttpClient {
             }
             streamId = Number.parseInt(streamIdText);
 
-            const stream = new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, null, this.logger);
+            const stream = new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, this.logger);
             await stream.initialize();
             return stream;
         } else {
-            let rawProxyError: any | null = null;
             if (response.headers.get(HEADER_NAME_ERROR) ?? false) {
-                rawProxyError = await response.json() as RawProxyError;
+                throw new NativeHttpError(await response.json() as RawProxyError);
             }
-            return new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, rawProxyError, this.logger);;
+            return new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, this.logger);
         }
     }
 }

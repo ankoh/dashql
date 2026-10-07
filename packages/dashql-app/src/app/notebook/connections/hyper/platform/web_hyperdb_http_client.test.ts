@@ -143,6 +143,83 @@ describe('WebHyperDatabaseClient', () => {
     });
 
     describe('executeQuery', () => {
+        it('reports HTTP status when an error response has an empty body', async () => {
+            mock.fetch = async () => ({
+                headers: new Headers(),
+                status: 502,
+                statusText: 'Bad Gateway',
+                json: async () => ({}),
+                text: async () => '',
+                arrayBuffer: async () => new ArrayBuffer(0),
+            });
+
+            const channel = await client.connect(makeHyperArgs(), noopContext);
+            await expect(channel.executeQuery({ query: 'select 1' } as any)).rejects.toMatchObject({
+                message: 'HTTP 502',
+                target: 'hyperdb_http_client',
+                keyValues: {
+                    status: '502',
+                    bodyType: 'object',
+                    bodyKeys: '',
+                    hyperdbStatusPresent: 'false',
+                    hyperErrorRecognized: 'false',
+                },
+            });
+            const log = logger.buffer.at(logger.buffer.length - 1);
+            expect(log).toMatchObject({
+                message: 'Hyper HTTP error response',
+                keyValues: {
+                    status: '502',
+                    bodyType: 'object',
+                    bodyKeys: '',
+                    hyperdbStatusPresent: 'false',
+                    hyperErrorRecognized: 'false',
+                },
+            });
+        });
+
+        it('reports HTTP status when an error response is not Hyper JSON', async () => {
+            mock.fetch = async () => ({
+                headers: new Headers({ 'content-type': 'text/html' }),
+                status: 503,
+                statusText: 'Service Unavailable',
+                json: async () => ({ detail: 'proxy unavailable' }),
+                text: async () => 'proxy unavailable',
+                arrayBuffer: async () => new ArrayBuffer(0),
+            });
+
+            const channel = await client.connect(makeHyperArgs(), noopContext);
+            await expect(channel.executeQuery({ query: 'select 1' } as any))
+                .rejects.toThrow('HTTP 503');
+            expect(logger.buffer.at(logger.buffer.length - 1)?.keyValues).toMatchObject({
+                status: '503',
+                contentType: 'text/html',
+                bodyKeys: 'detail',
+                hyperErrorRecognized: 'false',
+            });
+        });
+
+        it('surfaces Salesforce array errors instead of a generic HTTP 400', async () => {
+            mock.fetch = async () => ({
+                headers: new Headers({ 'content-type': 'application/json' }),
+                status: 400,
+                statusText: 'Bad Request',
+                json: async () => [{ message: 'Invalid data space', errorCode: 'INVALID_ARGUMENT' }],
+                text: async () => '',
+                arrayBuffer: async () => new ArrayBuffer(0),
+            });
+
+            const channel = await client.connect(makeHyperArgs(), noopContext);
+            await expect(channel.executeQuery({ query: 'select 1' } as any))
+                .rejects.toThrow('Invalid data space');
+            expect(logger.buffer.at(logger.buffer.length - 1)?.keyValues).toMatchObject({
+                status: '400',
+                bodyType: 'array',
+                bodyKeys: 'message,errorCode',
+                hyperErrorRecognized: 'true',
+            });
+        });
+
         it('reads a single-chunk result from the POST body', async () => {
             const arrowBytes = encodeIntTable('n', [1, 2, 3]);
             mock.setHandler(() => ({
