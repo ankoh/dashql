@@ -9,8 +9,7 @@ import { LoggerLike } from '../../../../platform/logger/logger.js';
 import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
 
 const SALESFORCE_CATALOG_RANK = 100;
-const SALESFORCE_CATALOG_DATABASE = 'sf';
-const SALESFORCE_HTTP_DATABASE = 'lakehouse';
+const SALESFORCE_CATALOG_DATABASE = 'lakehouse';
 const SALESFORCE_CATALOG_SCHEMA = 'public';
 
 export interface ResolvedSalesforceCatalog {
@@ -85,11 +84,7 @@ export async function updateSalesforceCatalog(
 
     // Generate SQL from metadata
     const header = generateCatalogScriptHeader(CatalogSource.SalesforceMetadataApi);
-    // Query V3 HTTP attaches the tenant database as lakehouse and does not accept a client alias.
-    const databaseName = conn.proto.setupParams?.hyperProtocol === 'V3_HTTP'
-        ? SALESFORCE_HTTP_DATABASE
-        : SALESFORCE_CATALOG_DATABASE;
-    const catalogSQL = generateSchemaSQL(databaseName, SALESFORCE_CATALOG_SCHEMA, tables);
+    const catalogSQL = generateSchemaSQL(SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA, tables);
     logger.info("Generated Salesforce catalog script", {
         dataSpace,
         tables: tables.size.toString(),

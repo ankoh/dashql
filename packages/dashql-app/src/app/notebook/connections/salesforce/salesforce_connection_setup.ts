@@ -162,7 +162,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
                 if (params.hyperProtocol === 'V3_HTTP') return [];
                 return [{
                     path: getSalesforceLakehousePath(authInfo?.offcoreTenantId, authInfo?.dataspace ?? "default"),
-                    alias: 'sf',
+                    alias: 'lakehouse',
                 }];
             },
             async getRequestMetadata(): Promise<Record<string, string>> {

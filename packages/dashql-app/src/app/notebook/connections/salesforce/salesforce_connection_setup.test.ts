@@ -63,7 +63,7 @@ describe('setupSalesforceConnection', () => {
 
         expect(context?.getAttachedDatabases()).toEqual(protocol === 'V3_HTTP' ? [] : [{
             path: 'sf:tenant-id;default',
-            alias: 'sf',
+            alias: 'lakehouse',
         }]);
     });
 });

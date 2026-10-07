@@ -897,7 +897,7 @@
           "FILE:@@//Cargo.lock a7b19f2688eb9f9245ca5c6cbe6ebd62180e4b6e76b73b6244b116e65c459592",
           "FILE:@@//Cargo.toml 209843d9589ab14780581181fe26295b2b8faa919720549e4a504347e37e3b19",
           "FILE:@@//packages/dashql-native-napi/Cargo.toml e79d21d1b84d56552fc1944ed38c32a3fb27d5a6974e5657b21cf81e7c7572b6",
-          "FILE:@@//packages/dashql-native-proxy/Cargo.toml b87d732b7a66b49912b4e32882bcc6df580e7dc79b7181658a3c1d7aebe49025",
+          "FILE:@@//packages/dashql-native-proxy/Cargo.toml 5c4d9b15d491007872d8670842d5016af835f86e3a4673500b2b94573015fd49",
           "FILE:@@//packages/dashql-pack/Cargo.toml 6de4b868dfe15dda9dd77e1b1520fc80e1ec6bc072c776efa4fc4c2b796ed7ac",
           "FILE:@@//packages/dashql-data/Cargo.toml 1134158d115d995b2866b27c0e920126d1e2deaea06a1db7e1e846990820afea"
         ],

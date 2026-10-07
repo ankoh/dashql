@@ -19,10 +19,7 @@ afterEach(() => {
 });
 
 describe('updateSalesforceCatalog', () => {
-    it.each([
-        ['V3_GRPC', 'CREATE TABLE "sf"."public"."Account__dlm"'],
-        ['V3_HTTP', 'CREATE TABLE "lakehouse"."public"."Account__dlm"'],
-    ] as const)('loads %s metadata relations and the prefetched function catalog', async (protocol, tableSQL) => {
+    it.each(['V3_GRPC', 'V3_HTTP'] as const)('loads %s metadata relations and the prefetched function catalog', async protocol => {
         const functionsSQL = PREFETCHED_HYPER_FUNCTIONS_SQL;
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(functionsSQL)));
         const api = {
@@ -64,7 +61,7 @@ describe('updateSalesforceCatalog', () => {
             new AbortController(),
         );
 
-        expect(relationScript.toString()).toContain(tableSQL);
+        expect(relationScript.toString()).toContain('CREATE TABLE "lakehouse"."public"."Account__dlm"');
         const catalogSnapshot = catalog.createSnapshot().read();
         const findEntry = (
             begin: number,
@@ -82,7 +79,7 @@ describe('updateSalesforceCatalog', () => {
             0,
             catalogSnapshot.catalogReader.databasesLength(),
             (index, entry) => catalogSnapshot.catalogReader.databases(index, entry),
-            protocol === 'V3_HTTP' ? 'lakehouse' : 'sf',
+            'lakehouse',
         );
         expect(database).not.toBeNull();
         const schema = findEntry(
@@ -98,21 +95,19 @@ describe('updateSalesforceCatalog', () => {
             (index, entry) => catalogSnapshot.catalogReader.tables(index, entry),
             'Account__dlm',
         )).not.toBeNull();
-        if (protocol === 'V3_HTTP') {
-            expect(relationScript.toString()).not.toContain('"sf"."public"');
-            const text = 'select * from Acc';
-            const query = dql.createScript(catalog);
-            query.insertTextAt(0, text);
-            query.analyze();
-            query.moveCursor(text.length);
-            const candidates = query.completeAtCursor(10).read();
-            const account = Array.from({ length: candidates.candidatesLength() }, (_, index) => candidates.candidates(index))
-                .find(candidate => candidate?.completionText() === '"Account__dlm"');
-            expect(account).toBeDefined();
-            const qualified = account!.catalogObjects(0)!;
-            expect(Array.from({ length: qualified.qualifiedNameLength() }, (_, index) => qualified.qualifiedName(index)))
-                .toEqual(['lakehouse', 'public', '"Account__dlm"']);
-        }
+        expect(relationScript.toString()).not.toContain('"sf"."public"');
+        const text = 'select * from Acc';
+        const query = dql.createScript(catalog);
+        query.insertTextAt(0, text);
+        query.analyze();
+        query.moveCursor(text.length);
+        const candidates = query.completeAtCursor(10).read();
+        const account = Array.from({ length: candidates.candidatesLength() }, (_, index) => candidates.candidates(index))
+            .find(candidate => candidate?.completionText() === '"Account__dlm"');
+        expect(account).toBeDefined();
+        const qualified = account!.catalogObjects(0)!;
+        expect(Array.from({ length: qualified.qualifiedNameLength() }, (_, index) => qualified.qualifiedName(index)))
+            .toEqual(['lakehouse', 'public', '"Account__dlm"']);
         expect(functionScript.toString()).toBe(functionsSQL);
         expect(functionScript.getParsed().read().statementsLength()).toBe(350);
         expect(logger.info).toHaveBeenCalledWith(
