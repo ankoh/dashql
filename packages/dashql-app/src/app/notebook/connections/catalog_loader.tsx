@@ -9,7 +9,6 @@ import {
     CATALOG_UPDATE_FAILED,
     CATALOG_UPDATE_PARTIALLY_SUCCEEDED,
     CATALOG_UPDATE_SUCCEEDED,
-    SET_CATALOG_SCRIPT,
     UPDATE_CATALOG,
 } from './attached_database_state.js';
 import { updateSalesforceCatalog } from './salesforce/salesforce_catalog_update.js';
@@ -166,7 +165,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 // Update the catalog by querying the Salesforce Metadata Service?
                 case CatalogResolver.SALESFORCE_METDATA_API: {
                     if (conn.details.type == SALESFORCE_DATA_CLOUD_CONNECTOR) {
-                        const script = await updateSalesforceCatalog(
+                        await updateSalesforceCatalog(
                             traced,
                             conn.details.value,
                             conn.catalog,
@@ -176,12 +175,6 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                             sfapi,
                             abortController,
                         );
-                        if (conn.catalogRelationScript !== script) {
-                            connDispatch(connectionId, {
-                                type: SET_CATALOG_SCRIPT,
-                                value: script
-                            });
-                        }
                         break;
                     } else {
                         throw new Error(

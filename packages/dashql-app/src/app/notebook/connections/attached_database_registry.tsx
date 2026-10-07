@@ -205,16 +205,19 @@ export function useDynamicAttachedDatabaseDispatch(): [AttachedDatabaseRegistry,
                         reg.attachedDatabasesBySignature.delete(connectionSignature);
                         reg.attachedDatabasesBySignature.set(next.connectionSignature.signatureString, databaseId);
                     }
-                    if (notebookId != null && next.active && didPersistedConnectionChange(prev, next)) {
-                        void storageWriter.write(
-                            groupNotebookManifestWrites(notebookId),
-                            {
-                                type: WRITE_NOTEBOOK_MANIFEST,
-                                value: [notebookId, mappingMainDatabaseId(reg, notebookId), notebookAttachedDatabaseStates(reg, notebookId)],
-                            },
-                            DEBOUNCE_DURATION_NOTEBOOK_WRITE,
-                        );
-                        if (action.type === CATALOG_UPDATE_SUCCEEDED || action.type === CATALOG_UPDATE_PARTIALLY_SUCCEEDED) {
+                    if (notebookId != null && next.active) {
+                        if (didPersistedConnectionChange(prev, next)) {
+                            void storageWriter.write(
+                                groupNotebookManifestWrites(notebookId),
+                                {
+                                    type: WRITE_NOTEBOOK_MANIFEST,
+                                    value: [notebookId, mappingMainDatabaseId(reg, notebookId), notebookAttachedDatabaseStates(reg, notebookId)],
+                                },
+                                DEBOUNCE_DURATION_NOTEBOOK_WRITE,
+                            );
+                        }
+                        if (databaseId === mappingMainDatabaseId(reg, notebookId)
+                            && (action.type === CATALOG_UPDATE_SUCCEEDED || action.type === CATALOG_UPDATE_PARTIALLY_SUCCEEDED)) {
                             void storageWriter.write(
                                 groupNotebookSchemaWrites(notebookId),
                                 { type: WRITE_NOTEBOOK_CATALOG_SCRIPT, value: [notebookId, next.catalogRelationScript] },

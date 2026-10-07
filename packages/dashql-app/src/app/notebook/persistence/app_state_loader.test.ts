@@ -94,6 +94,29 @@ describe('V2 app state loader', () => {
         expect(result.notebookScripts.get(TEST_NOTEBOOK_ID)?.databaseId).toBe(TEST_DATABASE_ID);
     });
 
+    it('restores saved Salesforce relations and functions into the main catalog on reopen', async () => {
+        const schemaSQL = 'CREATE TABLE "lakehouse"."public"."Account__dlm" ("Id__c" VARCHAR);';
+        const functionsSQL = 'CREATE FUNCTION test() AS 1;';
+        vi.mocked(backend.loadNotebook).mockResolvedValue(testNotebook({
+            mainDatabase: {
+                databaseId: TEST_DATABASE_ID,
+                params: { salesforce: { instanceUrl: 'https://example.my.salesforce.com' } } as any,
+            },
+        }));
+        vi.mocked(backend.loadNotebookSchema).mockResolvedValue(schemaSQL);
+        vi.mocked(backend.loadNotebookFunctions).mockResolvedValue(functionsSQL);
+
+        const result = await restoreAppState(core, backend, new NullLogger(), () => {});
+        const connection = result.connectionStates.get(TEST_DATABASE_ID)!;
+        expect(connection.catalogRelationScript.replaceText).toHaveBeenCalledWith(schemaSQL);
+        expect(connection.catalogFunctionScript.replaceText).toHaveBeenCalledWith(functionsSQL);
+        expect(connection.catalog.loadScripts).toHaveBeenCalledWith([
+            [connection.catalogRelationScript, expect.any(Number)],
+            [connection.catalogFunctionScript, expect.any(Number)],
+        ]);
+        expect(connection.catalogUpdates.restoredAt).toBeInstanceOf(Date);
+    });
+
     it('strictly refuses V1 before connection, catalog, scripts, or index mutation', async () => {
         vi.mocked(backend.loadNotebook).mockResolvedValue({ ...testNotebook(), formatVersion: 1 } as any);
         const result = await restoreAppState(core, backend, new NullLogger(), () => {});
