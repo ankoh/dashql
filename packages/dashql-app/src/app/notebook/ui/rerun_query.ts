@@ -43,7 +43,7 @@ export function runNotebookScript(
                         scriptKey: scriptData.scriptKey.toString(),
                         analysisAvailable: analyzed.editorUpdate?.analysisAvailable.toString(),
                     }, 'notebook_execution');
-                    executeNotebookScript(connectionId, analyzed, executeQuery, modifyNotebookScripts, logger);
+                    executeNotebookScript(connectionId, analyzed, notebookScripts, executeQuery, modifyNotebookScripts, logger);
                 } else {
                     logger?.warn('Notebook execution stopped because analysis returned no script', {
                         notebookId: notebookScripts.notebookId,
@@ -52,17 +52,18 @@ export function runNotebookScript(
                 }
             });
     }
-    executeNotebookScript(connectionId, scriptData, executeQuery, modifyNotebookScripts, logger);
+    executeNotebookScript(connectionId, scriptData, notebookScripts, executeQuery, modifyNotebookScripts, logger);
 }
 
 function executeNotebookScript(
     connectionId: string,
     scriptData: ScriptData,
+    notebookScripts: NotebookScripts,
     executeQuery: QueryExecutor,
     modifyNotebookScripts: ModifyNotebookScripts,
     logger: LoggerLike,
 ): void {
-    const compiled = compileNotebookQuery(scriptData, logger);
+    const compiled = compileNotebookQuery(scriptData, notebookScripts.connectorInfo.connectorType, logger);
     const queryText = compiled.sql;
     if (queryText.trim().length === 0) {
         logger?.warn('Notebook execution stopped because compiled query is empty', {
@@ -72,7 +73,7 @@ function executeNotebookScript(
     }
     const [queryId, execution] = executeQuery(connectionId, {
         query: queryText,
-        scriptExecution: createScriptExecution(scriptData),
+        scriptExecution: createScriptExecution(scriptData, notebookScripts.connectorInfo.connectorType),
         analyzeResults: true,
         replaceComputationId: scriptData.latestQueryId,
         cacheable: compiled.cacheable,

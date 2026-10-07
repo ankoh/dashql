@@ -2,7 +2,8 @@ import * as dashql from '../../../core/index.js';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { createScriptFormatConfig, formatScriptEditor, measureScriptFormatWidth } from './script_format.js';
+import { ConnectorType } from '../connections/connector_info.js';
+import { createScriptFormatConfig, formatScriptEditor, formattingDialectForConnector, isScriptFormattable, measureScriptFormatWidth } from './script_format.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -21,6 +22,35 @@ describe('script formatting', () => {
 
         expect(config.maxWidth).toBe(80);
         expect(config.indentationWidth).toBe(4);
+    });
+
+    it('selects Trino only for the Trino connector', () => {
+        const dialects = dashql.buffers.formatting.FormattingDialect;
+        expect(formattingDialectForConnector(ConnectorType.TRINO)).toBe(dialects.TRINO);
+        expect(formattingDialectForConnector(ConnectorType.HYPER)).toBe(dialects.HYPER);
+        expect(formattingDialectForConnector(ConnectorType.SALESFORCE_DATA_CLOUD)).toBe(dialects.HYPER);
+        expect(formattingDialectForConnector()).toBe(dialects.HYPER);
+    });
+
+    it('passes the chosen dialect to formatability and editor formatting', () => {
+        const dialect = formattingDialectForConnector(ConnectorType.TRINO);
+        const isFullyFormattable = vi.fn((_config: dashql.buffers.formatting.FormattingConfigT) => true);
+        expect(isScriptFormattable({ scriptSession: { isFullyFormattable } } as any, dialect)).toBe(true);
+        expect(isFullyFormattable.mock.calls[0][0].dialect).toBe(dialect);
+
+        const format = vi.fn((_config: dashql.buffers.formatting.FormattingConfigT) =>
+            ({ toString: () => 'select 1;', destroy: vi.fn() }));
+        const onFormattedText = vi.fn();
+        const editorView = {
+            state: { doc: { toString: () => 'select 1' } },
+            defaultCharacterWidth: 8,
+            scrollDOM: { clientWidth: 640 },
+            focus: vi.fn(),
+        } as any;
+        expect(formatScriptEditor(editorView, { scriptSession: { format } } as any,
+            dashql.buffers.formatting.FormattingMode.PRETTY, onFormattedText, false,
+            dashql.buffers.formatting.KeywordCase.LOWER, dialect)).toBe(true);
+        expect(format.mock.calls[0][0].dialect).toBe(dialect);
     });
 
     it('measures the formatter width from the writable editor viewport', () => {
@@ -53,6 +83,37 @@ describe('script formatting', () => {
         } finally {
             compact?.destroy();
             pretty?.destroy();
+            session.destroy();
+            catalog.destroy();
+        }
+    });
+
+    it('pretty formats array types in the connector dialect', () => {
+        const catalog = dql.createCatalog();
+        const session = dql.createScriptSession(catalog);
+        const input = 'select cast(payload as array(json)) from events';
+        try {
+            session.replaceText(0n, input);
+            const editorView = {
+                state: { doc: { toString: () => input } },
+                defaultCharacterWidth: 8,
+                scrollDOM: { clientWidth: 640 },
+                focus: vi.fn(),
+            } as any;
+            for (const [connector, arrayType] of [
+                [ConnectorType.TRINO, 'array(json)'],
+                [ConnectorType.HYPER, 'json[]'],
+                [ConnectorType.SALESFORCE_DATA_CLOUD, 'json[]'],
+            ] as const) {
+                const dialect = formattingDialectForConnector(connector);
+                const onFormattedText = vi.fn();
+                expect(isScriptFormattable({ scriptSession: session } as any, dialect)).toBe(true);
+                expect(formatScriptEditor(editorView, { scriptSession: session } as any,
+                    dashql.buffers.formatting.FormattingMode.PRETTY, onFormattedText, false,
+                    dashql.buffers.formatting.KeywordCase.LOWER, dialect)).toBe(true);
+                expect(onFormattedText).toHaveBeenCalledWith(`select cast(payload as ${arrayType})\nfrom events;`);
+            }
+        } finally {
             session.destroy();
             catalog.destroy();
         }

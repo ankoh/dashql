@@ -14,6 +14,7 @@ import { ButtonGroup } from '../../../../ui/foundations/button_group.js';
 import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js';
 import { SymbolIcon } from '../../../../ui/foundations/symbol_icon.js';
 import type { AttachedDatabaseState } from '../../connections/attached_database_state.js';
+import type { ConnectorType } from '../../connections/connector_info.js';
 import { QueryExecutionStatus, queryIsDone } from '../../connections/query_execution_state.js';
 import { computeQueryCacheKeyForConnection, useCancelQuery, useQueryState } from '../../connections/query_executor.js';
 import type { StorageReader } from '../../persistence/storage_provider.js';
@@ -26,7 +27,7 @@ import { ScriptDiagnosticsButton } from '../script_diagnostics.js';
 import { ScriptName } from '../script_name.js';
 import { ScriptEditor } from '../script_editor.js';
 import { ScriptStatisticsBar } from '../script_statistics_bar.js';
-import { formatScriptEditor, isScriptFormattable } from '../script_format.js';
+import { formatScriptEditor, formattingDialectForConnector, isScriptFormattable } from '../script_format.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import { ScriptActionMenu } from '../script_action_menu.js';
 
@@ -35,6 +36,7 @@ const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
 export interface ScriptCardProps {
     notebookId: string;
     connection: AttachedDatabaseState | null;
+    connectorType: ConnectorType;
     storageReader: StorageReader;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
@@ -133,7 +135,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
             }
             try {
                 // Compile the query
-                const compiled = compileNotebookQuery(props.scriptData);
+                const compiled = compileNotebookQuery(props.scriptData, props.connectorType);
                 if (!compiled.cacheable) {
                     setIsCached(false);
                     return;
@@ -185,9 +187,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
 
     const [isEditing, setIsEditing] = React.useState(false);
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
+    const formattingDialect = formattingDialectForConnector(props.connectorType);
     const isFormattable = React.useMemo(
-        () => dependencies.isScriptFormattable(props.scriptData ?? null),
-        [props.scriptData?.scriptSession, props.scriptData?.editorUpdate?.stateRevision],
+        () => dependencies.isScriptFormattable(props.scriptData ?? null, formattingDialect),
+        [props.scriptData?.scriptSession, props.scriptData?.editorUpdate?.stateRevision, formattingDialect],
     );
     const handleEditorView = React.useCallback((view: EditorView) => {
         setEditorView(view);
@@ -203,8 +206,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
             },
             props.formattingDebugMode,
             props.keywordCase,
+            formattingDialect,
         );
-    }, [editorView, props.formattingDebugMode, props.keywordCase, props.onFormat, props.scriptData]);
+    }, [editorView, props.formattingDebugMode, props.keywordCase, formattingDialect, props.onFormat, props.scriptData]);
 
     // The label and the rename input show the clean display name (no ordering prefix, no ".sql");
     // the raw scriptFileName remains the identity passed to handlers and to RENAME_SCRIPT.
@@ -292,6 +296,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
                         <dependencies.ScriptDiagnosticsButton
                             scriptData={props.scriptData}
                             isFormattable={isFormattable}
+                            connectorType={props.connectorType}
                         />
                     )}
                     <ScriptActionMenu
@@ -409,6 +414,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = (props: ScriptCardProps) =>
 export interface ScriptFeedRowProps {
     notebookId: string;
     connection: AttachedDatabaseState | null;
+    connectorType: ConnectorType;
     storageReader: StorageReader;
     entries: ReturnType<typeof getSelectedScriptRefs>;
     scripts: NotebookScripts['scripts'];
@@ -547,6 +553,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     key={entry?.scriptId}
                     notebookId={props.notebookId}
                     connection={props.connection}
+                    connectorType={props.connectorType}
                     storageReader={props.storageReader}
                     isFocused={scriptFileName === props.focusedFileName}
                     scriptData={scriptData}

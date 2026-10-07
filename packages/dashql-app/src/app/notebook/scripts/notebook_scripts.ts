@@ -3,7 +3,7 @@ import * as Immutable from 'immutable';
 
 import { DashQLCompletionState, DashQLPendingDiff, DashQLProcessorUpdateOut } from './editor/dashql_processor.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './focus.js';
-import { ConnectorInfo } from '../connections/connector_info.js';
+import { ConnectorInfo, ConnectorType } from '../connections/connector_info.js';
 import { VariantKind } from '../../../utils/index.js';
 import {
     DEBOUNCE_DURATION_SCRIPT_WRITE,
@@ -408,7 +408,8 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
                     : prevScript.statistics,
             };
             if (documentChanged || analysisRefreshed) {
-                nextScript.annotations = deriveScriptAnnotations(update.editorUpdate, updateSession, logger);
+                nextScript.annotations = deriveScriptAnnotations(update.editorUpdate, updateSession,
+                    state.connectorInfo.connectorType, logger);
                 updateSession.loadIntoCatalog(nextScript.scriptKey);
             }
             // Update semantic user focus
@@ -590,7 +591,8 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             if (updatedScriptData) {
                 const renamedScriptData: ScriptData = { ...updatedScriptData, fileName: newFileName };
                 if (renamed) {
-                    newScripts[scriptId] = analyzeScriptData(renamedScriptData, state.connectionCatalog, logger);
+                    newScripts[scriptId] = analyzeScriptData(renamedScriptData, state.connectionCatalog, logger,
+                        state.connectorInfo.connectorType);
                     for (const key in newScripts) {
                         if (+key === scriptId) continue;
                         const other = newScripts[key];
@@ -750,7 +752,8 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             replaceScriptSessionText(scriptData.scriptSession, text);
             // Re-analyze through the path-aware helper (destroys the stale buffers, refreshes
             // buffers + annotations incl. visualizeQuery, reloads the script into the catalog)
-            const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
+            const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger,
+                state.connectorInfo.connectorType);
             nextScriptData.pendingDiff = pendingDiff;
 
             const nextState: NotebookScripts = {
@@ -816,7 +819,8 @@ export function reduceNotebookScripts(state: NotebookScripts, action: NotebookSc
             scriptData.pendingDiff.diffBuffer.destroy();
             // Rewrite the script text in-place and re-analyze through the path-aware helper.
             replaceScriptSessionText(scriptData.scriptSession, priorText);
-            const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
+            const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger,
+                state.connectorInfo.connectorType);
             nextScriptData.pendingDiff = null;
 
             const nextState: NotebookScripts = {
@@ -1003,6 +1007,7 @@ export function rotateScriptStatistics(
 function deriveScriptAnnotations(
     update: core.buffers.editor.EditorUpdateT | null | undefined,
     scriptSession: core.DashQLScriptSession,
+    connectorType: ConnectorType,
     logger?: LoggerLike,
 ): ScriptAnnotations {
     if (!update?.analysisAvailable) {
@@ -1013,7 +1018,7 @@ function deriveScriptAnnotations(
         .filter((name): name is string => name != null)
         .sort() ?? [];
 
-    const visualizeQuery = compileVisualizeQuery(scriptSession, logger);
+    const visualizeQuery = compileVisualizeQuery(scriptSession, connectorType, logger);
 
     return {
         tableRefs: [],
@@ -1035,6 +1040,7 @@ export interface CompiledNotebookQuery {
 /// source extraction all happen in dashql-core.
 export function compileNotebookQuery(
     scriptData: ScriptData,
+    connectorType: ConnectorType,
     logger?: LoggerLike,
 ): CompiledNotebookQuery {
     logger?.debug('Compiling script for query execution', {
@@ -1047,7 +1053,7 @@ export function compileNotebookQuery(
         analysisAvailable: scriptData.editorUpdate?.analysisAvailable.toString(),
         textLength: scriptData.scriptSession.getText?.().length.toString(),
     }, LOG_CTX);
-    const compiled = scriptData.scriptSession.compileQuery(executionFormattingConfig());
+    const compiled = scriptData.scriptSession.compileQuery(executionFormattingConfig(connectorType));
     try {
         const reader = compiled.read();
         const sql = reader.sql() ?? '';
@@ -1086,17 +1092,19 @@ export function compileNotebookQuery(
     }
 }
 
-export function compileQuery(scriptData: ScriptData, logger?: LoggerLike): string {
-    return compileNotebookQuery(scriptData, logger).sql;
+export function compileQuery(scriptData: ScriptData, connectorType: ConnectorType, logger?: LoggerLike): string {
+    return compileNotebookQuery(scriptData, connectorType, logger).sql;
 }
 
-export function createScriptExecution(scriptData: ScriptData): core.DashQLScriptExecution {
-    return scriptData.scriptSession.startExecution(executionFormattingConfig());
+export function createScriptExecution(scriptData: ScriptData, connectorType: ConnectorType): core.DashQLScriptExecution {
+    return scriptData.scriptSession.startExecution(executionFormattingConfig(connectorType));
 }
 
-function executionFormattingConfig(): core.buffers.formatting.FormattingConfigT {
+function executionFormattingConfig(connectorType: ConnectorType): core.buffers.formatting.FormattingConfigT {
     return new core.buffers.formatting.FormattingConfigT(
-        core.buffers.formatting.FormattingDialect.HYPER,
+        connectorType === ConnectorType.TRINO
+            ? core.buffers.formatting.FormattingDialect.TRINO
+            : core.buffers.formatting.FormattingDialect.HYPER,
         core.buffers.formatting.FormattingMode.INLINE,
         120,
         2,
@@ -1104,8 +1112,9 @@ function executionFormattingConfig(): core.buffers.formatting.FormattingConfigT 
     );
 }
 
-function compileVisualizeQuery(scriptSession: core.DashQLScriptSession, logger?: LoggerLike): ResolvedVisualizeQuery | null {
-    const compiled = scriptSession.compileQuery(executionFormattingConfig());
+function compileVisualizeQuery(scriptSession: core.DashQLScriptSession, connectorType: ConnectorType,
+    logger?: LoggerLike): ResolvedVisualizeQuery | null {
+    const compiled = scriptSession.compileQuery(executionFormattingConfig(connectorType));
     try {
         const reader = compiled.read();
         if (reader.errorsLength() > 0 ||
@@ -1186,7 +1195,8 @@ function computePendingDiff(
     }
 }
 
-export function analyzeScriptData(scriptData: ScriptData, _catalog: core.DashQLCatalog, logger: Logger): ScriptData {
+export function analyzeScriptData(scriptData: ScriptData, _catalog: core.DashQLCatalog, logger: Logger,
+    connectorType: ConnectorType): ScriptData {
     const next: ScriptData = { ...scriptData };
 
     // Analyze the script
@@ -1208,6 +1218,7 @@ export function analyzeScriptData(scriptData: ScriptData, _catalog: core.DashQLC
     next.annotations = deriveScriptAnnotations(
         update,
         next.scriptSession,
+        connectorType,
         logger,
     );
 
@@ -1229,7 +1240,8 @@ export function analyzeOutdatedScript<V extends NotebookScriptsInput>(state: V, 
         return state;
     }
     // Create the next notebook scripts state
-    const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger);
+    const nextScriptData = analyzeScriptData(scriptData, state.connectionCatalog, logger,
+        state.connectorInfo.connectorType);
     const next = {
         ...clearSemanticUserFocus(state),
         scripts: {

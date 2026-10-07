@@ -24,3 +24,6 @@ parser-snapshots:
       and event_timestamp > cast ('2025-04-14' as timestamp)
       and processed_rows_byol > 0
       order by 3 desc
+  - name: trino_array_json_cast
+    input: |
+      select cast(json_parse(payload) as array(json)) as entries from event_stream

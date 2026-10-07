@@ -1,0 +1,88 @@
+formatter-snapshots:
+
+  - name: coverage_trino_array_json_cast
+    input: |-
+      select cast(json_parse(payload) as array(json)) as items from events
+    dialects:
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(json_parse(payload) as array(json)) as items from events;
+          - mode: compact
+            expected: |-
+              select cast(json_parse(payload) as array(json)) as items from events;
+          - mode: pretty
+            expected: |-
+              select cast(json_parse(payload) as array(json)) as items
+              from events;
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(json_parse(payload) as json[]) as items from events;
+          - mode: compact
+            expected: |-
+              select cast(json_parse(payload) as json[]) as items from events;
+          - mode: pretty
+            expected: |-
+              select cast(json_parse(payload) as json[]) as items
+              from events;
+
+  - name: coverage_trino_nested_array_cast
+    input: |-
+      select cast(payload as array(array(integer))) from events
+    dialects:
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(payload as array(array(integer))) from events;
+          - mode: compact
+            expected: |-
+              select cast(payload as array(array(integer))) from events;
+          - mode: pretty
+            expected: |-
+              select cast(payload as array(array(integer)))
+              from events;
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(payload as integer[][]) from events;
+          - mode: compact
+            expected: |-
+              select cast(payload as integer[][]) from events;
+          - mode: pretty
+            expected: |-
+              select cast(payload as integer[][])
+              from events;
+
+  - name: coverage_trino_bracket_array_cast
+    input: |-
+      select cast(payload as integer[]) from events
+    dialects:
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(payload as array(integer)) from events;
+          - mode: compact
+            expected: |-
+              select cast(payload as array(integer)) from events;
+          - mode: pretty
+            expected: |-
+              select cast(payload as array(integer))
+              from events;
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(payload as integer[]) from events;
+          - mode: compact
+            expected: |-
+              select cast(payload as integer[]) from events;
+          - mode: pretty
+            expected: |-
+              select cast(payload as integer[])
+              from events;

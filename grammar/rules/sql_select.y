@@ -962,13 +962,20 @@ sql_typename:
     ;
 
 sql_opt_array_bounds:
-    sql_opt_array_bounds LSB RSB            { $1->push_back(Null()); $$ = std::move($1); }
+    // Keep an explicit marker for unbounded dimensions so formatting does not drop [].
+    sql_opt_array_bounds LSB RSB            { $1->push_back(Bool(Loc({@2, @3}), true)); $$ = std::move($1); }
   | sql_opt_array_bounds LSB ICONST RSB     { $1->push_back(Const(@3, buffers::parser::AConstType::INTEGER)); $$ = std::move($1); }
   | %empty                                  { $$ = ctx.List(); }
     ;
 
 sql_simple_typename:
     sql_generic_type                    { $$ = $1; }
+  | ARRAY LRB sql_typename RRB {
+        $$ = ctx.Object(@$, buffers::parser::NodeType::OBJECT_SQL_GENERIC_TYPE, {
+            Attr(Key::SQL_GENERIC_TYPE_NAME, ctx.NameFromKeyword(@1, "array")),
+            Attr(Key::SQL_GENERIC_TYPE_MODIFIERS, ctx.Array(Loc({@2, @3, @4}), { std::move($3) })),
+        });
+    }
   | sql_numeric                         { $$ = $1; }
   | sql_bit                             { $$ = $1; }
   | sql_const_character                 { $$ = $1; }

@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '../../../../core/index.js';
 import { ScriptFeedRow, type ScriptFeedRowDependencies } from './notebook_feed_row.js';
+import { ConnectorType } from '../../connections/connector_info.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -41,7 +42,8 @@ vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect()
 
 function baseProps() {
     return {
-        notebookId: 'notebook', connection: null, storageReader: { backend: { hasCachedQueryResult: vi.fn() } },
+        notebookId: 'notebook', connection: null, connectorType: ConnectorType.TRINO,
+        storageReader: { backend: { hasCachedQueryResult: vi.fn() } },
         entries: [{ scriptId: 1, fileName: '01_alpha.sql' }, { scriptId: 2, fileName: '02_beta.sql' }],
         scripts: { 1: script(1, '01_alpha.sql'), 2: script(2, '02_beta.sql') }, scriptDebugMode: false, formattingDebugMode: false,
         keywordCase: dashql.buffers.formatting.KeywordCase.UPPER,
@@ -102,6 +104,7 @@ describe('V2 notebook feed rows', () => {
             expect.any(Function),
             false,
             dashql.buffers.formatting.KeywordCase.UPPER,
+            dashql.buffers.formatting.FormattingDialect.TRINO,
         );
         expect(props.onFormat).toHaveBeenCalledWith(1, 'SELECT 1;');
         props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;

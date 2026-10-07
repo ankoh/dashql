@@ -69,6 +69,44 @@ TEST(ParserTest, ParsesSemiAndAntiJoins) {
     }
 }
 
+TEST(ParserTest, ParsesArrayElementTypeInCast) {
+    struct TestCase {
+        std::string_view input;
+        std::string_view trino;
+        std::string_view hyper;
+    };
+    constexpr std::array<TestCase, 4> tests = {{
+        {"select cast(json_parse('[1,2]') as array(json))", "select cast(json_parse('[1,2]') as array(json));",
+         "select cast(json_parse('[1,2]') as json[]);"},
+        {"select cast(payload as array(array(json))) from events",
+         "select cast(payload as array(array(json))) from events;",
+         "select cast(payload as json[][]) from events;"},
+        {"select cast(payload as json[]) from events", "select cast(payload as array(json)) from events;",
+         "select cast(payload as json[]) from events;"},
+        {"SELECT CAST(payload AS ARRAY(JSON)) FROM events", "select cast(payload as array(JSON)) from events;",
+         "select cast(payload as JSON[]) from events;"},
+    }};
+
+    buffers::formatting::FormattingConfigT config;
+    config.mode = buffers::formatting::FormattingMode::INLINE;
+    for (const auto& test : tests) {
+        SCOPED_TRACE(test.input);
+        auto script = ParseString(test.input);
+        ASSERT_TRUE(script->errors.empty())
+            << (script->errors.empty() ? "" : script->errors.front().message);
+        ASSERT_EQ(script->statements.size(), 1u);
+        for (auto [dialect, expected] : {
+                 std::pair{buffers::formatting::FormattingDialect::TRINO, test.trino},
+                 std::pair{buffers::formatting::FormattingDialect::HYPER, test.hyper},
+             }) {
+            config.dialect = dialect;
+            Formatter formatter{*script};
+            EXPECT_EQ(formatter.Format(config), expected);
+            EXPECT_TRUE(formatter.IsFullyFormatted());
+        }
+    }
+}
+
 TEST(ParserTest, ParsesSemiAndAntiJoinsInCteUnion) {
     constexpr std::string_view input = R"SQL(WITH `cte_table_6` AS (
   SELECT `o_orderkey`, `_record_type` FROM `orders_cdf`

@@ -4,10 +4,17 @@ import type { EditorView } from '@codemirror/view';
 
 import type { ScriptData } from '../scripts/notebook_scripts.js';
 import type { AppSettings } from '../../config/app_config.js';
+import { ConnectorType } from '../connections/connector_info.js';
 
 const DEFAULT_FORMAT_WIDTH = 80;
 const DEFAULT_FORMAT_INDENTATION = 4;
 const MIN_FORMAT_WIDTH = 24;
+
+export function formattingDialectForConnector(connectorType?: ConnectorType): dashql.buffers.formatting.FormattingDialect {
+    return connectorType === ConnectorType.TRINO
+        ? dashql.buffers.formatting.FormattingDialect.TRINO
+        : dashql.buffers.formatting.FormattingDialect.HYPER;
+}
 
 export function getKeywordCase(settings?: AppSettings): dashql.buffers.formatting.KeywordCase {
     return settings?.keywordCase === 'upper'
@@ -20,9 +27,10 @@ export function createScriptFormatConfig(
     debugMode: boolean = false,
     maxWidth: number = DEFAULT_FORMAT_WIDTH,
     keywordCase: dashql.buffers.formatting.KeywordCase = dashql.buffers.formatting.KeywordCase.LOWER,
+    dialect: dashql.buffers.formatting.FormattingDialect = dashql.buffers.formatting.FormattingDialect.HYPER,
 ): dashql.buffers.formatting.FormattingConfigT {
     return new dashql.buffers.formatting.FormattingConfigT(
-        dashql.buffers.formatting.FormattingDialect.HYPER,
+        dialect,
         mode,
         maxWidth,
         DEFAULT_FORMAT_INDENTATION,
@@ -40,11 +48,15 @@ export function measureScriptFormatWidth(editorView: Pick<EditorView, 'defaultCh
     return Math.max(MIN_FORMAT_WIDTH, Math.floor(availableWidth / charWidth));
 }
 
-export function isScriptFormattable(scriptData: ScriptData | null): boolean {
+export function isScriptFormattable(
+    scriptData: ScriptData | null,
+    dialect: dashql.buffers.formatting.FormattingDialect = dashql.buffers.formatting.FormattingDialect.HYPER,
+): boolean {
     if (scriptData == null) return false;
     try {
         return scriptData.scriptSession.isFullyFormattable(
-            createScriptFormatConfig(dashql.buffers.formatting.FormattingMode.PRETTY),
+            createScriptFormatConfig(dashql.buffers.formatting.FormattingMode.PRETTY, false, DEFAULT_FORMAT_WIDTH,
+                dashql.buffers.formatting.KeywordCase.LOWER, dialect),
             true,
         );
     } catch {
@@ -59,6 +71,7 @@ export function formatScriptEditor(
     onFormattedText: (text: string) => void,
     debugMode: boolean = false,
     keywordCase: dashql.buffers.formatting.KeywordCase = dashql.buffers.formatting.KeywordCase.LOWER,
+    dialect: dashql.buffers.formatting.FormattingDialect = dashql.buffers.formatting.FormattingDialect.HYPER,
 ): boolean {
     if (editorView == null || scriptData == null) return false;
 
@@ -66,7 +79,7 @@ export function formatScriptEditor(
     try {
         const maxWidth = measureScriptFormatWidth(editorView);
         formattedScript = scriptData.scriptSession.format(
-            createScriptFormatConfig(mode, debugMode, maxWidth, keywordCase),
+            createScriptFormatConfig(mode, debugMode, maxWidth, keywordCase, dialect),
             null,
         );
         const formattedText = formattedScript.toString();

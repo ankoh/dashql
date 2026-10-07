@@ -9,6 +9,7 @@ import { NotebookTestBackend } from '../persistence/notebook_test_backend.js';
 import { StorageWriter, type StorageWriteTaskVariant } from '../persistence/storage_writer.js';
 import {
     ANALYZE_OUTDATED_SCRIPT,
+    compileNotebookQuery,
     CREATE_SCRIPT,
     DELETE_SCRIPT,
     getSortedScriptFileNames,
@@ -100,6 +101,20 @@ describe('V2 flat notebook script mutations', () => {
             cacheable: false,
             cacheSignature: '',
         }));
+    });
+
+    it('compiles visualizations in the notebook connector dialect', () => {
+        const current = state(['1_chart.sql']);
+        const scriptKey = current.scriptRefs['1_chart.sql'].scriptId;
+        const scriptData = current.scripts[scriptKey];
+        replaceScriptSessionText(scriptData.scriptSession,
+            'select cast(payload as array(json)) from events visualize using vegalite (mark => bar)');
+        scriptData.scriptSession.analyze();
+
+        const trino = compileNotebookQuery(scriptData, ConnectorType.TRINO);
+        const hyper = compileNotebookQuery(scriptData, ConnectorType.HYPER);
+        expect(trino.sql).toContain('cast(payload as array(json))');
+        expect(hyper.sql).toContain('cast(payload as json[])');
     });
 
     it('inserts at an indexed feed boundary and persists the new flat file', () => {

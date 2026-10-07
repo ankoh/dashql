@@ -31,7 +31,7 @@ import { acceptPendingDiff, rejectPendingDiff } from '../scripts/editor/dashql_d
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ScriptDiagnosticsButton } from './script_diagnostics.js';
-import { formatScriptEditor, getKeywordCase, isScriptFormattable } from './script_format.js';
+import { formatScriptEditor, formattingDialectForConnector, getKeywordCase, isScriptFormattable } from './script_format.js';
 import { ScriptActionMenu } from './script_action_menu.js';
 import { ScriptDetailsEditorPane, ScriptDetailsOutputPane } from './script_details_panes.js';
 import { VerticalSplit } from '../../../ui/foundations/vertical_split.js';
@@ -139,9 +139,10 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
 
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const keywordCase = getKeywordCase(config?.settings);
+    const formattingDialect = formattingDialectForConnector(props.notebookScripts.connectorInfo?.connectorType);
     const isFormattable = React.useMemo(
-        () => dependencies.isScriptFormattable(scriptData),
-        [scriptData?.scriptSession, scriptData?.editorUpdate?.stateRevision],
+        () => dependencies.isScriptFormattable(scriptData, formattingDialect),
+        [scriptData?.scriptSession, scriptData?.editorUpdate?.stateRevision, formattingDialect],
     );
     const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
         dependencies.formatScriptEditor(editorView, scriptData, mode, (text) => {
@@ -150,8 +151,8 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 type: SET_SCRIPT_TEXT,
                 value: { scriptKey: scriptData.scriptKey, text, withDiff: true },
             });
-        }, formattingDebugMode, keywordCase);
-    }, [editorView, formattingDebugMode, keywordCase, props.modifyNotebookScripts, scriptData]);
+        }, formattingDebugMode, keywordCase, formattingDialect);
+    }, [editorView, formattingDebugMode, keywordCase, formattingDialect, props.modifyNotebookScripts, scriptData]);
     const handleDelete = React.useCallback(() => {
         props.modifyNotebookScripts({ type: DELETE_SCRIPT, value: scriptFileName });
         props.hideDetails();
@@ -321,6 +322,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             draftFileName={draftFileName}
                             editInputRef={editInputRef}
                             isFormattable={isFormattable}
+                            connectorType={props.notebookScripts.connectorInfo?.connectorType}
                             hasPendingDiff={hasPendingDiff}
                             PencilIcon={PencilIcon}
                             CheckIcon={CheckIcon}

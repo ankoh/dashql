@@ -617,3 +617,110 @@ parser-snapshots:
         - text: [317,318]
         - text: [345,346]
       comments: []
+
+  - name: trino_array_json_cast
+    input: |-
+      select cast(json_parse(payload) as array(json)) as entries from event_stream
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 26
+          description:
+            text: "select cas..ent_stream"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select cas..ent_stream"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "cast(json_..as entries"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "cast(json_..as entries"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "cast(json_..ray(json))"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: CAST
+                          - key: SQL_FUNCTION_CAST_ARGS
+                            type: OBJECT_SQL_FUNCTION_CAST_ARGS
+                            text: "(json_pars..ray(json))"
+                            children:
+                              - key: SQL_FUNCTION_CAST_VALUE
+                                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                text: "json_parse(payload)"
+                                children:
+                                  - key: SQL_FUNCTION_NAME
+                                    type: ARRAY
+                                    text: "json_parse"
+                                    children:
+                                      - type: NAME
+                                        text: "json_parse"
+                                  - key: SQL_FUNCTION_ARGUMENTS
+                                    type: ARRAY
+                                    text: "payload"
+                                    children:
+                                      - type: OBJECT_SQL_FUNCTION_ARG
+                                        text: "payload"
+                                        children:
+                                          - key: SQL_FUNCTION_ARG_VALUE
+                                            type: OBJECT_SQL_COLUMN_REF
+                                            text: "payload"
+                                            children:
+                                              - key: SQL_COLUMN_REF_PATH
+                                                type: ARRAY
+                                                text: "payload"
+                                                children:
+                                                  - type: NAME
+                                                    text: "payload"
+                              - key: SQL_FUNCTION_CAST_TYPE
+                                type: OBJECT_SQL_TYPENAME
+                                text: "array(json)"
+                                children:
+                                  - key: SQL_TYPENAME_TYPE
+                                    type: OBJECT_SQL_GENERIC_TYPE
+                                    text: "array(json)"
+                                    children:
+                                      - key: SQL_GENERIC_TYPE_NAME
+                                        type: NAME
+                                        text: "array"
+                                      - key: SQL_GENERIC_TYPE_MODIFIERS
+                                        type: ARRAY
+                                        text: "(json)"
+                                        children:
+                                          - type: OBJECT_SQL_TYPENAME
+                                            text: "json"
+                                            children:
+                                              - key: SQL_TYPENAME_TYPE
+                                                type: OBJECT_SQL_GENERIC_TYPE
+                                                text: "json"
+                                                children:
+                                                  - key: SQL_GENERIC_TYPE_NAME
+                                                    type: NAME
+                                                    text: "json"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "entries"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from event_stream"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "event_stream"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "event_stream"
+                        children:
+                          - type: NAME
+                            text: "event_stream"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []

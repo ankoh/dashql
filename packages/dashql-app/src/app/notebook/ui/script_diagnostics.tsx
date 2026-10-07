@@ -5,6 +5,8 @@ import * as styles from './script_diagnostics.module.css';
 import { AlertIcon, XCircleFillIcon, XIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import type { ScriptData } from '../scripts/notebook_scripts.js';
+import { formattingDialectForConnector } from './script_format.js';
+import type { ConnectorType } from '../connections/connector_info.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
@@ -19,7 +21,7 @@ export interface ScriptDiagnostic {
     details: Record<string, unknown>;
 }
 
-function formattingDetails(scriptData: ScriptData): Record<string, unknown> {
+function formattingDetails(scriptData: ScriptData, connectorType?: ConnectorType): Record<string, unknown> {
     const details: Record<string, unknown> = {
         source: 'formatter',
         severity: 'warning',
@@ -27,14 +29,15 @@ function formattingDetails(scriptData: ScriptData): Record<string, unknown> {
         scriptKey: scriptData.scriptKey,
     };
     try {
+        const dialect = formattingDialectForConnector(connectorType);
         const config = new dashql.buffers.formatting.FormattingConfigT(
-            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dialect,
             dashql.buffers.formatting.FormattingMode.PRETTY,
             80,
             4,
         );
         details.configuration = {
-            dialect: 'HYPER',
+            dialect: dashql.buffers.formatting.FormattingDialect[dialect],
             mode: 'PRETTY',
             maxWidth: 80,
             indentationWidth: 4,
@@ -46,7 +49,8 @@ function formattingDetails(scriptData: ScriptData): Record<string, unknown> {
     return details;
 }
 
-export function collectScriptDiagnostics(scriptData: ScriptData, isFormattable: boolean): ScriptDiagnostic[] {
+export function collectScriptDiagnostics(scriptData: ScriptData, isFormattable: boolean,
+    connectorType?: ConnectorType): ScriptDiagnostic[] {
     const diagnostics: ScriptDiagnostic[] = (scriptData.editorUpdate?.diagnostics ?? []).map(diagnostic => {
         const severity = diagnostic.severity === dashql.buffers.editor.EditorDiagnosticSeverity.WARNING
             ? 'warning'
@@ -70,7 +74,7 @@ export function collectScriptDiagnostics(scriptData: ScriptData, isFormattable: 
         diagnostics.push({
             severity: 'warning',
             message: SCRIPT_FORMATTING_WARNING,
-            details: formattingDetails(scriptData),
+            details: formattingDetails(scriptData, connectorType),
         });
     }
     return diagnostics;
@@ -79,11 +83,12 @@ export function collectScriptDiagnostics(scriptData: ScriptData, isFormattable: 
 export const ScriptDiagnosticsButton: React.FC<{
     scriptData: ScriptData;
     isFormattable: boolean;
-}> = ({ scriptData, isFormattable }) => {
+    connectorType?: ConnectorType;
+}> = ({ scriptData, isFormattable, connectorType }) => {
     const [isOpen, setIsOpen] = React.useState(false);
     const [selectedDiagnostic, setSelectedDiagnostic] = React.useState<ScriptDiagnostic | null>(null);
     const triggerRef = React.useRef<HTMLButtonElement | null>(null);
-    const diagnostics = collectScriptDiagnostics(scriptData, isFormattable);
+    const diagnostics = collectScriptDiagnostics(scriptData, isFormattable, connectorType);
     React.useEffect(() => {
         if (diagnostics.length === 0) {
             if (isOpen) setIsOpen(false);

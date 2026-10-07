@@ -591,6 +591,8 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_GROUP_BY_ITEM_ARG:
         case AttributeKey::SQL_NUMERIC_TYPE_MODIFIERS:
+        case AttributeKey::SQL_GENERIC_TYPE_MODIFIERS:
+        case AttributeKey::SQL_TYPENAME_ARRAY:
         case AttributeKey::SQL_ATTACH_DATABASE_OPTIONS:
         case AttributeKey::SQL_INSERT_COLUMNS:
         case AttributeKey::SQL_INSERT_RETURNING:
@@ -942,21 +944,27 @@ FmtReg Formatter::FormatTypeName(const buffers::parser::Node& node) {
                                               AttributeKey::SQL_TYPENAME_SETOF>(node);
     if (!type) return FormatUnimplemented(node);
 
+    FmtReg type_reg = Reg(*type);
+    if (array && array->node_type() == NodeType::ARRAY) {
+        auto begin = array->children_begin_or_value();
+        for (size_t i = 0; i < array->children_count(); ++i) {
+            const auto& bound = ast[begin + i];
+            if (config.dialect == buffers::formatting::FormattingDialect::TRINO) {
+                if (bound.node_type() != NodeType::BOOL) return FormatUnimplemented(node);
+                type_reg = fmt.Concat({fmt.Text("array("), type_reg, fmt.Text(")")});
+            } else {
+                type_reg = fmt.Concat({type_reg, fmt.Text("["),
+                                       bound.node_type() == NodeType::BOOL ? fmt.Empty() : Reg(bound), fmt.Text("]")});
+            }
+        }
+    }
+
     std::vector<FmtReg> parts;
-    parts.reserve(4);
+    parts.reserve(2);
     if (setof && setof->node_type() == NodeType::BOOL && setof->children_begin_or_value() != 0) {
         parts.push_back(fmt.Text("setof "));
     }
-    parts.push_back(Reg(*type));
-
-    if (array && array->node_type() == NodeType::ARRAY && array->children_count() > 0) {
-        auto begin = array->children_begin_or_value();
-        for (size_t i = 0; i < array->children_count(); ++i) {
-            parts.push_back(fmt.Text("["));
-            parts.push_back(Reg(ast[begin + i]));
-            parts.push_back(fmt.Text("]"));
-        }
-    }
+    parts.push_back(type_reg);
 
     return fmt.Concat(std::move(parts));
 }
@@ -1171,6 +1179,18 @@ FmtReg Formatter::FormatGenericType(const buffers::parser::Node& node) {
     auto [name, modifiers] =
         GetAttributes<AttributeKey::SQL_GENERIC_TYPE_NAME, AttributeKey::SQL_GENERIC_TYPE_MODIFIERS>(node);
     if (!name) return FormatUnimplemented(node);
+
+    auto name_text = scanned.ReadTextAtSymbolSpan(name->symbol_span());
+    if (name_text.size() == 5 && std::equal(name_text.begin(), name_text.end(), "array",
+                                           [](unsigned char a, unsigned char b) { return std::tolower(a) == b; }) &&
+        modifiers &&
+        modifiers->node_type() == NodeType::ARRAY && modifiers->children_count() == 1) {
+        auto element = Reg(ast[modifiers->children_begin_or_value()]);
+        if (config.dialect == buffers::formatting::FormattingDialect::HYPER) {
+            return fmt.Concat({element, fmt.Text("[]")});
+        }
+        return fmt.Concat({fmt.Text("array("), element, fmt.Text(")")});
+    }
 
     std::vector<FmtReg> parts;
     parts.reserve(2);

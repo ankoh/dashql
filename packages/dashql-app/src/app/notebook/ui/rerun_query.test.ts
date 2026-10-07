@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { ANALYZE_OUTDATED_SCRIPT, REGISTER_QUERY, type NotebookScripts, type ScriptData } from '../scripts/notebook_scripts.js';
+import { ConnectorType } from '../connections/connector_info.js';
+import * as dashql from '../../../core/index.js';
 import { registerNotebookScriptQuery, runNotebookScript } from './rerun_query.js';
 
 describe('registerNotebookScriptQuery', () => {
@@ -18,7 +20,7 @@ describe('registerNotebookScriptQuery', () => {
 
 describe('runNotebookScript', () => {
     it('analyzes an outdated script before compiling and executing it', async () => {
-        const compileQuery = vi.fn(() => ({
+        const compileQuery = vi.fn((_config: dashql.buffers.formatting.FormattingConfigT) => ({
             read: () => ({
                 errorsLength: () => 0,
                 sql: () => 'SELECT 1',
@@ -39,7 +41,9 @@ describe('runNotebookScript', () => {
             ...outdated,
             analysisOutdated: false,
         };
-        const notebookScripts = { scripts: { 7: outdated } } as unknown as NotebookScripts;
+        const notebookScripts = {
+            scripts: { 7: outdated }, connectorInfo: { connectorType: ConnectorType.TRINO },
+        } as unknown as NotebookScripts;
         const modifyNotebookScripts = vi.fn((action) => {
             if (action.type === ANALYZE_OUTDATED_SCRIPT) {
                 return Promise.resolve({ scripts: { 7: analyzed } } as unknown as NotebookScripts);
@@ -63,6 +67,7 @@ describe('runNotebookScript', () => {
             value: 7,
         });
         expect(compileQuery).toHaveBeenCalledOnce();
+        expect(compileQuery.mock.calls[0][0].dialect).toBe(dashql.buffers.formatting.FormattingDialect.TRINO);
         expect(executeQuery).toHaveBeenCalledWith('connection', expect.objectContaining({
             query: 'SELECT 1',
             scriptExecution,

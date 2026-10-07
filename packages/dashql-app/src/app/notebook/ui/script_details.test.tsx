@@ -3,6 +3,8 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConnectionHealth } from '../connections/attached_database_state.js';
+import { ConnectorType } from '../connections/connector_info.js';
+import * as dashql from '../../../core/index.js';
 import { DELETE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_TEXT, type NotebookScripts } from '../scripts/notebook_scripts.js';
 import { runNotebookScript } from './rerun_query.js';
 import { ScriptDetails, type ScriptDetailsDependencies } from './script_details.js';
@@ -55,7 +57,7 @@ function scripts(): NotebookScripts {
     };
     return {
         notebookId: 'notebook', name: 'Test', databaseId: 'database', instance: {} as any, notebookMetadata: {} as any,
-        connectorInfo: {} as any, connectionCatalog: {} as any,
+        connectorInfo: { connectorType: ConnectorType.TRINO } as any, connectionCatalog: {} as any,
         scripts: { 1: { scriptKey: 1, fileName: '01_first.sql', scriptSession, analysisOutdated: false, annotations: {}, latestQueryId: null } as any,
             2: { scriptKey: 2, fileName: '02_second.sql', scriptSession, analysisOutdated: false, annotations: {}, latestQueryId: null } as any },
         scriptRefs: {
@@ -148,6 +150,9 @@ describe('ScriptDetails V2 flat scripts', () => {
 
         const formatButton = Array.from(document.querySelectorAll('button')).find(button => button.textContent === 'Format Pretty') as HTMLButtonElement;
         act(() => formatButton.click());
+        expect(state.formatScriptEditor).toHaveBeenCalledWith(expect.anything(), expect.anything(),
+            dashql.buffers.formatting.FormattingMode.PRETTY, expect.any(Function), false,
+            dashql.buffers.formatting.KeywordCase.LOWER, dashql.buffers.formatting.FormattingDialect.TRINO);
         expect(modify).toHaveBeenCalledWith({
             type: SET_SCRIPT_TEXT,
             value: { scriptKey: 2, text: 'SELECT 2;', withDiff: true },

@@ -7,6 +7,7 @@ import { PaperAirplaneIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import type { QueryExecutionState } from '../connections/query_execution_state.js';
 import type { ScriptData } from '../scripts/notebook_scripts.js';
+import type { ConnectorType } from '../connections/connector_info.js';
 import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { ButtonGroup } from '../../../ui/foundations/button_group.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
@@ -26,6 +27,7 @@ interface ScriptDetailsEditorPaneProps {
     draftFileName: string;
     editInputRef: React.RefObject<HTMLInputElement | null>;
     isFormattable: boolean;
+    connectorType: ConnectorType;
     hasPendingDiff: boolean;
     PencilIcon: Icon;
     CheckIcon: Icon;
@@ -88,7 +90,8 @@ export const ScriptDetailsEditorPane: React.FC<ScriptDetailsEditorPaneProps> = (
                 </div>
             )}
             <div className={styles.entry_card_trailing_actions}>
-                <ScriptDiagnosticsButton scriptData={props.scriptData} isFormattable={props.isFormattable} />
+                <ScriptDiagnosticsButton scriptData={props.scriptData} isFormattable={props.isFormattable}
+                    connectorType={props.connectorType} />
                 {props.formatMenu}
                 <IconButton
                     className={styles.entry_card_collapse_button}
