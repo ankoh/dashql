@@ -286,6 +286,6 @@ describe('Salesforce data-space resolution', () => {
     it('falls back to default and uses the same value in the lakehouse path', () => {
         const dataSpace = getSalesforceDataSpace(makeDataCloudAccessToken({}));
         expect(dataSpace).toBe(DEFAULT_SALESFORCE_DATA_SPACE);
-        expect(getSalesforceLakehousePath('tenant-id', dataSpace)).toBe('lakehouse:tenant-id;default');
+        expect(getSalesforceLakehousePath('tenant-id', dataSpace)).toBe('sf:tenant-id;default');
     });
 });

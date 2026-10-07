@@ -19,7 +19,10 @@ afterEach(() => {
 });
 
 describe('updateSalesforceCatalog', () => {
-    it('loads metadata relations and the prefetched function catalog', async () => {
+    it.each([
+        ['V3_GRPC', 'CREATE TABLE "sf"."public"."Account__dlm"'],
+        ['V3_HTTP', 'CREATE TABLE "lakehouse"."public"."Account__dlm"'],
+    ] as const)('loads %s metadata relations and the prefetched function catalog', async (protocol, tableSQL) => {
         const functionsSQL = PREFETCHED_HYPER_FUNCTIONS_SQL;
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(functionsSQL)));
         const api = {
@@ -32,6 +35,7 @@ describe('updateSalesforceCatalog', () => {
         };
         const connection = {
             proto: {
+                setupParams: { hyperProtocol: protocol },
                 oauthState: {
                     coreAccessToken: {
                         accessToken: 'core-token',
@@ -60,7 +64,7 @@ describe('updateSalesforceCatalog', () => {
             new AbortController(),
         );
 
-        expect(relationScript.toString()).toContain('CREATE TABLE "sf"."public"."Account__dlm"');
+        expect(relationScript.toString()).toContain(tableSQL);
         const catalogSnapshot = catalog.createSnapshot().read();
         const findEntry = (
             begin: number,
@@ -78,23 +82,37 @@ describe('updateSalesforceCatalog', () => {
             0,
             catalogSnapshot.catalogReader.databasesLength(),
             (index, entry) => catalogSnapshot.catalogReader.databases(index, entry),
-            'sf',
+            protocol === 'V3_HTTP' ? 'lakehouse' : 'sf',
         );
+        expect(database).not.toBeNull();
         const schema = findEntry(
             database!.childBegin(),
             database!.childCount(),
             (index, entry) => catalogSnapshot.catalogReader.schemas(index, entry),
             'public',
         );
-        const table = findEntry(
+        expect(schema).not.toBeNull();
+        expect(findEntry(
             schema!.childBegin(),
             schema!.childCount(),
             (index, entry) => catalogSnapshot.catalogReader.tables(index, entry),
             'Account__dlm',
-        );
-        expect(database).not.toBeNull();
-        expect(schema).not.toBeNull();
-        expect(table).not.toBeNull();
+        )).not.toBeNull();
+        if (protocol === 'V3_HTTP') {
+            expect(relationScript.toString()).not.toContain('"sf"."public"');
+            const text = 'select * from Acc';
+            const query = dql.createScript(catalog);
+            query.insertTextAt(0, text);
+            query.analyze();
+            query.moveCursor(text.length);
+            const candidates = query.completeAtCursor(10).read();
+            const account = Array.from({ length: candidates.candidatesLength() }, (_, index) => candidates.candidates(index))
+                .find(candidate => candidate?.completionText() === '"Account__dlm"');
+            expect(account).toBeDefined();
+            const qualified = account!.catalogObjects(0)!;
+            expect(Array.from({ length: qualified.qualifiedNameLength() }, (_, index) => qualified.qualifiedName(index)))
+                .toEqual(['lakehouse', 'public', '"Account__dlm"']);
+        }
         expect(functionScript.toString()).toBe(functionsSQL);
         expect(functionScript.getParsed().read().statementsLength()).toBe(350);
         expect(logger.info).toHaveBeenCalledWith(

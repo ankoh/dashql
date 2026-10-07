@@ -159,8 +159,10 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         const authInfo = collectSalesforceAuthInfo(coreAccessToken, dcToken);
         const connectionContext: HyperDatabaseConnectionContext = {
             getAttachedDatabases(): AttachedDatabase[] {
+                if (params.hyperProtocol === 'V3_HTTP') return [];
                 return [{
                     path: getSalesforceLakehousePath(authInfo?.offcoreTenantId, authInfo?.dataspace ?? "default"),
+                    alias: 'sf',
                 }];
             },
             async getRequestMetadata(): Promise<Record<string, string>> {
