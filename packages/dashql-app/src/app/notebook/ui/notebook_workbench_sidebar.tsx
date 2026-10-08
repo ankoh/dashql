@@ -582,7 +582,7 @@ const NotebookRowMenu: React.FC<NotebookRowMenuProps> = ({ item, onDuplicate, on
                                     setStorageOpen(true);
                                 }}
                             >
-                                <ActionList.Leading><DatabaseIcon size={16} /></ActionList.Leading>
+                                <ActionList.Leading><FileDirectoryIcon size={16} /></ActionList.Leading>
                                 <ActionList.ItemText>Storage</ActionList.ItemText>
                             </ActionList.ListItem>
                         )}

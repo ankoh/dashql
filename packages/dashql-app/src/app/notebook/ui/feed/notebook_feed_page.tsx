@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_feed_page.module.css';
 
-import { ThreeBarsIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { FileDirectoryIcon, LinkIcon, SymbolIcon, ThreeBarsIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import type { AttachedDatabaseState } from '../../connections/attached_database_state.js';
 import {
@@ -9,15 +9,20 @@ import {
     type NotebookScripts,
 } from '../../scripts/notebook_scripts.js';
 import type { ModifyNotebookScripts } from '../../scripts/notebook_scripts_registry.js';
-import { ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { NotebookNavigationDrawer } from '../notebook_navigation_drawer.js';
 import { NotebookWorkbenchSidebar } from '../notebook_workbench_sidebar.js';
+import { NotebookURLShareOverlay } from '../notebook_url_share_overlay.js';
+import { NotebookFileSaveOverlay } from '../notebook_file_save_overlay.js';
+import { NotebookStorageOverlay } from '../../persistence/ui/notebook_storage_overlay.js';
 import { ScriptDetails, TabKey as DetailsTabKey } from '../script_details.js';
 import { NotebookFeed } from './notebook_feed.js';
 import { Dashboard } from '../../dashboard/dashboard.js';
 import { NotebookViewMode, useNotebookViewMode } from '../../scripts/notebook_commands.js';
 import { SegmentedControl, SegmentedControlSize } from '../../../../ui/foundations/segmented_control.js';
 import { useAppConfig } from '../../../config/app_config.js';
+
+const FileZipIcon = SymbolIcon('file_zip_16');
 
 export interface NotebookFeedPageDependencies {
     NotebookFeed: typeof NotebookFeed;
@@ -26,7 +31,11 @@ export interface NotebookFeedPageDependencies {
     NotebookNavigationDrawer: typeof NotebookNavigationDrawer;
     ThreeBarsIcon: typeof ThreeBarsIcon;
     IconButton: typeof IconButton;
+    Button: typeof Button;
     Dashboard: typeof Dashboard;
+    NotebookURLShareOverlay: typeof NotebookURLShareOverlay;
+    NotebookFileSaveOverlay: typeof NotebookFileSaveOverlay;
+    NotebookStorageOverlay: typeof NotebookStorageOverlay;
     useNotebookViewMode: typeof useNotebookViewMode;
     useAppConfig: typeof useAppConfig;
     SegmentedControl: typeof SegmentedControl;
@@ -39,7 +48,11 @@ const DEFAULT_DEPENDENCIES: NotebookFeedPageDependencies = {
     NotebookNavigationDrawer,
     ThreeBarsIcon,
     IconButton,
+    Button,
     Dashboard,
+    NotebookURLShareOverlay,
+    NotebookFileSaveOverlay,
+    NotebookStorageOverlay,
     useNotebookViewMode,
     useAppConfig,
     SegmentedControl,
@@ -61,6 +74,11 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
     const [feedShadowContainer, setFeedShadowContainer] = React.useState<HTMLDivElement | null>(null);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
+    const shareTriggerRef = React.useRef<HTMLButtonElement>(null);
+    const exportTriggerRef = React.useRef<HTMLButtonElement>(null);
+    const [shareOpen, setShareOpen] = React.useState(false);
+    const [exportOpen, setExportOpen] = React.useState(false);
+    const [storageOpen, setStorageOpen] = React.useState(false);
     const { mode, setMode } = dependencies.useNotebookViewMode();
     const dashboardsEnabled = dependencies.useAppConfig()?.settings?.enableDashboards === true;
     const dashboardActive = dashboardsEnabled && mode === NotebookViewMode.Dashboard;
@@ -74,27 +92,65 @@ export const NotebookFeedPage: React.FC<Props> = (props) => {
 
     return (
         <div className={styles.page}>
-            <header className={styles.mobile_header} data-electron-drag-region>
-                <dependencies.IconButton ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open notebook workbench" onClick={() => setNavigationDrawerOpen(true)}>
+            <header className={styles.view_bar} data-electron-drag-region>
+                <dependencies.IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open notebook workbench" onClick={() => setNavigationDrawerOpen(true)}>
                     <dependencies.ThreeBarsIcon />
                 </dependencies.IconButton>
+                {dashboardsEnabled && <dependencies.SegmentedControl
+                    aria-label="Notebook view"
+                    size={SegmentedControlSize.Small}
+                    onChange={(selectedIndex) => setMode(selectedIndex === 0
+                        ? NotebookViewMode.Notebook
+                        : NotebookViewMode.Dashboard)}
+                >
+                    <dependencies.SegmentedControl.Button selected={!dashboardActive}>Notebook</dependencies.SegmentedControl.Button>
+                    <dependencies.SegmentedControl.Button selected={dashboardActive}>Dashboard</dependencies.SegmentedControl.Button>
+                </dependencies.SegmentedControl>}
+                <div className={styles.header_actions}>
+                    <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" aria-expanded={shareOpen} onClick={() => {
+                        setExportOpen(false);
+                        setStorageOpen(false);
+                        setShareOpen(value => !value);
+                    }}>
+                        <span className={styles.action_label}>Share as URL</span>
+                    </dependencies.Button>
+                    <dependencies.NotebookURLShareOverlay notebookId={props.notebookScripts.notebookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={shareTriggerRef} />
+                    <dependencies.Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" aria-expanded={exportOpen} onClick={() => {
+                        setShareOpen(false);
+                        setStorageOpen(false);
+                        setExportOpen(value => !value);
+                    }}>
+                        <span className={styles.action_label}>Export .dashql</span>
+                    </dependencies.Button>
+                    <dependencies.NotebookFileSaveOverlay
+                        isOpen={exportOpen}
+                        setIsOpen={setExportOpen}
+                        anchorRef={exportTriggerRef}
+                        conn={props.connection}
+                        notebookScripts={props.notebookScripts}
+                        fileName={props.notebookScripts.name ?? props.notebookScripts.notebookMetadata.originalFileName ?? 'notebook'}
+                    />
+                    <dependencies.NotebookStorageOverlay
+                        notebookId={props.notebookScripts.notebookId}
+                        isOpen={storageOpen}
+                        onOpen={() => {
+                            setShareOpen(false);
+                            setExportOpen(false);
+                            setStorageOpen(true);
+                        }}
+                        onClose={() => setStorageOpen(false)}
+                        renderAnchor={(anchorProps) => (
+                            <dependencies.Button {...anchorProps} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileDirectoryIcon} aria-label="Storage">
+                                <span className={styles.action_label}>Storage</span>
+                            </dependencies.Button>
+                        )}
+                    />
+                </div>
             </header>
             <aside className={styles.navigation_sidebar}>
                 {workbench(false)}
             </aside>
-            <main className={`${styles.body_container} ${!dashboardsEnabled ? styles.body_container_no_view_bar : ''}`} id="notebook-body">
-                {dashboardsEnabled && <div className={styles.view_bar}>
-                    <dependencies.SegmentedControl
-                        aria-label="Notebook view"
-                        size={SegmentedControlSize.Small}
-                        onChange={(selectedIndex) => setMode(selectedIndex === 0
-                            ? NotebookViewMode.Notebook
-                            : NotebookViewMode.Dashboard)}
-                    >
-                        <dependencies.SegmentedControl.Button selected={!dashboardActive}>Notebook</dependencies.SegmentedControl.Button>
-                        <dependencies.SegmentedControl.Button selected={dashboardActive}>Dashboard</dependencies.SegmentedControl.Button>
-                    </dependencies.SegmentedControl>
-                </div>}
+            <main className={styles.body_container} id="notebook-body">
                 <div className={styles.content_container}>
                     <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
                         <dependencies.NotebookFeed

@@ -175,6 +175,7 @@ export const NotebookStorageViewer: React.FC<NotebookStorageViewerProps> = (prop
 type NotebookStorageOverlayProps = {
     notebookId: string | null;
     isOpen: boolean;
+    onOpen?: () => void;
     onClose: () => void;
     renderAnchor: (p: object) => React.ReactElement;
     side?: AnchorSide;
@@ -186,6 +187,7 @@ export function NotebookStorageOverlay(props: NotebookStorageOverlayProps) {
     return (
         <AnchoredOverlay
             open={props.isOpen}
+            onOpen={props.onOpen}
             onClose={props.onClose}
             renderAnchor={props.renderAnchor}
             side={props.side}

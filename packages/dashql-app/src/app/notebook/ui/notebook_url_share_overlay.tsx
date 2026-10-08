@@ -25,6 +25,7 @@ interface Props {
     isOpen: boolean;
     notebookId?: string;
     setIsOpen: (v: boolean) => void;
+    anchorRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 interface State {
@@ -152,10 +153,11 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const ButtonIcon = state.copyFinishedAt != null && state.uiResetAt == null ? CheckIcon : PaperclipIcon;
     return (
         <AnchoredOverlay
-            renderAnchor={() => <div ref={anchorRef} />}
+            renderAnchor={props.anchorRef ? null : () => <div ref={anchorRef} />}
             open={props.isOpen}
             onClose={() => props.setIsOpen(false)}
-            anchorRef={anchorRef}
+            anchorRef={props.anchorRef ?? anchorRef}
+            returnFocusRef={props.anchorRef}
             align={AnchorAlignment.End}
             overlayProps={{
                 initialFocusRef: buttonRef,

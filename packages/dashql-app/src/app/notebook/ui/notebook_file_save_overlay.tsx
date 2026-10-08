@@ -41,6 +41,7 @@ interface Props {
     className?: string;
     isOpen: boolean;
     setIsOpen: (v: boolean) => void;
+    anchorRef?: React.RefObject<HTMLButtonElement | null>;
     notebookScripts: NotebookScripts | null;
     conn: AttachedDatabaseState | null;
     fileName?: string;
@@ -102,10 +103,11 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
 
     return (
         <AnchoredOverlay
-            renderAnchor={() => <div ref={anchorRef} />}
+            renderAnchor={props.anchorRef ? null : () => <div ref={anchorRef} />}
             open={props.isOpen}
             onClose={() => props.setIsOpen(false)}
-            anchorRef={anchorRef}
+            anchorRef={props.anchorRef ?? anchorRef}
+            returnFocusRef={props.anchorRef}
             align={AnchorAlignment.End}
             overlayProps={{
                 initialFocusRef: buttonRef,
