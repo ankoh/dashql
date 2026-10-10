@@ -1,28 +1,13 @@
 #include "dashql/api.h"
 
-#include "dashql/async_analysis.h"
 #include "dashql/catalog.h"
 #include "dashql/exception.h"
 #include "dashql/script_session.h"
 #include "gtest/gtest.h"
 
-#include <chrono>
-#include <thread>
-
 using namespace dashql;
 
 namespace {
-
-using namespace std::chrono_literals;
-
-uint32_t WaitForJob(uint32_t job_id) {
-    for (size_t i = 0; i < 10'000; ++i) {
-        auto state = AsyncAnalysisJobs::Poll(job_id);
-        if (state >= AsyncAnalysisJobState::READY) return static_cast<uint32_t>(state);
-        std::this_thread::sleep_for(1ms);
-    }
-    return static_cast<uint32_t>(AsyncAnalysisJobs::Poll(job_id));
-}
 
 std::pair<std::string_view, std::unique_ptr<char[]>> copyText(std::string_view text) {
     auto buffer = std::unique_ptr<char[]>(new char[text.size()]);
@@ -148,65 +133,56 @@ TEST(ApiTest, LoadScriptsUsesCompactPointerAndRankArrays) {
     EXPECT_TRUE(catalog.Contains(functions.GetCatalogEntryId()));
 }
 
-TEST(ApiTest, AsyncAnalysisRunsTwoJobsAndPublishesResults) {
+TEST(ApiTest, AnalysisPublishesResultsBeforeReturning) {
     Catalog catalog;
     Script first{catalog};
     Script second{catalog};
     first.InsertTextAt(0, "select 1");
     second.InsertTextAt(0, "select 2");
 
-    auto first_job = dashql_script_analyze_async(&first, true);
-    auto second_job = dashql_script_analyze_async(&second, true);
-    EXPECT_EQ(WaitForJob(first_job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
-    EXPECT_EQ(WaitForJob(second_job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
+    ASSERT_NO_THROW(dashql_script_analyze(&first, true));
     EXPECT_NE(first.GetAnalyzedScript(), nullptr);
+    EXPECT_EQ(second.GetAnalyzedScript(), nullptr);
+    ASSERT_NO_THROW(dashql_script_analyze(&second, true));
     EXPECT_NE(second.GetAnalyzedScript(), nullptr);
-    dashql_script_analysis_job_release(first_job);
-    dashql_script_analysis_job_release(second_job);
 }
 
-TEST(ApiTest, AsyncAnalysisRejectsDuplicateAndBusyOperations) {
+TEST(ApiTest, AnalysisAllowsImmediateReadAndReanalysisAfterEdit) {
     Catalog catalog;
     Script script{catalog};
-    std::string query = "select ";
-    for (size_t i = 0; i < 20'000; ++i) query += i == 0 ? "1" : "+1";
-    script.InsertTextAt(0, query);
-    auto job = dashql_script_analyze_async(&script, true);
-
-    EXPECT_THROW(dashql_script_analyze_async(&script, true), Exception);
-    EXPECT_THROW(script.ToString(), Exception);
-    EXPECT_EQ(WaitForJob(job), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
-    EXPECT_EQ(script.ToString(), query);
-    dashql_script_analysis_job_release(job);
-    EXPECT_EQ(script.ToString(), query);
+    script.InsertTextAt(0, "select 1");
+    ASSERT_NO_THROW(dashql_script_analyze(&script, true));
+    auto first_analysis = script.GetAnalyzedScript();
+    EXPECT_EQ(script.ToString(), "select 1");
+    script.ReplaceText("select 2");
+    ASSERT_NO_THROW(dashql_script_analyze(&script, true));
+    ASSERT_NE(script.GetAnalyzedScript(), nullptr);
+    EXPECT_NE(script.GetAnalyzedScript(), first_analysis);
+    EXPECT_EQ(script.GetAnalyzedScript()->parsed_script->scanned_script->text_version, script.text_version);
+    EXPECT_EQ(script.ToString(), "select 2");
 }
 
-TEST(ApiTest, AsyncAnalysisContainsWorkerExceptions) {
+TEST(ApiTest, AnalysisThrowsErrorsDirectlyAndAllowsRecovery) {
     Catalog catalog;
     Script invalid{catalog};
-    auto failed = dashql_script_analyze_async(&invalid, false);
-    EXPECT_EQ(WaitForJob(failed), static_cast<uint32_t>(AsyncAnalysisJobState::FAILED));
+    try {
+        dashql_script_analyze(&invalid, false);
+        FAIL() << "Expected analysis without parsing to throw";
+    } catch (const Exception& error) {
+        EXPECT_EQ(error.GetCode(), buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+        EXPECT_STREQ(error.what(), "Script is not parsed");
+    }
     EXPECT_EQ(invalid.ToString(), "");
-    EXPECT_EQ(dashql_script_analysis_job_get_error_code(failed),
-              static_cast<uint32_t>(buffers::status::StatusCode::SCRIPT_NOT_PARSED));
-    FFIResult message;
-    dashql_script_analysis_job_get_error_message(&message, failed);
-    EXPECT_EQ(std::string_view(static_cast<const char*>(message.data_ptr), message.data_length), "Script is not parsed");
-    dashql_delete_owner(message.owner_ptr, message.owner_deleter);
-    dashql_script_analysis_job_release(failed);
-
-    Script valid{catalog};
-    valid.InsertTextAt(0, "select 1");
-    auto ready = dashql_script_analyze_async(&valid, true);
-    EXPECT_EQ(WaitForJob(ready), static_cast<uint32_t>(AsyncAnalysisJobState::READY));
-    dashql_script_analysis_job_release(ready);
+    EXPECT_EQ(invalid.GetAnalyzedScript(), nullptr);
+    invalid.InsertTextAt(0, "select 1");
+    ASSERT_NO_THROW(dashql_script_analyze(&invalid, true));
+    EXPECT_NE(invalid.GetAnalyzedScript(), nullptr);
 }
 
-TEST(ApiTest, FailedAsyncCatalogAnalysisDoesNotBlockScriptSessions) {
+TEST(ApiTest, FailedCatalogAnalysisDoesNotBlockScriptSessions) {
     Catalog catalog;
     Script invalid{catalog};
-    auto failed = dashql_script_analyze_async(&invalid, false);
-    EXPECT_EQ(WaitForJob(failed), static_cast<uint32_t>(AsyncAnalysisJobState::FAILED));
+    EXPECT_THROW(dashql_script_analyze(&invalid, false), Exception);
 
     ScriptSession session{catalog, buffers::editor::EditorOffsetUnit::UTF16_CODE_UNITS};
     auto replaced = session.ReplaceText(0, "select 1");
@@ -214,20 +190,6 @@ TEST(ApiTest, FailedAsyncCatalogAnalysisDoesNotBlockScriptSessions) {
     auto analyzed = session.Analyze();
     EXPECT_EQ(analyzed.status, buffers::editor::EditorUpdateStatus::OK);
     EXPECT_TRUE(analyzed.analysis_available);
-
-    dashql_script_analysis_job_release(failed);
-}
-
-TEST(ApiTest, AsyncAnalysisCancellationPublishesCancelledState) {
-    Catalog catalog;
-    Script script{catalog};
-    std::string query = "select ";
-    for (size_t i = 0; i < 20'000; ++i) query += i == 0 ? "1" : "+1";
-    script.InsertTextAt(0, query);
-    auto job = dashql_script_analyze_async(&script, true);
-    EXPECT_TRUE(dashql_script_analysis_job_cancel(job));
-    EXPECT_EQ(WaitForJob(job), static_cast<uint32_t>(AsyncAnalysisJobState::CANCELLED));
-    dashql_script_analysis_job_release(job);
 }
 
 }  // namespace

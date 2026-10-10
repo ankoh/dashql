@@ -46,10 +46,14 @@ function functionResult() {
     return arrow.tableFromArrays({
         function_schema: ['pg_catalog'],
         function_name: ['wasm_catalog_function'],
-        function_arguments: ['integer'],
         return_type: ['bigint'],
+        returns_set: [false],
         function_kind: ['f'],
-    });
+    }).assign(new arrow.Table({
+        argument_types: arrow.vectorFromArray([['integer']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+        argument_names: arrow.vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+        argument_modes: arrow.vectorFromArray([[]], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+    }));
 }
 
 describe('Hyper catalog query generation', () => {
@@ -103,6 +107,7 @@ describe('updateHyperCatalog', () => {
             functionScript,
             false,
             new AbortController().signal,
+            { processor: async request => dql.processBatch(request) },
         );
 
         expect(result.failures).toEqual([]);
@@ -113,7 +118,7 @@ describe('updateHyperCatalog', () => {
         expect(script.toString()).toContain('CREATE TABLE "lake db"."public"."lake_table"');
         expect(script.toString()).toContain('CREATE TABLE "cloud"."sales"."orders"');
         expect(script.toString()).not.toContain('CREATE TABLE "Cloud Database"');
-        expect(script.getAnalyzed().read().tablesLength()).toBe(2);
+        expect(catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(2);
         expect(functionScript.toString()).toContain('CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;');
     });
 
@@ -143,6 +148,7 @@ describe('updateHyperCatalog', () => {
             functionScript,
             true,
             new AbortController().signal,
+            { processor: async request => dql.processBatch(request) },
         );
 
         expect(query).toContain('FROM pg_catalog.pg_class c');
@@ -151,7 +157,7 @@ describe('updateHyperCatalog', () => {
         expect(script.toString()).toContain('CREATE TABLE "hyper"."public"."default_table"');
         expect(functionScript.toString()).toContain('-- Catalog Source: HyperDB WASM pg_proc');
         expect(functionScript.toString()).toContain(
-            'CREATE FUNCTION "hyper"."pg_catalog"."wasm_catalog_function"(args integer) RETURNS bigint;',
+            'CREATE FUNCTION "hyper"."pg_catalog"."wasm_catalog_function"("arg1" integer) RETURNS bigint;',
         );
         expect(functionScript.toString()).not.toContain('CREATE FUNCTION "hyper"."pg_catalog"."abs"');
         expect(executor.mock.calls[1]?.[1].readTimeoutMs).toBe(CATALOG_QUERY_READ_TIMEOUT_MS);
@@ -188,6 +194,7 @@ describe('updateHyperCatalog', () => {
             functionScript,
             false,
             new AbortController().signal,
+            { processor: async request => dql.processBatch(request) },
         );
         revision = 2;
         failSecond = true;
@@ -205,6 +212,7 @@ describe('updateHyperCatalog', () => {
             functionScript,
             false,
             new AbortController().signal,
+            { processor: async request => dql.processBatch(request) },
         );
 
         expect(result.updatedDatabases).toEqual(['first']);
@@ -239,5 +247,55 @@ describe('updateHyperCatalog', () => {
 
         expect(executor).not.toHaveBeenCalled();
         expect(script.toString()).toBe('legacy catalog text');
+    });
+
+    it.each(['processing', 'publication', 'later publication', 'aborted'])('retains earlier publications and unchanged pools after %s failure', async failure => {
+        const catalog = dql.createCatalog();
+        const relationScript = dql.createScript(catalog);
+        const functionScript = dql.createScript(catalog);
+        let revision = 1;
+        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(pgResult(`table_v${revision}`))]);
+        const refresh = (signal: AbortSignal, processor = async (request: dashql.BatchRequest) => dql.processBatch(request)) => updateHyperCatalog(
+            { info: vi.fn() } as any, 'connection', vi.fn(), revision, [], executor,
+            catalog, dql, relationScript, functionScript, false, signal, { processor },
+        );
+        await refresh(new AbortController().signal);
+        const previousRelations = relationScript.toString();
+        const previousFunctions = functionScript.toString();
+        const snapshot = catalog.createSnapshot();
+        const version = snapshot.read().catalogReader.catalogVersion();
+        revision = 2;
+        const abort = new AbortController();
+        const processor = async (request: dashql.BatchRequest) => {
+            const result = dql.processBatch(request);
+            if (failure === 'processing') result.scripts[1].failure = 'function processing failed';
+            if (failure === 'aborted') abort.abort();
+            return result;
+        };
+        const replaceDescriptor = catalog.replaceDescriptor.bind(catalog);
+        const publication = failure === 'publication' || failure === 'later publication'
+            ? vi.spyOn(catalog, 'replaceDescriptor').mockImplementation((id, rank, descriptor) => {
+                if (failure === 'publication' || id === functionScript.catalog_entry_id) throw new Error('descriptor import failed');
+                replaceDescriptor(id, rank, descriptor);
+            })
+            : null;
+        try {
+            await expect(refresh(abort.signal, processor)).rejects.toThrow();
+            if (failure === 'later publication') expect(relationScript.toString()).toContain('table_v2');
+            else expect(relationScript.toString()).toBe(previousRelations);
+            expect(functionScript.toString()).toBe(previousFunctions);
+            const currentSnapshot = catalog.createSnapshot();
+            if (failure === 'later publication') {
+                expect(publication).toHaveBeenCalledTimes(2);
+                expect(currentSnapshot).not.toBe(snapshot);
+                expect(currentSnapshot.read().catalogReader.catalogVersion()).toBe(version + 1n);
+            } else {
+                expect(currentSnapshot).toBe(snapshot);
+                expect(currentSnapshot.read().catalogReader.catalogVersion()).toBe(version);
+            }
+            expect(currentSnapshot.read().catalogReader.tablesLength()).toBe(1);
+        } finally {
+            publication?.mockRestore();
+        }
     });
 });

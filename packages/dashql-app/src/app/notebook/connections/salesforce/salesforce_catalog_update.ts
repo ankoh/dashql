@@ -6,7 +6,8 @@ import { getSalesforceDataSpace } from './salesforce_api_client.js';
 import { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
 import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from '../catalog_sql_generator.js';
 import { LoggerLike } from '../../../../platform/logger/logger.js';
-import { fetchPrefetchedHyperFunctions, loadPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
+import { fetchPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
+import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '../catalog_batch.js';
 
 const SALESFORCE_CATALOG_RANK = 100;
 const SALESFORCE_CATALOG_DATABASE = 'lakehouse';
@@ -52,6 +53,9 @@ export async function resolveSalesforceCatalog(
         })));
     }
     const columnCount = Array.from(tables.values()).reduce((total, columns) => total + columns.length, 0);
+    if (tables.size === 0 || columnCount === 0) {
+        throw new Error('Salesforce metadata returned no usable catalog relations');
+    }
     return { tables, functionsSQL, tableCount: tables.size, columnCount };
 }
 
@@ -63,8 +67,11 @@ export async function updateSalesforceCatalog(
     catalogRelationScript: dashql.DashQLScript,
     catalogFunctionScript: dashql.DashQLScript,
     api: SalesforceApiClientInterface,
-    abortController: AbortController
+    abortController: AbortController,
+    options: CatalogBatchOptions = {},
 ): Promise<dashql.DashQLScript> {
+    options = { ...options, abortSignal: abortController.signal };
+    const validate = beginCatalogBatch(catalog, options);
     const coreAccessToken = conn.proto.oauthState?.coreAccessToken;
     if (!coreAccessToken?.accessToken || !coreAccessToken.instanceUrl) {
         throw new Error(`Salesforce core access token is missing`);
@@ -81,6 +88,7 @@ export async function updateSalesforceCatalog(
         api,
         abortController.signal,
     );
+    validate();
 
     // Generate SQL from metadata
     const header = generateCatalogScriptHeader(CatalogSource.SalesforceMetadataApi);
@@ -92,28 +100,14 @@ export async function updateSalesforceCatalog(
         scriptBytes: new TextEncoder().encode(catalogSQL).byteLength.toString(),
     }, "salesforce_catalog");
 
-    // Update script content
-    catalogRelationScript.replaceText(`${header}${catalogSQL}`);
-    catalogRelationScript.analyze();
-
-    // Drop old script from catalog if loaded, then reload with Salesforce rank
-    try {
-        catalog.dropScript(catalogRelationScript);
-    } catch (e) {
-        // Script may not have been loaded yet - ignore error
-    }
-    catalog.loadScript(catalogRelationScript, SALESFORCE_CATALOG_RANK);
-    const functionCount = loadPrefetchedHyperFunctions(
-        dql,
-        catalog,
-        catalogFunctionScript,
-        functionsSQL,
-        SALESFORCE_CATALOG_RANK,
-    );
+    const [relations, functions] = await publishCatalogBatch(dql, catalog, [
+        { script: catalogRelationScript, text: `${header}${catalogSQL}`, rank: SALESFORCE_CATALOG_RANK },
+        { script: catalogFunctionScript, text: functionsSQL, rank: SALESFORCE_CATALOG_RANK, requireFunctions: true },
+    ], options, validate);
     logger.info("Loaded Salesforce catalog script", {
         dataSpace,
-        tables: tables.size.toString(),
-        functions: functionCount.toString(),
+        tables: relations.tables.toString(),
+        functions: functions.functions.toString(),
         rank: SALESFORCE_CATALOG_RANK.toString(),
     }, "salesforce_catalog");
 

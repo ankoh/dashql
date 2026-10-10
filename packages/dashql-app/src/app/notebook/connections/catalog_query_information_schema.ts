@@ -8,6 +8,7 @@ import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from "./a
 import { QueryType } from "./query_execution_state.js";
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
 import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from './catalog_sql_generator.js';
+import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from './catalog_batch.js';
 
 export type InformationSchemaColumnsTable = arrow.Table<{
     table_catalog: arrow.Utf8;
@@ -92,7 +93,7 @@ function generateCatalogSQLFromInformationSchema(result: InformationSchemaColumn
     return sqlStatements.join('\n\n');
 }
 
-export async function queryInformationSchema(connectionId: string, connectionDispatch: DynamicAttachedDatabaseDispatch, updateId: number, catalogName: string, schemaNames: string[], executor: QueryExecutor): Promise<InformationSchemaColumnsTable | null> {
+export async function queryInformationSchema(connectionId: string, connectionDispatch: DynamicAttachedDatabaseDispatch, updateId: number, catalogName: string, schemaNames: string[], executor: QueryExecutor, abortSignal?: AbortSignal): Promise<InformationSchemaColumnsTable | null> {
     const query = `
         SELECT
             table_catalog,
@@ -109,6 +110,8 @@ export async function queryInformationSchema(connectionId: string, connectionDis
 
     const args: QueryExecutionArgs = {
         query: query,
+        abortSignal,
+        throwOnError: true,
         metadata: {
             queryType: QueryType.CATALOG_QUERY_INFORMATION_SCHEMA,
             title: "Information Schema",
@@ -137,11 +140,14 @@ export async function updateInformationSchemaCatalog(
     catalog: dashql.DashQLCatalog,
     dql: dashql.DashQL,
     catalogRelationScript: dashql.DashQLScript,
-    _catalogFunctionScript: dashql.DashQLScript
+    _catalogFunctionScript: dashql.DashQLScript,
+    options: CatalogBatchOptions = {},
 ): Promise<void> {
+    const validate = beginCatalogBatch(catalog, options);
     // Query the information schema. If the query errors it throws and propagates
     // to the caller so we never overwrite the existing catalog script with partial data.
-    const queryResult = await queryInformationSchema(connectionId, connectionDispatch, updateId, catalogName, schemaNames, executor);
+    const queryResult = await queryInformationSchema(connectionId, connectionDispatch, updateId, catalogName, schemaNames, executor, options.abortSignal);
+    validate();
     if (queryResult == null || queryResult.numRows === 0) {
         throw new Error('information_schema returned no catalog relations');
     }
@@ -160,15 +166,7 @@ export async function updateInformationSchemaCatalog(
         value: [updateId]
     });
 
-    // Update script content
-    catalogRelationScript.replaceText(`${header}${catalogSQL}`);
-    catalogRelationScript.analyze();
-
-    // Drop old script from catalog if loaded, then reload
-    try {
-        catalog.dropScript(catalogRelationScript);
-    } catch (e) {
-        // Script may not have been loaded yet - ignore error
-    }
-    catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    await publishCatalogBatch(dql, catalog, [{
+        script: catalogRelationScript, text: `${header}${catalogSQL}`, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+    }], options, validate);
 }

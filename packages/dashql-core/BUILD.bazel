@@ -7,7 +7,6 @@ load("//bazel:dashql_wasm.bzl", "CORE_WASM_EXPORTS", "SHELL_WASM_EXPORTS", "dash
 # ---------------------------------------------------------------------------
 
 LIB_SRCS = [
-    "src/async_analysis.cc",
     "src/analyzer/analysis_state.cc",
     "src/analyzer/analyze_visualization_pass.cc",
     "src/analyzer/analyzer.cc",
@@ -17,7 +16,9 @@ LIB_SRCS = [
     "src/analyzer/name_resolution_pass.cc",
     "src/analyzer/pass_manager.cc",
     "src/api.cc",
+    "src/batch.cc",
     "src/catalog.cc",
+    "src/catalog_descriptor.cc",
     "src/script_session.cc",
     "src/formatter/formatter.cc",
     "src/formatter/formatter_create.cc",
@@ -116,8 +117,6 @@ cc_library(
 
 WASM_COPTS = [
     "-std=c++20",
-    "-pthread",
-    "-matomics",
     "-DWASM=1",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
     "-Wno-deprecated-declarations",
@@ -125,20 +124,14 @@ WASM_COPTS = [
     "-mbulk-memory",
 ]
 WASM_LINKOPTS = dashql_wasm_linkopts(CORE_WASM_EXPORTS, 67108864, "web,node,worker", 2147483648) + [
-    "-pthread",
-    "-matomics",
     "-sSTACK_SIZE=1048576",
-    "-sPTHREAD_POOL_SIZE=2",
-    "-sPTHREAD_POOL_SIZE_STRICT=1",
-    "-sALLOW_BLOCKING_ON_MAIN_THREAD=0",
-    "-sPROXY_TO_PTHREAD=0",
 ]
 # Parser generated .cc compiled with -O1 only (bison output has huge local count at -O0).
 cc_library(
     name = "parser_generated_wasm",
     srcs = ["//grammar:gen/include/dashql/parser/parser_generated.cc"],
     copts = WASM_COPTS + ["-O1"],
-    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
+    features = ["wasm_exceptions", "wasm_simd"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = CORE_DEPS,
 )
@@ -147,7 +140,7 @@ cc_library(
     name = "scanner_generated_wasm",
     srcs = ["//grammar:scanner_generated"],
     copts = WASM_COPTS,
-    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
+    features = ["wasm_exceptions", "wasm_simd"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [":parser_generated_wasm"] + CORE_DEPS,
 )
@@ -156,7 +149,7 @@ cc_library(
     name = "dashql_core_wasm_library",
     srcs = LIB_SRCS,
     copts = WASM_COPTS,
-    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
+    features = ["wasm_exceptions", "wasm_simd"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
         ":parser_generated_wasm",
@@ -169,7 +162,7 @@ cc_binary(
     name = "dashql_core_wasm",
     srcs = LIB_SRCS,
     copts = WASM_COPTS,
-    features = ["use_pthreads", "wasm_exceptions", "wasm_simd"],
+    features = ["wasm_exceptions", "wasm_simd"],
     linkopts = WASM_LINKOPTS,
     tags = ["manual"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
@@ -330,6 +323,7 @@ cc_library(
 TEST_SRCS = [
     "test/analyzer_snapshot_test_suite.cc",
     "test/api_test.cc",
+    "test/batch_descriptor_test.cc",
     "test/chunk_buffer_test.cc",
     "test/completion_snapshot_test_suite.cc",
     "test/completion_test.cc",
@@ -383,6 +377,7 @@ cc_test(
         "test/analyzer_declaration_test.cc",
         "test/analyzer_insert_test.cc",
         "test/api_test.cc",
+        "test/batch_descriptor_test.cc",
         "test/chunk_buffer_test.cc",
         "test/cursor_test.cc",
         "test/script_session_test.cc",

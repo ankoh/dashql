@@ -137,8 +137,9 @@ export function reduceCatalogAction(state: AttachedDatabaseState, action: Catalo
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
                     restoredAt: state.catalogUpdates.restoredAt,
-                    currentFullRefresh: updateId,
-                    lastFullRefresh: updateId,
+                    currentFullRefresh: state.catalogUpdates.currentFullRefresh,
+                    lastFullRefresh: state.catalogUpdates.currentFullRefresh === updateId
+                        ? updateId : state.catalogUpdates.lastFullRefresh,
                 }
             };
         case CATALOG_UPDATE_FAILED:
@@ -157,8 +158,9 @@ export function reduceCatalogAction(state: AttachedDatabaseState, action: Catalo
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
                     restoredAt: state.catalogUpdates.restoredAt,
-                    currentFullRefresh: updateId,
-                    lastFullRefresh: updateId,
+                    currentFullRefresh: state.catalogUpdates.currentFullRefresh,
+                    lastFullRefresh: state.catalogUpdates.currentFullRefresh === updateId
+                        ? updateId : state.catalogUpdates.lastFullRefresh,
                 }
             };
         case CATALOG_UPDATE_SUCCEEDED:
@@ -180,8 +182,9 @@ export function reduceCatalogAction(state: AttachedDatabaseState, action: Catalo
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
                     restoredAt: state.catalogUpdates.restoredAt,
-                    currentFullRefresh: updateId,
-                    lastFullRefresh: updateId,
+                    currentFullRefresh: state.catalogUpdates.currentFullRefresh,
+                    lastFullRefresh: state.catalogUpdates.currentFullRefresh === updateId
+                        ? updateId : state.catalogUpdates.lastFullRefresh,
                 }
             };
         default:

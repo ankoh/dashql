@@ -5,9 +5,6 @@
 #include "gtest/gtest.h"
 
 #include <algorithm>
-#include <barrier>
-#include <exception>
-#include <thread>
 #include <unordered_set>
 #include <vector>
 
@@ -217,7 +214,7 @@ TEST(UnificationTest, ParallelDatabaseRegistration) {
     EXPECT_TRUE(catalog.Contains(schema1.GetCatalogEntryId()));
 }
 
-TEST(UnificationTest, ParallelSchemaRegistration) {
+TEST(UnificationTest, IndependentSchemaRegistration) {
     Catalog catalog;
 
     Script schema0{catalog};
@@ -247,7 +244,7 @@ TEST(UnificationTest, ParallelSchemaRegistration) {
     EXPECT_TRUE(catalog.Contains(schema1.GetCatalogEntryId()));
 }
 
-TEST(UnificationTest, ConcurrentDeclarationAnalysisUsesCanonicalIds) {
+TEST(UnificationTest, IndependentDeclarationAnalysisUsesCanonicalIds) {
     Catalog catalog;
     Script schema0{catalog};
     Script schema1{catalog};
@@ -256,32 +253,8 @@ TEST(UnificationTest, ConcurrentDeclarationAnalysisUsesCanonicalIds) {
     ASSERT_NO_THROW(schema0.Parse());
     ASSERT_NO_THROW(schema1.Parse());
 
-    std::barrier start{3};
-    std::exception_ptr errors[2];
-    std::thread threads[] = {
-        std::thread{[&] {
-            start.arrive_and_wait();
-            try {
-                schema0.Analyze(false);
-            } catch (...) {
-                errors[0] = std::current_exception();
-            }
-        }},
-        std::thread{[&] {
-            start.arrive_and_wait();
-            try {
-                schema1.Analyze(false);
-            } catch (...) {
-                errors[1] = std::current_exception();
-            }
-        }},
-    };
-    start.arrive_and_wait();
-    for (auto& thread : threads) {
-        thread.join();
-    }
-    ASSERT_EQ(errors[0], nullptr);
-    ASSERT_EQ(errors[1], nullptr);
+    ASSERT_NO_THROW(schema0.Analyze(false));
+    ASSERT_NO_THROW(schema1.Analyze(false));
 
     auto& analyzed0 = schema0.GetAnalyzedScript();
     auto& analyzed1 = schema1.GetAnalyzedScript();
@@ -312,35 +285,18 @@ TEST(UnificationTest, ConcurrentDeclarationAnalysisUsesCanonicalIds) {
     EXPECT_NE(flat->tables()->Get(0)->catalog_object_id(), flat->tables()->Get(1)->catalog_object_id());
 }
 
-TEST(UnificationTest, ConcurrentScriptConstructionAllocatesUniqueEntryIds) {
+TEST(UnificationTest, ScriptConstructionAllocatesUniqueEntryIdsWithoutReuse) {
     Catalog catalog;
-    constexpr size_t thread_count = 8;
-    constexpr size_t scripts_per_thread = 128;
-    std::vector<std::vector<CatalogEntryID>> ids(thread_count);
-    std::vector<std::thread> threads;
-    threads.reserve(thread_count);
-
-    for (size_t thread_id = 0; thread_id < thread_count; ++thread_id) {
-        threads.emplace_back([&catalog, &ids, thread_id] {
-            ids[thread_id].reserve(scripts_per_thread);
-            for (size_t i = 0; i < scripts_per_thread; ++i) {
-                Script script{catalog};
-                ids[thread_id].push_back(script.GetCatalogEntryId());
-            }
-        });
-    }
-    for (auto& thread : threads) {
-        thread.join();
-    }
-
+    constexpr size_t script_count = 1024;
     std::unordered_set<CatalogEntryID> unique_ids;
-    for (auto& thread_ids : ids) {
-        unique_ids.insert(thread_ids.begin(), thread_ids.end());
+    for (size_t i = 0; i < script_count; ++i) {
+        Script script{catalog};
+        unique_ids.insert(script.GetCatalogEntryId());
     }
-    EXPECT_EQ(unique_ids.size(), thread_count * scripts_per_thread);
+    EXPECT_EQ(unique_ids.size(), script_count);
     EXPECT_EQ(*std::min_element(unique_ids.begin(), unique_ids.end()), INITIAL_ENTRY_ID);
     EXPECT_EQ(*std::max_element(unique_ids.begin(), unique_ids.end()),
-              INITIAL_ENTRY_ID + thread_count * scripts_per_thread - 1);
+              INITIAL_ENTRY_ID + script_count - 1);
 }
 
 }  // namespace

@@ -1,4 +1,12 @@
+include "dashql/analyzed_script.fbs";
+
 namespace dashql.buffers.catalog;
+
+/// Portable declarations. Producer catalog and AST IDs are not authoritative.
+table CatalogDescriptor {
+    tables: [dashql.buffers.analyzer.Table];
+    function_declarations: [dashql.buffers.analyzer.FunctionDeclaration];
+}
 
 // ----------------------------------------------------------------------------
 

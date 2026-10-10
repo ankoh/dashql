@@ -194,17 +194,12 @@ completion-snapshots:
     editor:
       input: select * from schema0."AmbiguousAttribute1", schema1."AmbiguousAttribute2" where attr
       catalog-id: 2
-      errors:
-        - type: DUPLICATE_TABLE_ALIAS
-          message: duplicate table alias "AmbiguousCrossSchema"
-          text: "schema1.\"A..ttribute2\""
+      errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
+        - type: name/unresolved
           statement-id: 0
           text: "schema0.\"A..ttribute1\""
-        - type: name/catalog
-          catalog-id: "256.65537.4294967297"
+        - type: name/unresolved
           statement-id: 0
           text: "schema1.\"A..ttribute2\""
       expressions:
@@ -212,6 +207,14 @@ completion-snapshots:
           type: colref/unresolved
           statement-id: 0
           text: "attr"
+      inferred-tables:
+        - name: schema0.AmbiguousAttribute1
+          confidence: candidate
+          columns:
+            - name: attr
+              confidence: candidate
+              candidates:
+                - schema1.AmbiguousAttribute2
     cursor:
       search:
         text: ' attr'
@@ -222,33 +225,33 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 67
-          value: attr1
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "attr"
-          location-qualified: "attr"
-          objects:
-            - score: 47
-              type: column
-              id: "256.65536.4294967296.0"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: db0.schema0."AmbiguousCrossSchema".attr1
-              qualified-idx: 3
-              prefer-qualified: 1
-            - score: 47
-              type: column
-              id: "256.65537.4294967297.0"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: db0.schema1."AmbiguousCrossSchema".attr1
-              qualified-idx: 3
-              prefer-qualified: 1
         - score: 59
           value: attr
           candidate-tags: [IDENTITY]
           location: "attr"
           location-qualified: "attr"
           objects: []
+        - score: 57
+          value: attr1
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
+          objects:
+            - score: 37
+              type: column
+              id: "256.65536.4294967296.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: db0.schema0."AmbiguousCrossSchema".attr1
+              qualified-idx: 3
+              prefer-qualified: 0
+            - score: 37
+              type: column
+              id: "256.65537.4294967297.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: db0.schema1."AmbiguousCrossSchema".attr1
+              qualified-idx: 3
+              prefer-qualified: 0
         - score: 55
           value: attribute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]

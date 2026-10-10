@@ -17,7 +17,7 @@ export function generateCreateFunctionSQL(databaseName: string | null | undefine
         qualifiedName = `${quoteIdentifier(db)}.${quoteIdentifier(fn.functionName)}`;
     }
     const keyword = fn.isAggregate ? 'AGGREGATE' : 'FUNCTION';
-    return `CREATE ${keyword} ${qualifiedName}(${fn.arguments}) RETURNS ${fn.returnType ?? "any"}`;
+    return `CREATE ${keyword} ${qualifiedName}(${fn.arguments ?? ''}) RETURNS ${fn.returnType ?? "any"}`;
 }
 
 export function generateFunctionsSQL(databaseName: string | null | undefined, functions: FunctionMetadata[]): string {

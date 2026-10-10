@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import symbols from '@ankoh/dashql-svg-symbols';
-import coreJsUrl from '@ankoh/dashql-core-js?url';
 import coreWasmUrl from '@ankoh/dashql-core-wasm?url';
 
 import { DashQL } from '../core/api.js';
@@ -37,7 +36,6 @@ declare global {
 
 const coreBytes = fetch(coreWasmUrl).then(response => response.bytes());
 globalThis.DASHQL_PRECOMPILED = coreBytes;
-globalThis.DASHQL_CORE_WORKER_URL = coreJsUrl;
 globalThis.__DASHQL_TEST_CORE_WASM_MODULE__ ??= coreBytes.then(bytes => WebAssembly.compile(bytes.slice().buffer));
 globalThis.__DASHQL_TEST_SHARE_CORE_INSTANCE__ = true;
 

@@ -81,16 +81,6 @@ extern "C" void dashql_script_scan(dashql::Script* script);
 extern "C" void dashql_script_parse(dashql::Script* script);
 /// Analyze a script (throws exception on error)
 extern "C" void dashql_script_analyze(dashql::Script* script, bool parse_if_outdated);
-/// Submit analysis to the fixed native worker pool. Throws if this script already has a job.
-extern "C" uint32_t dashql_script_analyze_async(dashql::Script* script, bool parse_if_outdated);
-/// Return the worker error code (DashQL status code when available), or zero.
-extern "C" uint32_t dashql_script_analysis_job_get_error_code(uint32_t job_id);
-/// Return an owned worker error message under normal FFIResult conventions.
-extern "C" void dashql_script_analysis_job_get_error_message(FFIResult* result, uint32_t job_id);
-/// Request cancellation. Running analysis is allowed to finish and its result is discarded logically.
-extern "C" bool dashql_script_analysis_job_cancel(uint32_t job_id);
-/// Consume a terminal job, or detach a queued/running job for automatic cleanup.
-extern "C" void dashql_script_analysis_job_release(uint32_t job_id);
 /// Get a pretty-printed version of the SQL query
 extern "C" void dashql_script_format(FFIResult* result, dashql::Script* script, size_t dialect, size_t mode,
                                         size_t max_width, size_t indentation_width, bool debug_mode, size_t keyword_case,
@@ -182,6 +172,14 @@ extern "C" void dashql_script_session_drop_from_catalog(dashql::ScriptSession* s
 
 /// Create a catalog
 extern "C" void dashql_catalog_new(FFIResult* result);
+/// Process independent inputs synchronously. Borrows input and returns owned FlatBuffer bytes.
+extern "C" void dashql_process_batch(FFIResult* result, const uint8_t* request_ptr, size_t request_length);
+/// Allocate an authoritative receiver entry ID for descriptor replacement.
+extern "C" uint32_t dashql_catalog_allocate_entry_id(dashql::Catalog* catalog);
+/// Atomically replace one pool from a borrowed CatalogDescriptor FlatBuffer.
+extern "C" void dashql_catalog_replace_descriptor(dashql::Catalog* catalog, uint32_t id, uint32_t rank,
+                                                  const uint8_t* descriptor_ptr, uint32_t descriptor_length);
+extern "C" void dashql_catalog_drop_descriptor(dashql::Catalog* catalog, uint32_t entry_id);
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog);
 /// Check if a catalog contains an entry id

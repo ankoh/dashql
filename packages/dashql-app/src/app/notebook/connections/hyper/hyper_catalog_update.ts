@@ -11,7 +11,8 @@ import { QueryExecutor } from '../query_executor.js';
 import { QueryType } from '../query_execution_state.js';
 import type { LoggerLike } from '../../../../platform/logger/logger.js';
 import type { AttachedDatabase } from './hyperdb_grpc_client.js';
-import { loadPrefetchedHyperFunctions, qualifyPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
+import { qualifyPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
+import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '../catalog_batch.js';
 import { generateFunctionScriptHeaderForSource } from '../catalog_function_sql_generator.js';
 import { generateCatalogSQLFromPgProc, queryPgProc } from '../catalog_query_pg_proc.js';
 
@@ -190,34 +191,6 @@ function renderCatalogSections(sections: Map<string, string>, targetOrder: strin
     return `${header}${rendered.join('\n\n')}\n`;
 }
 
-function replaceCatalogScript(
-    dql: dashql.DashQL,
-    catalog: dashql.DashQLCatalog,
-    catalogRelationScript: dashql.DashQLScript,
-    nextText: string,
-): number {
-    const validationScript = dql.createScript(catalog);
-    try {
-        validationScript.replaceText(nextText);
-        validationScript.analyze();
-    } finally {
-        validationScript.destroy();
-    }
-
-    const previousText = catalogRelationScript.toString();
-    try {
-        catalogRelationScript.replaceText(nextText);
-        catalogRelationScript.analyze();
-        catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
-    } catch (error) {
-        catalogRelationScript.replaceText(previousText);
-        catalogRelationScript.analyze();
-        catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
-        throw error;
-    }
-    return catalogRelationScript.getAnalyzed().read().tablesLength();
-}
-
 export async function updateHyperCatalog(
     logger: LoggerLike,
     connectionId: string,
@@ -231,7 +204,10 @@ export async function updateHyperCatalog(
     catalogFunctionScript: dashql.DashQLScript,
     resolveLiveFunctionCatalog: boolean,
     abortSignal: AbortSignal,
+    options: CatalogBatchOptions = {},
 ): Promise<HyperCatalogUpdateResult> {
+    options = { ...options, abortSignal };
+    const validate = beginCatalogBatch(catalog, options);
     const targets = buildCatalogTargets(attachedDatabases);
     const aliasCounts = new Map<string, number>();
     for (const target of targets) aliasCounts.set(target.key, (aliasCounts.get(target.key) ?? 0) + 1);
@@ -280,7 +256,7 @@ export async function updateHyperCatalog(
         }
     }));
 
-    abortSignal.throwIfAborted();
+    validate();
     const successful = results.filter(result => result.sql != null);
     const failures = results
         .filter(result => result.error != null)
@@ -298,18 +274,17 @@ export async function updateHyperCatalog(
             executor,
             abortSignal,
         );
-        if (functionResult == null || functionResult.numRows === 0) {
-            throw new Error('pg_proc returned no Hyper functions');
+        validate();
+        if (functionResult == null) {
+            throw new Error('pg_proc returned no Hyper function metadata result');
         }
-        const functions = generateCatalogSQLFromPgProc(functionResult, DEFAULT_DATABASE_NAME);
-        if (!functions.trim()) {
-            throw new Error('pg_proc returned no usable Hyper functions');
-        }
+        const functions = generateCatalogSQLFromPgProc(functionResult, DEFAULT_DATABASE_NAME, logger);
         functionSQL = `${generateFunctionScriptHeaderForSource('HyperDB WASM pg_proc')}${functions}`;
     } else {
         functionSQL = qualifyPrefetchedHyperFunctions(DEFAULT_DATABASE_NAME);
     }
 
+    validate();
     const sections = parseCatalogSections(catalogRelationScript.toString());
     const desiredKeys = targets.map(target => target.key);
     for (const key of [...sections.keys()]) {
@@ -326,19 +301,16 @@ export async function updateHyperCatalog(
         type: CATALOG_UPDATE_SCHEMA_SCRIPT,
         value: [updateId],
     });
-    const tableCount = replaceCatalogScript(dql, catalog, catalogRelationScript, nextText);
-    const functionCount = loadPrefetchedHyperFunctions(
-        dql,
-        catalog,
-        catalogFunctionScript,
-        functionSQL,
-    );
+    const [relations, functions] = await publishCatalogBatch(dql, catalog, [
+        { script: catalogRelationScript, text: nextText, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK },
+        { script: catalogFunctionScript, text: functionSQL, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, requireFunctions: !resolveLiveFunctionCatalog },
+    ], options, validate);
     logger.info('Updated Hyper catalog relations', {
         updateId: updateId.toString(),
         databasesUpdated: successful.length.toString(),
         databasesFailed: failures.length.toString(),
-        tables: tableCount.toString(),
-        functions: functionCount.toString(),
+        tables: relations.tables.toString(),
+        functions: functions.functions.toString(),
     }, LOG_CTX);
     return {
         updatedDatabases: successful.map(result => result.target.key),

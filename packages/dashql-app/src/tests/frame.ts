@@ -1,4 +1,3 @@
-import coreJsUrl from '@ankoh/dashql-core-js?url';
 import coreWasmUrl from '@ankoh/dashql-core-wasm?url';
 import shellWasmUrl from '@ankoh/dashql-shell-wasm?url';
 
@@ -53,7 +52,6 @@ function testFile(test: BrowserMochaTest): string {
 async function setupBrowserTestEnvironment(): Promise<void> {
     const globals = globalThis as typeof globalThis & {
         DASHQL_PRECOMPILED?: Promise<Uint8Array>;
-        DASHQL_CORE_WORKER_URL?: string;
         DASHQL_SHELL_PRECOMPILED?: Promise<Uint8Array>;
         __DASHQL_TEST_CORE_WASM_MODULE__?: Promise<WebAssembly.Module>;
         __DASHQL_TEST_HYPERDB_CLIENT__?: typeof globalThis.__DASHQL_TEST_HYPERDB_CLIENT__;
@@ -67,7 +65,6 @@ async function setupBrowserTestEnvironment(): Promise<void> {
     globals.__DASHQL_TEST_CORE_FACTORY__ = parent.__DASHQL_TEST_CORE_FACTORY__;
     globals.__DASHQL_TEST_HYPERDB_CLIENT__ = parent.__DASHQL_TEST_HYPERDB_CLIENT__;
     globals.__DASHQL_TEST_SHARE_CORE_INSTANCE__ = true;
-    globals.DASHQL_CORE_WORKER_URL = coreJsUrl;
     globals.DASHQL_SHELL_PRECOMPILED = fetch(shellWasmUrl).then(response => response.bytes());
     globals.__DASHQL_TEST_SHARE_SHELL_MODULE__ = true;
     if (typeof ResizeObserver === 'undefined') {

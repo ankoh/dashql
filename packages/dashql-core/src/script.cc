@@ -1344,43 +1344,12 @@ void AnalyzedScript::FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_
     }
 }
 
-thread_local const Script* Script::async_analysis_script = nullptr;
-
 Script::Script(Catalog& catalog) : catalog(catalog), catalog_entry_id(catalog.AllocateEntryId()), text(1024) {}
 
-Script::~Script() { catalog.DropScriptUnlocked(*this); }
-
-void Script::CheckNotBusy() const {
-    if (async_analysis_script != this && async_job_id.load(std::memory_order_acquire) != 0) {
-        throw Exception(buffers::status::StatusCode::SCRIPT_BUSY);
-    }
-}
-
-Script::AsyncJobGuard Script::BeginAsyncJob(uint32_t job_id) {
-    uint32_t expected = 0;
-    if (!async_job_id.compare_exchange_strong(expected, job_id, std::memory_order_acq_rel)) {
-        throw Exception(buffers::status::StatusCode::SCRIPT_BUSY);
-    }
-    return AsyncJobGuard{*this, job_id};
-}
-
-void Script::EndAsyncJob(uint32_t job_id) {
-    uint32_t expected = job_id;
-    [[maybe_unused]] bool cleared =
-        async_job_id.compare_exchange_strong(expected, 0, std::memory_order_acq_rel);
-    assert(cleared);
-}
-
-Script::AsyncJobGuard::AsyncJobGuard(AsyncJobGuard&& other) noexcept
-    : script_(std::exchange(other.script_, nullptr)), job_id_(other.job_id_) {}
-
-Script::AsyncJobGuard::~AsyncJobGuard() {
-    if (script_ != nullptr) script_->EndAsyncJob(job_id_);
-}
+Script::~Script() { catalog.DropScript(*this); }
 
 /// Insert a character at an offet
 void Script::InsertCharAt(size_t char_idx, uint32_t unicode) {
-    CheckNotBusy();
     std::array<std::byte, 6> buffer;
     auto length = dashql::utf8::utf8proc_encode_char(unicode, reinterpret_cast<uint8_t*>(buffer.data()));
     std::string_view encoded{reinterpret_cast<char*>(buffer.data()), static_cast<size_t>(length)};
@@ -1389,28 +1358,24 @@ void Script::InsertCharAt(size_t char_idx, uint32_t unicode) {
 }
 /// Insert a text at an offet
 void Script::InsertTextAt(size_t char_idx, std::string_view encoded) {
-    CheckNotBusy();
     text.Insert(char_idx, encoded);
     ++text_version;
 }
 /// Erase a text at an offet
 void Script::EraseTextRange(size_t char_idx, size_t count) {
-    CheckNotBusy();
     text.Remove(char_idx, count);
     ++text_version;
 }
 /// Replace the text in the script
 void Script::ReplaceText(std::string_view encoded) {
-    CheckNotBusy();
     text = rope::Rope{1024, encoded};
     ++text_version;
 }
 
 /// Print the entire script as a string
-std::string Script::ToString() { CheckNotBusy(); return text.ToString(); }
+std::string Script::ToString() { return text.ToString(); }
 /// Print a script byte span as a string
 std::string Script::ToString(TextSpan span) {
-    CheckNotBusy();
     auto output = text.ToString();
     if (span.offset() >= output.size()) {
         return {};
@@ -1420,7 +1385,6 @@ std::string Script::ToString(TextSpan span) {
 
 /// Print the first parsed statement without its separator or surrounding trivia.
 std::string Script::GetStatementText(bool parse_if_outdated) {
-    CheckNotBusy();
     if (parse_if_outdated &&
         (parsed_script == nullptr || parsed_script->scanned_script->text_version != text_version)) {
         Parse();
@@ -1437,7 +1401,6 @@ std::string Script::GetStatementText(bool parse_if_outdated) {
 
 std::string Script::RewriteDashboard(std::optional<int32_t> row, std::optional<int32_t> column, int32_t width,
                                      int32_t height, bool parse_if_outdated) {
-    CheckNotBusy();
     if (parse_if_outdated &&
         (parsed_script == nullptr || parsed_script->scanned_script->text_version != text_version)) {
         Parse();
@@ -1497,7 +1460,6 @@ std::string Script::RewriteDashboard(std::optional<int32_t> row, std::optional<i
 }
 
 std::string Script::ComputeSignature(bool parse_if_outdated) {
-    CheckNotBusy();
     if (parse_if_outdated &&
         (parsed_script == nullptr || parsed_script->scanned_script->text_version != text_version)) {
         Parse();
@@ -1553,13 +1515,11 @@ std::string Script::ComputeSignature(bool parse_if_outdated) {
 
 ScriptCompilationResult Script::CompileQuery(const buffers::formatting::FormattingConfigT& config,
                                              ScriptCompilationOptions options) {
-    CheckNotBusy();
     return ScriptCompiler::Compile(*this, config, options);
 }
 
 /// Update memory statisics
 std::unique_ptr<buffers::statistics::ScriptMemoryStatistics> Script::GetMemoryStatistics() {
-    CheckNotBusy();
     auto memory = std::make_unique<buffers::statistics::ScriptMemoryStatistics>();
     memory->mutate_rope_bytes(text.GetStats().text_bytes);
 
@@ -1618,7 +1578,6 @@ std::unique_ptr<buffers::statistics::ScriptMemoryStatistics> Script::GetMemorySt
 
 /// Get statisics
 std::unique_ptr<buffers::statistics::ScriptStatisticsT> Script::GetStatistics() {
-    CheckNotBusy();
     auto stats = std::make_unique<buffers::statistics::ScriptStatisticsT>();
     stats->memory = GetMemoryStatistics();
     stats->timings = std::make_unique<buffers::statistics::ScriptProcessingTimings>(timing_statistics);
@@ -1626,7 +1585,6 @@ std::unique_ptr<buffers::statistics::ScriptStatisticsT> Script::GetStatistics() 
 }
 
 void Script::Scan() {
-    CheckNotBusy();
     auto time_before = std::chrono::steady_clock::now();
     scanned_script = parser::Scanner::Scan(text, text_version, catalog_entry_id);  // throws on error
     timing_statistics.mutate_scanner_last_elapsed(
@@ -1634,7 +1592,6 @@ void Script::Scan() {
 }
 
 void Script::Parse() {
-    CheckNotBusy();
     if (scanned_script == nullptr || scanned_script->text_version != text_version) {
         Scan();
     }
@@ -1646,22 +1603,10 @@ void Script::Parse() {
 
 /// Analyze a script
 void Script::Analyze(bool parse_if_outdated) {
-    CheckNotBusy();
     catalog.AnalyzeScript(*this, parse_if_outdated);
 }
 
-void Script::AnalyzeAsync(bool parse_if_outdated) {
-    async_analysis_script = this;
-    try {
-        Analyze(parse_if_outdated);
-    } catch (...) {
-        async_analysis_script = nullptr;
-        throw;
-    }
-    async_analysis_script = nullptr;
-}
-
-void Script::AnalyzeUnlocked(bool parse_if_outdated) {
+void Script::AnalyzeInternal(bool parse_if_outdated) {
     if (parse_if_outdated) {
         // Scan the script, if needed
         if (scanned_script == nullptr || scanned_script->text_version != text_version) {
@@ -1673,16 +1618,26 @@ void Script::AnalyzeUnlocked(bool parse_if_outdated) {
         }
     }
 
-    // Check if the script was already analyzed.
-    // In that case, we have to clean up anything that we "registered" in the scanned script before.
-    if (analyzed_script) {
-        for (auto& chunk : scanned_script->name_registry.GetChunks()) {
-            for (auto& entry : chunk) {
-                entry.coarse_analyzer_tags = 0;
-                entry.resolved_objects.Clear();
-            }
+    if (!parsed_script) throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    // Never reuse names/intrusive links from an older analysis, even if it was destroyed.
+    // Analyze(false) must clone its parsed text snapshot, not silently parse edits.
+    auto& parsed_scan = parsed_script->scanned_script;
+    bool names_have_been_analyzed = false;
+    for (auto& chunk : parsed_scan->name_registry.GetChunks()) {
+        for (auto& name : chunk) {
+            // Inspect only list metadata: the linked objects may already have been destroyed.
+            names_have_been_analyzed |= name.coarse_analyzer_tags != 0 || !name.resolved_objects.IsEmpty();
         }
     }
+    auto local_scan_owners = scanned_script == parsed_scan ? 2 : 1;
+    if (names_have_been_analyzed ||
+        parsed_script.use_count() > 1 || parsed_scan.use_count() > local_scan_owners) {
+        auto& previous_scan = *parsed_script->scanned_script;
+        rope::Rope snapshot{1024, previous_scan.GetInput()};
+        scanned_script = parser::Scanner::Scan(snapshot, previous_scan.text_version, catalog_entry_id);
+        parsed_script = parser::Parser::Parse(scanned_script);
+    }
+    cursor.reset();
     // Analyze a script
     auto time_before_analyzing = std::chrono::steady_clock::now();
     analyzed_script = Analyzer::Analyze(parsed_script, catalog);  // throws on error
@@ -1693,13 +1648,11 @@ void Script::AnalyzeUnlocked(bool parse_if_outdated) {
 
 /// Move the cursor to a offset
 const ScriptCursor* Script::MoveCursor(size_t text_offset) {
-    CheckNotBusy();
     cursor = ScriptCursor::Place(*this, text_offset);  // throws on error
     return cursor.get();
 }
 /// Complete at the cursor
 std::unique_ptr<Completion> Script::CompleteAtCursor(size_t limit) const {
-    CheckNotBusy();
     // Fail if the user forgot to move the cursor
     if (cursor == nullptr) {
         throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_CURSOR);
@@ -1713,7 +1666,6 @@ std::unique_ptr<Completion> Script::CompleteAtCursor(size_t limit) const {
 }
 /// Format a script
 std::string Script::Format(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated) {
-    CheckNotBusy();
     if (parse_if_outdated) {
         if (scanned_script == nullptr || scanned_script->text_version != text_version) {
             Scan();
@@ -1731,7 +1683,6 @@ std::string Script::Format(const buffers::formatting::FormattingConfigT& config,
 
 std::vector<uint32_t> Script::GetUnformattableNodes(const buffers::formatting::FormattingConfigT& config,
                                                     bool parse_if_outdated) {
-    CheckNotBusy();
     if (parse_if_outdated) {
         if (scanned_script == nullptr || scanned_script->text_version != text_version) Scan();
         if (parsed_script == nullptr || parsed_script->scanned_script.get() != scanned_script.get()) Parse();

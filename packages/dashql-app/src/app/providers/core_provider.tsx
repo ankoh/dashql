@@ -4,15 +4,12 @@ import * as React from 'react';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { TracedLogger, stringifyError } from '../../platform/logger/logger.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
+import { disposeCatalogBatchWorker, initializeCatalogBatchWorker } from '../notebook/connections/catalog_batch.js';
 
 // Asset import: dedicated alias so WASM resolves independently from API (Bazel: DASHQL_CORE_WASM_PATH; local: core dist).
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
 import coreWasmUrl from '@ankoh/dashql-core-wasm?url';
-// Emscripten pthread workers reload the generated Core module itself.
-// eslint-disable-next-line import/no-unresolved -- resolved by bundler
-import coreWorkerUrl from '@ankoh/dashql-core-js?url';
 const DASHQL_WASM_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
-const DASHQL_WORKER_URL = typeof coreWorkerUrl === 'string' ? coreWorkerUrl : new URL(coreWorkerUrl as string, import.meta.url).href;
 
 export function logCoreStderr(traced: TracedLogger, text: string): void {
     // Emscripten prints an "Aborted(...)" line immediately before it throws the same failure. The
@@ -35,16 +32,25 @@ export interface InstantiationProgress {
 const INSTANTIATOR_CONTEXT = React.createContext<((context: string) => Promise<dashql.DashQL>) | null>(null);
 const PROGRESS_CONTEXT = React.createContext<InstantiationProgress | null>(null);
 
+export interface DashQLCoreSetupOptions {
+    setupBatchWorker: boolean;
+}
+
 interface Props {
     children: React.ReactElement;
+    initialSetup?: DashQLCoreSetupOptions;
 }
 
 export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const instantiation = React.useRef<Promise<dashql.DashQL> | null>(null);
+    const initialSetup = React.useRef(props.initialSetup);
+    const lifecycle = React.useRef<{ disposed: boolean; core: dashql.DashQL | null }>({ disposed: false, core: null });
     const [progress, setProgress] = React.useState<InstantiationProgress | null>(null);
 
     const instantiator = React.useCallback(async (context: string): Promise<dashql.DashQL> => {
+        const owner = lifecycle.current;
+        if (owner.disposed) throw new DOMException('Core provider was disposed', 'AbortError');
         /// Already instantiated?
         if (instantiation.current != null) {
             return await instantiation.current;
@@ -97,11 +103,6 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
             const traced = logger.withTrace(createTrace());
             const initStart = performance.now();
             try {
-                const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
-                const isCrossOriginIsolated = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
-                if (!hasSharedArrayBuffer || !isCrossOriginIsolated) {
-                    throw new Error('DashQL Core requires SharedArrayBuffer and a cross-origin-isolated page');
-                }
                 traced.info("Loading core Wasm", { "context": context }, "core");
                 const response = await fetchWithProgress(DASHQL_WASM_URL, traced);
                 const wasmBinary = new Uint8Array(await response.arrayBuffer());
@@ -109,9 +110,23 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                     // Optional: Console output handlers
                     print: (text: string) => traced.info(text, {}, "core"),
                     printErr: (text: string) => logCoreStderr(traced, text),
-                    mainScriptUrlOrBlob: DASHQL_WORKER_URL,
                     wasmBinary,
                 });
+                owner.core = instance;
+                if (owner.disposed) {
+                    disposeCatalogBatchWorker(instance);
+                    throw new DOMException('Core provider was disposed', 'AbortError');
+                }
+                if (initialSetup.current?.setupBatchWorker) {
+                    try {
+                        await initializeCatalogBatchWorker(instance);
+                    } catch (error) {
+                        if (owner.disposed) throw new DOMException('Core provider was disposed', 'AbortError');
+                        disposeCatalogBatchWorker(instance);
+                        throw error;
+                    }
+                }
+                if (owner.disposed) throw new DOMException('Core provider was disposed', 'AbortError');
 
                 const initEnd = performance.now();
                 traced.info("Instantiated core", {
@@ -142,13 +157,12 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
     }, [logger, setProgress]);
 
     React.useEffect(() => {
+        if (lifecycle.current.disposed) lifecycle.current = { disposed: false, core: null };
+        const owner = lifecycle.current;
         return () => {
-            const pending = instantiation.current;
+            owner.disposed = true;
+            if (owner.core) disposeCatalogBatchWorker(owner.core);
             instantiation.current = null;
-            // Swallow any instantiation rejection - nothing to clean up in that case.
-            // Dropping the ref lets the WASM module become GC-eligible so a remount
-            // (e.g. from Vite HMR) does not stack multiple live core instances.
-            pending?.catch(() => { /* noop */ });
         };
     }, []);
 

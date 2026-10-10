@@ -1,4 +1,10 @@
 import * as dashql from '../../../core/index.js';
+import * as arrow from 'apache-arrow';
+import * as flatbuffers from 'flatbuffers';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { generateCatalogSQLFromPgProc, queryPgProc } from './catalog_query_pg_proc.js';
+import type { QueryExecutor } from './query_executor.js';
+
 import {
     quoteIdentifier,
     mapDataType,
@@ -10,6 +16,8 @@ import {
     type ColumnMetadata,
     type SchemaMetadata
 } from './catalog_sql_generator.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 describe('SQL Generator Utilities', () => {
     describe('quoteIdentifier', () => {
@@ -274,5 +282,110 @@ describe('SQL Generator Utilities', () => {
 
             expect(sql).toContain('CREATE TABLE "hyper"."public"."users"');
         });
+    });
+});
+
+describe('PostgreSQL function SQL descriptors', () => {
+    let dql: dashql.DashQL;
+    beforeAll(async () => {
+        dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    });
+    afterEach(() => dql.resetUnsafe());
+
+    it('queries structured types/names/modes and scalar result types instead of display signatures or defaults', async () => {
+        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(arrow.tableFromArrays({}))]);
+        await queryPgProc('connection', vi.fn(), 1, executor);
+        const sql = executor.mock.calls[0][1].query;
+        expect(sql).toContain('p.proallargtypes IS NOT NULL');
+        expect(sql).toContain('unnest(p.proallargtypes) WITH ORDINALITY');
+        expect(sql).toContain('unnest(p.proargtypes) WITH ORDINALITY');
+        expect(sql).toContain('p.proargnames AS argument_names');
+        expect(sql).toContain('p.proargmodes AS argument_modes');
+        expect(sql).not.toContain('array_to_json');
+        expect(sql).toContain("COALESCE(pg_catalog.format_type(p.prorettype, NULL), 'any')");
+        expect(sql).toContain('p.proretset AS returns_set');
+        expect(sql).not.toContain('pg_get_function_arguments');
+        expect(sql).not.toContain('pg_get_function_result');
+    });
+
+    it('processes multi-argument, named/defaulted, mode, array, decimal and overload signatures on the real core', () => {
+        const result = arrow.tableFromArrays({
+            function_schema: Array(6).fill('public'),
+            function_name: ['multi', 'named_defaults', 'modes', 'arrays_decimal', 'overloaded', 'overloaded'],
+            return_type: ['integer', 'numeric(12, 3)', 'bigint', 'integer[]', 'integer', 'text'],
+            returns_set: Array(6).fill(false),
+            function_kind: Array(6).fill('f'),
+            // These display strings deliberately contain defaults, quotes and commas. They are
+            // not parsed; structured catalog columns preserve the original parameter types.
+            function_arguments: [
+                'integer, integer',
+                'input integer DEFAULT 1, "name, with quotes" text DEFAULT concat(\'a,b\', \'c\'), amount numeric(12, 3) DEFAULT 1.2',
+                'IN first integer, OUT output bigint, INOUT in_out text, VARIADIC variadic_input integer[]',
+                'integer[], numeric(18, 4), character varying(40), timestamp with time zone',
+                'integer', 'text',
+            ],
+        }).assign(new arrow.Table({
+            argument_types: arrow.vectorFromArray([
+                ['integer', 'integer'],
+                ['integer', 'text', 'numeric(12, 3)'],
+                ['integer', 'bigint', 'text', 'integer[]'],
+                ['integer[]', 'numeric(18, 4)', 'character varying(40)', 'timestamp with time zone'],
+                ['integer'], ['text'],
+            ], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            argument_names: arrow.vectorFromArray([null, ['input', 'name, with quotes"', 'amount'], ['first', 'output', 'in_out', 'variadic_input'], [], [], []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            argument_modes: arrow.vectorFromArray([null, [], ['i', 'o', 'b', 'v'], [], [], []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+        }));
+        const sql = generateCatalogSQLFromPgProc(result as any, 'db');
+        expect(sql).toContain('"multi"("arg1" integer, "arg2" integer)');
+        expect(sql).toContain('"name, with quotes""" text');
+        expect(sql).toContain('"modes"("first" integer, "in_out" text, "variadic_input" integer[])');
+        expect(sql).not.toContain('DEFAULT');
+        const batch = dql.processBatch({ scripts: [{ id: 'functions', text: sql, outputs: ['catalogDescriptor'] }] });
+        expect(batch.scripts[0].failure).toBeUndefined();
+        expect(batch.scripts[0].diagnostics).toEqual([]);
+        const descriptor = dashql.buffers.catalog.CatalogDescriptor.getRootAsCatalogDescriptor(
+            new flatbuffers.ByteBuffer(batch.scripts[0].catalogDescriptor!),
+        );
+        expect(descriptor.functionDeclarationsLength()).toBe(6);
+        const functions = Array.from({ length: 6 }, (_, i) => descriptor.functionDeclarations(i)!);
+        const multi = functions.find(fn => fn.functionName()?.functionName() === 'multi')!;
+        expect(multi.paramsLength()).toBe(2);
+        expect(multi.params(1)?.paramType()).toBe('integer');
+        const named = functions.find(fn => fn.functionName()?.functionName() === 'named_defaults')!;
+        expect(named.paramsLength()).toBe(3);
+        expect(named.params(1)?.paramName()).toBe('name, with quotes"');
+        const modes = functions.find(fn => fn.functionName()?.functionName() === 'modes')!;
+        expect(modes.paramsLength()).toBe(3);
+        expect(modes.params(1)?.paramName()).toBe('in_out');
+        expect(modes.params(2)?.paramType()).toBe('integer[]');
+        const types = functions.find(fn => fn.functionName()?.functionName() === 'arrays_decimal')!;
+        expect(types.params(0)?.paramType()).toBe('integer[]');
+        expect(types.params(1)?.paramType()).toBe('numeric(18, 4)');
+        expect(types.returnType()).toBe('integer[]');
+        const overloaded = functions.filter(fn => fn.functionName()?.functionName() === 'overloaded');
+        expect(overloaded).toHaveLength(2);
+        expect(overloaded.map(fn => fn.params(0)?.paramType())).toEqual(['integer', 'text']);
+    });
+
+    it('logs and skips set/table results and qualified custom types while preserving supported declarations', () => {
+        const result = arrow.tableFromArrays({
+            function_schema: Array(4).fill('public'), function_name: ['set_result', 'table_result', 'custom_type', 'supported'],
+            return_type: ['integer', 'record', 'integer', 'integer'], returns_set: [true, false, false, false], function_kind: Array(4).fill('f'),
+        }).assign(new arrow.Table({
+            argument_types: arrow.vectorFromArray([['integer'], ['integer', 'text'], ['public.custom_type'], ['integer']], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            argument_names: arrow.vectorFromArray(Array(4).fill([]), new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+            argument_modes: arrow.vectorFromArray([[], ['i', 't'], [], []], new arrow.List(new arrow.Field('item', new arrow.Utf8(), true))),
+        }));
+        const logger = { warn: vi.fn() };
+        const sql = generateCatalogSQLFromPgProc(result as any, 'db', logger as any);
+        expect(logger.warn).toHaveBeenCalledTimes(3);
+        expect(sql).toContain('"supported"');
+        expect(sql).not.toContain('"set_result"');
+        expect(sql).not.toContain('"table_result"');
+        expect(sql).not.toContain('"custom_type"');
+        const output = dql.processBatch({ scripts: [{ id: 'functions', text: sql, outputs: ['catalogDescriptor'] }] }).scripts[0];
+        expect(output.diagnostics).toEqual([]);
+        expect(dashql.buffers.catalog.CatalogDescriptor.getRootAsCatalogDescriptor(new flatbuffers.ByteBuffer(output.catalogDescriptor!))
+            .functionDeclarationsLength()).toBe(1);
     });
 });

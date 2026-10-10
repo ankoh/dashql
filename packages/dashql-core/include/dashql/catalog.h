@@ -3,18 +3,17 @@
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 
-#include <atomic>
 #include <functional>
 #include <limits>
-#include <mutex>
+#include <memory>
 #include <optional>
-#include <shared_mutex>
 #include <span>
 #include <string>
 #include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
@@ -31,6 +30,7 @@ namespace dashql {
 class Catalog;
 class Script;
 class AnalyzedScript;
+class DescriptorEntry;
 using CatalogDatabaseID = uint32_t;
 using CatalogSchemaID = uint32_t;
 using CatalogTableID = ExternalObjectID;
@@ -206,7 +206,8 @@ class CatalogEntry {
         /// Constructor
         FunctionDeclaration(QualifiedCatalogObjectID schema, CatalogFunctionID function_id, QualifiedFunctionName name)
             : CatalogObject(QualifiedCatalogObjectID::Function(function_id)),
-              catalog_schema_id(schema), function_name(std::move(name)) {}
+              catalog_schema_id(schema),
+              function_name(std::move(name)) {}
         /// Get the function id
         CatalogFunctionID GetFunctionID() const { return object_id.UnpackFunctionID(); }
         /// Pack as FlatBuffer
@@ -371,6 +372,9 @@ class CatalogEntry {
     /// The name search index.
     /// This name search index stores suffixes of all registered names.
     std::optional<CatalogEntry::NameSearchIndex> name_search_index;
+    /// Lifetime-only ownership of referenced entries and namespace declarations.
+    /// Resolution and completion still use the current catalog/version.
+    std::shared_ptr<const std::vector<std::shared_ptr<const void>>> retained_catalog_dependencies;
 
    public:
     /// Construcutor
@@ -508,6 +512,7 @@ class Catalog {
     std::unordered_map<CatalogEntryID, CatalogEntry*> entries;
     /// The script entries
     std::unordered_map<Script*, ScriptEntry> script_entries;
+    std::unordered_map<CatalogEntryID, std::shared_ptr<DescriptorEntry>> descriptor_entries;
     /// The entries ordered by <rank>
     btree::set<std::tuple<CatalogEntry::Rank, CatalogEntryID>> entries_ranked;
     /// The entries ordered by <database, schema, rank, entry>
@@ -521,25 +526,23 @@ class Catalog {
 
     /// The databases.
     /// The btrees contain all the databases that are currently referenced by catalog entries.
-    btree::map<std::string_view, std::unique_ptr<DatabaseDeclaration>> databases;
+    btree::map<std::string_view, std::shared_ptr<DatabaseDeclaration>> databases;
     /// The schemas.
     /// These btrees contain all the schemas that are currently referenced by catalog entries.
     /// Ordered by <database, schema>
-    btree::map<std::pair<std::string_view, std::string_view>, std::unique_ptr<SchemaDeclaration>> schemas;
-    /// Protects the persistent canonical database and schema ID namespaces.
-    /// Callers that also need the state lock acquire state_mutex first.
-    std::mutex id_reservation_mutex;
+    btree::map<std::pair<std::string_view, std::string_view>, std::shared_ptr<SchemaDeclaration>> schemas;
     /// Canonical database IDs by owned database name.
     std::unordered_map<std::string, CatalogDatabaseID, StringHasher, std::equal_to<>> database_ids_by_name;
     /// Canonical schema IDs by owned (database, schema) name.
     std::unordered_map<std::pair<std::string, std::string>, QualifiedCatalogObjectID, StringPairHasher, StringPairEqual>
         schema_ids_by_name;
     /// Monotonic ID counters. Reserved IDs are never reused during the catalog lifetime.
-    std::atomic<CatalogDatabaseID> next_database_id{INITIAL_DATABASE_ID};
-    std::atomic<CatalogSchemaID> next_schema_id{INITIAL_SCHEMA_ID};
-    std::atomic<CatalogEntryID> next_entry_id{INITIAL_ENTRY_ID};
-    /// Protects active catalog membership and indexes.
-    mutable std::shared_mutex state_mutex;
+    CatalogDatabaseID next_database_id = INITIAL_DATABASE_ID;
+    CatalogSchemaID next_schema_id = INITIAL_SCHEMA_ID;
+    CatalogEntryID next_entry_id = INITIAL_ENTRY_ID;
+    /// Build all mixed-membership indexes before committing any active state.
+    void PublishEntries(decltype(script_entries) scripts, decltype(descriptor_entries) descriptors);
+
    public:
     using ScriptBatchEntry = RankedScript;
     /// Explicit constructor needed due to deleted copy constructor
@@ -549,8 +552,6 @@ class Catalog {
     Catalog(const Catalog& other) = delete;
     /// Catalogs must not be copy-assigned
     Catalog& operator=(const Catalog& other) = delete;
-
-    void DropScriptUnlocked(Script& script);
 
     /// Get the current version of the registry
     uint64_t GetVersion() const { return version; }
@@ -578,10 +579,10 @@ class Catalog {
     QualifiedCatalogObjectID ReserveDatabaseId(std::string_view database);
     /// Reserve the canonical ID for a qualified schema name.
     QualifiedCatalogObjectID ReserveSchemaId(std::string_view database, std::string_view schema,
-                                              QualifiedCatalogObjectID db_id);
+                                             QualifiedCatalogObjectID db_id);
     /// Allocate an entry id
     CatalogEntryID AllocateEntryId();
-    /// Analyze a script while preserving catalog entry lifetimes.
+    /// Analyze a script while preserving catalog entry lifetimes. Calls sharing a catalog must be serialized.
     void AnalyzeScript(Script& script, bool parse_if_outdated);
 
     /// Clear a catalog
@@ -599,6 +600,10 @@ class Catalog {
     void LoadScript(Script& script, CatalogEntry::Rank rank);
     /// Atomically add or replace ranked scripts (throws Exception on error).
     void LoadScripts(std::span<const ScriptBatchEntry> scripts);
+    /// Replace one pool atomically. The ID must be allocated by this receiver. Input bytes are borrowed.
+    void ReplaceDescriptor(CatalogEntryID id, CatalogEntry::Rank rank, std::span<const uint8_t> descriptor);
+    //// Drop a descriptor
+    void DropDescriptor(CatalogEntryID id);
     /// Drop a script
     void DropScript(Script& script);
 

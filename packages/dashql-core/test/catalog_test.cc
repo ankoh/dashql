@@ -3,10 +3,6 @@
 #include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 
-#include <atomic>
-#include <chrono>
-#include <future>
-#include <shared_mutex>
 #include <string>
 #include <vector>
 
@@ -20,17 +16,6 @@
 using namespace dashql;
 
 namespace {
-
-class LockInspectableCatalog : public Catalog {
-   public:
-    bool TryLockStateExclusive() {
-        if (!state_mutex.try_lock()) {
-            return false;
-        }
-        state_mutex.unlock();
-        return true;
-    }
-};
 
 TEST(CatalogTest, FlattenEmpty) {
     Catalog catalog;
@@ -255,41 +240,6 @@ TEST(CatalogTest, LoadScriptsValidationFailurePreservesCatalog) {
     EXPECT_THROW(catalog.LoadScripts(mismatch_batch), Exception);
     EXPECT_EQ(catalog.GetVersion(), previous_version);
     EXPECT_FALSE(catalog.Contains(valid.GetCatalogEntryId()));
-}
-
-TEST(CatalogTest, WriterWaitsForActiveAnalysis) {
-    using namespace std::chrono_literals;
-
-    LockInspectableCatalog catalog;
-    Script script{catalog};
-    std::string declarations;
-    declarations.reserve(250'000);
-    for (size_t i = 0; i < 5'000; ++i) {
-        declarations += "create table db.schema.table_" + std::to_string(i) + "(a int);";
-    }
-    script.InsertTextAt(0, declarations);
-
-    std::atomic<bool> analysis_finished = false;
-    auto analysis = std::async(std::launch::async, [&] {
-        script.Analyze();
-        analysis_finished.store(true, std::memory_order_release);
-    });
-
-    bool observed_active_analysis = false;
-    while (!analysis_finished.load(std::memory_order_acquire)) {
-        if (!catalog.TryLockStateExclusive()) {
-            observed_active_analysis = true;
-            break;
-        }
-        std::this_thread::yield();
-    }
-    ASSERT_TRUE(observed_active_analysis);
-
-    auto writer = std::async(std::launch::async, [&] { catalog.Clear(); });
-    EXPECT_EQ(writer.wait_for(1ms), std::future_status::timeout);
-    analysis.get();
-    EXPECT_EQ(writer.wait_for(5s), std::future_status::ready);
-    writer.get();
 }
 
 }  // namespace

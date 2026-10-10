@@ -40,16 +40,33 @@ const LOADER_QUEUE_FN_CTX = React.createContext<RefreshCatalogFn | null>(null);
 /// The hook to resolve the catalog queue
 export const useCatalogLoaderQueue = () => React.useContext(LOADER_QUEUE_FN_CTX)!;
 
-export function CatalogLoaderProvider(props: { children?: React.ReactElement }) {
+export interface CatalogLoaderDependencies {
+    useDynamicAttachedDatabaseDispatch: typeof useDynamicAttachedDatabaseDispatch;
+    useQueryExecutor: typeof useQueryExecutor;
+    useSalesforceAPI: typeof useSalesforceAPI;
+    useConnectionScriptsDispatch: typeof useConnectionScriptsDispatch;
+    updateHyperCatalog: typeof updateHyperCatalog;
+}
+
+const DEFAULT_DEPENDENCIES: CatalogLoaderDependencies = {
+    useDynamicAttachedDatabaseDispatch,
+    useQueryExecutor,
+    useSalesforceAPI,
+    useConnectionScriptsDispatch,
+    updateHyperCatalog,
+};
+
+export function CatalogLoaderProvider(props: { children?: React.ReactElement; dependencies?: CatalogLoaderDependencies }) {
+    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const logger = useLogger();
-    const executor = useQueryExecutor();
-    const sfapi = useSalesforceAPI();
+    const executor = dependencies.useQueryExecutor();
+    const sfapi = dependencies.useSalesforceAPI();
 
     // The connection registry changes frequently, the connection map is stable.
     // This executor will depend on the map directly since it can resolve everything ad-hoc.
-    const [connReg, connDispatch] = useDynamicAttachedDatabaseDispatch();
+    const [connReg, connDispatch] = dependencies.useDynamicAttachedDatabaseDispatch();
     const connMap = connReg.attachedDatabases;
-    const connScriptsDispatch = useConnectionScriptsDispatch();
+    const connScriptsDispatch = dependencies.useConnectionScriptsDispatch();
 
     // Execute a query with pre-allocated query id
     const updateImpl = React.useCallback(async (connectionId: string, _args: CatalogLoaderArgs, updateId: number): Promise<void> => {
@@ -103,6 +120,10 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
 
         // Update the catalog
         try {
+            const batchOptions = {
+                abortSignal: abortController.signal,
+                isCurrent: () => connMap.get(connectionId)?.catalog === conn.catalog,
+            };
             let partialError: Error | null = null;
             switch (conn.connectorInfo.catalogResolver) {
                 // Update the catalog by querying the information_schema?
@@ -111,7 +132,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                         case TRINO_CONNECTOR: {
                             const catalog = conn.details.value.proto.setupParams?.catalogName ?? "";
                             const schemas = conn.details.value.proto.setupParams?.schemaNames ?? [];
-                            await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript);
+                            await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog, conn.instance, conn.catalogRelationScript, conn.catalogFunctionScript, batchOptions);
                             break;
                         }
                         default:
@@ -133,7 +154,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                             `cannot load Hyper catalog for ${conn.connectorInfo.names.displayShort} connections`,
                         );
                     }
-                    const result = await updateHyperCatalog(
+                    const result = await dependencies.updateHyperCatalog(
                         traced,
                         connectionId,
                         connDispatch,
@@ -149,6 +170,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                         conn.catalogFunctionScript,
                         conn.details.value.proto.setupParams?.protocol === 'WASM',
                         abortController.signal,
+                        batchOptions,
                     );
                     if (result.failures.length > 0) {
                         partialError = new Error(result.failures
@@ -174,6 +196,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                             conn.catalogFunctionScript,
                             sfapi,
                             abortController,
+                            batchOptions,
                         );
                         break;
                     } else {
@@ -228,7 +251,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 "durationMs": totalMs.toFixed(0),
             }, LOG_CTX);
         }
-    }, [connMap, sfapi, executor]);
+    }, [connMap, sfapi, executor, dependencies.updateHyperCatalog]);
 
     // Allocate the next query id and start the execution
     const update = React.useCallback<CatalogLoader>((connectionId: string, args: CatalogLoaderArgs): [number, Promise<void>] => {
@@ -240,7 +263,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
     // Maintain a queue
     const [queueState, setQueueState] = React.useState<CatalogLoaderQueue>(() => ({ queue: new Map() }));
     const enqueue = React.useCallback<RefreshCatalogFn>((connectionId: string, force: boolean) => {
-        setQueueState(s => ({ queue: s.queue.set(connectionId, force) }));
+        setQueueState(s => ({ queue: new Map(s.queue).set(connectionId, force || s.queue.get(connectionId) === true) }));
     }, []);
 
     // Subscribe the queue
@@ -260,22 +283,22 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 await updatePromise;
             } catch (e: any) {
                 logger.warn("Catalog update failed", { connectionId, "error": e?.message ?? String(e) }, LOG_CTX);
+            } finally {
+                inProgress.delete(connectionId);
+                // Pending requests must be reconsidered even if the registry does not change.
+                setQueueState(s => s.queue.has(connectionId) ? { ...s } : s);
             }
-            inProgress.delete(connectionId);
         };
 
         const processed: string[] = [];
         for (const [connectionId, force] of queueState.queue) {
-            // Already updating?
-            if (inProgress.has(connectionId)) {
-                continue;
-            }
             logger.debug("Received catalog update request", { connectionId }, LOG_CTX);
 
             // Find the connection
             const connState = connReg.attachedDatabases.get(connectionId);
             if (!connState) {
                 logger.warn("Failed to resolve connection", { connectionId }, LOG_CTX);
+                processed.push(connectionId);
                 continue;
             }
 
@@ -288,8 +311,15 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     continue;
                 }
                 for (const task of connState.catalogUpdates.tasksRunning.values()) {
-                    task.cancellation.abort("superseded by forced catalog refresh");
+                    if (!task.cancellation.signal.aborted) {
+                        task.cancellation.abort(new DOMException('Superseded by forced catalog refresh', 'AbortError'));
+                    }
                 }
+            }
+
+            // Keep forced requests queued until the cancelled execution settles.
+            if (inProgress.has(connectionId)) {
+                continue;
             }
 
             // Was the catalog restored from disk on notebook open?
@@ -312,12 +342,13 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     ?? null;
                 if (refresh) {
                     const now = new Date();
-                    const elapsed = (refresh.finishedAt?.getTime() ?? now.getTime()) - now.getTime();
+                    const elapsed = now.getTime() - (refresh.finishedAt?.getTime() ?? now.getTime());
                     if (elapsed < CATALOG_REFRESH_AFTER) {
                         logger.info("Skipping catalog update", {
                             "elapsed": elapsed.toString(),
                             "threshold": CATALOG_REFRESH_AFTER.toString()
                         }, LOG_CTX);
+                        processed.push(connectionId);
                         continue;
                     }
                 }
@@ -335,13 +366,13 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
 
         // Remove all processed ids from the queue
         setQueueState(s => {
-            // Remove
+            const queue = new Map(s.queue);
             for (const connectionId of processed) {
-                s.queue.delete(connectionId)
+                queue.delete(connectionId);
             }
-            return { ...s, queue: s.queue };
+            return { ...s, queue };
         });
-    }, [queueState]);
+    }, [queueState, connReg, update, logger]);
 
     return (
         <LOADER_QUEUE_FN_CTX.Provider value={enqueue}>

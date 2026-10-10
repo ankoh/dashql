@@ -59,6 +59,7 @@ describe('updateSalesforceCatalog', () => {
             functionScript,
             api as any,
             new AbortController(),
+            { processor: async request => dql.processBatch(request) },
         );
 
         expect(relationScript.toString()).toContain('CREATE TABLE "lakehouse"."public"."Account__dlm"');
@@ -109,11 +110,86 @@ describe('updateSalesforceCatalog', () => {
         expect(Array.from({ length: qualified.qualifiedNameLength() }, (_, index) => qualified.qualifiedName(index)))
             .toEqual(['lakehouse', 'public', '"Account__dlm"']);
         expect(functionScript.toString()).toBe(functionsSQL);
-        expect(functionScript.getParsed().read().statementsLength()).toBe(350);
+        expect(catalog.describeEntries().unpackAndDestroy().entries.every((entry: dashql.buffers.catalog.CatalogEntryT) =>
+            entry.catalogEntryType === dashql.buffers.catalog.CatalogEntryType.DESCRIPTOR_POOL,
+        )).toBe(true);
         expect(logger.info).toHaveBeenCalledWith(
             'Loaded Salesforce catalog script',
             expect.objectContaining({ tables: '1', functions: '350' }),
             'salesforce_catalog',
         );
+    });
+
+    it.each(['processing', 'publication', 'later publication', 'aborted'])('retains earlier publications and unchanged pools after %s failure', async failure => {
+        const connection = { proto: { oauthState: {
+            coreAccessToken: { accessToken: 'token', instanceUrl: 'https://example.my.salesforce.com' },
+            dataCloudAccessToken: { jwt: { raw: 'token', payload: {} } },
+        } }, channel: null } as SalesforceConnectionStateDetails;
+        const catalog = dql.createCatalog();
+        const relations = dql.createScript(catalog);
+        const functions = dql.createScript(catalog);
+        let name = 'old_table';
+        const api = { getDataCloudMetadata: vi.fn(async () => ({ metadata: [{ name, fields: [{ name: 'id', type: 'Text' }] }] })) };
+        const refresh = (abort: AbortController, processor = async (request: dashql.BatchRequest) => dql.processBatch(request)) =>
+            updateSalesforceCatalog({ info: vi.fn() } as any, connection, catalog, dql, relations, functions,
+                api as any, abort, { processor });
+        await refresh(new AbortController());
+        const oldRelations = relations.toString();
+        const oldFunctions = functions.toString();
+        const snapshot = catalog.createSnapshot();
+        const version = snapshot.read().catalogReader.catalogVersion();
+        name = 'new_table';
+        const abort = new AbortController();
+        const processor = async (request: dashql.BatchRequest) => {
+            const result = dql.processBatch(request);
+            if (failure === 'processing') result.scripts[1].failure = 'functions failed';
+            if (failure === 'aborted') abort.abort();
+            return result;
+        };
+        const replaceDescriptor = catalog.replaceDescriptor.bind(catalog);
+        const replace = failure === 'publication' || failure === 'later publication'
+            ? vi.spyOn(catalog, 'replaceDescriptor').mockImplementation((id, rank, descriptor) => {
+                if (failure === 'publication' || id === functions.catalog_entry_id) throw new Error('import failed');
+                replaceDescriptor(id, rank, descriptor);
+            })
+            : null;
+        try {
+            await expect(refresh(abort, processor)).rejects.toThrow();
+            if (failure === 'later publication') expect(relations.toString()).toContain('new_table');
+            else expect(relations.toString()).toBe(oldRelations);
+            expect(functions.toString()).toBe(oldFunctions);
+            const currentSnapshot = catalog.createSnapshot();
+            if (failure === 'later publication') {
+                expect(replace).toHaveBeenCalledTimes(2);
+                expect(currentSnapshot).not.toBe(snapshot);
+                expect(currentSnapshot.read().catalogReader.catalogVersion()).toBe(version + 1n);
+            } else expect(currentSnapshot).toBe(snapshot);
+        } finally {
+            replace?.mockRestore();
+        }
+    });
+
+    it.each([{ metadata: [] }, { metadata: [{ name: 'empty', fields: [] }] }])('preserves the catalog when metadata has no usable relations: %j', async ({ metadata }) => {
+        const connection = { proto: { oauthState: {
+            coreAccessToken: { accessToken: 'token', instanceUrl: 'https://example.my.salesforce.com' },
+            dataCloudAccessToken: { jwt: { raw: 'token', payload: {} } },
+        } }, channel: null } as SalesforceConnectionStateDetails;
+        const catalog = dql.createCatalog();
+        const relations = dql.createScript(catalog);
+        const functions = dql.createScript(catalog);
+        const api = { getDataCloudMetadata: vi.fn().mockResolvedValue({ metadata: [{ name: 'old', fields: [{ name: 'id', type: 'Text' }] }] }) };
+        await updateSalesforceCatalog({ info: vi.fn() } as any, connection, catalog, dql, relations, functions,
+            api as any, new AbortController(), { processor: async request => dql.processBatch(request) });
+        const oldRelations = relations.toString();
+        const oldFunctions = functions.toString();
+        const snapshot = catalog.createSnapshot();
+        api.getDataCloudMetadata.mockResolvedValue({ metadata });
+        const processor = vi.fn();
+        await expect(updateSalesforceCatalog({ info: vi.fn() } as any, connection, catalog, dql, relations, functions,
+            api as any, new AbortController(), { processor })).rejects.toThrow('no usable catalog relations');
+        expect(processor).not.toHaveBeenCalled();
+        expect(relations.toString()).toBe(oldRelations);
+        expect(functions.toString()).toBe(oldFunctions);
+        expect(catalog.createSnapshot()).toBe(snapshot);
     });
 });

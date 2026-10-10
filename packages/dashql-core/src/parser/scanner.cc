@@ -76,9 +76,17 @@ Parser::symbol_type Scanner::ReadIdentifier(buffers::parser::SymbolSpan loc) {
 /// Read a double quoted identifier
 Parser::symbol_type Scanner::ReadDoubleQuotedIdentifier(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());
-    // Trim spaces & quotes
+    // Strip exactly the delimiters; doubled quotes belong to the identifier.
     auto trimmed = trim_view_right(text, is_no_space);
-    trimmed = trim_view(trimmed, is_no_double_quote);
+    trimmed = trimmed.substr(1, trimmed.size() - 2);
+    if (trimmed.find('"') != std::string_view::npos) {
+        temp_buffer.clear();
+        for (size_t i = 0; i < trimmed.size(); ++i) {
+            temp_buffer.push_back(trimmed[i]);
+            if (trimmed[i] == '"' && i + 1 < trimmed.size() && trimmed[i + 1] == '"') ++i;
+        }
+        trimmed = output->name_pool.AllocateCopy(temp_buffer);
+    }
     // Add string to dictionary
     size_t id = output->name_registry.Register(trimmed, buffers::parser::TextSpan(loc.offset(), loc.length())).name_id;
     return Parser::make_IDENT(id, loc);
@@ -87,7 +95,15 @@ Parser::symbol_type Scanner::ReadDoubleQuotedIdentifier(buffers::parser::SymbolS
 Parser::symbol_type Scanner::ReadBacktickQuotedIdentifier(buffers::parser::SymbolSpan loc) {
     auto text = GetInputData().substr(loc.offset(), loc.length());
     auto trimmed = trim_view_right(text, is_no_space);
-    trimmed = trim_view(trimmed, is_no_backtick);
+    trimmed = trimmed.substr(1, trimmed.size() - 2);
+    if (trimmed.find('`') != std::string_view::npos) {
+        temp_buffer.clear();
+        for (size_t i = 0; i < trimmed.size(); ++i) {
+            temp_buffer.push_back(trimmed[i]);
+            if (trimmed[i] == '`' && i + 1 < trimmed.size() && trimmed[i + 1] == '`') ++i;
+        }
+        trimmed = output->name_pool.AllocateCopy(temp_buffer);
+    }
     size_t id = output->name_registry.Register(trimmed, buffers::parser::TextSpan(loc.offset(), loc.length())).name_id;
     return Parser::make_IDENT(id, loc);
 }

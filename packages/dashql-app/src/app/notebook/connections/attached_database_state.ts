@@ -44,6 +44,7 @@ import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFro
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 import { StorageWriter } from '../persistence/storage_writer.js';
 import { Logger } from '../../../platform/logger/logger.js';
+import { invalidateCatalogBatch, publishCatalogBatchSync, type CatalogBatchEntry } from './catalog_batch.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -56,8 +57,8 @@ export interface CatalogUpdates {
     /// Set at UPDATE_CATALOG start; used to decide whether to kick off
     /// an auto-refresh and to surface the currently-displayed refresh task.
     currentFullRefresh: number | null;
-    /// The id of the most recently *completed* full refresh (succeeded,
-    /// failed, or cancelled). Only advances on completion, so components
+    /// The id of the most recently *completed*, non-superseded full refresh
+    /// (succeeded, failed, or cancelled). Only advances on completion, so components
     /// can depend on it to react when the catalog script has been updated.
     lastFullRefresh: number | null;
 }
@@ -275,6 +276,10 @@ export function reduceAttachedDatabaseState(state: AttachedDatabaseState, action
         // RESET_ATTACHED_DATABASE is a bit special since we want to clean up our details as well
         case RESET_ATTACHED_DATABASE: {
             // Reset the DashQL catalog
+            invalidateCatalogBatch(state.catalog);
+            for (const task of state.catalogUpdates.tasksRunning.values()) {
+                task.cancellation.abort(new DOMException('Attached database was reset', 'AbortError'));
+            }
             state.catalog.clear();
 
             // XXX Cancel currently running queries
@@ -347,6 +352,10 @@ export function reduceAttachedDatabaseState(state: AttachedDatabaseState, action
 
         /// DELETE_ATTACHED_DATABASE deletes the attached database state
         case DELETE_ATTACHED_DATABASE: {
+            invalidateCatalogBatch(state.catalog);
+            for (const task of state.catalogUpdates.tasksRunning.values()) {
+                task.cancellation.abort(new DOMException('Attached database was deleted', 'AbortError'));
+            }
             // XXX This must not be done if there are still notebooks referencing the connection!
 
             // XXX Cancel currently running queries
@@ -372,30 +381,30 @@ export function reduceAttachedDatabaseState(state: AttachedDatabaseState, action
             let newState: AttachedDatabaseState | null = null;
             switch (state.details.type) {
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                    newState = reduceSalesforceConnectionState(state, action as SalesforceConnectionStateAction, storage);
+                    newState = reduceSalesforceConnectionState(cleaned, action as SalesforceConnectionStateAction, storage);
                     break;
                 case HYPER_CONNECTOR:
-                    newState = reduceHyperConnectorState(state, action as HyperConnectorAction, storage);
+                    newState = reduceHyperConnectorState(cleaned, action as HyperConnectorAction, storage);
                     break;
                 case TRINO_CONNECTOR:
-                    newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
+                    newState = reduceTrinoConnectorState(cleaned, action as TrinoConnectorAction, storage);
                     break;
             }
 
             // Cleaning up details is best-effort. No need to check if RESET was actually consumed
             newState = newState ?? cleaned;
 
-            // Cleanup catalog script before destroying catalog
+            // Text-only source scripts do not own their published descriptors.
             try {
-                state.catalog.dropScript(state.catalogRelationScript);
+                state.catalog.dropDescriptor(state.catalogRelationScript.catalog_entry_id);
             } catch (e) {
-                // Script may have already been dropped - ignore error
+                // Descriptor may have already been dropped - ignore error
             }
             state.catalogRelationScript.destroy();
             try {
-                state.catalog.dropScript(state.catalogFunctionScript);
+                state.catalog.dropDescriptor(state.catalogFunctionScript.catalog_entry_id);
             } catch (e) {
-                // Script may have already been dropped - ignore error
+                // Descriptor may have already been dropped - ignore error
             }
             state.catalogFunctionScript.destroy();
 
@@ -518,30 +527,23 @@ export function replaceAttachedDatabaseCatalogFromStorage(
     schemaSql: string | null,
     functionsSql: string | null,
 ): boolean {
-    let changed = false;
+    const entries: CatalogBatchEntry[] = [];
     const replace = (script: core.DashQLScript, sql: string | null, emptyText: () => string) => {
         const text = sql ?? emptyText();
+        const published = state.catalog.containsEntryId(script.catalog_entry_id);
         if (sql == null && catalogScriptHasNoStatements(script.toString())) {
             return;
         }
-        if (script.toString() === text) {
+        if (script.toString() === text && published) {
             return;
         }
-        try {
-            state.catalog.dropScript(script);
-        } catch {
-            // The script may not be loaded yet.
-        }
-        script.replaceText(text);
-        if (text.trim().length > 0) {
-            script.analyze();
-            state.catalog.loadScript(script, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
-        }
-        changed = true;
+        entries.push({ script, text, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK });
     };
     replace(state.catalogRelationScript, schemaSql, () => generateCatalogScriptHeader(CatalogSource.Unknown));
     replace(state.catalogFunctionScript, functionsSql, () => generateFunctionScriptHeader(CatalogSource.Unknown));
+    const changed = entries.length > 0;
     if (changed) {
+        publishCatalogBatchSync(state.instance, state.catalog, entries);
         state.catalogUpdates.restoredAt = new Date();
     }
     return changed;
@@ -554,9 +556,11 @@ export function attachedDatabaseCatalogMatchesStorage(
     schemaSql: string | null,
     functionsSql: string | null,
 ): boolean {
-    const matches = (script: core.DashQLScript, sql: string | null) => sql == null
-        ? catalogScriptHasNoStatements(script.toString())
-        : script.toString() === sql;
+    const matches = (script: core.DashQLScript, sql: string | null) => {
+        const text = script.toString();
+        const textMatches = sql == null ? catalogScriptHasNoStatements(text) : text === sql;
+        return textMatches && (catalogScriptHasNoStatements(text) || state.catalog.containsEntryId(script.catalog_entry_id));
+    };
     return matches(state.catalogRelationScript, schemaSql)
         && matches(state.catalogFunctionScript, functionsSql);
 }

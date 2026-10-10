@@ -11,6 +11,7 @@ import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, quoteIde
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { queryPgProc, generateCatalogSQLFromPgProc } from './catalog_query_pg_proc.js';
 import { type LoggerLike } from '../../../platform/logger/logger.js';
+import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchEntry, type CatalogBatchOptions } from './catalog_batch.js';
 
 const LOG_CTX = "catalog_pg";
 export const CATALOG_QUERY_READ_TIMEOUT_MS = 60_000;
@@ -168,9 +169,12 @@ export async function updatePgSchemaScript(
     schemaNames: string[],
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
-    catalogRelationScript: dashql.DashQLScript
+    catalogRelationScript: dashql.DashQLScript,
+    options: CatalogBatchOptions = {},
 ): Promise<void> {
-    const queryResult = await queryPgAttribute(connectionId, connectionDispatch, updateId, databaseName, schemaNames, executor);
+    const validate = beginCatalogBatch(catalog, options);
+    const queryResult = await queryPgAttribute(connectionId, connectionDispatch, updateId, databaseName, schemaNames, executor, null, options.abortSignal);
+    validate();
     if (queryResult == null || queryResult.numRows === 0) {
         throw new Error('pg_attribute returned no catalog relations');
     }
@@ -186,56 +190,13 @@ export async function updatePgSchemaScript(
         value: [updateId]
     });
 
-    catalogRelationScript.replaceText(`${header}${catalogSQL}`);
-    catalogRelationScript.analyze();
-
-    const tableCount = catalogRelationScript.getAnalyzed().read().tablesLength();
+    const [relations] = await publishCatalogBatch(catalogRelationScript.ptr.api, catalog, [{
+        script: catalogRelationScript, text: `${header}${catalogSQL}`, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+    }], options, validate);
     logger.info("Collected tables from pg_attribute", {
         "updateId": updateId.toString(),
-        "tables": tableCount.toString(),
+        "tables": relations.tables.toString(),
     }, LOG_CTX);
-
-    try {
-        catalog.dropScript(catalogRelationScript);
-    } catch (e) {
-        // Script may not have been loaded yet - ignore error
-    }
-    catalog.loadScript(catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
-}
-
-async function updatePgFunctionScript(
-    logger: LoggerLike,
-    connectionId: string,
-    connectionDispatch: DynamicAttachedDatabaseDispatch,
-    updateId: number,
-    databaseName: string,
-    executor: QueryExecutor,
-    catalog: dashql.DashQLCatalog,
-    catalogFunctionScript: dashql.DashQLScript
-): Promise<void> {
-    const queryResult = await queryPgProc(connectionId, connectionDispatch, updateId, executor);
-    if (queryResult == null || queryResult.numRows === 0) {
-        return;
-    }
-
-    const header = generateFunctionScriptHeader(CatalogSource.PgClass);
-    const functionSQL = generateCatalogSQLFromPgProc(queryResult, databaseName);
-
-    catalogFunctionScript.replaceText(`${header}${functionSQL}`);
-    catalogFunctionScript.analyze();
-
-    const functionCount = catalogFunctionScript.getParsed().read().statementsLength();
-    logger.info("Collected functions from pg_proc", {
-        "updateId": updateId.toString(),
-        "functions": functionCount.toString(),
-    }, LOG_CTX);
-
-    try {
-        catalog.dropScript(catalogFunctionScript);
-    } catch (e) {
-        // Script may not have been loaded yet - ignore error
-    }
-    catalog.loadScript(catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 }
 
 export async function updatePgCatalog(
@@ -247,12 +208,38 @@ export async function updatePgCatalog(
     schemaNames: string[],
     executor: QueryExecutor,
     catalog: dashql.DashQLCatalog,
-    _dql: dashql.DashQL,
+    dql: dashql.DashQL,
     catalogRelationScript: dashql.DashQLScript,
-    catalogFunctionScript: dashql.DashQLScript
+    catalogFunctionScript: dashql.DashQLScript,
+    options: CatalogBatchOptions = {},
 ): Promise<void> {
-    await Promise.all([
-        updatePgSchemaScript(logger, connectionId, connectionDispatch, updateId, databaseName, schemaNames, executor, catalog, catalogRelationScript),
-        updatePgFunctionScript(logger, connectionId, connectionDispatch, updateId, databaseName, executor, catalog, catalogFunctionScript),
+    const validate = beginCatalogBatch(catalog, options);
+    const [relationsResult, functionsResult] = await Promise.all([
+        queryPgAttribute(connectionId, connectionDispatch, updateId, databaseName, schemaNames, executor, null, options.abortSignal),
+        queryPgProc(connectionId, connectionDispatch, updateId, executor, options.abortSignal),
     ]);
+    validate();
+    if (relationsResult == null || relationsResult.numRows === 0) {
+        throw new Error('pg_attribute returned no catalog relations');
+    }
+    const relationsSQL = generateCatalogSQLFromPgAttribute(relationsResult, databaseName);
+    if (!relationsSQL) throw new Error('pg_attribute returned no usable catalog relations');
+    const entries: CatalogBatchEntry[] = [{
+        script: catalogRelationScript,
+        text: `${generateCatalogScriptHeader(CatalogSource.PgClass)}${relationsSQL}`,
+        rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+    }];
+    if (functionsResult == null) throw new Error('pg_proc returned no function metadata result');
+    entries.push({
+        script: catalogFunctionScript,
+        text: `${generateFunctionScriptHeader(CatalogSource.PgClass)}${generateCatalogSQLFromPgProc(functionsResult, databaseName, logger)}`,
+        rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+    });
+    connectionDispatch(connectionId, { type: CATALOG_UPDATE_SCHEMA_SCRIPT, value: [updateId] });
+    const counts = await publishCatalogBatch(dql, catalog, entries, options, validate);
+    logger.info('Collected PostgreSQL catalog', {
+        updateId: updateId.toString(),
+        tables: counts[0].tables.toString(),
+        functions: counts[1].functions.toString(),
+    }, LOG_CTX);
 }

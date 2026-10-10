@@ -97,7 +97,7 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                         <HttpClientProvider>
                                             <AppSettingsSync>
                                                 <HyperDatabaseClientProvider>
-                                                    <DashQLCoreProvider>
+                                                    <DashQLCoreProvider initialSetup={{ setupBatchWorker: true }}>
                                                         <EmbeddedDatabaseProvider>
                                                             <ComputeConnectionProvider>
                                                                 <NotebookProviders>

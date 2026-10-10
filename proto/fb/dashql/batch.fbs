@@ -1,0 +1,43 @@
+namespace dashql.buffers.batch;
+
+enum ProcessingStage: uint8 { SCAN = 0, PARSE = 1, ANALYZE = 2 }
+enum DiagnosticSeverity: uint8 { ERROR = 0, WARNING = 1 }
+
+table DescriptorBuffer { data: [uint8]; }
+
+/// Output bits: scanned=1, parsed=2, analyzed=4, catalog_descriptor=8.
+/// Zero requests no processing; unknown bits produce a per-script failure.
+table BatchScriptInput {
+    id: string;
+    text: string;
+    outputs: uint32;
+}
+
+table BatchRequest {
+    scripts: [BatchScriptInput];
+    catalog_descriptors: [DescriptorBuffer];
+}
+
+table BatchDiagnostic {
+    stage: ProcessingStage;
+    severity: DiagnosticSeverity;
+    offset: uint32;
+    length: uint32;
+    message: string;
+}
+
+/// SQL errors are diagnostics, not failures. An erroneous script never emits
+/// a catalog descriptor, but other requested stage buffers remain available.
+/// Failure is reserved for invalid input or processing exceptions.
+/// Descriptor validation exceptions are failures; already packed stage buffers remain available.
+table BatchScriptResult {
+    id: string;
+    scanned: [uint8];
+    parsed: [uint8];
+    analyzed: [uint8];
+    catalog_descriptor: [uint8];
+    diagnostics: [BatchDiagnostic];
+    failure: string;
+}
+
+table BatchResult { scripts: [BatchScriptResult]; }

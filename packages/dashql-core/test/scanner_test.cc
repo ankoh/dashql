@@ -61,6 +61,19 @@ TEST(ScannerTest, InsertChars) {
     dashql_delete_owner(catalog_result.owner_ptr, catalog_result.owner_deleter);
 }
 
+TEST(ScannerTest, QuotedIdentifiersPreserveEscapedDelimiters) {
+    Catalog catalog;
+    Script script{catalog};
+    script.ReplaceText(R"SQL(select "trailing""", """leading", "a""b", `trailing```, `` `a``b`)SQL");
+    script.Scan();
+    auto& names = script.scanned_script->name_registry;
+    EXPECT_TRUE(names.names_by_text.contains("trailing\""));
+    EXPECT_TRUE(names.names_by_text.contains("\"leading"));
+    EXPECT_TRUE(names.names_by_text.contains("a\"b"));
+    EXPECT_TRUE(names.names_by_text.contains("trailing`"));
+    EXPECT_TRUE(names.names_by_text.contains("a`b"));
+}
+
 TEST(ScannerTest, FindTokenAtOffset) {
     std::shared_ptr<ScannedScript> script;
 

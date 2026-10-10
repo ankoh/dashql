@@ -1,4 +1,4 @@
-import type { DashQL, DashQLScript } from '../../../core/api.js';
+import type { DashQL } from '../../../core/api.js';
 import type { Logger } from '../../../platform/logger/logger.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { ProgressCounter } from '../../../utils/progress.js';
@@ -13,6 +13,7 @@ import type { StorageBackend, NotebookEntry, NotebookData } from './storage_back
 import { StorageBackendType } from './storage_backend.js';
 import { validateNotebookData, describeInvalidNotebook, isValidUuid, NotebookValidationError, type InvalidNotebook } from './notebook_validation.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../connections/catalog_update_state.js';
+import { beginCatalogBatch, invalidateCatalogBatch, publishCatalogBatch, type BatchProcessor, type CatalogBatchEntry } from '../connections/catalog_batch.js';
 
 const LOG_CTX = "app_state_loader";
 
@@ -130,7 +131,8 @@ async function restoreNotebookEntry(
     restoreConnections: ProgressCounter,
     restoreCatalogs: ProgressCounter,
     restoreNotebookScriptsProgress: ProgressCounter,
-    progressConsumer: (progress: AppStateRestorationProgress) => void
+    progressConsumer: (progress: AppStateRestorationProgress) => void,
+    processor?: BatchProcessor,
 ): Promise<void> {
     // The notebook UUID is the authoritative identity and the key the backend routes on. Gate it up
     // front: a manifest entry whose path is not a valid UUID can't be loaded (the backend would
@@ -227,24 +229,22 @@ async function restoreNotebookEntry(
     });
 
     try {
+        const validate = beginCatalogBatch(connectionState.catalog);
         logger.info("Loading catalog scripts", { notebookId }, LOG_CTX);
         const [schemaSQL, functionsSQL] = await Promise.all([
             backend.loadNotebookSchema(notebookId),
             backend.loadNotebookFunctions(notebookId),
         ]);
+        validate();
         const { catalog, catalogRelationScript, catalogFunctionScript } = connectionState;
-        const catalogScripts: Array<readonly [DashQLScript, number]> = [];
-        const analyses: Array<Promise<void>> = [];
+        const catalogScripts: CatalogBatchEntry[] = [];
 
         if (schemaSQL && schemaSQL.trim().length > 0) {
             logger.info("Catalog schema loaded", {
                 notebookId,
                 schemaLength: schemaSQL.length.toString()
             }, LOG_CTX);
-            logger.info("Analyzing catalog schema", { notebookId }, LOG_CTX);
-            catalogRelationScript.replaceText(schemaSQL);
-            analyses.push(catalogRelationScript.analyzeAsync());
-            catalogScripts.push([catalogRelationScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK]);
+            catalogScripts.push({ script: catalogRelationScript, text: schemaSQL, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK });
         } else {
             logger.info("No catalog schema found for notebook", { notebookId }, LOG_CTX);
         }
@@ -254,15 +254,11 @@ async function restoreNotebookEntry(
                 notebookId,
                 functionsLength: functionsSQL.length.toString()
             }, LOG_CTX);
-            catalogFunctionScript.replaceText(functionsSQL);
-            analyses.push(catalogFunctionScript.analyzeAsync());
-            catalogScripts.push([catalogFunctionScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK]);
+            catalogScripts.push({ script: catalogFunctionScript, text: functionsSQL, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK });
         }
 
-        if (analyses.length > 0) {
-            await Promise.all(analyses);
-            logger.info("Loading catalog scripts into catalog", { notebookId }, LOG_CTX);
-            catalog.loadScripts(catalogScripts);
+        if (catalogScripts.length > 0) {
+            await publishCatalogBatch(core, catalog, catalogScripts, { processor }, validate);
             connectionState.catalogUpdates.restoredAt = new Date();
 
             const catalogDuration = performance.now() - catalogStartTime;
@@ -381,9 +377,12 @@ export function destroyRestoredNotebook(restored: RestoredNotebook): void {
 }
 
 function destroyRestoredConnection(connection: AttachedDatabaseState): void {
+    invalidateCatalogBatch(connection.catalog);
     connection.connectionSignature.signatures.delete(
         connection.connectionSignature.signatureString,
     );
+    connection.catalog.dropDescriptor(connection.catalogRelationScript.catalog_entry_id);
+    connection.catalog.dropDescriptor(connection.catalogFunctionScript.catalog_entry_id);
     connection.catalogRelationScript.destroy();
     connection.catalogFunctionScript.destroy();
     connection.catalog.destroy();
@@ -403,6 +402,7 @@ export async function restoreSingleNotebook(
     logger: Logger,
     notebookId: string,
     connectionSignatures: Map<string, string | null>,
+    processor?: BatchProcessor,
 ): Promise<RestoredNotebook> {
     // A freshly imported notebook is implicitly OPFS-backed and keyed by its UUID; that's all the
     // manifest entry `restoreNotebookEntry` needs to route the load.
@@ -432,6 +432,7 @@ export async function restoreSingleNotebook(
         new ProgressCounter(),
         new ProgressCounter(),
         noopConsumer,
+        processor,
     );
 
     const mapping = attachedDatabasesByNotebook.get(notebookId);
@@ -462,7 +463,8 @@ export async function restoreAppState(
     core: DashQL,
     backend: StorageBackend,
     logger: Logger,
-    progressConsumer: (progress: AppStateRestorationProgress) => void
+    progressConsumer: (progress: AppStateRestorationProgress) => void,
+    processor?: BatchProcessor,
 ): Promise<RestoredAppState> {
     logger.info("Starting app state restoration", {}, LOG_CTX);
     const startTime = performance.now();
@@ -532,7 +534,8 @@ export async function restoreAppState(
                     restoreConnections,
                     restoreCatalogs,
                     restoreNotebookScriptsProgress,
-                    progressConsumer
+                    progressConsumer,
+                    processor,
                 );
 
                 try {
