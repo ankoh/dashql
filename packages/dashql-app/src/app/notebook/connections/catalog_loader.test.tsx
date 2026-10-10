@@ -19,6 +19,7 @@ describe('CatalogLoaderProvider queue', () => {
     let registry: AttachedDatabaseRegistry;
     let enqueue: ReturnType<typeof useCatalogLoaderQueue>;
     let dependencies: CatalogLoaderDependencies;
+    let providerRenders: number;
     const updates: Array<{ signal: AbortSignal; resolve: () => void; reject: (error: Error) => void }> = [];
     const dispatch = vi.fn<DynamicAttachedDatabaseDispatch>();
     const scriptsDispatch = vi.fn();
@@ -39,13 +40,19 @@ describe('CatalogLoaderProvider queue', () => {
         ));
     }
 
-    async function settleUpdate(settle: () => void) {
+    async function settleUpdate(settle: () => void, drainsQueue = false) {
+        const rendersBeforeCompletion = providerRenders;
         await act(async () => {
             settle();
             // Browser act uses flushSync, not React's development async-act queue.
             // Let updateImpl and doUpdate finish before flushing their queue state update.
             await new Promise<void>(resolve => setTimeout(resolve, 0));
         });
+        if (drainsQueue) {
+            // Completion wakes the queue, then consuming the request commits its removal.
+            // flushSync alone does not flush these asynchronously scheduled renders.
+            await vi.waitFor(() => expect(providerRenders).toBeGreaterThanOrEqual(rendersBeforeCompletion + 2));
+        }
     }
 
     beforeEach(() => {
@@ -53,6 +60,7 @@ describe('CatalogLoaderProvider queue', () => {
         document.body.appendChild(container);
         root = createRoot(container);
         updates.length = 0;
+        providerRenders = 0;
         dispatch.mockReset();
         scriptsDispatch.mockReset();
         updateHyperCatalog.mockReset();
@@ -87,7 +95,10 @@ describe('CatalogLoaderProvider queue', () => {
         }));
         const executor = vi.fn<ReturnType<CatalogLoaderDependencies['useQueryExecutor']>>();
         dependencies = {
-            useDynamicAttachedDatabaseDispatch: () => [registry, dispatch],
+            useDynamicAttachedDatabaseDispatch: () => {
+                providerRenders++;
+                return [registry, dispatch];
+            },
             useQueryExecutor: () => executor,
             useSalesforceAPI: () => null as unknown as ReturnType<CatalogLoaderDependencies['useSalesforceAPI']>,
             useConnectionScriptsDispatch: () => scriptsDispatch,
@@ -123,7 +134,7 @@ describe('CatalogLoaderProvider queue', () => {
         expect(abort).toHaveBeenCalledTimes(1);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
 
-        await settleUpdate(() => first.reject(first.signal.reason));
+        await settleUpdate(() => first.reject(first.signal.reason), true);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(2);
         expect(updates[1].signal.aborted).toBe(false);
         expect(dispatch.mock.calls.some(([, action]) => action.type === CATALOG_UPDATE_CANCELLED)).toBe(true);
@@ -141,7 +152,7 @@ describe('CatalogLoaderProvider queue', () => {
         await act(async () => enqueue('database', false));
         expect(updates[0].signal.aborted).toBe(false);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
-        await settleUpdate(() => updates[0].reject(new Error('metadata unavailable')));
+        await settleUpdate(() => updates[0].reject(new Error('metadata unavailable')), true);
         expect(dispatch.mock.calls.some(([, action]) => action.type === CATALOG_UPDATE_FAILED)).toBe(true);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         expect(scriptsDispatch).not.toHaveBeenCalled();
@@ -158,7 +169,7 @@ describe('CatalogLoaderProvider queue', () => {
         await render();
         await act(async () => enqueue('database', true));
         await act(async () => enqueue('database', false));
-        await settleUpdate(() => updates[0].resolve());
+        await settleUpdate(() => updates[0].resolve(), true);
         expect(dispatch.mock.calls.some(([, action]) => action.type === CATALOG_UPDATE_SUCCEEDED)).toBe(true);
         expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
         expect(scriptsDispatch).toHaveBeenCalledTimes(1);
