@@ -37,6 +37,11 @@ pub enum CatalogEntryRef {
 
 impl CatalogEntryRef {
     pub fn data(&self) -> &CatalogEntryData {
+        self.shared_data()
+    }
+
+    /// The declarations of the entry, shared with the analyzed scripts that depend on it
+    pub fn shared_data(&self) -> &Arc<CatalogEntryData> {
         match self {
             CatalogEntryRef::Script(s) => &s.entry,
             CatalogEntryRef::Descriptor(d) => &d.entry,

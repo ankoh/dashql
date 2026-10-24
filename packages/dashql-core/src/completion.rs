@@ -1097,9 +1097,13 @@ impl<'c, 'a> Completion<'c, 'a> {
             for &expr in &scope.expressions {
                 let Some(column_ref) = analyzed.expressions[expr as usize].column_ref() else { continue };
                 let ColumnResolution::TableColumn(loc) = column_ref.resolved else { continue };
-                let Some(table) = self.table(loc.table) else { continue };
-                let object_id = table.table_columns[loc.column as usize].object_id;
-                promote(self, object_id);
+                // The location refers to the entries the script was analyzed against, which the catalog
+                // may have replaced since
+                let Some(column) = analyzed.table(loc.table).and_then(|t| t.table_columns.get(loc.column as usize))
+                else {
+                    continue;
+                };
+                promote(self, column.object_id);
             }
         }
     }

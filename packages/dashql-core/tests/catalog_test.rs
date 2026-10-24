@@ -5,6 +5,7 @@
 
 use dashql_buffers::status::StatusCode;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogObjectType, EntryIdSource, ExternalObjectId, QualifiedCatalogObjectId, Rank, INITIAL_ENTRY_ID};
+use dashql_core::analyzer::ColumnResolution;
 use dashql_core::script::Script;
 
 fn analyze(catalog: &Catalog, text: &str) -> Script {
@@ -372,4 +373,37 @@ fn shared_entry_id_source() {
     assert_eq!(first.allocate_entry_id(), INITIAL_ENTRY_ID);
     assert_eq!(second.allocate_entry_id(), INITIAL_ENTRY_ID + 1);
     assert_eq!(Catalog::new().allocate_entry_id(), INITIAL_ENTRY_ID);
+}
+
+#[test]
+fn republished_scripts_do_not_retain_earlier_versions() {
+    let mut catalog = Catalog::new();
+    let mut a = analyze(&catalog, "create table a (x integer); select y from b");
+    let mut b = analyze(&catalog, "create table b (y integer); select x from a");
+    catalog.load_script(a.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(b.analyzed.clone().unwrap(), 1).unwrap();
+    let first_a = std::sync::Arc::downgrade(a.analyzed.as_ref().unwrap());
+    let first_b = std::sync::Arc::downgrade(b.analyzed.as_ref().unwrap());
+
+    // Each analysis depends on the published version of the other script
+    for _ in 0..100 {
+        a.analyze(&catalog, true).unwrap();
+        catalog.load_script(a.analyzed.clone().unwrap(), 0).unwrap();
+        b.analyze(&catalog, true).unwrap();
+        catalog.load_script(b.analyzed.clone().unwrap(), 1).unwrap();
+    }
+    assert!(first_a.upgrade().is_none());
+    assert!(first_b.upgrade().is_none());
+
+    // The dependencies still resolve the columns of the other script
+    let analyzed = a.analyzed.as_ref().unwrap();
+    let loc = analyzed
+        .expressions
+        .iter()
+        .find_map(|e| match e.column_ref()?.resolved {
+            ColumnResolution::TableColumn(loc) => Some(loc),
+            _ => None,
+        })
+        .expect("column y resolves");
+    assert_eq!(&*analyzed.table(loc.table).unwrap().table_name.table_name.text, "b");
 }

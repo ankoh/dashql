@@ -241,12 +241,12 @@ impl NameResolutionPass {
             None => {
                 let db_id = state.catalog.reserve_database_id(&database_name.text);
                 let index = state.out.entry.database_references.len();
-                state.out.entry.database_references.push(DatabaseReference {
+                state.entry_mut().database_references.push(DatabaseReference {
                     object_id: db_id,
                     database_name: database_name.text.clone(),
                     database_alias: Arc::from(""),
                 });
-                state.out.entry.databases_by_name.insert(database_name.text.clone(), index);
+                state.entry_mut().databases_by_name.insert(database_name.text.clone(), index);
                 state.resolve_name(database_name, CatalogObjectRef::Database(state.loc(index)));
                 db_id
             }
@@ -257,12 +257,12 @@ impl NameResolutionPass {
             None => {
                 let schema_id = state.catalog.reserve_schema_id(&database_name.text, &schema_name.text, db_id);
                 let index = state.out.entry.schema_references.len();
-                state.out.entry.schema_references.push(SchemaReference {
+                state.entry_mut().schema_references.push(SchemaReference {
                     object_id: schema_id,
                     database_name: database_name.text.clone(),
                     schema_name: schema_name.text.clone(),
                 });
-                state.out.entry.schemas_by_qualified_name.insert(key, index);
+                state.entry_mut().schemas_by_qualified_name.insert(key, index);
                 state.resolve_name(schema_name, CatalogObjectRef::Schema(state.loc(index)));
                 schema_id
             }
@@ -300,7 +300,7 @@ impl NameResolutionPass {
         table.ast_node_id = Some(declaration_id);
         table.ast_statement_id = Some(state.find_statement_id(declaration_id));
         table.ast_scope_root = Some(state.node_id(select_node));
-        state.out.entry.table_declarations.push(table);
+        state.entry_mut().table_declarations.push(table);
         state.resolve_name(&name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
 
         let mut column_aliases = Vec::new();
@@ -346,7 +346,7 @@ impl NameResolutionPass {
         let table_index = pending.table;
         let table_id = ExternalObjectId::new(state.entry_id, table_index);
         for (column_index, column_name) in column_names.into_iter().enumerate() {
-            let table = &mut state.out.entry.table_declarations[table_index as usize];
+            let table = &mut state.entry_mut().table_declarations[table_index as usize];
             table.table_columns_by_name.entry(column_name.text.clone()).or_insert(column_index);
             table.table_columns.push(TableColumn {
                 object_id: QualifiedCatalogObjectId::table_column(table_id, column_index as u32),
@@ -1364,7 +1364,7 @@ impl NameResolutionPass {
                         column_name: column.column_name.clone(),
                     });
                 }
-                state.out.entry.table_declarations.push(table);
+                state.entry_mut().table_declarations.push(table);
                 state.resolve_name(&name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
                 for (column_index, column) in columns.iter().enumerate() {
                     let loc = ColumnLoc {
@@ -1417,7 +1417,7 @@ impl NameResolutionPass {
                         });
                     }
                 }
-                state.out.entry.function_declarations.push(declaration);
+                state.entry_mut().function_declarations.push(declaration);
                 state.tag(&function_name.function_name, NameTag::FUNCTION_NAME);
                 state.resolve_name(&function_name.function_name, CatalogObjectRef::Function(state.loc(index as usize)));
             }
@@ -1470,7 +1470,7 @@ impl NameResolutionPass {
 
     pub fn finish(&mut self, state: &mut AnalysisState) {
         // Index the tables and functions
-        state.out.entry.index_declarations();
+        state.entry_mut().index_declarations();
 
         // Assign statement ids to scopes before resolving ordered script-local names
         for i in 0..state.out.name_scopes.len() {
@@ -1528,9 +1528,7 @@ impl NameResolutionPass {
                 }
             }
             assign(
-                &mut state
-                    .out
-                    .entry
+                &mut Arc::make_mut(&mut state.out.entry)
                     .function_declarations
                     .iter_mut()
                     .map(|f| (f.ast_node_id, &mut f.ast_statement_id)),
@@ -1538,7 +1536,7 @@ impl NameResolutionPass {
         }
 
         // Index the columns of the table declarations
-        state.out.entry.index_table_columns();
+        state.entry_mut().index_table_columns();
 
         // Solve the schema-inference constraints
         Self::run_schema_inference(state);

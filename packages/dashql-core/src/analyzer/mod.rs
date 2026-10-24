@@ -31,8 +31,8 @@ pub struct AnalyzedScript {
     pub parsed: Arc<ParsedScript>,
     /// The id of the catalog the script was analyzed against (`Catalog::id`)
     pub catalog_id: u64,
-    /// The catalog declarations of the script
-    pub entry: CatalogEntryData,
+    /// The catalog declarations of the script, shared with the catalog when the script is published
+    pub entry: Arc<CatalogEntryData>,
     /// The names of the scanned script, plus the empty name registered by the analyzer
     pub names: NameRegistry,
     /// The analyzer tags of the names
@@ -68,8 +68,10 @@ pub struct AnalyzedScript {
     pub inferred_table_schemas: Vec<InferredTableSchema>,
     /// The inferred schemas by (database, schema, table)
     pub inferred_table_schemas_by_name: HashMap<QualifiedKey, usize>,
-    /// The catalog entries the script was analyzed against
-    pub dependencies: Vec<CatalogEntryRef>,
+    /// The declarations of the catalog entries the script was analyzed against. Only the declarations
+    /// are kept, never the analyzed scripts of other entries: those hold dependencies of their own, so
+    /// scripts that are published in turn would otherwise retain every earlier version of each other.
+    pub dependencies: Vec<Arc<CatalogEntryData>>,
     /// The name search index, built on first use
     pub(crate) name_search_index: std::sync::OnceLock<NameSearchIndex>,
 }
@@ -125,8 +127,8 @@ impl AnalyzedScript {
         }
         self.dependencies
             .iter()
-            .find(|d| d.data().catalog_entry_id == loc.entry)
-            .and_then(|d| d.data().table_declarations.get(loc.index as usize))
+            .find(|d| d.catalog_entry_id == loc.entry)
+            .and_then(|d| d.table_declarations.get(loc.index as usize))
     }
 }
 

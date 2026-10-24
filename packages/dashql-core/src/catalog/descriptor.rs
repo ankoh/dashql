@@ -23,8 +23,8 @@ pub struct DescriptorName {
 /// Declarations imported from verified `CatalogDescriptor` bytes
 #[derive(Debug)]
 pub struct DescriptorEntry {
-    /// The declarations of the entry
-    pub entry: CatalogEntryData,
+    /// The declarations of the entry, shared with the analyzed scripts that depend on it
+    pub entry: Arc<CatalogEntryData>,
     /// The rank of the entry, entries with a lower rank win on name conflicts
     pub rank: Rank,
     /// The names in registration order
@@ -132,7 +132,7 @@ impl DescriptorEntry {
     pub fn new(catalog: &Catalog, id: CatalogEntryId, rank: Rank, bytes: &[u8]) -> Result<Self> {
         let descriptor = validate_descriptor(bytes)?;
         let mut out = DescriptorEntry {
-            entry: CatalogEntryData::new(id, catalog.version()),
+            entry: Arc::new(CatalogEntryData::new(id, catalog.version())),
             rank,
             names: Vec::new(),
             name_objects: Vec::new(),
@@ -140,7 +140,7 @@ impl DescriptorEntry {
             name_search_index: Default::default(),
         };
         // The new entry is published with the next catalog version, as are its tables
-        out.entry.catalog_version = catalog.version() + 1;
+        Arc::make_mut(&mut out.entry).catalog_version = catalog.version() + 1;
         let table_version = catalog.version() + 1;
         let mut names_by_text = std::collections::HashMap::<Arc<str>, NameId>::new();
         let mut register = |out: &mut DescriptorEntry, text: &str, tag: NameTag| -> Name {
@@ -170,7 +170,7 @@ impl DescriptorEntry {
             }
         };
         let register_schema = |out: &mut DescriptorEntry, database: &Name, schema: &Name| -> QualifiedCatalogObjectId {
-            let entry = &mut out.entry;
+            let entry = Arc::make_mut(&mut out.entry);
             let db_id = match entry.databases_by_name.get(&database.text) {
                 Some(&i) => entry.database_references[i].object_id,
                 None => {
@@ -238,7 +238,7 @@ impl DescriptorEntry {
                         };
                         out.name_objects.push((column_name.id, CatalogObjectRef::Column(column_loc)));
                         table.table_columns_by_name.entry(column_name.text.clone()).or_insert(ordinal as usize);
-                        out.entry.table_columns_by_name.entry(column_name.text.clone()).or_default().push(ColumnLoc {
+                        Arc::make_mut(&mut out.entry).table_columns_by_name.entry(column_name.text.clone()).or_default().push(ColumnLoc {
                             table: TableLoc {
                                 entry: id,
                                 index: table_index as u32,
@@ -253,7 +253,7 @@ impl DescriptorEntry {
                         });
                     }
                 }
-                let entry = &mut out.entry;
+                let entry = Arc::make_mut(&mut out.entry);
                 entry.tables_by_qualified_name.entry(table.table_name.key()).or_insert(table_index);
                 entry.tables_by_unqualified_name.entry(table_name.text.clone()).or_default().push(table_index);
                 entry
@@ -306,7 +306,7 @@ impl DescriptorEntry {
                         index: function_index as u32,
                     }),
                 ));
-                let entry = &mut out.entry;
+                let entry = Arc::make_mut(&mut out.entry);
                 entry.functions_by_qualified_name.entry(function.function_name.key()).or_insert(function_index);
                 entry
                     .functions_by_unqualified_name

@@ -43,7 +43,7 @@ impl<'a> AnalysisState<'a> {
         let out = AnalyzedScript {
             parsed: parsed.clone(),
             catalog_id: catalog.id(),
-            entry: CatalogEntryData::new(entry_id, catalog.version()),
+            entry: Arc::new(CatalogEntryData::new(entry_id, catalog.version())),
             names,
             name_tags,
             name_objects: Vec::new(),
@@ -61,7 +61,7 @@ impl<'a> AnalysisState<'a> {
             inference_constraints: Vec::new(),
             inferred_table_schemas: Vec::new(),
             inferred_table_schemas_by_name: Default::default(),
-            dependencies: catalog.entries_ranked().map(|(_, e)| e.clone()).collect(),
+            dependencies: catalog.entries_ranked().map(|(_, e)| e.shared_data().clone()).collect(),
             name_search_index: Default::default(),
         };
         Self {
@@ -77,6 +77,11 @@ impl<'a> AnalysisState<'a> {
 
     pub fn into_script(self) -> AnalyzedScript {
         self.out
+    }
+
+    /// The declarations of the script, unshared while the analysis runs
+    pub fn entry_mut(&mut self) -> &mut CatalogEntryData {
+        Arc::make_mut(&mut self.out.entry)
     }
 
     pub fn scanned(&self) -> &ScannedScript {
