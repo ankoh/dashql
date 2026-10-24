@@ -576,6 +576,48 @@ describe('DashQL editor sessions', () => {
         expect(dql!.registeredMemory.size).toBe(2);
     });
 
+    it('reuses the known analysis for cursor moves', () => {
+        const catalog = dql!.createCatalog();
+        const session = dql!.createScriptSession(catalog);
+        const editor = dashql.buffers.editor;
+        const text = 'create table items (id int); select id from items;';
+        const moveTo = (offset: number) => session.apply(new editor.EditorEventT(
+            session.getTextVersion(),
+            [],
+            new editor.EditorSelectionT(BigInt(offset), BigInt(offset)),
+            editor.EditorEventOrigin.USER,
+            editor.EditorEventIntent.SELECTION,
+        ));
+        session.replaceText(0n, text);
+        const full = moveTo(text.indexOf('id from'));
+        expect(full.analysisUpdated).toBe(true);
+        expect(full.analysisOmitted).toBe(false);
+        expect(full.syntaxSpans.length).toBeGreaterThan(0);
+
+        const moved = moveTo(text.indexOf('items;') + 1);
+        expect(moved.analysisOmitted).toBe(true);
+        expect(moved.syntaxSpans).toBe(full.syntaxSpans);
+        expect(moved.semanticSpans).toBe(full.semanticSpans);
+        expect(moved.diagnostics).toBe(full.diagnostics);
+        expect(moved.scriptAnnotations).toBe(full.scriptAnnotations);
+        expect(moved.processingStatistics).toBe(full.processingStatistics);
+        expect(moved.primaryCursorContext?.kind).toBe(editor.EditorCursorSemanticKind.TABLE_REFERENCE);
+
+        // A text change sends the new analysis
+        const typed = session.apply(new editor.EditorEventT(
+            session.getTextVersion(),
+            [new editor.EditorTextChangeT(BigInt(text.length), BigInt(text.length), ' ')],
+            null,
+            editor.EditorEventOrigin.USER,
+            editor.EditorEventIntent.EDIT,
+            editor.EditorEventAction.TYPE,
+            true,
+        ));
+        expect(typed.analysisOmitted).toBe(false);
+        expect(typed.syntaxSpans).not.toBe(full.syntaxSpans);
+        expect(typed.syntaxSpans.length).toBe(full.syntaxSpans.length);
+    });
+
     it('completes at the session cursor', () => {
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);

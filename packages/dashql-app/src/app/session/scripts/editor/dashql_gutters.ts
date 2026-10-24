@@ -24,7 +24,8 @@ class ErrorMarker extends GutterMarker {
 
 interface State {
     scriptKey: DashQLScriptKey | null;
-    editorUpdate: dashql.buffers.editor.EditorUpdateT | null | undefined;
+    /// The diagnostics the error lines were derived from, an update that omits an unchanged analysis keeps them
+    diagnostics: dashql.buffers.editor.EditorDiagnosticT[] | null;
     errorLines: Set<number>;
 }
 
@@ -32,21 +33,22 @@ const GutterState: StateField<State> = StateField.define<State>({
     // Create the initial state
     create: () => ({
         scriptKey: null,
-        editorUpdate: null,
+        diagnostics: null,
         errorLines: new Set(),
     }),
     update: (state: State, transaction: Transaction) => {
         // Program untouched?
         const processor = transaction.state.field(DashQLProcessorPlugin);
+        const diagnostics = processor.editorUpdate?.diagnostics ?? null;
         if (
             processor.scriptKey === state.scriptKey &&
-            processor.editorUpdate === state.editorUpdate
+            diagnostics === state.diagnostics
         ) {
             return state;
         }
 
         const errorLines: Set<number> = new Set();
-        for (const diagnostic of processor.editorUpdate?.diagnostics ?? []) {
+        for (const diagnostic of diagnostics ?? []) {
             if (diagnostic.severity !== dashql.buffers.editor.EditorDiagnosticSeverity.ERROR) continue;
             const loc = diagnostic.textSpan;
             if (loc == null) continue;
@@ -54,7 +56,7 @@ const GutterState: StateField<State> = StateField.define<State>({
         }
         return {
             scriptKey: processor.scriptKey,
-            editorUpdate: processor.editorUpdate,
+            diagnostics,
             errorLines,
         };
     },

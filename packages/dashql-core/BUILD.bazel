@@ -7,6 +7,9 @@
 
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
 
+# The measurement loop, shared with the benchmarks of the session crate
+exports_files(["benches/harness.rs"])
+
 rust_library(
     name = "dashql_core",
     srcs = glob(["src/**/*.rs"]),

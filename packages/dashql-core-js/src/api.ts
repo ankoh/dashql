@@ -376,6 +376,9 @@ export class DashQLScriptExecution {
 export class DashQLScriptSession {
     public readonly ptr: Ptr<typeof SCRIPT_SESSION_TYPE, NativeScriptSession>;
     public readonly catalog_entry_id: number;
+    /// The latest update that carries an analysis. Events name its version, so the core leaves an unchanged
+    /// analysis out and the update reuses the arrays of this one.
+    private lastAnalysis: buffers.editor.EditorUpdateT | null = null;
 
     public constructor(ptr: Ptr<typeof SCRIPT_SESSION_TYPE, NativeScriptSession>) {
         this.ptr = ptr;
@@ -429,8 +432,12 @@ export class DashQLScriptSession {
         return this.readUpdate(this.ptr.assertNotNull().replaceText(expectedTextVersion, text));
     }
 
+    /// Apply an editor event. The session sets the known analysis of the event.
     public apply(event: buffers.editor.EditorEventT): buffers.editor.EditorUpdateT {
         const session = this.ptr.assertNotNull();
+        event.knownAnalysis = this.lastAnalysis == null
+            ? null
+            : new buffers.editor.EditorAnalysisVersionT(this.lastAnalysis.textVersion, this.lastAnalysis.catalogRevision);
         const builder = new flatbuffers.Builder();
         builder.finish(event.pack(builder));
         return this.readUpdate(session.apply(builder.asUint8Array()));
@@ -522,13 +529,25 @@ export class DashQLScriptSession {
         this.ptr.assertNotNull().dropFromCatalog();
     }
 
+    /// Read an update. An update that leaves the analysis out takes the arrays of the known analysis, so an
+    /// unchanged analysis keeps its identity.
     private readUpdate(bytes: Uint8Array): buffers.editor.EditorUpdateT {
-        return new FlatBufferPtr<buffers.editor.EditorUpdate, buffers.editor.EditorUpdateT>(
+        const update = new FlatBufferPtr<buffers.editor.EditorUpdate, buffers.editor.EditorUpdateT>(
             EDITOR_UPDATE_TYPE,
             this.ptr.api,
             bytes,
             () => new buffers.editor.EditorUpdate(),
         ).unpackAndDestroy();
+        if (update.analysisOmitted && this.lastAnalysis != null) {
+            update.diagnostics = this.lastAnalysis.diagnostics;
+            update.syntaxSpans = this.lastAnalysis.syntaxSpans;
+            update.semanticSpans = this.lastAnalysis.semanticSpans;
+            update.scriptAnnotations = this.lastAnalysis.scriptAnnotations;
+            update.processingStatistics = this.lastAnalysis.processingStatistics;
+        } else if (update.analysisAvailable) {
+            this.lastAnalysis = update;
+        }
+        return update;
     }
 }
 

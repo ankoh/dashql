@@ -84,9 +84,10 @@ table EditorDiagnostic {
 }
 
 /// A scanner token class and its source span. Comments are emitted as COMMENT spans.
-table EditorSyntaxSpan {
-    token_type: dashql.buffers.parser.ScannerTokenType;
+/// A struct, an update carries one per token.
+struct EditorSyntaxSpan {
     text_span: EditorTextSpan;
+    token_type: dashql.buffers.parser.ScannerTokenType;
 }
 
 enum EditorSemanticReferenceKind: uint8 {
@@ -101,16 +102,17 @@ enum EditorSemanticResolution: uint8 {
 }
 
 /// A table or column reference projected from the analyzer.
-table EditorSemanticSpan {
-    kind: EditorSemanticReferenceKind;
-    resolution: EditorSemanticResolution;
+/// A struct, an update carries one per reference. The fields are ordered by size to avoid padding.
+struct EditorSemanticSpan {
     text_span: EditorTextSpan;
+    catalog_table_id: uint64;
     reference_id: uint32;
     catalog_database_id: uint32;
     catalog_schema_id: uint32;
-    catalog_table_id: uint64;
     catalog_column_id: uint32;
     referenced_catalog_version: uint32;
+    kind: EditorSemanticReferenceKind;
+    resolution: EditorSemanticResolution;
 }
 
 enum EditorCursorSemanticKind: uint8 {
@@ -186,6 +188,12 @@ table EditorProcessingStatistics {
     analyzer_name_index_bytes: uint64;
 }
 
+/// Identifies an analysis: the text version and the catalog revision it was analyzed at.
+table EditorAnalysisVersion {
+    text_version: uint64;
+    catalog_revision: uint64;
+}
+
 /// One portable editor transaction. Changes use pre-change offsets; the selection uses post-change offsets.
 table EditorEvent {
     expected_text_version: uint64;
@@ -195,6 +203,9 @@ table EditorEvent {
     intent: EditorEventIntent;
     action: EditorEventAction;
     analyze: bool;
+    /// The version of the analysis the host holds. If the analysis after the event has this version, the update
+    /// leaves the analysis out and sets analysis_omitted.
+    known_analysis: EditorAnalysisVersion;
 }
 
 /// The state observed after applying an EditorEvent or another ScriptSession operation.
@@ -215,7 +226,8 @@ table EditorUpdate {
     origin: EditorEventOrigin;
     intent: EditorEventIntent;
     action: EditorEventAction;
-    /// Full portable projection of the current analysis. Empty when analysis_available is false.
+    /// Full portable projection of the current analysis. Empty when analysis_available is false, and left out when
+    /// analysis_omitted is set.
     diagnostics: [EditorDiagnostic];
     syntax_spans: [EditorSyntaxSpan];
     semantic_spans: [EditorSemanticSpan];
@@ -223,4 +235,8 @@ table EditorUpdate {
     script_annotations: EditorScriptAnnotations;
     processing_statistics: EditorProcessingStatistics;
     primary_cursor_state: EditorCursorState;
+    /// The analysis is the known analysis of the event: diagnostics, syntax and semantic spans, script annotations
+    /// and processing statistics are left out, the host keeps the ones it holds. The cursor state and context are
+    /// always included.
+    analysis_omitted: bool;
 }

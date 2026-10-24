@@ -5,6 +5,11 @@
 //! bytes or UTF-16 code units), and every operation answers with an `EditorUpdate` that projects
 //! the current analysis (diagnostics, syntax and semantic spans, cursor, annotations, statistics).
 //!
+//! **Analysis versions.** An analysis is identified by the text version and the catalog version it
+//! was analyzed at. An event names the version of the analysis the host already holds
+//! (`known_analysis`). If the analysis after the event has that version, the update leaves the
+//! analysis out and sets `analysis_omitted`, so a cursor move sends only the cursor.
+//!
 //! **Catalog ownership.** A session does not hold its catalog: every call that reads it takes the
 //! catalog, and publishing takes it mutably. A session belongs to the catalog it was created with,
 //! and calls must pass that catalog. Whoever owns the session and the catalog removes the script from
@@ -31,10 +36,10 @@ use dashql_buffers::diff::ScriptDiffT;
 use dashql_buffers::editor::{
     EditorCursorSemanticContextT, EditorCursorSemanticKind, EditorCursorStateT, EditorDiagnosticSeverity,
     EditorDiagnosticSource, EditorDiagnosticT, EditorEvent, EditorEventAction, EditorEventIntent, EditorEventOrigin,
-    EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorScriptAnnotationsT, EditorSelectionT,
-    EditorSemanticReferenceKind, EditorSemanticResolution, EditorSemanticSpanT, EditorStatementDescriptionT,
-    EditorStatementT, EditorSyntaxSpanT, EditorTableDefinitionT, EditorTextChangeT, EditorTextSpanT,
-    EditorUpdateStatus, EditorUpdateT,
+    EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorAnalysisVersionT, EditorScriptAnnotationsT,
+    EditorSelectionT, EditorSemanticReferenceKind, EditorSemanticResolution, EditorSemanticSpanT,
+    EditorStatementDescriptionT, EditorStatementT, EditorSyntaxSpanT, EditorTableDefinitionT, EditorTextChangeT,
+    EditorTextSpanT, EditorUpdateStatus, EditorUpdateT,
 };
 use dashql_buffers::execution::ScriptCompilationResultT;
 use dashql_buffers::formatting::{FormattingConfigT, KeywordCase};
@@ -451,6 +456,7 @@ impl ScriptSession {
 
     /// Validate and apply an editor event atomically (`Apply`)
     pub fn apply(&mut self, catalog: &Catalog, event: &EditorEventT) -> EditorUpdateT {
+        let known = event.known_analysis.as_deref();
         let mut update = self.make_update(catalog);
         update.origin = event.origin;
         update.intent = event.intent;
@@ -458,7 +464,7 @@ impl ScriptSession {
         if event.expected_text_version != self.text_version() {
             update.status = EditorUpdateStatus::STALE_TEXT_VERSION;
             update.status_message = Some("editor event targets a stale text version".to_string());
-            return self.finalize_update(catalog, update);
+            return self.finalize_update(catalog, update, known);
         }
 
         // Validate the changes in pre-change offsets
@@ -477,6 +483,7 @@ impl ScriptSession {
                 return self.reject(
                     catalog,
                     update,
+                    known,
                     EditorUpdateStatus::INVALID_RANGE,
                     "text change range is not on codepoint boundaries in the session offset unit",
                 );
@@ -485,6 +492,7 @@ impl ScriptSession {
                 return self.reject(
                     catalog,
                     update,
+                    known,
                     EditorUpdateStatus::INVALID_RANGE,
                     "text change range is not on codepoint boundaries in the session offset unit",
                 );
@@ -503,6 +511,7 @@ impl ScriptSession {
             return self.reject(
                 catalog,
                 update,
+                known,
                 EditorUpdateStatus::OVERLAPPING_CHANGES,
                 "text changes overlap in the pre-change document",
             );
@@ -534,6 +543,7 @@ impl ScriptSession {
                 return self.reject(
                     catalog,
                     update,
+                    known,
                     EditorUpdateStatus::INVALID_RANGE,
                     "primary selection is not on codepoint boundaries in the session offset unit",
                 );
@@ -593,14 +603,21 @@ impl ScriptSession {
         update.catalog_revision = catalog_version;
         update.analysis_available = analysis_current;
         update.primary_selection = self.primary_selection.map(Selection::pack);
-        self.finalize_update(catalog, update)
+        self.finalize_update(catalog, update, known)
     }
 
     /// Reject an event with a status
-    fn reject(&self, catalog: &Catalog, mut update: EditorUpdateT, status: EditorUpdateStatus, message: &str) -> EditorUpdateT {
+    fn reject(
+        &self,
+        catalog: &Catalog,
+        mut update: EditorUpdateT,
+        known: Option<&EditorAnalysisVersionT>,
+        status: EditorUpdateStatus,
+        message: &str,
+    ) -> EditorUpdateT {
         update.status = status;
         update.status_message = Some(message.to_string());
-        self.finalize_update(catalog, update)
+        self.finalize_update(catalog, update, known)
     }
 
     /// Bring the analysis up to date with the text and the catalog and project it (`Analyze()`)
@@ -624,17 +641,28 @@ impl ScriptSession {
         update.text_version = self.text_version();
         update.state_revision = self.state_revision;
         update.catalog_revision = catalog.version() as u64;
-        self.finalize_update(catalog, update)
+        self.finalize_update(catalog, update, None)
     }
 
-    /// Add the projections of the analysis to an update (`FinalizeUpdate`)
-    fn finalize_update(&self, catalog: &Catalog, mut update: EditorUpdateT) -> EditorUpdateT {
-        self.project_editor_state(catalog, &mut update);
+    /// Add the projections of the analysis to an update (`FinalizeUpdate`). The analysis is left out
+    /// if the host already holds it (`known`).
+    fn finalize_update(
+        &self,
+        catalog: &Catalog,
+        mut update: EditorUpdateT,
+        known: Option<&EditorAnalysisVersionT>,
+    ) -> EditorUpdateT {
+        self.project_editor_state(catalog, &mut update, known);
         update
     }
 
-    /// Project the current analysis (`ProjectEditorState`)
-    fn project_editor_state(&self, catalog: &Catalog, update: &mut EditorUpdateT) {
+    /// Project the current analysis and the cursor (`ProjectEditorState`)
+    fn project_editor_state(
+        &self,
+        catalog: &Catalog,
+        update: &mut EditorUpdateT,
+        known: Option<&EditorAnalysisVersionT>,
+    ) {
         if !update.analysis_available {
             return;
         }
@@ -644,9 +672,29 @@ impl ScriptSession {
         if !Arc::ptr_eq(&analyzed.parsed, parsed) {
             return;
         }
+        let mut projector = self.projector(Some(&parsed.scanned.text));
+        // A current analysis is identified by the text version and the catalog version
+        let omitted = known.is_some_and(|k| {
+            k.text_version == self.text_version() && k.catalog_revision == catalog.version() as u64
+        });
+        if omitted {
+            update.analysis_omitted = true;
+        } else {
+            self.project_analysis(update, analyzed, &mut projector);
+        }
+
+        // The collapsed primary cursor
+        let collapsed = self.primary_selection.as_ref().is_some_and(|s| s.anchor == s.head);
+        if collapsed && self.script.cursor_offset().is_some() {
+            self.project_cursor(catalog, update, analyzed, &mut projector);
+        }
+    }
+
+    /// Project the diagnostics, spans, annotations and statistics of the analysis
+    fn project_analysis(&self, update: &mut EditorUpdateT, analyzed: &AnalyzedScript, projector: &mut Projector) {
+        let parsed = &analyzed.parsed;
         let scanned = &parsed.scanned;
         let resolve = |span: SymbolSpan| resolve_text_span(&scanned.text, &scanned.symbols, span);
-        let mut projector = self.projector(Some(&scanned.text));
 
         // Diagnostics
         let mut diagnostics = Vec::new();
@@ -667,7 +715,7 @@ impl ScriptSession {
         };
         for error in &scanned.errors {
             add_diagnostic(
-                &mut projector,
+                projector,
                 EditorDiagnosticSource::SCANNER,
                 EditorDiagnosticSeverity::ERROR,
                 &error.message,
@@ -676,7 +724,7 @@ impl ScriptSession {
         }
         for error in &parsed.errors {
             add_diagnostic(
-                &mut projector,
+                projector,
                 EditorDiagnosticSource::PARSER,
                 EditorDiagnosticSeverity::ERROR,
                 &error.message,
@@ -692,7 +740,7 @@ impl ScriptSession {
             } else {
                 EditorDiagnosticSeverity::ERROR
             };
-            add_diagnostic(&mut projector, EditorDiagnosticSource::ANALYZER, severity, &error.message, span);
+            add_diagnostic(projector, EditorDiagnosticSource::ANALYZER, severity, &error.message, span);
         }
         diagnostics.sort_by_key(|d| d.text_span.as_ref().map_or(0, |s| s.offset));
         update.diagnostics = non_empty(diagnostics);
@@ -707,17 +755,17 @@ impl ScriptSession {
             if let Some(text_span) = projector.span(span) {
                 let mut s = EditorSyntaxSpanT::default();
                 s.token_type = token_type;
-                s.text_span = Some(text_span);
+                s.text_span = text_span;
                 syntax_spans.push(s);
             }
         };
         for ((&offset, &length), &token_type) in offsets.iter().zip(lengths).zip(types) {
-            add_syntax(&mut projector, token_type, TextSpan::new(offset, length));
+            add_syntax(projector, token_type, TextSpan::new(offset, length));
         }
         for &comment in &scanned.comments {
-            add_syntax(&mut projector, ScannerTokenType::COMMENT, comment);
+            add_syntax(projector, ScannerTokenType::COMMENT, comment);
         }
-        syntax_spans.sort_by_key(|s| s.text_span.as_ref().map_or(0, |s| s.offset));
+        syntax_spans.sort_by_key(|s| s.text_span.offset);
         update.syntax_spans = non_empty(syntax_spans);
 
         // Semantic spans: table, column and function references
@@ -732,7 +780,7 @@ impl ScriptSession {
             let mut span = EditorSemanticSpanT::default();
             span.kind = EditorSemanticReferenceKind::TABLE;
             span.reference_id = reference_id as u32;
-            span.text_span = Some(text_span);
+            span.text_span = text_span;
             if let Some(resolved) = resolved_table_ids(reference) {
                 span.resolution = EditorSemanticResolution::RESOLVED;
                 span.catalog_database_id = resolved.database_id;
@@ -769,7 +817,7 @@ impl ScriptSession {
             span.kind =
                 if is_function { EditorSemanticReferenceKind::FUNCTION } else { EditorSemanticReferenceKind::COLUMN };
             span.reference_id = expression_id as u32;
-            span.text_span = Some(text_span);
+            span.text_span = text_span;
             if let Some((table, column_id)) = resolved_column_ids(expression) {
                 span.resolution = EditorSemanticResolution::RESOLVED;
                 span.catalog_database_id = table.database_id;
@@ -780,14 +828,8 @@ impl ScriptSession {
             }
             semantic_spans.push(span);
         }
-        semantic_spans.sort_by_key(|s| s.text_span.as_ref().map_or(0, |s| s.offset));
+        semantic_spans.sort_by_key(|s| s.text_span.offset);
         update.semantic_spans = non_empty(semantic_spans);
-
-        // The collapsed primary cursor
-        let collapsed = self.primary_selection.as_ref().is_some_and(|s| s.anchor == s.head);
-        if collapsed && self.script.cursor_offset().is_some() {
-            self.project_cursor(catalog, update, analyzed, &mut projector);
-        }
 
         // Annotations
         let mut annotations = EditorScriptAnnotationsT::default();

@@ -159,11 +159,14 @@ These targets regenerate `/snapshots/*.yaml` from `/snapshots/*.tpl.yaml` templa
 ```bash
 bazel run -c opt //packages/dashql-core:bench_pipeline
 bazel run -c opt //packages/dashql-core:bench_pipeline_ctes [-- <filter>]
+bazel run -c opt //packages/dashql-core-session:bench_session
 ```
 
 `bench_pipeline` scans, parses, formats, analyzes and completes TPC-DS q1 against the TPC-DS schema.
 `bench_pipeline_ctes` runs `with cte_0 as (<TPC-H q1>), ... select 1` with a growing number of CTEs and
 catches non-linear scaling.
+`bench_session` applies cursor moves and typed characters to an editor session and packs the updates like
+the wasm module.
 
 ## Type Checking
 

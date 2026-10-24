@@ -3,7 +3,7 @@
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 
-load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
 
 rust_library(
     name = "dashql_core_session",
@@ -76,3 +76,20 @@ DASHQL_CORE_SESSION_SNAPSHOT_TESTS = {
         "@core_crates//:serde_json",
     ],
 ) for name, (src, data) in DASHQL_CORE_SESSION_SNAPSHOT_TESTS.items()]
+
+# Editor events of a session (bazel run -c opt //packages/dashql-core-session:bench_session)
+rust_binary(
+    name = "bench_session",
+    srcs = [
+        "benches/session.rs",
+        "//packages/dashql-core:benches/harness.rs",
+    ],
+    crate_root = "benches/session.rs",
+    edition = "2021",
+    deps = [
+        ":dashql_core_session",
+        "//packages/dashql-core:dashql_core",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:flatbuffers",
+    ],
+)

@@ -144,7 +144,9 @@ export function createScannerHighlightPlugin(
             }
             update(u: ViewUpdate) {
                 const update = getUpdate(u.view);
-                const projectionChanged = update !== this.lastUpdate;
+                // An update that omits an unchanged analysis keeps the spans
+                const projectionChanged = update?.syntaxSpans !== this.lastUpdate?.syntaxSpans
+                    || update?.semanticSpans !== this.lastUpdate?.semanticSpans;
                 if (u.viewportChanged || u.docChanged || projectionChanged) {
                     this.lastUpdate = update;
                     this.decorations = update

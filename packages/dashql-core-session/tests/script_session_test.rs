@@ -9,7 +9,7 @@ use dashql_buffers::cursor::RelativeSymbolPosition;
 use dashql_buffers::diff::ScriptDiffOpCode;
 use dashql_buffers::editor::{
     EditorCursorSemanticKind, EditorDiagnosticSource, EditorEventAction, EditorEventIntent, EditorEventOrigin,
-    EditorEventT, EditorOffsetUnit, EditorSelectionT, EditorSemanticReferenceKind, EditorSemanticResolution,
+    EditorEventT, EditorOffsetUnit, EditorAnalysisVersionT, EditorSelectionT, EditorSemanticReferenceKind, EditorSemanticResolution,
     EditorSemanticSpanT, EditorTextChangeT, EditorTextSpanT, EditorUpdateStatus, EditorUpdateT,
 };
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
@@ -158,7 +158,7 @@ fn find_semantic_span<'u>(
     kind: EditorSemanticReferenceKind,
     source: &str,
 ) -> Option<&'u EditorSemanticSpanT> {
-    update.semantic_spans.iter().flatten().find(|s| s.kind == kind && read_span(text, s.text_span.as_ref()) == source)
+    update.semantic_spans.iter().flatten().find(|s| s.kind == kind && read_span(text, Some(&s.text_span)) == source)
 }
 
 fn load_schema(catalog: &CatalogHandle, text: &str) -> Script {
@@ -345,7 +345,7 @@ fn uses_utf16_offsets_for_events_selections_and_projections() {
         .flatten()
         .find(|s| s.kind == EditorSemanticReferenceKind::TABLE && s.resolution == EditorSemanticResolution::UNRESOLVED)
         .unwrap();
-    assert_eq!(missing.text_span.as_ref().unwrap().offset, 17);
+    assert_eq!(missing.text_span.offset, 17);
 
     let mut e = event(1, vec![change(8, 10, "x")]);
     e.primary_selection = selection(9, 9);
@@ -562,13 +562,13 @@ fn projects_unicode_syntax_comments_and_diagnostics_as_utf8_bytes() {
     let mut saw_literal = false;
     for span in update.syntax_spans.iter().flatten() {
         if span.token_type == ScannerTokenType::COMMENT {
-            assert_eq!(read_span(text, span.text_span.as_ref()), "-- caf\u{e9}");
-            assert_eq!(span.text_span.as_ref().unwrap().length, 8);
+            assert_eq!(read_span(text, Some(&span.text_span)), "-- caf\u{e9}");
+            assert_eq!(span.text_span.length, 8);
             saw_comment = true;
         }
         if span.token_type == ScannerTokenType::LITERAL_STRING {
-            assert_eq!(read_span(text, span.text_span.as_ref()), "'\u{e9}'");
-            assert_eq!(span.text_span.as_ref().unwrap().length, 4);
+            assert_eq!(read_span(text, Some(&span.text_span)), "'\u{e9}'");
+            assert_eq!(span.text_span.length, 4);
             saw_literal = true;
         }
     }
@@ -576,7 +576,7 @@ fn projects_unicode_syntax_comments_and_diagnostics_as_utf8_bytes() {
     assert!(saw_literal);
     let missing = find_semantic_span(&update, text, EditorSemanticReferenceKind::TABLE, "missing").unwrap();
     assert_eq!(missing.resolution, EditorSemanticResolution::UNRESOLVED);
-    assert_eq!(missing.text_span.as_ref().unwrap().offset, text.find("missing").unwrap() as u64);
+    assert_eq!(missing.text_span.offset, text.find("missing").unwrap() as u64);
 
     let mut scanner_session = Session { catalog: catalog.clone(), inner: ScriptSession::new(&catalog.borrow(), UTF8).unwrap() };
     let scanner_text = "select '\u{e9}";
@@ -658,6 +658,65 @@ fn projects_primary_cursor_semantic_context_and_related_references() {
     assert!(context.resolved);
     assert_eq!(context.related_table_reference_ids.as_ref().unwrap().len(), 1);
     assert_eq!(context.related_column_reference_ids.as_ref().unwrap().len(), 3);
+}
+
+/// The analysis version of an update
+fn analysis_version(update: &EditorUpdateT) -> Option<Box<EditorAnalysisVersionT>> {
+    let mut version = EditorAnalysisVersionT::default();
+    version.text_version = update.text_version;
+    version.catalog_revision = update.catalog_revision;
+    Some(Box::new(version))
+}
+
+/// A cursor move of a host that holds an analysis
+fn move_cursor(session: &mut Session, offset: u64, known: &EditorUpdateT) -> EditorUpdateT {
+    let mut e = event(session.text_version(), vec![]);
+    e.intent = EditorEventIntent::SELECTION;
+    e.primary_selection = selection(offset, offset);
+    e.known_analysis = analysis_version(known);
+    session.apply(&e)
+}
+
+#[test]
+fn omits_the_known_analysis() {
+    let catalog = new_catalog();
+    let _schema = load_schema(&catalog, "create table items (id int)");
+    let mut session = session(&catalog, UTF8);
+    let text = "select id from items where id = 1";
+    let full = analyze(&mut session, text);
+    assert!(full.analysis_available && !full.analysis_omitted);
+    assert!(full.syntax_spans.is_some() && full.semantic_spans.is_some());
+
+    // A cursor move sends the cursor only
+    let moved = move_cursor(&mut session, 8, &full);
+    assert_eq!(moved.status, EditorUpdateStatus::OK);
+    assert!(moved.analysis_omitted && moved.selection_changed && moved.analysis_available);
+    assert!(moved.diagnostics.is_none() && moved.syntax_spans.is_none() && moved.semantic_spans.is_none());
+    assert!(moved.script_annotations.is_none() && moved.processing_statistics.is_none());
+    assert_eq!(moved.primary_cursor_state.as_ref().unwrap().text_offset, 8);
+    assert_eq!(moved.primary_cursor_context.as_ref().unwrap().kind, EditorCursorSemanticKind::COLUMN_REFERENCE);
+
+    // A rejected event leaves it out too
+    let mut stale = event(0, vec![]);
+    stale.known_analysis = analysis_version(&full);
+    let rejected = session.apply(&stale);
+    assert_eq!(rejected.status, EditorUpdateStatus::STALE_TEXT_VERSION);
+    assert!(rejected.analysis_omitted && rejected.syntax_spans.is_none());
+
+    // A text change has a new analysis
+    let mut typed = event(session.text_version(), vec![change(text.len() as u64, text.len() as u64, " ")]);
+    typed.analyze = true;
+    typed.known_analysis = analysis_version(&full);
+    let typed = session.apply(&typed);
+    assert!(typed.text_changed && !typed.analysis_omitted);
+    assert!(typed.syntax_spans.is_some());
+
+    // So does an analysis against a new catalog version
+    let _other = load_schema(&catalog, "create table other (x int)");
+    let reanalyzed = move_cursor(&mut session, 8, &typed);
+    assert!(reanalyzed.analysis_updated && !reanalyzed.analysis_omitted);
+    assert_ne!(reanalyzed.catalog_revision, typed.catalog_revision);
+    assert!(reanalyzed.semantic_spans.is_some());
 }
 
 #[test]

@@ -362,6 +362,22 @@ Every update carries `catalog_revision` and `analysis_available`; the full proje
 syntax and semantic spans, cursor, annotations, statistics) is included only when the analysis is
 current.
 
+**Analysis versions.** A current analysis is identified by the text version and the catalog version
+it was analyzed at. An `EditorEvent` names the version of the analysis the host holds
+(`known_analysis`). If the analysis after the event has that version, the update sets
+`analysis_omitted` and leaves out diagnostics, spans, annotations and statistics; the cursor state
+and context are always included. `analyze` and the `replace_text` and `set_primary_cursor` shortcuts
+always send the analysis. Syntax and semantic spans are FlatBuffers structs, so the lists pack
+without a table per span.
+
+Measured with `bench_session` (40 join queries, 1880 syntax and 400 semantic spans, UTF-16 offsets):
+
+| Event | Time, packed | Update size |
+|---|---|---|
+| Cursor move, host holds the analysis | 1.4 µs | 288 B |
+| Cursor move, analysis included | 49 µs | 67 KB |
+| Typed character, of which analysis is about 370 µs | 425 µs | 67 KB |
+
 For a resolved reference under the cursor, `primary_cursor_context` names the entry that declares the
 table (`declaration_catalog_entry_id`) and the declaration in the script of that entry
 (`declaration_location`: the column definition, else the table name). The span is in UTF-8 bytes of
@@ -425,6 +441,10 @@ statement's successful result.
 - `DashQLCatalog` caches a `flatten()` snapshot and clears it only on catalog calls made through the
   wrapper. Publishes and drops made through sessions, scripts or the shell do not clear it
   (`createUncachedSnapshot` bypasses the cache).
+- `DashQLScriptSession` keeps the latest update that carries an analysis, sets `known_analysis` on
+  every event it applies, and fills an update with `analysis_omitted` from the arrays of that update.
+  An unchanged analysis therefore keeps its array identity: the decoration fields and the gutter of
+  the editor compare the arrays they read, so a cursor move rebuilds only the focus decorations.
 
 **App flow per keystroke** (`packages/dashql-app/src/app/session/scripts/session_scripts.ts`)
 1. The CodeMirror processor sends an `EditorEvent` with `analyze = true`; the session applies and

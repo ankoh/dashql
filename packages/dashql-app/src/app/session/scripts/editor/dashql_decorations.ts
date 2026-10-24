@@ -190,7 +190,8 @@ interface DecorationInfo {
 
 interface ScriptDecorationState {
     decorations: DecorationSet;
-    editorUpdate: dashql.buffers.editor.EditorUpdateT | null | undefined;
+    /// The spans the decorations were built from, an update that omits an unchanged analysis keeps them
+    spans: unknown[] | null;
 }
 
 /// Syntax highlighting derived from the portable editor projection.
@@ -204,20 +205,21 @@ const ErrorDecorationField: StateField<ScriptDecorationState> = StateField.defin
     create: () => {
         const config: ScriptDecorationState = {
             decorations: new RangeSetBuilder<Decoration>().finish(),
-            editorUpdate: null,
+            spans: null,
         };
         return config;
     },
     update: (state: ScriptDecorationState, transaction: Transaction) => {
-        // Scanned program untouched?
+        // Spans untouched?
         const processor = transaction.state.field(DashQLProcessorPlugin);
-        if (processor.editorUpdate === state.editorUpdate) {
+        const spans = processor.editorUpdate?.diagnostics ?? null;
+        if (spans === state.spans) {
             return state;
         }
         // Rebuild decorations
         const s = { ...state };
-        s.editorUpdate = processor.editorUpdate;
-        s.decorations = buildDecorationsFromErrors(s.editorUpdate);
+        s.spans = spans;
+        s.decorations = buildDecorationsFromErrors(processor.editorUpdate);
         return s;
     },
 });
@@ -226,20 +228,21 @@ const AnalyzerDecorationsField: StateField<ScriptDecorationState> = StateField.d
     create: () => {
         const config: ScriptDecorationState = {
             decorations: new RangeSetBuilder<Decoration>().finish(),
-            editorUpdate: null,
+            spans: null,
         };
         return config;
     },
     update: (state: ScriptDecorationState, transaction: Transaction) => {
-        // Scanned program untouched?
+        // Spans untouched?
         const processor = transaction.state.field(DashQLProcessorPlugin);
-        if (processor.editorUpdate === state.editorUpdate) {
+        const spans = processor.editorUpdate?.semanticSpans ?? null;
+        if (spans === state.spans) {
             return state;
         }
         // Rebuild decorations
         const s = { ...state };
-        s.editorUpdate = processor.editorUpdate;
-        s.decorations = buildDecorationsFromAnalysis(s.editorUpdate);
+        s.spans = spans;
+        s.decorations = buildDecorationsFromAnalysis(processor.editorUpdate);
         return s;
     },
 });
@@ -247,7 +250,8 @@ const AnalyzerDecorationsField: StateField<ScriptDecorationState> = StateField.d
 interface FocusDecorationState {
     scriptKey: DashQLScriptKey | null;
     decorations: DecorationSet;
-    editorUpdate: dashql.buffers.editor.EditorUpdateT | null | undefined;
+    /// The semantic spans the decorations were built from
+    semanticSpans: dashql.buffers.editor.EditorSemanticSpanT[] | null;
     derivedFocus: SemanticUserFocus | null;
 }
 
@@ -258,7 +262,7 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
         const config: FocusDecorationState = {
             scriptKey: null,
             decorations: new RangeSetBuilder<Decoration>().finish(),
-            editorUpdate: null,
+            semanticSpans: null,
             derivedFocus: null,
         };
         return config;
@@ -267,9 +271,10 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
     update: (state: FocusDecorationState, transaction: Transaction) => {
         // Scanned program untouched?
         const processor = transaction.state.field(DashQLProcessorPlugin);
+        const semanticSpans = processor.editorUpdate?.semanticSpans ?? null;
         if (
             processor.scriptKey === state.scriptKey &&
-            processor.editorUpdate === state.editorUpdate &&
+            semanticSpans === state.semanticSpans &&
             processor.derivedFocus === state.derivedFocus
         ) {
             return state;
@@ -277,11 +282,11 @@ const FocusDecorationField: StateField<FocusDecorationState> = StateField.define
         // Rebuild decorations from the portable UTF-16 projection.
         const s = { ...state };
         s.scriptKey = processor.scriptKey;
-        s.editorUpdate = processor.editorUpdate;
+        s.semanticSpans = semanticSpans;
         s.derivedFocus = processor.derivedFocus;
         s.decorations = buildDecorationsFromFocus(
             s.scriptKey,
-            s.editorUpdate,
+            processor.editorUpdate,
             s.derivedFocus,
         );
         return s;
