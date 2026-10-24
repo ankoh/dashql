@@ -14,14 +14,19 @@ them.
                                           load_script(analysis, rank) ◀────────────┘
                                                      │
  ┌───────────────────────────────── Catalog ─────────▼──────────────────────────────────┐
- │  script entries      (PublishedScript, Rank)         ← declarations of editor scripts │
- │  descriptor entries  Arc<DescriptorEntry>            ← schemas of connections         │
- │  global indexes      by rank, by schema, by (database, schema)                       │
- │  version             bumped when what other entries resolve against changes          │
+ │  current             Arc<CatalogSnapshot>            ← copied on write                │
+ │  ids                 canonical database and schema ids, never reused                 │
+ │ ┌───────────────────────────── CatalogSnapshot ─────────────────────────────────────┐ │
+ │ │ script entries      (PublishedScript, Rank)         ← declarations of editor scripts│ │
+ │ │ descriptor entries  Arc<DescriptorEntry>            ← schemas of connections       │ │
+ │ │ global indexes      by rank, by schema, by (database, schema)                     │ │
+ │ │ version             bumped when what other entries resolve against changes        │ │
+ │ └───────────────────────────────────────────────────────────────────────────────────┘ │
  └───────────────────────────────────────────────────────────────────────────────────────┘
                                                      │
-                     analyze(other script, catalog) ─┘  resolves names against all entries
-                                                        except its own
+                     analyze(other script, catalog) ─┘  resolves names against the current
+                                                        snapshot, except its own entry, and
+                                                        keeps that snapshot
 ```
 
 - Every stage produces an immutable snapshot behind an `Arc`. A later stage holds the earlier one
@@ -33,12 +38,14 @@ them.
   entry in place.
 - The catalog keeps only the declarations and names of a published script, never the analysis
   itself. Releasing an analysis frees its AST even while its declarations stay published.
+- An analysis keeps the catalog snapshot it resolved against. Its catalog locations always refer to
+  that snapshot, and it is current while the catalog's version is the snapshot's version.
 
 ## Identity
 
 | Id | Type | Scope | Allocated by |
 |---|---|---|---|
-| Catalog id | `u64` | process | `NEXT_CATALOG_ID` on `Catalog::new` / `with_entry_ids`. An analysis records it (`AnalyzedScript.catalog_id`) and `load_scripts` rejects analyses of another catalog (`CATALOG_MISMATCH`). |
+| Catalog id | `u64` | process | `NEXT_CATALOG_ID` on `Catalog::new` / `with_entry_ids`, carried by every snapshot. `load_scripts` rejects analyses of another catalog's snapshot (`CATALOG_MISMATCH`). |
 | Catalog entry id | `CatalogEntryId = u32` | an `EntryIdSource` | `Catalog::allocate_entry_id`, from `INITIAL_ENTRY_ID = 1`. Catalogs that share a source never hand out the same id. The wasm module shares one source across all its catalogs (`ENTRY_IDS` in `dashql-core-wasm`). |
 | Database id | `u32` | catalog | Reserved by name on first use, from `INITIAL_DATABASE_ID = 256`. Never reused. |
 | Schema id | `u32` | catalog | Reserved by (database, schema) on first use, from `INITIAL_SCHEMA_ID = 65536`. Never reused. |
@@ -114,6 +121,13 @@ by the others.
 
 ```rust
 pub struct Catalog {
+    current: Arc<CatalogSnapshot>,
+    ids: RefCell<IdReservations>,    // canonical ids, outlive snapshots
+    entry_ids: EntryIdSource,
+}
+
+#[derive(Clone)]
+pub struct CatalogSnapshot {
     id: u64,
     version: CatalogVersion,
     entries: HashMap<CatalogEntryId, CatalogEntryRef>,
@@ -124,10 +138,16 @@ pub struct Catalog {
     entries_by_schema: BTreeMap<(schema, Rank, CatalogEntryId), SchemaEntryInfo>,
     databases: BTreeMap<db, Arc<DatabaseDeclaration>>,
     schemas: BTreeMap<(db, schema), Arc<SchemaDeclaration>>,
-    ids: RefCell<IdReservations>,
-    entry_ids: EntryIdSource,
 }
 ```
+
+All reads (resolution, lookups, `flatten`, `describe_entries`) are methods of `CatalogSnapshot`;
+`Catalog` derefs to its current snapshot. Modifications go through `DerefMut`, which is
+`Arc::make_mut`: the first modification copies the snapshot if an analysis still holds it, so a
+published snapshot never changes. The copy clones the maps of entry `Arc`s, O(entries + schemas).
+`CatalogSnapshot` and `AnalyzedScript` are `Send + Sync`.
+
+`Catalog::is_current(snapshot)` holds while the snapshot belongs to the catalog and has its version.
 
 **Ranks.** Every entry has a `Rank`; a lower rank wins on name conflicts, in resolution and in
 `flatten`. The app publishes editor scripts with their script key as rank and connection descriptors
@@ -217,32 +237,34 @@ enum ColumnResolution { Unresolved, TableColumn(ColumnLoc), ScopeColumn { scope,
 `TableLoc { entry, index }` and `ColumnLoc { table, column }` point into the declarations of an
 entry: the script itself or any catalog entry.
 
-### Dependencies
+### The snapshot of an analysis
 
 A `TableLoc` into another entry is only meaningful against that entry's declarations as they were
-at analysis time. The catalog can replace or drop the entry later, so the analysis keeps them:
+at analysis time. The catalog can replace or drop the entry later, so the analysis keeps the
+snapshot it resolved against:
 
 ```rust
-pub dependencies: Vec<Arc<CatalogEntryData>>  // every published entry except its own, at analysis time
+pub snapshot: Arc<CatalogSnapshot>
 ```
 
-`AnalyzedScript::table(loc)` resolves through the script's own entry, then the dependencies.
-Encoding (`pack.rs`) and completion use it for every location that came out of the analysis.
+`AnalyzedScript::table(loc)` resolves through the script's own entry, then the snapshot. Encoding
+(`pack.rs`), the cursor and completion read the catalog only through it
+(`catalog_test::analyses_keep_the_snapshot_they_resolved_against`). The snapshot also contains the
+script's own published version, which the analysis ignores.
 
-The dependencies and the catalog hold **declarations only**, never analyses. An analysis holds
-dependencies of its own; if dependencies or catalog entries held analyses, two scripts that reference
-each other and are published in turn would form an unbounded chain A₃ → B₂ → A₂ → B₁ → …, keeping
-every earlier version of both alive. `CatalogEntryData` owns no analysis, so the chain stops after
-one level (`catalog_test::republished_scripts_do_not_retain_earlier_versions`,
+Snapshots and catalog entries hold **declarations and names only**, never analyses. An analysis
+holds a snapshot; if snapshots held analyses, two scripts that reference each other and are
+published in turn would form an unbounded chain A₃ → S₃ → B₂ → S₂ → A₂ → …, keeping every earlier
+version of both alive. A snapshot owns no analysis, so the chain stops after one level
+(`catalog_test::republished_scripts_do_not_retain_earlier_versions`,
 `catalog_test::published_scripts_do_not_retain_their_analysis`).
 
 ### What an analysis records about the catalog
 
 | Field | Use |
 |---|---|
-| `catalog_id` | Publishing into the wrong catalog fails |
-| `entry.catalog_version` | The catalog version it resolved against. Session and planner treat the analysis as current only if it equals the catalog's version. |
-| `dependencies` | Declarations behind its cross-entry locations |
+| `snapshot` | The declarations behind its cross-entry locations; its id and version decide whether the analysis is current and whether it may be published into a catalog |
+| `entry.catalog_version` | The catalog version its own declarations were created against |
 | Resolved ids in table and column refs | Exposed to the editor (semantic spans, cursor context) with `referenced_catalog_version` |
 
 ## Staleness
@@ -256,23 +278,26 @@ An analysis is current when nothing it read has changed. Three counters exist:
 | `state_revision: u64` | `ScriptSession` | Every committed change of text, selection or analysis; the editor reconciles by it |
 
 `ScriptSession::is_analysis_current` (`script_session.rs`) requires:
-- the analyzed text version and the parsed/scanned snapshots match the current text
-  (`Arc::ptr_eq` along the chain)
-- the session's recorded catalog revision equals the catalog version
-- `analyzed.entry.catalog_version` equals the catalog version
+- the parsed and scanned scripts of the analysis are the current ones (`Arc::ptr_eq` along the
+  chain) and were scanned from the current text version
+- `catalog.is_current(&analyzed.snapshot)`
 
 The planner applies the same catalog check per input (`planner.rs`, "stale catalog analysis").
+
+A publish with unchanged declarations copies the snapshot without bumping the version, so the
+analyses of other scripts stay current. Their older snapshot declares the same objects at the same
+positions as the current one, so their locations stay valid in both.
 
 ### Editing a published script
 
 A text edit does **not** remove the script from the catalog. Other scripts keep resolving against
 its last published declarations until the owner publishes the new analysis, and the analysis of the
-edited script ignores its own entry (`ignore_entry` in resolution, own-id filter in completion and
-dependencies). With equal declarations, the republish leaves the version unchanged, and no other
+edited script ignores its own entry (`ignore_entry` in resolution, own-id filter in completion,
+own entry first in `AnalyzedScript::table`). With equal declarations, the republish leaves the version unchanged, and no other
 analysis goes stale.
 
 A publish that does bump the version makes the publishing script's own analysis stale too: its
-`entry.catalog_version` is now older than the catalog. The next `analyze` re-analyzes it against the
+snapshot is now older than the catalog. The next `analyze` re-analyzes it against the
 new version, and republishing that analysis is a no-op. So the system converges after one extra
 analysis per declaration change.
 
@@ -285,7 +310,7 @@ analysis per declaration change.
 |---|---|
 | `apply(event)` | None; analyzes if `event.analyze` or if a selection change meets a stale analysis |
 | `analyze()` | None; re-analyzes if not current |
-| `load_into_catalog(rank)` | `load_script`; records the resulting catalog version |
+| `load_into_catalog(rank)` | `load_script` of the analysis |
 | `drop_from_catalog()` | `drop_script` |
 | `Drop` | `drop_script` through `try_borrow_mut`; **silently skipped** if the catalog is borrowed at that moment |
 
@@ -295,17 +320,15 @@ current.
 
 ## Completion's view of the catalog
 
-`Completion` (`completion.rs`) reads three sources:
+`Completion` (`completion.rs`) reads the script's analysis (its own name index, scopes, CTEs and
+resolved references) and the analysis's snapshot (the name indexes and declarations of all other
+entries, tables by schema). `ScriptView::catalog()` returns that snapshot, or the catalog's current
+snapshot for a script without analysis. Every location completion handles, from the analysis or
+from a name index, refers to the same snapshot.
 
-| Source | What | Lookup |
-|---|---|---|
-| The script's analysis | Its own name index, scopes, CTEs, resolved references | `AnalyzedScript::table` (own entry, then dependencies) |
-| The live catalog | Name indexes of all entries except the script's own id, tables by schema | `Catalog::entry`, current declarations |
-| Combined | Candidates for unresolved columns (tables that have such a column) | Live catalog, then the own entry |
-
-Candidates found in the live catalog are looked up in the live catalog; locations that came out of
-the analysis are looked up through the analysis. Mixing the two would index declarations of one
-version with locations of another.
+The session refreshes an outdated analysis before it places the cursor, so editor completion sees
+the current catalog. Completion on an outdated analysis through the `Script` API sees the catalog
+as the analysis saw it.
 
 ## Descriptors and catalog changes
 
@@ -367,8 +390,7 @@ differs from the input.
 1. Published entries are immutable; replacing one never changes analyses that hold the old version.
 2. An analysis never resolves against its own published entry.
 3. Dependencies and catalog entries hold declarations, never analyses.
-4. A location from an analysis is resolved through that analysis; a location from the live catalog
-   through the live catalog.
+4. The catalog locations of an analysis are resolved through the snapshot it was analyzed against.
 5. The catalog version changes whenever what other entries resolve against may have changed, and only
    then (except `replace_descriptor` and `apply_catalog_changes`, which always bump).
 6. Database and schema ids are canonical per catalog and never reused.
@@ -377,10 +399,8 @@ differs from the input.
 
 - **Full rebuild on change.** A publish that changes declarations clones the entry maps and rebuilds
   every global index, O(all entries).
-- **Analysis side effect.** Id reservations go through `RefCell<IdReservations>` behind `&Catalog`,
-  which also makes `Catalog` `!Sync`.
-- **Over-broad dependencies.** They are all published entries, not just the ones the analysis
-  resolved against.
+- **Analysis side effect.** Id reservations go through `RefCell<IdReservations>` behind `&Catalog`.
+  Snapshots are `Sync`, the catalog itself is not.
 - **Cascades.** `analyzeScriptData` republishes without marking other scripts outdated. A script whose
   declarations depend on another (`CREATE VIEW v AS SELECT * FROM a`) can bump the version without
   propagating.
@@ -398,12 +418,12 @@ differs from the input.
 |---|---|
 | Ids | `packages/dashql-core/src/catalog/ids.rs` |
 | Entry data, names, declarations, `same_declarations` | `packages/dashql-core/src/catalog/entry.rs` |
-| Catalog, publishing, resolution, flatten | `packages/dashql-core/src/catalog/mod.rs` |
+| Catalog, snapshots, publishing, resolution, flatten | `packages/dashql-core/src/catalog/mod.rs` |
 | Descriptors | `packages/dashql-core/src/catalog/descriptor.rs` |
 | Name search index | `packages/dashql-core/src/catalog/names.rs` |
 | Catalog changes | `packages/dashql-core/src/catalog/changes.rs` |
 | Analyzer entry point, `AnalyzedScript` | `packages/dashql-core/src/analyzer/mod.rs` |
-| Shared pass state, dependencies | `packages/dashql-core/src/analyzer/state.rs` |
+| Shared pass state | `packages/dashql-core/src/analyzer/state.rs` |
 | Name resolution, schema inference | `packages/dashql-core/src/analyzer/name_resolution.rs` |
 | Analysis types | `packages/dashql-core/src/analyzer/types.rs` |
 | Script pipeline | `packages/dashql-core/src/script.rs` |

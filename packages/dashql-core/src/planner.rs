@@ -148,7 +148,7 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             state.diagnose(NONE, "missing or stale script analysis".into(), true);
             continue;
         }
-        if analyzed.entry.catalog_version != input.catalog.version() {
+        if !input.catalog.is_current(&analyzed.snapshot) {
             state.diagnose(NONE, "stale catalog analysis".into(), true);
             continue;
         }
@@ -178,7 +178,7 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
         meta.script_id = script.catalog_entry_id();
         meta.text_version = script.text_version();
         meta.analyzed_text_version = analyzed.parsed.scanned.text_version;
-        meta.analyzed_catalog_revision = analyzed.entry.catalog_version as u64;
+        meta.analyzed_catalog_revision = analyzed.snapshot.version() as u64;
         scripts_meta.push(meta);
         count += parsed.statements.len() as u32;
     }

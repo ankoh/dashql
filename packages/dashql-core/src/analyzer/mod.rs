@@ -29,8 +29,10 @@ use std::sync::Arc;
 pub struct AnalyzedScript {
     /// The parsed script
     pub parsed: Arc<ParsedScript>,
-    /// The id of the catalog the script was analyzed against (`Catalog::id`)
-    pub catalog_id: u64,
+    /// The catalog snapshot the script was analyzed against. Its locations into other entries refer
+    /// to the declarations of this snapshot, however the catalog changed since. The snapshot holds
+    /// declarations and names, never analyses, so it keeps no earlier analysis alive.
+    pub snapshot: Arc<CatalogSnapshot>,
     /// The catalog declarations of the script, shared with the catalog when the script is published
     pub entry: Arc<CatalogEntryData>,
     /// The names of the scanned script, plus the empty name registered by the analyzer
@@ -68,10 +70,6 @@ pub struct AnalyzedScript {
     pub inferred_table_schemas: Vec<InferredTableSchema>,
     /// The inferred schemas by (database, schema, table)
     pub inferred_table_schemas_by_name: HashMap<QualifiedKey, usize>,
-    /// The declarations of the catalog entries the script was analyzed against. Only the declarations
-    /// are kept, never the analyzed scripts of other entries: those hold dependencies of their own, so
-    /// scripts that are published in turn would otherwise retain every earlier version of each other.
-    pub dependencies: Vec<Arc<CatalogEntryData>>,
     /// The names of the script for completion, shared with the catalog when the script is published
     pub(crate) name_search_index: Arc<NameSearchIndex>,
 }
@@ -104,21 +102,18 @@ impl AnalyzedScript {
     /// The part of the analysis that the catalog publishes
     pub fn publication(&self) -> PublishedScript {
         PublishedScript {
-            catalog_id: self.catalog_id,
+            catalog_id: self.snapshot.id(),
             entry: self.entry.clone(),
             names: self.name_search_index.clone(),
         }
     }
 
-    /// A table declared by this script or by a dependency
+    /// A table declared by this script or by an entry of its snapshot
     pub fn table(&self, loc: TableLoc) -> Option<&TableDeclaration> {
         if loc.entry == self.entry.catalog_entry_id {
             return self.entry.table_declarations.get(loc.index as usize);
         }
-        self.dependencies
-            .iter()
-            .find(|d| d.catalog_entry_id == loc.entry)
-            .and_then(|d| d.table_declarations.get(loc.index as usize))
+        self.snapshot.table(loc)
     }
 }
 

@@ -157,10 +157,14 @@ impl EntryIdSource {
 /// The source of unique catalog ids
 static NEXT_CATALOG_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
-/// The catalog
-#[derive(Debug)]
-pub struct Catalog {
-    /// A process-unique id, recorded by the scripts analyzed against the catalog
+/// The published state of a catalog at one point in time.
+///
+/// Immutable once published: analyses keep the snapshot they resolved against, so their catalog
+/// locations stay valid however the catalog changes later. A snapshot holds declarations and names,
+/// never analyses, so keeping one alive keeps no earlier analysis alive.
+#[derive(Clone, Debug)]
+pub struct CatalogSnapshot {
+    /// The process-unique id of the catalog
     id: u64,
     /// The version, bumped by every modification
     version: CatalogVersion,
@@ -180,10 +184,34 @@ pub struct Catalog {
     databases: BTreeMap<Arc<str>, Arc<DatabaseDeclaration>>,
     /// The schemas referenced by entries
     schemas: BTreeMap<(Arc<str>, Arc<str>), Arc<SchemaDeclaration>>,
-    /// The canonical ids
+}
+
+/// The catalog: the current snapshot and the ids that outlive snapshots.
+///
+/// Reads go to the current snapshot (`Deref`). A modification copies the snapshot if an analysis
+/// still holds it (`DerefMut` is `Arc::make_mut`), so published snapshots never change.
+#[derive(Debug)]
+pub struct Catalog {
+    /// The current snapshot
+    current: Arc<CatalogSnapshot>,
+    /// The canonical ids, reserved during analysis and never reused
     ids: RefCell<IdReservations>,
     /// The source of the entry ids
     entry_ids: EntryIdSource,
+}
+
+impl std::ops::Deref for Catalog {
+    type Target = CatalogSnapshot;
+
+    fn deref(&self) -> &CatalogSnapshot {
+        &self.current
+    }
+}
+
+impl std::ops::DerefMut for Catalog {
+    fn deref_mut(&mut self) -> &mut CatalogSnapshot {
+        Arc::make_mut(&mut self.current)
+    }
 }
 
 impl Default for Catalog {
@@ -200,16 +228,18 @@ impl Catalog {
     /// A catalog that allocates its entry ids from a shared source
     pub fn with_entry_ids(entry_ids: EntryIdSource) -> Self {
         Self {
-            id: NEXT_CATALOG_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-            version: 1,
-            entries: HashMap::default(),
-            script_entries: HashMap::default(),
-            descriptor_entries: HashMap::default(),
-            entries_ranked: BTreeSet::new(),
-            entries_by_qualified_schema: BTreeMap::new(),
-            entries_by_schema: BTreeMap::new(),
-            databases: BTreeMap::new(),
-            schemas: BTreeMap::new(),
+            current: Arc::new(CatalogSnapshot {
+                id: NEXT_CATALOG_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+                version: 1,
+                entries: HashMap::default(),
+                script_entries: HashMap::default(),
+                descriptor_entries: HashMap::default(),
+                entries_ranked: BTreeSet::new(),
+                entries_by_qualified_schema: BTreeMap::new(),
+                entries_by_schema: BTreeMap::new(),
+                databases: BTreeMap::new(),
+                schemas: BTreeMap::new(),
+            }),
             ids: RefCell::new(IdReservations {
                 database_ids_by_name: HashMap::default(),
                 schema_ids_by_name: HashMap::default(),
@@ -220,6 +250,19 @@ impl Catalog {
         }
     }
 
+    /// The current snapshot
+    pub fn snapshot(&self) -> &Arc<CatalogSnapshot> {
+        &self.current
+    }
+
+    /// Is a snapshot of this catalog current? A snapshot stays current while the version stays,
+    /// i.e. while the declarations that analyses resolve against stay the same.
+    pub fn is_current(&self, snapshot: &CatalogSnapshot) -> bool {
+        snapshot.id == self.current.id && snapshot.version == self.current.version
+    }
+}
+
+impl CatalogSnapshot {
     /// The process-unique id of the catalog
     pub fn id(&self) -> u64 {
         self.id
@@ -259,7 +302,9 @@ impl Catalog {
     pub fn entries_by_schema(&self) -> &BTreeMap<(Arc<str>, Rank, CatalogEntryId), SchemaEntryInfo> {
         &self.entries_by_schema
     }
+}
 
+impl Catalog {
     /// Allocate an entry id
     pub fn allocate_entry_id(&self) -> CatalogEntryId {
         self.entry_ids.allocate()
@@ -519,6 +564,9 @@ impl Catalog {
         self.version += 1;
     }
 
+}
+
+impl CatalogSnapshot {
     /// Flatten the catalog (`Catalog::Flatten`).
     ///
     /// Databases, schemas and tables are merged across entries and ordered by name. A table name that
@@ -845,7 +893,7 @@ fn describe_entry(entry: &CatalogEntryRef) -> dashql_buffers::catalog::CatalogEn
     out
 }
 
-impl Catalog {
+impl CatalogSnapshot {
     /// Describe all entries in rank order (`DescribeEntries`)
     pub fn describe_entries(&self) -> dashql_buffers::catalog::CatalogEntriesT {
         let mut out = dashql_buffers::catalog::CatalogEntriesT::default();

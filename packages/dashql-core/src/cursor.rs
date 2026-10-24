@@ -3,7 +3,7 @@
 //! `AnalyzedScript::FollowPathUpwards`).
 
 use crate::analyzer::{AnalyzedScript, ExprId, ScopeId, TableRefId};
-use crate::catalog::Catalog;
+use crate::catalog::CatalogSnapshot;
 use dashql_buffers::cursor::RelativeSymbolPosition;
 use dashql_buffers::parser::{NodeType, SymbolSpan};
 use dashql_parser::names::NameId;
@@ -22,11 +22,17 @@ pub struct ScriptView<'a> {
     pub parsed: Option<&'a Arc<ParsedScript>>,
     /// The analyzed script, if analyzed, possibly from an older parsed script
     pub analyzed: Option<&'a Arc<AnalyzedScript>>,
-    /// The catalog the script is analyzed against
-    pub catalog: &'a Catalog,
+    /// The current snapshot of the catalog, for scripts without analysis
+    pub catalog: &'a CatalogSnapshot,
 }
 
 impl<'a> ScriptView<'a> {
+    /// The catalog snapshot the script was analyzed against, the current one without analysis. The
+    /// catalog locations of the analysis refer to this snapshot.
+    pub fn catalog(&self) -> &'a CatalogSnapshot {
+        self.analyzed.map_or(self.catalog, |analyzed| &analyzed.snapshot)
+    }
+
     /// The analyzed script if it was analyzed from the current parsed script
     pub fn current_analysis(&self) -> Option<&'a Arc<AnalyzedScript>> {
         match (self.parsed, self.analyzed) {

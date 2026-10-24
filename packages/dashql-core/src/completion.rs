@@ -416,8 +416,9 @@ impl<'c, 'a> Completion<'c, 'a> {
         self.cursor.script.analyzed
     }
 
-    fn catalog(&self) -> &'a Catalog {
-        self.cursor.script.catalog
+    /// The catalog snapshot of the analysis
+    fn catalog(&self) -> &'a CatalogSnapshot {
+        self.cursor.script.catalog()
     }
 
     /// The text at a text range, clamped to the script text

@@ -188,10 +188,6 @@ pub struct ScriptSession {
     offset_unit: EditorOffsetUnit,
     /// Bumped by every committed change of the text, selection or analysis
     state_revision: u64,
-    /// The text version the analysis is current with, `NO_VERSION` if none
-    analyzed_text_version: TextVersion,
-    /// The catalog version the analysis is current with, `NO_VERSION` if none
-    analyzed_catalog_revision: u64,
     /// The text version the cursor is current with, `NO_VERSION` if not placed
     cursor_text_version: TextVersion,
     /// The catalog version the cursor is current with, `NO_VERSION` if not placed
@@ -238,8 +234,6 @@ impl ScriptSession {
             script,
             offset_unit,
             state_revision: 0,
-            analyzed_text_version: NO_VERSION,
-            analyzed_catalog_revision: NO_VERSION,
             cursor_text_version: NO_VERSION,
             cursor_catalog_revision: NO_VERSION,
             primary_selection: None,
@@ -331,18 +325,17 @@ impl ScriptSession {
     }
 
     /// Does the analysis match the text and the catalog? (`IsAnalysisCurrent`)
+    ///
+    /// The analysis is current if it was analyzed from the current text, and against a snapshot of
+    /// the catalog that is still current.
     fn is_analysis_current(&self, catalog: &Catalog) -> bool {
-        let text_version = self.text_version();
-        let catalog_version = catalog.version() as u64;
         let Some(analyzed) = self.script.analyzed.as_ref() else {
             return false;
         };
-        self.analyzed_text_version == text_version
-            && self.analyzed_catalog_revision == catalog_version
-            && analyzed.entry.catalog_version as u64 == catalog_version
+        catalog.is_current(&analyzed.snapshot)
             && self.script.parsed.as_ref().is_some_and(|p| Arc::ptr_eq(p, &analyzed.parsed))
             && self.script.scanned.as_ref().is_some_and(|s| Arc::ptr_eq(s, &analyzed.parsed.scanned))
-            && analyzed.parsed.scanned.text_version == text_version
+            && analyzed.parsed.scanned.text_version == self.text_version()
     }
 
     /// The revision and selection part of an update (`MakeUpdate`)
@@ -383,8 +376,6 @@ impl ScriptSession {
         }
         match self.script.analyze(&catalog, true) {
             Ok(()) => {
-                self.analyzed_text_version = self.script.text_version();
-                self.analyzed_catalog_revision = catalog.version() as u64;
                 update.analysis_updated = true;
                 update.analysis_available = true;
                 true
@@ -1067,10 +1058,9 @@ impl ScriptSession {
         let analyzed =
             self.script.analyzed.clone().ok_or_else(|| Error::status(StatusCode::CATALOG_SCRIPT_NOT_ANALYZED))?;
         let mut catalog = self.catalog.borrow_mut();
+        // A publish that changes declarations bumps the catalog version, the analysis then needs a
+        // refresh against that version before the planner can use it
         catalog.load_script(analyzed, rank)?;
-        // Publishing bumps the catalog version, the analysis needs a refresh against that version
-        // before the planner can use it
-        self.analyzed_catalog_revision = catalog.version() as u64;
         self.cursor_catalog_revision = catalog.version() as u64;
         Ok(())
     }

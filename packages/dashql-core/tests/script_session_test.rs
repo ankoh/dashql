@@ -395,7 +395,11 @@ fn editing_published_script_keeps_catalog_entry_until_republished() {
     assert!(edited.analysis_available);
     let analyzed = session.script().analyzed.clone().unwrap();
     assert!(analyzed.errors.is_empty());
-    assert!(analyzed.dependencies.iter().all(|d| d.catalog_entry_id != session.catalog_entry_id()));
+    // The snapshot of the analysis still holds the published version, the analysis reads its own
+    let own = analyzed.snapshot.entry(session.catalog_entry_id()).unwrap();
+    assert_eq!(&*own.data().table_declarations[0].table_name.table_name.text, "items");
+    let loc = dashql_core::catalog::TableLoc { entry: session.catalog_entry_id(), index: 0 };
+    assert_eq!(&*analyzed.table(loc).unwrap().table_name.table_name.text, "updated");
 
     // Publishing the new declarations bumps the version
     session.load_into_catalog(0).unwrap();

@@ -42,7 +42,7 @@ impl<'a> AnalysisState<'a> {
         let node_count = parsed.nodes.len();
         let out = AnalyzedScript {
             parsed: parsed.clone(),
-            catalog_id: catalog.id(),
+            snapshot: catalog.snapshot().clone(),
             entry: Arc::new(CatalogEntryData::new(entry_id, catalog.version())),
             names,
             name_tags,
@@ -61,12 +61,6 @@ impl<'a> AnalysisState<'a> {
             inference_constraints: Vec::new(),
             inferred_table_schemas: Vec::new(),
             inferred_table_schemas_by_name: Default::default(),
-            dependencies: catalog
-                .entries_ranked()
-                .map(|(_, e)| e.shared_data())
-                .filter(|data| data.catalog_entry_id != entry_id)
-                .cloned()
-                .collect(),
             name_search_index: Default::default(),
         };
         Self {

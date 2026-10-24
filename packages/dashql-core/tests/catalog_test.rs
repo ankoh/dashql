@@ -454,3 +454,44 @@ fn published_scripts_do_not_retain_their_analysis() {
     assert_eq!(&*entry.data().table_declarations[0].table_name.table_name.text, "a");
     assert!(entry.name_search_index().search(b"a").next().is_some());
 }
+
+#[test]
+fn analyses_keep_the_snapshot_they_resolved_against() {
+    let mut catalog = Catalog::new();
+    let mut schema = analyze(&catalog, "create table a (x integer, y integer, z integer)");
+    catalog.load_script(schema.analyzed.clone().unwrap(), 0).unwrap();
+    let mut query = analyze(&catalog, "select z from a where z = 1");
+    let analyzed = query.analyzed.clone().unwrap();
+    assert!(catalog.is_current(&analyzed.snapshot));
+
+    // The published table loses the columns the query resolved to
+    schema.replace_text("create table a (x integer)");
+    schema.analyze(&catalog, true).unwrap();
+    catalog.load_script(schema.analyzed.clone().unwrap(), 0).unwrap();
+    assert!(!catalog.is_current(&analyzed.snapshot));
+
+    // The analysis still resolves its locations through its snapshot
+    let loc = analyzed
+        .expressions
+        .iter()
+        .find_map(|e| match e.column_ref()?.resolved {
+            ColumnResolution::TableColumn(loc) => Some(loc),
+            _ => None,
+        })
+        .expect("column z resolves");
+    let table = analyzed.table(loc.table).unwrap();
+    assert_eq!(&*table.table_columns[loc.column as usize].column_name.text, "z");
+    assert_eq!(catalog.table(loc.table).unwrap().table_columns.len(), 1);
+
+    // So does completion on the outdated analysis
+    let cursor = query.move_cursor(&catalog, "select z from a where z".len());
+    let completion = Script::complete_at_cursor(&cursor, 10).unwrap();
+    assert!(completion.candidates.iter().any(|c| &*c.completion_text == "z"));
+}
+
+#[test]
+fn snapshots_and_analyses_can_be_shared_across_threads() {
+    fn shareable<T: Send + Sync>() {}
+    shareable::<dashql_core::catalog::CatalogSnapshot>();
+    shareable::<dashql_core::analyzer::AnalyzedScript>();
+}
