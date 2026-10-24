@@ -146,7 +146,7 @@ pub fn analyze(parsed: Arc<ParsedScript>, catalog: &Catalog) -> Result<AnalyzedS
         out.errors.push(AnalyzerError {
             error_type: AnalyzerErrorType::MALFORMED_COMMENT_TAG,
             severity: AnalyzerErrorSeverity::WARNING,
-            ast_node_id: PROTO_NULL_U32,
+            ast_node_id: None,
             symbol_span: None,
             text_span: Some(*span),
             message: message.clone(),

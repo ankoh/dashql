@@ -30,7 +30,7 @@ pub struct ScriptExecution {
     /// The 1-based index of the current statement, 0 before the start
     statement_index: u32,
     /// The index of the statement that produces the output
-    output_statement_index: u32,
+    output_statement_index: Option<u32>,
     /// The phase of the execution
     phase: Phase,
     /// The error of a failed execution
@@ -71,12 +71,13 @@ impl ScriptExecution {
             .flatten()
             .map(|statement| analyzed.and_then(|a| derive_catalog_change(a, statement.statement_id as usize, &options)))
             .collect();
-        let mut output_statement_index = PROTO_NULL_U32;
-        for (i, statement) in compilation.statements.iter().flatten().enumerate() {
-            if statement.kind != CompiledScriptStatementKind::COMMAND {
-                output_statement_index = i as u32;
-            }
-        }
+        let output_statement_index = compilation
+            .statements
+            .as_deref()
+            .unwrap_or_default()
+            .iter()
+            .rposition(|statement| statement.kind != CompiledScriptStatementKind::COMMAND)
+            .map(|i| i as u32);
         Self {
             text_version,
             compilation,
@@ -101,7 +102,7 @@ impl ScriptExecution {
         snapshot.text_version = self.text_version;
         snapshot.statement_index = self.statement_index;
         snapshot.statement_count = self.statement_count();
-        snapshot.output_statement_index = self.output_statement_index;
+        snapshot.output_statement_index = self.output_statement_index.unwrap_or(PROTO_NULL_U32);
         snapshot.error = non_empty_string(self.error.clone());
         let mut update = ScriptExecutionUpdateT::default();
         update.protocol_error = error;
@@ -132,7 +133,7 @@ impl ScriptExecution {
         pending.index = self.statement_index;
         pending.statement_count = statement_count;
         pending.sql = statement.sql.clone().filter(|s| !s.is_empty());
-        pending.produces_output = index == self.output_statement_index;
+        pending.produces_output = Some(index) == self.output_statement_index;
         self.next_pending_statement_id += 1;
         self.pending_statement_id = Some(pending.id);
         let mut update = self.make_update(ProtocolError::NONE, "");

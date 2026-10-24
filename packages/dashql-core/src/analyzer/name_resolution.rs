@@ -269,11 +269,9 @@ impl NameResolutionPass {
         }
     }
 
-    fn is_explain(state: &AnalysisState, statement_id: u32) -> bool {
-        state
-            .parsed
-            .statements
-            .get(statement_id as usize)
+    fn is_explain(state: &AnalysisState, statement_id: Option<u32>) -> bool {
+        statement_id
+            .and_then(|id| state.parsed.statements.get(id as usize))
             .is_some_and(|s| s.statement_type == StatementType::EXPLAIN)
     }
 
@@ -298,7 +296,7 @@ impl NameResolutionPass {
         let name = table_name.table_name.clone();
         let mut table = TableDeclaration::new(schema_id, table_id, table_name);
         table.ast_node_id = Some(declaration_id);
-        table.ast_statement_id = Some(state.find_statement_id(declaration_id));
+        table.ast_statement_id = state.find_statement_id(declaration_id);
         table.ast_scope_root = Some(state.node_id(select_node));
         table.is_view = declaration_node.node_type() == NodeType::OBJECT_SQL_VIEW;
         table.location = name_node.map(|n| state.text_span(*n.symbol_span()));
@@ -733,8 +731,8 @@ impl NameResolutionPass {
             // A CTE cannot correlate with the FROM items of the statement it is attached to
             state.out.name_scopes[child_scope as usize].parent_visibility = SourceVisibility::None;
             let mut column_aliases = Vec::new();
-            if cte.columns_count > 0 {
-                let columns = &state.ast[cte.columns_node_id as usize];
+            if let Some(columns_node_id) = cte.columns_node_id.filter(|_| cte.columns_count > 0) {
+                let columns = &state.ast[columns_node_id as usize];
                 for ci in 0..cte.columns_count as u32 {
                     let column = &state.ast[(columns.children_begin_or_value() + ci) as usize];
                     if column.node_type() == NodeType::NAME {
@@ -1178,7 +1176,7 @@ impl NameResolutionPass {
                     node_state.ctes.push(CteDefinition {
                         cte_name: state.node_name(name),
                         select_node_id: state.node_id(statement),
-                        columns_node_id: columns.map(|c| state.node_id(c)).unwrap_or(0),
+                        columns_node_id: columns.map(|c| state.node_id(c)),
                         columns_count: columns.map(|c| c.children_count() as u16).unwrap_or(0),
                         ast_node_id: node_id,
                     });
@@ -1243,7 +1241,7 @@ impl NameResolutionPass {
 
                 let mut insert = InsertStatement {
                     ast_node_id: node_id,
-                    ast_statement_id: Some(state.find_statement_id(node_id)),
+                    ast_statement_id: state.find_statement_id(node_id),
                     target: target_ref,
                     source_ast_node_id: source.map(|s| state.node_id(s)),
                     default_values: default_values.is_some(),
@@ -1358,7 +1356,7 @@ impl NameResolutionPass {
                 let name = table_name.table_name.clone();
                 let mut table = TableDeclaration::new(schema_id, table_id, table_name);
                 table.ast_node_id = Some(node_id);
-                table.ast_statement_id = Some(state.find_statement_id(node_id));
+                table.ast_statement_id = state.find_statement_id(node_id);
                 table.location = name_node.map(|n| state.text_span(*n.symbol_span()));
                 let column_ids = state.reserve_column_ids(table_id, columns.iter().map(|c| &c.column_name.text));
                 for (column_index, column) in columns.iter().enumerate() {
@@ -1402,7 +1400,7 @@ impl NameResolutionPass {
                     object_id: QualifiedCatalogObjectId::function(function_id),
                     catalog_schema_id: schema_id,
                     is_aggregate: is_aggregate.is_some(),
-                    ast_node_id: node_id,
+                    ast_node_id: Some(node_id),
                     ast_statement_id: None,
                     function_name: function_name.clone(),
                     params: Vec::new(),
@@ -1531,7 +1529,7 @@ impl NameResolutionPass {
                     .map(|(s, statement)| (s.ast_node_id, statement)),
             );
             for (scope, statement) in state.out.name_scopes.iter_mut().zip(scope_statements) {
-                if let Some(statement) = statement {
+                if statement.is_some() {
                     scope.ast_statement_id = statement;
                 }
             }
@@ -1539,7 +1537,7 @@ impl NameResolutionPass {
                 &mut Arc::make_mut(&mut state.out.entry)
                     .function_declarations
                     .iter_mut()
-                    .map(|f| (f.ast_node_id, &mut f.ast_statement_id)),
+                    .filter_map(|f| Some((f.ast_node_id?, &mut f.ast_statement_id))),
             );
         }
 

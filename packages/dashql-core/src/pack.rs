@@ -387,7 +387,7 @@ fn qualified_function_name(n: &QualifiedFunctionName) -> QualifiedFunctionNameT 
 /// Pack a function declaration (`FunctionDeclaration::Pack`)
 pub fn pack_function_declaration(f: &FunctionDeclaration) -> FunctionDeclarationT {
     build!(FunctionDeclarationT {
-        ast_node_id: f.ast_node_id,
+        ast_node_id: f.ast_node_id.unwrap_or(PROTO_NULL_U32),
         ast_statement_id: f.ast_statement_id.unwrap_or(PROTO_NULL_U32),
         is_aggregate: f.is_aggregate,
         function_name: Some(Box::new(qualified_function_name(&f.function_name))),
@@ -640,7 +640,7 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
             build!(NameScopeT {
                 scope_id: i as u32,
                 ast_node_id: scope.ast_node_id,
-                ast_statement_id: scope.ast_statement_id,
+                ast_statement_id: scope.ast_statement_id.unwrap_or(PROTO_NULL_U32),
                 child_scopes: Some(scope.child_scopes.clone()),
                 expressions: Some(scope.expressions.clone()),
                 table_references: Some(scope.table_references.clone()),
@@ -773,6 +773,12 @@ pub fn pack_cursor(cursor: &crate::cursor::ScriptCursor) -> dashql_buffers::curs
         CursorContext::ColumnRef { expression_id } => {
             let mut ctx = ScriptCursorColumnRefContextT::default();
             ctx.expression_id = expression_id;
+            ScriptCursorContextT::ScriptCursorColumnRefContext(Box::new(ctx))
+        }
+        // A column reference without an expression
+        CursorContext::AliasDot => {
+            let mut ctx = ScriptCursorColumnRefContextT::default();
+            ctx.expression_id = PROTO_NULL_U32;
             ScriptCursorContextT::ScriptCursorColumnRefContext(Box::new(ctx))
         }
     };

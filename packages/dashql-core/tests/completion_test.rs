@@ -132,7 +132,8 @@ fn dot_completion_before_later_cte_lines() {
     let location = cursor.scanner_location.expect("scanner location");
     assert!(location.current.is_trailing_dot() || location.previous.is_some_and(|p| p.is_trailing_dot()));
     assert!(!cursor.name_scopes.is_empty());
-    assert!(matches!(cursor.context, dashql_core::cursor::CursorContext::ColumnRef { .. }));
+    // The parser recovered `q.` without a column ref node
+    assert!(matches!(cursor.context, dashql_core::cursor::CursorContext::AliasDot));
 
     let completion = Script::complete_at_cursor(&cursor, 50).unwrap();
     assert!(find_candidate(&completion, "event_id").is_some());
@@ -153,7 +154,7 @@ fn completes_qualified_columns_in_explicit_join() {
         let scope = &analyzed.name_scopes[cursor.name_scopes[0] as usize];
         assert!(scope.source("a").is_some());
         assert!(scope.source("b").is_some());
-        assert!(matches!(cursor.context, dashql_core::cursor::CursorContext::ColumnRef { .. }), "{qualifier}");
+        assert!(matches!(cursor.context, dashql_core::cursor::CursorContext::AliasDot), "{qualifier}");
 
         let completion = Script::complete_at_cursor(&cursor, 50).unwrap();
         assert!(find_candidate(&completion, expected_column).is_some(), "{qualifier}");

@@ -209,8 +209,8 @@ pub struct FunctionDeclaration {
     pub catalog_schema_id: QualifiedCatalogObjectId,
     /// Whether the function is an aggregate function
     pub is_aggregate: bool,
-    /// The AST node id in the declaring script, `u32::MAX` for descriptor functions
-    pub ast_node_id: u32,
+    /// The AST node id in the declaring script, None for descriptor functions
+    pub ast_node_id: Option<u32>,
     /// The id of the declaring statement
     pub ast_statement_id: Option<u32>,
     /// The qualified function name

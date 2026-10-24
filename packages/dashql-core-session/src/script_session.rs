@@ -17,7 +17,7 @@
 //! convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
 
 use dashql_core::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
-use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName};
+use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName, PROTO_NULL_U32};
 use crate::compiler::{compile, CompilationOptions};
 use dashql_core::completion::is_symbol_kind_completable;
 use dashql_core::cursor::CursorContext;
@@ -923,6 +923,11 @@ impl ScriptSession {
                 if let Some(expression) = analyzed.expressions.get(expression_id as usize) {
                     target = resolved_column_ids(expression).map(|(t, c)| (t, Some(c)));
                 }
+            }
+            // The editor sees a column reference without an expression
+            CursorContext::AliasDot => {
+                context.kind = EditorCursorSemanticKind::COLUMN_REFERENCE;
+                context.reference_id = PROTO_NULL_U32;
             }
             CursorContext::None => {}
         }

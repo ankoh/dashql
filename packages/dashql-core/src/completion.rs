@@ -241,7 +241,7 @@ pub struct CandidateObject {
     pub score: Score,
     /// The qualified name
     pub qualified_name: Vec<Arc<str>>,
-    /// The index of the target name in the qualified name
+    /// The index of the target name in the qualified name, 0 if the qualified name is empty
     pub qualified_name_target_idx: usize,
     /// Whether to prefer the qualified name, set for ambiguous names and aliased tables
     pub prefer_qualified: bool,
@@ -384,7 +384,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         let strategy = match cursor.context {
             CursorContext::TableRef { at_alias: true, .. } => CompletionStrategy::TABLE_REF_ALIAS,
             CursorContext::TableRef { .. } => CompletionStrategy::TABLE_REF,
-            CursorContext::ColumnRef { .. } => CompletionStrategy::COLUMN_REF,
+            CursorContext::ColumnRef { .. } | CursorContext::AliasDot => CompletionStrategy::COLUMN_REF,
             CursorContext::None => CompletionStrategy::DEFAULT,
         };
         Self {
@@ -1259,7 +1259,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         let target = self.target_symbol.unwrap();
 
         // A recovered `alias.` context without a column ref node: resolve the alias in the scopes
-        if let CursorContext::ColumnRef { expression_id: u32::MAX } = cursor.context {
+        if let CursorContext::AliasDot = cursor.context {
             let Some(location) = cursor.scanner_location else { return };
             let Some(dot) = ScriptCursor::dot_symbol(&location, &target) else { return };
             let (alias_begin, alias_end) =
@@ -1420,7 +1420,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                 }
                 _ => {}
             },
-            CursorContext::ColumnRef { .. } => {
+            CursorContext::ColumnRef { .. } | CursorContext::AliasDot => {
                 if sealed == 1 {
                     // a._: a might be a table alias
                     let a = name_text(0);
@@ -1600,7 +1600,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                         let qualified =
                             self.table(loc).map(|t| Self::qualified_table_name(&t.table_name)).unwrap_or_default();
                         let object = &mut self.candidate_objects[co];
-                        object.qualified_name_target_idx = qualified.len().wrapping_sub(1);
+                        object.qualified_name_target_idx = qualified.len().saturating_sub(1);
                         object.qualified_name = qualified;
                     }
                     CandidateObjectRef::Function(loc) => {
@@ -1624,7 +1624,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                             })
                             .unwrap_or_default();
                         let object = &mut self.candidate_objects[co];
-                        object.qualified_name_target_idx = qualified.len().wrapping_sub(1);
+                        object.qualified_name_target_idx = qualified.len().saturating_sub(1);
                         object.qualified_name = qualified;
                     }
                     _ => {}

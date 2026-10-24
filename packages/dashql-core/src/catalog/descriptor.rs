@@ -305,7 +305,7 @@ impl DescriptorEntry {
                     object_id: QualifiedCatalogObjectId::function(function_id),
                     catalog_schema_id: schema_id,
                     is_aggregate: source.is_aggregate(),
-                    ast_node_id: u32::MAX,
+                    ast_node_id: None,
                     ast_statement_id: None,
                     function_name: QualifiedFunctionName {
                         ast_node_id: None,

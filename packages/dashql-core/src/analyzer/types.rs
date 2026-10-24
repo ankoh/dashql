@@ -77,8 +77,8 @@ pub struct AnalyzerError {
     pub error_type: AnalyzerErrorType,
     /// The error severity
     pub severity: AnalyzerErrorSeverity,
-    /// The AST node id of the error location, `PROTO_NULL_U32` if there is none
-    pub ast_node_id: u32,
+    /// The AST node id of the error location, None if there is none
+    pub ast_node_id: Option<u32>,
     /// The symbol span of the AST node
     pub symbol_span: Option<SymbolSpan>,
     /// The location in the script text
@@ -421,8 +421,8 @@ pub struct CteDefinition {
     pub cte_name: Name,
     /// The AST node id of the CTE statement
     pub select_node_id: u32,
-    /// The AST node id of the column alias array, 0 if there is none
-    pub columns_node_id: u32,
+    /// The AST node id of the column alias array, if there is one
+    pub columns_node_id: Option<u32>,
     /// The number of column aliases
     pub columns_count: u16,
     /// The AST node id of the CTE definition
@@ -522,8 +522,8 @@ pub struct NameScope {
     pub name_scope_id: u32,
     /// The AST node id of the scope root
     pub ast_node_id: u32,
-    /// The AST statement id
-    pub ast_statement_id: u32,
+    /// The AST statement id, None outside of statements
+    pub ast_statement_id: Option<u32>,
     /// The parent scope, None for a root scope
     pub parent_scope: Option<ScopeId>,
     /// The child scopes

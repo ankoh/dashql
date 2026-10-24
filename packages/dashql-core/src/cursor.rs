@@ -254,8 +254,10 @@ pub enum CursorContext {
     None,
     /// A table reference
     TableRef { table_reference_id: TableRefId, at_alias: bool },
-    /// A column reference. `u32::MAX` marks an `alias.` without a column ref node.
+    /// A column reference
     ColumnRef { expression_id: ExprId },
+    /// An `alias.` that the parser recovered without a column ref node
+    AliasDot,
 }
 
 /// A cursor in a script (`ScriptCursor`)
@@ -406,7 +408,7 @@ impl<'a> ScriptCursor<'a> {
                 if contains_cursor && (span.length as usize) < best_length {
                     best_scope = Some(scope.name_scope_id);
                     best_length = span.length as usize;
-                } else if best_scope.is_none() && self.statement_id.is_none_or(|s| scope.ast_statement_id == s) {
+                } else if best_scope.is_none() && self.statement_id.is_none_or(|s| scope.ast_statement_id == Some(s)) {
                     best_scope = Some(scope.name_scope_id);
                 }
             }
@@ -415,7 +417,7 @@ impl<'a> ScriptCursor<'a> {
             if self.name_scopes.is_empty() {
                 self.name_scopes.push(scope);
             }
-            self.context = CursorContext::ColumnRef { expression_id: u32::MAX };
+            self.context = CursorContext::AliasDot;
         }
     }
 
@@ -429,7 +431,7 @@ impl<'a> ScriptCursor<'a> {
                 .inner
                 .as_ref()
                 .and_then(|r| r.table_name.ast_node_id),
-            CursorContext::ColumnRef { expression_id } if expression_id != u32::MAX => {
+            CursorContext::ColumnRef { expression_id } => {
                 analyzed.expressions[expression_id as usize].column_ref().and_then(|c| c.column_name.ast_node_id)
             }
             _ => None,

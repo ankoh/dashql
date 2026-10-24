@@ -355,7 +355,8 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                 }
             }
             for e in &analyzed.errors {
-                if e.ast_node_id < statement.nodes_begin || e.ast_node_id >= statement.nodes_begin + statement.node_count {
+                let Some(error_node) = e.ast_node_id else { continue };
+                if error_node < statement.nodes_begin || error_node >= statement.nodes_begin + statement.node_count {
                     continue;
                 }
                 let invalid = e.severity == AnalyzerErrorSeverity::ERROR;

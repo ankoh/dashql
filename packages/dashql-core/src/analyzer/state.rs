@@ -247,7 +247,7 @@ impl<'a> AnalysisState<'a> {
         self.out.errors.push(AnalyzerError {
             error_type,
             severity,
-            ast_node_id: node_id,
+            ast_node_id: Some(node_id),
             symbol_span: Some(span),
             text_span: Some(text_span),
             message,
@@ -367,8 +367,8 @@ impl<'a> AnalysisState<'a> {
         }
     }
 
-    /// The statement that contains an AST node (`FindStatementId`)
-    pub fn find_statement_id(&self, ast_node_id: u32) -> u32 {
+    /// The statement that contains an AST node (`FindStatementId`), None outside of statements
+    pub fn find_statement_id(&self, ast_node_id: u32) -> Option<u32> {
         let mut root = ast_node_id;
         // Statement roots are their own parents (C++ walks on for the remaining depth budget)
         for _ in 0..self.ast.len() {
@@ -380,13 +380,12 @@ impl<'a> AnalysisState<'a> {
         }
         let statements = &self.parsed.statements;
         if let Some(i) = statements.iter().position(|s| s.root == root) {
-            return i as u32;
+            return Some(i as u32);
         }
         statements
             .iter()
             .position(|s| ast_node_id >= s.nodes_begin && ast_node_id < s.nodes_begin + s.node_count)
             .map(|i| i as u32)
-            .unwrap_or(PROTO_NULL_U32)
     }
 }
 
