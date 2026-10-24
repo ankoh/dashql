@@ -26,7 +26,7 @@ fn node_type_ranges() {
         } else if v > NodeType::ENUM_KEYS_.0 && v < NodeType::OBJECT_KEYS_.0 {
             assert!(name.starts_with("ENUM_SQL_"), "{name}");
         } else if v > NodeType::OBJECT_KEYS_.0 {
-            // ENUM_VIS_* sit between the objects (see docs/rust-port/quirks.md), everything else
+            // ENUM_VIS_* sit between the objects (see docs/design/core_quirks.md), everything else
             // above OBJECT_KEYS_ is an object.
             assert!(
                 name.starts_with("OBJECT_") || name.starts_with("ENUM_VIS_") || name == "VIS_OBJECT_KEYS_",

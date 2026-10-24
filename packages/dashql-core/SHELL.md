@@ -26,7 +26,7 @@ Result tables are drawn by `shell::arrow_renderer`, which formats cell values wi
 hex, nested values as `[1, null, 3]` or `{x: 1, y: a}`. Null cells are empty, numbers and booleans are
 right-aligned. Timestamps with a named time zone are shown in UTC because chrono-tz is not linked, and a column of a
 type that arrow-cast cannot format shows its type name. Values do not print like the former C++ shell (Arrow C++
-`Scalar::ToString`), see `docs/rust-port/quirks.md`.
+`Scalar::ToString`), see `docs/design/core_quirks.md`.
 
 The TypeScript binding lives in `packages/dashql-app/src/shell`. Its root entrypoint exports
 `createDashQLShell({ environment, ... })` and `createDuckDBShellEnvironment(connection)`. The environment returns Arrow IPC

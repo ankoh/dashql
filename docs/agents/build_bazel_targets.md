@@ -137,7 +137,27 @@ bazel run //snapshots:update
 ```
 
 These targets regenerate `/snapshots/*.yaml` from `/snapshots/*.tpl.yaml` templates with the Rust core
-(`//packages/dashql-snapshots:snapshotter`).
+(`//packages/dashql-snapshots:snapshotter`, flags `--source_dir=<repository> [--filter=<category>]`).
+
+- The snapshot tests compare YAML trees structurally, including the key order of every map; numbers
+  compare by value.
+- The encoders in `dashql_snapshots::encode` build styled trees (`dashql_snapshots::ryml::Node`) and
+  `ryml::emit` ports the rapidyaml 0.12.1 emitter, quirks included (flow sequences without spaces like
+  `[0,2]`, `|2` for block literals with leading spaces). Regenerating unchanged snapshots gives
+  byte-identical files.
+- Analyzer, completion, planner and visualize write their templates back with the results appended, so
+  `ryml::parse` keeps the template styles (scalar styles, flow and multi-line flow containers).
+
+### Benchmarks
+
+```bash
+bazel run -c opt //packages/dashql-core:bench_pipeline
+bazel run -c opt //packages/dashql-core:bench_pipeline_ctes [-- <filter>]
+```
+
+`bench_pipeline` scans, parses, formats, analyzes and completes TPC-DS q1 against the TPC-DS schema.
+`bench_pipeline_ctes` runs `with cte_0 as (<TPC-H q1>), ... select 1` with a growing number of CTEs and
+catches non-linear scaling.
 
 ## Type Checking
 

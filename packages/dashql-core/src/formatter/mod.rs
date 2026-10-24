@@ -5,7 +5,7 @@
 //! Nodes that cannot be formatted are rendered as `'<NODE_TYPE>'` placeholders and recorded as
 //! unformattable. The statements are then rendered with the comments of the script in between.
 //!
-//! The output was byte-identical to the C++ formatter, quirks included (docs/rust-port/quirks.md).
+//! The output was byte-identical to the C++ formatter, quirks included (docs/design/core_quirks.md).
 //! Function names follow the C++ methods (`FormatTableRef` is `format_table_ref`), the statement
 //! formatters live in the submodules like in the C++ files `formatter_<kind>.cc`.
 

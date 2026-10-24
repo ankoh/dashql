@@ -1,10 +1,14 @@
 # Quirks inherited from the C++ core
 
-The Rust core was ported from the C++ core **bug for bug**, so that the snapshots and the differential
-oracle could demand zero differences. The C++ core and the oracle are deleted, but the Rust core still
-behaves as listed here: every entry looks wrong but was kept on purpose. Entries marked **Not
-reproduced** describe C++ behavior the port dropped; they record where the Rust core differs from the
-former C++ core.
+The Rust core was ported from the former C++ core **bug for bug**, so that the snapshots and a
+differential oracle against the C++ core could demand zero differences. The C++ core and the oracle
+are deleted, but the Rust core still behaves as listed here: every entry looks wrong but was kept on
+purpose. Entries marked **Not reproduced** describe C++ behavior the port dropped; they record where
+the Rust core differs from the former C++ core.
+
+Parity covered semantics, not incidental text: output that was an artifact of a C++ library (number
+formatting of rapidjson, c4 or `%g`) was not reproduced. The Rust core writes doubles with the shortest
+round-trip digits, and the snapshot tests compare numbers by value.
 
 Each quirk can now be fixed as an ordinary change with a snapshot update; remove its entry then. Add an
 entry when you find another inherited quirk. The headings name where the behavior lives in the Rust
@@ -100,7 +104,10 @@ core; C++ function names refer to the original implementation.
 - An empty `$sql` does not fall back to `$raw`.
 
 **Markdown** (C++: `markdown.cc` and md4c 0.5.2). **Not reproduced:** the Rust core parses templates
-with pulldown-cmark (see the README). md4c behavior that differs:
+with pulldown-cmark (CommonMark, no extensions) instead of a port of md4c. Adjacent text is one text
+node, list tightness is derived from the item paragraphs, the last line of a code block keeps no line
+break that is not in the template, and trailing whitespace at the end of the template is dropped.
+md4c behavior that is gone:
 - Text nodes are cut at every resolved mark and never merged.
 - `md_text_with_null_replacement` does not advance past a NUL, which also starts the next text node.
 - The empty-list-item check reads the last 8 bytes of the block stream as a block header, so a list

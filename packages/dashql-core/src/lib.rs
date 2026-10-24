@@ -1,4 +1,4 @@
-//! The DashQL core, the Rust rewrite of `packages/dashql-core` (see docs/rust-port/README.md).
+//! The DashQL core, the Rust rewrite of the former C++ `packages/dashql-core`.
 //!
 //! Builds on `dashql_parser` (scanner and parser) and the FlatBuffers bindings `dashql_buffers`.
 

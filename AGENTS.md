@@ -14,5 +14,6 @@ Please consult relevant docs in that directory before making changes.
     - `docs/agents/build_rust_coverage.md`
     - `docs/agents/rust_analyzer.md` (rust-project.json for rust-analyzer)
 
-- Rust rewrite of dashql-core (plan, status, rules for parity)
-    - `docs/rust-port/README.md`
+- Rust core (parser design, parse-tree change rules, inherited C++ quirks)
+    - `docs/design/core_parser.md`
+    - `docs/design/core_quirks.md`

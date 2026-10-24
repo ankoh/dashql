@@ -4,7 +4,7 @@
 //! at compile time. [`attrs!`](crate::attrs) fixes the keys at compile time as well, rejects
 //! duplicate keys during constant evaluation, and then scans the children against the constant key
 //! array. LLVM vectorizes that comparison, which measured faster than a static perfect hash table
-//! and than a direct-index table for every object size of the grammar (see docs/rust-port/README.md).
+//! and than a direct-index table for every object size of the grammar.
 //!
 //! The semantics follow the C++ lookup exactly:
 //! - with a single key, the first child with that key is returned,

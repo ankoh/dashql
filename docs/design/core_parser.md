@@ -6,6 +6,12 @@ It runs in two phases—scanning then parsing—and produces a contiguous array 
 It lives in `packages/dashql-parser`: the scanner in `src/scanner.rs`, the LR driver, parse context and action helpers in `src/parser/`.
 Bison compiles `grammar/rules/*.y` into tables and Rust actions (`//grammar:parser_tables_rs`).
 The parser was ported from the C++ core; some names below still mention the C++ originals.
+Behavior that was kept from the C++ core on purpose is listed in [core_quirks.md](core_quirks.md).
+
+Bison stays the LALR(1) table compiler: `grammar/rust/tables.rs.m4` is a bison skeleton that emits the
+automaton and the Rust actions, and the LR driver is a hand-written port of the C++ `DriveLALR`. Code
+completion drives the raw LR tables (state snapshots, LAC expected sets, suffix probes), and the grammar
+resolves its conflicts with a Postgres-style precedence ladder. LALRPOP supports neither.
 
 ## Architecture Overview
 
@@ -348,3 +354,22 @@ Consumed lists are recycled, which avoids heap allocations during parsing.
 Working lists (`NodeList`) are "materialized" when passed to `ctx.array()` or `ctx.object()`.
 Materialization walks the list, appends each non-null node to the node array, sets parent pointers, and returns a single `Node` whose `children_begin_or_value` points to the start of the newly appended range.
 After materialization, the list is returned to the arena for reuse.
+
+## Changing the Parse Tree
+
+The parse tree is kept exactly as the C++ core built it: the flat post-order node array, the same
+`NodeType` and `AttributeKey` values, the same object attributes and node order. It may change when it
+has to, but only deliberately, because every change risks losing parser expressiveness, and the
+TypeScript code reads the tree through the generated FlatBuffers readers.
+
+1. **Never as a side effect.** A snapshot diff in the parse tree is a bug until the change has been
+   decided.
+2. **Write it up first.** Describe the motivation, the affected `NodeType` and `AttributeKey` values,
+   and an argument that every construct still parses and stays distinguishable, so no expressiveness is
+   lost.
+3. **Land it in one change.** Change the grammar rules (`grammar/rules/*.y`),
+   `proto/fb/dashql/parsed_script.fbs`, the Rust and TypeScript consumers, and update the snapshots
+   (`bazel run //snapshots:update`) in the same change.
+4. **Script signatures may change.** `SCRIPT_SIGNATURE_VERSION` (`packages/dashql-core/src/signature.rs`)
+   versions the signature encoding, but signatures are not required to stay stable across versions,
+   and no test pins them.
