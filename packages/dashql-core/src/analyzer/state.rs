@@ -61,7 +61,12 @@ impl<'a> AnalysisState<'a> {
             inference_constraints: Vec::new(),
             inferred_table_schemas: Vec::new(),
             inferred_table_schemas_by_name: Default::default(),
-            dependencies: catalog.entries_ranked().map(|(_, e)| e.shared_data().clone()).collect(),
+            dependencies: catalog
+                .entries_ranked()
+                .map(|(_, e)| e.shared_data())
+                .filter(|data| data.catalog_entry_id != entry_id)
+                .cloned()
+                .collect(),
             name_search_index: Default::default(),
         };
         Self {

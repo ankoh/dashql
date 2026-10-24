@@ -513,10 +513,14 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                     ? rotateScriptStatistics(prevScript.statistics, update.editorUpdate.processingStatistics)
                     : prevScript.statistics,
             };
+            // Publishing declarations equal to the published ones keeps the catalog revision
+            let catalogChanged = false;
             if (documentChanged || analysisRefreshed) {
                 nextScript.annotations = deriveScriptAnnotations(update.editorUpdate, updateSession,
                     prevScript.connection.connectorInfo.connectorType, logger);
+                const catalogRevision = updateSession.getCatalogRevision();
                 updateSession.loadIntoCatalog(nextScript.scriptKey);
+                catalogChanged = updateSession.getCatalogRevision() !== catalogRevision;
             }
             // Update semantic user focus
             let semanticUserFocus: SemanticUserFocus | null = prevFocus;
@@ -540,10 +544,9 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                 semanticUserFocus,
             };
 
-            // Re-load the catalog and mark scripts outdated when the analysis actually changed.
-            if (documentChanged || analysisRefreshed) {
-                // Mark the other scripts of the catalog as outdated.
-                // Eventually, we could restrict to those that are depending?
+            // Mark the other scripts of the catalog as outdated when the published declarations changed.
+            // Eventually, we could restrict to those that are depending?
+            if (catalogChanged) {
                 markOtherScriptsOutdatedInPlace(nextState.scripts, nextScript);
             }
             // Persist only when the document text changed. Cursor/completion updates

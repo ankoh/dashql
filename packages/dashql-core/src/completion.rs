@@ -869,10 +869,9 @@ impl<'c, 'a> Completion<'c, 'a> {
         let Some(analyzed) = self.analyzed() else { return };
         self.find_candidates_in_index(analyzed.name_search_index(), false);
         for (_, entry) in self.catalog().entries_ranked() {
-            if let CatalogEntryRef::Script(script) = entry {
-                if Arc::ptr_eq(script, analyzed) {
-                    continue;
-                }
+            // The catalog may still hold an earlier version of the script
+            if entry.data().catalog_entry_id == analyzed.entry.catalog_entry_id {
+                continue;
             }
             self.find_candidates_in_index(entry.name_search_index(), true);
         }
@@ -1162,10 +1161,8 @@ impl<'c, 'a> Completion<'c, 'a> {
     /// (`ResolveTableColumnsWithCatalog`)
     fn resolve_table_columns_with_catalog(&self, analyzed: &Arc<AnalyzedScript>, name: &str, out: &mut Vec<ColumnLoc>) {
         for (_, entry) in self.catalog().entries_ranked() {
-            if let CatalogEntryRef::Script(script) = entry {
-                if Arc::ptr_eq(script, analyzed) {
-                    continue;
-                }
+            if entry.data().catalog_entry_id == analyzed.entry.catalog_entry_id {
+                continue;
             }
             entry.data().resolve_table_columns(name, out);
         }

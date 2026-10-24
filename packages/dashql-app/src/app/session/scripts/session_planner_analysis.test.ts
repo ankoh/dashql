@@ -103,7 +103,11 @@ describe('planner analysis projection', () => {
 
     it('ignores snapshots invalidated by a later catalog publication', () => {
         const f = fixture();
-        f.other.scriptSession.loadIntoCatalog(f.other.scriptKey);
+        // Republishing equal declarations keeps the catalog revision, publish a new table
+        const session = f.other.scriptSession;
+        session.replaceText(session.getTextVersion(), 'create table other (id int);');
+        session.analyze();
+        session.loadIntoCatalog(f.other.scriptKey);
         expect(f.query.scriptSession.getCatalogRevision()).not.toBe(f.updates[1].editorUpdate.catalogRevision);
         expect(f.apply()).toBe(f.state);
     });

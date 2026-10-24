@@ -360,7 +360,7 @@ fn cursor_move_refreshes_analysis_after_catalog_revision() {
 }
 
 #[test]
-fn editing_published_script_drops_stale_catalog_entry() {
+fn editing_published_script_keeps_catalog_entry_until_republished() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
     assert!(analyze(&mut session, "create table items (id int)").analysis_available);
@@ -386,9 +386,20 @@ fn editing_published_script_drops_stale_catalog_entry() {
     assert_eq!(catalog.borrow().version(), published_revision);
     assert!(!session.analyze().analysis_updated);
 
+    // An edit keeps the published version, the analysis ignores it
     let update = session.replace_text(session.text_version(), "create table updated (id int)");
     assert_eq!(update.status, EditorUpdateStatus::OK);
-    assert!(!catalog.borrow().contains(session.catalog_entry_id()));
+    assert!(catalog.borrow().contains(session.catalog_entry_id()));
+    assert_eq!(catalog.borrow().version(), published_revision);
+    let edited = session.analyze();
+    assert!(edited.analysis_available);
+    let analyzed = session.script().analyzed.clone().unwrap();
+    assert!(analyzed.errors.is_empty());
+    assert!(analyzed.dependencies.iter().all(|d| d.catalog_entry_id != session.catalog_entry_id()));
+
+    // Publishing the new declarations bumps the version
+    session.load_into_catalog(0).unwrap();
+    assert_eq!(catalog.borrow().version(), published_revision + 1);
 }
 
 #[test]
@@ -960,4 +971,42 @@ fn diff_projects_spans_into_utf16() {
     // The emoji takes 2 UTF-16 units but 4 UTF-8 bytes
     let spans: Vec<_> = ops.iter().filter_map(|op| op.source_span.as_ref()).collect();
     assert!(spans.iter().all(|s| s.offset + s.length <= 21), "{spans:?}");
+}
+
+#[test]
+fn republishing_equal_declarations_keeps_other_analyses_current() {
+    let catalog = new_catalog();
+    let mut schema = session(&catalog, UTF8);
+    let mut query = session(&catalog, UTF8);
+    assert!(analyze(&mut schema, "create table items (id int)").analysis_available);
+    schema.load_into_catalog(0).unwrap();
+    assert!(analyze(&mut query, "select id from items").analysis_available);
+    query.load_into_catalog(1).unwrap();
+    assert!(query.analyze().analysis_available);
+    let revision = catalog.borrow().version();
+
+    // Re-analyzing and republishing the schema changes nothing the query resolves against
+    assert!(schema.analyze().analysis_available);
+    schema.load_into_catalog(0).unwrap();
+    assert_eq!(catalog.borrow().version(), revision);
+    let update = query.analyze();
+    assert!(update.analysis_available);
+    assert!(!update.analysis_updated);
+}
+
+#[test]
+fn completion_ignores_published_version_of_edited_script() {
+    let catalog = new_catalog();
+    let mut session = session(&catalog, UTF8);
+    assert!(analyze(&mut session, "create table items_old (id int)").analysis_available);
+    session.load_into_catalog(0).unwrap();
+
+    let text = "create table items_new (id int); select * from items_";
+    assert!(analyze(&mut session, text).analysis_available);
+    assert_eq!(session.set_primary_cursor(session.text_version(), text.len() as u64).status, EditorUpdateStatus::OK);
+    let completion = session.complete(10, KeywordCase::LOWER).unwrap();
+    let texts: Vec<_> =
+        completion.candidates.iter().flatten().filter_map(|c| c.completion_text.as_deref()).collect();
+    assert!(texts.contains(&"items_new"), "{texts:?}");
+    assert!(!texts.contains(&"items_old"), "{texts:?}");
 }

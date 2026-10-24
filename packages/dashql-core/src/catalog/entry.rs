@@ -357,6 +357,52 @@ impl CatalogEntryData {
         }
     }
 
+    /// Does another version of the entry declare the same objects?
+    ///
+    /// Compares what other entries resolve against: the ids and names of the databases, schemas,
+    /// tables, columns and functions. AST positions and name ids are ignored, only the declaring
+    /// script reads them.
+    pub fn same_declarations(&self, other: &CatalogEntryData) -> bool {
+        fn same_table_name(a: &QualifiedTableName, b: &QualifiedTableName) -> bool {
+            a.key() == b.key()
+        }
+        fn same_column(a: &TableColumn, b: &TableColumn) -> bool {
+            a.object_id == b.object_id && a.table == b.table && a.column_name.text == b.column_name.text
+        }
+        fn same_table(a: &TableDeclaration, b: &TableDeclaration) -> bool {
+            a.object_id == b.object_id
+                && a.catalog_version == b.catalog_version
+                && a.catalog_schema_id == b.catalog_schema_id
+                && same_table_name(&a.table_name, &b.table_name)
+                && a.table_columns.len() == b.table_columns.len()
+                && a.table_columns.iter().zip(&b.table_columns).all(|(a, b)| same_column(a, b))
+        }
+        fn same_param(a: &FunctionParam, b: &FunctionParam) -> bool {
+            a.param_name.text == b.param_name.text && a.param_type == b.param_type
+        }
+        fn same_function(a: &FunctionDeclaration, b: &FunctionDeclaration) -> bool {
+            a.object_id == b.object_id
+                && a.catalog_schema_id == b.catalog_schema_id
+                && a.is_aggregate == b.is_aggregate
+                && a.function_name.key() == b.function_name.key()
+                && a.return_type == b.return_type
+                && a.params.len() == b.params.len()
+                && a.params.iter().zip(&b.params).all(|(a, b)| same_param(a, b))
+        }
+        fn same<T>(a: &[T], b: &[T], eq: impl Fn(&T, &T) -> bool) -> bool {
+            a.len() == b.len() && a.iter().zip(b).all(|(a, b)| eq(a, b))
+        }
+        self.catalog_entry_id == other.catalog_entry_id
+            && same(&self.database_references, &other.database_references, |a, b| {
+                a.object_id == b.object_id && a.database_name == b.database_name && a.database_alias == b.database_alias
+            })
+            && same(&self.schema_references, &other.schema_references, |a, b| {
+                a.object_id == b.object_id && a.database_name == b.database_name && a.schema_name == b.schema_name
+            })
+            && same(&self.table_declarations, &other.table_declarations, same_table)
+            && same(&self.function_declarations, &other.function_declarations, same_function)
+    }
+
     /// The location of a table of this entry
     pub fn table_loc(&self, index: usize) -> TableLoc {
         TableLoc {

@@ -328,6 +328,22 @@ impl Catalog {
             }
             self.check_canonical_ids(&script.entry)?;
         }
+        // Scripts that declare what their published versions declare replace them in place: the
+        // indexes stay valid and the catalog version stays, so the analyses of other scripts remain
+        // current
+        let unchanged = scripts.iter().all(|(script, rank)| {
+            self.script_entries.get(&script.entry.catalog_entry_id).is_some_and(|(published, published_rank)| {
+                published_rank == rank && published.entry.same_declarations(&script.entry)
+            })
+        });
+        if unchanged {
+            for (script, rank) in scripts {
+                let id = script.entry.catalog_entry_id;
+                self.script_entries.insert(id, (script.clone(), *rank));
+                self.entries.insert(id, CatalogEntryRef::Script(script.clone()));
+            }
+            return Ok(());
+        }
         let mut staged = self.script_entries.clone();
         for (script, rank) in scripts {
             staged.insert(script.entry.catalog_entry_id, (script.clone(), *rank));

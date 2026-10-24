@@ -551,9 +551,8 @@ impl ScriptSession {
         update.text_changed = text_changed;
         update.selection_changed = self.primary_selection != next_selection;
         if text_changed {
-            // Never leave a catalog entry pointing at the previous analysis while the script is
-            // replaced and reanalyzed
-            self.catalog.borrow_mut().drop_script(self.catalog_entry_id());
+            // The catalog keeps the published version until the owner publishes the new analysis.
+            // The analysis of the script ignores its own catalog entry.
             self.script.set_text(edited.unwrap());
             self.script.set_cursor_offset(None);
             self.cursor_text_version = NO_VERSION;

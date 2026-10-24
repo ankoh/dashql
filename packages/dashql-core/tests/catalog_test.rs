@@ -407,3 +407,34 @@ fn republished_scripts_do_not_retain_earlier_versions() {
         .expect("column y resolves");
     assert_eq!(&*analyzed.table(loc.table).unwrap().table_name.table_name.text, "b");
 }
+
+#[test]
+fn republishing_equal_declarations_keeps_the_version() {
+    let mut catalog = Catalog::new();
+    let mut script = analyze(&catalog, "create table a (x integer); select x from a");
+    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
+    let version = catalog.version();
+
+    // Another query over the same declarations
+    script.replace_text("create table a (x integer); select x + 1 as y from a where x > 0");
+    script.analyze(&catalog, true).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
+    assert_eq!(catalog.version(), version);
+    assert!(std::sync::Arc::ptr_eq(
+        catalog.entry(script.catalog_entry_id()).unwrap().shared_data(),
+        &script.analyzed.as_ref().unwrap().entry
+    ));
+
+    // A new column, a renamed table and a new rank are new declarations
+    for (text, rank) in [
+        ("create table a (x integer, z integer)", 0),
+        ("create table b (x integer, z integer)", 0),
+        ("create table b (x integer, z integer)", 1),
+    ] {
+        script.replace_text(text);
+        script.analyze(&catalog, true).unwrap();
+        let before = catalog.version();
+        catalog.load_script(script.analyzed.clone().unwrap(), rank).unwrap();
+        assert_eq!(catalog.version(), before + 1, "{text} with rank {rank}");
+    }
+}
