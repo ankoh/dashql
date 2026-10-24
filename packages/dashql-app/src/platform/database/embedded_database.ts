@@ -27,11 +27,17 @@ export interface EmbeddedConnection {
     execute(statement: string, abort?: AbortSignal): Promise<bigint | null>;
 }
 
+/// A JSON object that describes the client of the queries of a connection
+export type EmbeddedClientContext = Record<string, unknown>;
+
 export interface EmbeddedConnectionOptions {
     defaultDatabase?: '__dashql_compute' | 'hyper';
     /// Reuse an idle connection and return it to a pool on close.
     /// Only for callers that leave no session state behind, such as settings, transactions or temporary tables.
     pooled?: boolean;
+    /// The client context of the queries of the connection until it is closed.
+    /// Hyper logs it as ctx.client of the query events, e.g. to attribute queries of pooled connections.
+    clientContext?: EmbeddedClientContext;
 }
 
 export interface EmbeddedTableImportConnection extends EmbeddedConnection {

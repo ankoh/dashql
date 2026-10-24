@@ -38,7 +38,7 @@ export async function sortTable(task: TableOrderingTask, logger: LoggerLike, exe
 
         const sortStart = performance.now();
         const tableName = generateTableName("__ordered");
-        const transformed = await executeQuery(sql, () => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName));
+        const transformed = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
         const sortEnd = performance.now();
         const orderedTable = await transformed.readTable();
         logger.info("Sorted table", {

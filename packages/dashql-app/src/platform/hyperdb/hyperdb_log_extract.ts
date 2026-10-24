@@ -6,7 +6,7 @@ import {
     type HyperDBExtractTable,
     type HyperDBIncrementalExtractSource,
 } from './hyperdb_incremental_extract.js';
-import { quoteIdentifier } from './hyperdb_wasm.js';
+import { HYPER_LOG_INTERNAL_QUERY_TAG, quoteIdentifier } from './hyperdb_wasm.js';
 
 /// The columns of hyper_log(), with ctx and v as JSON text.
 export const HYPER_LOG_COLUMNS: readonly HyperDBExtractColumn[] = [
@@ -48,8 +48,10 @@ export const HYPER_LOG_QUERY_ENDS_TABLE: HyperDBExtractTable = {
     `,
 };
 
-/// A number of a resource-metrics event, NULL for the gauges that the platform does not record and logs as `{}`.
-function resourceMetric(path: readonly string[], type: string): string {
+/// A value at a JSON path of the column v of log events, cast to a type.
+/// It is NULL when the path is missing, and for the gauges of resource-metrics events that the platform does not
+/// record and logs as `{}`.
+export function hyperLogValue(path: readonly string[], type: string): string {
     const parents = path.slice(0, -1).map(key => `->${quoteLiteral(key)}`).join('');
     return `nullif(v::json${parents}->>${quoteLiteral(path[path.length - 1])}, '{}')::${type}`;
 }
@@ -62,14 +64,14 @@ export const HYPER_LOG_RESOURCE_METRICS_TABLE: HyperDBExtractTable = {
     query: `
         SELECT
             ts,
-            ${resourceMetric(['memory', 'process_physical_memory_mb'], 'double precision')} AS process_memory_mb,
-            ${resourceMetric(['memory', 'total_physical_memory_mb'], 'double precision')} AS total_memory_mb,
-            ${resourceMetric(['mem-trackers', 'memory_tracked_current_usage_mb', 'global_transactions'], 'double precision')} AS transaction_memory_mb,
-            ${resourceMetric(['load', 'overall_load'], 'double precision')} AS overall_load,
-            ${resourceMetric(['load', 'scheduler_load'], 'double precision')} AS scheduler_load,
-            ${resourceMetric(['load', 'memory_load'], 'double precision')} AS memory_load,
-            ${resourceMetric(['scheduler-thread-count', 'scheduler_thread_count', 'active'], 'integer')} AS active_threads,
-            ${resourceMetric(['scheduler-thread-count', 'scheduler_waiting_jobs_count'], 'integer')} AS waiting_jobs
+            ${hyperLogValue(['memory', 'process_physical_memory_mb'], 'double precision')} AS process_memory_mb,
+            ${hyperLogValue(['memory', 'total_physical_memory_mb'], 'double precision')} AS total_memory_mb,
+            ${hyperLogValue(['mem-trackers', 'memory_tracked_current_usage_mb', 'global_transactions'], 'double precision')} AS transaction_memory_mb,
+            ${hyperLogValue(['load', 'overall_load'], 'double precision')} AS overall_load,
+            ${hyperLogValue(['load', 'scheduler_load'], 'double precision')} AS scheduler_load,
+            ${hyperLogValue(['load', 'memory_load'], 'double precision')} AS memory_load,
+            ${hyperLogValue(['scheduler-thread-count', 'scheduler_thread_count', 'active'], 'integer')} AS active_threads,
+            ${hyperLogValue(['scheduler-thread-count', 'scheduler_waiting_jobs_count'], 'integer')} AS waiting_jobs
         FROM log
         WHERE k = 'resource-metrics'
     `,
@@ -104,7 +106,7 @@ export class HyperDBLogSource implements HyperDBIncrementalExtractSource {
     ) {}
 
     async open(connection: EmbeddedConnection, state: HyperDBExtractState): Promise<void> {
-        await state.add(HYPER_LOG_MONITOR_SESSION_KEY, await readSessionId(connection));
+        await state.add(HYPER_LOG_MONITOR_SESSION_KEY, await readHyperSessionId(connection));
         this.monitorSessions = await state.values(HYPER_LOG_MONITOR_SESSION_KEY);
         // Start the scope before the backfill, the first update reads the events that both read again.
         await connection.execute('RESET hyper_log_scope_start');
@@ -141,9 +143,10 @@ export class HyperDBLogSource implements HyperDBIncrementalExtractSource {
     }
 }
 
-async function readSessionId(connection: EmbeddedConnection): Promise<string> {
+/// The id of the Hyper session of a connection, as the Hyper log names it in the column sess.
+export async function readHyperSessionId(connection: EmbeddedConnection): Promise<string> {
     const result = await connection.query(
-        "SELECT sess FROM hyper_log(current_session := true) WHERE sess <> '-' LIMIT 1",
+        `${HYPER_LOG_INTERNAL_QUERY_TAG} SELECT sess FROM hyper_log(current_session := true) WHERE sess <> '-' LIMIT 1`,
     );
     const session = result.getChild('sess')?.get(0);
     if (typeof session !== 'string') throw new Error('could not read the Hyper session id of the log monitor');

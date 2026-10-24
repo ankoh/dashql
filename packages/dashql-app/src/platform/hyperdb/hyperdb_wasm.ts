@@ -7,6 +7,7 @@ import {
 } from 'hyperdb-wasm';
 
 import type {
+    EmbeddedClientContext,
     EmbeddedComputeDatabase,
     EmbeddedConnectionOptions,
     EmbeddedExternalDirectoryDatabase,
@@ -66,6 +67,10 @@ function yieldToEventLoop(): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, 0));
 }
 
+/// The comment that starts the statements of the app's own bookkeeping, e.g. the attaching of the default database.
+/// Readers of the Hyper log skip them by their query text.
+export const HYPER_LOG_INTERNAL_QUERY_TAG = '/* dashql:internal */';
+
 // Pooled connections stay attached to their default database when closed and are reused.
 // ATTACH is expensive since Hyper loads the statistics of every table in the database, and the compute code
 // opens a connection per statement. Connections are only pooled when the caller opts in.
@@ -112,11 +117,22 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             pool = this.idleSessions.get(alias) ?? [];
             this.idleSessions.set(alias, pool);
         }
-        const release = (session: HyperDBSession) => this.releaseSession(session, pool);
+        const clientContext = options.clientContext ?? null;
+        const release = async (session: HyperDBSession) => {
+            // Pooled sessions must not keep the client context, a session that keeps it is not reused
+            if (clientContext != null) {
+                try {
+                    await session.execute(`${HYPER_LOG_INTERNAL_QUERY_TAG} RESET external_client_context`);
+                } catch {
+                    session.reusable = false;
+                }
+            }
+            await this.releaseSession(session, pool);
+        };
 
         const idle = pool?.pop();
         if (idle != null) {
-            return new HyperDBConnection(idle, release);
+            return await this.openConnection(idle, release, clientContext);
         }
 
         const connection = await this.engine.connect();
@@ -131,13 +147,32 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
         }, databasePath == null ? undefined : alias);
         try {
             if (databasePath != null) {
-                await session.execute(`ATTACH DATABASE ${quoteIdentifier(databasePath)} AS ${quoteIdentifier(alias)}`);
+                await session.execute(`${HYPER_LOG_INTERNAL_QUERY_TAG} ATTACH DATABASE ${quoteIdentifier(databasePath)} AS ${quoteIdentifier(alias)}`);
             }
         } catch (error) {
             await session.close();
             throw error;
         }
         this.sessions.add(session);
+        return await this.openConnection(session, release, clientContext);
+    }
+
+    /// A connection with a session, with the client context set
+    private async openConnection(
+        session: HyperDBSession,
+        release: (session: HyperDBSession) => Promise<void>,
+        clientContext: EmbeddedClientContext | null,
+    ): Promise<HyperDBConnection> {
+        if (clientContext != null) {
+            try {
+                await session.execute(
+                    `${HYPER_LOG_INTERNAL_QUERY_TAG} SET external_client_context = ${quoteLiteral(JSON.stringify(clientContext))}`,
+                );
+            } catch (error) {
+                await release(session);
+                throw error;
+            }
+        }
         return new HyperDBConnection(session, release);
     }
 
@@ -591,7 +626,7 @@ class HyperDBSession {
         if (!this.closing) {
             this.closing = (async () => {
                 if (this.databaseAlias != null) {
-                    await this.execute(`DETACH DATABASE ${quoteIdentifier(this.databaseAlias)}`);
+                    await this.execute(`${HYPER_LOG_INTERNAL_QUERY_TAG} DETACH DATABASE ${quoteIdentifier(this.databaseAlias)}`);
                 }
                 await this.connection.close();
                 this.closed = true;

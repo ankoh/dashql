@@ -147,8 +147,8 @@ class FakeHyperDBEngineClient implements HyperDBClient {
             this.queries.set(query, [{ state: 'done' }]);
             return handle(query);
         }
-        const lifecycleStatement = /^(?:CREATE|DROP|ATTACH|DETACH) DATABASE\b/.test(sql);
-        if (lifecycleStatement) {
+        const sessionStatement = /^(?:\/\* dashql:internal \*\/ )?(?:(?:CREATE|DROP|ATTACH|DETACH) DATABASE|(?:SET|RESET) external_client_context)\b/.test(sql);
+        if (sessionStatement) {
             this.beginOperation();
             this.calls.push(`query:${connection}:${sql}`);
             const query = this.nextQuery++;
@@ -472,13 +472,34 @@ describe('HyperDB embedded database adapter', () => {
         }
 
         expect(client.connectCount - setupConnects).toBe(1);
-        expect(client.calls.filter(call => /query:\d+:ATTACH DATABASE "\/mnt\/fs\/compute.hyper"/.test(call))).toHaveLength(1);
-        expect(client.calls.filter(call => /query:\d+:DETACH DATABASE/.test(call))).toHaveLength(0);
+        expect(client.calls.filter(call => /query:\d+:.*ATTACH DATABASE "\/mnt\/fs\/compute.hyper"/.test(call))).toHaveLength(1);
+        expect(client.calls.filter(call => /query:\d+:.*DETACH DATABASE/.test(call))).toHaveLength(0);
 
         await database.terminate();
 
-        expect(client.calls.filter(call => /query:\d+:DETACH DATABASE "__dashql_compute"/.test(call))).toHaveLength(1);
+        expect(client.calls.filter(call => /query:\d+:.*DETACH DATABASE "__dashql_compute"/.test(call))).toHaveLength(1);
         expect(client.disconnectCount).toBe(client.connectCount);
+    });
+
+    it('sets the client context of a connection and resets it before pooling the session', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, { computeDatabasePath: '/mnt/fs/compute.hyper' });
+        const setupConnects = client.connectCount;
+        const clientContext = { dashql: { connectionId: "it's", queryType: 'sqlframe' } };
+
+        for (let i = 0; i < 2; ++i) {
+            const connection = await database.connect({ pooled: true, clientContext });
+            await connection.close();
+        }
+        const plain = await database.connect({ pooled: true });
+        await plain.close();
+
+        expect(client.connectCount - setupConnects).toBe(1);
+        const sets = client.calls.filter(call => call.includes('SET external_client_context ='));
+        expect(sets).toHaveLength(2);
+        expect(sets[0]).toContain(`'{"dashql":{"connectionId":"it''s","queryType":"sqlframe"}}'`);
+        expect(client.calls.filter(call => call.includes('RESET external_client_context'))).toHaveLength(2);
+        await database.terminate();
     });
 
     it('does not reuse connections without opting into pooling', async () => {
@@ -493,7 +514,7 @@ describe('HyperDB embedded database adapter', () => {
         const pooled = await database.connect({ pooled: true });
 
         expect(client.connectCount - setupConnects).toBe(3);
-        expect(client.calls.filter(call => /query:\d+:DETACH DATABASE "__dashql_compute"/.test(call))).toHaveLength(2);
+        expect(client.calls.filter(call => /query:\d+:.*DETACH DATABASE "__dashql_compute"/.test(call))).toHaveLength(2);
         await pooled.close();
         await database.terminate();
     });
@@ -514,8 +535,8 @@ describe('HyperDB embedded database adapter', () => {
         const hyperAgain = await database.connect({ pooled: true, defaultDatabase: 'hyper' });
 
         expect(client.connectCount - setupConnects).toBe(2);
-        expect(client.calls.filter(call => /query:\d+:ATTACH DATABASE "\/mnt\/fs\/compute.hyper" AS "__dashql_compute"/.test(call))).toHaveLength(1);
-        expect(client.calls.filter(call => /query:\d+:ATTACH DATABASE "\/mnt\/fs\/user.hyper" AS "hyper"/.test(call))).toHaveLength(1);
+        expect(client.calls.filter(call => /query:\d+:.*ATTACH DATABASE "\/mnt\/fs\/compute.hyper" AS "__dashql_compute"/.test(call))).toHaveLength(1);
+        expect(client.calls.filter(call => /query:\d+:.*ATTACH DATABASE "\/mnt\/fs\/user.hyper" AS "hyper"/.test(call))).toHaveLength(1);
 
         await computeAgain.close();
         await hyperAgain.close();

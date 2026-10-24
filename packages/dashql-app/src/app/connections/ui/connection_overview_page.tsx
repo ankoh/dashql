@@ -1,14 +1,20 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
-import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { useConnectionReferences, useConnectionRegistry } from '../connection_registry.js';
+import type { ConnectionState } from '../connection_state.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
+import { ConnectionMetricsDashboard } from './connection_metrics_dashboard.js';
+import { ConnectionOverviewDetails } from './connection_overview_details.js';
+import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
 import * as styles from './connection_overview_page.module.css';
 
-const CloseIcon = SymbolIcon('x_16');
+/// Does a connection run its queries in the embedded Hyper, whose log the metrics are read from?
+function isEmbeddedHyperConnection(connection: ConnectionState): boolean {
+    const params = connection.params;
+    return 'hyper' in params && params.hyper.protocol === 'WASM';
+}
 
 interface Props {
     /// The id of the connection
@@ -31,7 +37,7 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
     const labelText = connectionLabelText(label);
     return (
         <div className={styles.container}>
-            <section className={styles.card} aria-label={`Overview of ${labelText}`}>
+            <section className={styles.page} aria-label={`Overview of ${labelText}`}>
                 <header className={styles.header}>
                     <svg width="16" height="16" aria-hidden="true">
                         <use xlinkHref={`${symbols}#${connection.connectorInfo.icons.colored}`} />
@@ -41,16 +47,20 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
                         <span className={styles.title_separator}>/</span>
                         <span>Overview</span>
                     </h2>
-                    <IconButton
-                        size={ButtonSize.Small}
-                        variant={ButtonVariant.Invisible}
-                        aria-label={`Close overview of ${labelText}`}
-                        onClick={onClose}
-                    >
-                        <CloseIcon size={16} />
-                    </IconButton>
+                    <span className={styles.status_pill} data-testid="connection-overview-status">
+                        <span className={styles.status_dot} style={{ backgroundColor: CONNECTION_HEALTH_COLORS[connection.connectionHealth ?? 0] }} />
+                        {CONNECTION_HEALTH_NAMES[connection.connectionHealth ?? 0]}
+                    </span>
                 </header>
-                <div className={styles.body} />
+                <div>
+                    {isEmbeddedHyperConnection(connection)
+                        ? <ConnectionMetricsDashboard connectionId={connectionId} details={<ConnectionOverviewDetails connection={connection} />} />
+                        : (
+                            <p className={styles.unavailable} data-testid="connection-metrics-unavailable">
+                                Query metrics are available for embedded Hyper connections.
+                            </p>
+                        )}
+                </div>
             </section>
         </div>
     );

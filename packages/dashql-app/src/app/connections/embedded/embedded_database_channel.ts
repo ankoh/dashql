@@ -124,7 +124,11 @@ export class EmbeddedDatabaseChannel {
 }
 
 export class EmbeddedHyperDatabaseChannel implements HyperDatabaseChannel {
-    constructor(private readonly channel: EmbeddedDatabaseChannel) {}
+    constructor(
+        private readonly channel: EmbeddedDatabaseChannel,
+        /// The Hyper session of the connection, null when its queries are not tracked in the Hyper log
+        readonly sessionId: string | null = null,
+    ) {}
 
     async executeQuery(
         params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam,

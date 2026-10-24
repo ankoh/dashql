@@ -147,108 +147,111 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                 <dependencies.IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open session workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
                     <dependencies.ThreeBarsIcon />
                 </dependencies.IconButton>
-                {dashboardsEnabled && <dependencies.SegmentedControl
-                    aria-label="Session view"
-                    data-testid="session-view-switch"
-                    size={SegmentedControlSize.Small}
-                    onChange={(selectedIndex) => {
-                        setOverviewConnectionId(null);
-                        setMode(selectedIndex === 0
-                            ? SessionViewMode.Session
-                            : SessionViewMode.Dashboard);
-                    }}
-                >
-                    <dependencies.SegmentedControl.Button selected={!dashboardActive}>Session</dependencies.SegmentedControl.Button>
-                    <dependencies.SegmentedControl.Button selected={dashboardActive}>Dashboard</dependencies.SegmentedControl.Button>
-                </dependencies.SegmentedControl>}
-                <div className={styles.execution_controls}>
-                    <ExecuteConnectionGuard sessionId={props.sessionScripts.sessionId} blocked={disconnected && !execution.busy}>
-                    <dependencies.Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                        leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
-                        aria-label={execution.busy ? 'Stop session execution' : 'Execute All'}
-                        data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
-                        disabled={execution.busy ? run?.phase === 'stopping' : !scriptConnectionsIdle
-                            || props.sessionScripts.scriptOrder.length === 0}
-                        onClick={() => execution.busy ? execution.stop() : !disconnected && execution.start(props.modifySessionScripts)}>
-                        <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
-                    </dependencies.Button>
-                    </ExecuteConnectionGuard>
-                    <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
-                        title={run?.error ?? undefined} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
-                        {run && <>
-                            <AnchoredOverlay
-                                open={executionDetailsOpen} onOpen={() => setExecutionDetailsOpen(true)} onClose={() => setExecutionDetailsOpen(false)}
-                                side={AnchorSide.OutsideBottom} align={AnchorAlignment.Start} anchorOffset={4}
-                                renderAnchor={anchorProps => <dependencies.Button {...anchorProps}
-                                    size={ButtonSize.Small} variant={ButtonVariant.Invisible} aria-label="Show session execution details" data-testid="execution-details-toggle"
-                                    leadingVisual={<span className={styles.execution_indicator} aria-hidden="true" data-testid="execution-indicator"><StatusIndicator width="16px" height="16px" status={execution.busy
-                                        ? IndicatorStatus.Running : run.phase === 'failed' ? IndicatorStatus.Failed
-                                            : run.phase === 'succeeded' ? IndicatorStatus.Succeeded : IndicatorStatus.Skip} /></span>}>
-                                    <span className={styles.execution_progress}>{statusText}</span>
-                                </dependencies.Button>}>
-                                <section className={styles.execution_error_card} role="dialog" aria-label="Session execution details" data-testid="execution-details">
-                                    <header className={styles.execution_error_header}>
-                                        <h2 className={styles.execution_details_title}>{run.phase === 'failed' ? 'Execution failed' : 'Session execution'}</h2>
-                                        <dependencies.IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                                            aria-label="Close session execution details" data-testid="execution-details-close" onClick={() => setExecutionDetailsOpen(false)}>
-                                            <CloseIcon size={16} />
-                                        </dependencies.IconButton>
-                                    </header>
-                                    <div className={styles.execution_details_body}>
-                                        <div>{statusText}</div>
-                                        {run.activeFileName && <div>{run.activeFileName} · statement {run.activeStatementIndex}/{run.activeStatementCount}</div>}
-                                        <div>{run.completedStatements}/{run.totalStatements} statements completed</div>
-                                        {run.error && <div className={styles.execution_error_message}>{run.error}</div>}
-                                    </div>
-                                </section>
-                            </AnchoredOverlay>
-                        </>}
-                    </div>
-                </div>
-                <div className={styles.header_actions}>
-                    <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
-                        setExportOpen(false);
-                        setStorageOpen(false);
-                        setShareOpen(value => !value);
-                    }}>
-                        <span className={styles.action_label}>Share as URL</span>
-                    </dependencies.Button>
-                    <dependencies.SessionURLShareOverlay sessionId={props.sessionScripts.sessionId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={shareTriggerRef} />
-                    {archiveExport && (
-                        <>
-                            <dependencies.Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-session" aria-expanded={exportOpen} onClick={() => {
-                                setShareOpen(false);
-                                        setStorageOpen(false);
-                                setExportOpen(value => !value);
-                            }}>
-                                <span className={styles.action_label}>Export .dashql</span>
-                            </dependencies.Button>
-                            <dependencies.SessionFileSaveOverlay
-                                isOpen={exportOpen}
-                                setIsOpen={setExportOpen}
-                                anchorRef={exportTriggerRef}
-                                conn={props.connection}
-                                sessionScripts={props.sessionScripts}
-                                fileName={props.sessionScripts.name ?? props.sessionScripts.sessionMetadata.originalFileName ?? 'session'}
-                            />
-                        </>
-                    )}
-                    <dependencies.SessionStorageOverlay
-                        sessionId={props.sessionScripts.sessionId}
-                        isOpen={storageOpen}
-                        onOpen={() => {
-                            setShareOpen(false);
-                                setExportOpen(false);
-                            setStorageOpen(true);
+                {/* A connection overview is not part of the session, its controls are hidden */}
+                {!overviewActive && <>
+                    {dashboardsEnabled && <dependencies.SegmentedControl
+                        aria-label="Session view"
+                        data-testid="session-view-switch"
+                        size={SegmentedControlSize.Small}
+                        onChange={(selectedIndex) => {
+                            setOverviewConnectionId(null);
+                            setMode(selectedIndex === 0
+                                ? SessionViewMode.Session
+                                : SessionViewMode.Dashboard);
                         }}
-                        onClose={() => setStorageOpen(false)}
-                        renderAnchor={(anchorProps) => (
-                            <dependencies.Button {...anchorProps} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileDirectoryIcon} aria-label="Storage" data-testid="session-storage">
-                                <span className={styles.action_label}>Storage</span>
-                            </dependencies.Button>
+                    >
+                        <dependencies.SegmentedControl.Button selected={!dashboardActive}>Session</dependencies.SegmentedControl.Button>
+                        <dependencies.SegmentedControl.Button selected={dashboardActive}>Dashboard</dependencies.SegmentedControl.Button>
+                    </dependencies.SegmentedControl>}
+                    <div className={styles.execution_controls}>
+                        <ExecuteConnectionGuard sessionId={props.sessionScripts.sessionId} blocked={disconnected && !execution.busy}>
+                        <dependencies.Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                            leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
+                            aria-label={execution.busy ? 'Stop session execution' : 'Execute All'}
+                            data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
+                            disabled={execution.busy ? run?.phase === 'stopping' : !scriptConnectionsIdle
+                                || props.sessionScripts.scriptOrder.length === 0}
+                            onClick={() => execution.busy ? execution.stop() : !disconnected && execution.start(props.modifySessionScripts)}>
+                            <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
+                        </dependencies.Button>
+                        </ExecuteConnectionGuard>
+                        <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
+                            title={run?.error ?? undefined} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
+                            {run && <>
+                                <AnchoredOverlay
+                                    open={executionDetailsOpen} onOpen={() => setExecutionDetailsOpen(true)} onClose={() => setExecutionDetailsOpen(false)}
+                                    side={AnchorSide.OutsideBottom} align={AnchorAlignment.Start} anchorOffset={4}
+                                    renderAnchor={anchorProps => <dependencies.Button {...anchorProps}
+                                        size={ButtonSize.Small} variant={ButtonVariant.Invisible} aria-label="Show session execution details" data-testid="execution-details-toggle"
+                                        leadingVisual={<span className={styles.execution_indicator} aria-hidden="true" data-testid="execution-indicator"><StatusIndicator width="16px" height="16px" status={execution.busy
+                                            ? IndicatorStatus.Running : run.phase === 'failed' ? IndicatorStatus.Failed
+                                                : run.phase === 'succeeded' ? IndicatorStatus.Succeeded : IndicatorStatus.Skip} /></span>}>
+                                        <span className={styles.execution_progress}>{statusText}</span>
+                                    </dependencies.Button>}>
+                                    <section className={styles.execution_error_card} role="dialog" aria-label="Session execution details" data-testid="execution-details">
+                                        <header className={styles.execution_error_header}>
+                                            <h2 className={styles.execution_details_title}>{run.phase === 'failed' ? 'Execution failed' : 'Session execution'}</h2>
+                                            <dependencies.IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                                                aria-label="Close session execution details" data-testid="execution-details-close" onClick={() => setExecutionDetailsOpen(false)}>
+                                                <CloseIcon size={16} />
+                                            </dependencies.IconButton>
+                                        </header>
+                                        <div className={styles.execution_details_body}>
+                                            <div>{statusText}</div>
+                                            {run.activeFileName && <div>{run.activeFileName} · statement {run.activeStatementIndex}/{run.activeStatementCount}</div>}
+                                            <div>{run.completedStatements}/{run.totalStatements} statements completed</div>
+                                            {run.error && <div className={styles.execution_error_message}>{run.error}</div>}
+                                        </div>
+                                    </section>
+                                </AnchoredOverlay>
+                            </>}
+                        </div>
+                    </div>
+                    <div className={styles.header_actions}>
+                        <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
+                            setExportOpen(false);
+                            setStorageOpen(false);
+                            setShareOpen(value => !value);
+                        }}>
+                            <span className={styles.action_label}>Share as URL</span>
+                        </dependencies.Button>
+                        <dependencies.SessionURLShareOverlay sessionId={props.sessionScripts.sessionId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={shareTriggerRef} />
+                        {archiveExport && (
+                            <>
+                                <dependencies.Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-session" aria-expanded={exportOpen} onClick={() => {
+                                    setShareOpen(false);
+                                            setStorageOpen(false);
+                                    setExportOpen(value => !value);
+                                }}>
+                                    <span className={styles.action_label}>Export .dashql</span>
+                                </dependencies.Button>
+                                <dependencies.SessionFileSaveOverlay
+                                    isOpen={exportOpen}
+                                    setIsOpen={setExportOpen}
+                                    anchorRef={exportTriggerRef}
+                                    conn={props.connection}
+                                    sessionScripts={props.sessionScripts}
+                                    fileName={props.sessionScripts.name ?? props.sessionScripts.sessionMetadata.originalFileName ?? 'session'}
+                                />
+                            </>
                         )}
-                    />
-                </div>
+                        <dependencies.SessionStorageOverlay
+                            sessionId={props.sessionScripts.sessionId}
+                            isOpen={storageOpen}
+                            onOpen={() => {
+                                setShareOpen(false);
+                                    setExportOpen(false);
+                                setStorageOpen(true);
+                            }}
+                            onClose={() => setStorageOpen(false)}
+                            renderAnchor={(anchorProps) => (
+                                <dependencies.Button {...anchorProps} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileDirectoryIcon} aria-label="Storage" data-testid="session-storage">
+                                    <span className={styles.action_label}>Storage</span>
+                                </dependencies.Button>
+                            )}
+                        />
+                    </div>
+                </>}
             </header>
             <aside className={styles.navigation_sidebar}>
                 {workbench(false)}

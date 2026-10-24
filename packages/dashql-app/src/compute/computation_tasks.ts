@@ -3,12 +3,17 @@ import { TaskVariant } from './computation_types.js';
 import { ComputationAction, SCHEDULE_TASK } from './computation_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { LoggableException } from '../platform/logger/logger.js';
+import type { EmbeddedClientContext } from '../platform/database/embedded_database.js';
 
-/// Executes the query of a task, e.g. to track it as a query of the connection of the table
-export type ComputeQueryExecution = <T>(queryText: string, execute: () => Promise<T>) => Promise<T>;
+/// Executes the query of a task, e.g. to track it as a query of the connection of the table.
+/// The query runs with the client context that execute receives, e.g. to attribute it in the Hyper log.
+export type ComputeQueryExecution = <T>(
+    queryText: string,
+    execute: (clientContext: EmbeddedClientContext | null) => Promise<T>,
+) => Promise<T>;
 
 /// Execute the query of a task without tracking it
-export const executeDirectly: ComputeQueryExecution = (_queryText, execute) => execute();
+export const executeDirectly: ComputeQueryExecution = (_queryText, execute) => execute(null);
 
 /// The task variant of a task type
 type TaskOf<T extends TaskVariant['type']> = Extract<TaskVariant, { type: T }>;

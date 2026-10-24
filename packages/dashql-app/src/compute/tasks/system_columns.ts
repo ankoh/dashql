@@ -19,7 +19,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
         const transformStart = performance.now();
         const tableName = generateTableName("__syscols");
         const sql = sqlFrame.toSQL();
-        const transformed = await executeQuery(sql, () => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName));
+        const transformed = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("Computed system columns", {

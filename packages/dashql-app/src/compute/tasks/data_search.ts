@@ -23,11 +23,12 @@ export async function searchData(
             requestId: task.requestId.toString(),
         }, LOG_CTX);
         const tableName = generateTableName('__search');
-        const dataFrame = await executeQuery(sql, () => DataFrame.fromSQL(
+        const dataFrame = await executeQuery(sql, clientContext => DataFrame.fromSQL(
             task.inputDataFrame.database,
             sql,
             tableName,
             task.abortController.signal,
+            clientContext,
         ));
         try {
             const dataTable = await dataFrame.readTable(task.abortController.signal);

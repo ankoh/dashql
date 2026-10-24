@@ -16,4 +16,8 @@ export const HYPERDB_WASM_ENGINE_SETTINGS = Object.freeze({
     log_json_export: false,
     log_file_size_limit: '1M',
     log_file_max_count: 10,
+    // Log the process memory and the load every second, also without load, for the live connection overview.
+    // An event has about 3KB, the log files then rotate about every 5 minutes.
+    log_resource_usage_interval: '1s',
+    log_resource_usage_always: 1,
 });

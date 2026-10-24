@@ -3,6 +3,8 @@ import * as arrow from 'apache-arrow';
 import type { TopLevelSpec } from 'vega-lite';
 
 import * as styles from './visualization.module.css';
+import { loadVega } from '../../../../../ui/vegalite/vegalite_loader.js';
+import { createEmbedOptions, createVegaLiteConfig, resolveChartColors } from '../../../../../ui/vegalite/vegalite_theme.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../../../../../query/query_execution_state.js';
 import { useComputationRegistry } from '../../../../../compute/computation_registry.js';
 import {
@@ -26,13 +28,7 @@ export interface VegaLiteViewDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: VegaLiteViewDependencies = {
-    async loadVega() {
-        const [embed, interpreter] = await Promise.all([import('vega-embed'), import('vega-interpreter')]);
-        return {
-            embed: embed.default,
-            expressionInterpreter: interpreter.expressionInterpreter,
-        };
-    },
+    loadVega,
     useComputationRegistry: () => {
         const [state] = useComputationRegistry();
         return [state];
@@ -208,19 +204,15 @@ export function VegaLiteView(props: Props): React.ReactElement {
         // Include axes, legends and titles in the available size, and recalculate their bounds when
         // data or the container changes instead of relying on fixed outer padding.
         runtimeSpec.autosize = { type: 'fit', contains: 'padding', resize: true };
-        // Lazy-load vega-embed (and vega-interpreter, which avoids the
-        // CSP-violating `Function()` eval that vega's default expression
-        // compiler does) to keep them out of the import graph for non-vis paths.
+        // Lazy-load vega-embed and vega-interpreter to keep them out of the import graph for non-vis paths.
         dependencies.loadVega().then(({ embed, expressionInterpreter }) => {
             if (disposed) return;
-            // `ast: true` makes vega parse expressions to an AST and gates the
-            // `expr` option on, so vega-interpreter actually replaces the
-            // default `new Function()` evaluator (which CSP forbids).
+            // The charts of the app share a theme and the embed options, e.g. the CSP-safe expression interpreter
+            const colors = resolveChartColors();
+            const options = createEmbedOptions(colors, expressionInterpreter);
+            const config = createVegaLiteConfig(colors);
             return embed(el, runtimeSpec, {
-                actions: false,
-                renderer: 'canvas',
-                ast: true,
-                expr: expressionInterpreter,
+                ...options,
                 patch: compiledSpec => {
                     const stableScales = injectVegaStableScaleDomains(compiledSpec);
                     stableScaleDomains = stableScales.domains;
@@ -230,7 +222,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
                 // fields; vega-embed installs the vega-tooltip handler by default, so hovering a
                 // mark shows its data. Applied via config so it covers every mark without editing
                 // the generated spec.
-                config: { background: 'transparent', mark: { tooltip: true } },
+                config: { ...config, mark: { ...config.mark, tooltip: true } },
             });
         }).then(result => {
             if (!result) return;

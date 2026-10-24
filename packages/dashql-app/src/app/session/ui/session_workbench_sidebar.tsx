@@ -805,7 +805,8 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                     <SessionRow
                                         key={item.sessionId}
                                         item={item}
-                                        selected={item.sessionId === props.sessionScripts.sessionId}
+                                        // An open connection overview replaces the session
+                                        selected={props.openOverviewId == null && item.sessionId === props.sessionScripts.sessionId}
                                         onOpen={() => openSession(item)}
                                         onDuplicate={() => { void duplicateSession(item); }}
                                         onDelete={() => { void deleteSession(item); }}

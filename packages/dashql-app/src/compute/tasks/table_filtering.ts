@@ -24,7 +24,7 @@ export async function filterTable(task: TableFilteringTask, logger: LoggerLike, 
         }, LOG_CTX);
         const filterStart = performance.now();
         const tableName = generateTableName("__filter");
-        const transformed = await executeQuery(sql, () => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName));
+        const transformed = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
         const filterEnd = performance.now();
         const filterResultTable = await transformed.readTable();
 

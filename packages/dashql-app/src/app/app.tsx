@@ -20,6 +20,7 @@ import { GitHubTheme } from '../theme/github_theme.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { AIClientProvider } from './providers/ai_client_provider.js';
 import { HyperSetupProvider } from './connections/hyper/hyper_connection_setup.js';
+import { HyperLogMetricsProvider } from './connections/hyper/hyper_log_metrics_provider.js';
 import { HyperDatabaseClientProvider } from './connections/hyper/hyperdb_grpc_client_provider.js';
 import { HyperPlanDemoPage } from './ui/demos/plan_demo.js';
 import { JsonViewerExperimentPage } from './ui/demos/json_demo.js';
@@ -66,31 +67,33 @@ const SessionProviders = (props: { children: React.ReactElement }) => (
         <ConnectionRegistry>
             <ConnectionPersistenceProvider>
                 <SalesforceConnector>
-                    <HyperSetupProvider>
-                        <TrinoConnector>
-                            <ComputationRegistry>
-                                <SessionComputeQueryExecutionProvider>
-                                    <ComputationScheduler />
-                                    <QueryExecutorProvider>
-                                        <SessionExecutionProvider>
-                                            <NativeSessionSync />
-                                            <SessionCatalogLoaderProvider>
-                                                <SessionImportProvider>
-                                                    <SessionViewModeProvider>
-                                                        <SessionCommands>
-                                                            <AppLoader>
-                                                                {props.children}
-                                                            </AppLoader>
-                                                        </SessionCommands>
-                                                    </SessionViewModeProvider>
-                                                </SessionImportProvider>
-                                            </SessionCatalogLoaderProvider>
-                                        </SessionExecutionProvider>
-                                    </QueryExecutorProvider>
-                                </SessionComputeQueryExecutionProvider>
-                            </ComputationRegistry>
-                        </TrinoConnector>
-                    </HyperSetupProvider>
+                    <HyperLogMetricsProvider>
+                        <HyperSetupProvider>
+                            <TrinoConnector>
+                                <ComputationRegistry>
+                                    <SessionComputeQueryExecutionProvider>
+                                        <ComputationScheduler />
+                                        <QueryExecutorProvider>
+                                            <SessionExecutionProvider>
+                                                <NativeSessionSync />
+                                                <SessionCatalogLoaderProvider>
+                                                    <SessionImportProvider>
+                                                        <SessionViewModeProvider>
+                                                            <SessionCommands>
+                                                                <AppLoader>
+                                                                    {props.children}
+                                                                </AppLoader>
+                                                            </SessionCommands>
+                                                        </SessionViewModeProvider>
+                                                    </SessionImportProvider>
+                                                </SessionCatalogLoaderProvider>
+                                            </SessionExecutionProvider>
+                                        </QueryExecutorProvider>
+                                    </SessionComputeQueryExecutionProvider>
+                                </ComputationRegistry>
+                            </TrinoConnector>
+                        </HyperSetupProvider>
+                    </HyperLogMetricsProvider>
                 </SalesforceConnector>
             </ConnectionPersistenceProvider>
         </ConnectionRegistry>

@@ -337,6 +337,30 @@ describe('SessionWorkbenchSidebar session creation', () => {
         expect(document.querySelector('[data-testid="share-url-overlay"]')).not.toBeNull();
     });
 
+    it('does not select the session while a connection overview is open', () => {
+        const sessionId = 'current-session';
+        state.connections.set('local-database', state.local!);
+        state.attachedDatabasesBySession.set(sessionId, {
+            mainDatabaseId: 'local-database',
+            attachedDatabaseIds: [],
+        });
+        state.sessionScriptsMap.set(sessionId, {
+            sessionId,
+            name: 'Current session',
+            sessionMetadata: { originalFileName: 'current' },
+        });
+        const render = (openOverviewId: string | null) => act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
+            sessionId,
+            instance: {},
+        } as any} openOverviewId={openOverviewId} onOpenOverview={() => {}} dependencies={dependencies} />));
+        const selected = () => document.querySelectorAll('ul[aria-label="Sessions"] [aria-current="page"]').length;
+
+        render(null);
+        expect(selected()).toBe(1);
+        render('local-database');
+        expect(selected()).toBe(0);
+    });
+
     it('opens export settings before saving from the session row menu', () => {
         const sessionId = 'current-session';
         state.connections.set('local-database', state.local!);

@@ -24,6 +24,8 @@ import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_pr
 import { RESET_CONNECTION } from '../connection_state.js';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../../platform/database/embedded_database_provider.js';
 import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
+import type { HyperLogMetrics } from './hyper_log_metrics.js';
+import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 
 const LOG_CTX = "hyper_setup";
 
@@ -36,7 +38,7 @@ function resolveClient(protocol: connection.HyperProtocol, grpcClient: HyperData
     return grpcClient;
 }
 
-export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, setupEmbeddedDatabase: EmbeddedDatabaseSetupFn, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
+export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, setupEmbeddedDatabase: EmbeddedDatabaseSetupFn, abortSignal: AbortSignal, logMetrics: HyperLogMetrics | null = null): Promise<HyperDatabaseChannel | null> {
     params = structuredClone(params);
     delete params.draftRows;
     let channel: HyperDatabaseChannel | null = null;
@@ -50,9 +52,9 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
 
         if (params.protocol === 'WASM') {
             const database = await setupEmbeddedDatabase('hyper_wasm_connector');
-            channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(
-                await database.connect({ defaultDatabase: 'hyper' }),
-            ));
+            const embeddedConnection = await database.connect({ defaultDatabase: 'hyper' });
+            const sessionId = await logMetrics?.track(database, embeddedConnection) ?? null;
+            channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(embeddedConnection), sessionId);
         } else {
             const client = resolveClient(params.protocol, grpcClient, httpClient);
 
@@ -124,13 +126,14 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
     const grpcClient = useHyperGrpcClient();
     const httpClient = useHyperHttpClient();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
+    const logMetrics = useHyperLogMetrics();
 
     const api = React.useMemo<HyperSetupApi | null>(() => {
         if (!connectorConfig) {
             return null;
         }
         const setup = async (dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abort: AbortSignal) => {
-            return await setupHyperConnection(dispatch, logger, params, connectorConfig, grpcClient, httpClient, setupEmbeddedDatabase, abort);
+            return await setupHyperConnection(dispatch, logger, params, connectorConfig, grpcClient, httpClient, setupEmbeddedDatabase, abort, logMetrics);
         };
         const reset = async (dispatch: Dispatch<HyperConnectorAction>) => {
             dispatch({
@@ -139,7 +142,7 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
             });
         };
         return { setup, reset };
-    }, [connectorConfig, grpcClient, httpClient, logger, setupEmbeddedDatabase]);
+    }, [connectorConfig, grpcClient, httpClient, logger, setupEmbeddedDatabase, logMetrics]);
 
     return (
         <SETUP_CTX.Provider value={api} > {props.children} </SETUP_CTX.Provider>

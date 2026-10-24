@@ -70,7 +70,7 @@ describe('ComputationScheduler', () => {
     });
 
     it('creates an internal query executor for scheduled tasks', async () => {
-        const executeQuery = vi.fn(<T,>(_queryText: string, execute: () => Promise<T>) => execute()) as ComputeQueryExecution;
+        const executeQuery = vi.fn(<T,>(_queryText: string, execute: (clientContext: null) => Promise<T>) => execute(null)) as ComputeQueryExecution;
         const createExecution = vi.fn(() => executeQuery);
         vi.spyOn(computationLogic, 'filterTable').mockResolvedValue(null);
         const task: TaskVariant = {
@@ -154,7 +154,7 @@ describe('processTask', () => {
     });
 
     it('passes the internal query executor to computation logic', async () => {
-        const executeQuery = vi.fn(<T,>(_queryText: string, execute: () => Promise<T>) => execute()) as ComputeQueryExecution;
+        const executeQuery = vi.fn(<T,>(_queryText: string, execute: (clientContext: null) => Promise<T>) => execute(null)) as ComputeQueryExecution;
         const task: TaskVariant = {
             type: TABLE_FILTERING_TASK,
             value: { tableId: 42 } as any,

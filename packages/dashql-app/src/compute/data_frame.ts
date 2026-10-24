@@ -2,6 +2,7 @@ import type * as arrow from 'apache-arrow';
 
 import { Logger } from '../platform/logger/logger.js';
 import type {
+    EmbeddedClientContext,
     EmbeddedComputeDatabase,
     EmbeddedTableImportConnection,
 } from '../platform/database/embedded_database.js';
@@ -23,8 +24,12 @@ export class DataFrame {
         this.tableName = tableName;
     }
 
-    static async withConnection<T>(database: EmbeddedComputeDatabase, fn: (conn: EmbeddedTableImportConnection) => Promise<T>): Promise<T> {
-        const conn = await database.connect({ pooled: true });
+    static async withConnection<T>(
+        database: EmbeddedComputeDatabase,
+        fn: (conn: EmbeddedTableImportConnection) => Promise<T>,
+        clientContext?: EmbeddedClientContext | null,
+    ): Promise<T> {
+        const conn = await database.connect({ pooled: true, clientContext: clientContext ?? undefined });
         try {
             return await fn(conn);
         } finally {
@@ -43,10 +48,16 @@ export class DataFrame {
         return new DataFrame(database, tableName);
     }
 
-    static async fromSQL(database: EmbeddedComputeDatabase, sql: string, tableName: string, abort?: AbortSignal): Promise<DataFrame> {
+    static async fromSQL(
+        database: EmbeddedComputeDatabase,
+        sql: string,
+        tableName: string,
+        abort?: AbortSignal,
+        clientContext?: EmbeddedClientContext | null,
+    ): Promise<DataFrame> {
         await DataFrame.withConnection(database, async conn => {
             await conn.createTableAs(tableName, sql, abort);
-        });
+        }, clientContext);
         return new DataFrame(database, tableName);
     }
 

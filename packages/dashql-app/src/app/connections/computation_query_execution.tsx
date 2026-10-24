@@ -1,11 +1,13 @@
 import * as React from 'react';
 
 import { ComputeQueryExecutionProvider } from '../../compute/computation_query_execution.js';
+import type { ComputeQueryExecution } from '../../compute/computation_tasks.js';
 import { useComputationStore } from '../../compute/computation_registry.js';
 import { computationTaskTitle, type TaskVariant } from '../../compute/computation_types.js';
 import { QueryType } from '../../query/query_execution_state.js';
 import { executeTrackedQuery } from '../../query/tracked_query_execution.js';
 import { useConnectionDispatch } from './connection_registry.js';
+import { sqlframeClientContext } from './hyper/hyper_log_metrics.js';
 
 const LOG_CTX = 'scheduler';
 
@@ -17,8 +19,8 @@ export function SessionComputeQueryExecutionProvider(props: React.PropsWithChild
     const dispatch = useConnectionDispatch();
     const createExecution = React.useCallback((task: TaskVariant) => {
         const connectionId = computations.current.tableComputations[task.value.tableId]?.connectionId ?? null;
-        return <T,>(query: string, execute: () => Promise<T>) => {
-            if (connectionId == null) return execute();
+        const execution: ComputeQueryExecution = (query, execute) => {
+            if (connectionId == null) return execute(null);
             return executeTrackedQuery({
                 query,
                 tracker: { dispatch: action => dispatch(connectionId, action) },
@@ -29,10 +31,12 @@ export function SessionComputeQueryExecutionProvider(props: React.PropsWithChild
                     issuer: 'SQLFrame',
                     userProvided: false,
                 },
-                execute,
+                // Attribute the query to the connection in the Hyper log, it runs on a pooled compute connection
+                execute: () => execute(sqlframeClientContext(connectionId)),
                 errorTarget: LOG_CTX,
             });
         };
+        return execution;
     }, [computations, dispatch]);
 
     return (

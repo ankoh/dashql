@@ -19,7 +19,7 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
         }, LOG_CTX);
         const summaryStart = performance.now();
         const tableName = generateTableName("__tbl_agg");
-        const transformedDataFrame = await executeQuery(sql, () => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName));
+        const transformedDataFrame = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
         const summaryEnd = performance.now();
         logger.info("Aggregated table", {
             "version": task.tableVersion.toString(),

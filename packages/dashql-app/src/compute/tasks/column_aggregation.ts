@@ -21,7 +21,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
     try {
         const transformStart = performance.now();
         const tableName = generateTableName("__col_agg");
-        const aggregateDataFrame = await executeQuery(sql, () => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName));
+        const aggregateDataFrame = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
         const transformEnd = performance.now();
 
         const aggregateTable = await aggregateDataFrame.readTable();
@@ -184,7 +184,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
         }, LOG_CTX);
         const transformStart = performance.now();
         const tableName = generateTableName("__filt_col_agg");
-        const aggregateDataFrame = await executeQuery(sql, () => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName));
+        const aggregateDataFrame = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
         const transformEnd = performance.now();
         logger.info("Aggregated filtered table column", {
             "version": task.tableVersion.toString(),

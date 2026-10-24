@@ -22,6 +22,7 @@ const state = {
     shareProps: null as any,
     exportProps: null as any,
     storageProps: null as any,
+    sidebarProps: null as any,
     attention: null as any,
     execution: { state: null, busy: false, start: vi.fn(), stop: vi.fn() } as any,
 };
@@ -32,7 +33,10 @@ const dependencies = {
         return null;
     },
     ScriptDetails: () => null,
-    SessionWorkbenchSidebar: () => null,
+    SessionWorkbenchSidebar: (props: any) => {
+        state.sidebarProps = props;
+        return null;
+    },
     ConnectionOverviewPage: () => null,
     SessionNavigationDrawer: () => null,
     ThreeBarsIcon: () => null,
@@ -296,6 +300,29 @@ describe('SessionFeedPage', () => {
 
         act(() => storageButton.click());
         expect(state.storageProps).toMatchObject({ sessionId: 'session', isOpen: true });
+    });
+
+    it('hides the session controls while a connection overview is open', () => {
+        state.dashboardsEnabled = true;
+        act(() => root.render(
+            <SessionFeedPage
+                sessionScripts={scripts()}
+                modifySessionScripts={vi.fn()}
+                connection={{ connectionId: 'database' } as any}
+                active
+                dependencies={dependencies}
+            />,
+        ));
+        const header = container.querySelector('header')!;
+        const sessionControls = ['session-view-switch', 'execute-all', 'share-url', 'session-storage'];
+        for (const testId of sessionControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
+
+        act(() => state.sidebarProps.onOpenOverview('database'));
+        for (const testId of sessionControls) expect(header.querySelector(`[data-testid="${testId}"]`)).toBeNull();
+        expect(header.querySelector('[data-testid="open-workbench"]')).not.toBeNull();
+
+        act(() => state.sidebarProps.onOpenOverview(null));
+        for (const testId of sessionControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
     });
 
     it('hides the archive export when the flavor does not support it', () => {
