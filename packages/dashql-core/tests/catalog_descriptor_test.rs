@@ -240,6 +240,20 @@ fn replace_swaps_the_declarations_of_an_entry() {
 }
 
 #[test]
+fn replace_with_identical_bytes_keeps_the_version() {
+    let mut catalog = Catalog::new();
+    let bytes = tables_only(vec![table("", "main", "t", &["a"])]);
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &bytes);
+    let version = catalog.version();
+    catalog.replace_descriptor(id, CatalogLayer::CONNECTION, &bytes).unwrap();
+    assert_eq!(catalog.version(), version);
+    assert_eq!(resolve(&catalog, "select a from t"), vec!["a -> t.a"]);
+    // Another layer is a change
+    catalog.replace_descriptor(id, CatalogLayer::EXECUTED, &bytes).unwrap();
+    assert!(catalog.version() > version);
+}
+
+#[test]
 fn replace_rejects_unknown_and_colliding_ids() {
     let mut catalog = Catalog::new();
     let bytes = tables_only(vec![table("", "main", "t", &["a"])]);

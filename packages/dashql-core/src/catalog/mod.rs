@@ -594,6 +594,10 @@ impl Catalog {
             return Err(Error::invalid_argument("invalid or colliding receiver catalog entry ID"));
         }
         check_layer(layer)?;
+        // Identical bytes declare the same, the catalog version stays and the analyses stay current
+        if self.descriptor_entries.get(&id).is_some_and(|e| e.layer == layer && e.bytes == descriptor) {
+            return Ok(());
+        }
         let entry = DescriptorEntry::new(self, id, layer, descriptor)?;
         let mut staged = self.descriptor_entries.clone();
         staged.insert(id, Arc::new(entry));

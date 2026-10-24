@@ -200,9 +200,9 @@ catalog, so it only moves when what other entries resolve against may have chang
 |---|---|---|
 | `load_script` / `load_scripts` | Publish analyses atomically. Validates catalog id, entry id collisions and canonical ids (`CATALOG_ID_OUT_OF_SYNC`). | **Unchanged** if every analysis replaces a published script in the same layer and `CatalogEntryData::same_declarations`; the entries are swapped in place. Otherwise +1 and all indexes are rebuilt. |
 | `drop_script` | Remove a script entry and its index entries. | +1 if the entry existed |
-| `replace_descriptor` | Import descriptor bytes and publish them. | +1 |
+| `replace_descriptor` | Import descriptor bytes and publish them. | **Unchanged** if the entry holds the same bytes in the same layer. Otherwise +1. |
 | `drop_descriptor` | Remove a descriptor. | +1 if it existed |
-| `apply_catalog_changes` | Unpack the descriptor, apply the changes, replace it. | +1 |
+| `apply_catalog_changes` | Unpack the descriptor, apply the changes, replace it. | As `replace_descriptor`: unchanged if the changes leave the bytes as they are. |
 | `clear` | Remove all entries (id reservations stay). | +1 |
 
 `same_declarations` compares what other entries resolve against: the ids and names of databases,
@@ -482,7 +482,7 @@ differs from the input.
 3. Dependencies and catalog entries hold declarations, never analyses.
 4. The catalog locations of an analysis are resolved through the snapshot it was analyzed against.
 5. The catalog version changes whenever what other entries resolve against may have changed, and only
-   then (except `replace_descriptor` and `apply_catalog_changes`, which always bump).
+   then (except descriptors, which compare bytes: a different encoding of the same schema bumps).
 6. Database and schema ids are canonical per catalog and never reused.
 
 ## Known gaps
@@ -495,7 +495,6 @@ differs from the input.
   their catalog changes; only the single-script `ScriptExecution` path does.
 - **Script table versions.** Script tables carry `catalog_version = 0`, so `referenced_catalog_version`
   of references to script tables is 0.
-- **Descriptor republish.** `replace_descriptor` bumps the version even for identical bytes.
 
 ## Code map
 
