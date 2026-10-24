@@ -29,6 +29,17 @@ use std::sync::Arc;
 /// The version of the script text, bumped by every edit
 pub type TextVersion = u64;
 
+/// The durations of the last scan, parse and analysis of a script in nanoseconds
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ProcessingTimings {
+    /// The duration of the last scan
+    pub scanner_ns: f64,
+    /// The duration of the last parse
+    pub parser_ns: f64,
+    /// The duration of the last analysis
+    pub analyzer_ns: f64,
+}
+
 /// A script text and its latest scanned, parsed and analyzed versions
 pub struct Script {
     /// The catalog entry id
@@ -46,7 +57,7 @@ pub struct Script {
     /// The text offset of the cursor, reset by every analysis
     cursor_offset: Option<usize>,
     /// The durations of the last scan, parse and analysis
-    timings: ScriptProcessingTimingsT,
+    timings: ProcessingTimings,
 }
 
 /// A stopwatch for the processing timings. `std::time::Instant` panics on wasm32-unknown-unknown,
@@ -93,7 +104,7 @@ impl Script {
             parsed: None,
             analyzed: None,
             cursor_offset: None,
-            timings: ScriptProcessingTimingsT::default(),
+            timings: ProcessingTimings::default(),
         }
     }
 
@@ -183,7 +194,7 @@ impl Script {
         let watch = Stopwatch::start();
         let text = self.text.to_string();
         self.scanned = Some(Arc::new(scan(&text, self.text_version, self.catalog_entry_id)));
-        self.timings.scanner_last_elapsed = watch.elapsed_ns();
+        self.timings.scanner_ns = watch.elapsed_ns();
     }
 
     /// Parse the script unconditionally, scanning first if the scan is missing or outdated
@@ -198,7 +209,7 @@ impl Script {
         let parsed = parse(scanned);
         self.scanned = Some(parsed.scanned.clone());
         self.parsed = Some(Arc::new(parsed));
-        self.timings.parser_last_elapsed = watch.elapsed_ns();
+        self.timings.parser_ns = watch.elapsed_ns();
     }
 
     /// Scan and parse if the text changed
@@ -234,7 +245,7 @@ impl Script {
         self.cursor_offset = None;
         let watch = Stopwatch::start();
         self.analyzed = Some(Arc::new(analyze(parsed, catalog)?));
-        self.timings.analyzer_last_elapsed = watch.elapsed_ns();
+        self.timings.analyzer_ns = watch.elapsed_ns();
         Ok(())
     }
 
@@ -420,8 +431,8 @@ impl Script {
     }
 
     /// The durations of the last scan, parse and analysis in nanoseconds
-    pub fn timings(&self) -> &ScriptProcessingTimingsT {
-        &self.timings
+    pub fn timings(&self) -> ProcessingTimings {
+        self.timings
     }
 
     /// The memory statistics (`GetMemoryStatistics`).
@@ -483,7 +494,11 @@ impl Script {
     /// The processing statistics (`GetStatistics`)
     pub fn statistics(&self) -> ScriptStatisticsT {
         let mut statistics = ScriptStatisticsT::default();
-        statistics.timings = Some(self.timings.clone());
+        let mut timings = ScriptProcessingTimingsT::default();
+        timings.scanner_last_elapsed = self.timings.scanner_ns;
+        timings.parser_last_elapsed = self.timings.parser_ns;
+        timings.analyzer_last_elapsed = self.timings.analyzer_ns;
+        statistics.timings = Some(timings);
         statistics.memory = Some(self.memory_statistics());
         statistics
     }

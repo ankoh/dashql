@@ -354,5 +354,8 @@ fn statistics_describe_the_latest_analysis() {
     assert!(memory.latest_script.parser_ast_bytes > 0);
     assert!(memory.latest_script.analyzer_description_bytes > 0);
     assert!(statistics.timings.is_some());
-    assert_eq!(&script.timings().clone(), statistics.timings.as_ref().unwrap());
+    let timings = statistics.timings.as_ref().unwrap();
+    assert_eq!(timings.scanner_last_elapsed, script.timings().scanner_ns);
+    assert_eq!(timings.parser_last_elapsed, script.timings().parser_ns);
+    assert_eq!(timings.analyzer_last_elapsed, script.timings().analyzer_ns);
 }

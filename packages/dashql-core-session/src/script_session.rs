@@ -846,9 +846,9 @@ impl ScriptSession {
         let memory = self.script.memory_statistics();
         let latest = &memory.latest_script;
         let mut statistics = EditorProcessingStatisticsT::default();
-        statistics.scanner_last_elapsed_ns = timings.scanner_last_elapsed;
-        statistics.parser_last_elapsed_ns = timings.parser_last_elapsed;
-        statistics.analyzer_last_elapsed_ns = timings.analyzer_last_elapsed;
+        statistics.scanner_last_elapsed_ns = timings.scanner_ns;
+        statistics.parser_last_elapsed_ns = timings.parser_ns;
+        statistics.analyzer_last_elapsed_ns = timings.analyzer_ns;
         statistics.rope_bytes = memory.rope_bytes as u64;
         statistics.scanner_input_bytes = latest.scanner_input_bytes as u64;
         statistics.scanner_symbol_bytes = latest.scanner_symbol_bytes as u64;
