@@ -190,6 +190,31 @@ impl Projector<'_> {
     }
 }
 
+/// A selection in the offset unit of a session
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Selection {
+    /// Where the selection starts, it stays when the selection is extended
+    pub anchor: u64,
+    /// Where the selection ends, the position of the cursor
+    pub head: u64,
+}
+
+impl Selection {
+    fn from_event(selection: &EditorSelectionT) -> Self {
+        Self {
+            anchor: selection.anchor,
+            head: selection.head,
+        }
+    }
+
+    fn pack(self) -> Box<EditorSelectionT> {
+        let mut selection = EditorSelectionT::default();
+        selection.anchor = self.anchor;
+        selection.head = self.head;
+        Box::new(selection)
+    }
+}
+
 /// The state of one editor document (`ScriptSession`)
 pub struct ScriptSession {
     /// The catalog the script is analyzed against
@@ -205,7 +230,7 @@ pub struct ScriptSession {
     /// The catalog version the cursor is current with, `NO_VERSION` if not placed
     cursor_catalog_revision: u64,
     /// The primary editor selection, in the offset unit of the session
-    primary_selection: Option<EditorSelectionT>,
+    primary_selection: Option<Selection>,
 }
 
 impl Drop for ScriptSession {
@@ -286,8 +311,8 @@ impl ScriptSession {
     }
 
     /// The primary selection, if the host supplied one
-    pub fn primary_selection(&self) -> Option<&EditorSelectionT> {
-        self.primary_selection.as_ref()
+    pub fn primary_selection(&self) -> Option<Selection> {
+        self.primary_selection
     }
 
     pub fn script(&self) -> &Script {
@@ -361,7 +386,7 @@ impl ScriptSession {
         update.state_revision = self.state_revision;
         update.catalog_revision = catalog.version() as u64;
         update.analysis_available = self.is_analysis_current(&catalog);
-        update.primary_selection = self.primary_selection.clone().map(Box::new);
+        update.primary_selection = self.primary_selection.map(Selection::pack);
         update
     }
 
@@ -529,8 +554,8 @@ impl ScriptSession {
         }
         let next_text = edited.as_ref().unwrap_or(text);
 
-        let mut next_selection = self.primary_selection.clone();
-        if let Some(selection) = event.primary_selection.as_deref() {
+        let mut next_selection = self.primary_selection;
+        if let Some(selection) = event.primary_selection.as_deref().map(Selection::from_event) {
             if self.resolve_offset(next_text, selection.anchor).is_none()
                 || self.resolve_offset(next_text, selection.head).is_none()
             {
@@ -540,7 +565,7 @@ impl ScriptSession {
                     "primary selection is not on codepoint boundaries in the session offset unit",
                 );
             }
-            next_selection = Some(selection.clone());
+            next_selection = Some(selection);
         } else if text_changed {
             if let Some(selection) = &next_selection {
                 if self.resolve_offset(next_text, selection.anchor).is_none()
@@ -594,7 +619,7 @@ impl ScriptSession {
         update.state_revision = self.state_revision;
         update.catalog_revision = catalog_version;
         update.analysis_available = analysis_current;
-        update.primary_selection = self.primary_selection.clone().map(Box::new);
+        update.primary_selection = self.primary_selection.map(Selection::pack);
         self.finalize_update(update)
     }
 
