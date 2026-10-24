@@ -246,18 +246,18 @@ export class SessionUnavailableError extends Error {
 }
 
 /// Replace the copies of a connection's params in a session.
-/// References of aliases (connections that were consolidated into this one) are rewritten to the
-/// connection id. Returns null when the session doesn't reference the connection or the copies are
-/// up to date.
-export function patchSessionConnection(session: SessionData, copy: SessionConnection, aliases: readonly string[] = []): SessionData | null {
+/// References of the replaced connections (connections that were merged into this one) are rewritten
+/// to the connection id. Returns null when the session doesn't reference the connection or the copies
+/// are up to date.
+export function patchSessionConnection(session: SessionData, copy: SessionConnection, replaced: readonly string[] = []): SessionData | null {
     const connectionId = copy.connectionId;
-    const references = (id: string) => id === connectionId || aliases.includes(id);
+    const references = (id: string) => id === connectionId || replaced.includes(id);
     const next: SessionData = {
         ...session,
         defaultConnectionId: references(session.defaultConnectionId) ? connectionId : session.defaultConnectionId,
         connections: dedupeConnections(session.connections.map(connection =>
             references(connection.connectionId) ? copy : connection)),
-        scripts: session.scripts.map(script => aliases.includes(script.connectionId) ? { ...script, connectionId } : script),
+        scripts: session.scripts.map(script => replaced.includes(script.connectionId) ? { ...script, connectionId } : script),
     };
     return sessionManifestEquals(session, next) ? null : next;
 }
@@ -273,14 +273,13 @@ export function dedupeConnections<T extends { connectionId: string }>(connection
     });
 }
 
-/// Insert or replace a connection entry, keeping its creation time and aliases
+/// Insert or replace a connection entry, keeping its creation time
 export function upsertConnectionEntry(connections: ConnectionEntry[] | undefined, entry: ConnectionEntry): ConnectionEntry[] | null {
     const entries = connections ?? [];
     const index = entries.findIndex(e => e.id === entry.id);
     const prev = index >= 0 ? entries[index] : null;
     const next: ConnectionEntry = {
         ...entry,
-        ...(entry.aliases == null && prev?.aliases != null ? { aliases: prev.aliases } : {}),
         ...(entry.createdAt == null && prev?.createdAt != null ? { createdAt: prev.createdAt } : {}),
     };
     if (prev != null && jsonDeepEqual(JSON.parse(JSON.stringify(prev)), JSON.parse(JSON.stringify(next)))) {
@@ -818,10 +817,10 @@ export class StorageWriter {
                 break;
             }
             case PATCH_SESSION_CONNECTION: {
-                const [sessionId, copy, aliases] = task.value;
+                const [sessionId, copy, replaced] = task.value;
                 // The copy is only patched into an existing session file. A missing file must not be
                 // recreated, a moved native folder would otherwise silently come back as a new one.
-                await this.patchSessionFile(key, sessionId, existing => patchSessionConnection(existing, copy, aliases) ?? existing);
+                await this.patchSessionFile(key, sessionId, existing => patchSessionConnection(existing, copy, replaced) ?? existing);
                 break;
             }
             case WRITE_SCRIPT: {

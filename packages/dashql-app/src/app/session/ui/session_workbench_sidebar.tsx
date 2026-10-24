@@ -79,6 +79,9 @@ import {
     useSessionScriptsRegistry,
 } from '../scripts/session_scripts_registry.js';
 import { useSessionCreation } from '../session_creation.js';
+import { useMergeConnections } from '../session_connection_merge.js';
+import { connectionMergeCandidates } from '../../connections/connection_merge.js';
+import { ConnectionMergeDialog, type ConnectionMergeCandidate } from '../../connections/ui/connection_merge_dialog.js';
 import { BundledSessionsOverlay } from '../../ui/bundled_sessions_overlay.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals } from '../../connections/ui/connection_label.js';
 import { ConnectionProtocolTag } from '../../connections/ui/connection_label_view.js';
@@ -130,6 +133,7 @@ export interface SessionWorkbenchSidebarDependencies {
     useConnectionReferences: typeof useConnectionReferences;
     useConnectionAllocator: typeof useConnectionAllocator;
     useSessionCreation: typeof useSessionCreation;
+    useMergeConnections: typeof useMergeConnections;
     useSessionScriptsDeletion: typeof useSessionScriptsDeletion;
     useComputationDispatch: typeof useComputationDispatch;
     useStorageReader: typeof useStorageReader;
@@ -158,6 +162,7 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useConnectionReferences,
     useConnectionAllocator,
     useSessionCreation,
+    useMergeConnections,
     useSessionScriptsDeletion,
     useComputationDispatch,
     useStorageReader,
@@ -370,6 +375,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const references = dependencies.useConnectionReferences();
     const allocateConnection = dependencies.useConnectionAllocator();
     const createSession = dependencies.useSessionCreation();
+    const mergeConnections = dependencies.useMergeConnections();
     const deleteSessionScripts = dependencies.useSessionScriptsDeletion();
     const computationDispatch = dependencies.useComputationDispatch();
     const storageReader = dependencies.useStorageReader();
@@ -535,6 +541,34 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         if (!window.confirm(`Delete the connection "${connectionLabelText(labelOf(database))}"?`)) return;
         databaseDispatch(connectionId, { type: DELETE_CONNECTION, value: null });
     }, [databaseDispatch, databaseRegistry, labelOf, references]);
+
+    /// The connection that the merge dialog merges into
+    const [mergeTargetId, setMergeTargetId] = React.useState<string | null>(null);
+    const [merging, setMerging] = React.useState(false);
+    const mergeTarget = mergeTargetId == null ? null : databaseRegistry.connections.get(mergeTargetId) ?? null;
+    const mergeCandidateCount = React.useCallback(
+        (connectionId: string) => connectionMergeCandidates(databaseRegistry, references, connectionId).length,
+        [databaseRegistry, references, scriptsRegistry],
+    );
+    const mergeCandidates = React.useMemo<ConnectionMergeCandidate[]>(() => mergeTargetId == null ? [] : (
+        connectionMergeCandidates(databaseRegistry, references, mergeTargetId).map(database => ({
+            database,
+            label: connectionLabelText(labelOf(database)),
+            sessionCount: references.sessionsOf(database.connectionId).length,
+        }))
+    ), [databaseRegistry, labelOf, mergeTargetId, references, scriptsRegistry]);
+    const mergeIntoTarget = React.useCallback(async (connectionIds: string[]) => {
+        if (mergeTargetId == null) return;
+        setMerging(true);
+        try {
+            await mergeConnections(mergeTargetId, connectionIds);
+        } catch (error) {
+            logger.warn('failed to merge connections', { connectionId: mergeTargetId, error: String(error) }, 'session_workbench');
+        } finally {
+            setMerging(false);
+            setMergeTargetId(null);
+        }
+    }, [logger, mergeConnections, mergeTargetId]);
 
     /// Create a session with a new connection of a connector
     const createSessionWithConnector = React.useCallback((connector: ConnectorType) => {
@@ -844,6 +878,8 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                         databases={connectionRows}
                         describeUsage={describeUsage}
                         onDelete={deleteConnection}
+                        mergeCandidateCount={mergeCandidateCount}
+                        onMerge={setMergeTargetId}
                         initiallyExpanded={initiallyExpanded}
                         sessionConnectionIds={sessionConnectionIds}
                         labelOf={labelOf}
@@ -864,6 +900,15 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                 anchorRef={connectionSettingsAnchorRef}
                 renderSessionName={renderSessionName}
             />
+            {mergeTarget != null && (
+                <ConnectionMergeDialog
+                    targetLabel={connectionLabelText(labelOf(mergeTarget))}
+                    candidates={mergeCandidates}
+                    busy={merging}
+                    onConfirm={connectionIds => void mergeIntoTarget(connectionIds)}
+                    onCancel={() => setMergeTargetId(null)}
+                />
+            )}
         </nav>
     );
 };

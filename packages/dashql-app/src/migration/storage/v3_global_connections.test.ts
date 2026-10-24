@@ -36,11 +36,8 @@ describe('global connections migration', () => {
             session(SESSION_B, DB_B, WASM),
             session(SESSION_C, DB_C, trino('https://trino')),
         ]);
-        expect(plan.entries.map(entry => [entry.id, entry.aliases])).toEqual([
-            [DB_A, [DB_B]],
-            [DB_C, undefined],
-        ]);
-        // Only the session that referenced the alias changes
+        expect(plan.entries.map(entry => entry.id)).toEqual([DB_A, DB_C]);
+        // Only the session that referenced the other id changes
         expect([...plan.rewrites.keys()]).toEqual([SESSION_B]);
         expect(plan.rewrites.get(SESSION_B)!.mainDatabase).toEqual({ databaseId: DB_A, params: WASM });
         expect(plan.catalogSources).toEqual(new Map([[DB_A, SESSION_A], [DB_C, SESSION_C]]));
@@ -63,9 +60,9 @@ describe('global connections migration', () => {
             session(SESSION_B, DB_B, trino('https://trino'), draftOne),
             session(SESSION_C, DB_C, trino('https://trino'), draftTwo),
         ]);
-        expect(plan.entries.map(entry => [entry.id, entry.paramsDraft, entry.aliases])).toEqual([
-            [DB_A, draftOne, [DB_B]],
-            [DB_C, draftTwo, undefined],
+        expect(plan.entries.map(entry => [entry.id, entry.paramsDraft])).toEqual([
+            [DB_A, draftOne],
+            [DB_C, draftTwo],
         ]);
         // Every session drops its draft
         for (const rewrite of plan.rewrites.values()) {

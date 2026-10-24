@@ -9,12 +9,14 @@ import {
     DEBOUNCE_DURATION_SCRIPT_WRITE,
     DEBOUNCE_DURATION_SESSION_WRITE,
     DELETE_SCRIPT as STORAGE_DELETE_SCRIPT,
+    groupSessionConnectionCopyWrites,
     groupSessionManifestWrites,
     groupSessionScriptListWrites,
     groupScriptDeletes,
     groupScriptRenames,
     groupScriptWrites,
     RENAME_SCRIPT as STORAGE_RENAME_SCRIPT,
+    PATCH_SESSION_CONNECTION,
     StorageWriter,
     WRITE_SESSION_PROPERTIES,
     WRITE_SESSION_SCRIPTS,
@@ -199,6 +201,7 @@ export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
 export const RENAME_SESSION = Symbol('RENAME_SESSION');
 export const UPDATE_SESSION_SETTINGS = Symbol('UPDATE_SESSION_SETTINGS');
 export const SET_SCRIPT_CONNECTION = Symbol('SET_SCRIPT_CONNECTION');
+export const MERGE_CONNECTION = Symbol('MERGE_CONNECTION');
 
 export type SessionScriptsAction =
     | VariantKind<typeof SELECT_NEXT_SCRIPT, null>
@@ -221,6 +224,7 @@ export type SessionScriptsAction =
     | VariantKind<typeof RENAME_SESSION, string | null>
     | VariantKind<typeof UPDATE_SESSION_SETTINGS, Partial<SessionSettings>>
     | VariantKind<typeof SET_SCRIPT_CONNECTION, { fileName: string, connection: ScriptConnection }>
+    | VariantKind<typeof MERGE_CONNECTION, { from: string, into: ConnectionState }>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
@@ -805,13 +809,12 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             // its key. The new session is created first, a failure leaves the script untouched.
             let moved: [number, ScriptData];
             try {
-                moved = createMovedScriptData(state.instance, prev, connection);
+                moved = moveScriptData(state.instance, prev, connection);
             } catch (e: any) {
                 logger.warn("Failed to move script to another connection", { fileName, error: stringifyError(e) }, LOG_CTX);
                 return state;
             }
             let [scriptKey, scriptData] = moved;
-            dropScriptData(prev);
             try {
                 scriptData = analyzeScriptData(scriptData, logger);
             } catch (e: any) {
@@ -826,6 +829,46 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                 ...clearSemanticUserFocus(state),
                 scripts,
             };
+            writeSessionScriptList(next, storage);
+            return next;
+        }
+
+        case MERGE_CONNECTION: {
+            const { from, into } = action.value;
+            const target = scriptConnectionOf(into);
+            const scripts: ScriptDataMap = { ...state.scripts };
+            let moved = 0;
+            for (const prev of Object.values(state.scripts)) {
+                if (prev.connection.connectionId !== from) continue;
+                try {
+                    const [scriptKey, scriptData] = moveScriptData(state.instance, prev, target);
+                    scripts[scriptKey] = scriptData;
+                    moved += 1;
+                } catch (e: any) {
+                    // The script stays on the merged connection, the registry then refuses to delete it
+                    logger.warn("Failed to move script to the merged connection", { fileName: prev.fileName, error: stringifyError(e) }, LOG_CTX);
+                }
+            }
+            const movesDefault = state.connectionId === from;
+            if (moved === 0 && !movesDefault) return state;
+            // The moved scripts analyze lazily, the scripts of the target catalog may reference them
+            for (const key in scripts) {
+                const script = scripts[key];
+                if (script.analysisOutdated || script.connection.catalog !== target.catalog) continue;
+                scripts[key] = { ...script, analysisOutdated: true };
+            }
+            const next: SessionScripts = {
+                ...clearSemanticUserFocus(state),
+                ...(movesDefault ? { connectionId: target.connectionId, connectorInfo: target.connectorInfo, connectionCatalog: target.catalog } : {}),
+                scripts,
+            };
+            // The references of the session file follow. The script list is written as well, it replaces
+            // a pending list that still names the merged connection.
+            void storage.write(
+                groupSessionConnectionCopyWrites(state.sessionId, from),
+                { type: PATCH_SESSION_CONNECTION, value: [state.sessionId, { connectionId: into.connectionId, params: into.params }, [from]] },
+                DEBOUNCE_DURATION_SESSION_WRITE,
+            );
             writeSessionScriptList(next, storage);
             return next;
         }
@@ -975,6 +1018,14 @@ function dropScriptData(data: ScriptData) {
         // The script may not have completed analysis and therefore may not be in the catalog.
     }
     destroyScriptData(data);
+}
+
+/// Move a script to another connection, the previous script data is dropped.
+/// A failure leaves the previous script data untouched.
+function moveScriptData(instance: core.DashQL, prev: ScriptData, connection: ScriptConnection): [number, ScriptData] {
+    const moved = createMovedScriptData(instance, prev, connection);
+    dropScriptData(prev);
+    return moved;
 }
 
 /// Create the script data of a script that moves to another connection. The script keeps its key,

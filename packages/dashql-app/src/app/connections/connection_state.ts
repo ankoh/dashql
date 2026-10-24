@@ -166,6 +166,11 @@ export enum ConnectionHealth {
     FAILED = 4,
 }
 
+/// Is a connection connected or connecting? An open connection keeps its protocol and can't be merged.
+export function isConnectionOpen(health: ConnectionHealth | undefined): boolean {
+    return health === ConnectionHealth.CONNECTING || health === ConnectionHealth.ONLINE;
+}
+
 export function printConnectionHealth(health: ConnectionHealth) {
     switch (health) {
         case ConnectionHealth.NOT_STARTED:

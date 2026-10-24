@@ -7,6 +7,7 @@ import { notebooksToSessions } from './storage/v2_notebooks_to_sessions.js';
 import { globalConnections } from './storage/v3_global_connections.js';
 import { sessionCatalogsToConnections } from './storage/v4_session_catalogs_to_connections.js';
 import { shellFolder } from './storage/v5_shell_folder.js';
+import { dropConnectionAliases } from './storage/v6_drop_connection_aliases.js';
 
 const LOG_CTX = 'storage_migration';
 
@@ -39,6 +40,7 @@ export const STORAGE_MIGRATION_STEPS: readonly StorageMigrationStep[] = [
     globalConnections,
     sessionCatalogsToConnections,
     shellFolder,
+    dropConnectionAliases,
 ];
 
 /// Run an operation while holding the manifest lock, which the tabs of the app share

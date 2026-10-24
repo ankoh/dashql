@@ -69,6 +69,7 @@ const dependencies = {
     useSessionScriptsDeletion: () => vi.fn(),
     useSessionScriptsRegistry: () => [{ sessionScriptsMap: state.sessionScriptsMap }],
     useSessionCreation: () => state.createSession,
+    useMergeConnections: () => async () => {},
     useStorageReader: () => ({
         backend: {},
         getSessionLocation: () => ({ type: 'opfs' }),
@@ -137,6 +138,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             connectionId: 'local-database',
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
             details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } },
+            params: { hyper: { protocol: 'WASM' } },
             ...EMPTY_CATALOG,
         } as unknown as ConnectionState;
         state.allocateConnection.mockReset().mockReturnValue(state.local);

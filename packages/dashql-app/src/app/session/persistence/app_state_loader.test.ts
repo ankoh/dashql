@@ -386,7 +386,6 @@ describe('real-core startup catalog restoration', () => {
 
 describe('global connections', () => {
     const OTHER_SESSION_ID = '22222222-3333-4444-8555-666666666666';
-    const OTHER_CONNECTION_ID = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
     const trino = (endpoint: string) => ({ trino: { endpoint, auth: { authType: 'AUTH_BASIC' } } }) as any;
     let dql: dashql.DashQL;
     beforeAll(async () => {
@@ -403,11 +402,11 @@ describe('global connections', () => {
         }));
     }
 
-    it('lets the app manifest win over stale session copies and resolves aliases', async () => {
+    it('lets the app manifest win over stale session copies', async () => {
         const backend = new SessionTestBackend();
-        backend.connections = [{ id: TEST_CONNECTION_ID, params: trino('https://saved'), aliases: [OTHER_CONNECTION_ID] }];
+        backend.connections = [{ id: TEST_CONNECTION_ID, params: trino('https://saved') }];
         seed(backend, TEST_SESSION_ID, TEST_CONNECTION_ID, trino('https://stale'));
-        seed(backend, OTHER_SESSION_ID, OTHER_CONNECTION_ID, trino('https://stale'));
+        seed(backend, OTHER_SESSION_ID, TEST_CONNECTION_ID, trino('https://stale'));
         const restored = await restoreAppState(dql, backend, new NullLogger(), () => {});
 
         expect([...restored.connectionStates.keys()]).toEqual([TEST_CONNECTION_ID]);

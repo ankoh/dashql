@@ -38,7 +38,8 @@ export interface SessionScriptsRegistry {
 export type SetSessionScriptsRegistryAction = React.SetStateAction<SessionScriptsRegistry>;
 export type SessionScriptsAllocator = (scripts: SessionScripts) => [string, SessionScripts];
 export type ModifySessionScripts = (action: SessionScriptsAction) => Promise<SessionScripts | null> | void;
-export type ModifyConnectionSessionScripts = (conn: string, action: SessionScriptsAction) => void;
+/// Resolves once the action was applied to the sessions
+export type ModifyConnectionSessionScripts = (conn: string, action: SessionScriptsAction) => Promise<void>;
 
 // The registry changes with every editor update while the setter is stable.
 // Hooks that only modify the registry subscribe to the setter context and don't re-render on every update.
@@ -303,7 +304,7 @@ export function useConnectionScriptsDispatch(): ModifyConnectionSessionScripts {
     const storage = useStorageWriter();
     const logger = useLogger();
 
-    return React.useCallback<ModifyConnectionSessionScripts>((conn: string, action: SessionScriptsAction) => {
+    return React.useCallback<ModifyConnectionSessionScripts>((conn: string, action: SessionScriptsAction) => new Promise<void>(resolve => {
         queue.push(reg => {
             let changed = false;
             // Every session with scripts that analyze with the connection receives the action
@@ -316,7 +317,8 @@ export function useConnectionScriptsDispatch(): ModifyConnectionSessionScripts {
                     changed ||= next !== prev;
                 }
             }
+            resolve();
             return changed ? { ...reg } : reg;
         });
-    }, [queue, storage, logger]);
+    }), [queue, storage, logger]);
 }

@@ -46,8 +46,7 @@ a Hyper path: `sessions/<id>/attachments/a.csv` is `/mnt/fs/sessions/<id>/attach
 
 - `storageVersion`, the version of this layout, see [Versions and migrations](#versions-and-migrations).
 - `sessions`, one entry per session: `path` (the session id), `storageType` and, for native sessions, `nativePath`.
-- `connections`, the global connections: `id`, `name`, `params`, `paramsDraft`, `aliases` (ids that older storage
-  versions used for the same connection) and `createdAt`.
+- `connections`, the global connections: `id`, `name`, `params`, `paramsDraft` and `createdAt`.
 - `appSettings`.
 
 Writers hold the Web Lock of the manifest, which all tabs of the app share.
@@ -127,7 +126,7 @@ Two versions describe the stored data:
 
 - The storage version, `storageVersion` in the manifest, describes the OPFS root. `migrateStorage` brings an older
   root to the current version at startup with the steps in `migration/storage/`, e.g. version 5 moves `dashql-shell/`
-  to `shell/`.
+  to `shell/` and version 6 drops the `aliases` of the connections.
 - The session format version, `formatVersion` in `dashql-session.json`, describes one session folder. The steps in
   `migration/session/` run for every reachable session folder, and for folders that are registered later.
 

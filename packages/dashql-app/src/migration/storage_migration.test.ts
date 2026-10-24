@@ -84,7 +84,7 @@ describe('storage migration', () => {
         expect(manifest.notebooks).toBeUndefined();
         expect(manifest.appSettings).toEqual({ keywordCase: 'upper' });
         expect(manifest.storageVersion).toBe(STORAGE_VERSION);
-        expect(manifest.connections.map((entry: { id: string; aliases?: string[] }) => [entry.id, entry.aliases])).toEqual([[DB_A, [DB_B]]]);
+        expect(manifest.connections.map((entry: { id: string }) => entry.id)).toEqual([DB_A]);
         expect(text(`connections/${DB_A}/dashql-catalog-relations.sql`)).toBe('CREATE TABLE a(id int);');
 
         // The OPFS session moved and is at the current format
@@ -138,16 +138,15 @@ describe('storage migration', () => {
             formatVersion: 6, sessionId, defaultConnectionId: connectionId,
             connections: [{ connectionId, params: WASM }], scripts: [], attachments: [], metadata: {},
         });
-        const DB_C = 'aaaaaaaa-0000-4000-8000-00000000000c';
         files.set('dashql-manifest.json', JSON.stringify({
             sessions: [{ path: SESSION_A }, { path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }],
-            connections: [{ id: DB_A, params: WASM, aliases: [DB_C] }, { id: DB_B, params: WASM }],
+            connections: [{ id: DB_A, params: WASM }, { id: DB_B, params: WASM }],
             storageVersion: 3,
         }));
-        // The OPFS session references the connection through an alias, the connection has no catalog
+        // The connection of the OPFS session has no catalog
         dirs.add('sessions');
         dirs.add(`sessions/${SESSION_A}`);
-        files.set(`sessions/${SESSION_A}/dashql-session.json`, session(SESSION_A, DB_C));
+        files.set(`sessions/${SESSION_A}/dashql-session.json`, session(SESSION_A, DB_A));
         files.set(`sessions/${SESSION_A}/dashql-catalog-relations.sql`, 'CREATE TABLE a(id int);');
         files.set(`sessions/${SESSION_A}/dashql-catalog-changes.sql`, 'DROP TABLE a;');
         // The connection of the native session has a catalog already
@@ -169,6 +168,21 @@ describe('storage migration', () => {
         expect([...files.keys()].filter(file => file.startsWith('sessions/'))).toEqual([`sessions/${SESSION_A}/dashql-session.json`]);
         expect([...fsStore.files.keys()].filter(file => file.startsWith(NATIVE_DIR))).toEqual([`${NATIVE_DIR}/dashql-session.json`]);
         expect(json(`sessions/${SESSION_A}/dashql-session.json`).formatVersion).toBe(SESSION_FORMAT_VERSION);
+    });
+
+    it('drops the aliases of the connections', async () => {
+        const createdAt = '2026-10-22T00:00:00.000Z';
+        files.set('dashql-manifest.json', JSON.stringify({
+            sessions: [],
+            connections: [{ id: DB_A, params: WASM, aliases: [DB_B], createdAt }, { id: DB_B, params: WASM }],
+            storageVersion: 5,
+        }));
+
+        await migrateStorage(new NullLogger(), root);
+
+        const manifest = json('dashql-manifest.json');
+        expect(manifest.storageVersion).toBe(STORAGE_VERSION);
+        expect(manifest.connections).toEqual([{ id: DB_A, params: WASM, createdAt }, { id: DB_B, params: WASM }]);
     });
 
     it('moves the files of the shell to the shell folder', async () => {

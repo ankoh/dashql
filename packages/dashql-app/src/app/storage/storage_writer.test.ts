@@ -315,18 +315,18 @@ describe('storage writer outcomes', () => {
         expect(backend.calls.filter(call => call.startsWith('write:'))).toEqual([]);
     });
 
-    it('patches the copies of a connection and resolves aliases', async () => {
+    it('patches the copies of a connection and rewrites the connections it replaced', async () => {
         const backend = new SessionTestBackend();
         const writer = new StorageWriter(new NullLogger(), backend);
-        const alias = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
+        const merged = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
         const old = { trino: { endpoint: 'old' } } as any;
         const next = { trino: { endpoint: 'new' } } as any;
         await backend.saveSessionManifest(TEST_SESSION_ID, testSession({
-            ...testConnections({ connectionId: TEST_CONNECTION_ID, params: old, paramsDraft: old } as any, { connectionId: alias, params: old }),
+            ...testConnections({ connectionId: TEST_CONNECTION_ID, params: old, paramsDraft: old } as any, { connectionId: merged, params: old }),
         }));
         backend.calls.length = 0;
         const result = await writer.writeDurable(groupSessionConnectionCopyWrites(TEST_SESSION_ID, TEST_CONNECTION_ID), {
-            type: PATCH_SESSION_CONNECTION, value: [TEST_SESSION_ID, { connectionId: TEST_CONNECTION_ID, params: next }, [alias]],
+            type: PATCH_SESSION_CONNECTION, value: [TEST_SESSION_ID, { connectionId: TEST_CONNECTION_ID, params: next }, [merged]],
         });
         expect(result).toEqual({ status: 'written' });
         const session = await backend.loadSession(TEST_SESSION_ID);
@@ -339,13 +339,13 @@ describe('storage writer outcomes', () => {
         expect(backend.calls).toEqual([`manifest:${TEST_SESSION_ID}`]);
     });
 
-    it('keeps the creation time and aliases of connection entries', async () => {
+    it('keeps the creation time of connection entries', async () => {
         const backend = new SessionTestBackend();
         const writer = new StorageWriter(new NullLogger(), backend);
-        backend.connections = [{ id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'a' } } as any, aliases: ['x'], createdAt: '2026-01-01T00:00:00.000Z' }];
+        backend.connections = [{ id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'a' } } as any, createdAt: '2026-01-01T00:00:00.000Z' }];
         await writer.writeDurable(groupConnectionEntryWrites(TEST_CONNECTION_ID), {
             type: WRITE_CONNECTION_ENTRY, value: { id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'b' } } as any },
         });
-        expect(backend.connections).toEqual([{ id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'b' } }, aliases: ['x'], createdAt: '2026-01-01T00:00:00.000Z' }]);
+        expect(backend.connections).toEqual([{ id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'b' } }, createdAt: '2026-01-01T00:00:00.000Z' }]);
     });
 });

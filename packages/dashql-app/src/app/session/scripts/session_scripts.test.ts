@@ -6,13 +6,15 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Logger } from '../../../platform/logger/logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
-import { StorageWriter, WRITE_SESSION_PROPERTIES, WRITE_SESSION_SCRIPTS, type StorageWriteTaskVariant } from '../../storage/storage_writer.js';
+import { PATCH_SESSION_CONNECTION, StorageWriter, WRITE_SESSION_PROPERTIES, WRITE_SESSION_SCRIPTS, type StorageWriteTaskVariant } from '../../storage/storage_writer.js';
+import type { ConnectionState } from '../../connections/connection_state.js';
 import {
     ANALYZE_OUTDATED_SCRIPT,
     CATALOG_DID_UPDATE,
     CREATE_SCRIPT,
     DELETE_SCRIPT,
     defaultScriptConnection,
+    MERGE_CONNECTION,
     type ScriptConnection,
     SET_SCRIPT_CONNECTION,
     sessionScriptsMatchStorageSnapshot,
@@ -344,6 +346,44 @@ describe('V2 flat session script mutations', () => {
         next = reduce(next, { type: CATALOG_DID_UPDATE, value: other.connectionId });
         expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].analysisOutdated).toBe(false);
         expect(next.scripts[next.scriptRefs['2_beta.sql'].scriptId].analysisOutdated).toBe(true);
+    });
+
+    it('moves the scripts and the default connection of a merged connection', () => {
+        const main = connection();
+        const current = state(['1_alpha.sql', '2_beta.sql'], main);
+        const kept = connection();
+        const next = reduce(current, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: kept } });
+        const alphaKey = next.scriptRefs['1_alpha.sql'].scriptId;
+        const betaKey = next.scriptRefs['2_beta.sql'].scriptId;
+        const target = { ...connection(), params: { hyper: { protocol: 'WASM' } } } as unknown as ConnectionState;
+        const writer = new RecordingWriter(logger, new SessionTestBackend());
+        const merged = reduce(next, { type: MERGE_CONNECTION, value: { from: main.connectionId, into: target } }, writer);
+        // The default connection and its scripts move to the target
+        expect(merged.connectionId).toBe(target.connectionId);
+        expect(merged.connectorInfo).toBe(target.connectorInfo);
+        expect(merged.connectionCatalog).toBe(target.catalog);
+        expect(merged.scripts[alphaKey].connection.connectionId).toBe(target.connectionId);
+        expect(merged.scripts[alphaKey].scriptSession.getText()).toBe('SELECT 1');
+        expect(merged.scripts[alphaKey].analysisOutdated).toBe(true);
+        // Scripts on other connections stay
+        expect(merged.scripts[betaKey].connection).toBe(kept);
+        // The session file replaces the merged connection
+        expect(writer.records).toContainEqual({
+            type: PATCH_SESSION_CONNECTION,
+            value: [current.sessionId, { connectionId: target.connectionId, params: target.params }, [main.connectionId]],
+        });
+        expect(writer.records).toContainEqual({
+            type: WRITE_SESSION_SCRIPTS,
+            value: [current.sessionId, {
+                scripts: [
+                    { name: '1_alpha.sql', connectionId: target.connectionId },
+                    { name: '2_beta.sql', connectionId: kept.connectionId },
+                ],
+                connections: [{ connectionId: target.connectionId, params: target.params }],
+            }],
+        });
+        // A connection that the session doesn't use changes nothing
+        expect(reduce(merged, { type: MERGE_CONNECTION, value: { from: crypto.randomUUID(), into: target } })).toBe(merged);
     });
 
     it('deletes the focused script, moves focus, and persists deletion', () => {

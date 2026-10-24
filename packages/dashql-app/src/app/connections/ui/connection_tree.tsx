@@ -43,6 +43,7 @@ import * as actionMenuStyles from '../../ui/action_menu.module.css';
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const ColumnsIcon = SymbolIcon('columns_16');
 const SettingsIcon = SymbolIcon('settings_16');
+const MergeIcon = SymbolIcon('git_merge_16');
 
 export interface CatalogNode {
     key: string;
@@ -285,6 +286,8 @@ interface ConnectionTreeRowProps {
     onOpenSettings: (connectionId: string, anchor: HTMLButtonElement) => void;
     describeUsage?: (connectionId: string) => ConnectionUsage;
     onDelete?: (connectionId: string) => void;
+    mergeCandidateCount?: (connectionId: string) => number;
+    onMerge?: (connectionId: string) => void;
     labelOf: (database: ConnectionState) => ConnectionLabelParts;
     attention: boolean;
     /// Open the overview of a connection
@@ -373,6 +376,8 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         label={label}
                         onOpenSettings={anchor => props.onOpenSettings(row.database.connectionId, anchor)}
                         onDelete={props.onDelete == null || usage == null ? undefined : () => props.onDelete!(row.database.connectionId)}
+                        onMerge={props.onMerge == null ? undefined : () => props.onMerge!(row.database.connectionId)}
+                        mergeCandidateCount={props.mergeCandidateCount?.(row.database.connectionId)}
                         sessionCount={usage?.sessionCount}
                     />
                 </ConnectionTreeEntry>
@@ -443,6 +448,10 @@ interface ConnectionTreeProps {
     describeUsage?: (connectionId: string) => ConnectionUsage;
     /// Delete a connection that no session uses
     onDelete?: (connectionId: string) => void;
+    /// The number of connections that can be merged into a connection
+    mergeCandidateCount?: (connectionId: string) => number;
+    /// Merge other connections into a connection
+    onMerge?: (connectionId: string) => void;
     /// Is a connection expanded initially?
     initiallyExpanded?: (database: ConnectionState, databaseCount: number) => boolean;
     /// The connections of the current session, they are grouped apart from the other connections and the unused ones
@@ -490,6 +499,8 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     onOpenSettings,
     describeUsage,
     onDelete,
+    mergeCandidateCount,
+    onMerge,
     initiallyExpanded = isConnectionInitiallyExpanded,
     sessionConnectionIds,
     labelOf = defaultConnectionLabelOf,
@@ -593,11 +604,13 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         onOpenSettings,
         describeUsage,
         onDelete,
+        mergeCandidateCount,
+        onMerge,
         labelOf,
         attention,
         onOpenOverview,
         openOverviewId,
-    }), [attention, describeUsage, expanded, labelOf, onDelete, onOpenOverview, onOpenSettings, openOverviewId, rows, toggle]);
+    }), [attention, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onMerge, onOpenOverview, onOpenSettings, openOverviewId, rows, toggle]);
     return (
         <div ref={containerRef} className={styles.database_list} aria-label="Connections and catalogs">
             <List
@@ -645,6 +658,10 @@ interface ConnectionRowMenuProps {
     onOpenSettings: (anchor: HTMLButtonElement) => void;
     /// Delete the connection, only possible if no session uses it
     onDelete?: () => void;
+    /// Merge other connections into the connection
+    onMerge?: () => void;
+    /// The number of connections that can be merged into the connection
+    mergeCandidateCount?: number;
     /// The number of sessions that use the connection
     sessionCount?: number;
     dependencies?: ConnectionRefreshDependencies;
@@ -658,7 +675,7 @@ const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
     useCatalogLoaderQueue,
 };
 
-export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onDelete, sessionCount = 0, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
+export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onDelete, onMerge, mergeCandidateCount = 0, sessionCount = 0, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const refreshCatalog = dependencies.useCatalogLoaderQueue();
@@ -720,7 +737,19 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                         </ActionList.Leading>
                         <ActionList.ItemText>Refresh</ActionList.ItemText>
                     </ActionList.ListItem>
-                    {/* The list takes elements only, the fragment wraps the optional item */}
+                    {/* The list takes elements only, the fragments wrap the optional items */}
+                    <>{onMerge && mergeCandidateCount > 0 && (
+                        <ActionList.ListItem data-testid="connection-menu-item" data-action="merge" onClick={() => {
+                            setOpen(false);
+                            onMerge();
+                        }}>
+                            <ActionList.Leading><MergeIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>
+                                <ActionList.ItemTextTitle>Merge…</ActionList.ItemTextTitle>
+                                <ActionList.ItemTextDescription>{`${mergeCandidateCount} ${mergeCandidateCount === 1 ? 'duplicate' : 'duplicates'}`}</ActionList.ItemTextDescription>
+                            </ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
                     <>{onDelete && (
                         <ActionList.ListItem
                             className={actionMenuStyles.delete_action}

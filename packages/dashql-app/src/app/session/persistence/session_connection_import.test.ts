@@ -19,7 +19,7 @@ const trino = (endpoint: string, secret = ''): ConnectionParams => ({
 }) as ConnectionParams;
 
 const ENTRIES: ConnectionEntry[] = [
-    { id: KNOWN, params: trino('https://trino', 'secret'), aliases: ['dddddddd-0000-4000-8000-00000000000d'] },
+    { id: KNOWN, params: trino('https://trino', 'secret') },
     { id: OTHER, params: trino('https://other', 'secret') },
 ];
 
@@ -39,11 +39,6 @@ describe('session connection import', () => {
         expect(connectionImportQuestions(plan)).toEqual([]);
         // The copy takes the full params of the app's connection
         expect(applyConnectionImportPlan(session, plan, new Map(), ENTRIES).session.connections).toEqual([{ connectionId: KNOWN, params: ENTRIES[0].params }]);
-    });
-
-    it('resolves aliases of known connections', () => {
-        const session = imported('dddddddd-0000-4000-8000-00000000000d', trino('https://trino'));
-        expect(planConnectionImport(session, ENTRIES)[0].decision).toEqual({ kind: 'link', connectionId: KNOWN });
     });
 
     it('asks when a regenerated id describes a known connection', () => {

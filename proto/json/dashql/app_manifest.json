@@ -47,13 +47,6 @@
           "$ref": "connection.json#/definitions/ConnectionParams",
           "description": "Unsaved edits of the connection parameters, including incomplete or invalid settings. Never replicated into sessions."
         },
-        "aliases": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Identifiers of connections that were consolidated into this one. Sessions referencing an alias are resolved to this connection."
-        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

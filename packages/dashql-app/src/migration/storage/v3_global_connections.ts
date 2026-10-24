@@ -93,7 +93,7 @@ interface PlannedConnection {
 ///
 /// Databases with equal params (ignoring the form rows of drafts) become one connection. The full
 /// params are compared, so databases that differ in a secret stay separate. A connection keeps the id
-/// of its first reference in manifest order, the other ids become aliases.
+/// of its first reference in manifest order, the references of the other ids are rewritten.
 ///
 /// Drafts must not get lost: references with the same draft (or none) share a connection, every
 /// further distinct draft keeps a connection of its own under the id of its first holder.
@@ -147,12 +147,10 @@ export function planConnectionMigration(sessions: readonly MigratingSession[]): 
     const catalogSources = new Map<string, string>();
     const resolve = new Map<string, string>(); // `${sessionId}/${databaseId}` -> connection id
     for (const connection of connections) {
-        const aliases = [...new Set(connection.refs.map(ref => ref.databaseId).filter(id => id !== connection.id))];
         entries.push({
             id: connection.id,
             params: connection.params,
             ...(connection.paramsDraft == null ? {} : { paramsDraft: connection.paramsDraft }),
-            ...(aliases.length === 0 ? {} : { aliases }),
             createdAt,
         });
         const catalogSource = connection.refs.find(ref => ref.role === 'main');
@@ -197,8 +195,8 @@ function hasDatabases(data: Record<string, unknown>): boolean {
 /// app manifest and consolidates connections with equal params, see `planConnectionMigration`.
 ///
 /// The catalogs are copied first, writing the connections into the manifest is the commit point.
-/// The sessions are rewritten last and best effort, the load resolves stale references through the
-/// aliases. Sessions that cannot be read register their connections when they become readable again.
+/// The sessions are rewritten last and best effort. Sessions that cannot be read register their
+/// connections when they become readable again.
 export const globalConnections: StorageMigrationStep = {
     version: 3,
     description: 'Move the connections of the sessions into the app manifest',

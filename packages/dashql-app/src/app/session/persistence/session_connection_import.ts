@@ -39,9 +39,9 @@ export type ConnectionImportChoice =
     /// Keep the connection of the session as a connection of its own
     | { kind: 'separate' };
 
-/// Find the entry that a connection id resolves to, aliases included
+/// Find the entry of a connection id
 function findEntry(entries: readonly ConnectionEntry[], connectionId: string): ConnectionEntry | null {
-    return entries.find(entry => entry.id === connectionId || (entry.aliases ?? []).includes(connectionId)) ?? null;
+    return entries.find(entry => entry.id === connectionId) ?? null;
 }
 
 /// Decide how the connections of an imported session map to the connections of the app.

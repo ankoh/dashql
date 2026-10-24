@@ -160,10 +160,6 @@ interface RestoreContext {
     connectionStates: Map<string, ConnectionState>;
     /// The connections by connector type
     connectionStatesByType: string[][];
-    /// The connections that were consolidated into others (alias -> connectionId)
-    aliases: Map<string, string>;
-    /// The aliases of every connection (connectionId -> aliases)
-    aliasesOf: Map<string, string[]>;
     /// The connections whose catalog is restored or live
     catalogsRestored: Set<string>;
     /// The connections that were registered while restoring sessions
@@ -193,8 +189,6 @@ function createRestoreContext(core: DashQL, backend: StorageBackend, logger: Log
         processor,
         connectionStates: new Map(),
         connectionStatesByType: CONNECTOR_TYPES.map(() => []),
-        aliases: new Map(),
-        aliasesOf: new Map(),
         catalogsRestored: new Set(),
         newConnections: new Map(),
         pendingWrites: { connectionEntries: [], staleConnectionFiles: [], sessionCopies: [], sessionScriptLists: [] },
@@ -213,10 +207,6 @@ async function restoreConnectionEntry(ctx: RestoreContext, entry: ConnectionEntr
     }
     ctx.connectionStates.set(state.connectionId, state);
     ctx.connectionStatesByType[state.connectorInfo.connectorType].push(state.connectionId);
-    for (const alias of entry.aliases ?? []) {
-        ctx.aliases.set(alias, entry.id);
-    }
-    ctx.aliasesOf.set(entry.id, entry.aliases ?? []);
     await restoreCatalog(ctx, ctx.registry!, state, { connectionId: entry.id });
 }
 
@@ -239,10 +229,10 @@ async function restoreCatalog(
 /// Resolve a session's reference to a connection.
 /// The app manifest wins over the copy in the session, an unknown connection is registered from the copy.
 function resolveSessionConnection(ctx: RestoreContext, sessionId: string, database: SessionConnection): ConnectionState {
-    const connectionId = ctx.aliases.get(database.connectionId) ?? database.connectionId;
+    const connectionId = database.connectionId;
     const known = ctx.connectionStates.get(connectionId);
     if (known != null) {
-        if (connectionId !== database.connectionId || database.paramsDraft != null || !connectionParamsEqual(database.params, known.params)) {
+        if (database.paramsDraft != null || !connectionParamsEqual(database.params, known.params)) {
             ctx.pendingWrites.sessionCopies.push({ sessionId, connectionId });
         }
         return known;
@@ -300,7 +290,7 @@ async function restoreSessionEntry(
     const connectorInfo = connectionState.connectorInfo;
     const resolveScriptConnection: SessionConnectionResolver = (connectionId, copy) => copy != null
         ? resolveSessionConnection(ctx, sessionId, copy)
-        : ctx.connectionStates.get(ctx.aliases.get(connectionId) ?? connectionId) ?? null;
+        : ctx.connectionStates.get(connectionId) ?? null;
 
     const connectionDuration = performance.now() - connectionStartTime;
     logger.info("Connection restored", {
@@ -445,7 +435,7 @@ async function patchRestoredSession(ctx: RestoreContext, sessionId: string, patc
     }
 }
 
-/// Persist the connections that the restoration registered or consolidated
+/// Persist the connections that the restoration registered
 async function flushRestoredConnectionWrites(ctx: RestoreContext, registry: SessionRegistryBackend): Promise<void> {
     const { logger, pendingWrites } = ctx;
     try {
@@ -470,7 +460,7 @@ async function flushRestoredConnectionWrites(ctx: RestoreContext, registry: Sess
         if (connection == null) continue;
         try {
             const existing = await ctx.backend.loadSession(sessionId);
-            const next = patchSessionConnection(existing, sessionConnectionFromState(connection), ctx.aliasesOf.get(connectionId) ?? []);
+            const next = patchSessionConnection(existing, sessionConnectionFromState(connection));
             if (next != null) {
                 await ctx.backend.saveSessionManifest(sessionId, next);
             }
@@ -546,12 +536,6 @@ export async function restoreSingleSession(
     for (const [connectionId, state] of live.connections) {
         ctx.connectionStates.set(connectionId, state);
         ctx.catalogsRestored.add(connectionId);
-    }
-    if (ctx.registry != null) {
-        for (const entry of (await ctx.registry.loadManifest()).connections ?? []) {
-            for (const alias of entry.aliases ?? []) ctx.aliases.set(alias, entry.id);
-            ctx.aliasesOf.set(entry.id, entry.aliases ?? []);
-        }
     }
     const sessionScripts = new Map<string, SessionScripts>();
     const sessionScriptsByConnection = new Map<string, string[]>();
