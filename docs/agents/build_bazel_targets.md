@@ -52,7 +52,10 @@ bazel build //...
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
 | `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) shipped by `dashql-core-js` |
 | `//packages/dashql-shell-wasm:shell_wasm` | Shell Wasm module (Rust, includes the core bindings) shipped by the app |
-| `//packages/dashql-core:dashql_core` | Core library (Rust): scripts, catalog, analyzer, completion, formatter, visualizations, planner, sessions, shell |
+| `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
+| `//packages/dashql-core-session:dashql_core_session` | Workflows on the core: editor sessions, compilation and execution, planner, batch, catalog changes, visualizations |
+| `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, Arrow result tables, effect protocol |
+| `//packages/dashql-core-view:dashql_core_view` | The view model and layout of Hyper query plans |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
 | `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
@@ -93,7 +96,10 @@ bazel test //...
 | Target | Purpose |
 |--------|---------|
 | `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test |
-| `//packages/dashql-core:all` | Core unit tests, the snapshot tests of all categories but the parser, and the Hyper validation |
+| `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
+| `//packages/dashql-core-session:all` | Session, execution, compiler, batch and catalog change tests, the planner and visualize snapshot tests |
+| `//packages/dashql-core-shell:all` | Shell tests |
+| `//packages/dashql-core-view:all` | Plan view model unit and snapshot tests |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
 | `//packages/dashql-snapshots:parser_snapshot_test` | Parser snapshot tests |
 | `//packages/dashql-core:analyzer_snapshot_test` | Analyzer snapshot tests |
@@ -288,7 +294,8 @@ bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefo
 bazel test //packages/dashql-native:test
 
 # The core
-bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-snapshots:all
+bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-session:all \
+    //packages/dashql-core-shell:all //packages/dashql-core-view:all //packages/dashql-snapshots:all
 ```
 
 ### Core npm Package
@@ -362,7 +369,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-shell-wasm` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-view`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-shell-wasm` |
 | `@umap_crates` | `bazel/crates/umap.MODULE.bazel` | `dashql-umap` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as

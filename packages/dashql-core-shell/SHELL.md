@@ -1,6 +1,6 @@
 # DashQL Shell
 
-The shell (`dashql_core::shell`) is the Rust/WebAssembly core of an embeddable SQL terminal. It owns the complete terminal state machine
+The shell (`dashql_core_shell`) is the Rust/WebAssembly core of an embeddable SQL terminal. It owns the complete terminal state machine
 and terminal rendering, including prompt redraws, syntax highlighting, cursor placement, completion lists, status and
 error output, and width-constrained UTF-8 tables. It deliberately does not own the xterm object, a database, or browser
 APIs.
@@ -38,8 +38,7 @@ implemented or duplicated in TypeScript.
 Build and test through Bazel:
 
 ```bash
-bazel test //packages/dashql-core:shell_api_test //packages/dashql-core:shell_arrow_renderer_test \
-    //packages/dashql-core:shell_prompt_buffer_test
+bazel test //packages/dashql-core-shell:all
 bazel build //packages/dashql-shell-wasm:shell_wasm
 ```
 

@@ -89,7 +89,7 @@ core; C++ function names refer to the original implementation.
 - **The C++ snapshot encoder read the target symbol unconditionally**, which completions inside
   comments do not have. The Rust encoder writes `no-target` for them.
 
-## Visualize (`packages/dashql-core/src/visualize/`)
+## Visualize (`packages/dashql-core-session/src/visualize/`)
 
 **Vega-Lite generator** (`vegalite_generator.rs`)
 - String array elements have their quotes stripped, `''` is not unescaped.
@@ -159,7 +159,7 @@ the inputs that hit them:
 - **Text past the end of the input.** C++ read into the two padding NUL bytes after the text, Rust
   stops at the end. No differential input hit a difference.
 
-## Plan view model (`packages/dashql-core/src/view/`)
+## Plan view model (`packages/dashql-core-view/src/`)
 
 - **Root order follows heap addresses** (`FlattenOperators`): roots are placed in the iteration order
   of an `std::unordered_map` keyed by node address. Rust uses reverse plan order, which matches
@@ -180,7 +180,7 @@ them with rapidjson (comments, NaN and infinity, trailing commas, imprecise numb
 - Counts in the runtime statistics that are not unsigned integers are ignored, `sqlpos` entries that
   are not unsigned 32-bit integers are 0. C++ asserted, release builds read the raw number storage.
 
-## Script session (`packages/dashql-core/src/script_session.rs`)
+## Script session (`packages/dashql-core-session/src/script_session.rs`)
 
 - **Offset projection.** In UTF-8 mode, offsets are projected without checks. In UTF-16 mode, spans
   that are not on a code point boundary are dropped, including keyword names whose byte-span fields
@@ -198,7 +198,7 @@ them with rapidjson (comments, NaN and infinity, trailing commas, imprecise numb
 - **Text padding.** Spans that end past the text read the two NUL padding bytes of the text buffer.
   The Rust `script_diff` reads them the same way instead of panicking.
 
-## Shell (`packages/dashql-core/src/shell/`)
+## Shell (`packages/dashql-core-shell/src/`)
 
 - **Arrow values print like Arrow C++ 19 `Scalar::ToString`.** **Not reproduced:** the Rust shell
   formats cells with arrow-cast (`ArrayFormatter`). C++ prints binaries as raw bytes, embeds
