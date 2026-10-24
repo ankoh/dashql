@@ -384,7 +384,8 @@ Connections publish their schema as descriptor entries:
 The catalog applies changes (`dashql-core`, `catalog/changes.rs`); deriving, qualifying, compacting and
 persisting them needs the analyzer and scripts and lives in `dashql-core-session` (`catalog_changes.rs`):
 1. `derive_catalog_change(analysis, statement)`: a successful `CREATE TABLE`, `CREATE TABLE AS`,
-   `CREATE VIEW`, `SELECT INTO` or `DROP` becomes a `CatalogChangeT`, with the relation named as written
+   `CREATE VIEW`, `SELECT INTO` or `DROP` becomes a `CatalogChange` (a create or drop with plain names,
+   `catalog/changes.rs`; `CatalogChangeT` only at the boundary), with the relation named as written
    and the columns from the analysis.
 2. `qualify_catalog_changes(changes, defaults)`: qualifies names with the connection's default
    database and schema.
