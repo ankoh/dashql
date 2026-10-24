@@ -3,7 +3,7 @@
 use super::{encode_location_text, Map};
 use crate::ryml::Node;
 use dashql_buffers::algebra::LiteralType;
-use dashql_buffers::catalog::CatalogChangeType;
+use dashql_core::catalog::changes::CatalogChangeKind;
 use dashql_buffers::parser::{Node as AstNode, SymbolSpan};
 use dashql_core::analyzer::*;
 use dashql_core_session::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
@@ -83,20 +83,20 @@ fn encode_catalog_changes(script: &AnalyzedScript) -> Option<Node> {
             let change = derive_catalog_change(script, statement_id, &options)?;
             let mut m = Map::new();
             m.int("statement-id", statement_id as i64);
-            let change_type = match change.change_type {
-                CatalogChangeType::CREATE_RELATION if change.if_not_exists => "create-if-not-exists",
-                CatalogChangeType::CREATE_RELATION => "create",
-                CatalogChangeType::DROP_RELATION => "drop",
-                _ => "none",
+            let change_type = match change.kind {
+                CatalogChangeKind::CreateRelation if change.if_not_exists => "create-if-not-exists",
+                CatalogChangeKind::CreateRelation => "create",
+                CatalogChangeKind::DropRelation => "drop",
             };
             m.plain("type", change_type);
             let name: Vec<&str> = [&change.database_name, &change.schema_name, &change.relation_name]
                 .into_iter()
-                .filter_map(|part| part.as_deref().filter(|p| !p.is_empty()))
+                .filter(|part| !part.is_empty())
+                .map(String::as_str)
                 .collect();
             m.plain("name", &name.join("."));
-            if change.change_type == CatalogChangeType::CREATE_RELATION {
-                let columns = change.column_names.unwrap_or_default().into_iter().map(Node::auto).collect();
+            if change.kind == CatalogChangeKind::CreateRelation {
+                let columns = change.column_names.into_iter().map(Node::auto).collect();
                 m.insert("columns", Node::flow_seq(columns));
             }
             Some(m.into_node())

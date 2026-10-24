@@ -11,6 +11,7 @@
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
 use dashql_core_session::catalog_changes::{append_catalog_changes_sql, parse_catalog_changes_sql, qualify_catalog_changes, CatalogNameDefaults};
+use dashql_core::catalog::changes::CatalogChange;
 use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer, EntryIdSource};
 use dashql_core::completion::Completion;
 use dashql_core::error::Error;
@@ -713,12 +714,12 @@ pub fn plan(sessions: &SessionList) -> Vec<u8> {
     finish!(dashql_core_session::planner::plan(&inputs))
 }
 
-/// Read packed `CatalogChanges`
-fn unpack_catalog_changes(changes: &[u8]) -> Result<Vec<dashql_buffers::catalog::CatalogChangeT>, JsError> {
+/// Read packed `CatalogChanges`, changes without effect are skipped
+fn unpack_catalog_changes(changes: &[u8]) -> Result<Vec<CatalogChange>, JsError> {
     let changes = flatbuffers::root::<dashql_buffers::catalog::CatalogChanges>(changes)
         .map_err(|e| JsError::new(&format!("invalid catalog changes: {e}")))?
         .unpack();
-    Ok(changes.changes.unwrap_or_default())
+    Ok(changes.changes.unwrap_or_default().iter().filter_map(CatalogChange::unpack).collect())
 }
 
 /// Fill the missing database and schema names of packed `CatalogChanges`, returns packed `CatalogChanges`
@@ -727,7 +728,7 @@ pub fn qualify_packed_catalog_changes(changes: &[u8], database_name: String, sch
     let mut changes = unpack_catalog_changes(changes)?;
     qualify_catalog_changes(&mut changes, &CatalogNameDefaults { database_name, schema_name });
     let mut list = dashql_buffers::catalog::CatalogChangesT::default();
-    list.changes = Some(changes);
+    list.changes = Some(changes.iter().map(CatalogChange::pack).collect());
     Ok(finish!(list))
 }
 

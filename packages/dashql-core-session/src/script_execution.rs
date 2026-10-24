@@ -15,7 +15,7 @@ use dashql_buffers::execution::{
     ScriptExecutionProtocolError as ProtocolError, ScriptExecutionSnapshotT, ScriptExecutionUpdateT,
     StatementResultStatus, StatementResultT,
 };
-use dashql_buffers::catalog::CatalogChangeT;
+use dashql_core::catalog::changes::CatalogChange;
 use dashql_buffers::formatting::FormattingConfigT;
 use std::sync::Arc;
 
@@ -38,7 +38,7 @@ pub struct ScriptExecution {
     /// The id of the statement the host is executing
     pending_statement_id: Option<u64>,
     /// The catalog change of every compiled statement, relations named as written
-    catalog_changes: Vec<Option<CatalogChangeT>>,
+    catalog_changes: Vec<Option<CatalogChange>>,
 }
 
 /// A string the C++ object API leaves out when empty
@@ -182,7 +182,7 @@ impl ScriptExecution {
                 // The statement that succeeded may have changed the catalog
                 let change = self.catalog_changes.get(self.statement_index as usize - 1).cloned().flatten();
                 let mut update = self.run_from(self.statement_index);
-                update.catalog_changes = change.map(|c| vec![c]);
+                update.catalog_changes = change.map(|c| vec![c.pack()]);
                 update
             }
         }

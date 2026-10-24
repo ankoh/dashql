@@ -2,15 +2,14 @@
 //!
 //! A full catalog refresh can be expensive, so the catalog follows the DDL statements that the user
 //! runs: a successful `CREATE TABLE`, `CREATE TABLE AS`, `CREATE VIEW`, `SELECT INTO` or `DROP`
-//! becomes a [`CatalogChangeT`] that is applied to a descriptor entry
+//! becomes a [`CatalogChange`] that is applied to a descriptor entry
 //! (`dashql_core::catalog::Catalog::apply_catalog_changes`). The changes of a connection are kept as
 //! SQL, a script of `CREATE TABLE` and `DROP TABLE` statements that is rendered and parsed with the
 //! same derivation.
 
-use dashql_buffers::catalog::{CatalogChangeT, CatalogChangeType};
 use dashql_buffers::parser::{AttributeKey, Node, NodeType, StatementType, TempType};
 use dashql_core::analyzer::AnalyzedScript;
-use dashql_core::catalog::changes::change_key;
+use dashql_core::catalog::changes::{CatalogChange, CatalogChangeKind};
 use dashql_core::catalog::Catalog;
 use dashql_core::error::{Error, Result};
 use dashql_core::pack::pack_parsed_statement;
@@ -62,8 +61,8 @@ fn is_temporary(node: Option<&Node>) -> bool {
 
 /// The change of a statement, before the relation is named
 struct StatementChange {
-    /// The change type
-    change_type: CatalogChangeType,
+    /// What the statement does
+    kind: CatalogChangeKind,
     /// Is the relation only created if it does not exist yet?
     if_not_exists: bool,
 }
@@ -77,7 +76,7 @@ fn classify_statement(parsed: &ParsedScript, statement_id: usize, include_tempor
             return None;
         }
         Some(StatementChange {
-            change_type: CatalogChangeType::CREATE_RELATION,
+            kind: CatalogChangeKind::CreateRelation,
             if_not_exists: if_not_exists.is_some_and(|key| is_true(attribute(parsed, root, key))),
         })
     };
@@ -91,12 +90,12 @@ fn classify_statement(parsed: &ParsedScript, statement_id: usize, include_tempor
                 return None;
             }
             Some(StatementChange {
-                change_type: CatalogChangeType::CREATE_RELATION,
+                kind: CatalogChangeKind::CreateRelation,
                 if_not_exists: false,
             })
         }
         StatementType::DROP_TABLE | StatementType::DROP_VIEW => Some(StatementChange {
-            change_type: CatalogChangeType::DROP_RELATION,
+            kind: CatalogChangeKind::DropRelation,
             if_not_exists: false,
         }),
         _ => None,
@@ -108,7 +107,7 @@ fn classify_statement(parsed: &ParsedScript, statement_id: usize, include_tempor
 /// The relation is named as written, see [`qualify_catalog_changes`]. Returns None for statements that
 /// leave the catalog as it is, for excluded temporary relations, and for statements whose relation the
 /// analysis could not name.
-pub fn derive_catalog_change(analyzed: &AnalyzedScript, statement_id: usize, options: &CatalogChangeOptions) -> Option<CatalogChangeT> {
+pub fn derive_catalog_change(analyzed: &AnalyzedScript, statement_id: usize, options: &CatalogChangeOptions) -> Option<CatalogChange> {
     let parsed = &analyzed.parsed;
     if statement_id >= parsed.statements.len() {
         return None;
@@ -116,13 +115,15 @@ pub fn derive_catalog_change(analyzed: &AnalyzedScript, statement_id: usize, opt
     let classified = classify_statement(parsed, statement_id, options.include_temporary)?;
     let target = pack_parsed_statement(parsed, statement_id).target?;
     let relation_name = target.relation_name.filter(|n| !n.is_empty())?;
-    let mut change = CatalogChangeT::default();
-    change.change_type = classified.change_type;
-    change.database_name = Some(target.database_name.unwrap_or_default());
-    change.schema_name = Some(target.schema_name.unwrap_or_default());
-    change.relation_name = Some(relation_name);
-    change.if_not_exists = classified.if_not_exists;
-    if classified.change_type == CatalogChangeType::CREATE_RELATION {
+    let mut change = CatalogChange {
+        kind: classified.kind,
+        database_name: target.database_name.unwrap_or_default(),
+        schema_name: target.schema_name.unwrap_or_default(),
+        relation_name,
+        if_not_exists: classified.if_not_exists,
+        column_names: Vec::new(),
+    };
+    if classified.kind == CatalogChangeKind::CreateRelation {
         let table = analyzed
             .entry
             .table_declarations
@@ -131,20 +132,20 @@ pub fn derive_catalog_change(analyzed: &AnalyzedScript, statement_id: usize, opt
         // The analyzer sorts the columns of CREATE TABLE by name, the AST nodes restore the declaration order
         let mut columns: Vec<_> = table.table_columns.iter().collect();
         columns.sort_by_key(|c| c.ast_node_id.unwrap_or(u32::MAX));
-        change.column_names = Some(columns.iter().map(|c| c.column_name.text.to_string()).collect());
+        change.column_names = columns.iter().map(|c| c.column_name.text.to_string()).collect();
     }
     Some(change)
 }
 
 /// Fill the missing database and schema names of changes with the defaults
-pub fn qualify_catalog_changes(changes: &mut [CatalogChangeT], defaults: &CatalogNameDefaults) {
+pub fn qualify_catalog_changes(changes: &mut [CatalogChange], defaults: &CatalogNameDefaults) {
     for change in changes {
         for (name, default) in [
             (&mut change.database_name, &defaults.database_name),
             (&mut change.schema_name, &defaults.schema_name),
         ] {
-            if name.as_deref().is_none_or(str::is_empty) {
-                *name = Some(default.clone());
+            if name.is_empty() {
+                name.clone_from(default);
             }
         }
     }
@@ -154,16 +155,13 @@ pub fn qualify_catalog_changes(changes: &mut [CatalogChangeT], defaults: &Catalo
 ///
 /// `IF NOT EXISTS` is resolved against the earlier changes of the same relation: after a creation it
 /// changes nothing, after a drop it creates the relation unconditionally.
-pub fn compact_catalog_changes(changes: Vec<CatalogChangeT>) -> Vec<CatalogChangeT> {
-    let mut compacted: Vec<CatalogChangeT> = Vec::new();
+pub fn compact_catalog_changes(changes: Vec<CatalogChange>) -> Vec<CatalogChange> {
+    let mut compacted: Vec<CatalogChange> = Vec::new();
     for mut change in changes {
-        if change.change_type == CatalogChangeType::NONE {
-            continue;
-        }
-        let previous = compacted.iter().position(|c| change_key(c) == change_key(&change));
+        let previous = compacted.iter().position(|c| c.key() == change.key());
         if let Some(previous) = previous {
             if change.if_not_exists {
-                if compacted[previous].change_type == CatalogChangeType::CREATE_RELATION {
+                if compacted[previous].kind == CatalogChangeKind::CreateRelation {
                     continue;
                 }
                 change.if_not_exists = false;
@@ -183,8 +181,8 @@ fn quote_identifier(identifier: &str, out: &mut String) {
 }
 
 /// Write the qualified name of a change
-fn write_qualified_name(change: &CatalogChangeT, out: &mut String) {
-    let (database, schema, relation) = change_key(change);
+fn write_qualified_name(change: &CatalogChange, out: &mut String) {
+    let (database, schema, relation) = change.key();
     if !database.is_empty() {
         quote_identifier(database, out);
         out.push('.');
@@ -197,27 +195,26 @@ fn write_qualified_name(change: &CatalogChangeT, out: &mut String) {
 }
 
 /// Render compacted changes as SQL
-pub fn render_catalog_changes_sql(changes: &[CatalogChangeT]) -> String {
+pub fn render_catalog_changes_sql(changes: &[CatalogChange]) -> String {
     let mut out = String::from(CHANGES_SQL_HEADER);
     for change in changes {
-        match change.change_type {
-            CatalogChangeType::CREATE_RELATION => {
+        match change.kind {
+            CatalogChangeKind::CreateRelation => {
                 out.push_str(if change.if_not_exists { "\n\nCREATE TABLE IF NOT EXISTS " } else { "\n\nCREATE TABLE " });
                 write_qualified_name(change, &mut out);
                 out.push_str(" (");
-                for (i, column) in change.column_names.iter().flatten().enumerate() {
+                for (i, column) in change.column_names.iter().enumerate() {
                     out.push_str(if i == 0 { "\n    " } else { ",\n    " });
                     quote_identifier(column, &mut out);
                     out.push_str(" VARCHAR");
                 }
-                out.push_str(if change.column_names.as_ref().is_some_and(|c| !c.is_empty()) { "\n);" } else { ");" });
+                out.push_str(if change.column_names.is_empty() { ");" } else { "\n);" });
             }
-            CatalogChangeType::DROP_RELATION => {
+            CatalogChangeKind::DropRelation => {
                 out.push_str("\n\nDROP TABLE ");
                 write_qualified_name(change, &mut out);
                 out.push(';');
             }
-            _ => {}
         }
     }
     out.push('\n');
@@ -225,7 +222,7 @@ pub fn render_catalog_changes_sql(changes: &[CatalogChangeT]) -> String {
 }
 
 /// Parse changes SQL into its changes. Its statements are fully qualified.
-pub fn parse_catalog_changes_sql(text: &str) -> Result<Vec<CatalogChangeT>> {
+pub fn parse_catalog_changes_sql(text: &str) -> Result<Vec<CatalogChange>> {
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);
     script.replace_text(text);
@@ -241,7 +238,7 @@ pub fn parse_catalog_changes_sql(text: &str) -> Result<Vec<CatalogChangeT>> {
 }
 
 /// Append changes to changes SQL and compact it
-pub fn append_catalog_changes_sql(changes_sql: &str, changes: &[CatalogChangeT]) -> Result<String> {
+pub fn append_catalog_changes_sql(changes_sql: &str, changes: &[CatalogChange]) -> Result<String> {
     let mut all = parse_catalog_changes_sql(changes_sql)?;
     all.extend(changes.iter().cloned());
     Ok(render_catalog_changes_sql(&compact_catalog_changes(all)))

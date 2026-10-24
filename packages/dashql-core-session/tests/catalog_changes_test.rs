@@ -3,7 +3,8 @@
 
 use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::{QualifiedTableNameT, TableColumnT, TableT};
-use dashql_buffers::catalog::{CatalogChangeT, CatalogChangeType, CatalogDescriptorT};
+use dashql_buffers::catalog::CatalogDescriptorT;
+use dashql_core::catalog::changes::{CatalogChange, CatalogChangeKind};
 use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_buffers::execution::{StatementResultStatus, StatementResultT};
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
@@ -26,22 +27,16 @@ fn defaults() -> CatalogNameDefaults {
 }
 
 /// Describe a change as `create db.schema.relation(a, b)` or `drop db.schema.relation`
-fn describe(change: &CatalogChangeT) -> String {
-    let name = format!(
-        "{}.{}.{}",
-        change.database_name.as_deref().unwrap_or(""),
-        change.schema_name.as_deref().unwrap_or(""),
-        change.relation_name.as_deref().unwrap_or("")
-    );
-    match change.change_type {
-        CatalogChangeType::CREATE_RELATION => format!(
+fn describe(change: &CatalogChange) -> String {
+    let name = format!("{}.{}.{}", change.database_name, change.schema_name, change.relation_name);
+    match change.kind {
+        CatalogChangeKind::CreateRelation => format!(
             "create{} {}({})",
             if change.if_not_exists { " if not exists" } else { "" },
             name,
-            change.column_names.as_deref().unwrap_or(&[]).join(", ")
+            change.column_names.join(", ")
         ),
-        CatalogChangeType::DROP_RELATION => format!("drop {name}"),
-        _ => "none".to_string(),
+        CatalogChangeKind::DropRelation => format!("drop {name}"),
     }
 }
 
@@ -60,29 +55,29 @@ fn derive_all(catalog: &Catalog, text: &str, options: &CatalogChangeOptions) -> 
         .collect()
 }
 
-fn create(database: &str, schema: &str, relation: &str, columns: &[&str]) -> CatalogChangeT {
-    let mut change = CatalogChangeT::default();
-    change.change_type = CatalogChangeType::CREATE_RELATION;
-    change.database_name = Some(database.to_string());
-    change.schema_name = Some(schema.to_string());
-    change.relation_name = Some(relation.to_string());
-    change.column_names = Some(columns.iter().map(|c| c.to_string()).collect());
-    change
+fn change(kind: CatalogChangeKind, database: &str, schema: &str, relation: &str, columns: &[&str]) -> CatalogChange {
+    CatalogChange {
+        kind,
+        database_name: database.to_string(),
+        schema_name: schema.to_string(),
+        relation_name: relation.to_string(),
+        if_not_exists: false,
+        column_names: columns.iter().map(|c| c.to_string()).collect(),
+    }
 }
 
-fn create_if_not_exists(database: &str, schema: &str, relation: &str, columns: &[&str]) -> CatalogChangeT {
+fn create(database: &str, schema: &str, relation: &str, columns: &[&str]) -> CatalogChange {
+    change(CatalogChangeKind::CreateRelation, database, schema, relation, columns)
+}
+
+fn create_if_not_exists(database: &str, schema: &str, relation: &str, columns: &[&str]) -> CatalogChange {
     let mut change = create(database, schema, relation, columns);
     change.if_not_exists = true;
     change
 }
 
-fn drop(database: &str, schema: &str, relation: &str) -> CatalogChangeT {
-    let mut change = CatalogChangeT::default();
-    change.change_type = CatalogChangeType::DROP_RELATION;
-    change.database_name = Some(database.to_string());
-    change.schema_name = Some(schema.to_string());
-    change.relation_name = Some(relation.to_string());
-    change
+fn drop(database: &str, schema: &str, relation: &str) -> CatalogChange {
+    change(CatalogChangeKind::DropRelation, database, schema, relation, &[])
 }
 
 fn table(database: &str, schema: &str, name: &str, columns: &[&str]) -> TableT {
@@ -209,7 +204,7 @@ fn derives_relations_as_written() {
     script.analyze(&catalog, true).unwrap();
     let analyzed = script.analyzed.clone().unwrap();
     let options = CatalogChangeOptions::default();
-    let mut changes: Vec<CatalogChangeT> = (0..2).filter_map(|id| derive_catalog_change(&analyzed, id, &options)).collect();
+    let mut changes: Vec<CatalogChange> = (0..2).filter_map(|id| derive_catalog_change(&analyzed, id, &options)).collect();
     assert_eq!(changes.iter().map(describe).collect::<Vec<_>>(), vec!["create ..t(a)", "drop .s.u"]);
     qualify_catalog_changes(&mut changes, &defaults());
     assert_eq!(changes.iter().map(describe).collect::<Vec<_>>(), vec!["create db.main.t(a)", "drop db.s.u"]);
@@ -340,7 +335,8 @@ fn execution_reports_the_changes_of_succeeded_statements() {
     let operation = execution.start();
     assert!(operation.catalog_changes.is_none());
     let operation = succeed(&mut execution, operation.pending_statement.as_ref().unwrap().id);
-    let changes: Vec<String> = operation.catalog_changes.iter().flatten().map(describe).collect();
+    let changes: Vec<String> =
+        operation.catalog_changes.iter().flatten().filter_map(CatalogChange::unpack).map(|c| describe(&c)).collect();
     assert_eq!(changes, vec!["create ..t(v)"]);
 
     // A failed statement changes nothing
