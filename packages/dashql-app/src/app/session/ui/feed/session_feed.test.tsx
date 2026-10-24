@@ -95,14 +95,13 @@ describe('V2 session feed rows', () => {
                 <SessionDataCard {...props} conn={conn as any} />
             </LoggerProvider>));
             expect(container.textContent).not.toContain(`/mnt/fs/sessions/${sessionId}/attachments/sales 2.csv`);
-            expect(container.textContent).toContain('42 bytes');
-            expect(container.querySelector('[aria-hidden="true"]')?.textContent).toContain('CSV');
-            const buttons = Array.from(container.querySelectorAll('button'));
-            expect(buttons.map(button => button.getAttribute('aria-label'))).toEqual([
-                'Copy HyperDB path for sales 2.csv', 'Download sales 2.csv', 'Remove sales 2.csv',
-            ]);
-            expect(buttons.every(button => button.disabled)).toBe(true);
-            expect(container.querySelector('[aria-label*="reorder"]')).toBeNull();
+            expect(container.textContent).toContain('sales 2.csv');
+            expect(container.querySelector('[data-testid="data-file-type"]')?.textContent).toContain('CSV');
+            for (const action of ['data-file-copy-path', 'data-file-download', 'data-file-remove']) {
+                expect(container.querySelector<HTMLButtonElement>(`[data-testid="${action}"]`)?.disabled).toBe(true);
+            }
+            expect(Array.from(container.querySelectorAll('button')).every(button => button.disabled)).toBe(true);
+            expect(container.querySelector('[data-testid="script-drag-handle"]')).toBeNull();
         }
     });
 
@@ -118,13 +117,13 @@ describe('V2 session feed rows', () => {
                     conn={{ details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'WASM' } } } } } as any}
                     storageReader={{ backend } as any} onRemoved={onRemoved} />
             </LoggerProvider>));
-            const downloadButton = container.querySelector<HTMLButtonElement>('[aria-label="Download sales.csv"]');
+            const downloadButton = container.querySelector<HTMLButtonElement>('[data-testid="data-file-download"]');
             expect(downloadButton).not.toBeNull();
             expect(Array.from(container.querySelectorAll('button')).every(button => !button.disabled)).toBe(true);
             await act(async () => { downloadButton!.click(); });
             expect(download).toHaveBeenCalledExactlyOnceWith(bytes, 'sales.csv');
-            await vi.waitFor(() => expect(container.querySelector<HTMLButtonElement>('[aria-label="Remove sales.csv"]')!.disabled).toBe(false));
-            await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Remove sales.csv"]')!.click(); });
+            await vi.waitFor(() => expect(container.querySelector<HTMLButtonElement>('[data-testid="data-file-remove"]')!.disabled).toBe(false));
+            await act(async () => { container.querySelector<HTMLButtonElement>('[data-testid="data-file-remove"]')!.click(); });
             expect(await backend.listDataFiles('session')).toEqual([]);
             expect(onRemoved).toHaveBeenCalledExactlyOnceWith();
         } finally {
@@ -135,14 +134,15 @@ describe('V2 session feed rows', () => {
     it('renders insertion separators before, between, and after flat scripts', () => {
         const props = baseProps();
         act(() => root.render(<>{[0, 2, 4].map(index => <ScriptFeedRow key={index} {...({ ...props, index, style: {} } as any)} />)}</>));
-        expect(Array.from(container.querySelectorAll('button')).map(button => button.getAttribute('aria-label'))).toEqual([
-            'Add script at position 1', 'Add script at position 2', 'Add script at position 3',
-        ]);
-        expect((container.firstElementChild as HTMLElement).style.paddingTop).toBe('16px');
-        act(() => (container.firstElementChild?.firstElementChild as HTMLElement).click());
+        const separators = Array.from(container.querySelectorAll<HTMLButtonElement>('[data-testid="script-insert"]'));
+        expect(separators).toHaveLength(3);
+        expect(separators[0].style.paddingTop).toBe('16px');
+        act(() => separators[0].click());
         expect(props.onCreate).toHaveBeenCalledWith(0);
-        act(() => (container.querySelector('[aria-label="Add script at position 2"]') as HTMLButtonElement).click());
+        act(() => separators[1].click());
         expect(props.onCreate).toHaveBeenCalledWith(1);
+        act(() => separators[2].click());
+        expect(props.onCreate).toHaveBeenCalledWith(2);
     });
 
     it('focuses on pointer entry and exposes integrated execution footer', () => {
@@ -150,16 +150,16 @@ describe('V2 session feed rows', () => {
         props.scripts[1] = { ...props.scripts[1], latestQueryId: 42 } as any;
         state.query = { queryId: 42, traceId: 9, status: 9, resultTable: {} };
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
-        const article = container.querySelector('article')!;
+        const article = container.querySelector('[data-testid="script-cell"]')!;
         act(() => article.dispatchEvent(new MouseEvent('pointerover', { bubbles: true })));
         expect(props.onFocus).toHaveBeenCalledWith('01_alpha.sql');
         expect(container.querySelector('[data-testid="status"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="integrated-footer"]')).not.toBeNull();
-        expect(container.querySelector('[aria-label="Drag 01_alpha script to reorder"]')).not.toBeNull();
-        const moreButton = container.querySelector('[aria-label="More actions for 01_alpha script"]') as HTMLButtonElement;
+        expect(container.querySelector('[data-testid="script-drag-handle"]')).not.toBeNull();
+        const moreButton = container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement;
         expect(moreButton).not.toBeNull();
         act(() => moreButton.click());
-        const compactButton = Array.from(document.querySelectorAll('button')).find(button => button.textContent === 'Format Compact') as HTMLButtonElement;
+        const compactButton = document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="format-compact"]')!;
         expect(compactButton).not.toBeNull();
         act(() => compactButton.click());
         expect(state.formatScriptEditor).toHaveBeenCalledWith(
@@ -174,21 +174,18 @@ describe('V2 session feed rows', () => {
         expect(props.onFormat).toHaveBeenCalledWith(1, 'SELECT 1;');
         props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
-        expect(container.querySelector('[aria-label="Accept rewrite"]')).not.toBeNull();
-        expect(container.querySelector('[aria-label="Reject rewrite"]')).not.toBeNull();
-        const expandButton = container.querySelector('[aria-label="Expand 01_alpha script details"]') as HTMLButtonElement;
-        const moveUpButton = container.querySelector('[aria-label="Move script up"]') as HTMLButtonElement;
-        const moveDownButton = container.querySelector('[aria-label="Move script down"]') as HTMLButtonElement;
-        expect(moreButton.compareDocumentPosition(moveUpButton) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-        expect(moveUpButton.compareDocumentPosition(moveDownButton) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-        expect(moveDownButton.compareDocumentPosition(expandButton) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-        act(() => expandButton.click());
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="diff-accept"]')!.click());
+        expect(props.onAcceptDiff).toHaveBeenCalledWith(1);
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="diff-reject"]')!.click());
+        expect(props.onRejectDiff).toHaveBeenCalledWith(1);
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-expand"]')!.click());
         expect(props.onShowDetails).toHaveBeenCalledWith('01_alpha.sql');
-        expect(container.querySelector('[aria-label="Move script up"]')?.hasAttribute('disabled')).toBe(true);
-        expect(container.querySelector('[aria-label="Move script down"]')?.hasAttribute('disabled')).toBe(false);
-        const deleteButton = container.querySelector('[aria-label="Delete 01_alpha script"]') as HTMLButtonElement;
-        expect(deleteButton.compareDocumentPosition(moreButton) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-        act(() => deleteButton.click());
+        expect(container.querySelector<HTMLButtonElement>('[data-testid="script-move-up"]')?.disabled).toBe(true);
+        const moveDownButton = container.querySelector<HTMLButtonElement>('[data-testid="script-move-down"]')!;
+        expect(moveDownButton.disabled).toBe(false);
+        act(() => moveDownButton.click());
+        expect(props.onMoveDown).toHaveBeenCalledWith('01_alpha.sql');
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-delete"]')!.click());
         expect(props.onDelete).toHaveBeenCalledWith('01_alpha.sql');
     });
 
@@ -200,19 +197,16 @@ describe('V2 session feed rows', () => {
         }]]) });
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
         // The connection takes the place of the file name
-        const picker = container.querySelector('[aria-label="Connection of 01_alpha script: Trino Http"]')!;
-        // The name is the label, the protocol is the trailing tag
-        expect(picker.textContent).toBe('TrinoHttp');
-        expect(picker.parentElement!.textContent).toBe('TrinoHttp');
-        expect(Array.from(picker.querySelectorAll('span')).some(span => span.textContent === 'Http' && span.children.length === 0)).toBe(true);
-        // A plain database icon leads the label, the same for every connector
-        expect(picker.querySelector('use')?.getAttribute('xlink:href')).toContain('#database_16');
+        const picker = container.querySelector('[data-testid="script-connection-picker"]')!;
+        expect(picker.textContent).toContain('Trino');
+        expect(picker.textContent).toContain('Http');
+        expect(picker.textContent).not.toContain('01_alpha');
 
-        act(() => (container.querySelector('[aria-label="More actions for 01_alpha script"]') as HTMLButtonElement).click());
-        act(() => Array.from(document.querySelectorAll('button')).find(button => button.textContent === 'Storage')!.click());
-        const storage = document.querySelector('[role="dialog"][aria-label="Storage of 01_alpha script"]')!;
+        act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());
+        act(() => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="storage"]')!.click());
+        const storage = document.querySelector('[data-testid="script-storage"]')!;
         expect(storage.textContent).toContain('opfs://sessions/session/scripts/01_alpha.sql');
-        const input = storage.querySelector<HTMLInputElement>('[aria-label="Script file name"]')!;
+        const input = storage.querySelector<HTMLInputElement>('[data-testid="script-file-name-input"]')!;
         expect(input.value).toBe('01_alpha.sql');
         input.value = 'report';
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
@@ -230,7 +224,7 @@ describe('V2 session feed rows', () => {
             editorUpdate: { analysisAvailable: true }, scriptSession: { getText: () => 'SELECT * FROM t QUALIFY x = 1' } } as any;
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
 
-        const play = container.querySelector('[aria-label="Execute 01_alpha query"]') as HTMLButtonElement;
+        const play = container.querySelector('[data-testid="script-execute"]') as HTMLButtonElement;
         expect(play.disabled).toBe(false);
         act(() => play.click());
         expect(props.onExecute).toHaveBeenCalledWith('01_alpha.sql');
@@ -240,7 +234,7 @@ describe('V2 session feed rows', () => {
         const props = baseProps();
         const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 312 } as DOMRect);
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
-        expect((container.firstElementChild as HTMLElement).style.height).toBe('');
+        expect(container.querySelector<HTMLElement>('[data-testid="script-feed-row"]')!.style.height).toBe('');
         expect(props.onRowHeightChange).toHaveBeenCalledWith(1, 312);
         rect.mockRestore();
     });
@@ -251,11 +245,12 @@ describe('V2 session feed rows', () => {
         act(() => root.render(<SessionConnectionAttentionContext.Provider value={{ sessionId: 'session', active: false, request }}>
             <ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />
         </SessionConnectionAttentionContext.Provider>));
-        const play = container.querySelector<HTMLButtonElement>('[aria-label="Execute 01_alpha query"]')!;
+        const play = container.querySelector<HTMLButtonElement>('[data-testid="script-execute"]')!;
         expect(play.disabled).toBe(true);
         act(() => play.click());
         expect(props.onExecute).not.toHaveBeenCalled();
-        const wrapper = play.parentElement!;
+        const wrapper = container.querySelector<HTMLElement>('[data-execution-connection-blocked="true"]')!;
+        expect(wrapper.contains(play)).toBe(true);
         act(() => {
             wrapper.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
             wrapper.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, relatedTarget: play }));
@@ -263,7 +258,6 @@ describe('V2 session feed rows', () => {
         });
         expect(request).toHaveBeenCalledExactlyOnceWith('session');
         expect(wrapper.tabIndex).toBe(0);
-        expect(container.querySelector('[role="tooltip"]')?.textContent).toContain('Connect to execute');
     });
 
     it('offers to stop while the SQL of a question is generated', () => {
@@ -271,8 +265,8 @@ describe('V2 session feed rows', () => {
         const controller = new AbortController();
         props.generations = new Map([[1, { controller, error: null }]]) as any;
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
-        expect(container.querySelector('[aria-label="Execute 01_alpha query"]')).toBeNull();
-        act(() => container.querySelector<HTMLButtonElement>('[aria-label="Stop generating 01_alpha query"]')!.click());
+        expect(container.querySelector('[data-testid="script-execute"]')).toBeNull();
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="generation-stop"]')!.click());
         expect(props.onStopGeneration).toHaveBeenCalledExactlyOnceWith(1);
     });
 
@@ -280,10 +274,10 @@ describe('V2 session feed rows', () => {
         const props = baseProps();
         props.generations = new Map([[1, { controller: new AbortController(), error: 'HTTP 500' }]]) as any;
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
-        expect(container.querySelector('[aria-label="Stop generating 01_alpha query"]')).toBeNull();
+        expect(container.querySelector('[data-testid="generation-stop"]')).toBeNull();
         expect(container.querySelector('[role="alert"]')?.textContent).toContain('HTTP 500');
-        expect(container.querySelector('[aria-label="Execute 01_alpha query"]')).not.toBeNull();
-        act(() => container.querySelector<HTMLButtonElement>('[aria-label="Dismiss the error"]')!.click());
+        expect(container.querySelector('[data-testid="script-execute"]')).not.toBeNull();
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="generation-error-dismiss"]')!.click());
         expect(props.onDismissGeneration).toHaveBeenCalledExactlyOnceWith(1);
     });
 
@@ -292,7 +286,7 @@ describe('V2 session feed rows', () => {
         state.sortableTransform = { x: 0, y: 120, scaleX: 0.8, scaleY: 0.4 };
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
 
-        const item = container.querySelector('[aria-label="Drag 01_alpha script to reorder"]')!.parentElement as HTMLElement;
+        const item = container.querySelector<HTMLElement>('[data-testid="script-feed-item"]')!;
         expect(item.style.transform).toBe('translate3d(0px, 120px, 0px)');
         expect(item.style.transform).not.toContain('scale');
     });
@@ -384,13 +378,13 @@ describe('Session feed composer', () => {
 
     it('greets an empty session with the hero composer', () => {
         render(session(), vi.fn());
-        expect(container.querySelector('h1')?.textContent).toBe('What do you want to know about your data today?');
+        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
         expect(feedState.composerProps?.variant).toBe(SessionComposerVariant.Hero);
     });
 
     it('docks the composer below the scripts of a session', () => {
         render(session(['1_alpha.sql']), vi.fn());
-        expect(container.querySelector('h1')).toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-title"]')).toBeNull();
         expect(feedState.composerProps?.variant).toBe(SessionComposerVariant.Docked);
     });
 

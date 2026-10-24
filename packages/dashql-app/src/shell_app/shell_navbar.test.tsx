@@ -30,7 +30,7 @@ describe('ShellNavBar', () => {
             <ShellNavBar engineVersion="1.0.0" onReset={onReset} Internals={EmptyInternals} />,
         ));
 
-        const resetButton = container.querySelector<HTMLButtonElement>('button[aria-label="Reset shell"]');
+        const resetButton = container.querySelector<HTMLButtonElement>('[data-testid="shell-reset"]');
         expect(resetButton).not.toBeNull();
         act(() => resetButton!.click());
 

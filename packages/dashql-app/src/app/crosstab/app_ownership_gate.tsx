@@ -156,7 +156,7 @@ function AppElsewherePage(props: { status: GateStatus; onTakeOver?: () => void }
             break;
     }
     return (
-        <div className={`${baseStyles.page} ${styles.page}`} data-electron-drag-region>
+        <div className={`${baseStyles.page} ${styles.page}`} data-electron-drag-region data-testid="app-elsewhere">
             <ParticleFlowBackground />
             {/* The internals need the storage, which another tab owns */}
             <CompactNavBar showInternals={false} />
@@ -179,6 +179,7 @@ function AppElsewherePage(props: { status: GateStatus; onTakeOver?: () => void }
                                     <div className={baseStyles.card_actions_right}>
                                         <Button
                                             variant={ButtonVariant.Primary}
+                                            data-testid="app-take-over"
                                             onClick={props.onTakeOver}
                                             disabled={props.status === GateStatus.TAKING_OVER}
                                         >

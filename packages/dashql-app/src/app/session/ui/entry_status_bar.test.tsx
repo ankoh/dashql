@@ -52,24 +52,24 @@ describe('EntryStatusBar', () => {
             }} dependencies={dependencies} />,
         ));
 
-        const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Show error details"]')!;
+        const trigger = container.querySelector<HTMLButtonElement>('[data-testid="error-details-toggle"]')!;
         expect(trigger).not.toBeNull();
         expect(trigger.getAttribute('aria-expanded')).toBe('false');
 
         act(() => trigger.click());
 
-        const dialog = container.querySelector('[role="dialog"][aria-label="Query error details"]');
+        const dialog = container.querySelector('[data-testid="error-details"]');
         expect(dialog).not.toBeNull();
         expect(dialog!.textContent).toContain('relation does not exist');
         expect(dialog!.textContent).toContain('42P01');
         expect(trigger.getAttribute('aria-expanded')).toBe('true');
 
-        const closeButton = dialog!.querySelector<HTMLButtonElement>('[aria-label="Close query error details"]');
+        const closeButton = dialog!.querySelector<HTMLButtonElement>('[data-testid="error-details-close"]');
         expect(closeButton).not.toBeNull();
 
         act(() => closeButton!.click());
 
-        expect(container.querySelector('[role="dialog"][aria-label="Query error details"]')).toBeNull();
+        expect(container.querySelector('[data-testid="error-details"]')).toBeNull();
         expect(trigger.getAttribute('aria-expanded')).toBe('false');
     });
 
@@ -84,6 +84,6 @@ describe('EntryStatusBar', () => {
             }} dependencies={dependencies} />,
         ));
 
-        expect(container.querySelector('[aria-label="Show error details"]')).toBeNull();
+        expect(container.querySelector('[data-testid="error-details-toggle"]')).toBeNull();
     });
 });

@@ -88,6 +88,7 @@ export function QueryResultDownloadButton({ query, dependencies = DEFAULT_DEPEND
                     variant={ButtonVariant.Invisible}
                     size={ButtonSize.Small}
                     aria-label="Download query result"
+                    data-testid="download-query-result"
                     disabled={!hasResult || downloading}
                 >
                     <DownloadIcon size={16} />
@@ -96,10 +97,11 @@ export function QueryResultDownloadButton({ query, dependencies = DEFAULT_DEPEND
         >
             <div className={styles.menu} role="dialog" aria-label="Download query result">
                 <ActionList.List aria-label="Download formats">
-                    <ActionList.ListItem onClick={() => downloadResult(DownloadFormat.Arrow)}>
+                    <ActionList.ListItem data-testid="download-format-arrow" onClick={() => downloadResult(DownloadFormat.Arrow)}>
                         <ActionList.ItemText>Download as Arrow</ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem
+                        data-testid="download-format-parquet"
                         disabled={parquetDatabase == null}
                         onClick={() => downloadResult(DownloadFormat.Parquet)}
                     >

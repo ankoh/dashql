@@ -72,6 +72,8 @@ export function TextField(props: {
     logContext: string;
     autoComplete?: boolean;
     style?: React.CSSProperties;
+    /// The test id of the input element
+    'data-testid'?: string;
 }) {
     const validationId = React.useId();
     let validationStatus: undefined | TextInputValidationStatus = undefined;
@@ -106,6 +108,7 @@ export function TextField(props: {
                 aria-describedby={hasValidationMessage ? validationId : undefined}
                 autoComplete={props.autoComplete}
                 validationStatus={validationStatus}
+                data-testid={props['data-testid']}
             />
             <TextFieldValidation id={validationId} validation={props.validation} />
         </div>

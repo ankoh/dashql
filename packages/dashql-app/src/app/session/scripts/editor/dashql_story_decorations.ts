@@ -111,6 +111,7 @@ class ExpandStatementControl extends WidgetType {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'dashql-story-sql-control';
+        button.dataset.testid = 'story-sql-control';
         button.dataset.dashqlStoryControl = 'true';
         button.dataset.dashqlStoryStatement = String(this.statementId);
         button.setAttribute('aria-expanded', 'false');
@@ -145,6 +146,7 @@ class StoryFoldMarker extends GutterMarker {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'dashql-story-fold-control';
+        button.dataset.testid = 'story-fold-control';
         button.dataset.dashqlStoryControl = 'true';
         button.dataset.dashqlStoryStatement = String(this.statementId);
         button.setAttribute('aria-expanded', String(this.expanded));

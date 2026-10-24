@@ -145,18 +145,18 @@ function ReadyCard({ state, dependencies }: { state: ReadyState; dependencies: S
     const hasConflict = state.conflictLocation != null;
     const actions = hasConflict ? (
         <>
-            <Button disabled={state.busy} onClick={state.onReplace}>Replace</Button>
-            <Button disabled={state.busy} onClick={state.onCreateNew}>Create New</Button>
+            <Button data-testid="session-import-replace" disabled={state.busy} onClick={state.onReplace}>Replace</Button>
+            <Button data-testid="session-import-create-new" disabled={state.busy} onClick={state.onCreateNew}>Create New</Button>
         </>
     ) : (
-        <Button autoFocus variant={ButtonVariant.Primary} disabled={state.busy} onClick={state.onImport}>Import</Button>
+        <Button data-testid="session-import-confirm" autoFocus variant={ButtonVariant.Primary} disabled={state.busy} onClick={state.onImport}>Import</Button>
     );
 
     return (
         <CardShell title="Import Session" busy={state.busy} closeDisabled={state.busy} onClose={state.onClose} actions={actions} dependencies={dependencies}>
             {hasConflict && <ConflictWarning native={state.conflictIsNative} />}
             {incomplete && (
-                <div className={styles.warning} role="status">
+                <div className={styles.warning} role="status" data-testid="session-import-incomplete">
                     <AlertIcon size={16} aria-hidden="true" />
                     <span>Some session files could not be resolved. The available content will still be imported.</span>
                 </div>
@@ -176,7 +176,7 @@ function FileLoadingCard({ state, dependencies }: { state: FileLoadingState; dep
     const status = state.stage === 'reading' ? 'Reading session file...' : 'Checking the session archive...';
     return (
         <CardShell title="Loading Session" busy onClose={state.onClose} dependencies={dependencies}>
-            <div className={styles.status} role="status" aria-live="polite">
+            <div className={styles.status} role="status" aria-live="polite" data-testid="session-import-file-status" data-stage={state.stage}>
                 <span aria-hidden="true">
                     <StatusIndicator status={IndicatorStatus.Running} width="18px" height="18px" />
                 </span>
@@ -200,7 +200,7 @@ function FileReadyCard({ state, dependencies }: { state: FileReadyState; depende
             busy={state.busy}
             closeDisabled={state.busy}
             onClose={state.onClose}
-            actions={<Button autoFocus variant={ButtonVariant.Primary} disabled={state.busy} onClick={state.onImport}>Import</Button>}
+            actions={<Button data-testid="session-import-confirm" autoFocus variant={ButtonVariant.Primary} disabled={state.busy} onClick={state.onImport}>Import</Button>}
             dependencies={dependencies}
         >
             {state.busy ? (
@@ -231,10 +231,10 @@ function FileErrorCard({ state, dependencies }: { state: FileErrorState; depende
         <CardShell
             title="Session Import Failed"
             onClose={state.onClose}
-            actions={<Button autoFocus variant={ButtonVariant.Primary} onClick={state.onRetry}>Try Again</Button>}
+            actions={<Button data-testid="session-import-retry" autoFocus variant={ButtonVariant.Primary} onClick={state.onRetry}>Try Again</Button>}
             dependencies={dependencies}
         >
-            <div className={styles.error} role="alert">
+            <div className={styles.error} role="alert" data-stage={state.failedStage}>
                 <AlertIcon size={16} aria-hidden="true" />
                 <div>
                     <div className={styles.errorSummary}>{summary}</div>
@@ -257,8 +257,8 @@ function ConflictCard({ state, dependencies }: { state: ConflictState; dependenc
             closeDisabled={state.busy}
             onClose={state.onClose}
             actions={<>
-                <Button disabled={state.busy} onClick={state.onReplace}>Replace</Button>
-                <Button disabled={state.busy} onClick={state.onCreateNew}>Create New</Button>
+                <Button data-testid="session-import-replace" disabled={state.busy} onClick={state.onReplace}>Replace</Button>
+                <Button data-testid="session-import-create-new" disabled={state.busy} onClick={state.onCreateNew}>Create New</Button>
             </>}
             dependencies={dependencies}
         >
@@ -275,7 +275,7 @@ function ConflictCard({ state, dependencies }: { state: ConflictState; dependenc
 
 function ConflictWarning({ native }: { native: boolean }): React.ReactElement {
     return (
-        <div className={styles.warning} role="status">
+        <div className={styles.warning} role="status" data-testid="session-import-conflict" data-native={native || undefined}>
             <AlertIcon size={16} aria-hidden="true" />
             <span>
                 A session with this UUID already exists. Replace it, or create a new session with a different UUID.
@@ -303,14 +303,14 @@ function CardShell(props: ShellProps): React.ReactElement {
             <NavBar />
             <main className={`${baseStyles.banner_and_content_container} ${styles.foreground}`}>
                 <div className={baseStyles.content_container}>
-                    <section className={`${baseStyles.card} ${styles.card}`} aria-labelledby="session-import-card-title" aria-busy={props.busy || undefined}>
+                    <section className={`${baseStyles.card} ${styles.card}`} data-testid="session-import-card" aria-labelledby="session-import-card-title" aria-busy={props.busy || undefined}>
                         <div className={baseStyles.card_header} data-electron-drag-region>
                             <div className={baseStyles.card_header_left_container}>
                                 <h1 id="session-import-card-title" className={`${baseStyles.card_header_left_title} ${styles.title}`}>{props.title}</h1>
                             </div>
                             {props.onClose != null && (
                                 <div className={baseStyles.card_header_right_container}>
-                                    <IconButton aria-label="Close" disabled={props.closeDisabled} size={ButtonSize.Small} variant={ButtonVariant.Invisible} onClick={props.onClose}>
+                                    <IconButton data-testid="dialog-close" aria-label="Close" disabled={props.closeDisabled} size={ButtonSize.Small} variant={ButtonVariant.Invisible} onClick={props.onClose}>
                                         <XIcon size={16} />
                                     </IconButton>
                                 </div>

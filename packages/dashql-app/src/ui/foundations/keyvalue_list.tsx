@@ -117,6 +117,7 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
                                 className={styles.copy_action}
                                 aria-label={`Copy ${props.title} ${i + 1}`}
                                 aria-labelledby=""
+                                data-testid="keyvalue-copy"
                                 value={props.copyValue(elem)}
                                 logContext={props.copyLogContext}
                                 variant={ButtonVariant.Invisible}

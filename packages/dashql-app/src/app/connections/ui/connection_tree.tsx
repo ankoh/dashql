@@ -90,6 +90,8 @@ interface ConnectionGroupRow {
     type: 'connection-group';
     /// The row key
     key: string;
+    /// The group
+    group: ConnectionGroupKind;
     /// The heading
     label: string;
 }
@@ -209,6 +211,8 @@ interface ConnectionTreeEntryProps {
     selected?: boolean;
     children?: React.ReactNode;
     className?: string;
+    /// The test id of the main element
+    testId?: string;
 }
 
 const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
@@ -222,6 +226,7 @@ const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
     selected,
     children,
     className,
+    testId,
 }) => {
     const collapsible = onToggle != null;
     return (
@@ -239,6 +244,7 @@ const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
                 <button
                     type="button"
                     className={classNames(styles.tree_entry_main, styles.tree_entry_toggle)}
+                    data-testid={testId}
                     aria-expanded={expanded}
                     aria-label={`${expanded ? 'Collapse' : 'Expand'} ${name}`}
                     onClick={onToggle}
@@ -251,6 +257,7 @@ const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
                 <button
                     type="button"
                     className={classNames(styles.tree_entry_main, styles.tree_entry_toggle)}
+                    data-testid={testId}
                     aria-label={name}
                     aria-current={selected ? 'page' : undefined}
                     onClick={onSelect}
@@ -260,7 +267,7 @@ const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
                     <span className={styles.tree_entry_name}>{label ?? name}</span>
                 </button>
             ) : (
-                <div className={styles.tree_entry_main}>
+                <div className={styles.tree_entry_main} data-testid={testId}>
                     <span className={styles.tree_entry_spacer} />
                     <span className={styles.tree_entry_icon} aria-hidden="true">{icon}</span>
                     <span className={styles.tree_entry_name}>{label ?? name}</span>
@@ -318,6 +325,8 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                 className={classNames(styles.connection_group_row, props.index === 0 && styles.connection_group_row_first)}
                 role="heading"
                 aria-level={3}
+                data-testid="connection-group"
+                data-group={row.group}
             >
                 {row.label}
             </div>
@@ -336,9 +345,11 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     styles.database_row_container,
                     props.index === 0 && styles.database_row_container_first,
                 )}
+                data-connection-id={row.database.connectionId}
             >
                 <ConnectionTreeEntry
                     className={styles.database_row}
+                    testId="connection-toggle"
                     name={label}
                     label={<ConnectionLabelView parts={labelParts} />}
                     depth={0}
@@ -371,9 +382,10 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
     if (row.type === 'connection-overview') {
         const label = connectionLabelText(props.labelOf(row.database));
         return (
-            <div style={props.style} className={styles.tree_row_container}>
+            <div style={props.style} className={styles.tree_row_container} data-connection-id={row.database.connectionId}>
                 <ConnectionTreeEntry
                     className={styles.section_row}
+                    testId="connection-overview"
                     name={`Overview of ${label}`}
                     label="Overview"
                     icon={<DashboardIcon size={14} />}
@@ -387,9 +399,10 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
     if (row.type === 'connection-catalog') {
         const label = connectionLabelText(props.labelOf(row.database));
         return (
-            <div style={props.style} className={styles.tree_row_container}>
+            <div style={props.style} className={styles.tree_row_container} data-connection-id={row.database.connectionId}>
                 <ConnectionTreeEntry
                     className={styles.section_row}
+                    testId="connection-catalog-toggle"
                     name={`Catalog of ${label}`}
                     label="Catalog"
                     icon={<LibraryIcon size={14} />}
@@ -409,6 +422,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
         <div style={props.style} className={styles.tree_row_container}>
             <ConnectionTreeEntry
                 className={styles.catalog_row}
+                testId="catalog-node"
                 name={node.name || 'Unnamed'}
                 icon={catalogIcon(node.kind)}
                 depth={node.depth + 2}
@@ -553,7 +567,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         const groups = databases.map(groupOf);
         for (const group of CONNECTION_GROUP_ORDER) {
             if (!groups.includes(group)) continue;
-            next.push({ type: 'connection-group', key: `connection-group:${group}`, label: CONNECTION_GROUP_LABELS[group] });
+            next.push({ type: 'connection-group', key: `connection-group:${group}`, group, label: CONNECTION_GROUP_LABELS[group] });
             databases.forEach((database, i) => {
                 if (groups[i] === group) pushConnection(database, i);
             });
@@ -668,6 +682,7 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                     size={ButtonSize.Small}
                     variant={ButtonVariant.Invisible}
                     className={styles.database_menu_button}
+                    data-testid="connection-row-menu"
                     aria-label={`More actions for ${label}`}
                     onClick={(event) => {
                         event.stopPropagation();
@@ -680,7 +695,7 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
         >
             <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${label}`}>
                 <ActionList.List aria-label={`Actions for ${label}`}>
-                    <ActionList.ListItem onClick={() => {
+                    <ActionList.ListItem data-testid="connection-menu-item" data-action="settings" onClick={() => {
                         const anchor = triggerRef.current;
                         setOpen(false);
                         if (anchor != null) onOpenSettings(anchor);
@@ -689,6 +704,8 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                         <ActionList.ItemText>Settings</ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem
+                        data-testid="connection-menu-item"
+                        data-action="refresh"
                         disabled={!canRefresh}
                         aria-busy={isRefreshing}
                         onClick={() => {
@@ -707,6 +724,8 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                     <>{onDelete && (
                         <ActionList.ListItem
                             className={actionMenuStyles.delete_action}
+                            data-testid="connection-menu-item"
+                            data-action="delete"
                             disabled={sessionCount > 0}
                             title={sessionCount > 0 ? `Used by ${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}` : undefined}
                             onClick={() => {
@@ -745,6 +764,7 @@ export const ConnectionRefreshButton: React.FC<ConnectionRefreshButtonProps> = (
             size={ButtonSize.Small}
             variant={ButtonVariant.Invisible}
             className={styles.database_refresh_button}
+            data-testid="connection-refresh"
             aria-label={`Refresh catalog for ${label}`}
             aria-busy={isRefreshing}
             disabled={!canRefresh}
@@ -788,7 +808,7 @@ export const ConnectionStatusButton: React.FC<ConnectionStatusButtonProps> = ({ 
         >
             {health === ConnectionHealth.CONNECTING
                 ? <StatusIndicator status={IndicatorStatus.Running} width="14px" height="14px" />
-                : <svg width="14px" height="14px" viewBox="0 0 16 16" aria-hidden="true">
+                : <svg width="14px" height="14px" viewBox="0 0 16 16" aria-hidden="true" data-testid="connection-health-dot">
                     <circle cx="8" cy="8" r="4" fill={CONNECTION_HEALTH_COLORS[health] ?? CONNECTION_HEALTH_COLORS[ConnectionHealth.NOT_STARTED]} />
                 </svg>}
         </IconButton>

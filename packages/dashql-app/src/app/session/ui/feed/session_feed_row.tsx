@@ -279,6 +279,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
             data-electron-drag-region="false"
             onPointerEnter={() => props.onFocus(props.scriptFileName)}
             aria-label={`${displayName} script cell`}
+            data-testid="script-cell"
         >
             <div className={styles.feed_entry_cell} data-result-card={hasFooterContent ? '' : undefined}>
                 <div className={styles.feed_entry_action_bar}>
@@ -291,6 +292,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
+                        data-testid="script-execute"
                         aria-current={props.isFocused ? 'true' : undefined}
                         disabled={!queryActive && (!props.canExecute || sessionExecution.busy || props.connectionHealth !== ConnectionHealth.ONLINE)}
                         onClick={() => {
@@ -333,6 +335,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         size={ButtonSize.Small}
                         onClick={(event) => { event.stopPropagation(); props.onDelete(props.scriptFileName); }}
                         aria-label={`Delete ${displayName} script`}
+                        data-testid="script-delete"
                     >
                         <TrashIcon size={16} />
                     </IconButton>
@@ -348,6 +351,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         variant={ButtonVariant.Invisible}
                         onClick={(event) => { event.stopPropagation(); props.onMoveUp(props.scriptFileName); }}
                         aria-label="Move script up"
+                        data-testid="script-move-up"
                         disabled={!props.canMoveUp}
                     >
                         <MoveUpIcon size={16} />
@@ -356,6 +360,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         variant={ButtonVariant.Invisible}
                         onClick={(event) => { event.stopPropagation(); props.onMoveDown(props.scriptFileName); }}
                         aria-label="Move script down"
+                        data-testid="script-move-down"
                         disabled={!props.canMoveDown}
                     >
                         <MoveDownIcon size={16} />
@@ -365,6 +370,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         size={ButtonSize.Small}
                         onClick={() => props.onShowDetails(props.scriptFileName)}
                         aria-label={`Expand ${displayName} script details`}
+                        data-testid="script-expand"
                     >
                         <ExpandIcon size={16} />
                     </IconButton>
@@ -390,6 +396,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                                             size={ButtonSize.Small}
                                             onClick={acceptDiff}
                                             aria-label="Accept rewrite"
+                                            data-testid="diff-accept"
                                         >
                                             <CheckIcon size={14} />
                                         </IconButton>
@@ -398,6 +405,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                                             size={ButtonSize.Small}
                                             onClick={rejectDiff}
                                             aria-label="Reject rewrite"
+                                            data-testid="diff-reject"
                                         >
                                             <CrossIcon size={14} />
                                         </IconButton>
@@ -560,6 +568,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 type="button"
                 className={styles.feed_cell_separator}
                 aria-label={`Add script at position ${entryIndex + 1}`}
+                data-testid="script-insert"
                 onClick={() => props.onCreate(entryIndex)}
                 style={{
                     ...props.style,
@@ -578,10 +587,12 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     return (
         <div
             style={props.style}
+            data-testid="script-feed-row"
         >
             <div
                 ref={setRowRef}
                 className={styles.feed_list_item}
+                data-testid="script-feed-item"
                 style={{
                     // dnd-kit may scale the active item toward a differently sized target row.
                     // Feed cards have variable heights, so scaling visibly squashes or stretches them.
@@ -594,6 +605,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     type="button"
                     className={styles.feed_entry_drag_handle}
                     aria-label={`Drag ${scriptDisplayName(scriptFileName)} script to reorder`}
+                    data-testid="script-drag-handle"
                     {...attributes}
                     {...listeners}
                 >

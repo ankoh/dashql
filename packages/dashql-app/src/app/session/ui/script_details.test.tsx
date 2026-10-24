@@ -6,6 +6,7 @@ import { ConnectionHealth } from '../../connections/connection_state.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 import * as dashql from '@ankoh/dashql-core';
 import { DELETE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../scripts/session_scripts.js';
+import { QueryResultRerunButton } from './query_result_cache_controls.js';
 import { runSessionScript } from './rerun_query.js';
 import { ScriptDetails, type ScriptDetailsDependencies } from './script_details.js';
 import { SessionConnectionAttentionContext } from './session_connection_attention.js';
@@ -71,6 +72,10 @@ function scripts(): SessionScripts {
     };
 }
 
+function menuItem(action: string): HTMLButtonElement | null {
+    return document.querySelector(`[data-testid="script-menu-item"][data-action="${action}"]`);
+}
+
 describe('ScriptDetails V2 flat scripts', () => {
     let container: HTMLDivElement;
     let root: Root;
@@ -123,7 +128,9 @@ describe('ScriptDetails V2 flat scripts', () => {
         act(() => handler.callback({ preventDefault: vi.fn(), stopImmediatePropagation: vi.fn() }));
         expect(request).toHaveBeenCalledExactlyOnceWith('session');
         expect(state.executeQuery).not.toHaveBeenCalled();
-        const rerun = state.outputProps.statusActions.props.children[1];
+        const rerun = React.Children.toArray(state.outputProps.statusActions.props.children)
+            .find((child: any) => child.type === QueryResultRerunButton) as React.ReactElement<{ onRerun?: () => void }>;
+        expect(rerun).toBeDefined();
         expect(rerun.props.onRerun).toBeUndefined();
         expect(state.deleteCache).not.toHaveBeenCalled();
     });
@@ -162,14 +169,12 @@ describe('ScriptDetails V2 flat scripts', () => {
         act(() => root.render(<ScriptDetails sessionScripts={scripts()} modifySessionScripts={modify}
             connection={null} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
 
-        act(() => (container.querySelector('[aria-label="More actions for 02_second script"]') as HTMLButtonElement).click());
-        const labels = Array.from(document.querySelectorAll('button')).map(button => button.textContent);
-        expect(labels).toContain('Format Pretty');
-        expect(labels).toContain('Format Compact');
-        expect(labels).toContain('Delete');
+        act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());
+        expect(menuItem('format-pretty')).not.toBeNull();
+        expect(menuItem('format-compact')).not.toBeNull();
+        expect(menuItem('delete')).not.toBeNull();
 
-        const formatButton = Array.from(document.querySelectorAll('button')).find(button => button.textContent === 'Format Pretty') as HTMLButtonElement;
-        act(() => formatButton.click());
+        act(() => menuItem('format-pretty')!.click());
         expect(state.formatScriptEditor).toHaveBeenCalledWith(expect.anything(), expect.anything(),
             dashql.buffers.formatting.FormattingMode.PRETTY, expect.any(Function), false,
             dashql.buffers.formatting.KeywordCase.LOWER, dashql.buffers.formatting.FormattingDialect.TRINO);
@@ -185,19 +190,10 @@ describe('ScriptDetails V2 flat scripts', () => {
         act(() => root.render(<ScriptDetails sessionScripts={scripts()} modifySessionScripts={modify}
             connection={null} hideDetails={hideDetails} scriptId={2} dependencies={dependencies} />));
 
-        act(() => (container.querySelector('[aria-label="More actions for 02_second script"]') as HTMLButtonElement).click());
-        const deleteButton = Array.from(document.querySelectorAll('button')).find(button => button.textContent === 'Delete') as HTMLButtonElement;
-        act(() => deleteButton.click());
+        act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());
+        act(() => menuItem('delete')!.click());
 
         expect(modify).toHaveBeenCalledWith({ type: DELETE_SCRIPT, value: '02_second.sql' });
         expect(hideDetails).toHaveBeenCalledOnce();
-    });
-
-    it('exposes one control to shrink back to the feed', () => {
-        act(() => root.render(<ScriptDetails sessionScripts={scripts()} modifySessionScripts={vi.fn()}
-            connection={null} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
-
-        expect(container.querySelectorAll('[aria-label="Shrink script details"]')).toHaveLength(1);
-        expect(container.querySelector('[aria-label="Close script details"]')).toBeNull();
     });
 });

@@ -57,16 +57,13 @@ describe('FeedEntryFooter', () => {
         ));
     }
 
-    async function chooseDownloadFormat(label: string) {
-        const header = Array.from(container.querySelectorAll<HTMLDivElement>('div'))
-            .find(element => element.querySelector(':scope > button')?.textContent?.includes('Query Results'))!;
-        const button = header.querySelector<HTMLButtonElement>('button[aria-label="Download query result"]')!;
+    async function chooseDownloadFormat(format: 'arrow' | 'parquet') {
+        const button = container.querySelector<HTMLButtonElement>('[data-testid="download-query-result"]')!;
         expect(button).not.toBeNull();
         expect(button.disabled).toBe(false);
         act(() => button.click());
-        const item = Array.from(document.querySelectorAll<HTMLButtonElement>('[aria-label="Download formats"] button'))
-            .find(element => element.textContent === label)!;
-        expect(item).not.toBeUndefined();
+        const item = document.querySelector<HTMLButtonElement>(`[data-testid="download-format-${format}"]`)!;
+        expect(item).not.toBeNull();
         await act(async () => item.click());
     }
 
@@ -75,7 +72,7 @@ describe('FeedEntryFooter', () => {
         renderFooter(resultTable);
         expect(container.querySelector('[data-testid="feed-preview"]')).not.toBeNull();
 
-        await chooseDownloadFormat('Download as Arrow');
+        await chooseDownloadFormat('arrow');
 
         expect(onShowTable).not.toHaveBeenCalled();
         expect(download).toHaveBeenCalledTimes(1);
@@ -93,7 +90,7 @@ describe('FeedEntryFooter', () => {
         exportParquet.mockResolvedValue(parquet);
         renderFooter(resultTable);
 
-        await chooseDownloadFormat('Download as Parquet');
+        await chooseDownloadFormat('parquet');
 
         expect(exportParquet).toHaveBeenCalledWith(computeDatabase, resultTable);
         expect(download).toHaveBeenCalledWith(parquet, 'query-result-42.parquet');

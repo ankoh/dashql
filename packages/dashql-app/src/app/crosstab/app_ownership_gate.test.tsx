@@ -18,11 +18,16 @@ function App(props: { name: string; onHandOver: () => Promise<void> }) {
 
 /// The button that takes over the app
 function findUseHereButton(container: HTMLElement): HTMLButtonElement {
-    const button = [...container.querySelectorAll('button')].find(button => button.textContent === 'Use Here');
+    const button = container.querySelector<HTMLButtonElement>('[data-testid="app-take-over"]');
     if (button == null) {
-        throw new Error('The page has no "Use Here" button');
+        throw new Error('The page has no take over button');
     }
     return button;
+}
+
+/// Does the tab show that the app is open elsewhere?
+function showsElsewhere(container: HTMLElement): boolean {
+    return container.querySelector('[data-testid="app-elsewhere"]') != null;
 }
 
 /// Flush React updates until the condition holds
@@ -79,18 +84,17 @@ describe('AppOwnershipGate', () => {
         const a = openTab('a', names, async () => { events.push('a stopped'); });
         await actUntil(() => a.textContent === 'app a');
         const b = openTab('b', names, async () => { events.push('b stopped'); });
-        await actUntil(() => b.textContent?.includes('Open in Another Tab') ?? false);
-        expect(b.textContent).toContain('DashQL is open in another tab');
+        await actUntil(() => showsElsewhere(b));
 
         await act(async () => findUseHereButton(b).click());
         await actUntil(() => b.textContent === 'app b');
-        expect(a.textContent).toContain('Open in Another Tab');
+        expect(showsElsewhere(a)).toBe(true);
         expect(events).toEqual(['a stopped']);
 
         // The first tab takes the app back
         await act(async () => findUseHereButton(a).click());
         await actUntil(() => a.textContent === 'app a');
-        expect(b.textContent).toContain('Open in Another Tab');
+        expect(showsElsewhere(b)).toBe(true);
         expect(events).toEqual(['a stopped', 'b stopped']);
     });
 });

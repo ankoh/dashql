@@ -505,15 +505,16 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                     size={SegmentedControlSize.Tiny}
                     onChange={index => setAnnotationMode(index === 0 ? 'plain' : index === 1 ? 'rows' : 'estimates')}
                 >
-                    <SegmentedControl.Button selected={annotationMode === 'plain'}>Plain</SegmentedControl.Button>
-                    <SegmentedControl.Button selected={annotationMode === 'rows'}>Rows</SegmentedControl.Button>
-                    <SegmentedControl.Button selected={annotationMode === 'estimates'}>Estimates</SegmentedControl.Button>
+                    <SegmentedControl.Button data-testid="plan-annotation-plain" selected={annotationMode === 'plain'}>Plain</SegmentedControl.Button>
+                    <SegmentedControl.Button data-testid="plan-annotation-rows" selected={annotationMode === 'rows'}>Rows</SegmentedControl.Button>
+                    <SegmentedControl.Button data-testid="plan-annotation-estimates" selected={annotationMode === 'estimates'}>Estimates</SegmentedControl.Button>
                 </SegmentedControl>
             </div>
             {annotationMode === 'rows' && (
                 <div
                     className={styles.edge_legend}
                     role="img"
+                    data-testid="plan-rows-legend"
                     aria-label="Badge color encodes row count from fewer rows on the left to more rows on the right"
                 >
                     <div className={styles.edge_legend_scale}>
@@ -530,6 +531,7 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                 <div
                     className={styles.edge_legend}
                     role="img"
+                    data-testid="plan-estimates-legend"
                     aria-label="Badge color compares actual rows with estimates: red on the left means underestimated, the center means matched, and blue on the right means overestimated; differences are capped at 200 percent"
                 >
                     <div className={styles.edge_legend_scale}>
@@ -537,6 +539,7 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                         <span>Overestimated</span>
                         <i
                             aria-hidden="true"
+                            data-testid="plan-legend-gradient"
                             style={{ backgroundImage: `linear-gradient(to right, ${estimateLegendGradient})` }}
                         />
                         <span className={styles.edge_legend_matched}>Matched</span>
@@ -560,7 +563,7 @@ export function PlanView({ plan, showProgress = false, controllerRef, autoFocus 
                 maxHeight={OverlaySize.L}
                 positionRevision={positionRevision}
             >
-                <section className={styles.inspector} aria-label={`${selection?.operator.label ?? 'Operator'} properties`}>
+                <section className={styles.inspector} data-testid="plan-operator-inspector" aria-label={`${selection?.operator.label ?? 'Operator'} properties`}>
                     <header
                         className={styles.inspector_header}
                         data-single-line={selection?.operator.typeName == null || selection.operator.typeName === selection.operator.label}

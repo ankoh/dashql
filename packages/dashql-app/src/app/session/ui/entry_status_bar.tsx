@@ -43,7 +43,7 @@ const ErrorDetailCard: React.FC<{
 }> = ({ detail, onClose }) => {
     const CloseIcon = SymbolIcon('x_16');
     return (
-        <section className={styles.error_detail_card} role="dialog" aria-label="Query error details">
+        <section className={styles.error_detail_card} role="dialog" aria-label="Query error details" data-testid="error-details">
             <header className={styles.error_detail_header}>
                 <h2 className={styles.error_detail_title}>Query error details</h2>
                 <IconButton
@@ -51,6 +51,7 @@ const ErrorDetailCard: React.FC<{
                     size={ButtonSize.Small}
                     onClick={onClose}
                     aria-label="Close query error details"
+                    data-testid="error-details-close"
                 >
                     <CloseIcon size={16} />
                 </IconButton>
@@ -98,6 +99,7 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
                         variant={ButtonVariant.Invisible}
                         className={styles.error_detail_trigger}
                         aria-label="Show error details"
+                        data-testid="error-details-toggle"
                     >
                         <InfoIcon size={16} />
                     </IconButton>

@@ -56,27 +56,27 @@ describe('ConnectionRowMenu', () => {
             />,
         ));
         act(() => {
-            (container.querySelector('[aria-label="More actions for Hyper / WASM"]') as HTMLButtonElement).click();
+            (container.querySelector('[data-testid="connection-row-menu"]') as HTMLButtonElement).click();
         });
         return onOpenSettings;
     }
 
-    function clickAction(label: string): void {
+    function clickAction(action: string): void {
         act(() => {
-            Array.from(document.querySelectorAll('button')).find(button => button.textContent === label)!.click();
+            document.querySelector<HTMLButtonElement>(`[data-testid="connection-menu-item"][data-action="${action}"]`)!.click();
         });
     }
 
     it('opens connection settings from the intermediary menu', () => {
         const onOpenSettings = renderMenu();
-        clickAction('Settings');
+        clickAction('settings');
 
         expect(onOpenSettings).toHaveBeenCalledWith(expect.any(HTMLButtonElement));
     });
 
     it('forces a catalog refresh from the intermediary menu', () => {
         renderMenu();
-        clickAction('Refresh');
+        clickAction('refresh');
 
         expect(refreshCatalog).toHaveBeenCalledWith('database-1', true);
     });
@@ -86,7 +86,7 @@ describe('ConnectionRowMenu', () => {
             <ConnectionRefreshButton database={database()} label="Hyper / WASM" dependencies={dependencies} />,
         ));
         act(() => {
-            (container.querySelector('[aria-label="Refresh catalog for Hyper / WASM"]') as HTMLButtonElement).click();
+            (container.querySelector('[data-testid="connection-refresh"]') as HTMLButtonElement).click();
         });
 
         expect(refreshCatalog).toHaveBeenCalledWith('database-1', true);

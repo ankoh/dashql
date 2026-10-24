@@ -194,6 +194,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                         <div className={classNames(style.section_layout, style.body_section_layout)}>
                             <TextField
                                 inputRef={props.alias.inputRef}
+                                data-testid="salesforce-alias"
                                 name={props.alias.name ?? 'Attached Database Alias'}
                                 caption={props.alias.caption ?? 'Name saved in login history and used to address this attached database in the shell'}
                                 value={props.alias.value}
@@ -212,6 +213,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
                         <TextField
                             name="Salesforce Instance URL"
+                            data-testid="salesforce-instance-url"
                             caption="URL of the Salesforce Instance"
                             value={props.instanceUrl}
                             onChange={props.updateInstanceUrl}
@@ -224,6 +226,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                         />
                         <TextField
                             name="Connected App"
+                            data-testid="salesforce-app-consumer-key"
                             caption="Setup > App Manager > [App] > Manage Consumer Details"
                             value={props.appConsumerKey}
                             onChange={props.updateAppConsumerKey}
@@ -236,6 +239,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                         />
                         <TextField
                             name="Salesforce Login"
+                            data-testid="salesforce-login"
                             caption="Account offered as the sign-in hint"
                             value={props.login}
                             placeholder=""
@@ -251,6 +255,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
                         <TextField
                             name="Data Cloud Instance URL"
+                            data-testid="salesforce-data-cloud-instance-url"
                             caption="URL of the Data Cloud instance derived from the access token"
                             value={props.dataCloudInstanceUrl}
                             placeholder=""
@@ -261,6 +266,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                         />
                         <TextField
                             name="Data Cloud Tenant ID"
+                            data-testid="salesforce-data-cloud-tenant-id"
                             caption="Tenant id for Data Cloud apis derived from the access token"
                             value={props.dataCloudTenantId}
                             placeholder=""
@@ -275,6 +281,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
                         <TextField
                             name="Core Access Token"
+                            data-testid="salesforce-core-access-token"
                             caption="Access Token for Salesforce Core"
                             value={props.coreAccessToken}
                             placeholder=""
@@ -285,6 +292,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                         />
                         <TextField
                             name="Data Cloud Access Token"
+                            data-testid="salesforce-data-cloud-access-token"
                             caption="Raw Data Cloud JWT"
                             value={props.dataCloudAccessToken}
                             placeholder=""
@@ -295,6 +303,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                         />
                         <TextField
                             name="Core Tenant ID"
+                            data-testid="salesforce-core-tenant-id"
                             caption="Tenant id for core apis"
                             value={props.coreTenantId}
                             placeholder=""

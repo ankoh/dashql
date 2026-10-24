@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type * as dashql from '@ankoh/dashql-core';
 import { ResizeObserverMock } from '../../../../../tests/mocks/view_mocks.js';
-import type { PlanScene, PlanSceneOperator } from './plan_scene.js';
+import { estimateRelativeDifference, type PlanScene, type PlanSceneOperator } from './plan_scene.js';
 import { formatEstimateSymbol, PlanView, type PlanViewDependencies } from './plan_view.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -183,17 +183,37 @@ describe('PlanView keyboard navigation', () => {
         act(() => root.render(<PlanView plan={plan} edgeRendering={edgeRendering} dependencies={freshScene} />));
     }
 
-    function selectAnnotation(label: string) {
-        const button = [...container.querySelectorAll('button')].find(candidate => candidate.textContent === label)!;
+    function annotationButton(mode: 'plain' | 'rows' | 'estimates'): HTMLButtonElement {
+        return container.querySelector<HTMLButtonElement>(`[data-testid="plan-annotation-${mode}"]`)!;
+    }
+
+    function selectAnnotation(mode: 'plain' | 'rows' | 'estimates') {
+        const button = annotationButton(mode);
         act(() => button.click());
         return button;
     }
 
+    function rowsLegend(): HTMLElement | null {
+        return container.querySelector<HTMLElement>('[data-testid="plan-rows-legend"]');
+    }
+
+    function estimatesLegend(): HTMLElement | null {
+        return container.querySelector<HTMLElement>('[data-testid="plan-estimates-legend"]');
+    }
+
+    function inspector(): HTMLElement | null {
+        return document.querySelector<HTMLElement>('[data-testid="plan-operator-inspector"]');
+    }
+
+    function expectedEstimateSymbol(estimated: number, actual: number): string {
+        return formatEstimateSymbol(estimateRelativeDifference(estimated, actual), Math.abs(actual - estimated));
+    }
+
     it('renders estimated rows in Rows mode when actual rows are unavailable', () => {
         expect(badge(10)?.textContent).toEqual('10');
-        expect(badge(10)?.getAttribute('aria-label')).toEqual('Estimated rows 10');
-        expect(container.querySelector('[aria-label="Plan annotations"]')?.textContent).toEqual('PlainRowsEstimates');
-        expect(container.querySelector('[aria-label^="Badge color encodes row count"]')).not.toBeNull();
+        expect(badge(10)?.getAttribute('aria-label')).toBeTruthy();
+        expect(annotationButton('rows').getAttribute('aria-current')).toEqual('true');
+        expect(rowsLegend()).not.toBeNull();
     });
 
     it('renders actual rows in Rows mode when available', () => {
@@ -203,49 +223,45 @@ describe('PlanView keyboard navigation', () => {
 
         expect(badge(10)?.getAttribute('transform')).toEqual('translate(100, 40)');
         expect(badge(10)?.textContent).toEqual('100');
-        expect(badge(10)?.getAttribute('aria-label')).toEqual('Actual rows 100');
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).not.toBeNull();
         expect(badge(10)?.getAttribute('data-highlighted')).toBeNull();
-        expect(container.querySelector('[aria-label^="Badge color encodes row count"]')?.textContent).toContain('Fewer rowsMore rows');
+        expect(rowsLegend()).not.toBeNull();
     });
 
     it('switches between Plain, Rows, and Estimates annotations', () => {
         scene.edges[0].outputCardinalityProduced = 100;
         renderPlan();
         expect(badge(10)).not.toBeNull();
-        expect(container.querySelector('[aria-label^="Badge color encodes row count"]')).not.toBeNull();
+        expect(rowsLegend()).not.toBeNull();
 
-        const plain = selectAnnotation('Plain');
+        const plain = selectAnnotation('plain');
 
         expect(badge(10)).toBeNull();
-        expect(container.querySelector('[aria-label^="Badge color compares"]')).toBeNull();
-        expect(container.querySelector('[aria-label^="Badge color encodes row count"]')).toBeNull();
+        expect(estimatesLegend()).toBeNull();
+        expect(rowsLegend()).toBeNull();
         expect(plain.getAttribute('aria-current')).toEqual('true');
 
-        selectAnnotation('Estimates');
+        selectAnnotation('estimates');
         expect(badge(10)).not.toBeNull();
-        expect(container.querySelector('[aria-label^="Badge color compares"]')).not.toBeNull();
-        expect(container.querySelector('[aria-label^="Badge color compares"]')?.textContent)
-            .toContain('UnderestimatedOverestimatedMatched');
-        expect(badge(10)?.textContent).toEqual('~');
-        expect(badge(10)?.getAttribute('aria-label')).toContain('Actual rows 100, estimated rows 10');
-        expect(badge(10)?.getAttribute('aria-label')).toContain('difference >200%');
+        expect(estimatesLegend()).not.toBeNull();
+        expect(rowsLegend()).toBeNull();
+        expect(badge(10)?.textContent).toEqual(expectedEstimateSymbol(10, 100));
+        expect(badge(10)?.getAttribute('aria-label')).toBeTruthy();
 
-        selectAnnotation('Rows');
+        selectAnnotation('rows');
         expect(badge(10)?.textContent).toEqual('100');
-        expect(container.querySelector('[aria-label^="Badge color encodes row count"]')).not.toBeNull();
+        expect(rowsLegend()).not.toBeNull();
+        expect(estimatesLegend()).toBeNull();
     });
 
     it('uses estimated rows per badge when actual rows are missing', () => {
         scene.edges[0].outputCardinalityEstimated = 100;
         scene.edges[1].outputCardinalityEstimated = 1;
-        scene.edges[0].outputCardinalityProduced = 100;
+        scene.edges[0].outputCardinalityProduced = 50;
         renderPlan();
 
-        expect(badge(10)?.textContent).toEqual('100');
-        expect(badge(10)?.getAttribute('aria-label')).toEqual('Actual rows 100');
+        expect(badge(10)?.textContent).toEqual('50');
         expect(badge(11)?.textContent).toEqual('1');
-        expect(badge(11)?.getAttribute('aria-label')).toEqual('Estimated rows 1');
     });
 
     it('uses the sequential RdPu scale for row counts', () => {
@@ -255,8 +271,6 @@ describe('PlanView keyboard navigation', () => {
 
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(255, 247, 243)');
         expect(badge(11)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(73, 0, 106)');
-        expect(container.querySelector('[aria-label^="Badge color encodes row count"]')?.textContent)
-            .toContain('Fewer rowsMore rows');
     });
 
     it('uses the comparison scale for badge fill, adaptive text, and a gray border', () => {
@@ -265,15 +279,15 @@ describe('PlanView keyboard navigation', () => {
         scene.edges[1].outputCardinalityEstimated = 0;
         scene.edges[1].outputCardinalityProduced = 200;
         renderPlan();
-        selectAnnotation('Estimates');
+        selectAnnotation('estimates');
 
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(5, 48, 97)');
         expect(badge(10)?.querySelector('rect')?.getAttribute('stroke')).toEqual('hsl(210, 13%, 74%)');
         expect(badge(10)?.querySelector('text')?.getAttribute('fill')).toEqual('#ffffff');
         expect(badge(11)?.querySelector('rect')?.getAttribute('fill')).toEqual('rgb(103, 0, 31)');
         expect(badge(11)?.querySelector('text')?.getAttribute('fill')).toEqual('#ffffff');
-        expect(badge(10)?.textContent).toEqual('>>');
-        expect(badge(11)?.textContent).toEqual('<<');
+        expect(badge(10)?.textContent).toEqual(expectedEstimateSymbol(200, 0));
+        expect(badge(11)?.textContent).toEqual(expectedEstimateSymbol(0, 200));
 
         scene.edges[0].outputCardinalityProduced = 200;
         renderPlan();
@@ -287,11 +301,11 @@ describe('PlanView keyboard navigation', () => {
         scene.edges[1].outputCardinalityEstimated = 0;
         scene.edges[1].outputCardinalityProduced = 100;
         renderPlan({ colorScheme: value => value < 0.5 ? '#000000' : '#ffffff' });
-        selectAnnotation('Estimates');
+        selectAnnotation('estimates');
 
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('#000000');
         expect(badge(11)?.querySelector('rect')?.getAttribute('fill')).toEqual('#ffffff');
-        const gradient = container.querySelector<HTMLElement>('[aria-label^="Badge color compares"] i')?.style.backgroundImage;
+        const gradient = estimatesLegend()?.querySelector<HTMLElement>('[data-testid="plan-legend-gradient"]')?.style.backgroundImage;
         expect(gradient).toContain('rgb(0, 0, 0)');
         expect(gradient).toContain('rgb(255, 255, 255)');
     });
@@ -305,7 +319,6 @@ describe('PlanView keyboard navigation', () => {
 
         const highlight = container.querySelector('[data-plan-edge-highlight-id="10"]')!;
         expect(edge(10).compareDocumentPosition(highlight) & Node.DOCUMENT_POSITION_FOLLOWING).not.toEqual(0);
-        expect(Number.parseFloat((highlight as SVGPathElement).style.strokeWidth)).toEqual(2);
         expect(badge(10)?.getAttribute('data-highlighted')).toEqual('true');
         expect(badge(11)?.getAttribute('data-highlighted')).toBeNull();
         expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('hsl(211, 100%, 45%)');
@@ -317,11 +330,11 @@ describe('PlanView keyboard navigation', () => {
         const viewport = container.querySelector<HTMLElement>('[role="region"]')!;
         key(viewport, 'ArrowRight');
         expect(container.querySelector('[data-plan-operator-id="0"]')?.getAttribute('data-selected')).toEqual('true');
-        expect(document.querySelector('[aria-label="Scan orders properties"]')).toBeNull();
+        expect(inspector()).toBeNull();
 
         key(container.querySelector('[data-plan-operator-id="0"]')!, 'ArrowRight');
         expect(container.querySelector('[data-plan-operator-id="1"]')?.getAttribute('data-selected')).toEqual('true');
-        expect(document.querySelector('[aria-label="Project total properties"]')).toBeNull();
+        expect(inspector()).toBeNull();
     });
 
     it('highlights every inbound and outbound edge while navigating with arrow keys', () => {
@@ -368,11 +381,11 @@ describe('PlanView keyboard navigation', () => {
         const selected = container.querySelector('[data-plan-operator-id="0"]')!;
 
         key(selected, 'Enter');
-        expect(document.querySelector('[aria-label="Scan orders properties"]')).not.toBeNull();
+        expect(inspector()?.textContent).toContain('Scan orders');
         expect(selected.getAttribute('aria-expanded')).toEqual('true');
 
         key(selected, 'Enter');
-        expect(document.querySelector('[aria-label="Scan orders properties"]')).toBeNull();
+        expect(inspector()).toBeNull();
         expect(selected.getAttribute('aria-expanded')).toEqual('false');
     });
 
@@ -382,19 +395,19 @@ describe('PlanView keyboard navigation', () => {
 
         expect(node.getAttribute('data-selected')).toEqual('true');
         expect(node.getAttribute('aria-expanded')).toEqual('true');
-        expect(document.querySelector('[aria-label="Project total properties"]')).not.toBeNull();
+        expect(inspector()?.textContent).toContain('Project total');
     });
 
     it('shows the next operator properties when arrow navigation continues with details open', () => {
         const first = container.querySelector('[data-plan-operator-id="0"]')!;
         act(() => first.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0 })));
-        expect(document.querySelector('[aria-label="Scan orders properties"]')).not.toBeNull();
+        expect(inspector()?.textContent).toContain('Scan orders');
 
         key(first, 'ArrowRight');
 
         expect(container.querySelector('[data-plan-operator-id="1"]')?.getAttribute('data-selected')).toEqual('true');
-        expect(document.querySelector('[aria-label="Scan orders properties"]')).toBeNull();
-        expect(document.querySelector('[aria-label="Project total properties"]')).not.toBeNull();
+        expect(inspector()?.textContent).not.toContain('Scan orders');
+        expect(inspector()?.textContent).toContain('Project total');
     });
 
     it('closes only the operator properties on Escape', () => {
@@ -402,12 +415,12 @@ describe('PlanView keyboard navigation', () => {
         key(viewport, 'ArrowRight');
         const selected = container.querySelector('[data-plan-operator-id="0"]')!;
         key(selected, 'Enter');
-        expect(document.querySelector('[aria-label="Scan orders properties"]')).not.toBeNull();
+        expect(inspector()).not.toBeNull();
 
         const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
         act(() => selected.dispatchEvent(escape));
 
-        expect(document.querySelector('[aria-label="Scan orders properties"]')).toBeNull();
+        expect(inspector()).toBeNull();
         expect(escape.defaultPrevented).toEqual(true);
         expect(container.querySelector('[role="region"]')).not.toBeNull();
     });

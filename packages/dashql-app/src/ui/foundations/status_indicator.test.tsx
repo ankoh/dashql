@@ -22,35 +22,33 @@ describe('StatusIndicator', () => {
         container.remove();
     });
 
-    function render(element: React.ReactElement): SVGElement {
+    function renderColor(element: React.ReactElement): string | null {
         act(() => root.render(element));
-        return container.querySelector('svg')!;
+        return container.querySelector('svg [fill]:not([fill="none"])')?.getAttribute('fill') ?? null;
     }
 
-    it.each([
-        [IndicatorStatus.Running, '#9a6700'],
-        [IndicatorStatus.Succeeded, '#1f883d'],
-        [IndicatorStatus.Failed, '#cf222e'],
-        [IndicatorStatus.None, '#6e7781'],
-        [IndicatorStatus.Blocked, '#6e7781'],
-        [IndicatorStatus.Skip, '#6e7781'],
-    ])('uses the default color for status %s', (status, color) => {
-        const svg = render(<StatusIndicator status={status} />);
+    it('distinguishes running, succeeded, and failed and shares a neutral color otherwise', () => {
+        const running = renderColor(<StatusIndicator status={IndicatorStatus.Running} />);
+        const succeeded = renderColor(<StatusIndicator status={IndicatorStatus.Succeeded} />);
+        const failed = renderColor(<StatusIndicator status={IndicatorStatus.Failed} />);
+        const none = renderColor(<StatusIndicator status={IndicatorStatus.None} />);
+        const blocked = renderColor(<StatusIndicator status={IndicatorStatus.Blocked} />);
+        const skip = renderColor(<StatusIndicator status={IndicatorStatus.Skip} />);
 
-        expect(svg.querySelector(`[fill="${color}"]`)).not.toBeNull();
+        expect(new Set([running, succeeded, failed, none]).size).toBe(4);
+        expect(blocked).toBe(none);
+        expect(skip).toBe(none);
     });
 
-    it('uses success green only when a binary status is online', () => {
-        let svg = render(<BinaryStatusIndicator online />);
-        expect(svg.querySelector('[fill="#1f883d"]')).not.toBeNull();
+    it('uses the success color only when a binary status is online', () => {
+        const succeeded = renderColor(<StatusIndicator status={IndicatorStatus.Succeeded} />);
+        const neutral = renderColor(<StatusIndicator status={IndicatorStatus.None} />);
 
-        svg = render(<BinaryStatusIndicator online={false} />);
-        expect(svg.querySelector('[fill="#6e7781"]')).not.toBeNull();
+        expect(renderColor(<BinaryStatusIndicator online />)).toBe(succeeded);
+        expect(renderColor(<BinaryStatusIndicator online={false} />)).toBe(neutral);
     });
 
     it('allows an explicit color override', () => {
-        const svg = render(<StatusIndicator status={IndicatorStatus.Failed} fill="purple" />);
-
-        expect(svg.querySelector('[fill="purple"]')).not.toBeNull();
+        expect(renderColor(<StatusIndicator status={IndicatorStatus.Failed} fill="purple" />)).toBe('purple');
     });
 });

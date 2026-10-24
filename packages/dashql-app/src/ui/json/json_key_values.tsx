@@ -75,6 +75,7 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
                 <button
                     type="button"
                     className={styles.array_load_more}
+                    data-testid="json-array-load-more"
                     onClick={() => setArrayPage({ value, itemCount: visibleItemCount + arrayPageSize })}
                 >
                     Show {Math.min(arrayPageSize, hiddenItemCount)} more ({hiddenItemCount} remaining)
@@ -112,6 +113,7 @@ export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
     return (
         <div
             className={styles.object_entries_line}
+            data-testid="json-entry-line"
             onMouseEnter={() => dispatch({ [subkeyid]: true })}
             onMouseLeave={() => dispatch({ [subkeyid]: false })}
         >

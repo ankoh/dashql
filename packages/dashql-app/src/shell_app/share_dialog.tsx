@@ -237,6 +237,7 @@ function ShareDialog(props: ShareDialogProps) {
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label="Close share dialog"
+                        data-testid="dialog-close"
                         onClick={props.onClose}
                     >
                         <XIcon size={16} />
@@ -247,11 +248,12 @@ function ShareDialog(props: ShareDialogProps) {
                     <output
                         className={url == null ? styles.url_placeholder : styles.url}
                         aria-labelledby={urlLabelId}
+                        data-testid="share-url"
                         title={url ?? undefined}
                     >
                         {url ?? 'Enter SQL to generate a link'}
                     </output>
-                    <span className={styles.url_length} aria-label="URL length">
+                    <span className={styles.url_length} aria-label="URL length" data-testid="share-url-length">
                         {url?.length ?? 0} characters
                     </span>
                     <CopyToClipboardButton
@@ -260,6 +262,7 @@ function ShareDialog(props: ShareDialogProps) {
                         value={url ?? ''}
                         disabled={url == null}
                         aria-label="Copy share URL"
+                        data-testid="share-url-copy"
                         aria-labelledby=""
                         logContext="shell_share"
                     />

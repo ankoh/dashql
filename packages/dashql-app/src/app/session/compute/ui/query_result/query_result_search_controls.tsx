@@ -23,6 +23,7 @@ interface SearchControlProps {
 }
 
 function SearchControl(props: SearchControlProps) {
+    const testId = `search-${props.kind.toLowerCase()}`;
     const inputRef = React.useRef<HTMLInputElement>(null);
     const buttonRef = React.useRef<HTMLButtonElement>(null);
     const inputId = React.useId();
@@ -72,6 +73,7 @@ function SearchControl(props: SearchControlProps) {
                     id={inputId}
                     className={styles.input}
                     aria-label={`Search ${props.kind.toLowerCase()}`}
+                    data-testid={`${testId}-input`}
                     placeholder={`Search ${props.kind.toLowerCase()}`}
                     leadingVisual={SearchIcon}
                     value={pattern}
@@ -94,6 +96,7 @@ function SearchControl(props: SearchControlProps) {
                         <TextInputAction
                             aria-label={`Close ${props.kind.toLowerCase()} search`}
                             aria-labelledby=""
+                            data-testid={`${testId}-close`}
                             onClick={() => {
                                 changePattern('', true);
                                 props.onCollapse();
@@ -114,6 +117,7 @@ function SearchControl(props: SearchControlProps) {
                     aria-expanded={false}
                     aria-controls={inputId}
                     onClick={props.onExpand}
+                    data-testid={`${testId}-button`}
                     title={`${props.kind} search`}
                 >
                     {props.kind}
@@ -124,7 +128,7 @@ function SearchControl(props: SearchControlProps) {
                     !
                 </span>
             )}
-            <span className={styles.status} role="status">
+            <span className={styles.status} role="status" data-testid={`${testId}-status`}>
                 {props.state.error
                     ?? (props.state.pending
                         ? `Searching ${props.kind.toLowerCase()}`

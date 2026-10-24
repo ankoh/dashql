@@ -12,6 +12,8 @@ interface TextInputActionProps {
     ['aria-labelledby']: string;
     /// Position of tooltip. If no position is passed or defaults to "n"
     tooltipDirection?: 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+    /// The test id of the button
+    ['data-testid']?: string;
 }
 type Props = TextInputActionProps & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
@@ -26,6 +28,7 @@ export function TextInputAction(props: Props) {
             size={ButtonSize.Small}
             aria-labelledby={ariaLabelledBy}
             aria-label={ariaLabel}
+            data-testid={props['data-testid']}
             onClick={props.onClick}
         >
             {props.children}

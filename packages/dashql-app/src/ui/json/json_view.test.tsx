@@ -24,22 +24,27 @@ describe('JsonView array pagination', () => {
         const value = Array.from({ length: 250 }, (_, index) => index);
         act(() => root.render(<JsonView value={value} arrayPageSize={100} />));
 
-        const loadMore = Array.from(container.querySelectorAll('button'))
-            .find(button => button.textContent?.includes('Show 100 more'));
-        expect(loadMore).toBeDefined();
+        const loadMore = () => container.querySelector<HTMLButtonElement>('[data-testid="json-array-load-more"]');
+        expect(loadMore()).not.toBeNull();
         expect(container.textContent).not.toContain('249');
 
-        act(() => loadMore!.click());
+        act(() => loadMore()!.click());
         expect(container.textContent).toContain('199');
         expect(container.textContent).not.toContain('249');
     });
 
-    it('paginates nested arrays independently', () => {
+    it('paginates nested arrays until all items are shown', () => {
         const value = { embedding: Array.from({ length: 250 }, (_, index) => index) };
         act(() => root.render(<JsonView value={value} arrayPageSize={100} />));
 
-        expect(container.textContent).toContain('Show 100 more (150 remaining)');
+        const loadMore = () => container.querySelector<HTMLButtonElement>('[data-testid="json-array-load-more"]');
+        expect(loadMore()).not.toBeNull();
         expect(container.textContent).not.toContain('249');
+
+        act(() => loadMore()!.click());
+        act(() => loadMore()!.click());
+        expect(container.textContent).toContain('249');
+        expect(loadMore()).toBeNull();
     });
 
     it('opts out of enclosing Electron drag regions', () => {
@@ -63,21 +68,17 @@ describe('JsonView array pagination', () => {
 
     it('shows the copy button of hovered values only', () => {
         act(() => root.render(<JsonView value={{ a: 1, b: 2 }} />));
-        expect(container.querySelectorAll('[aria-label="Copy JSON value"]').length).toBe(0);
+        const copyButtons = '[data-testid="json-copy-value"]';
+        expect(container.querySelectorAll(copyButtons).length).toBe(0);
 
-        // The innermost element of the key is its line
-        const findLine = (key: string) => Array.from(container.querySelectorAll('div'))
-            .filter(div => div.textContent?.startsWith(`"${key}"`))
-            .pop();
-        const lineA = findLine('a')!;
-        const lineB = findLine('b')!;
+        const [lineA, lineB] = Array.from(container.querySelectorAll('[data-testid="json-entry-line"]'));
         expect(lineA).toBeDefined();
         expect(lineB).toBeDefined();
         act(() => lineA.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
-        expect(lineA.querySelector('[aria-label="Copy JSON value"]')).not.toBeNull();
-        expect(lineB.querySelector('[aria-label="Copy JSON value"]')).toBeNull();
+        expect(lineA.querySelector(copyButtons)).not.toBeNull();
+        expect(lineB.querySelector(copyButtons)).toBeNull();
 
         act(() => lineA.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })));
-        expect(container.querySelectorAll('[aria-label="Copy JSON value"]').length).toBe(0);
+        expect(container.querySelectorAll(copyButtons).length).toBe(0);
     });
 });

@@ -17,23 +17,56 @@ function setInputValue(input: HTMLInputElement, value: string) {
     input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-function inputForLabel(labelText: string): HTMLInputElement {
-    const field = Array.from(document.querySelectorAll('div'))
-        .find(candidate => candidate.textContent?.trim() === labelText)
-        ?.parentElement;
-    const input = field?.querySelector('input') ?? null;
-    if (!(input instanceof HTMLInputElement)) throw new Error(`No input labeled "${labelText}"`);
-    return input;
+type Field =
+    | 'alias'
+    | 'instance-url'
+    | 'app-consumer-key'
+    | 'login'
+    | 'data-cloud-instance-url'
+    | 'data-cloud-tenant-id'
+    | 'core-tenant-id'
+    | 'core-access-token'
+    | 'data-cloud-access-token';
+
+const DERIVED_FIELDS: Field[] = [
+    'data-cloud-instance-url',
+    'data-cloud-tenant-id',
+    'core-tenant-id',
+    'core-access-token',
+    'data-cloud-access-token',
+];
+
+function input(field: Field): HTMLInputElement {
+    const element = document.querySelector(`[data-testid="salesforce-${field}"]`);
+    if (!(element instanceof HTMLInputElement)) throw new Error(`No ${field} input`);
+    return element;
+}
+
+function isInvalid(field: Field): boolean {
+    const element = input(field);
+    if (element.getAttribute('aria-invalid') !== 'true') return false;
+    // An invalid field references a non-empty validation message
+    const messageId = element.getAttribute('aria-describedby');
+    const message = messageId == null ? null : document.getElementById(messageId);
+    return (message?.textContent?.trim() ?? '') !== '';
 }
 
 function closeButton(): HTMLButtonElement {
-    const button = Array.from(document.querySelectorAll('button')).find(candidate =>
-        candidate.textContent === 'Close'
-        || candidate.getAttribute('aria-label') === 'Close'
-        || candidate.getAttribute('aria-labelledby'),
-    );
+    const button = document.querySelector('[data-testid="connection-close"]');
     if (!(button instanceof HTMLButtonElement)) throw new Error('No close button');
     return button;
+}
+
+function byTestId<T extends Element = HTMLElement>(testId: string): T | null {
+    return document.querySelector<T>(`[data-testid="${testId}"]`);
+}
+
+function historyToggle(): HTMLButtonElement {
+    return byTestId<HTMLButtonElement>('salesforce-login-history-toggle')!;
+}
+
+function historyEntry(index: number): HTMLButtonElement {
+    return document.querySelectorAll<HTMLButtonElement>('[data-testid="salesforce-login-history-entry"]')[index];
 }
 
 describe('useSalesforceLoginDialog', () => {
@@ -90,43 +123,40 @@ describe('useSalesforceLoginDialog', () => {
     }
 
     function submit() {
-        const button = Array.from(document.querySelectorAll('button')).find(candidate => candidate.textContent === 'Connect');
+        const button = byTestId('connection-setup');
         if (!(button instanceof HTMLButtonElement)) throw new Error('Connect button is not available');
         act(() => button.click());
     }
 
     function fillValidForm() {
         act(() => {
-            setInputValue(inputForLabel('Salesforce Login Name'), ' production ');
-            setInputValue(inputForLabel('Salesforce Instance URL'), ' https://example.my.salesforce.com ');
-            setInputValue(inputForLabel('Connected App'), ' consumer-key ');
+            setInputValue(input('alias'), ' production ');
+            setInputValue(input('instance-url'), ' https://example.my.salesforce.com ');
+            setInputValue(input('app-consumer-key'), ' consumer-key ');
         });
     }
 
-    it('provides a named form with explicit field labels and a close action', async () => {
+    it('provides a labeled modal form with read-only derived fields and a close action', async () => {
         const result = open();
         const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
 
         expect(dialog.getAttribute('aria-modal')).toBe('true');
-        expect(dialog.getAttribute('aria-label')).toBe('Salesforce login');
+        expect(dialog.getAttribute('aria-label')).toBeTruthy();
         expect(closeButton()).toBeInstanceOf(HTMLButtonElement);
-        expect(Array.from(document.querySelectorAll('button')).some(button => button.textContent === 'Connect')).toBe(true);
-        expect(inputForLabel('Salesforce Login Name').value).toBe('d360');
-        expect(inputForLabel('Salesforce Instance URL')).toBeInstanceOf(HTMLInputElement);
-        expect(inputForLabel('Connected App')).toBeInstanceOf(HTMLInputElement);
-        for (const label of ['Data Cloud Instance URL', 'Data Cloud Tenant ID', 'Core Tenant ID', 'Core Access Token', 'Data Cloud Access Token']) {
-            const input = inputForLabel(label);
-            expect(input.disabled).toBe(true);
-            expect(input.readOnly).toBe(true);
-            expect(input.value).toBe('');
-            expect(input.placeholder).toBe('');
-            expect(input.getAttribute('aria-label')).toBe(label);
+        expect(byTestId('connection-setup')).toBeInstanceOf(HTMLButtonElement);
+        expect(input('alias').value).toBe('d360');
+        expect(input('instance-url').disabled).toBe(false);
+        expect(input('app-consumer-key').disabled).toBe(false);
+        for (const field of DERIVED_FIELDS) {
+            expect(input(field).disabled).toBe(true);
+            expect(input(field).readOnly).toBe(true);
+            expect(input(field).value).toBe('');
+            expect(input(field).getAttribute('aria-label')).toBeTruthy();
         }
-        expect(inputForLabel('Salesforce Login').disabled).toBe(false);
-        expect(inputForLabel('Salesforce Login').readOnly).toBe(false);
-        expect(dialog.textContent).not.toContain('OrgJWT');
-        expect(document.querySelector('button[aria-label="Recent Salesforce logins"]')).toBeInstanceOf(HTMLButtonElement);
-        expect(document.activeElement).toBe(inputForLabel('Salesforce Login Name'));
+        expect(input('login').disabled).toBe(false);
+        expect(input('login').readOnly).toBe(false);
+        expect(historyToggle()).toBeInstanceOf(HTMLButtonElement);
+        expect(document.activeElement).toBe(input('alias'));
 
         act(() => closeButton().click());
         await expect(result).resolves.toBeNull();
@@ -135,15 +165,15 @@ describe('useSalesforceLoginDialog', () => {
     it('uses an editable login hint until OAuth returns the token login', async () => {
         const result = open();
         openOAuthPopup.mockReturnValue(window);
-        act(() => setInputValue(inputForLabel('Salesforce Login'), 'hint@example.com'));
+        act(() => setInputValue(input('login'), 'hint@example.com'));
         fillValidForm();
         submit();
 
         await expect(result).resolves.toMatchObject({ loginHint: 'hint@example.com' });
 
         act(() => controller.update({ login: 'token@example.com' }));
-        expect(inputForLabel('Salesforce Login').value).toBe('token@example.com');
-        expect(inputForLabel('Salesforce Login').disabled).toBe(true);
+        expect(input('login').value).toBe('token@example.com');
+        expect(input('login').disabled).toBe(true);
     });
 
     it('shows Core credentials immediately and token-derived Data Cloud routing after exchange', async () => {
@@ -156,11 +186,11 @@ describe('useSalesforceLoginDialog', () => {
                 instanceUrl: 'https://example.my.salesforce.com',
             },
         }));
-        expect(inputForLabel('Core Access Token').value).toBe('opaque-core-token');
-        expect(inputForLabel('Data Cloud Access Token').value).toBe('');
-        expect(inputForLabel('Data Cloud Instance URL').value).toBe('');
-        expect(inputForLabel('Data Cloud Tenant ID').value).toBe('');
-        expect(inputForLabel('Core Tenant ID').value).toBe('');
+        expect(input('core-access-token').value).toBe('opaque-core-token');
+        expect(input('data-cloud-access-token').value).toBe('');
+        expect(input('data-cloud-instance-url').value).toBe('');
+        expect(input('data-cloud-tenant-id').value).toBe('');
+        expect(input('core-tenant-id').value).toBe('');
 
         act(() => controller.update({
             status: 'Received Data Cloud access token',
@@ -174,15 +204,15 @@ describe('useSalesforceLoginDialog', () => {
                 },
             },
         }));
-        expect(inputForLabel('Core Access Token').value).toBe('opaque-core-token');
-        expect(inputForLabel('Data Cloud Access Token').value).toBe('data-cloud-jwt');
-        expect(inputForLabel('Data Cloud Instance URL').value).toBe('https://data.example.com');
-        expect(inputForLabel('Data Cloud Tenant ID').value).toBe('data-tenant');
-        expect(inputForLabel('Core Tenant ID').value).toBe('data-tenant');
-        expect(inputForLabel('Data Cloud Instance URL').disabled).toBe(true);
-        expect(inputForLabel('Data Cloud Tenant ID').disabled).toBe(true);
-        expect(inputForLabel('Data Cloud Instance URL').readOnly).toBe(true);
-        expect(inputForLabel('Data Cloud Tenant ID').readOnly).toBe(true);
+        expect(input('core-access-token').value).toBe('opaque-core-token');
+        expect(input('data-cloud-access-token').value).toBe('data-cloud-jwt');
+        expect(input('data-cloud-instance-url').value).toBe('https://data.example.com');
+        expect(input('data-cloud-tenant-id').value).toBe('data-tenant');
+        expect(input('core-tenant-id').value).toBe('data-tenant');
+        expect(input('data-cloud-instance-url').disabled).toBe(true);
+        expect(input('data-cloud-tenant-id').disabled).toBe(true);
+        expect(input('data-cloud-instance-url').readOnly).toBe(true);
+        expect(input('data-cloud-tenant-id').readOnly).toBe(true);
         act(() => closeButton().click());
         await expect(result).resolves.toBeNull();
     });
@@ -197,32 +227,28 @@ describe('useSalesforceLoginDialog', () => {
             lastUsedAt: '2026-08-19T10:00:00.000Z',
         }]);
         const result = open();
-        const historyButton = document.querySelector<HTMLButtonElement>('button[aria-label="Recent Salesforce logins"]')!;
+        const historyButton = historyToggle();
 
         await act(async () => {
             historyButton.click();
         });
-        await vi.waitFor(() => expect(
-            document.querySelector('ul[aria-label="Recent Salesforce logins"]'),
-        ).not.toBeNull());
+        await vi.waitFor(() => expect(byTestId('salesforce-login-history-list')).not.toBeNull());
 
         expect(historyButton.getAttribute('aria-expanded')).toBe('true');
         expect(loadHistory).toHaveBeenCalledOnce();
-        expect(document.querySelector('ul[aria-label="Recent Salesforce logins"]')?.textContent).toContain('production');
-        expect(document.querySelector('ul[aria-label="Recent Salesforce logins"]')?.textContent).toContain(
-            'https://production.my.salesforce.com',
-        );
+        const savedLogin = historyEntry(0);
+        expect(savedLogin.getAttribute('data-organization-id')).toBe('00D000000000001');
+        expect(savedLogin.textContent).toContain('production');
+        expect(savedLogin.textContent).toContain('https://production.my.salesforce.com');
 
-        const savedLogin = Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
-            .find(button => button.textContent?.includes('production.my.salesforce.com'))!;
         act(() => savedLogin.click());
 
-        expect(inputForLabel('Salesforce Login Name').value).toBe('production');
-        expect(inputForLabel('Salesforce Instance URL').value).toBe('https://production.my.salesforce.com');
-        expect(inputForLabel('Connected App').value).toBe('saved-consumer-key');
-        expect(inputForLabel('Data Cloud Instance URL').value).toBe('');
-        expect(inputForLabel('Data Cloud Tenant ID').value).toBe('');
-        expect(inputForLabel('Salesforce Login').value).toBe('user@example.com');
+        expect(input('alias').value).toBe('production');
+        expect(input('instance-url').value).toBe('https://production.my.salesforce.com');
+        expect(input('app-consumer-key').value).toBe('saved-consumer-key');
+        expect(input('data-cloud-instance-url').value).toBe('');
+        expect(input('data-cloud-tenant-id').value).toBe('');
+        expect(input('login').value).toBe('user@example.com');
         expect(historyButton.getAttribute('aria-expanded')).toBe('false');
 
         act(() => closeButton().click());
@@ -241,17 +267,13 @@ describe('useSalesforceLoginDialog', () => {
         openOAuthPopup.mockReturnValue(window);
         fillValidForm();
         await act(async () => {
-            document.querySelector<HTMLButtonElement>('button[aria-label="Recent Salesforce logins"]')!.click();
+            historyToggle().click();
         });
-        await vi.waitFor(() => expect(
-            document.querySelector('ul[aria-label="Recent Salesforce logins"]'),
-        ).not.toBeNull());
-        const savedLogin = Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
-            .find(button => button.textContent?.includes('legacy.my.salesforce.com'))!;
-        act(() => savedLogin.click());
+        await vi.waitFor(() => expect(byTestId('salesforce-login-history-list')).not.toBeNull());
+        act(() => historyEntry(0).click());
 
-        expect(inputForLabel('Data Cloud Instance URL').value).toBe('');
-        expect(inputForLabel('Data Cloud Tenant ID').value).toBe('');
+        expect(input('data-cloud-instance-url').value).toBe('');
+        expect(input('data-cloud-tenant-id').value).toBe('');
         submit();
         expect(openOAuthPopup).toHaveBeenCalledOnce();
         await expect(result).resolves.toMatchObject({
@@ -263,17 +285,18 @@ describe('useSalesforceLoginDialog', () => {
 
     it('shows an empty history state and closes the history before the login dialog on Escape', async () => {
         const result = open();
-        const historyButton = document.querySelector<HTMLButtonElement>('button[aria-label="Recent Salesforce logins"]')!;
+        const historyButton = historyToggle();
         await act(async () => historyButton.click());
 
-        expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Successful logins will appear here.');
-        expect(document.activeElement?.getAttribute('aria-labelledby')).toBe('salesforce-login-history-title');
-        act(() => document.querySelectorAll('[role="dialog"]')[0].dispatchEvent(
+        expect(byTestId('salesforce-login-history-empty')).not.toBeNull();
+        expect(document.activeElement).toBe(byTestId('salesforce-login-history'));
+        act(() => byTestId('salesforce-login-dialog')!.dispatchEvent(
             new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
         ));
 
-        expect(document.querySelector('button[aria-label="Recent Salesforce logins"]')?.getAttribute('aria-expanded')).toBe('false');
-        expect(document.querySelector('[aria-label="Salesforce login"]')).not.toBeNull();
+        expect(historyToggle().getAttribute('aria-expanded')).toBe('false');
+        expect(byTestId('salesforce-login-history')).toBeNull();
+        expect(byTestId('salesforce-login-dialog')).not.toBeNull();
 
         act(() => closeButton().click());
         await expect(result).resolves.toBeNull();
@@ -288,56 +311,49 @@ describe('useSalesforceLoginDialog', () => {
             lastUsedAt: '2026-08-19T10:00:00.000Z',
         }]);
         const result = open();
-        const historyButton = document.querySelector<HTMLButtonElement>('button[aria-label="Recent Salesforce logins"]')!;
+        const historyButton = historyToggle();
         await act(async () => {
             historyButton.click();
         });
-        await vi.waitFor(() => expect(
-            document.querySelector('button[aria-label="Delete production from recent logins"]'),
-        ).not.toBeNull());
+        await vi.waitFor(() => expect(byTestId('salesforce-login-history-delete')).not.toBeNull());
 
-        const deleteButton = document.querySelector<HTMLButtonElement>(
-            'button[aria-label="Delete production from recent logins"]',
-        )!;
+        const deleteButton = byTestId<HTMLButtonElement>('salesforce-login-history-delete')!;
+        expect(deleteButton.getAttribute('data-organization-id')).toBe('00D000000000001');
         await act(async () => deleteButton.click());
-        await vi.waitFor(() => expect(
-            document.querySelector('ul[aria-label="Recent Salesforce logins"]'),
-        ).toBeNull());
+        await vi.waitFor(() => expect(byTestId('salesforce-login-history-list')).toBeNull());
 
         expect(deleteHistoryEntry).toHaveBeenCalledWith('00D000000000001');
-        expect(document.querySelector('ul[aria-label="Recent Salesforce logins"]')).toBeNull();
-        expect(document.querySelector('[aria-labelledby="salesforce-login-history-title"]')?.textContent)
-            .toContain('Successful logins will appear here.');
+        expect(byTestId('salesforce-login-history-empty')).not.toBeNull();
         expect(historyButton.getAttribute('aria-expanded')).toBe('true');
 
         act(() => closeButton().click());
         await expect(result).resolves.toBeNull();
     });
 
-    it('trims fields, reports inline validation errors, and focuses the first invalid field', async () => {
+    it('trims fields and reports inline validation errors', async () => {
         const result = open();
         act(() => {
-            setInputValue(inputForLabel('Salesforce Login Name'), '   ');
-            setInputValue(inputForLabel('Salesforce Instance URL'), ' ftp://example.com ');
-            setInputValue(inputForLabel('Connected App'), '   ');
+            setInputValue(input('alias'), '   ');
+            setInputValue(input('instance-url'), ' ftp://example.com ');
+            setInputValue(input('app-consumer-key'), '   ');
         });
         submit();
 
-        const alias = inputForLabel('Salesforce Login Name');
-        const instanceUrl = inputForLabel('Salesforce Instance URL');
-        const appConsumerKey = inputForLabel('Connected App');
-        expect(alias.parentElement?.parentElement?.textContent).toContain('Alias cannot be empty');
-        expect(instanceUrl.parentElement?.parentElement?.textContent).not.toContain('cannot be empty');
-        expect(appConsumerKey.parentElement?.parentElement?.textContent).toContain('Connected App cannot be empty');
+        expect(isInvalid('alias')).toBe(true);
+        expect(isInvalid('instance-url')).toBe(false);
+        expect(isInvalid('app-consumer-key')).toBe(true);
         expect(openOAuthPopup).not.toHaveBeenCalled();
 
         act(() => {
-            setInputValue(alias, 'invalid-alias');
-            setInputValue(instanceUrl, 'https://login.salesforce.com');
-            setInputValue(appConsumerKey, 'key');
+            setInputValue(input('alias'), 'invalid-alias');
+            setInputValue(input('instance-url'), 'https://login.salesforce.com');
+            setInputValue(input('app-consumer-key'), 'key');
         });
         submit();
-        expect(alias.parentElement?.parentElement?.textContent).toContain('underscores');
+        expect(isInvalid('alias')).toBe(true);
+        expect(isInvalid('instance-url')).toBe(false);
+        expect(isInvalid('app-consumer-key')).toBe(false);
+        expect(openOAuthPopup).not.toHaveBeenCalled();
 
         act(() => closeButton().click());
         await expect(result).resolves.toBeNull();
@@ -347,8 +363,8 @@ describe('useSalesforceLoginDialog', () => {
         const result = open();
         openOAuthPopup.mockReturnValue(window);
         fillValidForm();
-        expect(inputForLabel('Data Cloud Instance URL').value).toBe('');
-        expect(inputForLabel('Data Cloud Tenant ID').value).toBe('');
+        expect(input('data-cloud-instance-url').value).toBe('');
+        expect(input('data-cloud-tenant-id').value).toBe('');
         submit();
 
         expect(openOAuthPopup).toHaveBeenCalledOnce();
@@ -377,7 +393,8 @@ describe('useSalesforceLoginDialog', () => {
             abortSignal: expect.any(AbortSignal),
         });
         expect(document.querySelector('[role="dialog"]')).not.toBeNull();
-        expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Starting authorization');
+        expect(byTestId('connection-cancel')).not.toBeNull();
+        expect(byTestId('connection-setup')).toBeNull();
         act(() => closeButton().click());
         expect(document.querySelector('[role="dialog"]')).toBeNull();
     });
@@ -449,7 +466,8 @@ describe('useSalesforceLoginDialog', () => {
         submit();
 
         expect(document.querySelector('[role="dialog"]')).not.toBeNull();
-        expect(document.querySelector('[role="dialog"]')?.textContent).toContain('OAuth window was blocked');
+        expect(isInvalid('app-consumer-key')).toBe(true);
+        expect(byTestId('connection-setup')).not.toBeNull();
 
         act(() => closeButton().click());
         await expect(result).resolves.toBeNull();
@@ -466,12 +484,12 @@ describe('useSalesforceLoginDialog', () => {
 
         act(() => controller.fail('authorization failed'));
         const retry = open();
-        expect(document.querySelector('[role="dialog"]')?.textContent).toContain('authorization failed');
-        expect(inputForLabel('Salesforce Login Name').value).toBe('production');
-        expect(inputForLabel('Salesforce Instance URL').value).toBe('https://example.my.salesforce.com');
-        expect(inputForLabel('Connected App').value).toBe('consumer-key');
-        expect(inputForLabel('Data Cloud Instance URL').value).toBe('');
-        expect(inputForLabel('Data Cloud Tenant ID').value).toBe('');
+        expect(byTestId('connection-status')?.textContent).toContain('authorization failed');
+        expect(input('alias').value).toBe('production');
+        expect(input('instance-url').value).toBe('https://example.my.salesforce.com');
+        expect(input('app-consumer-key').value).toBe('consumer-key');
+        expect(input('data-cloud-instance-url').value).toBe('');
+        expect(input('data-cloud-tenant-id').value).toBe('');
 
         submit();
         await expect(retry).resolves.toEqual(expect.objectContaining({

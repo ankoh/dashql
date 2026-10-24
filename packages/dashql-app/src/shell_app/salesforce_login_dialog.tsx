@@ -324,6 +324,7 @@ function SalesforceLoginDialog(props: SalesforceLoginDialogProps) {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Salesforce login"
+                data-testid="salesforce-login-dialog"
                 onKeyDown={event => {
                     if (event.key !== 'Escape') return;
                     event.preventDefault();
@@ -454,6 +455,7 @@ function SalesforceLoginHistoryButton(props: SalesforceLoginHistoryButtonProps) 
                 className={styles.historyButton}
                 aria-label="Recent Salesforce logins"
                 aria-haspopup="dialog"
+                data-testid="salesforce-login-history-toggle"
                 aria-expanded={props.open}
                 onClick={() => props.onOpenChange(!props.open)}
             >
@@ -466,6 +468,7 @@ function SalesforceLoginHistoryButton(props: SalesforceLoginHistoryButtonProps) 
                     role="dialog"
                     aria-labelledby="salesforce-login-history-title"
                     tabIndex={-1}
+                    data-testid="salesforce-login-history"
                 >
                     <div className={styles.historyHeader}>
                         <h2 id="salesforce-login-history-title">Recent logins</h2>
@@ -476,14 +479,18 @@ function SalesforceLoginHistoryButton(props: SalesforceLoginHistoryButtonProps) 
                         ) : error ? (
                             <div className={styles.historyError} role="alert">Could not load recent logins: {error}</div>
                         ) : entries.length === 0 ? (
-                            <div className={styles.historyState}>Successful logins will appear here.</div>
+                            <div className={styles.historyState} data-testid="salesforce-login-history-empty">
+                                Successful logins will appear here.
+                            </div>
                         ) : (
-                            <ul aria-label="Recent Salesforce logins">
+                            <ul aria-label="Recent Salesforce logins" data-testid="salesforce-login-history-list">
                                 {entries.map(entry => (
                                     <li key={entry.organizationId.toLowerCase()}>
                                         <button
                                             type="button"
                                             className={styles.historySelectButton}
+                                            data-testid="salesforce-login-history-entry"
+                                            data-organization-id={entry.organizationId}
                                             onClick={() => props.onSelect(entry)}
                                         >
                                             <svg width="20px" height="20px" aria-hidden="true">
@@ -498,6 +505,8 @@ function SalesforceLoginHistoryButton(props: SalesforceLoginHistoryButtonProps) 
                                             <button
                                                 type="button"
                                                 className={styles.historyDeleteButton}
+                                                data-testid="salesforce-login-history-delete"
+                                                data-organization-id={entry.organizationId}
                                                 aria-label={`Delete ${entry.name} from recent logins`}
                                                 disabled={deletingOrganizationId != null}
                                                 onClick={() => void deleteEntry(entry)}

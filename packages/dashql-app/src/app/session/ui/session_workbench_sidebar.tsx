@@ -212,6 +212,7 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onDuplicate, onDe
                     size={ButtonSize.Small}
                     variant={ButtonVariant.Invisible}
                     className={styles.session_menu_button}
+                    data-testid="session-row-menu"
                     aria-label={`More actions for ${item.label}`}
                     onClick={(event) => {
                         event.stopPropagation();
@@ -233,6 +234,8 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onDuplicate, onDe
                         renderAnchor={(anchorProps) => (
                             <ActionList.ListItem
                                 {...anchorProps}
+                                data-testid="session-menu-item"
+                                data-action="storage"
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     setStorageOpen(true);
@@ -243,7 +246,7 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onDuplicate, onDe
                             </ActionList.ListItem>
                         )}
                     />
-                    <ActionList.ListItem onClick={(event) => {
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="share-url" onClick={(event) => {
                         event.stopPropagation();
                         setShareOpen(value => !value);
                     }}>
@@ -259,7 +262,7 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onDuplicate, onDe
                     </ActionList.ListItem>
                     {/* The list takes elements only, the fragment wraps the optional item */}
                     <>{archiveExport && (
-                        <ActionList.ListItem onClick={(event) => {
+                        <ActionList.ListItem data-testid="session-menu-item" data-action="export" onClick={(event) => {
                             event.stopPropagation();
                             setExportOpen(value => !value);
                         }}>
@@ -276,11 +279,11 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onDuplicate, onDe
                             </ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
-                    <ActionList.ListItem onClick={() => { setOpen(false); onDuplicate(); }}>
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="duplicate" onClick={() => { setOpen(false); onDuplicate(); }}>
                         <ActionList.Leading><CopyIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Duplicate</ActionList.ItemText>
                     </ActionList.ListItem>
-                    <ActionList.ListItem className={actionMenuStyles.delete_action} onClick={() => { setOpen(false); onDelete(); }}>
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={() => { setOpen(false); onDelete(); }}>
                         <ActionList.Leading>{item.isNative ? <UnlinkIcon size={16} /> : <TrashIcon size={16} />}</ActionList.Leading>
                         <ActionList.ItemText>{item.isNative ? 'Unlink' : 'Delete'}</ActionList.ItemText>
                     </ActionList.ListItem>
@@ -660,6 +663,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                         <h2 id="workbench-sessions-heading" className={styles.section_heading}>Sessions</h2>
                         <span
                             className={styles.section_count}
+                            data-testid="session-count"
                             aria-label={`${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}`}
                         >
                             {sessionCount}
@@ -708,6 +712,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                             renderAnchor={anchorProps => <IconButton
                                 {...anchorProps}
                                 ref={createButtonRef}
+                                data-testid="create-session"
                                 size={ButtonSize.Small}
                                 variant={ButtonVariant.Invisible}
                                 aria-label="Create session"
@@ -720,7 +725,12 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                         <>
                                             <ActionList.GroupHeading>Existing connection</ActionList.GroupHeading>
                                             {connectionRows.map(database => (
-                                                <ActionList.ListItem key={database.connectionId} onClick={() => createSessionWithConnection(database)}>
+                                                <ActionList.ListItem
+                                                    key={database.connectionId}
+                                                    data-testid="session-connection-option"
+                                                    data-connection-id={database.connectionId}
+                                                    onClick={() => createSessionWithConnection(database)}
+                                                >
                                                     <ActionList.Leading>
                                                         <svg width="16px" height="16px" aria-hidden="true">
                                                             <use xlinkHref={`${symbols}#${database.connectorInfo.icons.colored}`} />
@@ -734,7 +744,12 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                         </>
                                     )}</>
                                     <>{([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD] as const).map(connector => (
-                                        <ActionList.ListItem key={connector} onClick={() => createSessionWithConnector(connector)}>
+                                        <ActionList.ListItem
+                                            key={connector}
+                                            data-testid="session-connector-option"
+                                            data-connector={connector}
+                                            onClick={() => createSessionWithConnector(connector)}
+                                        >
                                             <ActionList.Leading>
                                                 <svg width="16px" height="16px" aria-hidden="true">
                                                     <use xlinkHref={`${symbols}#${CONNECTOR_INFOS[connector].icons.colored}`} />
@@ -786,6 +801,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                         <h2 id="workbench-databases-heading" className={styles.section_heading}>Connections</h2>
                         <span
                             className={styles.section_count}
+                            data-testid="connection-count"
                             aria-label={`${connectionCount} ${connectionCount === 1 ? 'connection' : 'connections'}`}
                         >
                             {connectionCount}

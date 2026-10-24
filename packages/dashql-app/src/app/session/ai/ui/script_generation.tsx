@@ -38,6 +38,7 @@ export const GenerationStopButton: React.FC<GenerationStopButtonProps> = (props)
         variant={ButtonVariant.Invisible}
         size={ButtonSize.Small}
         aria-label={`Stop generating ${props.displayName} query`}
+        data-testid="generation-stop"
         onClick={() => {
             if (props.scriptKey != null) props.onStop(props.scriptKey);
         }}
@@ -67,6 +68,7 @@ export const GenerationError: React.FC<GenerationErrorProps> = (props) => {
                 variant={ButtonVariant.Invisible}
                 size={ButtonSize.Small}
                 aria-label="Dismiss the error"
+                data-testid="generation-error-dismiss"
                 onClick={() => {
                     if (props.scriptKey != null) props.onDismiss(props.scriptKey);
                 }}

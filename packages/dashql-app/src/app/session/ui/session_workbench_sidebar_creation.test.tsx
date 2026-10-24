@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connections/connector_info.js';
+import { connectionLabelParts } from '../../connections/ui/connection_label.js';
 import { SessionSetupStatus } from '../../loading/session_setup_status.js';
 import { SELECT_SESSION } from '../../router/router.js';
 import { SessionWorkbenchSidebar, type SessionWorkbenchSidebarDependencies } from './session_workbench_sidebar.js';
@@ -152,16 +153,24 @@ describe('SessionWorkbenchSidebar session creation', () => {
         container.remove();
     });
 
-    function click(label: string): void {
+    function byTestId(testId: string): HTMLElement | null {
+        return document.querySelector(`[data-testid="${testId}"]`);
+    }
+
+    function click(testId: string): void {
         act(() => {
-            (container.querySelector(`[aria-label="${label}"]`) as HTMLButtonElement).click();
+            (byTestId(testId) as HTMLButtonElement).click();
         });
+    }
+
+    function groups(): (string | null)[] {
+        return Array.from(container.querySelectorAll('[data-testid="connection-group"]')).map(group => group.getAttribute('data-group'));
     }
 
     it('shows session and connection counts', () => {
         const main = {
             ...state.local!,
-            connectorInfo: { icons: { colored: 'database' }, names: { displayLong: 'Hyper' } },
+            connectorInfo: { connectorType: ConnectorType.HYPER, icons: { colored: 'database' }, names: { displayLong: 'Hyper' } },
             catalog: {
                 createSnapshot: () => ({
                     read: () => ({ catalogReader: { databasesLength: () => 0 } }),
@@ -188,8 +197,8 @@ describe('SessionWorkbenchSidebar session creation', () => {
             instance: {},
         } as any} dependencies={dependencies} />));
 
-        expect(container.querySelector('[aria-label="1 session"]')?.textContent).toBe('1');
-        expect(container.querySelector('[aria-label="2 connections"]')?.textContent).toBe('2');
+        expect(byTestId('session-count')?.textContent).toBe('1');
+        expect(byTestId('connection-count')?.textContent).toBe('2');
     });
 
     it('keeps ordinary settings open for an online database without a completion callback', () => {
@@ -206,9 +215,9 @@ describe('SessionWorkbenchSidebar session creation', () => {
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
             sessionId: 'current-session', instance: {},
         } as any} dependencies={dependencies} />));
-        click('More actions for Hyper Local');
+        click('connection-row-menu');
         act(() => {
-            Array.from(document.querySelectorAll('button')).find(button => button.textContent === 'Settings')!.click();
+            (document.querySelector('[data-testid="connection-menu-item"][data-action="settings"]') as HTMLButtonElement).click();
         });
         expect(state.overlayProps).toMatchObject({ connectionId: main.connectionId, isOpen: true });
         expect(state.overlayProps?.onConnected).toBeUndefined();
@@ -219,16 +228,18 @@ describe('SessionWorkbenchSidebar session creation', () => {
         expect(state.navigate).not.toHaveBeenCalled();
     });
 
-    it.each(['Hyper', 'Trino', 'Salesforce'])('creates and selects a %s session before connecting', async connector => {
+    it.each([
+        ['Hyper', ConnectorType.HYPER, null],
+        ['Trino', ConnectorType.TRINO, 'trino'],
+        ['Salesforce', ConnectorType.SALESFORCE_DATA_CLOUD, 'salesforce'],
+    ] as const)('creates and selects a %s session before connecting', async (_name, connector, paramsKey) => {
         state.write.mockReturnValue(new Promise(() => {}));
-        click('Create session');
+        click('create-session');
         expect(state.createSession).not.toHaveBeenCalled();
-        expect(Array.from(document.querySelectorAll('button')).some(button => button.textContent === 'Hyper Local')).toBe(false);
-        const choice = Array.from(document.querySelectorAll('button')).find(button => button.textContent === connector)!;
+        expect(byTestId('session-connection-option')).toBeNull();
+        const choice = document.querySelector(`[data-testid="session-connector-option"][data-connector="${connector}"]`) as HTMLButtonElement;
         expect(choice.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
-        expect(choice.querySelector('use')?.getAttribute('xlink:href')).toContain(
-            `#${connector === 'Salesforce' ? 'salesforce_notext' : connector.toLowerCase()}`,
-        );
+        expect(choice.querySelector('use')?.getAttribute('xlink:href')).toContain(`#${CONNECTOR_INFOS[connector].icons.colored}`);
         act(() => {
             choice.click();
         });
@@ -239,12 +250,12 @@ describe('SessionWorkbenchSidebar session creation', () => {
             value: '00000000-0000-4000-8000-000000000001',
         });
         expect(state.overlayProps?.isOpen).toBe(false);
-        if (connector === 'Hyper') {
+        if (paramsKey == null) {
             expect(state.allocateConnection).toHaveBeenCalledWith(expect.objectContaining({ type: 'local' }));
             expect(state.createConnectionStateFromParams).not.toHaveBeenCalled();
         } else {
             const params = state.createConnectionStateFromParams.mock.calls[0][1];
-            expect(Object.keys(params)).toEqual([connector === 'Salesforce' ? 'salesforce' : connector.toLowerCase()]);
+            expect(Object.keys(params)).toEqual([paramsKey]);
         }
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
             sessionId: 'current-session', instance: {},
@@ -315,10 +326,9 @@ describe('SessionWorkbenchSidebar session creation', () => {
             instance: {},
         } as any} dependencies={dependencies} />));
 
-        click('More actions for Current session');
-        const share = Array.from(document.querySelectorAll('button'))
-            .find(button => button.textContent?.includes('Share as URL'))!;
-        expect(share).toBeDefined();
+        click('session-row-menu');
+        const share = document.querySelector('[data-testid="session-menu-item"][data-action="share-url"]') as HTMLButtonElement;
+        expect(share).not.toBeNull();
 
         act(() => share.click());
         expect(state.shareProps).toMatchObject({ isOpen: true, sessionId });
@@ -342,10 +352,9 @@ describe('SessionWorkbenchSidebar session creation', () => {
             instance: {},
         } as any} dependencies={dependencies} />));
 
-        click('More actions for Current session');
-        const exportItem = Array.from(document.querySelectorAll('button'))
-            .find(button => button.textContent?.includes('Export .dashql'))!;
-        expect(exportItem).toBeDefined();
+        click('session-row-menu');
+        const exportItem = document.querySelector('[data-testid="session-menu-item"][data-action="export"]') as HTMLButtonElement;
+        expect(exportItem).not.toBeNull();
 
         act(() => exportItem.click());
         expect(state.fileSaveProps).toMatchObject({
@@ -374,9 +383,9 @@ describe('SessionWorkbenchSidebar session creation', () => {
         } as any} dependencies={dependencies} />));
 
         // The shell connection is not referenced by a session of the registry
-        expect(container.querySelector('[aria-label="2 connections"]')?.textContent).toBe('2');
-        click('Create session');
-        const existing = Array.from(document.querySelectorAll('button')).find(button => button.textContent?.includes('Trino'))!;
+        expect(byTestId('connection-count')?.textContent).toBe('2');
+        click('create-session');
+        const existing = document.querySelector(`[data-testid="session-connection-option"][data-connection-id="${other.connectionId}"]`) as HTMLButtonElement;
         act(() => existing.click());
         expect(state.allocateConnection).not.toHaveBeenCalled();
         expect(state.createSession).toHaveBeenCalledWith(other);
@@ -398,13 +407,11 @@ describe('SessionWorkbenchSidebar session creation', () => {
             sessionId: 'current-session', instance: {},
         } as any} dependencies={dependencies} />));
 
-        const headings = Array.from(container.querySelectorAll('[role="heading"]')).map(heading => heading.textContent);
-        expect(headings).toEqual(['This session', 'Other connections']);
-        const text = container.textContent ?? '';
-        expect(text).toContain('Hyper #1');
-        expect(text).toContain('Hyper #2');
-        // Session rows no longer list the connections of their session
-        expect(container.querySelector('[aria-label^="Connections: "]')).toBeNull();
+        expect(groups()).toEqual(['session', 'other']);
+        const rowLabel = (connectionId: string) => container
+            .querySelector(`[data-connection-id="${connectionId}"] [data-testid="connection-toggle"]`)?.textContent;
+        expect(rowLabel(state.local!.connectionId)).toContain(connectionLabelParts(state.local!, 1).name);
+        expect(rowLabel(secondHyper.connectionId)).toContain(connectionLabelParts(secondHyper, 2).name);
     });
 
     it('groups the active connections that no session uses apart', () => {
@@ -423,8 +430,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
         } as any} dependencies={dependencies} />));
 
         // The unused connection is listed after the connections of other sessions
-        const headings = Array.from(container.querySelectorAll('[role="heading"]')).map(heading => heading.textContent);
-        expect(headings).toEqual(['This session', 'Other connections', 'Unused connections']);
+        expect(groups()).toEqual(['session', 'other', 'unused']);
         expect(container.textContent).not.toContain('unused');
     });
 });

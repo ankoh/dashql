@@ -31,6 +31,7 @@ const enum FormatMode {
 }
 
 const FORMAT_LABELS = ['Raw', 'Compact', 'Pretty'] as const;
+const FORMAT_TEST_IDS = ['format-mode-raw', 'format-mode-compact', 'format-mode-pretty'] as const;
 
 interface FormatResources {
     core: dashql.DashQL;
@@ -391,6 +392,7 @@ function FormatDialog(props: FormatDialogProps) {
                                 key={label}
                                 selected={mode === index}
                                 disabled={index !== FormatMode.Raw && diagnostic != null}
+                                data-testid={FORMAT_TEST_IDS[index]}
                             >
                                 {label}
                             </SegmentedControl.Button>
@@ -400,6 +402,7 @@ function FormatDialog(props: FormatDialogProps) {
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label="Close SQL formatter"
+                        data-testid="dialog-close"
                         onClick={props.onClose}
                     >
                         <XIcon size={16} />

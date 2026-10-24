@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConnectionHealth, type ConnectionState } from '../connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
 import { ConnectionTree } from './connection_tree.js';
-import * as styles from './connection_tree.module.css';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -65,45 +64,46 @@ describe('ConnectionTree sections', () => {
         ));
     }
 
-    function query(label: string): HTMLButtonElement | null {
-        return container.querySelector(`[aria-label="${label}"]`);
+    function query(connectionId: string, testId: string): HTMLButtonElement | null {
+        return container.querySelector(`[data-connection-id="${connectionId}"] [data-testid="${testId}"]`);
     }
 
     it('offers an overview for Hyper connections only and refreshes the catalog from the catalog row', () => {
         const onOpenOverview = vi.fn();
         render({ onOpenOverview });
 
-        expect(query('Overview of Hyper Http')).not.toBeNull();
-        expect(query('Overview of Trino Http')).toBeNull();
-        expect(query('Collapse Catalog of Hyper Http')).not.toBeNull();
-        expect(query('Collapse Catalog of Trino Http')).not.toBeNull();
+        expect(query('hyper-1', 'connection-overview')).not.toBeNull();
+        expect(query('trino-1', 'connection-overview')).toBeNull();
+        expect(query('hyper-1', 'connection-catalog-toggle')).not.toBeNull();
+        expect(query('trino-1', 'connection-catalog-toggle')).not.toBeNull();
 
         // The refresh button moved from the connection row to the catalog row
-        const refresh = query('Refresh catalog for Hyper Http')!;
-        expect(refresh.closest(`.${styles.section_row}`)).not.toBeNull();
+        const refresh = query('hyper-1', 'connection-refresh')!;
+        expect(refresh.closest('[data-connection-id]')!.querySelector('[data-testid="connection-catalog-toggle"]')).not.toBeNull();
 
-        act(() => query('Overview of Hyper Http')!.click());
+        act(() => query('hyper-1', 'connection-overview')!.click());
         expect(onOpenOverview).toHaveBeenCalledWith('hyper-1');
     });
 
     it('marks the open overview and hides overviews without a handler', () => {
         render({ onOpenOverview: vi.fn(), openOverviewId: 'hyper-1' });
-        expect(query('Overview of Hyper Http')!.getAttribute('aria-current')).toBe('page');
+        expect(query('hyper-1', 'connection-overview')!.getAttribute('aria-current')).toBe('page');
 
         render();
-        expect(query('Overview of Hyper Http')).toBeNull();
+        expect(query('hyper-1', 'connection-overview')).toBeNull();
     });
 
     it('collapses the catalog tree below the catalog row', () => {
         render();
-        const catalogNodes = () => Array.from(container.querySelectorAll(`.${styles.catalog_row}`)).length;
+        const catalogNodes = () => container.querySelectorAll('[data-testid="catalog-node"]').length;
         expect(catalogNodes()).toBe(2);
 
-        act(() => query('Collapse Catalog of Hyper Http')!.click());
+        const catalogToggle = () => query('hyper-1', 'connection-catalog-toggle');
+        act(() => catalogToggle()!.click());
         expect(catalogNodes()).toBe(1);
-        expect(query('Expand Catalog of Hyper Http')).not.toBeNull();
+        expect(catalogToggle()!.getAttribute('aria-expanded')).toBe('false');
 
-        act(() => query('Collapse Hyper Http')!.click());
-        expect(query('Expand Catalog of Hyper Http')).toBeNull();
+        act(() => query('hyper-1', 'connection-toggle')!.click());
+        expect(catalogToggle()).toBeNull();
     });
 });

@@ -135,8 +135,8 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                     size={SegmentedControlSize.Tiny}
                     onChange={index => setContentSelected(index === 1)}
                 >
-                    <SegmentedControl.Button selected={!contentSelected}>Output</SegmentedControl.Button>
-                    <SegmentedControl.Button selected={contentSelected}>Content</SegmentedControl.Button>
+                    <SegmentedControl.Button data-testid="dashboard-card-output-tab" selected={!contentSelected}>Output</SegmentedControl.Button>
+                    <SegmentedControl.Button data-testid="dashboard-card-content-tab" selected={contentSelected}>Content</SegmentedControl.Button>
                 </SegmentedControl>
             </header>
             <div className={styles.card_body}>

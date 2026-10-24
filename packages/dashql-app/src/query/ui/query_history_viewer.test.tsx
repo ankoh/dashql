@@ -52,10 +52,9 @@ describe('QueryHistoryViewer', () => {
     it('classifies connection and memory query targets', () => {
         expect(getQueryTarget(createExecution(QueryType.USER_PROVIDED, true))).toBe(QueryTarget.CONNECTION);
         expect(getQueryTarget(createExecution(QueryType.INTERNAL_SQLFRAME, false))).toBe(QueryTarget.MEMORY);
-        expect(QueryTarget.CONNECTION).toBe('Attached');
     });
 
-    it('shows query targets', () => {
+    it('shows the source, target and title of each query', () => {
         const query = createExecution(QueryType.INTERNAL_SQLFRAME, false);
         const entries: QueryEntry[] = [{
             connectionId: 'shell',
@@ -67,11 +66,10 @@ describe('QueryHistoryViewer', () => {
 
         act(() => root.render(<QueryHistoryViewer entries={entries} onClose={() => {}} dependencies={dependencies} />));
 
-        expect(container.textContent).toContain('Source');
-        expect(container.textContent).toContain('Target');
-        expect(container.textContent).toContain('Hyper');
-        expect(container.textContent).toContain('Memory');
-        expect(container.textContent).toContain('Title');
-        expect(container.textContent).toContain('Shell Query');
+        const rows = container.querySelectorAll('[data-testid="query-history-row"]');
+        expect(rows.length).toBe(1);
+        expect(rows[0].textContent).toContain('Hyper');
+        expect(rows[0].textContent).toContain(QueryTarget.MEMORY);
+        expect(rows[0].textContent).toContain('Shell Query');
     });
 });

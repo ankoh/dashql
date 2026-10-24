@@ -14,7 +14,7 @@ describe('Generation placeholder', () => {
     });
     afterEach(() => view.destroy());
 
-    const placeholder = () => view.dom.querySelector('[role="status"][aria-label="Generating SQL"]');
+    const placeholder = () => view.dom.querySelector('[role="status"]');
 
     it('shows one line after the script until it is hidden', () => {
         setGenerationPlaceholder(view, false);

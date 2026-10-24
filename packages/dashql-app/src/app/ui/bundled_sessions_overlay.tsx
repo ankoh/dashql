@@ -63,6 +63,7 @@ export function BundledSessionsOverlay(props: BundledSessionsOverlayProps = {}):
                 size={props.triggerSize}
                 variant={open ? ButtonVariant.Default : ButtonVariant.Invisible}
                 aria-label="Example sessions"
+                data-testid="example-sessions-trigger"
                 aria-haspopup="dialog"
                 aria-expanded={open}
                 onClick={() => setOpen(value => !value)}
@@ -84,6 +85,7 @@ export function BundledSessionsOverlay(props: BundledSessionsOverlayProps = {}):
                         <h2 id={titleId}>Example Sessions</h2>
                         <IconButton
                             aria-label="Close example sessions"
+                            data-testid="example-sessions-close"
                             size={ButtonSize.Small}
                             variant={ButtonVariant.Invisible}
                             onClick={() => setOpen(false)}
@@ -95,10 +97,11 @@ export function BundledSessionsOverlay(props: BundledSessionsOverlayProps = {}):
                         {BUNDLED_SESSIONS.map(session => {
                             const copied = copiedId === session.id;
                             return (
-                                <li key={session.id}>
+                                <li key={session.id} data-testid="example-session" data-session-id={session.id}>
                                     <button
                                         className={styles.addButton}
                                         aria-label={`Add ${session.name} session`}
+                                        data-testid="example-session-add"
                                         onClick={() => addSession(session)}
                                     >
                                         {session.name}
@@ -106,6 +109,7 @@ export function BundledSessionsOverlay(props: BundledSessionsOverlayProps = {}):
                                     <div className={styles.actions}>
                                         <IconButton
                                             aria-label={`Copy ${session.name} session link`}
+                                            data-testid="example-session-copy"
                                             size={ButtonSize.Small}
                                             variant={ButtonVariant.Invisible}
                                             onClick={() => void copySessionLink(session)}

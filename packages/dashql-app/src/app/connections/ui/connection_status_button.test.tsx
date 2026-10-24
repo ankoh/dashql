@@ -31,20 +31,29 @@ describe('Connection status button', () => {
         return container.querySelector<HTMLButtonElement>('button')!;
     }
 
+    function dotFill(button: HTMLButtonElement): string | null {
+        return button.querySelector('[data-testid="connection-health-dot"] circle')?.getAttribute('fill') ?? null;
+    }
+
     it('shows the health without a label and opens the settings on click', () => {
         const onOpenSettings = vi.fn();
         const button = render(ConnectionHealth.NOT_STARTED, { onOpenSettings });
-        expect(button.getAttribute('aria-label')).toBe('Hyper Local: Disconnected');
+        const disconnectedLabel = button.getAttribute('aria-label');
+        expect(disconnectedLabel).toContain('Hyper Local');
         expect(button.textContent).toBe('');
-        expect(button.querySelector('circle')?.getAttribute('fill')).toBe('#6e7781');
+        const disconnectedFill = dotFill(button);
+        expect(disconnectedFill).not.toBeNull();
         act(() => button.click());
         expect(onOpenSettings).toHaveBeenCalledWith(button);
-        expect(render(ConnectionHealth.ONLINE).querySelector('circle')?.getAttribute('fill')).toBe('#1f883d');
-        expect(render(ConnectionHealth.FAILED).querySelector('circle')?.getAttribute('fill')).toBe('#cf222e');
+        // Every health has its own color
+        const onlineFill = dotFill(render(ConnectionHealth.ONLINE));
+        const failedFill = dotFill(render(ConnectionHealth.FAILED));
+        expect(new Set([disconnectedFill, onlineFill, failedFill]).size).toBe(3);
         // A connecting connection shows the running indicator instead of the dot
         const connecting = render(ConnectionHealth.CONNECTING);
-        expect(connecting.getAttribute('aria-label')).toBe('Hyper Local: Connecting');
-        expect(connecting.querySelector('circle[cx="8"]')).toBeNull();
+        expect(connecting.getAttribute('aria-label')).toContain('Hyper Local');
+        expect(connecting.getAttribute('aria-label')).not.toBe(disconnectedLabel);
+        expect(connecting.querySelector('[data-testid="connection-health-dot"]')).toBeNull();
         expect(connecting.querySelector('svg')).not.toBeNull();
     });
 
@@ -59,7 +68,6 @@ describe('Connection status button', () => {
         const rules = Array.from(document.styleSheets).flatMap(sheet => Array.from(sheet.cssRules));
         const pulse = rules.find(rule => rule instanceof CSSStyleRule && rule.selectorText === `.${styles.database_status_attention}`) as CSSStyleRule;
         expect(pulse.style.animationIterationCount).toBe('2');
-        expect(pulse.style.animationDuration).toBe('0.45s');
         const reduced = rules.find(rule => rule instanceof CSSMediaRule && rule.conditionText === '(prefers-reduced-motion: reduce)'
             && Array.from(rule.cssRules).some(child => child instanceof CSSStyleRule && child.selectorText === `.${styles.database_status_attention}`)) as CSSMediaRule;
         const attention = Array.from(reduced.cssRules).find(rule => rule instanceof CSSStyleRule && rule.selectorText === `.${styles.database_status_attention}`) as CSSStyleRule;

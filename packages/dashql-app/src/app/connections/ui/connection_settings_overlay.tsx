@@ -155,6 +155,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
                 variant={ButtonVariant.Invisible}
                 size={ButtonSize.Small}
                 title="Discard changes and restore saved connection settings"
+                data-testid="connection-discard"
                 disabled={props.connecting || saving}
                 onClick={props.discard}
             >Discard</Button>
@@ -162,6 +163,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
                 variant={ButtonVariant.Primary}
                 size={ButtonSize.Small}
                 title="Save the connection settings for every session that uses the connection"
+                data-testid="connection-save"
                 disabled={props.connecting || saving}
                 onClick={props.save}
             >{saving ? 'Saving…' : 'Save'}</Button>
@@ -171,7 +173,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
     if (result != null && !saving && result.manifest.status !== 'written') {
         const reason = result.manifest.status === 'failed' ? stringifyError(result.manifest.error) : 'storage is busy';
         return (
-            <div className={styles.footer} role="alert">
+            <div className={styles.footer} role="alert" data-testid="connection-save-bar" data-state="save-failed">
                 <div className={styles.footer_error}>The connection could not be saved: {reason}</div>
                 {draftActions}
             </div>
@@ -180,7 +182,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
     const failed = result == null ? [] : failedSessionCopies(result);
     if (failed.length > 0 && !saving) {
         return (
-            <div className={styles.footer} role="alert">
+            <div className={styles.footer} role="alert" data-testid="connection-save-bar" data-state="sessions-failed">
                 <div className={styles.footer_error}>
                     The connection is saved, but {sessions(failed.length)} could not be updated.
                     They are updated when they are loaded next time.
@@ -195,6 +197,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
                 <div className={styles.footer_actions}>
                     <Button
                         size={ButtonSize.Small}
+                        data-testid="connection-save-retry"
                         onClick={() => { void props.retry(failed.map(n => n.sessionId)); }}
                     >Retry</Button>
                     {draftActions}
@@ -204,7 +207,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
     }
     if (saving) {
         return (
-            <div className={styles.footer} role="status">
+            <div className={styles.footer} role="status" data-testid="connection-save-bar" data-state="saving">
                 <div className={styles.footer_notice}>
                     {props.sessionCount > 1 ? `Saving the connection for ${sessions(props.sessionCount)}…` : 'Saving the connection…'}
                 </div>
@@ -220,14 +223,14 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
             hint = 'Connecting saves them too.';
         }
         return (
-            <div className={styles.footer} role="status">
+            <div className={styles.footer} role="status" data-testid="connection-save-bar" data-state="unsaved">
                 <div className={styles.footer_notice}>
                     <span className={styles.footer_dirty}>
                         <span className={styles.footer_dirty_dot} aria-hidden="true" />
                         Unsaved changes
                     </span>
                     {props.sessionCount > 1 && ` · applies to ${sessions(props.sessionCount)}`}
-                    {hint != null && <div className={styles.footer_hint}>{hint}</div>}
+                    {hint != null && <div className={styles.footer_hint} data-testid="connection-save-hint" data-hint={props.online ? 'reconnect' : 'connect'}>{hint}</div>}
                 </div>
                 {draftActions}
             </div>
@@ -235,7 +238,7 @@ export function ConnectionSaveBar(props: ConnectionSaveBarProps): React.ReactEle
     }
     if (savedNotice) {
         return (
-            <div className={styles.footer} role="status">
+            <div className={styles.footer} role="status" data-testid="connection-save-bar" data-state="saved">
                 <div className={styles.footer_saved}>
                     <CheckIcon />
                     {props.sessionCount > 1 ? `Saved for ${sessions(props.sessionCount)}` : 'Saved'}

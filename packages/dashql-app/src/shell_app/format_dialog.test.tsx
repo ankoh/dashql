@@ -38,11 +38,14 @@ function editorText(): string {
     return EditorView.findFromDOM(editorContent())?.state.doc.toString() ?? '';
 }
 
-function modeButton(label: string): HTMLButtonElement {
-    const button = Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
-        .find(candidate => candidate.textContent === label);
-    if (button == null) throw new Error(`No ${label} format button`);
+function modeButton(mode: 'raw' | 'compact' | 'pretty'): HTMLButtonElement {
+    const button = document.querySelector<HTMLButtonElement>(`[data-testid="format-mode-${mode}"]`);
+    if (button == null) throw new Error(`No ${mode} format button`);
     return button;
+}
+
+function closeButton(): HTMLButtonElement {
+    return document.querySelector<HTMLButtonElement>('[role="dialog"] [data-testid="dialog-close"]')!;
 }
 
 describe('SQL formatter dialog', () => {
@@ -96,13 +99,13 @@ describe('SQL formatter dialog', () => {
         const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
 
         expect(dialog.getAttribute('aria-modal')).toBe('true');
-        expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('SQL Formatter');
-        expect(editorContent().getAttribute('aria-label')).toBe('SQL formatter editor');
+        expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBeTruthy();
+        expect(editorContent().getAttribute('aria-label')).toBeTruthy();
         expect(editorContent().getAttribute('aria-readonly')).toBe('false');
         expect(document.activeElement).toBe(editorContent());
         expect(document.querySelector('.cm-placeholder')).toBeNull();
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close SQL formatter"]')!.click());
+        act(() => closeButton().click());
         await expect(result).resolves.toBeUndefined();
     });
 
@@ -111,21 +114,21 @@ describe('SQL formatter dialog', () => {
         const raw = 'select count(*) from items where value > 1';
         act(() => setEditorText(raw));
 
-        act(() => modeButton('Compact').click());
+        act(() => modeButton('compact').click());
         expect(editorText()).toBe('select count(*) from items where value > 1;');
         expect(editorContent().getAttribute('contenteditable')).toBe('false');
         expect(editorContent().getAttribute('aria-readonly')).toBe('true');
 
-        act(() => modeButton('Pretty').click());
+        act(() => modeButton('pretty').click());
         expect(editorText()).toBe('select count(*)\nfrom items\nwhere value > 1;');
         expect(editorContent().getAttribute('contenteditable')).toBe('false');
 
-        act(() => modeButton('Raw').click());
+        act(() => modeButton('raw').click());
         expect(editorText()).toBe(raw);
         expect(editorContent().getAttribute('contenteditable')).toBe('true');
         expect(editorContent().getAttribute('aria-readonly')).toBe('false');
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close SQL formatter"]')!.click());
+        act(() => closeButton().click());
         await result;
     });
 
@@ -133,12 +136,12 @@ describe('SQL formatter dialog', () => {
         await vi.waitFor(() => expect(settingsReady).toBe(true));
         const result = open();
         act(() => setEditorText('select count(*) from items'));
-        act(() => modeButton('Pretty').click());
+        act(() => modeButton('pretty').click());
         expect(editorText()).toContain('select count(*)');
         act(() => setKeywordCase('upper'));
         expect(editorText()).toContain('SELECT count(*)');
         expect(editorText()).toContain('FROM items');
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close SQL formatter"]')!.click());
+        act(() => closeButton().click());
         await result;
     });
 
@@ -150,27 +153,27 @@ describe('SQL formatter dialog', () => {
             await new Promise(resolve => setTimeout(resolve, 200));
         });
 
-        expect(document.querySelector('[role="alert"]')?.textContent).not.toBe('');
-        expect(modeButton('Compact').disabled).toBe(true);
-        expect(modeButton('Pretty').disabled).toBe(true);
+        expect(document.querySelector('[role="alert"]')?.textContent?.trim()).toBeTruthy();
+        expect(modeButton('compact').disabled).toBe(true);
+        expect(modeButton('pretty').disabled).toBe(true);
 
         await act(async () => {
             setEditorText('select 1');
             await new Promise(resolve => setTimeout(resolve, 200));
         });
         expect(document.querySelector('[role="alert"]')).toBeNull();
-        expect(modeButton('Compact').disabled).toBe(false);
-        expect(modeButton('Pretty').disabled).toBe(false);
+        expect(modeButton('compact').disabled).toBe(false);
+        expect(modeButton('pretty').disabled).toBe(false);
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close SQL formatter"]')!.click());
+        act(() => closeButton().click());
         await result;
     });
 
     it('keeps empty input valid and ignores outside clicks', async () => {
         const result = open();
         expect(document.querySelector('[role="alert"]')).toBeNull();
-        expect(modeButton('Compact').disabled).toBe(false);
-        expect(modeButton('Pretty').disabled).toBe(false);
+        expect(modeButton('compact').disabled).toBe(false);
+        expect(modeButton('pretty').disabled).toBe(false);
 
         act(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })));
         expect(document.querySelector('[role="dialog"]')).not.toBeNull();

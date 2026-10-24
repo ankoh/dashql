@@ -100,7 +100,13 @@ export const ShellNavBar: React.FC<ShellNavBarProps> = (props: ShellNavBarProps)
     const Internals = props.Internals ?? ShellInternals;
     return (
         <header className={styles.navbar}>
-            <button type="button" className={styles.brand} aria-label="Reset shell" onClick={props.onReset}>
+            <button
+                type="button"
+                className={styles.brand}
+                aria-label="Reset shell"
+                data-testid="shell-reset"
+                onClick={props.onReset}
+            >
                 <svg className={styles.brand_logo} width="100%" height="100%" aria-hidden="true">
                     <use xlinkHref={`${symbols}#hyper_banner`} />
                 </svg>

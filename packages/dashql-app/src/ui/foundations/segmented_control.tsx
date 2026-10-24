@@ -24,6 +24,8 @@ export interface SegmentedControlProps {
     'aria-label'?: string;
     'aria-labelledby'?: string;
     'aria-describedby'?: string;
+    /** A stable hook for tests */
+    'data-testid'?: string;
     /** Whether the control fills the width of its parent */
     fullWidth?: boolean;
     /** The handler that gets called when a segment is selected */
@@ -143,6 +145,7 @@ const Root: React.FC<SegmentedControlProps> = ({
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledby,
     'aria-describedby': ariaDescribedby,
+    'data-testid': testId,
     children,
     fullWidth,
     onChange,
@@ -178,6 +181,7 @@ const Root: React.FC<SegmentedControlProps> = ({
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledby}
             aria-describedby={ariaDescribedby}
+            data-testid={testId}
             className={classNames(
                 styles.segmented_control,
                 {

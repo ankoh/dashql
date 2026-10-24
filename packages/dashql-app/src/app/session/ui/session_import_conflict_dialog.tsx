@@ -78,11 +78,12 @@ function DialogContent(props: DialogContentProps) {
                 </dl>
             </div>
             <footer className={styles.actions}>
-                <Button disabled={props.busy} onClick={props.onCancel}>Cancel</Button>
-                <Button disabled={props.busy} onClick={props.onReplace}>
+                <Button data-testid="session-import-cancel" disabled={props.busy} onClick={props.onCancel}>Cancel</Button>
+                <Button data-testid="session-import-replace" disabled={props.busy} onClick={props.onReplace}>
                     Replace
                 </Button>
                 <Button
+                    data-testid="session-import-create-new"
                     disabled={props.busy}
                     onClick={props.onCreateNew}
                 >

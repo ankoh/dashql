@@ -131,13 +131,15 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
             />
             <div className={styles.composer_action_bar}>
                 <SegmentedControl aria-label="Input mode" size={SegmentedControlSize.Small} onChange={handleModeChange}>
-                    <SegmentedControl.Button leadingVisual={CodeIcon} selected={!naturalLanguage}>
+                    <SegmentedControl.Button leadingVisual={CodeIcon} selected={!naturalLanguage} data-testid="composer-mode" data-mode="sql">
                         SQL
                     </SegmentedControl.Button>
                     <SegmentedControl.Button
                         leadingVisual={SparklesFillIcon}
                         selected={naturalLanguage}
                         disabled={!props.aiAvailable}
+                        data-testid="composer-mode"
+                        data-mode="ai"
                         title={props.aiAvailable ? undefined : 'Configure an AI provider in the settings to ask questions'}
                     >
                         AI
@@ -147,6 +149,7 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                     variant={hero ? ButtonVariant.Primary : ButtonVariant.Default}
                     size={ButtonSize.Small}
                     aria-label={naturalLanguage ? 'Ask AI' : 'Run query'}
+                    data-testid="composer-send"
                     disabled={empty}
                     onClick={handleSendClick}
                 >

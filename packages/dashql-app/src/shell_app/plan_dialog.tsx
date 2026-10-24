@@ -264,10 +264,13 @@ function PlanDialog(props: PlanDialogProps) {
                         size={SegmentedControlSize.Small}
                         onChange={index => selectMode(index as PlanMode)}
                     >
-                        <SegmentedControl.Button selected={mode === PlanMode.Raw}>Raw</SegmentedControl.Button>
+                        <SegmentedControl.Button selected={mode === PlanMode.Raw} data-testid="plan-mode-raw">
+                            Raw
+                        </SegmentedControl.Button>
                         <SegmentedControl.Button
                             selected={mode === PlanMode.Viewer}
                             disabled={plan == null}
+                            data-testid="plan-mode-viewer"
                         >
                             Viewer
                         </SegmentedControl.Button>
@@ -276,6 +279,7 @@ function PlanDialog(props: PlanDialogProps) {
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label="Close query plan"
+                        data-testid="dialog-close"
                         onClick={props.onClose}
                     >
                         <XIcon size={16} />

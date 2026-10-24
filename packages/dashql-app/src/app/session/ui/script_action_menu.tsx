@@ -57,6 +57,7 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
                 <IconButton
                     {...anchorProps}
                     ref={triggerRef}
+                    data-testid="script-more-actions"
                     variant={ButtonVariant.Invisible}
                     size={ButtonSize.Small}
                     aria-label={`More actions for ${props.scriptName} script`}
@@ -71,6 +72,8 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
             <div className={styles.menu} role="dialog" aria-label={`Actions for ${props.scriptName} script`}>
                 <ActionList.List aria-label={`Actions for ${props.scriptName} script`}>
                     <ActionList.ListItem
+                        data-testid="script-menu-item"
+                        data-action="format-pretty"
                         disabled={props.formatDisabled}
                         onClick={() => run(() => props.onFormat(dashql.buffers.formatting.FormattingMode.PRETTY))}
                     >
@@ -78,6 +81,8 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
                         <ActionList.ItemText>Format Pretty</ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem
+                        data-testid="script-menu-item"
+                        data-action="format-compact"
                         disabled={props.formatDisabled}
                         onClick={() => run(() => props.onFormat(dashql.buffers.formatting.FormattingMode.COMPACT))}
                     >
@@ -86,12 +91,14 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
                     </ActionList.ListItem>
                     {/* The list takes elements only, the fragment wraps the optional item */}
                     <>{props.storage != null && (
-                        <ActionList.ListItem onClick={() => setView('storage')}>
+                        <ActionList.ListItem data-testid="script-menu-item" data-action="storage" onClick={() => setView('storage')}>
                             <ActionList.Leading><StorageIcon size={16} /></ActionList.Leading>
                             <ActionList.ItemText>Storage</ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
                     <ActionList.ListItem
+                        data-testid="script-menu-item"
+                        data-action="delete"
                         className={styles.delete_action}
                         onClick={() => run(props.onDelete)}
                     >
@@ -133,10 +140,10 @@ function ScriptStorageView(props: { scriptName: string; storage: ScriptStorage; 
         event.stopPropagation();
     };
     return (
-        <div className={styles.storage} role="dialog" aria-label={`Storage of ${props.scriptName} script`}>
+        <div className={styles.storage} role="dialog" aria-label={`Storage of ${props.scriptName} script`} data-testid="script-storage">
             <div className={styles.storage_header}>
                 <span className={styles.storage_title}>Script Storage</span>
-                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Close script storage" onClick={props.onClose}>
+                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Close script storage" data-testid="script-storage-close" onClick={props.onClose}>
                     <CloseIcon size={16} />
                 </IconButton>
             </div>
@@ -148,6 +155,7 @@ function ScriptStorageView(props: { scriptName: string; storage: ScriptStorage; 
                     className={styles.storage_input}
                     type="text"
                     aria-label="Script file name"
+                    data-testid="script-file-name-input"
                     defaultValue={props.storage.fileName}
                     spellCheck={false}
                     onBlur={commit}

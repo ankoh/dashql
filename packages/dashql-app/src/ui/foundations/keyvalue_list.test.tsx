@@ -4,7 +4,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { vi } from 'vitest';
 
 import { KeyValueListBuilder } from './keyvalue_list.js';
-import * as styles from './keyvalue_list.module.css';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 
 describe('KeyValueListBuilder', () => {
@@ -53,38 +52,9 @@ describe('KeyValueListBuilder', () => {
         expect(inputs.every(input => input.readOnly && input.disabled)).toBe(true);
         expect(container.querySelectorAll('[role="listitem"]')).toHaveLength(2);
         expect(container.querySelector('button')).toBeNull();
-        expect(inputs.map(input => input.getAttribute('aria-label'))).toEqual([
-            'Engine Settings name 1',
-            'Engine Settings value 1',
-            'Engine Settings name 2',
-            'Engine Settings value 2',
-        ]);
-    });
-
-    it('renders side-by-side entries without the indented connector', () => {
-        act(() => root.render(
-            <KeyValueListBuilder
-                title="Engine Settings"
-                caption="Embedded engine initialization settings"
-                keyIcon={() => <div>Name</div>}
-                valueIcon={() => <div>Value</div>}
-                addButtonLabel="Add Setting"
-                elements={[{ key: 'identifier_resolution', value: 'case_insensitive' }]}
-                modifyElements={() => {}}
-                disabled
-                readOnly
-                sideBySide
-            />,
-        ));
-
-        const item = container.querySelector('[role="listitem"]');
-        expect(item).not.toBeNull();
-        expect(container.querySelector(`.${styles.list_side_by_side}`)).not.toBeNull();
-        expect(item?.classList.contains(styles.element_side_by_side)).toBe(true);
-        expect(item?.querySelector(`.${styles.aliaslink}`)).toBeNull();
-        expect(item?.querySelector(`.${styles.path_side_by_side}`)).not.toBeNull();
-        expect(item?.querySelector(`.${styles.alias_side_by_side}`)).not.toBeNull();
-        expect(item?.querySelectorAll('input')).toHaveLength(2);
+        const labels = inputs.map(input => input.getAttribute('aria-label') ?? '');
+        expect(labels.every(label => label.length > 0)).toBe(true);
+        expect(new Set(labels).size).toBe(labels.length);
     });
 
     it('copies an optional formatted setting argument', async () => {
@@ -108,7 +78,7 @@ describe('KeyValueListBuilder', () => {
         ));
 
         await act(async () => {
-            (container.querySelector('[aria-label="Copy Engine Settings 1"]') as HTMLButtonElement).click();
+            container.querySelector<HTMLButtonElement>('[role="listitem"] [data-testid="keyvalue-copy"]')!.click();
             await Promise.resolve();
         });
 

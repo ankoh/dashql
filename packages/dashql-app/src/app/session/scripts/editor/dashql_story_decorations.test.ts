@@ -51,7 +51,7 @@ describe('DashQL story decorations', () => {
             parent,
         });
         view.dispatch({ effects: DashQLStoryUpdateEffect.of(update) });
-        const controls = parent.querySelectorAll<HTMLButtonElement>('.dashql-story-fold-control');
+        const controls = parent.querySelectorAll<HTMLButtonElement>('[data-testid="story-fold-control"]');
         expect(controls).toHaveLength(2);
         expect(Array.from(controls, control => control.getAttribute('aria-expanded'))).toEqual(['true', 'true']);
         view.destroy();
@@ -67,40 +67,49 @@ describe('DashQL story decorations', () => {
             parent,
         });
         view.dispatch({ effects: DashQLStoryUpdateEffect.of(update) });
-        const button = parent.querySelector<HTMLButtonElement>('[data-dashql-story-control]');
+        const button = parent.querySelector<HTMLButtonElement>('[data-testid="story-sql-control"]');
         expect(button?.tagName).toBe('BUTTON');
-        expect(button?.textContent).toBe('select');
+        expect(button?.textContent).toBeTruthy();
         button?.click();
         expect(onActivate).toHaveBeenCalledWith(0);
         view.destroy();
     });
 
-    it.each([
-        ['create table', 'create table target (value int);'],
-        ['create table', 'create table target as select 1;'],
-        ['create view', 'create or replace view target as select 1;'],
-        ['select', 'select 1;'],
-        ['set', "set variable = 'value';"],
-        ['visualize', 'select 1 visualize using vegalite (mark => bar);'],
-        ['create function', 'create function item_count() returns int;'],
-        ['explain', 'explain select 1;'],
-        ['drop table', 'drop table target;'],
-        ['drop view', 'drop view target;'],
-        ['select into', 'select 1 into target;'],
-        ['attach database', 'attach database "source.hyper" as source;'],
-        ['insert into', 'insert into target values (1);'],
-    ])('labels %s statements correctly', (label, sql) => {
-        const update = parseDescriptions(`-- summary\n${sql}`);
-        const { extensions } = createStoryDecorations({ activation: 'toggle' });
-        const parent = document.createElement('div');
-        const view = new EditorView({
-            state: EditorState.create({ doc: `-- summary\n${sql}`, extensions }),
-            parent,
-        });
-        view.dispatch({ effects: DashQLStoryUpdateEffect.of(update) });
-        parent.querySelector<HTMLButtonElement>('.dashql-story-fold-control')?.click();
-        expect(parent.querySelector<HTMLButtonElement>('.dashql-story-sql-control')?.textContent).toBe(label);
-        view.destroy();
+    it('labels every statement type distinctly', () => {
+        const renderLabel = (sql: string) => {
+            const update = parseDescriptions(`-- summary\n${sql}`);
+            const { extensions } = createStoryDecorations({ activation: 'toggle' });
+            const parent = document.createElement('div');
+            const view = new EditorView({
+                state: EditorState.create({ doc: `-- summary\n${sql}`, extensions }),
+                parent,
+            });
+            view.dispatch({ effects: DashQLStoryUpdateEffect.of(update) });
+            parent.querySelector<HTMLButtonElement>('[data-testid="story-fold-control"]')?.click();
+            const label = parent.querySelector<HTMLButtonElement>('[data-testid="story-sql-control"]')?.textContent ?? '';
+            view.destroy();
+            return label;
+        };
+        const createTable = renderLabel('create table target (value int);');
+        const createTableAs = renderLabel('create table target as select 1;');
+        const others = [
+            'create or replace view target as select 1;',
+            'select 1;',
+            "set variable = 'value';",
+            'select 1 visualize using vegalite (mark => bar);',
+            'create function item_count() returns int;',
+            'explain select 1;',
+            'drop table target;',
+            'drop view target;',
+            'select 1 into target;',
+            'attach database "source.hyper" as source;',
+            'insert into target values (1);',
+        ].map(renderLabel);
+
+        expect(createTable).toBeTruthy();
+        expect(createTableAs).toBe(createTable);
+        expect(others.every(label => label.length > 0)).toBe(true);
+        expect(new Set([createTable, ...others]).size).toBe(others.length + 1);
     });
 
     it('collapses an expanded statement when its fold control is activated', () => {
@@ -112,7 +121,7 @@ describe('DashQL story decorations', () => {
             parent,
         });
         view.dispatch({ effects: DashQLStoryUpdateEffect.of(update) });
-        parent.querySelector<HTMLButtonElement>('.dashql-story-fold-control')?.click();
+        parent.querySelector<HTMLButtonElement>('[data-testid="story-fold-control"]')?.click();
         expect(view.state.field(field).atomicRanges.size).toBeGreaterThan(0);
         view.destroy();
     });

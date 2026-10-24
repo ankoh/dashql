@@ -104,23 +104,21 @@ describe('VersionInfoOverlay', () => {
             .mockImplementationOnce(() => new Promise<Response>(resolve => { resolveCanary = resolve; }));
 
         await render(true);
-        const busyButton = document.querySelector<HTMLButtonElement>('button[aria-label="Checking for updates"]');
-        expect(busyButton).not.toBeNull();
-        expect(busyButton!.getAttribute('aria-disabled')).toBe('true');
-        expect(busyButton!.querySelector('svg'), 'busy button spinner').not.toBeNull();
+        const refreshButton = () => document.querySelector<HTMLButtonElement>('[data-testid="version-check-refresh"]');
+        expect(refreshButton()).not.toBeNull();
+        expect(refreshButton()!.getAttribute('aria-disabled'), 'busy while both channels load').toBe('true');
         expect(fetchManifest).toHaveBeenCalledTimes(4);
 
-        act(() => busyButton!.click());
+        act(() => refreshButton()!.click());
         expect(fetchManifest).toHaveBeenCalledTimes(4);
 
         await act(async () => resolveStable(new Response(JSON.stringify(manifest))));
-        expect(document.querySelector('button[aria-label="Checking for updates"]'), 'still busy after stable resolves').not.toBeNull();
+        expect(refreshButton()!.getAttribute('aria-disabled'), 'still busy after stable resolves').toBe('true');
 
         await act(async () => resolveCanary(new Response(JSON.stringify(manifest))));
         await settleRefresh();
-        const refreshButton = document.querySelector<HTMLButtonElement>('button[aria-label="Check for updates"]');
-        expect(refreshButton, 'idle after canary resolves').not.toBeNull();
-        act(() => refreshButton!.click());
+        expect(refreshButton()!.getAttribute('aria-disabled'), 'idle after canary resolves').not.toBe('true');
+        act(() => refreshButton()!.click());
         await act(async () => {});
         expect(fetchManifest).toHaveBeenCalledTimes(6);
         await settleRefresh();

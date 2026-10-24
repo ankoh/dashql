@@ -45,8 +45,9 @@ describe('SessionImportCard V2 ready state', () => {
             conflictIsNative={false} busy={false} onImport={onImport} onReplace={() => {}}
             onCreateNew={() => {}} onClose={() => {}} dependencies={dependencies} />));
         expect(container.textContent).toContain('Flat session');
-        expect(container.textContent).toContain('1 script in 0 folders');
-        const button = Array.from(container.querySelectorAll('button')).find(value => value.textContent === 'Import')!;
+        expect(container.querySelector('[data-testid="session-import-incomplete"]')).toBeNull();
+        expect(container.querySelector('[data-testid="session-import-conflict"]')).toBeNull();
+        const button = container.querySelector('[data-testid="session-import-confirm"]') as HTMLButtonElement;
         act(() => button.click());
         expect(onImport).toHaveBeenCalledOnce();
     });
@@ -55,10 +56,11 @@ describe('SessionImportCard V2 ready state', () => {
         act(() => root.render(<SessionImportCard phase="ready" result={{ ...RESULT, listedScriptCount: 3, incomplete: true }}
             conflictLocation="/tmp/native" conflictIsNative busy={false} onImport={() => {}} onReplace={() => {}}
             onCreateNew={() => {}} onClose={() => {}} dependencies={dependencies} />));
-        expect(container.querySelectorAll('[role="status"]')).toHaveLength(2);
-        expect(container.textContent).toContain('1 of 3 scripts in 0 folders');
-        expect(container.textContent).toContain('without overwriting existing native files');
-        expect(container.textContent).toContain('Replace');
-        expect(container.textContent).toContain('Create New');
+        expect(container.querySelector('[data-testid="session-import-incomplete"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="session-import-conflict"]')?.hasAttribute('data-native')).toBe(true);
+        expect(container.textContent).toContain('/tmp/native');
+        expect(container.querySelector('[data-testid="session-import-confirm"]')).toBeNull();
+        expect(container.querySelector('[data-testid="session-import-replace"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="session-import-create-new"]')).not.toBeNull();
     });
 });

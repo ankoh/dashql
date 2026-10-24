@@ -108,6 +108,7 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
             className={`${styles.query_row} ${isSelected ? styles.query_row_selected : ''}`}
             style={props.style}
             onClick={() => showDetail(rowIndex)}
+            data-testid="query-history-row"
         >
             <div className={styles.query_row_main}>
                 <div className={styles.query_cell_time}>{time}</div>

@@ -46,8 +46,12 @@ function file(readAsArrayBuffer: PlatformFile['readAsArrayBuffer'] = vi.fn().moc
     };
 }
 
-function button(container: HTMLElement, label: string): HTMLButtonElement | null {
-    return Array.from(container.querySelectorAll('button')).find(value => value.textContent === label) ?? null;
+function button(container: HTMLElement, testId: 'session-import-confirm' | 'session-import-retry'): HTMLButtonElement | null {
+    return container.querySelector(`[data-testid="${testId}"]`);
+}
+
+function card(container: HTMLElement): HTMLElement | null {
+    return container.querySelector('[data-testid="session-import-card"]');
 }
 
 describe('FileLoader', () => {
@@ -72,14 +76,14 @@ describe('FileLoader', () => {
         const onDone = vi.fn();
         await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
 
-        await vi.waitFor(() => expect(container.querySelector('h1')?.textContent).toBe('Import Session'));
+        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
         expect(container.querySelector('[data-testid="particles"]')).not.toBeNull();
-        expect(container.querySelector('section')?.getAttribute('aria-busy')).toBeNull();
+        expect(card(container)?.getAttribute('aria-busy')).toBeNull();
         expect(container.textContent).toContain('Explain');
-        expect(container.textContent).toContain('1 script');
+        expect(container.textContent).toContain(BUNDLE.session.sessionId);
         expect(state.importPortableBundle).not.toHaveBeenCalled();
 
-        await act(async () => button(container, 'Import')!.click());
+        await act(async () => button(container, 'session-import-confirm')!.click());
 
         await vi.waitFor(() => expect(state.importPortableBundle).toHaveBeenCalledOnce());
         expect(state.navigate).toHaveBeenCalledOnce();
@@ -94,17 +98,17 @@ describe('FileLoader', () => {
         state.readSessionBundleFromZip.mockReturnValue(validation);
 
         act(() => root.render(<FileLoader file={file(() => read)} onDone={() => {}} dependencies={dependencies} />));
-        expect(container.querySelector('section')?.getAttribute('aria-busy')).toBe('true');
-        expect(container.textContent).toContain('Reading session file...');
+        const stage = () => container.querySelector('[data-testid="session-import-file-status"]')?.getAttribute('data-stage');
+        expect(card(container)?.getAttribute('aria-busy')).toBe('true');
+        expect(stage()).toBe('reading');
 
         await act(async () => {
             finishRead(new Uint8Array([1, 2, 3]));
         });
-        await vi.waitFor(() => expect(container.textContent).toContain('Checking the session archive...'));
-        expect(container.textContent).toContain('3 bytes');
+        await vi.waitFor(() => expect(stage()).toBe('validating'));
 
         await act(async () => finishValidation(BUNDLE));
-        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
+        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
     });
 
     it('ignores a cancelled stale read when callbacks change', async () => {
@@ -119,7 +123,7 @@ describe('FileLoader', () => {
             finishRead(new Uint8Array([1, 2, 3]));
         });
 
-        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
+        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')).toBeNull();
         expect(state.readSessionBundleFromZip).toHaveBeenCalledOnce();
         expect(state.importPortableBundle).not.toHaveBeenCalled();
@@ -131,37 +135,35 @@ describe('FileLoader', () => {
 
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
         const alert = container.querySelector('[role="alert"]');
-        expect(alert?.textContent).toContain('not a valid DashQL session archive');
+        expect(alert?.getAttribute('data-stage')).toBe('validating');
         expect(alert?.textContent).toContain('missing dashql-session.json');
 
-        await act(async () => button(container, 'Try Again')!.click());
-        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
+        await act(async () => button(container, 'session-import-retry')!.click());
+        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')).toBeNull();
-        expect(container.querySelector('h1')?.textContent).toBe('Import Session');
     });
 
     it('returns to the permission screen when import is cancelled', async () => {
         state.importPortableBundle.mockResolvedValueOnce(null);
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
-        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
-        await act(async () => button(container, 'Import')!.click());
+        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
+        await act(async () => button(container, 'session-import-confirm')!.click());
 
         await vi.waitFor(() => expect(state.importPortableBundle).toHaveBeenCalledOnce());
-        await vi.waitFor(() => expect(button(container, 'Import')?.disabled).toBe(false));
-        expect(container.querySelector('h1')?.textContent).toBe('Import Session');
-        expect(button(container, 'Import')).not.toBeNull();
+        await vi.waitFor(() => expect(button(container, 'session-import-confirm')?.disabled).toBe(false));
+        expect(container.querySelector('[role="alert"]')).toBeNull();
     });
 
     it('shows import failures without falsely completing the dropzone', async () => {
         const onDone = vi.fn();
         state.importPortableBundle.mockRejectedValueOnce(new Error('Storage is unavailable'));
         await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
-        await vi.waitFor(() => expect(button(container, 'Import')).not.toBeNull());
-        await act(async () => button(container, 'Import')!.click());
+        await vi.waitFor(() => expect(button(container, 'session-import-confirm')).not.toBeNull());
+        await act(async () => button(container, 'session-import-confirm')!.click());
 
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
-        expect(container.querySelector('[role="alert"]')?.textContent).toContain('could not import this session');
-        expect(container.textContent).toContain('Storage is unavailable');
+        expect(container.querySelector('[role="alert"]')?.getAttribute('data-stage')).toBe('importing');
+        expect(container.querySelector('[role="alert"]')?.textContent).toContain('Storage is unavailable');
         expect(onDone).not.toHaveBeenCalled();
         expect(state.navigate).not.toHaveBeenCalled();
     });

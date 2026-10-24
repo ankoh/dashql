@@ -15,14 +15,15 @@ function root(key: string): StorageTreeRoot {
     };
 }
 
-/// The rows as `<depth> <kind> <name or text>` for compact assertions
+/// The rows as `<depth> <kind> <name or error>` for compact assertions.
+/// Status rows omit their (component-owned) text unless it is a test-provided error message.
 function describeRows(rows: ReturnType<typeof flattenStorageTree>): string[] {
     return rows.map(row => {
         switch (row.kind) {
             case 'root': return `${row.depth} root ${row.root.key}`;
             case 'directory': return `${row.depth} dir ${row.path}`;
             case 'file': return `${row.depth} file ${row.path}`;
-            case 'status': return `${row.depth} status ${row.text}${row.load != null ? ' (load)' : ''}`;
+            case 'status': return `${row.depth} status${row.error ? ` error ${row.text}` : ''}${row.load != null ? ' (load)' : ''}`;
         }
     });
 }
@@ -49,7 +50,7 @@ describe('flattenStorageTree', () => {
             '0 root opfs',
             '1 dir sessions',
             '2 dir sessions/a',
-            '3 status Loading… (load)',
+            '3 status (load)',
             '1 file m.json',
             '0 root native:/x',
         ]);
@@ -63,12 +64,21 @@ describe('flattenStorageTree', () => {
         ]);
         expect(describeRows(flattenStorageTree([opfs, native], expanded, loading))).toEqual([
             '0 root opfs',
-            '1 status Loading…',
+            '1 status',
             '0 root native:/x',
-            '1 status ENOENT',
+            '1 status error ENOENT',
         ]);
 
         const empty = new Map<string, StorageTreeListing>([[storageTreeNodeKey(opfs, ''), { status: 'ready', entries: [] }]]);
-        expect(describeRows(flattenStorageTree([opfs], expanded, empty))).toEqual(['0 root opfs', '1 status Empty']);
+        const emptyRows = flattenStorageTree([opfs], expanded, empty);
+        expect(describeRows(emptyRows)).toEqual(['0 root opfs', '1 status']);
+
+        // Loading and empty listings are both plain status rows, but they must read differently
+        const statusText = (rows: ReturnType<typeof flattenStorageTree>) => rows.flatMap(row => row.kind === 'status' ? [row.text] : []);
+        const [loadingText] = statusText(flattenStorageTree([opfs], expanded, loading));
+        const [emptyText] = statusText(emptyRows);
+        expect(loadingText).toBeTruthy();
+        expect(emptyText).toBeTruthy();
+        expect(loadingText).not.toBe(emptyText);
     });
 });

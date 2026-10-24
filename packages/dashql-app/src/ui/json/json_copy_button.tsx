@@ -97,6 +97,7 @@ export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) 
             {...other}
             type="button"
             aria-label={copied ? 'JSON copied' : 'Copy JSON value'}
+            data-testid="json-copy-value"
             className={classNames(styles.copy_button, {
                 [styles.copy_button_copied]: copied
             })}

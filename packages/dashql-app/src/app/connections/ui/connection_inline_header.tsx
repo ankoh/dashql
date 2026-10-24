@@ -59,6 +59,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     <Button
                         variant={ButtonVariant.Primary}
                         leadingVisual={props.embedded ? undefined : PlugIcon}
+                        data-testid="connection-setup"
                         onClick={props.setupConnection}
                         disabled={props.wrongPlatform || !props.setupConnection}
                     >
@@ -71,6 +72,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     <Button
                         variant={ButtonVariant.Danger}
                         leadingVisual={XIcon}
+                        data-testid="connection-cancel"
                         onClick={props.cancelSetup}
                         disabled={!props.cancelSetup}
                     >
@@ -83,6 +85,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     <Button
                         variant={ButtonVariant.Danger}
                         leadingVisual={XIcon}
+                        data-testid="connection-reset"
                         onClick={props.resetSetup}
                         disabled={!props.resetSetup}
                     >
@@ -121,7 +124,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                             <use xlinkHref={`${symbols}#${props.connector.icons.colored}`} />
                         </svg>
                     </div>
-                    <div className={style.connector_name}>
+                    <div className={style.connector_name} data-testid="connector-name">
                         {props.connector.names.displayLong}
                     </div>
                     {props.connectorNameAction}
@@ -140,6 +143,8 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                                         key={p}
                                         selected={props.protocol === p}
                                         disabled={protocolLocked}
+                                        data-testid="protocol-option"
+                                        data-protocol={p}
                                     >
                                         {PROTOCOL_LABELS[p]}
                                     </SegmentedControl.Button>
@@ -151,6 +156,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             aria-label="Close"
+                            data-testid="connection-close"
                             onClick={props.onClose}
                         >
                             <XIcon />
@@ -160,7 +166,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
             </div>
             <div className={style.status_row}>
                 {!props.embedded && (
-                    <div className={style.status_left}>
+                    <div className={style.status_left} data-testid="connection-status">
                         <div className={style.status_indicator}>
                             <StatusIndicator status={indicatorStatus} />
                         </div>
@@ -175,7 +181,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     </div>
                 )}
                 {props.embedded && (
-                    <div className={style.embedded_label}>
+                    <div className={style.embedded_label} data-testid="embedded-engine-label">
                         Embedded Engine
                     </div>
                 )}

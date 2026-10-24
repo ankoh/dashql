@@ -21,6 +21,7 @@ interface Props {
     icon?: Icon;
     ['aria-label']: string;
     ['aria-labelledby']: string;
+    ['data-testid']?: string;
 }
 /// The icon to render inside the button
 export function CopyToClipboardButton(props: Props): React.ReactElement {
@@ -68,6 +69,7 @@ export function CopyToClipboardButton(props: Props): React.ReactElement {
             onClick={props.disabled ? undefined : copy}
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledBy}
+            data-testid={props['data-testid']}
             disabled={props.disabled}
         >
             <InnerIcon />

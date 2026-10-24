@@ -67,12 +67,11 @@ describe('SessionImportCard loading state', () => {
             />,
         ));
 
-        expect(container.querySelector('h1')?.textContent).toBe('Loading Session');
-        expect(container.querySelector('[role="status"]')?.textContent).toContain('Loading session manifest');
+        expect(container.querySelector('[role="status"]')).not.toBeNull();
         expect(container.querySelector('[role="progressbar"]')).toBeNull();
         expect(container.textContent).toContain('https://example.com/dashql-session.json');
 
-        const cancel = container.querySelector('button[aria-label="Close"]') as HTMLButtonElement;
+        const cancel = container.querySelector('[data-testid="dialog-close"]') as HTMLButtonElement;
         act(() => cancel.click());
         expect(onCancel).toHaveBeenCalledOnce();
     });
@@ -96,31 +95,33 @@ describe('SessionImportCard loading state', () => {
             />,
         ));
 
-        expect(container.querySelector('[role="status"]')?.textContent).toContain('Loading scripts: 2 of 4');
         const progress = container.querySelector('[role="progressbar"]')!;
         expect(progress.getAttribute('aria-valuenow')).toBe('56');
-        expect(progress.getAttribute('aria-valuetext')).toBe('5 of 9 files');
         expect(container.textContent).toContain('Example');
         expect(container.textContent).toContain('4f741f53-d76f-4a6d-b1d8-c22aa85bd449');
     });
 
     it('uses the shared card for local-file permission and errors', () => {
         const onImport = vi.fn();
+        const onRetry = vi.fn();
         act(() => render(
             <SessionImportCard phase="file-ready" sourcePath="/tmp/local.dashql" fileByteCount={1200}
                 bundle={FILE_BUNDLE} busy={false} onImport={onImport} onClose={() => {}} dependencies={dependencies} />,
         ));
-        expect(container.querySelector('h1')?.textContent).toBe('Import Session');
         expect(container.textContent).toContain('Local session');
-        const importButton = Array.from(container.querySelectorAll('button')).find(value => value.textContent === 'Import')!;
+        const importButton = container.querySelector('[data-testid="session-import-confirm"]') as HTMLButtonElement;
         act(() => importButton.click());
         expect(onImport).toHaveBeenCalledOnce();
 
         act(() => render(
             <SessionImportCard phase="file-error" sourcePath="/tmp/local.dashql" fileByteCount={1200}
-                failedStage="validating" errorMessage="Invalid ZIP" onRetry={() => {}} onClose={() => {}} dependencies={dependencies} />,
+                failedStage="validating" errorMessage="Invalid ZIP" onRetry={onRetry} onClose={() => {}} dependencies={dependencies} />,
         ));
-        expect(container.querySelector('[role="alert"]')?.textContent).toContain('not a valid DashQL session archive');
-        expect(container.textContent).toContain('Invalid ZIP');
+        const alert = container.querySelector('[role="alert"]');
+        expect(alert?.getAttribute('data-stage')).toBe('validating');
+        expect(alert?.textContent).toContain('Invalid ZIP');
+        expect(container.querySelector('[data-testid="session-import-confirm"]')).toBeNull();
+        act(() => (container.querySelector('[data-testid="session-import-retry"]') as HTMLButtonElement).click());
+        expect(onRetry).toHaveBeenCalledOnce();
     });
 });

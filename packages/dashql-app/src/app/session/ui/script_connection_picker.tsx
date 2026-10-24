@@ -111,6 +111,7 @@ export const ScriptConnectionPicker: React.FC<Props> = (props) => {
                     leadingVisual={props.connection == null ? undefined : <DatabaseIcon className={styles.connector_icon} size={14} />}
                     trailingVisual={props.connection == null ? undefined : <ConnectionProtocolTag detail={props.connection.labelParts.detail} />}
                     aria-label={`Connection of ${props.scriptName} script: ${label}`}
+                    data-testid="script-connection-picker"
                     title={label}
                 >
                     <span className={styles.trigger_label}>{props.connection?.labelParts.name ?? label}</span>

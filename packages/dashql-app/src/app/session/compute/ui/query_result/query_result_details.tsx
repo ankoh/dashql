@@ -75,6 +75,7 @@ export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions,
                             variant={ButtonVariant.Invisible}
                             size={ButtonSize.Small}
                             aria-label="Clear all cross-filters"
+                            data-testid="clear-cross-filters"
                             onClick={clearCrossFilters}
                             disabled={!hasCrossFilters}
                         >

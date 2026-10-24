@@ -19,7 +19,8 @@ const dependencies: PlanDialogDependencies = {
     createPlanLayoutConfig: () => new dashql.buffers.view.PlanLayoutConfigT(),
     PlanView: props => (
         <div
-            aria-label={`Query execution plan with ${props.plan.read().operatorsLength()} operators`}
+            data-testid="plan-view"
+            data-operator-count={props.plan.read().operatorsLength()}
             data-auto-focus={props.autoFocus}
         />
     ),
@@ -56,11 +57,18 @@ function editorText(): string {
     return EditorView.findFromDOM(editorContent())?.state.doc.toString() ?? '';
 }
 
-function modeButton(label: string): HTMLButtonElement {
-    const button = Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
-        .find(candidate => candidate.textContent === label);
-    if (button == null) throw new Error(`No ${label} plan button`);
+function modeButton(mode: 'raw' | 'viewer'): HTMLButtonElement {
+    const button = document.querySelector<HTMLButtonElement>(`[data-testid="plan-mode-${mode}"]`);
+    if (button == null) throw new Error(`No ${mode} plan button`);
     return button;
+}
+
+function closeButton(): HTMLButtonElement {
+    return document.querySelector<HTMLButtonElement>('[role="dialog"] [data-testid="dialog-close"]')!;
+}
+
+function planView(): HTMLElement | null {
+    return document.querySelector<HTMLElement>('[data-testid="plan-view"]');
 }
 
 describe('query plan dialog', () => {
@@ -115,14 +123,14 @@ describe('query plan dialog', () => {
         const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
 
         expect(dialog.getAttribute('aria-modal')).toBe('true');
-        expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('Query Plan');
-        expect(editorContent().getAttribute('aria-label')).toBe('Query plan JSON');
+        expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBeTruthy();
+        expect(editorContent().getAttribute('aria-label')).toBeTruthy();
         expect(document.activeElement).toBe(editorContent());
         expect(document.querySelector('.cm-placeholder')).toBeNull();
-        expect(modeButton('Viewer').disabled).toBe(true);
+        expect(modeButton('viewer').disabled).toBe(true);
         expect(document.querySelector('[role="alert"]')).toBeNull();
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close query plan"]')!.click());
+        act(() => closeButton().click());
         await expect(result).resolves.toBeUndefined();
     });
 
@@ -135,14 +143,15 @@ describe('query plan dialog', () => {
             await new Promise(resolve => setTimeout(resolve, 200));
         });
 
-        expect(modeButton('Viewer').disabled).toBe(false);
-        act(() => modeButton('Viewer').click());
-        expect(document.querySelector('[aria-label="Query execution plan with 2 operators"]')?.getAttribute('data-auto-focus')).toBe('true');
+        expect(modeButton('viewer').disabled).toBe(false);
+        act(() => modeButton('viewer').click());
+        expect(planView()?.getAttribute('data-operator-count')).toBe('2');
+        expect(planView()?.getAttribute('data-auto-focus')).toBe('true');
 
-        act(() => modeButton('Raw').click());
+        act(() => modeButton('raw').click());
         expect(editorText()).toBe(raw);
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close query plan"]')!.click());
+        act(() => closeButton().click());
         await result;
     });
 
@@ -154,20 +163,20 @@ describe('query plan dialog', () => {
             fallbackPasteHandler?.(`  ${VALID_PLAN}\n`);
             await Promise.resolve();
         });
-        expect(document.querySelector('[aria-label="Query execution plan with 2 operators"]')).not.toBeNull();
-        expect(modeButton('Viewer').disabled).toBe(false);
+        expect(planView()?.getAttribute('data-operator-count')).toBe('2');
+        expect(modeButton('viewer').disabled).toBe(false);
 
-        act(() => modeButton('Raw').click());
+        act(() => modeButton('raw').click());
         expect(editorText()).toBe(`  ${VALID_PLAN}\n`);
 
         await act(async () => {
             fallbackPasteHandler?.('{not valid');
             await Promise.resolve();
         });
-        expect(modeButton('Viewer').disabled).toBe(true);
+        expect(modeButton('viewer').disabled).toBe(true);
         expect(editorText()).toBe('{not valid');
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close query plan"]')!.click());
+        act(() => closeButton().click());
         await result;
         expect(appEvents.unsubscribeFallbackPasteEvents).toHaveBeenCalledOnce();
     });
@@ -179,16 +188,16 @@ describe('query plan dialog', () => {
             // Edits are parsed once the typing pauses
             await new Promise(resolve => setTimeout(resolve, 200));
         });
-        expect(document.querySelector('[role="alert"]')?.textContent).not.toBe('');
-        expect(modeButton('Viewer').disabled).toBe(true);
+        expect(document.querySelector('[role="alert"]')?.textContent?.trim()).toBeTruthy();
+        expect(modeButton('viewer').disabled).toBe(true);
 
         await act(async () => {
             setEditorText('{}');
             // Edits are parsed once the typing pauses
             await new Promise(resolve => setTimeout(resolve, 200));
         });
-        expect(document.querySelector('[role="alert"]')?.textContent).toContain('no operators');
-        expect(modeButton('Viewer').disabled).toBe(true);
+        expect(document.querySelector('[role="alert"]')?.textContent?.trim()).toBeTruthy();
+        expect(modeButton('viewer').disabled).toBe(true);
 
         await act(async () => {
             setEditorText(VALID_PLAN);
@@ -196,9 +205,9 @@ describe('query plan dialog', () => {
             await new Promise(resolve => setTimeout(resolve, 200));
         });
         expect(document.querySelector('[role="alert"]')).toBeNull();
-        expect(modeButton('Viewer').disabled).toBe(false);
+        expect(modeButton('viewer').disabled).toBe(false);
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Close query plan"]')!.click());
+        act(() => closeButton().click());
         await result;
     });
 

@@ -39,7 +39,7 @@ describe('NameRow', () => {
     });
 
     function nameInput(): HTMLInputElement {
-        return container.querySelector('[aria-label="Session name"]') as HTMLInputElement;
+        return container.querySelector('input') as HTMLInputElement;
     }
 
     it('does not rename while typing and commits when the input is dismissed', () => {

@@ -57,10 +57,13 @@ describe('DashboardCard', () => {
 
     it('switches between visualization content and query output', () => {
         expect(container.querySelector('[data-testid="visualization"]')).not.toBeNull();
-        const content = Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Content')!;
-        act(() => content.click());
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-content-tab"]')!.click());
         expect(container.querySelector('[data-testid="content"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="visualization"]')).toBeNull();
+
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-output-tab"]')!.click());
+        expect(container.querySelector('[data-testid="visualization"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="content"]')).toBeNull();
     });
 
     it('uses the query result view for table content', () => {

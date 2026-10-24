@@ -63,7 +63,7 @@ export const SessionDataCard: React.FC<SessionDataCardProps> = (props) => {
     return (
         <article className={styles.feed_data_card} aria-label={`${props.file.name} attachment`} data-electron-drag-region="false">
             <div className={styles.feed_data_card_topline}>
-                <div className={styles.feed_data_file_icon} aria-hidden="true">
+                <div className={styles.feed_data_file_icon} aria-hidden="true" data-testid="data-file-type">
                     <FileIcon size={24} />
                     <span>{extension}</span>
                 </div>
@@ -74,13 +74,13 @@ export const SessionDataCard: React.FC<SessionDataCardProps> = (props) => {
                 <div className={styles.feed_data_actions}>
                     <CopyToClipboardButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium}
                         value={path} logContext="session_data_card" disabled={disabled}
-                        aria-label={`Copy HyperDB path for ${props.file.name}`} aria-labelledby="" />
+                        aria-label={`Copy HyperDB path for ${props.file.name}`} aria-labelledby="" data-testid="data-file-copy-path" />
                     <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium}
-                        disabled={disabled} onClick={download} aria-label={`Download ${props.file.name}`}>
+                        disabled={disabled} onClick={download} aria-label={`Download ${props.file.name}`} data-testid="data-file-download">
                         <DownloadIcon size={16} />
                     </IconButton>
                     <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium}
-                        disabled={disabled} onClick={remove} aria-label={`Remove ${props.file.name}`}>
+                        disabled={disabled} onClick={remove} aria-label={`Remove ${props.file.name}`} data-testid="data-file-remove">
                         <TrashIcon size={16} />
                     </IconButton>
                 </div>

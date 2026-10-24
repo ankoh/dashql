@@ -329,6 +329,7 @@ function VersionRefreshButton(props: {onRefresh: () => void}) {
             variant={ButtonVariant.Invisible}
             aria-label={refreshVersionCheck.isRefreshing ? 'Checking for updates' : 'Check for updates'}
             aria-disabled={refreshVersionCheck.isRefreshing}
+            data-testid="version-check-refresh"
             onClick={() => {
                 if (!refreshVersionCheck.isRefreshing) {
                     props.onRefresh();

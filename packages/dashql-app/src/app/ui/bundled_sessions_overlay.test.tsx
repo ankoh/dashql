@@ -38,24 +38,40 @@ describe('BundledSessionsOverlay', () => {
         document.getElementById('__dashqlPortalRoot__')?.remove();
     });
 
+    function sessionButton(sessionId: string, action: 'add' | 'copy'): HTMLButtonElement {
+        return document.querySelector(`[data-testid="example-session"][data-session-id="${sessionId}"] [data-testid="example-session-${action}"]`) as HTMLButtonElement;
+    }
+
+    function toggle(): void {
+        act(() => (container.querySelector('[data-testid="example-sessions-trigger"]') as HTMLButtonElement).click());
+    }
+
     it('copies a public link and dispatches a bundled session URL', async () => {
         act(() => root.render(<BundledSessionsOverlay dispatchSessionUrl={dispatchSessionUrl} dependencies={dependencies} />));
-        act(() => (container.querySelector('[aria-label="Example sessions"]') as HTMLButtonElement).click());
+        toggle();
 
-        expect(document.querySelector('[aria-label="Add Property Graphs session"]')).toBeInstanceOf(HTMLButtonElement);
-        expect(document.querySelector('[aria-label="Close example sessions"]')).toBeInstanceOf(HTMLButtonElement);
         await act(async () => {
-            (document.querySelector('[aria-label="Copy Explain session link"]') as HTMLButtonElement).click();
+            sessionButton('hyper-explain', 'copy').click();
             await Promise.resolve();
         });
         expect(writeText).toHaveBeenCalledWith(
             'https://dashql.app?session=https%3A%2F%2Fdashql.app%2Fstatic%2Fexamples%2Fsessions%2Fhyper-explain%2Fdashql-session.json',
         );
 
-        act(() => (document.querySelector('[aria-label="Add Explain session"]') as HTMLButtonElement).click());
+        act(() => sessionButton('hyper-explain', 'add').click());
         expect(dispatchSessionUrl).toHaveBeenCalledWith(
             new URL('/static/examples/sessions/hyper-explain/dashql-session.json', globalThis.location.href).toString(),
         );
         expect(document.querySelector('[role="dialog"]')).toBeNull();
+    });
+
+    it('closes without dispatching a session', () => {
+        act(() => root.render(<BundledSessionsOverlay dispatchSessionUrl={dispatchSessionUrl} dependencies={dependencies} />));
+        toggle();
+        expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+
+        act(() => (document.querySelector('[data-testid="example-sessions-close"]') as HTMLButtonElement).click());
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+        expect(dispatchSessionUrl).not.toHaveBeenCalled();
     });
 });

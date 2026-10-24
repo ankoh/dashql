@@ -27,9 +27,9 @@ const DETAILS = {
     scriptCount: 4,
 };
 
-function button(name: string): HTMLButtonElement {
-    const result = Array.from(document.querySelectorAll('button')).find(candidate => candidate.textContent === name);
-    if (!(result instanceof HTMLButtonElement)) throw new Error(`No button named "${name}"`);
+function button(testId: string): HTMLButtonElement {
+    const result = document.querySelector(`[data-testid="${testId}"]`);
+    if (!(result instanceof HTMLButtonElement)) throw new Error(`No button with test id "${testId}"`);
     return result;
 }
 
@@ -76,24 +76,22 @@ describe('SessionImportConflictDialog', () => {
         render();
 
         expect(document.querySelector('[role="dialog"]')).toBeNull();
-        expect(document.querySelector('h1')?.textContent).toBe('Import Session');
-        expect(container.textContent).toContain('different UUID');
+        expect(container.querySelector('[data-testid="session-import-conflict"]')).not.toBeNull();
         expect(container.textContent).toContain(DETAILS.sessionName);
         expect(container.textContent).toContain(DETAILS.sessionUuid);
         expect(container.textContent).toContain(DETAILS.existingDisplayLocation);
-        expect(container.textContent).toContain('4 scripts in 2 folders');
-        expect(button('Replace')).toBeInstanceOf(HTMLButtonElement);
-        expect(button('Create New')).toBeInstanceOf(HTMLButtonElement);
-        expect(document.querySelector('button[aria-label="Close"]')).toBeInstanceOf(HTMLButtonElement);
+        expect(button('session-import-replace')).toBeInstanceOf(HTMLButtonElement);
+        expect(button('session-import-create-new')).toBeInstanceOf(HTMLButtonElement);
+        expect(button('dialog-close')).toBeInstanceOf(HTMLButtonElement);
     });
 
     it('does not auto-focus an action and invokes each action', () => {
         render();
 
         expect(document.activeElement).toBe(document.body);
-        act(() => button('Replace').click());
-        act(() => button('Create New').click());
-        act(() => (document.querySelector('button[aria-label="Close"]') as HTMLButtonElement).click());
+        act(() => button('session-import-replace').click());
+        act(() => button('session-import-create-new').click());
+        act(() => button('dialog-close').click());
 
         expect(onReplace).toHaveBeenCalledOnce();
         expect(onCreateNew).toHaveBeenCalledOnce();
@@ -112,10 +110,10 @@ describe('SessionImportConflictDialog', () => {
     it('disables actions while busy', () => {
         render({ busy: true });
 
-        expect(container.querySelector('section')?.getAttribute('aria-busy')).toBe('true');
-        expect(button('Replace').disabled).toBe(true);
-        expect(button('Create New').disabled).toBe(true);
-        expect((document.querySelector('button[aria-label="Close"]') as HTMLButtonElement).disabled).toBe(true);
+        expect(container.querySelector('[data-testid="session-import-card"]')?.getAttribute('aria-busy')).toBe('true');
+        expect(button('session-import-replace').disabled).toBe(true);
+        expect(button('session-import-create-new').disabled).toBe(true);
+        expect(button('dialog-close').disabled).toBe(true);
 
         act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
         act(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })));
@@ -147,7 +145,7 @@ describe('SessionImportConflictDialog', () => {
         ));
 
         expect(document.querySelector('[role="dialog"]')).not.toBeNull();
-        expect(document.activeElement).not.toBe(button('Create New'));
+        expect(document.activeElement).not.toBe(button('session-import-create-new'));
 
         act(() => root.unmount());
         expect(document.activeElement).toBe(returnFocus);

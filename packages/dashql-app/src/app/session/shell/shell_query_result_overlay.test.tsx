@@ -14,15 +14,39 @@ import {
 } from './shell_query_result_overlay.js';
 
 const dependencies: ShellQueryResultOverlayDependencies = {
-    QueryResultDetails: () => <div aria-label="Query results panel" style={{ height: 240 }}>Query results</div>,
+    QueryResultDetails: () => <div data-testid="mock-query-results" style={{ height: 240 }}>Query results</div>,
     useHyperPlan: (planText: string | null) => ({
         plan: planText?.includes('executiontarget')
             ? { read: () => ({}) } as unknown as dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>
             : null,
         rejected: planText != null && !planText.includes('executiontarget'),
     }),
-    PlanView: () => <div aria-label="Query plan viewer">Query plan viewer</div>,
+    PlanView: () => <div data-testid="mock-plan-view">Query plan viewer</div>,
 };
+
+// Tab ids of the vertical tabs in the overlay
+const DATA_TAB = 0;
+const PLAN_TAB = 1;
+
+function dialog(): HTMLElement {
+    return document.querySelector<HTMLElement>('[role="dialog"]')!;
+}
+
+function tabButton(tab: number): HTMLButtonElement | null {
+    return document.querySelector<HTMLButtonElement>(`[data-tab="${tab}"] button`);
+}
+
+function planView(): Element | null {
+    return document.querySelector('[data-testid="mock-plan-view"]');
+}
+
+function queryResults(): Element | null {
+    return document.querySelector('[data-testid="mock-query-results"]');
+}
+
+function expandToggle(): HTMLButtonElement {
+    return document.querySelector<HTMLButtonElement>('[data-testid="plan-expand-toggle"]')!;
+}
 
 describe('ShellQueryResultOverlay', () => {
     let container: HTMLDivElement;
@@ -55,7 +79,7 @@ describe('ShellQueryResultOverlay', () => {
         act(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })));
 
         expect(onClose).not.toHaveBeenCalled();
-        expect(document.querySelector('[aria-label="Shell query results"]')).not.toBeNull();
+        expect(document.querySelector('[role="dialog"]')).not.toBeNull();
     });
 
     it('retains outside mouse dismissal by default', () => {
@@ -82,7 +106,7 @@ describe('ShellQueryResultOverlay', () => {
             />,
         ));
 
-        expect(document.activeElement).toBe(document.querySelector('[aria-label="Shell query results"]'));
+        expect(document.activeElement).toBe(dialog());
     });
 
     it('adds and selects a Plan tab for a valid 1x1 plan result', () => {
@@ -99,29 +123,27 @@ describe('ShellQueryResultOverlay', () => {
             />,
         ));
 
-        const planButton = document.querySelector<HTMLButtonElement>('button[aria-label="Query plan"]')!;
-        const resultsButton = document.querySelector<HTMLButtonElement>('button[aria-label="Query results"]')!;
+        const planButton = tabButton(PLAN_TAB)!;
+        const resultsButton = tabButton(DATA_TAB)!;
         expect(planButton.getAttribute('aria-current')).toBe('page');
         expect(resultsButton.getAttribute('aria-current')).toBeNull();
-        expect(document.querySelector('[aria-label="Query plan viewer"]')).not.toBeNull();
-        expect(document.querySelector('[aria-label="Query results panel"]')).toBeNull();
-        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight)
-            .toBe('min(360px, 80vh)');
+        expect(planView()).not.toBeNull();
+        expect(queryResults()).toBeNull();
+        expect(dialog().style.minHeight).toBe('min(360px, 80vh)');
 
         act(() => resultsButton.click());
         expect(resultsButton.getAttribute('aria-current')).toBe('page');
         expect(planButton.getAttribute('aria-current')).toBeNull();
-        expect(document.querySelector('[aria-label="Query results panel"]')).not.toBeNull();
-        expect(document.querySelector('[aria-label="Query plan viewer"]')).toBeNull();
-        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight).toBe('');
+        expect(queryResults()).not.toBeNull();
+        expect(planView()).toBeNull();
+        expect(dialog().style.minHeight).toBe('');
 
         act(() => planButton.click());
         expect(planButton.getAttribute('aria-current')).toBe('page');
         expect(resultsButton.getAttribute('aria-current')).toBeNull();
-        expect(document.querySelector('[aria-label="Query plan viewer"]')).not.toBeNull();
-        expect(document.querySelector('[aria-label="Query results panel"]')).toBeNull();
-        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight)
-            .toBe('min(360px, 80vh)');
+        expect(planView()).not.toBeNull();
+        expect(queryResults()).toBeNull();
+        expect(dialog().style.minHeight).toBe('min(360px, 80vh)');
     });
 
     it('keeps only the Data tab for ordinary 1x1 JSON results', () => {
@@ -137,9 +159,9 @@ describe('ShellQueryResultOverlay', () => {
             />,
         ));
 
-        expect(document.querySelector('button[aria-label="Query plan"]')).toBeNull();
-        expect(document.querySelector('[aria-label="Query results panel"]')).not.toBeNull();
-        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.height).toBe('');
+        expect(tabButton(PLAN_TAB)).toBeNull();
+        expect(queryResults()).not.toBeNull();
+        expect(dialog().style.height).toBe('');
     });
 
     it('expands the Plan tab to fill the window', () => {
@@ -157,26 +179,26 @@ describe('ShellQueryResultOverlay', () => {
             />,
         ));
 
-        const card = () => document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!;
-        const overlay = () => card().parentElement!;
-        const sizeBefore = overlay().className;
-        expect(card().style.height).toBe('272px');
+        const overlayExpanded = () => dialog().closest('[data-expanded]')!.getAttribute('data-expanded');
+        expect(overlayExpanded()).toBe('false');
+        expect(dialog().style.height).toBe('272px');
+        expect(expandToggle().getAttribute('aria-pressed')).toBe('false');
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Expand plan"]')!.click());
-        const restore = document.querySelector<HTMLButtonElement>('button[aria-label="Restore plan size"]')!;
-        expect(restore.getAttribute('aria-pressed')).toBe('true');
-        expect(overlay().className).not.toBe(sizeBefore);
-        expect(card().style.height).toBe('');
-        expect(card().style.minHeight).toBe('');
+        act(() => expandToggle().click());
+        expect(expandToggle().getAttribute('aria-pressed')).toBe('true');
+        expect(overlayExpanded()).toBe('true');
+        expect(dialog().style.height).toBe('');
+        expect(dialog().style.minHeight).toBe('');
 
         // The Data tab keeps its regular size
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Query results"]')!.click());
-        expect(overlay().className).toBe(sizeBefore);
+        act(() => tabButton(DATA_TAB)!.click());
+        expect(overlayExpanded()).toBe('false');
 
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Query plan"]')!.click());
-        act(() => document.querySelector<HTMLButtonElement>('button[aria-label="Restore plan size"]')!.click());
-        expect(overlay().className).toBe(sizeBefore);
-        expect(card().style.height).toBe('272px');
+        act(() => tabButton(PLAN_TAB)!.click());
+        act(() => expandToggle().click());
+        expect(expandToggle().getAttribute('aria-pressed')).toBe('false');
+        expect(overlayExpanded()).toBe('false');
+        expect(dialog().style.height).toBe('272px');
     });
 
     it('locks the initial result height before selecting the Plan tab', () => {
@@ -196,9 +218,8 @@ describe('ShellQueryResultOverlay', () => {
             />,
         ));
 
-        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.height).toBe('272px');
-        expect(document.querySelector<HTMLElement>('[aria-label="Shell query results"]')!.style.minHeight)
-            .toBe('min(360px, 80vh)');
+        expect(dialog().style.height).toBe('272px');
+        expect(dialog().style.minHeight).toBe('min(360px, 80vh)');
         expect(getBoundingClientRect).toHaveBeenCalled();
     });
 });

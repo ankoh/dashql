@@ -34,11 +34,21 @@ const dependencies = {
     }} />,
 } as QueryResultDetailsDependencies;
 
+function downloadButton(container: HTMLElement): HTMLButtonElement {
+    return container.querySelector<HTMLButtonElement>('[data-testid="download-query-result"]')!;
+}
+
+function clearCrossFiltersButton(container: HTMLElement): HTMLButtonElement | null {
+    return container.querySelector<HTMLButtonElement>('[data-testid="clear-cross-filters"]');
+}
+
+function downloadFormatItem(format: 'arrow' | 'parquet'): HTMLButtonElement | null {
+    return document.querySelector<HTMLButtonElement>(`[data-testid="download-format-${format}"]`);
+}
+
 async function downloadArrow(button: HTMLButtonElement) {
     act(() => button.click());
-    const item = Array.from(document.querySelectorAll<HTMLButtonElement>('[aria-label="Download formats"] button'))
-        .find(element => element.textContent === 'Download as Arrow')!;
-    await act(async () => item.click());
+    await act(async () => downloadFormatItem('arrow')!.click());
 }
 
 describe('QueryResultDetails', () => {
@@ -78,15 +88,15 @@ describe('QueryResultDetails', () => {
             <QueryResultDetails
                 query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
                 debugMode={false}
-                actions={<button type="button">Close</button>}
+                actions={<button type="button" data-testid="test-action">Close</button>}
                 dependencies={dependencies}
             />,
         ));
 
-        const clearButton = container.querySelector<HTMLButtonElement>('button[aria-label="Clear all cross-filters"]');
+        const clearButton = clearCrossFiltersButton(container);
         expect(clearButton).not.toBeNull();
         expect(clearButton!.disabled).toBe(false);
-        expect(container.textContent).toContain('Close');
+        expect(container.querySelector('[data-testid="test-action"]')).not.toBeNull();
 
         act(() => clearButton!.click());
 
@@ -116,7 +126,7 @@ describe('QueryResultDetails', () => {
             />,
         ));
 
-        expect(container.querySelector<HTMLButtonElement>('button[aria-label="Clear all cross-filters"]')?.disabled).toBe(true);
+        expect(clearCrossFiltersButton(container)?.disabled).toBe(true);
     });
 
     it('downloads the complete original result as an Arrow IPC file without computed columns', async () => {
@@ -138,7 +148,7 @@ describe('QueryResultDetails', () => {
             />,
         ));
 
-        const button = container.querySelector<HTMLButtonElement>('button[aria-label="Download query result"]')!;
+        const button = downloadButton(container);
         expect(button.disabled).toBe(false);
         await downloadArrow(button);
 
@@ -160,7 +170,7 @@ describe('QueryResultDetails', () => {
                 dependencies={dependencies}
             />,
         ));
-        const button = () => container.querySelector<HTMLButtonElement>('button[aria-label="Download query result"]')!;
+        const button = () => downloadButton(container);
 
         render(QueryExecutionStatus.RUNNING, arrow.tableFromArrays({ value: [1] }));
         expect(button().disabled).toBe(true);
@@ -179,12 +189,9 @@ describe('QueryResultDetails', () => {
             />,
         ));
 
-        act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Download query result"]')!.click());
-        const items = Array.from(document.querySelectorAll<HTMLButtonElement>('[aria-label="Download formats"] button'));
-        expect(items.map(item => [item.textContent, item.disabled])).toEqual([
-            ['Download as Arrow', false],
-            ['Download as Parquet', true],
-        ]);
+        act(() => downloadButton(container).click());
+        expect(downloadFormatItem('arrow')?.disabled).toBe(false);
+        expect(downloadFormatItem('parquet')?.disabled).toBe(true);
     });
 
     it('reports download failures and re-enables the action', async () => {
@@ -198,10 +205,10 @@ describe('QueryResultDetails', () => {
             />,
         ));
 
-        const button = container.querySelector<HTMLButtonElement>('button[aria-label="Download query result"]')!;
+        const button = downloadButton(container);
         await downloadArrow(button);
 
-        expect(mockState.logError).toHaveBeenCalledWith('Failed to download query result', { format: 'arrow', error: 'Disk full' }, 'query_result_download');
+        expect(mockState.logError).toHaveBeenCalledWith(expect.any(String), { format: 'arrow', error: 'Disk full' }, 'query_result_download');
         await vi.waitFor(() => expect(button.disabled).toBe(false));
         await downloadArrow(button);
         expect(mockState.download).toHaveBeenCalledTimes(2);

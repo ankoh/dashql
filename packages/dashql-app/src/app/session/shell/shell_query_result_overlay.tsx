@@ -96,6 +96,7 @@ export const ShellQueryResultOverlay: React.FC<Props> = ({
                 size={ButtonSize.Small}
                 aria-label={planExpanded ? 'Restore plan size' : 'Expand plan'}
                 aria-pressed={planExpanded}
+                data-testid="plan-expand-toggle"
                 onClick={() => setPlanExpanded(e => !e)}
             >
                 {planExpanded ? <ScreenNormalIcon size={16} /> : <ScreenFullIcon size={16} />}

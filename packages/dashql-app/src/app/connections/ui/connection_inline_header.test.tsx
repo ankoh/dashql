@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 
 import { LoggerProvider } from '../../../platform/logger/logger_provider.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
@@ -30,6 +30,7 @@ describe('ConnectionInlineHeader', () => {
             connectionStatus: ConnectionStatus.NOT_STARTED,
             details: { type: Symbol('test'), value: null },
         } as unknown as ConnectionState;
+        const setupConnection = vi.fn();
 
         act(() => root.render(
             <LoggerProvider>
@@ -37,16 +38,16 @@ describe('ConnectionInlineHeader', () => {
                     connector={connection.connectorInfo}
                     connection={connection}
                     wrongPlatform={false}
-                    setupConnection={() => {}}
+                    setupConnection={setupConnection}
                     embedded
                 />
             </LoggerProvider>,
         ));
 
-        expect(container.querySelector('button')?.textContent).toBe('Select');
-        expect(container.querySelector('button svg')).toBeNull();
-        expect(container.textContent).toContain('Embedded Engine');
-        expect(container.textContent).not.toContain('Disconnected');
+        expect(container.querySelector('[data-testid="embedded-engine-label"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="connection-status"]')).toBeNull();
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="connection-setup"]')!.click());
+        expect(setupConnection).toHaveBeenCalledOnce();
     });
 
     it('keeps connect and health status for remote connectors', () => {
@@ -68,8 +69,9 @@ describe('ConnectionInlineHeader', () => {
             </LoggerProvider>,
         ));
 
-        expect(container.querySelector('button')?.textContent).toBe('Connect');
-        expect(container.textContent).toContain('Disconnected');
+        expect(container.querySelector('[data-testid="connection-setup"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="connection-status"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="embedded-engine-label"]')).toBeNull();
     });
 
     it('renders an optional action immediately after the connector name', () => {
@@ -81,15 +83,13 @@ describe('ConnectionInlineHeader', () => {
                     connection={null}
                     wrongPlatform={false}
                     setupConnection={() => {}}
-                    connectorNameAction={<button type="button">History</button>}
+                    connectorNameAction={<button type="button" data-testid="history">History</button>}
                 />
             </LoggerProvider>,
         ));
 
-        const connectorInfo = Array.from(container.querySelectorAll('button'))
-            .find(button => button.textContent === 'History')!.parentElement!;
-        expect(connectorInfo.children[1].textContent).toBe('Salesforce Data Cloud');
-        expect(connectorInfo.children[2].textContent).toBe('History');
+        const name = container.querySelector('[data-testid="connector-name"]')!;
+        expect(name.nextElementSibling).toBe(container.querySelector('[data-testid="history"]'));
     });
 
     it.each([
@@ -119,7 +119,7 @@ describe('ConnectionInlineHeader', () => {
             </LoggerProvider>,
         ));
 
-        const http = Array.from(container.querySelectorAll('button')).find(b => b.textContent === 'HTTP')!;
+        const http = container.querySelector<HTMLButtonElement>('[data-testid="protocol-option"][data-protocol="V3_HTTP"]')!;
         expect(http.disabled).toBe(locked);
         act(() => http.click());
         expect(changes).toEqual(locked ? [] : ['V3_HTTP']);

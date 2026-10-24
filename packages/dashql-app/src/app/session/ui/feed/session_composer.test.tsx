@@ -57,7 +57,8 @@ describe('Session composer', () => {
         await vi.waitFor(() => expect(view).not.toBeNull());
         return view!;
     }
-    const sendButton = () => container.querySelector<HTMLButtonElement>('[aria-label="Run query"]')!;
+    const sendButton = () => container.querySelector<HTMLButtonElement>('[data-testid="composer-send"]')!;
+    const modeButton = (mode: 'sql' | 'ai') => container.querySelector<HTMLButtonElement>(`[data-testid="composer-mode"][data-mode="${mode}"]`)!;
 
     it('sends the draft on Enter and clears it', async () => {
         const editor = await render();
@@ -119,13 +120,11 @@ describe('Session composer', () => {
         expect(await render(SessionComposerVariant.Docked)).toBe(editor);
         expect(container.querySelector('[data-variant="docked"]')).not.toBeNull();
         expect(editor.state.doc.toString()).toBe('select 3');
-        const ai = Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes('AI'));
-        expect(ai?.disabled).toBe(true);
+        expect(modeButton('ai').disabled).toBe(true);
     });
 
     describe('with an AI provider', () => {
-        const modeButton = (label: string) => Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes(label))!;
-        const selectedMode = () => container.querySelector('[data-selected] button')?.textContent;
+        const selectedMode = () => container.querySelector('[data-testid="composer-mode"][aria-current="true"]')?.getAttribute('data-mode');
         const typeUser = (editor: EditorView, text: string) => editor.dispatch({
             changes: { from: editor.state.doc.length, insert: text },
             selection: { anchor: editor.state.doc.length + text.length },
@@ -134,9 +133,8 @@ describe('Session composer', () => {
 
         it('starts in natural language without SQL completion', async () => {
             const editor = await render(SessionComposerVariant.Docked, true);
-            expect(selectedMode()).toContain('AI');
-            expect(modeButton('AI').disabled).toBe(false);
-            expect(container.querySelector('.cm-placeholder')?.textContent).toBe('Ask a question about your data');
+            expect(selectedMode()).toBe('ai');
+            expect(modeButton('ai').disabled).toBe(false);
             act(() => typeUser(editor, 'selec'));
             expect(editor.state.field(DashQLProcessorPlugin).scriptCompletion).toBeNull();
         });
@@ -144,34 +142,34 @@ describe('Session composer', () => {
         it('switches to SQL once the draft is convincingly SQL and back for natural language', async () => {
             const editor = await render(SessionComposerVariant.Docked, true);
             act(() => type(editor, 'select'));
-            expect(selectedMode()).toContain('AI');
+            expect(selectedMode()).toBe('ai');
             act(() => type(editor, ' 1 '));
-            expect(selectedMode()).toContain('SQL');
+            expect(selectedMode()).toBe('sql');
             act(() => type(editor, 'the revenue of all customers '));
-            expect(selectedMode()).toContain('AI');
+            expect(selectedMode()).toBe('ai');
         });
 
         it('hesitates to leave SQL for a short invalid tail', async () => {
             const editor = await render(SessionComposerVariant.Docked, true);
             act(() => type(editor, 'select a, b from orders where x = 1 '));
-            expect(selectedMode()).toContain('SQL');
+            expect(selectedMode()).toBe('sql');
             act(() => type(editor, 'oops '));
-            expect(selectedMode()).toContain('SQL');
+            expect(selectedMode()).toBe('sql');
         });
 
         it('keeps a mode the user picked until the draft is cleared', async () => {
             const editor = await render(SessionComposerVariant.Docked, true);
-            act(() => modeButton('SQL').click());
+            act(() => modeButton('sql').click());
             act(() => type(editor, 'what is the revenue of all customers '));
-            expect(selectedMode()).toContain('SQL');
+            expect(selectedMode()).toBe('sql');
             act(() => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: '' } }));
-            expect(selectedMode()).toContain('AI');
+            expect(selectedMode()).toBe('ai');
         });
 
         it('sends a complete statement as SQL even while its last token is being typed', async () => {
             const editor = await render(SessionComposerVariant.Docked, true);
             act(() => type(editor, 'select 1'));
-            expect(selectedMode()).toContain('AI');
+            expect(selectedMode()).toBe('ai');
             act(() => press(editor, 'Enter'));
             expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1', ComposerInputMode.Sql);
             expect(editor.state.doc.toString()).toBe('');
@@ -194,11 +192,12 @@ describe('Session composer', () => {
         it('sends a question and clears it right away', async () => {
             const editor = await render(SessionComposerVariant.Docked, true);
             act(() => type(editor, 'what is the revenue'));
-            expect(container.querySelector('[aria-label="Ask AI"]')).not.toBeNull();
+            expect(selectedMode()).toBe('ai');
+            expect(sendButton().disabled).toBe(false);
             act(() => press(editor, 'Enter'));
             expect(onSend).toHaveBeenCalledExactlyOnceWith('what is the revenue', ComposerInputMode.Ai);
             expect(editor.state.doc.toString()).toBe('');
-            expect(selectedMode()).toContain('AI');
+            expect(selectedMode()).toBe('ai');
         });
     });
 });
