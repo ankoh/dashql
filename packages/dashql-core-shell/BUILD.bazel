@@ -44,7 +44,11 @@ DASHQL_CORE_SHELL_TESTS = [
 [rust_test(
     name = name,
     size = "small",
-    srcs = ["tests/" + name + ".rs"],
+    srcs = [
+        "tests/" + name + ".rs",
+        "tests/support/test_shell.rs",
+    ],
+    crate_root = "tests/" + name + ".rs",
     edition = "2021",
     deps = [
         ":dashql_core_shell",

@@ -7,7 +7,11 @@ use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
 use dashql_core_shell::vt100::{self, sequence, Command};
-use dashql_core_shell::{PromptInputAction, PromptInputKey as Key, SharedCatalog, Shell, ShellStatus, TerminalOutput};
+use dashql_core_shell::{PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput};
+
+#[path = "support/test_shell.rs"]
+mod support;
+use support::{SharedCatalog, TestShell as Shell};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -28,7 +32,7 @@ fn load_schema(catalog: &SharedCatalog, text: &str) -> Script {
 }
 
 fn shell(catalog: &SharedCatalog, columns: u32) -> Shell {
-    Shell::new(catalog.clone(), columns, false)
+    Shell::new(catalog, columns, false)
 }
 
 fn data(output: &TerminalOutput) -> String {
@@ -1077,7 +1081,7 @@ fn auto_qualifies_non_default_database_table_on_first_tab() {
     let catalog = catalog();
     let _schema = load_schema(&catalog, "CREATE TABLE \"Salesforce\".public.\"Account\"(id BIGINT);");
 
-    let mut shell = Shell::new(catalog.clone(), 100, true);
+    let mut shell = Shell::new(&catalog, 100, true);
     assert_eq!(shell.terminal_open(b"").status, ShellStatus::Ok);
     assert_eq!(consume(&mut shell, Key::Text, "select * from Acc").status, ShellStatus::Ok);
     let (index, output) = select_terminal_completion(&mut shell, "\"Account\"");
@@ -1093,7 +1097,7 @@ fn cycles_auto_qualified_table_options_with_left_and_right() {
     let catalog = catalog();
     let _schema = load_schema(&catalog, "CREATE TABLE alpha.public.accounts(id BIGINT); CREATE TABLE beta.public.accounts(id BIGINT);");
 
-    let mut shell = Shell::new(catalog.clone(), 100, true);
+    let mut shell = Shell::new(&catalog, 100, true);
     assert_eq!(shell.terminal_open(b"").status, ShellStatus::Ok);
     assert_eq!(consume(&mut shell, Key::Text, "select * from acc").status, ShellStatus::Ok);
     let (index, output) = select_terminal_completion(&mut shell, "accounts");
@@ -1129,7 +1133,7 @@ fn narrow_completion_list_keeps_left_and_right_as_cursor_keys() {
     let catalog = catalog();
     let _schema = load_schema(&catalog, "CREATE TABLE alpha.public.accounts(id BIGINT); CREATE TABLE beta.public.accounts(id BIGINT);");
 
-    let mut shell = Shell::new(catalog.clone(), 12, true);
+    let mut shell = Shell::new(&catalog, 12, true);
     assert_eq!(shell.terminal_open(b"").status, ShellStatus::Ok);
 
     let output = consume(&mut shell, Key::Text, "acc");
@@ -1150,7 +1154,7 @@ fn does_not_auto_qualify_default_database_table() {
     let catalog = catalog();
     let _schema = load_schema(&catalog, "CREATE TABLE hyper.public.orders(id BIGINT);");
 
-    let mut shell = Shell::new(catalog.clone(), 100, true);
+    let mut shell = Shell::new(&catalog, 100, true);
     assert_eq!(shell.terminal_open(b"").status, ShellStatus::Ok);
     assert_eq!(consume(&mut shell, Key::Text, "select * from ord").status, ShellStatus::Ok);
     let (index, output) = select_terminal_completion(&mut shell, "orders");

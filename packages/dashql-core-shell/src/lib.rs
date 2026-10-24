@@ -21,7 +21,7 @@ pub mod session_relations;
 pub mod unicode;
 pub mod vt100;
 
-pub use api::{SharedCatalog, Shell};
+pub use api::Shell;
 pub use arrow_renderer::ArrowRenderer;
 pub use prompt_buffer::PromptBuffer;
 pub use session::ShellSession;

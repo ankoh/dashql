@@ -9,8 +9,6 @@ use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, Formattin
 use dashql_core::catalog::Catalog;
 use dashql_core_session::script_execution::ScriptExecution;
 use dashql_core_session::script_session::ScriptSession;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 fn execution_config() -> FormattingConfigT {
     let mut config = FormattingConfigT::default();
@@ -19,11 +17,11 @@ fn execution_config() -> FormattingConfigT {
     config
 }
 
-fn session_with(text: &str) -> ScriptSession {
-    let catalog = Rc::new(RefCell::new(Catalog::new()));
-    let mut session = ScriptSession::new(catalog, EditorOffsetUnit::UTF8_BYTES).unwrap();
-    session.replace_text(0, text);
-    session
+fn session_with(text: &str) -> (Catalog, ScriptSession) {
+    let catalog = Catalog::new();
+    let mut session = ScriptSession::new(&catalog, EditorOffsetUnit::UTF8_BYTES).unwrap();
+    session.replace_text(&catalog, 0, text);
+    (catalog, session)
 }
 
 fn result(pending_statement_id: u64, status: StatementResultStatus, error: Option<&str>) -> StatementResultT {
@@ -36,8 +34,8 @@ fn result(pending_statement_id: u64, status: StatementResultStatus, error: Optio
 
 #[test]
 fn steers_statements_in_order() {
-    let mut session = session_with("create table t (v int); insert into t values (1); select * from t;");
-    let mut execution = ScriptExecution::new(&mut session, execution_config());
+    let (catalog, mut session) = session_with("create table t (v int); insert into t values (1); select * from t;");
+    let mut execution = ScriptExecution::new(&mut session, &catalog, execution_config());
 
     let mut operation = execution.start();
     assert_eq!(operation.protocol_error, ScriptExecutionProtocolError::NONE);
@@ -67,8 +65,8 @@ fn steers_statements_in_order() {
 
 #[test]
 fn stops_after_statement_error() {
-    let mut session = session_with("set x = 1; select 1");
-    let mut execution = ScriptExecution::new(&mut session, execution_config());
+    let (catalog, mut session) = session_with("set x = 1; select 1");
+    let mut execution = ScriptExecution::new(&mut session, &catalog, execution_config());
     let operation = execution.start();
     let id = operation.pending_statement.as_ref().unwrap().id;
     let operation = execution.resume(&result(id, StatementResultStatus::FAILED, Some("nope")));
@@ -81,12 +79,12 @@ fn stops_after_statement_error() {
 
 #[test]
 fn captures_immutable_64bit_text_version() {
-    let catalog = Rc::new(RefCell::new(Catalog::new()));
-    let mut session = ScriptSession::new(catalog, EditorOffsetUnit::UTF8_BYTES).unwrap();
+    let catalog = Catalog::new();
+    let mut session = ScriptSession::new(&catalog, EditorOffsetUnit::UTF8_BYTES).unwrap();
     let version = (1u64 << 32) + 42;
     session.script_mut().set_text_version(version - 1);
     session.script_mut().replace_text("select 1");
-    let mut execution = ScriptExecution::new(&mut session, execution_config());
+    let mut execution = ScriptExecution::new(&mut session, &catalog, execution_config());
     session.script_mut().replace_text("select 2");
 
     let update = execution.start();
@@ -102,8 +100,8 @@ fn captures_immutable_64bit_text_version() {
 #[test]
 fn sends_unparseable_sql_to_remote_as_one_output_statement() {
     let sql = "SELECT * FROM remote_table QUALIFY rank() OVER (ORDER BY id) = 1;";
-    let mut session = session_with(sql);
-    let mut execution = ScriptExecution::new(&mut session, execution_config());
+    let (catalog, mut session) = session_with(sql);
+    let mut execution = ScriptExecution::new(&mut session, &catalog, execution_config());
 
     let operation = execution.start();
     assert_eq!(operation.protocol_error, ScriptExecutionProtocolError::NONE);
@@ -115,8 +113,8 @@ fn sends_unparseable_sql_to_remote_as_one_output_statement() {
 
 #[test]
 fn does_not_run_invalid_compilation_without_pass_through_sql() {
-    let mut session = session_with("SELECT 1; CREATE TABLE t (v INT);");
-    let mut execution = ScriptExecution::new(&mut session, execution_config());
+    let (catalog, mut session) = session_with("SELECT 1; CREATE TABLE t (v INT);");
+    let mut execution = ScriptExecution::new(&mut session, &catalog, execution_config());
     let operation = execution.start();
     assert_eq!(operation.protocol_error, ScriptExecutionProtocolError::INVALID_ARGUMENT);
     assert!(operation.pending_statement.is_none());
@@ -124,8 +122,8 @@ fn does_not_run_invalid_compilation_without_pass_through_sql() {
 
 #[test]
 fn reports_protocol_errors() {
-    let mut session = session_with("set x = 1; select 2");
-    let mut execution = ScriptExecution::new(&mut session, execution_config());
+    let (catalog, mut session) = session_with("set x = 1; select 2");
+    let mut execution = ScriptExecution::new(&mut session, &catalog, execution_config());
     // Nothing is pending before the start
     let update = execution.cancel();
     assert_eq!(update.protocol_error, ScriptExecutionProtocolError::NONE);

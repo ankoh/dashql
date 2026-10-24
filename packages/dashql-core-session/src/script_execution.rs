@@ -6,7 +6,7 @@
 //! update protocol (`Start`, `Resume`, `Cancel` and their protocol errors) is the same.
 
 use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
-use dashql_core::catalog::PROTO_NULL_U32;
+use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
 use crate::compiler::{compile, CompilationOptions};
 use dashql_core::script::TextVersion;
 use crate::script_session::ScriptSession;
@@ -47,14 +47,12 @@ fn non_empty_string(s: String) -> Option<String> {
 }
 
 impl ScriptExecution {
-    /// Compile the current text of a session and capture the plan
-    pub fn new(session: &mut ScriptSession, formatting_config: FormattingConfigT) -> Self {
+    /// Compile the current text of a session against its catalog and capture the plan
+    pub fn new(session: &mut ScriptSession, catalog: &Catalog, formatting_config: FormattingConfigT) -> Self {
         let text_version = session.text_version();
         // The catalog changes need the analysis of the current text, a current analysis is kept
-        session.analyze();
-        let catalog = session.catalog().clone();
-        let compilation =
-            compile(session.script_mut(), &catalog.borrow(), &formatting_config, CompilationOptions::default());
+        session.analyze(catalog);
+        let compilation = compile(session.script_mut(), catalog, &formatting_config, CompilationOptions::default());
         // The statement ids refer to the parsed script, the analysis must describe the same one.
         // A script with syntax errors runs as raw text and changes nothing we could follow.
         let script = session.script();

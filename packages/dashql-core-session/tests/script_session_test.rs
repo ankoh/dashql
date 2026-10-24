@@ -18,9 +18,85 @@ use dashql_core::catalog::Catalog;
 use dashql_core::pack::pack_completion;
 use dashql_core_session::planner::{plan, PlannerInput};
 use dashql_core::script::Script;
-use dashql_core_session::script_session::{CatalogHandle, ScriptSession};
+use dashql_core_session::script_session::ScriptSession;
+use dashql_buffers::completion::CompletionT;
+use dashql_buffers::execution::ScriptCompilationResultT;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+/// The catalog shared by the sessions of a test
+type CatalogHandle = Rc<RefCell<Catalog>>;
+
+/// A session with its catalog, held like the wasm module holds them: the catalog is passed to every
+/// call, and dropping the session removes its script from the catalog
+struct Session {
+    /// The catalog of the session
+    catalog: CatalogHandle,
+    /// The session
+    inner: ScriptSession,
+}
+
+impl Session {
+    fn apply(&mut self, event: &EditorEventT) -> EditorUpdateT {
+        self.inner.apply(&self.catalog.borrow(), event)
+    }
+
+    fn apply_buffer(&mut self, event: &[u8]) -> EditorUpdateT {
+        self.inner.apply_buffer(&self.catalog.borrow(), event)
+    }
+
+    fn analyze(&mut self) -> EditorUpdateT {
+        self.inner.analyze(&self.catalog.borrow())
+    }
+
+    fn replace_text(&mut self, expected_text_version: u64, text: &str) -> EditorUpdateT {
+        self.inner.replace_text(&self.catalog.borrow(), expected_text_version, text)
+    }
+
+    fn set_primary_cursor(&mut self, expected_text_version: u64, offset: u64) -> EditorUpdateT {
+        self.inner.set_primary_cursor(&self.catalog.borrow(), expected_text_version, offset)
+    }
+
+    fn complete(&self, limit: usize, keyword_case: KeywordCase) -> dashql_core::error::Result<CompletionT> {
+        self.inner.complete(&self.catalog.borrow(), limit, keyword_case)
+    }
+
+    fn compile_query(&mut self, config: &FormattingConfigT, allow_extensions: bool, parse_if_outdated: bool) -> ScriptCompilationResultT {
+        self.inner.compile_query(&self.catalog.borrow(), config, allow_extensions, parse_if_outdated)
+    }
+
+    fn format(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> dashql_core::error::Result<Script> {
+        self.inner.format(&self.catalog.borrow(), config, parse_if_outdated)
+    }
+
+    fn load_into_catalog(&mut self, layer: CatalogLayer) -> dashql_core::error::Result<()> {
+        self.inner.load_into_catalog(&mut self.catalog.borrow_mut(), layer)
+    }
+
+    fn drop_from_catalog(&mut self) {
+        self.inner.drop_from_catalog(&mut self.catalog.borrow_mut());
+    }
+}
+
+impl std::ops::Deref for Session {
+    type Target = ScriptSession;
+
+    fn deref(&self) -> &ScriptSession {
+        &self.inner
+    }
+}
+
+impl std::ops::DerefMut for Session {
+    fn deref_mut(&mut self) -> &mut ScriptSession {
+        &mut self.inner
+    }
+}
+
+impl Drop for Session {
+    fn drop(&mut self) {
+        self.inner.drop_from_catalog(&mut self.catalog.borrow_mut());
+    }
+}
 
 const UTF8: EditorOffsetUnit = EditorOffsetUnit::UTF8_BYTES;
 const UTF16: EditorOffsetUnit = EditorOffsetUnit::UTF16_CODE_UNITS;
@@ -29,8 +105,9 @@ fn new_catalog() -> CatalogHandle {
     Rc::new(RefCell::new(Catalog::new()))
 }
 
-fn session(catalog: &CatalogHandle, unit: EditorOffsetUnit) -> ScriptSession {
-    ScriptSession::new(catalog.clone(), unit).unwrap()
+fn session(catalog: &CatalogHandle, unit: EditorOffsetUnit) -> Session {
+    let inner = ScriptSession::new(&catalog.borrow(), unit).unwrap();
+    Session { catalog: catalog.clone(), inner }
 }
 
 fn change(from: u64, to: u64, insert: &str) -> EditorTextChangeT {
@@ -56,7 +133,7 @@ fn event(expected_text_version: u64, changes: Vec<EditorTextChangeT>) -> EditorE
 }
 
 /// Replace the text and analyze in one event
-fn analyze(session: &mut ScriptSession, text: &str) -> EditorUpdateT {
+fn analyze(session: &mut Session, text: &str) -> EditorUpdateT {
     let mut e = event(session.text_version(), vec![change(0, session.text().len() as u64, text)]);
     e.analyze = true;
     session.apply(&e)
@@ -501,7 +578,7 @@ fn projects_unicode_syntax_comments_and_diagnostics_as_utf8_bytes() {
     assert_eq!(missing.resolution, EditorSemanticResolution::UNRESOLVED);
     assert_eq!(missing.text_span.as_ref().unwrap().offset, text.find("missing").unwrap() as u64);
 
-    let mut scanner_session = ScriptSession::new(catalog.clone(), UTF8).unwrap();
+    let mut scanner_session = Session { catalog: catalog.clone(), inner: ScriptSession::new(&catalog.borrow(), UTF8).unwrap() };
     let scanner_text = "select '\u{e9}";
     let scanner_update = analyze(&mut scanner_session, scanner_text);
     let diagnostics = scanner_update.diagnostics.as_ref().unwrap();
@@ -509,7 +586,7 @@ fn projects_unicode_syntax_comments_and_diagnostics_as_utf8_bytes() {
     assert_eq!(scanner.message.as_deref(), Some("unterminated quoted string"));
     assert_eq!(read_span(scanner_text, scanner.text_span.as_ref()), "'\u{e9}");
 
-    let mut parser_session = ScriptSession::new(catalog.clone(), UTF8).unwrap();
+    let mut parser_session = Session { catalog: catalog.clone(), inner: ScriptSession::new(&catalog.borrow(), UTF8).unwrap() };
     let parser_text = "select 1 'alias'";
     let parser_update = analyze(&mut parser_session, parser_text);
     let parser =
@@ -741,7 +818,7 @@ fn compatibility_query_formatting_and_diff_apis() {
     assert!(compiled.errors.as_ref().is_none_or(|e| e.is_empty()));
 
     assert!(session.is_fully_formattable(&config(), true).unwrap());
-    let formatted = session.format(&config(), true, None).unwrap();
+    let formatted = session.format(&config(), true).unwrap();
     assert_eq!(formatted.to_text(), "select 1 as value;");
 
     let mut target = Script::new(&catalog.borrow());
@@ -888,7 +965,7 @@ fn rejects_dashboard_rewrites_without_terminal_visualization() {
 
 #[test]
 fn rejects_unknown_offset_units() {
-    let error = ScriptSession::new(new_catalog(), EditorOffsetUnit(99)).err().expect("invalid unit");
+    let error = ScriptSession::new(&Catalog::new(), EditorOffsetUnit(99)).err().expect("invalid unit");
     assert_eq!(error.message, "invalid editor offset unit");
     assert_eq!(session(&new_catalog(), UTF8).offset_unit(), UTF8);
     assert_eq!(session(&new_catalog(), UTF16).offset_unit(), UTF16);

@@ -341,16 +341,22 @@ analysis per declaration change.
 
 ## Editor session
 
-`ScriptSession` (`script_session.rs`) owns one `Script` and shares the catalog as
-`CatalogHandle = Rc<RefCell<Catalog>>`. It borrows the catalog only for the duration of a call.
+`ScriptSession` (`script_session.rs`) owns one `Script` but not its catalog. Every call that reads the
+catalog takes it (`&Catalog`), publishing takes it mutably, and a session belongs to the catalog it was
+created with (checked in debug builds). The core holds no shared catalog: the wasm module and the
+tests pair the catalog with the session.
 
 | Call | Catalog effect |
 |---|---|
-| `apply(event)` | None; analyzes if `event.analyze` or if a selection change meets a stale analysis |
-| `analyze()` | None; re-analyzes if not current |
-| `load_into_catalog(layer)` | `load_script` of the analysis |
-| `drop_from_catalog()` | `drop_script` |
-| `Drop` | `drop_script` through `try_borrow_mut`; **silently skipped** if the catalog is borrowed at that moment |
+| `apply(catalog, event)` | None; analyzes if `event.analyze` or if a selection change meets a stale analysis |
+| `analyze(catalog)` | None; re-analyzes if not current |
+| `load_into_catalog(&mut catalog, layer)` | `load_script` of the analysis |
+| `drop_from_catalog(&mut catalog)` | `drop_script` |
+| `Drop` | None; the owner drops the script from the catalog |
+
+The shell (`dashql_core_shell::Shell`) follows the same rule: calls that read the catalog take it,
+calls that may publish session relations take it mutably, and its owner calls `detach` before dropping
+it.
 
 Every update carries `catalog_revision` and `analysis_available`; the full projection (diagnostics,
 syntax and semantic spans, cursor, annotations, statistics) is included only when the analysis is
@@ -404,8 +410,12 @@ statement's successful result.
 ## Wasm boundary and app
 
 **Ownership** (`packages/dashql-core-wasm/src/lib.rs`)
-- The JS `Catalog` wraps a `CatalogHandle`. `Script` and `ScriptSession` handles clone it, so they can
-  outlive the JS catalog object.
+- The JS `Catalog` wraps a `SharedCatalog`, the only shared catalog of the Rust side. `Script`,
+  `ScriptSession` and the shell's `Shell` handles clone it, so they can outlive the JS catalog object,
+  and pass borrows of it into the core.
+- Freeing a `Script` or `ScriptSession` drops its entry and freeing a `Shell` detaches its session
+  relations (`SharedCatalog::modify_or_defer`). If the catalog is borrowed at that moment, the
+  modification waits for the next access instead of being lost.
 - All catalogs of a module share one `EntryIdSource`, so an entry id identifies a script across
   catalogs of the same module. The app runs three core modules (main thread, batch worker, shell),
   each with its own id space.
@@ -462,8 +472,6 @@ differs from the input.
   `ensureSessionScriptAnalyzed` pending.
 - **DDL during planned execution.** Statements run through planned session execution do not apply
   their catalog changes; only the single-script `ScriptExecution` path does.
-- **Silent drop failure.** `ScriptSession`'s `Drop` silently skips removing its entry if the catalog
-  is borrowed.
 - **Script table versions.** Script tables carry `catalog_version = 0`, so `referenced_catalog_version`
   of references to script tables is 0.
 - **Descriptor republish.** `replace_descriptor` bumps the version even for identical bytes.

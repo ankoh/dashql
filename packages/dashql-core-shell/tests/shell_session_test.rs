@@ -3,7 +3,11 @@
 
 use dashql_core::catalog::Catalog;
 use dashql_core_shell::vt100;
-use dashql_core_shell::{PromptInputAction, PromptInputKey as Key, SharedCatalog, Shell, ShellStatus, TerminalOutput};
+use dashql_core_shell::{PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput};
+
+#[path = "support/test_shell.rs"]
+mod support;
+use support::{SharedCatalog, TestShell as Shell};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -15,7 +19,7 @@ const ENVELOPE_HEADER: usize = 16;
 
 fn new_shell(columns: u32) -> Shell {
     let catalog: SharedCatalog = Rc::new(RefCell::new(Catalog::new()));
-    Shell::new(catalog, columns, false)
+    Shell::new(&catalog, columns, false)
 }
 
 fn text(output: &TerminalOutput) -> String {

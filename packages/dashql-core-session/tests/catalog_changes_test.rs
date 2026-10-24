@@ -16,8 +16,6 @@ use dashql_core::catalog::{Catalog, CatalogEntryId};
 use dashql_core::script::Script;
 use dashql_core_session::script_execution::ScriptExecution;
 use dashql_core_session::script_session::ScriptSession;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 fn defaults() -> CatalogNameDefaults {
     CatalogNameDefaults {
@@ -318,13 +316,13 @@ fn applying_changes_creates_an_unknown_entry() {
 
 #[test]
 fn execution_reports_the_changes_of_succeeded_statements() {
-    let catalog = Rc::new(RefCell::new(Catalog::new()));
-    let mut session = ScriptSession::new(catalog, EditorOffsetUnit::UTF8_BYTES).unwrap();
-    session.replace_text(0, "create table t (v int); drop table u; select * from t;");
+    let catalog = Catalog::new();
+    let mut session = ScriptSession::new(&catalog, EditorOffsetUnit::UTF8_BYTES).unwrap();
+    session.replace_text(&catalog, 0, "create table t (v int); drop table u; select * from t;");
     let mut config = FormattingConfigT::default();
     config.mode = FormattingMode::INLINE;
     config.dialect = FormattingDialect::HYPER;
-    let mut execution = ScriptExecution::new(&mut session, config);
+    let mut execution = ScriptExecution::new(&mut session, &catalog, config);
 
     let succeed = |execution: &mut ScriptExecution, id: u64| {
         let mut result = StatementResultT::default();

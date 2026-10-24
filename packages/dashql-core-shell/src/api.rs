@@ -1,21 +1,16 @@
-//! A shell with a shared catalog and the argument checks of the C ABI (`src/shell/api.cc`).
+//! A shell with the argument checks of the C ABI (`src/shell/api.cc`).
 //!
 //! [`Shell`] maps the `dashql_shell_*` functions one to one: keys and completion statuses arrive as
 //! integers and invalid values fail like in C, results carry the same status, data and action.
-//! The wasm-bindgen module and the tests drive the shell through it.
+//! The wasm-bindgen module and the tests drive the shell through it. Like the session, the shell
+//! does not hold its catalog: calls that read it take it, calls that may publish session relations
+//! take it mutably, and the owner calls [`Shell::detach`] before dropping the shell.
 
 use super::*;
 use dashql_core::catalog::Catalog;
-use std::cell::RefCell;
-use std::rc::Rc;
 
-/// A catalog shared by the shell and its owner (the JS catalog object)
-pub type SharedCatalog = Rc<RefCell<Catalog>>;
-
-/// A shell session with its catalog (`DashQLShell`)
+/// A shell session (`DashQLShell`)
 pub struct Shell {
-    /// The catalog, shared with the owner of the shell
-    catalog: SharedCatalog,
     /// The interactive session
     session: ShellSession,
 }
@@ -41,13 +36,14 @@ fn invalid_terminal(message: &str) -> TerminalOutput {
 
 impl Shell {
     /// `dashql_shell_new`
-    pub fn new(catalog: SharedCatalog, terminal_columns: u32, auto_qualify_non_default_database_tables: bool) -> Self {
-        let session = ShellSession::new(&catalog.borrow(), terminal_columns, auto_qualify_non_default_database_tables);
-        Self { catalog, session }
+    pub fn new(catalog: &Catalog, terminal_columns: u32, auto_qualify_non_default_database_tables: bool) -> Self {
+        let session = ShellSession::new(catalog, terminal_columns, auto_qualify_non_default_database_tables);
+        Self { session }
     }
 
-    pub fn catalog(&self) -> &SharedCatalog {
-        &self.catalog
+    /// `dashql_shell_destroy`: the session relations leave the catalog
+    pub fn detach(&mut self, catalog: &mut Catalog) {
+        self.session.detach(catalog);
     }
 
     pub fn session(&self) -> &ShellSession {
@@ -74,8 +70,8 @@ impl Shell {
     }
 
     /// `dashql_shell_session_relations_set`
-    pub fn set_session_relations(&mut self, enabled: bool) -> ShellStatus {
-        self.session.set_track_session_relations(enabled, &mut self.catalog.borrow_mut());
+    pub fn set_session_relations(&mut self, catalog: &mut Catalog, enabled: bool) -> ShellStatus {
+        self.session.set_track_session_relations(enabled, catalog);
         ShellStatus::Ok
     }
 
@@ -115,8 +111,8 @@ impl Shell {
     }
 
     /// `dashql_shell_prompt_complete`: failures only report `InternalError`
-    pub fn prompt_complete(&mut self, limit: usize) -> Result<Vec<CompletionCandidate>, ShellStatus> {
-        self.session.complete_prompt(limit, &self.catalog.borrow()).map_err(|_| ShellStatus::InternalError)
+    pub fn prompt_complete(&mut self, catalog: &Catalog, limit: usize) -> Result<Vec<CompletionCandidate>, ShellStatus> {
+        self.session.complete_prompt(limit, catalog).map_err(|_| ShellStatus::InternalError)
     }
 
     /// `dashql_shell_prompt_apply_completion` with the fields of `DashQLShellCompletionCandidate`
@@ -133,8 +129,8 @@ impl Shell {
     }
 
     /// `dashql_shell_prompt_submit`
-    pub fn prompt_submit(&mut self) -> ShellOperation {
-        self.session.submit_prompt(&self.catalog.borrow())
+    pub fn prompt_submit(&mut self, catalog: &Catalog) -> ShellOperation {
+        self.session.submit_prompt(catalog)
     }
 
     /// `dashql_shell_terminal_open`
@@ -143,9 +139,9 @@ impl Shell {
     }
 
     /// `dashql_shell_terminal_consume`
-    pub fn terminal_consume(&mut self, key: u32, text: &[u8]) -> TerminalOutput {
+    pub fn terminal_consume(&mut self, catalog: &Catalog, key: u32, text: &[u8]) -> TerminalOutput {
         match PromptInputKey::from_u32(key) {
-            Some(key) => self.session.consume_terminal_input(key, text, &self.catalog.borrow()),
+            Some(key) => self.session.consume_terminal_input(key, text, catalog),
             None => invalid_terminal("invalid terminal input"),
         }
     }
@@ -181,29 +177,21 @@ impl Shell {
     }
 
     /// `dashql_shell_start_query`
-    pub fn start_query(&mut self, query: &[u8]) -> ShellOperation {
-        self.session.start_query(query, &self.catalog.borrow())
+    pub fn start_query(&mut self, catalog: &Catalog, query: &[u8]) -> ShellOperation {
+        self.session.start_query(query, catalog)
     }
 
     /// `dashql_shell_complete_effect`
-    pub fn complete_effect(&mut self, effect_id: u64, completion_status: u32, data: &[u8]) -> ShellOperation {
+    pub fn complete_effect(&mut self, catalog: &mut Catalog, effect_id: u64, completion_status: u32, data: &[u8]) -> ShellOperation {
         match EffectCompletionStatus::from_u32(completion_status) {
-            Some(status) => self.session.complete_effect(effect_id, status, data, &mut self.catalog.borrow_mut()),
+            Some(status) => self.session.complete_effect(effect_id, status, data, catalog),
             None => ShellOperation::new(ShellStatus::InvalidArgument, "invalid effect completion"),
         }
     }
 
     /// `dashql_shell_cancel_effect`
-    pub fn cancel_effect(&mut self, effect_id: u64) -> ShellOperation {
-        self.session.cancel_effect(effect_id, &mut self.catalog.borrow_mut())
+    pub fn cancel_effect(&mut self, catalog: &mut Catalog, effect_id: u64) -> ShellOperation {
+        self.session.cancel_effect(effect_id, catalog)
     }
 }
 
-impl Drop for Shell {
-    /// `dashql_shell_destroy`: the session relations leave the catalog
-    fn drop(&mut self) {
-        if let Ok(mut catalog) = self.catalog.try_borrow_mut() {
-            self.session.detach(&mut catalog);
-        }
-    }
-}

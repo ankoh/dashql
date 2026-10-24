@@ -18,7 +18,7 @@ use dashql_core::error::Error;
 use dashql_core::script::Script as CoreScript;
 use dashql_core_session::script_execution::ScriptExecution as CoreScriptExecution;
 use dashql_core_session::script_session::ScriptSession as CoreScriptSession;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
@@ -49,8 +49,69 @@ fn formatting_config(dialect: u8, mode: u8, max_width: u32, indentation_width: u
     config
 }
 
-/// The shared handle of a catalog
-type SharedCatalog = dashql_core_session::script_session::CatalogHandle;
+/// A deferred modification of the catalog
+type CatalogModification = Box<dyn FnOnce(&mut CoreCatalog)>;
+
+/// The catalog shared by the JS objects of the module: the catalog object and the scripts, sessions and
+/// shells created on it.
+///
+/// The JS objects are freed independently. Freeing one removes what it published from the catalog. If
+/// the catalog is borrowed at that moment, the removal waits for the next access instead of being lost.
+#[derive(Clone)]
+pub struct SharedCatalog(Rc<SharedCatalogState>);
+
+/// The state of a shared catalog
+struct SharedCatalogState {
+    /// The catalog
+    catalog: RefCell<CoreCatalog>,
+    /// The modifications that found the catalog borrowed
+    deferred: RefCell<Vec<CatalogModification>>,
+}
+
+impl SharedCatalog {
+    fn new(catalog: CoreCatalog) -> Self {
+        Self(Rc::new(SharedCatalogState {
+            catalog: RefCell::new(catalog),
+            deferred: RefCell::new(Vec::new()),
+        }))
+    }
+
+    /// Apply the deferred modifications to a borrowed catalog
+    fn apply_deferred(&self, catalog: &mut CoreCatalog) {
+        let deferred = std::mem::take(&mut *self.0.deferred.borrow_mut());
+        for modification in deferred {
+            modification(catalog);
+        }
+    }
+
+    /// Read the catalog
+    pub fn borrow(&self) -> Ref<'_, CoreCatalog> {
+        if !self.0.deferred.borrow().is_empty() {
+            if let Ok(mut catalog) = self.0.catalog.try_borrow_mut() {
+                self.apply_deferred(&mut catalog);
+            }
+        }
+        self.0.catalog.borrow()
+    }
+
+    /// Modify the catalog
+    pub fn borrow_mut(&self) -> RefMut<'_, CoreCatalog> {
+        let mut catalog = self.0.catalog.borrow_mut();
+        self.apply_deferred(&mut catalog);
+        catalog
+    }
+
+    /// Modify the catalog now, or at the next access if it is borrowed
+    pub fn modify_or_defer(&self, modification: impl FnOnce(&mut CoreCatalog) + 'static) {
+        match self.0.catalog.try_borrow_mut() {
+            Ok(mut catalog) => {
+                self.apply_deferred(&mut catalog);
+                modification(&mut catalog);
+            }
+            Err(_) => self.0.deferred.borrow_mut().push(Box::new(modification)),
+        }
+    }
+}
 
 thread_local! {
     /// The entry ids of all catalogs of the module, so a script key identifies a script across catalogs
@@ -69,7 +130,7 @@ impl Catalog {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Catalog {
         Catalog {
-            inner: Rc::new(RefCell::new(CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone)))),
+            inner: SharedCatalog::new(CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone))),
         }
     }
 
@@ -162,7 +223,7 @@ impl Default for Catalog {
 
 impl Catalog {
     /// The shared core catalog, for bindings of other crates in the same module (the shell)
-    pub fn shared(&self) -> Rc<RefCell<CoreCatalog>> {
+    pub fn shared(&self) -> SharedCatalog {
         self.inner.clone()
     }
 }
@@ -210,10 +271,9 @@ pub struct Script {
 
 impl Drop for Script {
     fn drop(&mut self) {
-        // Like the C++ destructor, a freed script leaves the catalog
-        if let Ok(mut catalog) = self.catalog.try_borrow_mut() {
-            catalog.drop_script(self.inner.catalog_entry_id());
-        }
+        // A freed script leaves the catalog
+        let id = self.inner.catalog_entry_id();
+        self.catalog.modify_or_defer(move |catalog| catalog.drop_script(id));
     }
 }
 
@@ -459,13 +519,23 @@ impl Script {
 /// An editor session (`dashql_script_session_*`). Shared, so that session lists can refer to it.
 #[wasm_bindgen]
 pub struct ScriptSession {
+    /// The catalog of the session
+    catalog: SharedCatalog,
     /// The core session, shared with the session lists it was added to
     inner: Rc<RefCell<CoreScriptSession>>,
 }
 
+impl Drop for ScriptSession {
+    fn drop(&mut self) {
+        // A freed session leaves the catalog
+        let id = self.inner.borrow().catalog_entry_id();
+        self.catalog.modify_or_defer(move |catalog| catalog.drop_script(id));
+    }
+}
+
 impl ScriptSession {
     fn format_with(&self, catalog: SharedCatalog, config: FormattingConfigT, parse_if_outdated: bool) -> Result<Script, JsError> {
-        let inner = self.inner.borrow_mut().format(&config, parse_if_outdated, Some(&catalog.borrow())).map_err(js_error)?;
+        let inner = self.inner.borrow_mut().format(&catalog.borrow(), &config, parse_if_outdated).map_err(js_error)?;
         Ok(Script { catalog, inner })
     }
 }
@@ -474,8 +544,10 @@ impl ScriptSession {
 impl ScriptSession {
     #[wasm_bindgen(constructor)]
     pub fn new(catalog: &Catalog, offset_unit: u8) -> Result<ScriptSession, JsError> {
-        let session = CoreScriptSession::new(catalog.inner.clone(), dashql_buffers::editor::EditorOffsetUnit(offset_unit)).map_err(js_error)?;
+        let session =
+            CoreScriptSession::new(&catalog.inner.borrow(), dashql_buffers::editor::EditorOffsetUnit(offset_unit)).map_err(js_error)?;
         Ok(ScriptSession {
+            catalog: catalog.inner.clone(),
             inner: Rc::new(RefCell::new(session)),
         })
     }
@@ -483,9 +555,11 @@ impl ScriptSession {
     /// A session whose script takes an entry id that the catalogs of the module allocated before
     #[wasm_bindgen(js_name = withEntryId)]
     pub fn with_entry_id(catalog: &Catalog, offset_unit: u8, entry_id: u32) -> Result<ScriptSession, JsError> {
-        let session = CoreScriptSession::with_entry_id(catalog.inner.clone(), dashql_buffers::editor::EditorOffsetUnit(offset_unit), entry_id)
-            .map_err(js_error)?;
+        let session =
+            CoreScriptSession::with_entry_id(&catalog.inner.borrow(), dashql_buffers::editor::EditorOffsetUnit(offset_unit), entry_id)
+                .map_err(js_error)?;
         Ok(ScriptSession {
+            catalog: catalog.inner.clone(),
             inner: Rc::new(RefCell::new(session)),
         })
     }
@@ -511,35 +585,35 @@ impl ScriptSession {
 
     #[wasm_bindgen(js_name = catalogRevision)]
     pub fn catalog_revision(&self) -> u64 {
-        self.inner.borrow().catalog_revision()
+        self.catalog.borrow().version() as u64
     }
 
     /// Replace the text, returns the packed `EditorUpdate`
     #[wasm_bindgen(js_name = replaceText)]
     pub fn replace_text(&self, expected_text_version: u64, text: &str) -> Vec<u8> {
-        finish!(self.inner.borrow_mut().replace_text(expected_text_version, text))
+        finish!(self.inner.borrow_mut().replace_text(&self.catalog.borrow(), expected_text_version, text))
     }
 
     /// Apply a packed `EditorEvent`, returns the packed `EditorUpdate`
     pub fn apply(&self, event: &[u8]) -> Vec<u8> {
-        finish!(self.inner.borrow_mut().apply_buffer(event))
+        finish!(self.inner.borrow_mut().apply_buffer(&self.catalog.borrow(), event))
     }
 
     /// Move the primary cursor, returns the packed `EditorUpdate`
     #[wasm_bindgen(js_name = setPrimaryCursor)]
     pub fn set_primary_cursor(&self, expected_text_version: u64, offset: u64) -> Vec<u8> {
-        finish!(self.inner.borrow_mut().set_primary_cursor(expected_text_version, offset))
+        finish!(self.inner.borrow_mut().set_primary_cursor(&self.catalog.borrow(), expected_text_version, offset))
     }
 
     /// Analyze, returns the packed `EditorUpdate`
     pub fn analyze(&self) -> Vec<u8> {
-        finish!(self.inner.borrow_mut().analyze())
+        finish!(self.inner.borrow_mut().analyze(&self.catalog.borrow()))
     }
 
     /// Complete at the primary cursor, returns the packed `Completion`
     #[wasm_bindgen(js_name = completeAtCursor)]
     pub fn complete_at_cursor(&self, limit: usize, keyword_case: u8) -> Result<Vec<u8>, JsError> {
-        let completion = self.inner.borrow().complete(limit, KeywordCase(keyword_case)).map_err(js_error)?;
+        let completion = self.inner.borrow().complete(&self.catalog.borrow(), limit, KeywordCase(keyword_case)).map_err(js_error)?;
         Ok(finish!(completion))
     }
 
@@ -555,7 +629,7 @@ impl ScriptSession {
         parse_if_outdated: bool,
     ) -> Vec<u8> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
-        finish!(self.inner.borrow_mut().compile_query(&config, allow_extensions, parse_if_outdated))
+        finish!(self.inner.borrow_mut().compile_query(&self.catalog.borrow(), &config, allow_extensions, parse_if_outdated))
     }
 
     /// Format the script into a new script of the session catalog
@@ -570,8 +644,7 @@ impl ScriptSession {
         keyword_case: u8,
         parse_if_outdated: bool,
     ) -> Result<Script, JsError> {
-        let catalog = self.inner.borrow().catalog().clone();
-        self.format_with(catalog, formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case), parse_if_outdated)
+        self.format_with(self.catalog.clone(), formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case), parse_if_outdated)
     }
 
     /// Format the script into a new script of another catalog
@@ -628,12 +701,12 @@ impl ScriptSession {
     /// Publish the analysis into the session layer of the catalog
     #[wasm_bindgen(js_name = loadIntoCatalog)]
     pub fn load_into_catalog(&self) -> Result<(), JsError> {
-        self.inner.borrow_mut().load_into_catalog(CatalogLayer::SESSION).map_err(js_error)
+        self.inner.borrow_mut().load_into_catalog(&mut self.catalog.borrow_mut(), CatalogLayer::SESSION).map_err(js_error)
     }
 
     #[wasm_bindgen(js_name = dropFromCatalog)]
     pub fn drop_from_catalog(&self) {
-        self.inner.borrow_mut().drop_from_catalog();
+        self.inner.borrow().drop_from_catalog(&mut self.catalog.borrow_mut());
     }
 
     /// Compile the session text into an execution
@@ -641,7 +714,7 @@ impl ScriptSession {
     pub fn start_execution(&self, dialect: u8, mode: u8, max_width: u32, indentation_width: u32, debug_mode: bool) -> ScriptExecution {
         let config = formatting_config(dialect, mode, max_width, indentation_width, debug_mode, 0);
         ScriptExecution {
-            inner: CoreScriptExecution::new(&mut self.inner.borrow_mut(), config),
+            inner: CoreScriptExecution::new(&mut self.inner.borrow_mut(), &self.catalog.borrow(), config),
         }
     }
 }
@@ -676,8 +749,8 @@ impl ScriptExecution {
 /// The script sessions to plan, in script order
 #[wasm_bindgen]
 pub struct SessionList {
-    /// The shared script sessions in script order
-    sessions: Vec<Rc<RefCell<CoreScriptSession>>>,
+    /// The catalogs and the shared script sessions in script order
+    sessions: Vec<(SharedCatalog, Rc<RefCell<CoreScriptSession>>)>,
 }
 
 #[wasm_bindgen]
@@ -688,7 +761,7 @@ impl SessionList {
     }
 
     pub fn add(&mut self, session: &ScriptSession) {
-        self.sessions.push(session.inner.clone());
+        self.sessions.push((session.catalog.clone(), session.inner.clone()));
     }
 }
 
@@ -701,8 +774,8 @@ impl Default for SessionList {
 /// Plan the current analysis of sessions, returns the packed `ExecutionGraph`
 #[wasm_bindgen]
 pub fn plan(sessions: &SessionList) -> Vec<u8> {
-    let sessions: Vec<_> = sessions.sessions.iter().map(|s| s.borrow()).collect();
-    let catalogs: Vec<_> = sessions.iter().map(|s| s.catalog().borrow()).collect();
+    let catalogs: Vec<_> = sessions.sessions.iter().map(|(catalog, _)| catalog.borrow()).collect();
+    let sessions: Vec<_> = sessions.sessions.iter().map(|(_, session)| session.borrow()).collect();
     let inputs: Vec<_> = sessions
         .iter()
         .zip(&catalogs)

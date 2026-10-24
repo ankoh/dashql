@@ -5,13 +5,11 @@
 //! bytes or UTF-16 code units), and every operation answers with an `EditorUpdate` that projects
 //! the current analysis (diagnostics, syntax and semantic spans, cursor, annotations, statistics).
 //!
-//! **Catalog ownership.** A session shares its catalog through a [`CatalogHandle`]
-//! (`Rc<RefCell<Catalog>>`) instead of borrowing it like the C++ session (`Catalog&`). The wasm API
-//! hands JS one catalog object and any number of session objects with independent lifetimes, which
-//! a borrow cannot express, and explicit catalog arguments per call would let a caller pass another
-//! catalog than the one the script was analyzed against. The catalog is borrowed only for the
-//! duration of a call. Dropping a session drops its script from the catalog, like the destructor of
-//! the C++ script.
+//! **Catalog ownership.** A session does not hold its catalog: every call that reads it takes the
+//! catalog, and publishing takes it mutably. A session belongs to the catalog it was created with,
+//! and calls must pass that catalog. Whoever owns the session and the catalog removes the script from
+//! the catalog when the session ends (`drop_from_catalog`); dropping a session leaves the catalog as it
+//! is. The wasm module shares the catalog between its JS objects.
 //!
 //! The C++ session leaves the projection of offsets to the rope for every span. Projections here
 //! convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
@@ -46,12 +44,7 @@ use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
 use ropey::Rope;
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::Arc;
-
-/// The catalog shared by the sessions and scripts of an editor
-pub type CatalogHandle = Rc<RefCell<Catalog>>;
 
 /// A version that never matches (`std::numeric_limits<...>::max()`)
 const NO_VERSION: u64 = u64::MAX;
@@ -217,8 +210,8 @@ impl Selection {
 
 /// The state of one editor document (`ScriptSession`)
 pub struct ScriptSession {
-    /// The catalog the script is analyzed against
-    catalog: CatalogHandle,
+    /// The id of the catalog the session belongs to
+    catalog_id: u64,
     /// The script of the document
     script: Script,
     /// The unit of the text offsets exchanged with the editor
@@ -233,41 +226,28 @@ pub struct ScriptSession {
     primary_selection: Option<Selection>,
 }
 
-impl Drop for ScriptSession {
-    /// Drop the script from the catalog, like the destructor of the C++ script
-    fn drop(&mut self) {
-        if let Ok(mut catalog) = self.catalog.try_borrow_mut() {
-            catalog.drop_script(self.script.catalog_entry_id());
-        }
-    }
-}
-
 impl ScriptSession {
     /// Create an empty session whose script gets a new entry id of the catalog
-    pub fn new(catalog: CatalogHandle, offset_unit: EditorOffsetUnit) -> Result<Self> {
-        let script = Script::new(&catalog.borrow());
-        Self::with_script(catalog, script, offset_unit)
+    pub fn new(catalog: &Catalog, offset_unit: EditorOffsetUnit) -> Result<Self> {
+        Self::with_script(catalog, Script::new(catalog), offset_unit)
     }
 
     /// Create an empty session whose script takes an entry id that the id source of the catalog
     /// allocated before, e.g. the id of a script that moves to another catalog of the same source.
     /// The catalog must not hold an entry with the id.
-    pub fn with_entry_id(catalog: CatalogHandle, offset_unit: EditorOffsetUnit, id: CatalogEntryId) -> Result<Self> {
-        {
-            let catalog = catalog.borrow();
-            if !catalog.entry_id_allocated(id) || catalog.contains(id) {
-                return Err(Error::invalid_argument("invalid or colliding script catalog entry ID"));
-            }
+    pub fn with_entry_id(catalog: &Catalog, offset_unit: EditorOffsetUnit, id: CatalogEntryId) -> Result<Self> {
+        if !catalog.entry_id_allocated(id) || catalog.contains(id) {
+            return Err(Error::invalid_argument("invalid or colliding script catalog entry ID"));
         }
         Self::with_script(catalog, Script::with_entry_id(id), offset_unit)
     }
 
-    fn with_script(catalog: CatalogHandle, script: Script, offset_unit: EditorOffsetUnit) -> Result<Self> {
+    fn with_script(catalog: &Catalog, script: Script, offset_unit: EditorOffsetUnit) -> Result<Self> {
         if offset_unit != EditorOffsetUnit::UTF8_BYTES && offset_unit != EditorOffsetUnit::UTF16_CODE_UNITS {
             return Err(Error::invalid_argument("invalid editor offset unit"));
         }
         Ok(Self {
-            catalog,
+            catalog_id: catalog.id(),
             script,
             offset_unit,
             state_revision: 0,
@@ -275,11 +255,6 @@ impl ScriptSession {
             cursor_catalog_revision: NO_VERSION,
             primary_selection: None,
         })
-    }
-
-    /// The catalog of the session
-    pub fn catalog(&self) -> &CatalogHandle {
-        &self.catalog
     }
 
     pub fn catalog_entry_id(&self) -> CatalogEntryId {
@@ -299,11 +274,6 @@ impl ScriptSession {
     /// The revision bumped by every committed change of the text, selection or analysis
     pub fn state_revision(&self) -> u64 {
         self.state_revision
-    }
-
-    /// The version of the catalog
-    pub fn catalog_revision(&self) -> u64 {
-        self.catalog.borrow().version() as u64
     }
 
     pub fn offset_unit(&self) -> EditorOffsetUnit {
@@ -376,8 +346,8 @@ impl ScriptSession {
     }
 
     /// The revision and selection part of an update (`MakeUpdate`)
-    fn make_update(&self) -> EditorUpdateT {
-        let catalog = self.catalog.borrow();
+    fn make_update(&self, catalog: &Catalog) -> EditorUpdateT {
+        debug_assert_eq!(catalog.id(), self.catalog_id, "a session takes the catalog it was created with");
         let mut update = EditorUpdateT::default();
         update.status = EditorUpdateStatus::OK;
         update.offset_unit = self.offset_unit;
@@ -385,14 +355,14 @@ impl ScriptSession {
         update.text_version = self.text_version();
         update.state_revision = self.state_revision;
         update.catalog_revision = catalog.version() as u64;
-        update.analysis_available = self.is_analysis_current(&catalog);
+        update.analysis_available = self.is_analysis_current(catalog);
         update.primary_selection = self.primary_selection.map(Selection::pack);
         update
     }
 
     /// The update of an event buffer that is not a valid EditorEvent (`packInvalidEditorEvent` of
     /// the C API)
-    pub fn invalid_event_update(&self) -> EditorUpdateT {
+    pub fn invalid_event_update(&self, catalog: &Catalog) -> EditorUpdateT {
         let mut update = EditorUpdateT::default();
         update.status = EditorUpdateStatus::INVALID_EVENT;
         update.status_message = Some("invalid EditorEvent FlatBuffer".to_string());
@@ -400,18 +370,17 @@ impl ScriptSession {
         update.catalog_entry_id = self.catalog_entry_id();
         update.text_version = self.text_version();
         update.state_revision = self.state_revision;
-        update.catalog_revision = self.catalog_revision();
+        update.catalog_revision = catalog.version() as u64;
         update
     }
 
     /// Bring the analysis up to date with the text and the catalog (`Analyze(EditorUpdate&)`)
-    fn analyze_into(&mut self, update: &mut EditorUpdateT) -> bool {
-        let catalog = self.catalog.borrow();
-        if self.is_analysis_current(&catalog) {
+    fn analyze_into(&mut self, catalog: &Catalog, update: &mut EditorUpdateT) -> bool {
+        if self.is_analysis_current(catalog) {
             update.analysis_available = true;
             return true;
         }
-        match self.script.analyze(&catalog, true) {
+        match self.script.analyze(catalog, true) {
             Ok(()) => {
                 update.analysis_updated = true;
                 update.analysis_available = true;
@@ -443,7 +412,7 @@ impl ScriptSession {
     }
 
     /// Replace the whole text if the expected version matches (`ReplaceText`)
-    pub fn replace_text(&mut self, expected_text_version: TextVersion, text: &str) -> EditorUpdateT {
+    pub fn replace_text(&mut self, catalog: &Catalog, expected_text_version: TextVersion, text: &str) -> EditorUpdateT {
         let mut change = EditorTextChangeT::default();
         change.from = 0;
         change.to = self.document_end();
@@ -454,11 +423,11 @@ impl ScriptSession {
         event.intent = EditorEventIntent::REPLACE;
         event.action = EditorEventAction::APPLY;
         event.changes = Some(vec![change]);
-        self.apply(&event)
+        self.apply(catalog, &event)
     }
 
     /// Move the primary cursor without changing the text (`SetPrimaryCursor`)
-    pub fn set_primary_cursor(&mut self, expected_text_version: TextVersion, offset: u64) -> EditorUpdateT {
+    pub fn set_primary_cursor(&mut self, catalog: &Catalog, expected_text_version: TextVersion, offset: u64) -> EditorUpdateT {
         let mut selection = EditorSelectionT::default();
         selection.anchor = offset;
         selection.head = offset;
@@ -467,29 +436,29 @@ impl ScriptSession {
         event.origin = EditorEventOrigin::USER;
         event.intent = EditorEventIntent::SELECTION;
         event.primary_selection = Some(Box::new(selection));
-        self.apply(&event)
+        self.apply(catalog, &event)
     }
 
     /// Apply an EditorEvent FlatBuffer. Buffers that fail verification, including inserts that are
     /// not valid UTF-8, are rejected with INVALID_EVENT (the C++ session reports INVALID_UTF8 for
     /// invalid inserts, because the C++ verifier does not check strings).
-    pub fn apply_buffer(&mut self, event: &[u8]) -> EditorUpdateT {
+    pub fn apply_buffer(&mut self, catalog: &Catalog, event: &[u8]) -> EditorUpdateT {
         match flatbuffers::root::<EditorEvent>(event) {
-            Ok(event) => self.apply(&event.unpack()),
-            Err(_) => self.invalid_event_update(),
+            Ok(event) => self.apply(catalog, &event.unpack()),
+            Err(_) => self.invalid_event_update(catalog),
         }
     }
 
     /// Validate and apply an editor event atomically (`Apply`)
-    pub fn apply(&mut self, event: &EditorEventT) -> EditorUpdateT {
-        let mut update = self.make_update();
+    pub fn apply(&mut self, catalog: &Catalog, event: &EditorEventT) -> EditorUpdateT {
+        let mut update = self.make_update(catalog);
         update.origin = event.origin;
         update.intent = event.intent;
         update.action = event.action;
         if event.expected_text_version != self.text_version() {
             update.status = EditorUpdateStatus::STALE_TEXT_VERSION;
             update.status_message = Some("editor event targets a stale text version".to_string());
-            return self.finalize_update(update);
+            return self.finalize_update(catalog, update);
         }
 
         // Validate the changes in pre-change offsets
@@ -506,6 +475,7 @@ impl ScriptSession {
             let to = self.resolve_offset(text, to_offset);
             let (Some(from), Some(to)) = (from, to) else {
                 return self.reject(
+                    catalog,
                     update,
                     EditorUpdateStatus::INVALID_RANGE,
                     "text change range is not on codepoint boundaries in the session offset unit",
@@ -513,6 +483,7 @@ impl ScriptSession {
             };
             if change.from > change.to {
                 return self.reject(
+                    catalog,
                     update,
                     EditorUpdateStatus::INVALID_RANGE,
                     "text change range is not on codepoint boundaries in the session offset unit",
@@ -530,6 +501,7 @@ impl ScriptSession {
         changes.sort_by_key(|c| (c.from_byte, c.to_byte, c.input_order));
         if changes.windows(2).any(|w| w[1].from_byte < w[0].to_byte) {
             return self.reject(
+                catalog,
                 update,
                 EditorUpdateStatus::OVERLAPPING_CHANGES,
                 "text changes overlap in the pre-change document",
@@ -560,6 +532,7 @@ impl ScriptSession {
                 || self.resolve_offset(next_text, selection.head).is_none()
             {
                 return self.reject(
+                    catalog,
                     update,
                     EditorUpdateStatus::INVALID_RANGE,
                     "primary selection is not on codepoint boundaries in the session offset unit",
@@ -590,11 +563,11 @@ impl ScriptSession {
 
         // Selection updates also publish a complete projection. Refresh a stale analysis first,
         // otherwise a catalog change would turn a cursor move into an empty projection.
-        let analysis_stale = !self.is_analysis_current(&self.catalog.borrow());
+        let analysis_stale = !self.is_analysis_current(catalog);
         let analysis_succeeded =
-            !(event.analyze || (event.primary_selection.is_some() && analysis_stale)) || self.analyze_into(&mut update);
-        let catalog_version = self.catalog_revision();
-        let analysis_current = self.is_analysis_current(&self.catalog.borrow());
+            !(event.analyze || (event.primary_selection.is_some() && analysis_stale)) || self.analyze_into(catalog, &mut update);
+        let catalog_version = catalog.version() as u64;
+        let analysis_current = self.is_analysis_current(catalog);
         let cursor_outdated = event.primary_selection.is_some()
             || update.text_changed
             || update.analysis_updated
@@ -620,21 +593,21 @@ impl ScriptSession {
         update.catalog_revision = catalog_version;
         update.analysis_available = analysis_current;
         update.primary_selection = self.primary_selection.map(Selection::pack);
-        self.finalize_update(update)
+        self.finalize_update(catalog, update)
     }
 
     /// Reject an event with a status
-    fn reject(&self, mut update: EditorUpdateT, status: EditorUpdateStatus, message: &str) -> EditorUpdateT {
+    fn reject(&self, catalog: &Catalog, mut update: EditorUpdateT, status: EditorUpdateStatus, message: &str) -> EditorUpdateT {
         update.status = status;
         update.status_message = Some(message.to_string());
-        self.finalize_update(update)
+        self.finalize_update(catalog, update)
     }
 
     /// Bring the analysis up to date with the text and the catalog and project it (`Analyze()`)
-    pub fn analyze(&mut self) -> EditorUpdateT {
-        let mut update = self.make_update();
-        if self.analyze_into(&mut update) {
-            let catalog_version = self.catalog_revision();
+    pub fn analyze(&mut self, catalog: &Catalog) -> EditorUpdateT {
+        let mut update = self.make_update(catalog);
+        if self.analyze_into(catalog, &mut update) {
+            let catalog_version = catalog.version() as u64;
             let cursor_outdated = update.analysis_updated
                 || self.script.cursor_offset().is_none()
                 || self.cursor_text_version != self.text_version()
@@ -650,18 +623,18 @@ impl ScriptSession {
         }
         update.text_version = self.text_version();
         update.state_revision = self.state_revision;
-        update.catalog_revision = self.catalog_revision();
-        self.finalize_update(update)
+        update.catalog_revision = catalog.version() as u64;
+        self.finalize_update(catalog, update)
     }
 
     /// Add the projections of the analysis to an update (`FinalizeUpdate`)
-    fn finalize_update(&self, mut update: EditorUpdateT) -> EditorUpdateT {
-        self.project_editor_state(&mut update);
+    fn finalize_update(&self, catalog: &Catalog, mut update: EditorUpdateT) -> EditorUpdateT {
+        self.project_editor_state(catalog, &mut update);
         update
     }
 
     /// Project the current analysis (`ProjectEditorState`)
-    fn project_editor_state(&self, update: &mut EditorUpdateT) {
+    fn project_editor_state(&self, catalog: &Catalog, update: &mut EditorUpdateT) {
         if !update.analysis_available {
             return;
         }
@@ -813,7 +786,7 @@ impl ScriptSession {
         // The collapsed primary cursor
         let collapsed = self.primary_selection.as_ref().is_some_and(|s| s.anchor == s.head);
         if collapsed && self.script.cursor_offset().is_some() {
-            self.project_cursor(update, analyzed, &mut projector);
+            self.project_cursor(catalog, update, analyzed, &mut projector);
         }
 
         // Annotations
@@ -886,9 +859,8 @@ impl ScriptSession {
     }
 
     /// Project the state and the semantic context of the collapsed primary cursor
-    fn project_cursor(&self, update: &mut EditorUpdateT, analyzed: &AnalyzedScript, projector: &mut Projector) {
-        let catalog = self.catalog.borrow();
-        let Some(cursor) = self.script.cursor(&catalog) else {
+    fn project_cursor(&self, catalog: &Catalog, update: &mut EditorUpdateT, analyzed: &AnalyzedScript, projector: &mut Projector) {
+        let Some(cursor) = self.script.cursor(catalog) else {
             return;
         };
         if let Some(text_offset) = projector.offset(cursor.text_offset as u64) {
@@ -966,9 +938,8 @@ impl ScriptSession {
 
     /// Complete at the cursor (`PackCompletion`). With UTF-16 offsets, the completion goes through
     /// the object API like in C++, so empty strings and vectors are left out.
-    pub fn complete(&self, limit: usize, keyword_case: KeywordCase) -> Result<CompletionT> {
-        let catalog = self.catalog.borrow();
-        let cursor = self.script.cursor(&catalog).ok_or_else(|| Error::status(StatusCode::COMPLETION_MISSES_CURSOR))?;
+    pub fn complete(&self, catalog: &Catalog, limit: usize, keyword_case: KeywordCase) -> Result<CompletionT> {
+        let cursor = self.script.cursor(catalog).ok_or_else(|| Error::status(StatusCode::COMPLETION_MISSES_CURSOR))?;
         let completion = Script::complete_at_cursor(&cursor, limit)?;
         let mut packed = pack_completion(&completion, keyword_case == KeywordCase::UPPER);
         if self.offset_unit == EditorOffsetUnit::UTF8_BYTES {
@@ -1013,28 +984,20 @@ impl ScriptSession {
     /// Compile the current text into executable statements (`CompileQuery`)
     pub fn compile_query(
         &mut self,
+        catalog: &Catalog,
         config: &FormattingConfigT,
         allow_extensions: bool,
         parse_if_outdated: bool,
     ) -> ScriptCompilationResultT {
-        let catalog = self.catalog.borrow();
-        compile(&mut self.script, &catalog, config, CompilationOptions { allow_extensions, parse_if_outdated })
+        compile(&mut self.script, catalog, config, CompilationOptions { allow_extensions, parse_if_outdated })
     }
 
-    /// Format the script into a new script with an entry id of `catalog`, or of the session catalog
-    /// (`Format`). The formatter can cut a UTF-8 character when it wraps comments; the C++ rope then
-    /// rejects the text after the entry id was allocated, and so does this.
-    pub fn format(
-        &mut self,
-        config: &FormattingConfigT,
-        parse_if_outdated: bool,
-        catalog: Option<&Catalog>,
-    ) -> Result<Script> {
+    /// Format the script into a new script with an entry id of `catalog` (`Format`). The formatter can
+    /// cut a UTF-8 character when it wraps comments; the C++ rope then rejects the text after the entry
+    /// id was allocated, and so does this.
+    pub fn format(&mut self, catalog: &Catalog, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<Script> {
         let text = self.script.format_bytes(config, parse_if_outdated)?;
-        let mut result = match catalog {
-            Some(catalog) => Script::new(catalog),
-            None => Script::new(&self.catalog.borrow()),
-        };
+        let mut result = Script::new(catalog);
         let text = String::from_utf8(text)
             .map_err(|_| Error::invalid_argument("invalid UTF-8 while computing rope text statistics"))?;
         result.replace_text(&text);
@@ -1100,10 +1063,10 @@ impl ScriptSession {
     }
 
     /// Publish the analyzed script into the catalog (`LoadIntoCatalog`)
-    pub fn load_into_catalog(&mut self, layer: CatalogLayer) -> Result<()> {
+    pub fn load_into_catalog(&mut self, catalog: &mut Catalog, layer: CatalogLayer) -> Result<()> {
+        debug_assert_eq!(catalog.id(), self.catalog_id, "a session takes the catalog it was created with");
         let analyzed =
             self.script.analyzed.clone().ok_or_else(|| Error::status(StatusCode::CATALOG_SCRIPT_NOT_ANALYZED))?;
-        let mut catalog = self.catalog.borrow_mut();
         // A publish that changes declarations bumps the catalog version, the analysis then needs a
         // refresh against that version before the planner can use it
         catalog.load_script(analyzed, layer)?;
@@ -1112,7 +1075,8 @@ impl ScriptSession {
     }
 
     /// Remove the script from the catalog (`DropFromCatalog`)
-    pub fn drop_from_catalog(&mut self) {
-        self.catalog.borrow_mut().drop_script(self.catalog_entry_id());
+    pub fn drop_from_catalog(&self, catalog: &mut Catalog) {
+        debug_assert_eq!(catalog.id(), self.catalog_id, "a session takes the catalog it was created with");
+        catalog.drop_script(self.catalog_entry_id());
     }
 }
