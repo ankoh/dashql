@@ -7,6 +7,7 @@
 
 use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, TableRole};
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration};
+use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
 use crate::compiler::compile_visualization;
 use dashql_core::pack;
 use dashql_core::script::Script;
@@ -232,6 +233,8 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
     }
 
     let mut nodes: Vec<ExecutionGraphNodeT> = Vec::new();
+    // Temporary relations do not outlive the database session
+    let change_options = CatalogChangeOptions::default();
     for (si, script) in inputs.iter().enumerate() {
         let analyzed = analyzed_inputs[si];
         let parsed = script.parsed.as_ref().unwrap();
@@ -563,6 +566,11 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                     })
                     .collect(),
             );
+            // The catalog changes ScriptExecution reports for the statement. A script with syntax
+            // errors changes nothing we could follow.
+            if !sql.is_empty() && parsed.errors.is_empty() && scanned.errors.is_empty() {
+                node.catalog_changes = derive_catalog_change(analyzed, statement_id, &change_options).map(|c| vec![c.pack()]);
+            }
             node.sql = Some(sql);
             node.barrier = barrier;
             nodes.push(node);

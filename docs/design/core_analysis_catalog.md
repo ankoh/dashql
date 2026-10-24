@@ -473,7 +473,9 @@ of the session outdated.
 **Planning and execution** (`session_execution.ts`) analyzes and publishes every script, re-analyzes
 them at the final catalog version, then calls `plan()`. The planner reads the published
 declarations and the inputs, and flags a relation whose published kind (`TableDeclaration.is_view`)
-differs from the input.
+differs from the input. Every node carries the catalog changes of its statement
+(`ExecutionGraphNode.catalog_changes`, derived like `ScriptExecution` derives them), and the query
+executor applies them to the connection once the statement succeeded (`QueryExecutionArgs.catalogChanges`).
 
 ## Invariants
 
@@ -491,8 +493,6 @@ differs from the input.
   every global index, O(all entries).
 - **Analysis side effect.** Id reservations go through `RefCell<IdReservations>` behind `&Catalog`.
   Snapshots are `Sync`, the catalog itself is not.
-- **DDL during planned execution.** Statements run through planned session execution do not apply
-  their catalog changes; only the single-script `ScriptExecution` path does.
 - **Script table versions.** Script tables carry `catalog_version = 0`, so `referenced_catalog_version`
   of references to script tables is 0.
 

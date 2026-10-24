@@ -1,3 +1,4 @@
+include "dashql/catalog.fbs";
 include "dashql/parsed_script.fbs";
 include "dashql/script_compilation.fbs";
 
@@ -50,6 +51,8 @@ table ExecutionGraphNode {
     barrier: bool;
     accesses: [ExecutionGraphAccess];
     visualization: CompiledVisualization;
+    /// The changes of the catalog of the connection once the statement succeeded, as ScriptExecution reports them
+    catalog_changes: [dashql.buffers.catalog.CatalogChange];
 }
 
 table ExecutionGraphEdge {

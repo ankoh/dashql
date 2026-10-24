@@ -1,6 +1,8 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
 
+import type * as core from '@ankoh/dashql-core';
+
 import { useConnectionDispatch, useConnectionRegistryStore, useDynamicConnectionDispatch } from './connection_registry.js';
 import { APPLY_CATALOG_CHANGES } from './connection_state.js';
 import {
@@ -280,6 +282,16 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     });
                 };
 
+                // The catalog follows the DDL statements, a full refresh can be expensive
+                const applyCatalogChanges = (changes: core.buffers.catalog.CatalogChangeT[]) => {
+                    connDispatch(connectionId, { type: APPLY_CATALOG_CHANGES, value: changes });
+                    try {
+                        args.onCatalogChanged?.();
+                    } catch {
+                        // Catalog observers must not interrupt query execution.
+                    }
+                };
+
                 if (args.scriptExecution != null) {
                     try {
                         // executeScriptQuery normally owns the cleanup of the execution, a hit or a failed
@@ -315,15 +327,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                                     type: QUERY_STATEMENT_SUCCEEDED,
                                     value: [queryId, index, statementCount],
                                 }),
-                                // The catalog follows the DDL statements, a full refresh can be expensive
-                                onCatalogChanges: changes => {
-                                    connDispatch(connectionId, { type: APPLY_CATALOG_CHANGES, value: changes });
-                                    try {
-                                        args.onCatalogChanged?.();
-                                    } catch {
-                                        // Catalog observers must not interrupt query execution.
-                                    }
-                                },
+                                onCatalogChanges: applyCatalogChanges,
                                 setResultStream: stream => {
                                     runtime.resultStream = stream;
                                 },
@@ -467,6 +471,9 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         throw e;
                     }
                     return null;
+                }
+                if (!servedFromCache && args.catalogChanges != null && args.catalogChanges.length > 0) {
+                    applyCatalogChanges(args.catalogChanges);
                 }
 
                 reportResultsReady();

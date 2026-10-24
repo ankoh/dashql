@@ -3,7 +3,7 @@ import { HyperDatabaseChannel } from "./hyper/hyperdb_grpc_client.js";
 import { QueryMetadata } from "../../query/query_execution_state.js";
 import { SalesforceDatabaseChannel } from "./salesforce/salesforce_api_client.js";
 import { TrinoChannelInterface } from "./trino/trino_channel.js";
-import type { DashQLScriptExecution } from '@ankoh/dashql-core';
+import type { DashQLScriptExecution, buffers } from '@ankoh/dashql-core';
 
 /// The query executor args
 export interface QueryExecutionArgs {
@@ -23,8 +23,11 @@ export interface QueryExecutionArgs {
     onLog?: (message: string) => void;
     /// Reports labeled query lifecycle timings before the complete execution promise resolves.
     onTiming?: (label: string, elapsedMs: number) => void;
-    /// Called after a statement of the script execution changed the catalog of the connection, e.g. to
-    /// re-analyze the scripts that reference it.
+    /// The catalog changes of the statement, applied to the catalog of the connection once it succeeded.
+    /// A script execution reports the changes of its statements itself.
+    catalogChanges?: buffers.catalog.CatalogChangeT[];
+    /// Called after a statement changed the catalog of the connection, e.g. to re-analyze the scripts
+    /// that reference it.
     onCatalogChanged?: () => void;
     /// Called once after the backend result is fully consumed, but before optional result analysis.
     /// The normal execution promise still resolves only after postprocessing completes.

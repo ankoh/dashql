@@ -19,6 +19,7 @@ use dashql_core::pack::pack_completion;
 use dashql_core_session::planner::{plan, PlannerInput};
 use dashql_core::script::Script;
 use dashql_core_session::script_session::ScriptSession;
+use dashql_buffers::catalog::CatalogChangeType;
 use dashql_buffers::completion::CompletionT;
 use dashql_buffers::execution::ScriptCompilationResultT;
 use std::cell::RefCell;
@@ -526,6 +527,31 @@ fn published_sessions_refresh_at_final_catalog_revision_before_planning() {
         assert_eq!(script.analyzed_catalog_revision, final_revision as u64);
     }
     assert_eq!(catalog_ref.version(), final_revision);
+}
+
+#[test]
+fn planned_statements_carry_their_catalog_changes() {
+    let catalog = new_catalog();
+    let mut session = session(&catalog, UTF8);
+    let text = "create table items (id int, name text); select id from items; drop table items";
+    assert!(analyze(&mut session, text).analysis_available);
+    session.load_into_catalog(CatalogLayer::SESSION).unwrap();
+    session.analyze();
+
+    let catalog_ref = catalog.borrow();
+    let graph = plan(&[PlannerInput { script: session.script(), catalog: &catalog_ref }]);
+    assert!(graph.valid);
+    let nodes = graph.nodes.as_ref().unwrap();
+    assert_eq!(nodes.len(), 3);
+    let created = nodes[0].catalog_changes.as_ref().unwrap();
+    assert_eq!(created.len(), 1);
+    assert_eq!(created[0].change_type, CatalogChangeType::CREATE_RELATION);
+    assert_eq!(created[0].relation_name.as_deref(), Some("items"));
+    assert_eq!(created[0].column_names.as_deref(), Some(&["id".to_string(), "name".to_string()][..]));
+    assert!(nodes[1].catalog_changes.is_none());
+    let dropped = nodes[2].catalog_changes.as_ref().unwrap();
+    assert_eq!(dropped[0].change_type, CatalogChangeType::DROP_RELATION);
+    assert_eq!(dropped[0].relation_name.as_deref(), Some("items"));
 }
 
 #[test]

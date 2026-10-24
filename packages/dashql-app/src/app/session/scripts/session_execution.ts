@@ -274,7 +274,7 @@ export async function runSessionExecution(args: {
                     activeStatementIndex: statementIndex + 1, activeStatementCount: statementIndexes[scriptIndex].length });
                 running++;
                 const [queryId, execution] = args.executeQuery(connectionId, {
-                    query: String(node.sql ?? ''), cacheable: false, throwOnError: true, abortSignal: signal,
+                    query: String(node.sql ?? ''), catalogChanges: node.catalogChanges, cacheable: false, throwOnError: true, abortSignal: signal,
                     analyzeResults: output, publishResults: output, replaceComputationId: output ? previousQueryId : undefined,
                     projection: output ? projectionForVisualizeQuery(visualization) : undefined, onResultsReady: release,
                     metadata: { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, sessionId },

@@ -116,6 +116,15 @@ describe('runSessionExecution', () => {
         f.scriptSessions.forEach(scriptSession => expect(scriptSession.startExecution).not.toHaveBeenCalled());
     });
 
+    it('passes the catalog changes of planned statements to the executor', async () => {
+        const f = fixture();
+        const change = new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, '', '', 't', ['a']);
+        (f.graph.nodes[0] as { catalogChanges?: core.buffers.catalog.CatalogChangeT[] }).catalogChanges = [change];
+        await runSessionExecution(f.args);
+        expect(f.executeQuery.mock.calls[0][1].catalogChanges).toEqual([change]);
+        expect(f.executeQuery.mock.calls[1][1].catalogChanges).toBeUndefined();
+    });
+
     it('yields before planning so the execution status can paint', async () => {
         const f = fixture();
         const firstYield = deferred<void>();
