@@ -48,7 +48,7 @@ Each input has a caller-defined string id, SQL text, and a mask of outputs:
 | `scanned` | 1 | Scanner result |
 | `parsed` | 2 | Parser result |
 | `analyzed` | 4 | Analyzer result |
-| `catalogDescriptor` | 8 | Portable table, column and function declarations |
+| `catalogDescriptor` | 8 | Portable table, column and function declarations, with the location of each declaration in the input text |
 
 - Only the stages needed for the requested outputs run. A descriptor runs the full pipeline without
   returning the intermediate buffers unless requested; a zero mask does no SQL processing. Results preserve

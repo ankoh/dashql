@@ -267,5 +267,6 @@ it. This changed one snapshot (`analyzer/names.yaml`):
 - **Duplicate unqualified names resolve in declaration order.** `CatalogEntry::tables_by_unqualified_name`,
   `table_columns_by_name` and `functions_by_unqualified_name` are btree multimaps that keep the insertion
   order of equal keys.
-- **Catalog-wide column lookups visit entries by rank** (`ResolveTableColumnsWithCatalog`).
-- **The `FlatCatalog` name dictionary is built in rank order** (`Catalog::Flatten`).
+- **Catalog-wide column lookups visit entries in resolution order** (`ResolveTableColumnsWithCatalog`), by
+  layer and then entry id since ranks were replaced by catalog layers.
+- **The `FlatCatalog` name dictionary is built in resolution order** (`Catalog::Flatten`).

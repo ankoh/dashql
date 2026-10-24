@@ -141,7 +141,7 @@ Each candidate carries a coarse type used for visual identification:
 
 ### Name-index candidates
 
-Identifiers (tables, columns, functions, schemas, databases) come from the `NameSearchIndex`, a suffix-indexed btree over all registered names in the catalog.
+Identifiers (tables, columns, functions, schemas, databases) come from the `NameSearchIndex` of the script and of every other entry of the catalog snapshot the script was analyzed against (`docs/design/core_analysis_catalog.md`). An index holds the names of one entry and every suffix of every name, sorted case-insensitively on the first search, so a prefix search over the suffixes finds substring matches.
 The search walks the index with a case-insensitive prefix of the text under the cursor.
 These candidates receive a base score from the strategy-specific scoring table.
 

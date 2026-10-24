@@ -10,7 +10,9 @@ semantics; independent statements do not acquire source-order edges.
 All inputs must share a catalog and have current parsing and analysis for both
 their text and the catalog revision. Publish participating definitions before
 refreshing every input's analysis. Publishing another script can invalidate an
-earlier analysis, even if that script's text did not change.
+earlier analysis, even if that script's text did not change: a publish that changes
+declarations bumps the catalog revision, one with unchanged declarations does not
+(`docs/design/core_analysis_catalog.md`).
 
 The native API is `planner::plan(&[PlannerInput])` (`packages/dashql-core/src/planner.rs`). Each
 input borrows a live `Script` and the `Catalog` it was analyzed with; there is no caller-supplied
@@ -50,7 +52,8 @@ Each `ExecutionGraphEntity` requires a typed `catalog_object_id` struct containi
 `catalog_database_id`, `catalog_schema_id`, and the separate `database_name`,
 `schema_name`, and `name` components. Identity is the typed catalog ID, not a name
 or graph-local index. For TABLE, `object_id` is the packed native catalog table ID
-and `sub_object_id` is zero. Views currently use TABLE declaration identities too.
+and `sub_object_id` is zero. Table ids are keyed by the declaring script and the
+qualified name, so a table keeps its id across versions of the script. Views currently use TABLE declaration identities too.
 The generic enum contains DEFERRED, DATABASE, SCHEMA, TABLE, COLUMN, and FUNCTION;
 the current planner emits only real TABLE entities, never synthetic DEFERRED
 entities for unresolved names.

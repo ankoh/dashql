@@ -103,8 +103,9 @@ Both kinds expose their declarations as one shared `Arc<CatalogEntryData>` (`cat
 | Field | Content |
 |---|---|
 | `database_references`, `schema_references` | The databases and schemas the entry declares into or references, with their canonical ids |
-| `table_declarations` | `TableDeclaration`: object id, schema id, qualified name, columns, `is_view`, AST positions in the declaring script |
-| `function_declarations` | `FunctionDeclaration`: object id, schema id, name, params, return type, aggregate flag |
+| `table_declarations` | `TableDeclaration`: object id, schema id, qualified name, columns (each with its column id and location), `is_view`, AST positions and the location of the name in the declaring script |
+| `function_declarations` | `FunctionDeclaration`: object id, schema id, name, params, return type, aggregate flag, location of the name |
+| `tables_by_id` | Table positions by the object part of the table id |
 | `tables_by_qualified_name`, `tables_by_unqualified_name`, `tables_by_unqualified_schema` | Table lookups: exact, by name, by (schema, database) range |
 | `table_columns_by_name` | Columns by name across all tables of the entry |
 | `functions_by_*` | Function lookups |
@@ -206,7 +207,7 @@ catalog, so it only moves when what other entries resolve against may have chang
 
 `same_declarations` compares what other entries resolve against: the ids and names of databases,
 schemas, tables, columns and functions, plus column order, function params and return types. It
-ignores AST positions and name ids, which only the declaring script reads. So typing in a query of
+ignores AST positions, source locations and name ids, which only the declaring script reads. So typing in a query of
 a script that also declares tables republishes without a version bump, while adding a column, renaming
 a table or changing the layer bumps it.
 
@@ -417,7 +418,7 @@ statement's successful result.
 1. The CodeMirror processor sends an `EditorEvent` with `analyze = true`; the session applies and
    analyzes.
 2. `UPDATE_FROM_PROCESSOR`: if the text or analysis changed, derive annotations (compile), then
-   `loadIntoCatalog(scriptKey)`.
+   `loadIntoCatalog()`, which publishes into the session layer.
 3. Only if that publish changed the catalog revision, `markOtherScriptsOutdatedInPlace` flags the other
    scripts of the same connection catalog.
 4. `script_editor.tsx` analyzes flagged scripts: the selected one immediately, others after

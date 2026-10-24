@@ -298,7 +298,9 @@ C++. The hash table variant was 6.5 µs, so it was dropped.
 - The catalog (`dashql_core::catalog`) publishes analyzed scripts and descriptor pools as immutable
   entries shared through `Arc`. An analyzed script holds the entries it was analyzed against, which
   replaces the `retained_catalog_dependencies` lease. Id reservations go through the catalog by
-  shared reference, so an analysis only needs `&Catalog`.
+  shared reference, so an analysis only needs `&Catalog`. (Since redesigned: an analysis holds the
+  catalog snapshot it resolved against, entries hold declarations only, entries are ordered by layer,
+  ids are keyed by name; see `docs/design/core_analysis_catalog.md`.)
 - The analyzer (`dashql_core::analyzer`) ports the four passes with the 1024-node morsel
   interleaving of the `PassManager`, so expression ids match. Objects live in vectors of the
   analyzed script and reference each other by index.
