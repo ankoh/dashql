@@ -108,6 +108,16 @@ from the output columns of the defining scope.
 (`DescriptorEntry.bytes`) as the source for `apply_catalog_changes`. Their tables carry
 `catalog_version = version + 1`, the version they are published with. Script tables carry 0.
 
+### Declaration locations
+
+Tables, columns and functions carry a `location`: the UTF-8 byte span of the declaration in the
+script that declares it, the name of a table or function and the definition of a column.
+Script entries take it from their AST. A connection catalog is a SQL script as well: the batch
+analyzes it, `pack_catalog_descriptor` writes the locations into the descriptor, and the import keeps
+them. The descriptor is published under the entry id of that catalog script (`catalogRelationScript`
+in the app), so a location always refers to the text of the script with the declaring entry id.
+Derived columns (`CREATE TABLE AS`, views) have no location.
+
 ### Name search index
 
 Completion searches names by substring. A `NameSearchIndex` holds the names of an entry (text,
@@ -330,6 +340,12 @@ analysis per declaration change.
 Every update carries `catalog_revision` and `analysis_available`; the full projection (diagnostics,
 syntax and semantic spans, cursor, annotations, statistics) is included only when the analysis is
 current.
+
+For a resolved reference under the cursor, `primary_cursor_context` names the entry that declares the
+table (`declaration_catalog_entry_id`) and the declaration in the script of that entry
+(`declaration_location`: the column definition, else the table name). The span is in UTF-8 bytes of
+that script, not in the offset unit of the session. It is the target of a jump to the declaration
+(`script_session_test::cursor_context_points_into_the_catalog_script_that_declares_the_table`).
 
 ## Completion's view of the catalog
 

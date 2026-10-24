@@ -7,6 +7,7 @@ use crate::error::{Error, Result};
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::catalog::CatalogDescriptor;
 use std::collections::BTreeSet;
+use dashql_parser::span::TextSpan;
 use std::sync::Arc;
 
 /// A name of a descriptor entry
@@ -222,6 +223,7 @@ impl DescriptorEntry {
                     },
                 );
                 table.catalog_version = table_version;
+                table.location = source.location().map(|l| TextSpan::new(l.offset(), l.length()));
                 let table_loc = TableLoc {
                     entry: id,
                     index: table_index as u32,
@@ -250,6 +252,7 @@ impl DescriptorEntry {
                             table: Some(table_id),
                             ast_node_id: None,
                             column_name,
+                            location: source_column.location().map(|l| TextSpan::new(l.offset(), l.length())),
                         });
                     }
                 }
@@ -298,6 +301,7 @@ impl DescriptorEntry {
                     },
                     params,
                     return_type: Arc::from(source.return_type().unwrap_or("")),
+                    location: source.location().map(|l| TextSpan::new(l.offset(), l.length())),
                 };
                 out.name_objects.push((
                     function.function_name.function_name.id,

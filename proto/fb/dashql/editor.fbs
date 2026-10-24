@@ -131,6 +131,12 @@ table EditorCursorSemanticContext {
     referenced_catalog_version: uint32;
     related_table_reference_ids: [uint32];
     related_column_reference_ids: [uint32];
+    /// The catalog entry that declares the resolved table, the script of a session or the script a
+    /// catalog descriptor was built from
+    declaration_catalog_entry_id: uint32;
+    /// The UTF-8 byte span of the declaration in the text of that script: the column definition
+    /// of a resolved column, else the table name. Absent if the declaration has no location.
+    declaration_location: dashql.buffers.parser.TextSpan;
 }
 
 /// Portable cursor facts used by editor interaction logic.

@@ -402,6 +402,7 @@ pub fn pack_function_declaration(f: &FunctionDeclaration) -> FunctionDeclaration
                 .collect(),
         ),
         return_type: non_empty_str(&f.return_type),
+        location: f.location.map(text_span),
     })
 }
 
@@ -421,9 +422,13 @@ pub fn pack_table(table: &TableDeclaration) -> TableT {
             table
                 .table_columns
                 .iter()
-                .map(|c| build!(TableColumnT { column_name: Some(c.column_name.text.to_string()) }))
+                .map(|c| build!(TableColumnT {
+                    column_name: Some(c.column_name.text.to_string()),
+                    location: c.location.map(text_span),
+                }))
                 .collect(),
         ),
+        location: table.location.map(text_span),
     })
 }
 

@@ -301,6 +301,7 @@ impl NameResolutionPass {
         table.ast_statement_id = Some(state.find_statement_id(declaration_id));
         table.ast_scope_root = Some(state.node_id(select_node));
         table.is_view = declaration_node.node_type() == NodeType::OBJECT_SQL_VIEW;
+        table.location = name_node.map(|n| state.text_span(*n.symbol_span()));
         state.entry_mut().table_declarations.push(table);
         state.resolve_name(&name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
 
@@ -354,6 +355,7 @@ impl NameResolutionPass {
                 table: Some(table_id),
                 ast_node_id: None,
                 column_name: column_name.clone(),
+                location: None,
             });
             let loc = ColumnLoc {
                 table: TableLoc::from(table_id),
@@ -1356,6 +1358,7 @@ impl NameResolutionPass {
                 let mut table = TableDeclaration::new(schema_id, table_id, table_name);
                 table.ast_node_id = Some(node_id);
                 table.ast_statement_id = Some(state.find_statement_id(node_id));
+                table.location = name_node.map(|n| state.text_span(*n.symbol_span()));
                 for (column_index, column) in columns.iter().enumerate() {
                     table.table_columns_by_name.entry(column.column_name.text.clone()).or_insert(column_index);
                     table.table_columns.push(TableColumn {
@@ -1363,6 +1366,7 @@ impl NameResolutionPass {
                         table: Some(table_id),
                         ast_node_id: Some(column.ast_node_id),
                         column_name: column.column_name.clone(),
+                        location: Some(state.text_span(*state.ast[column.ast_node_id as usize].symbol_span())),
                     });
                 }
                 state.entry_mut().table_declarations.push(table);
@@ -1401,6 +1405,7 @@ impl NameResolutionPass {
                     function_name: function_name.clone(),
                     params: Vec::new(),
                     return_type,
+                    location: name_node.map(|n| state.text_span(*n.symbol_span())),
                 };
                 if let Some(params) = params.filter(|n| n.node_type() == NodeType::ARRAY) {
                     for param in state.children(params) {

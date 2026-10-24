@@ -1015,3 +1015,33 @@ fn completion_ignores_published_version_of_edited_script() {
     assert!(texts.contains(&"items_new"), "{texts:?}");
     assert!(!texts.contains(&"items_old"), "{texts:?}");
 }
+
+#[test]
+fn cursor_context_points_into_the_catalog_script_that_declares_the_table() {
+    // The connection catalog is a script whose descriptor is published, like a catalog batch
+    let catalog_sql = "create table items (\n    id integer,\n    name text\n);";
+    let catalog = new_catalog();
+    let descriptor_entry = {
+        let mut catalog = catalog.borrow_mut();
+        let mut catalog_script = Script::new(&catalog);
+        catalog_script.replace_text(catalog_sql);
+        catalog_script.analyze(&catalog, true).unwrap();
+        let bytes = dashql_core::pack::pack_catalog_descriptor(&catalog_script.analyzed.as_ref().unwrap().entry).unwrap();
+        let id = catalog_script.catalog_entry_id();
+        catalog.replace_descriptor(id, CatalogLayer::CONNECTION, &bytes).unwrap();
+        id
+    };
+    let declared = |context: &dashql_buffers::editor::EditorCursorSemanticContextT| {
+        assert_eq!(context.declaration_catalog_entry_id, descriptor_entry);
+        let span = context.declaration_location.as_ref().expect("declaration location");
+        &catalog_sql[span.offset as usize..(span.offset + span.length) as usize]
+    };
+
+    let mut session = session(&catalog, UTF8);
+    let text = "select name from items";
+    assert!(analyze(&mut session, text).analysis_available);
+    let column = session.set_primary_cursor(session.text_version(), 9);
+    assert_eq!(declared(column.primary_cursor_context.as_ref().unwrap()), "name text");
+    let table = session.set_primary_cursor(session.text_version(), text.find("items").unwrap() as u64 + 1);
+    assert_eq!(declared(table.primary_cursor_context.as_ref().unwrap()), "items");
+}

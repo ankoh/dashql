@@ -5,6 +5,7 @@
 //! registries of other entries.
 
 use super::ids::*;
+use dashql_parser::span::TextSpan;
 use crate::hash::HashMap;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -117,6 +118,8 @@ pub struct TableColumn {
     pub ast_node_id: Option<u32>,
     /// The column name
     pub column_name: Name,
+    /// The text of the column definition in the declaring script, None for derived columns
+    pub location: Option<TextSpan>,
 }
 
 impl TableColumn {
@@ -148,6 +151,9 @@ pub struct TableDeclaration {
     pub table_columns: Vec<TableColumn>,
     /// The column indexes by name
     pub table_columns_by_name: HashMap<Arc<str>, usize>,
+    /// The text of the table name in the declaring script: the script of a session, or the script
+    /// that a descriptor was built from
+    pub location: Option<TextSpan>,
 }
 
 impl TableDeclaration {
@@ -163,6 +169,7 @@ impl TableDeclaration {
             table_name,
             table_columns: Vec::new(),
             table_columns_by_name: HashMap::default(),
+            location: None,
         }
     }
 
@@ -206,6 +213,8 @@ pub struct FunctionDeclaration {
     pub params: Vec<FunctionParam>,
     /// The return type as written, empty when not specified
     pub return_type: Arc<str>,
+    /// The text of the function name in the declaring script
+    pub location: Option<TextSpan>,
 }
 
 impl FunctionDeclaration {

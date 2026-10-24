@@ -392,3 +392,27 @@ fn statistics_count_content_of_all_entries() {
     assert_eq!(content.table_count, 3);
     assert_eq!(content.table_column_count, 6);
 }
+
+#[test]
+fn descriptors_keep_the_locations_of_their_declarations() {
+    // A descriptor built from a catalog script, like the batch of a connection catalog
+    let sql = "create table main.items (id integer, name text);\ncreate function main.item_count() returns integer;";
+    let source = Catalog::new();
+    let mut script = Script::new(&source);
+    script.insert_text_at(0, sql);
+    script.analyze(&source, true).unwrap();
+    let bytes = pack_catalog_descriptor(&script.analyzed.as_ref().unwrap().entry).unwrap();
+
+    let mut catalog = Catalog::new();
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &bytes);
+    let data = catalog.entry(id).unwrap().data();
+    let text = |span: Option<dashql_parser::span::TextSpan>| {
+        let span = span.expect("location");
+        &sql[span.offset as usize..(span.offset + span.length) as usize]
+    };
+    let table = &data.table_declarations[0];
+    assert_eq!(text(table.location), "main.items");
+    let columns: Vec<_> = table.table_columns.iter().map(|c| text(c.location)).collect();
+    assert_eq!(columns, vec!["id integer", "name text"]);
+    assert_eq!(text(data.function_declarations[0].location), "main.item_count");
+}

@@ -73,6 +73,8 @@ table TableColumn {
     ast_node_id: uint32;
     // The name of the column that is referenced
     column_name: string;
+    // The UTF-8 byte span of the column definition in the declaring script, absent if derived
+    location: dashql.buffers.parser.TextSpan;
 }
 
 table Table {
@@ -92,6 +94,8 @@ table Table {
     table_name: QualifiedTableName;
     // The table columns
     table_columns: [TableColumn];
+    // The UTF-8 byte span of the table name in the declaring script
+    location: dashql.buffers.parser.TextSpan;
 }
 
 table ResolvedTable {
@@ -181,6 +185,8 @@ table FunctionDeclaration {
     params: [FunctionParam];
     // The return type name
     return_type: string;
+    // The UTF-8 byte span of the function name in the declaring script
+    location: dashql.buffers.parser.TextSpan;
 }
 
 table FunctionReference {

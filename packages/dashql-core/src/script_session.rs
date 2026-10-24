@@ -17,7 +17,7 @@
 //! convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
 
 use crate::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
-use crate::catalog::{Catalog, CatalogEntryId, QualifiedTableName, CatalogLayer};
+use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName};
 use crate::compiler::{compile, CompilationOptions};
 use crate::completion::is_symbol_kind_completable;
 use crate::cursor::CursorContext;
@@ -131,6 +131,18 @@ fn resolved_column_ids(expression: &crate::analyzer::Expression) -> Option<(Reso
         },
         column_id,
     ))
+}
+
+/// The entry that declares a resolved table, and the text of the declaration in the script of that
+/// entry: the column definition of a resolved column, else the table name
+fn declaration(analyzed: &AnalyzedScript, table_id: CatalogTableId, column: Option<u32>) -> Option<(CatalogEntryId, Option<TextSpan>)> {
+    let table = if table_id.origin == analyzed.catalog_entry_id() {
+        analyzed.entry.table_by_id(table_id)
+    } else {
+        analyzed.snapshot.table_by_id(table_id)
+    }?;
+    let column_location = column.and_then(|c| table.table_columns.get(c as usize)?.location);
+    Some((table_id.origin, column_location.or(table.location)))
 }
 
 /// `FormatTableName`
@@ -896,6 +908,10 @@ impl ScriptSession {
             context.catalog_table_id = table.table_id;
             context.catalog_column_id = column.unwrap_or(0);
             context.referenced_catalog_version = table.catalog_version;
+            if let Some((entry_id, location)) = declaration(analyzed, CatalogTableId::unpack(table.table_id), column) {
+                context.declaration_catalog_entry_id = entry_id;
+                context.declaration_location = location.map(|l| TextSpanT { offset: l.offset, length: l.length });
+            }
             let related_tables: Vec<u32> = analyzed
                 .table_references
                 .iter()
