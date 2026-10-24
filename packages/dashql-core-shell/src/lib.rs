@@ -13,7 +13,6 @@
 //! Inputs that C++ validates as UTF-8 are byte slices so that invalid input fails like in C++, and
 //! outputs are terminal bytes.
 
-pub mod api;
 pub mod arrow_renderer;
 pub mod prompt_buffer;
 mod session;
@@ -21,7 +20,6 @@ pub mod session_relations;
 pub mod unicode;
 pub mod vt100;
 
-pub use api::Shell;
 pub use arrow_renderer::ArrowRenderer;
 pub use prompt_buffer::PromptBuffer;
 pub use session::ShellSession;

@@ -134,13 +134,6 @@ impl Script {
         self.text_version += 1;
     }
 
-    /// Insert a code point at a code point offset (`InsertCharAt`)
-    pub fn insert_char_at(&mut self, char_idx: usize, unicode: u32) {
-        let c = char::from_u32(unicode).unwrap_or(char::REPLACEMENT_CHARACTER);
-        let mut buffer = [0u8; 4];
-        self.insert_text_at(char_idx, c.encode_utf8(&mut buffer));
-    }
-
     /// Insert text at a code point offset (`InsertTextAt`). Offsets past the end append.
     pub fn insert_text_at(&mut self, char_idx: usize, text: &str) {
         if text.is_empty() {

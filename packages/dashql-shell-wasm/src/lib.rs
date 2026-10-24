@@ -1,4 +1,5 @@
-//! The wasm-bindgen API of the shell, the replacement of the C ABI in the C++ `src/shell/api.cc`.
+//! The wasm-bindgen API of the shell, the replacement of the C ABI in the C++ `src/shell/api.cc`. It drives a
+//! `ShellSession` and checks the integer keys and completion statuses at the boundary.
 //!
 //! Like the C++ shell wasm, the module carries the whole core: it re-exports the core bindings
 //! (`Catalog`, `Script`, `ScriptBatch`, `PlanViewModel`, `processBatch`, ...) with their JS names, so a shell
@@ -10,7 +11,10 @@
 
 pub use dashql_core_wasm_lib::*;
 
-use dashql_core_shell::{CompletionCandidate, PromptSnapshot, ShellOperation as CoreOperation, TerminalOutput};
+use dashql_core_shell::{
+    CompletionCandidate, EffectCompletionStatus, PromptInputAction, PromptInputKey, PromptSnapshot, ShellOperation as CoreOperation,
+    ShellSession, ShellStatus, TerminalOutput,
+};
 use wasm_bindgen::prelude::*;
 
 /// A prompt after an input (`DashQLShellPromptResult`)
@@ -111,12 +115,6 @@ impl ShellOperation {
         self.inner.status as u32
     }
 
-    /// The raw data: the output, the error message, or the effect envelope (version u32, type u32, id u64, payload)
-    #[wasm_bindgen(getter)]
-    pub fn data(&self) -> Vec<u8> {
-        self.inner.data.clone()
-    }
-
     /// The data as text (output or error message)
     #[wasm_bindgen(getter)]
     pub fn text(&self) -> String {
@@ -186,25 +184,46 @@ fn operation(inner: CoreOperation) -> ShellOperation {
     ShellOperation { inner }
 }
 
+/// A prompt result for an input key that is not a `DashQLShellPromptInputKey`
+fn invalid_prompt(message: &str) -> ShellPromptResult {
+    prompt(PromptSnapshot {
+        status: ShellStatus::InvalidArgument,
+        revision: 0,
+        cursor_byte_offset: 0,
+        text: String::new(),
+        message: message.to_string(),
+        action: PromptInputAction::None,
+    })
+}
+
+/// A terminal result for an input key that is not a `DashQLShellPromptInputKey`
+fn invalid_terminal(message: &str) -> ShellTerminalResult {
+    terminal(TerminalOutput {
+        status: ShellStatus::InvalidArgument,
+        action: PromptInputAction::None,
+        data: message.as_bytes().to_vec(),
+    })
+}
+
 /// A shell session on a catalog (`dashql_shell_*`). Freeing it drops the session relations from the catalog.
 #[wasm_bindgen]
 pub struct Shell {
     /// The catalog of the shell
     catalog: SharedCatalog,
-    /// The core shell, taken when the shell is freed
-    inner: Option<dashql_core_shell::Shell>,
+    /// The shell session, taken when the shell is freed
+    inner: Option<ShellSession>,
 }
 
 impl Drop for Shell {
     fn drop(&mut self) {
-        if let Some(mut shell) = self.inner.take() {
-            self.catalog.modify_or_defer(move |catalog| shell.detach(catalog));
+        if let Some(mut session) = self.inner.take() {
+            self.catalog.modify_or_defer(move |catalog| session.detach(catalog));
         }
     }
 }
 
-/// The core shell of a shell that is not freed
-fn alive(shell: &mut Option<dashql_core_shell::Shell>) -> &mut dashql_core_shell::Shell {
+/// The session of a shell that is not freed
+fn alive(shell: &mut Option<ShellSession>) -> &mut ShellSession {
     shell.as_mut().expect("the shell is freed")
 }
 
@@ -214,7 +233,7 @@ impl Shell {
     #[wasm_bindgen(constructor)]
     pub fn new(catalog: &Catalog, terminal_columns: u32, auto_qualify_non_default_database_tables: bool) -> Shell {
         let shared = catalog.shared();
-        let inner = dashql_core_shell::Shell::new(&shared.borrow(), terminal_columns, auto_qualify_non_default_database_tables);
+        let inner = ShellSession::new(&shared.borrow(), terminal_columns, auto_qualify_non_default_database_tables);
         Shell {
             catalog: shared,
             inner: Some(inner),
@@ -240,7 +259,8 @@ impl Shell {
     /// Track relations of successful DDL queries in the catalog, returns the status
     #[wasm_bindgen(js_name = setSessionRelations)]
     pub fn set_session_relations(&mut self, enabled: bool) -> u32 {
-        alive(&mut self.inner).set_session_relations(&mut self.catalog.borrow_mut(), enabled) as u32
+        alive(&mut self.inner).set_track_session_relations(enabled, &mut self.catalog.borrow_mut());
+        ShellStatus::Ok as u32
     }
 
     /// Register dot commands, one name per line, returns the status
@@ -251,38 +271,38 @@ impl Shell {
 
     #[wasm_bindgen(js_name = setPrompt)]
     pub fn set_prompt(&mut self, text: &str) -> ShellPromptResult {
-        prompt(alive(&mut self.inner).prompt_set(text.as_bytes()))
+        prompt(alive(&mut self.inner).set_prompt(text.as_bytes()))
     }
 
     #[wasm_bindgen(js_name = insertPrompt)]
     pub fn insert_prompt(&mut self, text: &str) -> ShellPromptResult {
-        prompt(alive(&mut self.inner).prompt_insert(text.as_bytes()))
+        prompt(alive(&mut self.inner).insert_prompt(text.as_bytes()))
     }
 
     #[wasm_bindgen(js_name = movePromptLeft)]
     pub fn move_prompt_left(&mut self) -> ShellPromptResult {
-        prompt(alive(&mut self.inner).prompt_move_left())
+        prompt(alive(&mut self.inner).move_prompt_left())
     }
 
     #[wasm_bindgen(js_name = movePromptRight)]
     pub fn move_prompt_right(&mut self) -> ShellPromptResult {
-        prompt(alive(&mut self.inner).prompt_move_right())
+        prompt(alive(&mut self.inner).move_prompt_right())
     }
 
     #[wasm_bindgen(js_name = deletePromptBackward)]
     pub fn delete_prompt_backward(&mut self) -> ShellPromptResult {
-        prompt(alive(&mut self.inner).prompt_delete_backward())
+        prompt(alive(&mut self.inner).delete_prompt_backward())
     }
 
     #[wasm_bindgen(js_name = deletePromptForward)]
     pub fn delete_prompt_forward(&mut self) -> ShellPromptResult {
-        prompt(alive(&mut self.inner).prompt_delete_forward())
+        prompt(alive(&mut self.inner).delete_prompt_forward())
     }
 
     /// Complete at the cursor, throws if the completion fails
     #[wasm_bindgen(js_name = completePrompt)]
     pub fn complete_prompt(&mut self, limit: usize) -> Result<Vec<ShellCompletionCandidate>, JsError> {
-        match alive(&mut self.inner).prompt_complete(&self.catalog.borrow(), limit) {
+        match alive(&mut self.inner).complete_prompt(limit, &self.catalog.borrow()) {
             Ok(candidates) => Ok(candidates.into_iter().map(|inner| ShellCompletionCandidate { inner }).collect()),
             Err(_) => Err(JsError::new("failed to complete shell prompt")),
         }
@@ -290,75 +310,86 @@ impl Shell {
 
     #[wasm_bindgen(js_name = applyCompletion)]
     pub fn apply_completion(&mut self, display_text: &str, completion_text: &str, target_offset: u32, target_length: u32) -> ShellPromptResult {
-        prompt(alive(&mut self.inner).prompt_apply_completion(display_text.as_bytes(), completion_text.as_bytes(), target_offset, target_length))
+        prompt(alive(&mut self.inner).apply_completion_bytes(display_text.as_bytes(), completion_text.as_bytes(), target_offset, target_length))
     }
 
+    /// Consume a `DashQLShellPromptInputKey` with its text
     #[wasm_bindgen(js_name = consumePromptInput)]
     pub fn consume_prompt_input(&mut self, key: u32, text: &str) -> ShellPromptResult {
-        prompt(alive(&mut self.inner).prompt_consume(key, text.as_bytes()))
+        match PromptInputKey::from_u32(key) {
+            Some(key) => prompt(alive(&mut self.inner).consume_prompt_input(key, text.as_bytes())),
+            None => invalid_prompt("invalid prompt input"),
+        }
     }
 
     #[wasm_bindgen(js_name = submitPrompt)]
     pub fn submit_prompt(&mut self) -> ShellOperation {
-        operation(alive(&mut self.inner).prompt_submit(&self.catalog.borrow()))
+        operation(alive(&mut self.inner).submit_prompt(&self.catalog.borrow()))
     }
 
     #[wasm_bindgen(js_name = openTerminal)]
     pub fn open_terminal(&mut self, prompt: &str) -> ShellTerminalResult {
-        terminal(alive(&mut self.inner).terminal_open(prompt.as_bytes()))
+        terminal(alive(&mut self.inner).open_terminal(prompt.as_bytes()))
     }
 
+    /// Consume a `DashQLShellPromptInputKey` with its text
     #[wasm_bindgen(js_name = consumeTerminalInput)]
     pub fn consume_terminal_input(&mut self, key: u32, text: &str) -> ShellTerminalResult {
-        terminal(alive(&mut self.inner).terminal_consume(&self.catalog.borrow(), key, text.as_bytes()))
+        match PromptInputKey::from_u32(key) {
+            Some(key) => terminal(alive(&mut self.inner).consume_terminal_input(key, text.as_bytes(), &self.catalog.borrow())),
+            None => invalid_terminal("invalid terminal input"),
+        }
     }
 
     #[wasm_bindgen(js_name = finishTerminalQuery)]
     pub fn finish_terminal_query(&mut self, output: &str, error: bool) -> ShellTerminalResult {
-        terminal(alive(&mut self.inner).terminal_finish_query(output.as_bytes(), error))
+        terminal(alive(&mut self.inner).finish_terminal_query(output.as_bytes(), error))
     }
 
     #[wasm_bindgen(js_name = renderTerminalQueryProgress)]
     pub fn render_terminal_query_progress(&mut self, message: &str, advance_frame: bool) -> ShellTerminalResult {
-        terminal(alive(&mut self.inner).terminal_query_progress(message.as_bytes(), advance_frame))
+        terminal(alive(&mut self.inner).render_terminal_query_progress(message.as_bytes(), advance_frame))
     }
 
     #[wasm_bindgen(js_name = clearTerminalQueryProgress)]
     pub fn clear_terminal_query_progress(&mut self) -> ShellTerminalResult {
-        terminal(alive(&mut self.inner).terminal_query_progress_clear())
+        terminal(alive(&mut self.inner).clear_terminal_query_progress())
     }
 
     #[wasm_bindgen(js_name = renderTerminalStatus)]
     pub fn render_terminal_status(&mut self, message: &str) -> ShellTerminalResult {
-        terminal(alive(&mut self.inner).terminal_status(message.as_bytes()))
+        terminal(alive(&mut self.inner).render_terminal_status(message.as_bytes()))
     }
 
     /// The history as length-prefixed (u32 little-endian) UTF-8 entries
     #[wasm_bindgen(js_name = exportHistory)]
     pub fn export_history(&self) -> Vec<u8> {
-        self.inner.as_ref().expect("the shell is freed").history_export()
+        self.inner.as_ref().expect("the shell is freed").export_history()
     }
 
     /// Replace the history with exported entries, returns the status
     #[wasm_bindgen(js_name = importHistory)]
     pub fn import_history(&mut self, data: &[u8]) -> u32 {
-        alive(&mut self.inner).history_import(data) as u32
+        alive(&mut self.inner).import_history(data) as u32
     }
 
     #[wasm_bindgen(js_name = startQuery)]
     pub fn start_query(&mut self, query: &str) -> ShellOperation {
-        operation(alive(&mut self.inner).start_query(&self.catalog.borrow(), query.as_bytes()))
+        operation(alive(&mut self.inner).start_query(query.as_bytes(), &self.catalog.borrow()))
     }
 
     /// Finish an effect with a `DashQLShellEffectCompletionStatus` and its data (Arrow IPC for queries, a flag
     /// byte and the output for dot commands, the message for errors)
     #[wasm_bindgen(js_name = completeEffect)]
     pub fn complete_effect(&mut self, effect_id: u64, completion_status: u32, data: &[u8]) -> ShellOperation {
-        operation(alive(&mut self.inner).complete_effect(&mut self.catalog.borrow_mut(), effect_id, completion_status, data))
+        match EffectCompletionStatus::from_u32(completion_status) {
+            Some(status) => operation(alive(&mut self.inner).complete_effect(effect_id, status, data, &mut self.catalog.borrow_mut())),
+            None => operation(CoreOperation::new(ShellStatus::InvalidArgument, "invalid effect completion")),
+        }
     }
 
     #[wasm_bindgen(js_name = cancelEffect)]
     pub fn cancel_effect(&mut self, effect_id: u64) -> ShellOperation {
-        operation(alive(&mut self.inner).cancel_effect(&mut self.catalog.borrow_mut(), effect_id))
+        operation(alive(&mut self.inner).cancel_effect(effect_id, &mut self.catalog.borrow_mut()))
     }
 }

@@ -35,7 +35,7 @@ rust_test(
 
 # Tests of the shell, one libtest binary per test file
 DASHQL_CORE_SHELL_TESTS = [
-    "shell_api_test",
+    "shell_terminal_test",
     "shell_arrow_renderer_test",
     "shell_prompt_buffer_test",
     "shell_session_test",

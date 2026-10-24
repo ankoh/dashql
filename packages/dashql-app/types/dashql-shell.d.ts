@@ -26,7 +26,6 @@ declare module '@ankoh/dashql-shell-js' {
         private constructor();
         free(): void;
         readonly status: number;
-        readonly data: Uint8Array;
         readonly text: string;
         readonly effectType: number | undefined;
         readonly effectId: bigint | undefined;

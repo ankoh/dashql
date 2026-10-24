@@ -31,7 +31,7 @@ fn text_version_changes_only_for_successful_text_edits() {
     // The C++ test passes invalid UTF-8 ("\xFF") and expects std::invalid_argument without a version
     // bump. Rust text is &str, so invalid UTF-8 cannot reach the script.
 
-    script.insert_char_at(100, '!' as u32);
+    script.insert_text_at(100, "!");
     assert_eq!(script.text_version(), 2);
     assert_eq!(script.to_text(), "a\u{e9}z!");
     script.erase_text_range(1, 100);

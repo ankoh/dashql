@@ -308,12 +308,6 @@ impl Script {
         self.inner.insert_text_at(offset, text);
     }
 
-    /// Insert a code point at a code point offset
-    #[wasm_bindgen(js_name = insertCharAt)]
-    pub fn insert_char_at(&mut self, offset: usize, unicode: u32) {
-        self.inner.insert_char_at(offset, unicode);
-    }
-
     /// Erase a code point range
     #[wasm_bindgen(js_name = eraseTextRange)]
     pub fn erase_text_range(&mut self, offset: usize, count: usize) {
@@ -334,10 +328,6 @@ impl Script {
         }
     }
 
-    pub fn scan(&mut self) {
-        self.inner.scan();
-    }
-
     pub fn parse(&mut self) {
         self.inner.parse();
     }
@@ -345,13 +335,6 @@ impl Script {
     pub fn analyze(&mut self, parse_if_outdated: bool) -> Result<(), JsError> {
         let catalog = self.catalog.borrow();
         self.inner.analyze(&catalog, parse_if_outdated).map_err(js_error)
-    }
-
-    /// The packed `ScannedScript`
-    #[wasm_bindgen(js_name = getScanned)]
-    pub fn get_scanned(&self) -> Result<Vec<u8>, JsError> {
-        let scanned = self.inner.scanned.as_ref().ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
-        Ok(finish!(dashql_core::pack::pack_scanned_script(scanned)))
     }
 
     /// The packed `ParsedScript`
@@ -422,12 +405,6 @@ impl Script {
         finish!(dashql_core_session::compiler::compile(&mut self.inner, &catalog, &config, options))
     }
 
-    /// The signature of the parsed script
-    #[wasm_bindgen(js_name = computeSignature)]
-    pub fn compute_signature(&mut self, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.inner.compute_signature(parse_if_outdated).map_err(js_error)
-    }
-
     /// The first parsed statement without its separator or surrounding trivia
     #[wasm_bindgen(js_name = getStatementText)]
     pub fn get_statement_text(&mut self, parse_if_outdated: bool) -> Result<String, JsError> {
@@ -438,15 +415,6 @@ impl Script {
     #[wasm_bindgen(js_name = getStatistics)]
     pub fn get_statistics(&self) -> Vec<u8> {
         finish!(self.inner.statistics())
-    }
-
-    /// Rewrite the dashboard clause of the terminal VISUALIZE statement, negative rows and columns
-    /// are absent
-    #[wasm_bindgen(js_name = rewriteDashboard)]
-    pub fn rewrite_dashboard(&mut self, row: i32, column: i32, width: i32, height: i32, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.inner
-            .rewrite_dashboard((row >= 0).then_some(row), (column >= 0).then_some(column), width, height, parse_if_outdated)
-            .map_err(js_error)
     }
 
     /// Format the script into a new script of the catalog of this script

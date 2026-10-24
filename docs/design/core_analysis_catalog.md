@@ -354,7 +354,7 @@ tests pair the catalog with the session.
 | `drop_from_catalog(&mut catalog)` | `drop_script` |
 | `Drop` | None; the owner drops the script from the catalog |
 
-The shell (`dashql_core_shell::Shell`) follows the same rule: calls that read the catalog take it,
+The shell (`dashql_core_shell::ShellSession`) follows the same rule: calls that read the catalog take it,
 calls that may publish session relations take it mutably, and its owner calls `detach` before dropping
 it.
 
