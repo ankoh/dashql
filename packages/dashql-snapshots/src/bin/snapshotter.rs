@@ -19,7 +19,7 @@ use dashql_core::formatter::{
     FORMATTING_DEFAULT_INDENTATION_WIDTH, FORMATTING_DEFAULT_MAX_WIDTH,
 };
 use dashql_core::script_diff::ScriptDiff;
-use dashql_core::view::PlanViewModel;
+use dashql_core_view::PlanViewModel;
 use dashql_core::visualize::{
     compile_markdown_spec, compile_umap_spec, generate_vegalite_spec, parse_vegalite_to_visualize,
 };

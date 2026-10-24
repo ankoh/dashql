@@ -1,0 +1,40 @@
+# The view model of Hyper query plans: parses the JSON plans of Hyper and lays them out as a tree for the plan
+# renderer of the app. Independent of the SQL core, it shares only the FlatBuffers bindings.
+#
+# All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
+
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_library(
+    name = "dashql_core_view",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_core_view",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:flatbuffers",
+        "@core_crates//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "dashql_core_view_unit_tests",
+    size = "small",
+    crate = ":dashql_core_view",
+)
+
+# The plan view model snapshots (snapshots/plans/hyper/tests/*.yaml)
+rust_test(
+    name = "plan_view_model_snapshot_test",
+    size = "small",
+    srcs = ["tests/plan_view_model_snapshots.rs"],
+    data = ["//snapshots/plans/hyper/tests:files"],
+    edition = "2021",
+    use_libtest_harness = False,
+    deps = [
+        ":dashql_core_view",
+        "//packages/dashql-snapshots:dashql_snapshots",
+    ],
+)

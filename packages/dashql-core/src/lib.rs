@@ -20,5 +20,4 @@ pub mod script_session;
 pub mod shell;
 pub mod signature;
 pub mod utils;
-pub mod view;
 pub mod visualize;

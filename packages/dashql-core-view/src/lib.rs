@@ -1,4 +1,5 @@
-//! The view model of Hyper query plans, a port of the C++ `src/view`.
+//! The view model of Hyper query plans: parses the JSON plans of Hyper into operators, edges, fragments and
+//! pipelines and lays them out as a tree, for the plan renderer of the app.
 //!
 //! - `hyper_plan_parser`: `PlanViewModel::ParseHyperPlan` (plans are read with serde_json) and the derived edges,
 //!   fragments and pipelines

@@ -754,7 +754,7 @@ pub fn parse_vegalite_to_visualize(json: &[u8]) -> Vec<u8> {
 #[wasm_bindgen]
 pub struct PlanViewModel {
     /// The core plan view model
-    inner: dashql_core::view::PlanViewModel,
+    inner: dashql_core_view::PlanViewModel,
 }
 
 #[wasm_bindgen]
@@ -762,7 +762,7 @@ impl PlanViewModel {
     #[wasm_bindgen(constructor)]
     pub fn new() -> PlanViewModel {
         PlanViewModel {
-            inner: dashql_core::view::PlanViewModel::new(),
+            inner: dashql_core_view::PlanViewModel::new(),
         }
     }
 

@@ -2,7 +2,7 @@
 //!
 //! The encoder (`dashql_snapshots::encode::plan_view_model`) ports `PlanViewModelSnapshotTest::EncodePlanViewModel`.
 
-use dashql_core::view::PlanViewModel;
+use dashql_core_view::PlanViewModel;
 use dashql_snapshots::encode::plan_view_model::{encode_plan_view_model, snapshot_config};
 use dashql_snapshots::{compare, load_category_from, run, snapshot_root, Arguments, Failed, Trial, Yaml};
 
