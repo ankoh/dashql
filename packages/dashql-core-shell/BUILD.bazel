@@ -1,0 +1,58 @@
+# The DashQL shell: a readline-like prompt with SQL highlighting and completion, a VT100 terminal renderer, the
+# rendering of Arrow query results, and the execution protocol of queries and dot commands. The wasm module is
+# //packages/dashql-shell-wasm.
+#
+# All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
+
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_library(
+    name = "dashql_core_shell",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_core_shell",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-cast",
+        "@core_crates//:arrow-ipc",
+        "@core_crates//:arrow-schema",
+        "@core_crates//:unicode-segmentation",
+        "@core_crates//:unicode-width",
+    ],
+)
+
+rust_test(
+    name = "dashql_core_shell_unit_tests",
+    size = "small",
+    crate = ":dashql_core_shell",
+)
+
+# Tests of the shell, one libtest binary per test file
+DASHQL_CORE_SHELL_TESTS = [
+    "shell_api_test",
+    "shell_arrow_renderer_test",
+    "shell_prompt_buffer_test",
+    "shell_session_test",
+]
+
+[rust_test(
+    name = name,
+    size = "small",
+    srcs = ["tests/" + name + ".rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_shell",
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-ipc",
+        "@core_crates//:arrow-schema",
+        "@core_crates//:flatbuffers",
+    ],
+) for name in DASHQL_CORE_SHELL_TESTS]

@@ -5,7 +5,7 @@
 //! The wasm-bindgen module and the tests drive the shell through it.
 
 use super::*;
-use crate::catalog::Catalog;
+use dashql_core::catalog::Catalog;
 use std::cell::RefCell;
 use std::rc::Rc;
 

@@ -14,6 +14,7 @@ rust_shared_library(
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
         "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-shell:dashql_core_shell",
         "//packages/dashql-core-wasm:dashql_core_wasm_lib",
         "@core_crates//:wasm-bindgen",
     ],

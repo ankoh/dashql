@@ -10,7 +10,7 @@
 
 pub use dashql_core_wasm_lib::*;
 
-use dashql_core::shell::{CompletionCandidate, PromptSnapshot, ShellOperation as CoreOperation, TerminalOutput};
+use dashql_core_shell::{CompletionCandidate, PromptSnapshot, ShellOperation as CoreOperation, TerminalOutput};
 use wasm_bindgen::prelude::*;
 
 /// A prompt after an input (`DashQLShellPromptResult`)
@@ -95,7 +95,7 @@ pub struct ShellOperation {
 
 impl ShellOperation {
     fn effect_header(&self) -> Option<(u32, u64)> {
-        if self.inner.status != dashql_core::shell::ShellStatus::Pending || self.inner.data.len() < 16 {
+        if self.inner.status != dashql_core_shell::ShellStatus::Pending || self.inner.data.len() < 16 {
             return None;
         }
         let data = &self.inner.data;
@@ -190,7 +190,7 @@ fn operation(inner: CoreOperation) -> ShellOperation {
 #[wasm_bindgen]
 pub struct Shell {
     /// The core shell
-    inner: dashql_core::shell::Shell,
+    inner: dashql_core_shell::Shell,
 }
 
 #[wasm_bindgen]
@@ -199,7 +199,7 @@ impl Shell {
     #[wasm_bindgen(constructor)]
     pub fn new(catalog: &Catalog, terminal_columns: u32, auto_qualify_non_default_database_tables: bool) -> Shell {
         Shell {
-            inner: dashql_core::shell::Shell::new(catalog.shared(), terminal_columns, auto_qualify_non_default_database_tables),
+            inner: dashql_core_shell::Shell::new(catalog.shared(), terminal_columns, auto_qualify_non_default_database_tables),
         }
     }
 

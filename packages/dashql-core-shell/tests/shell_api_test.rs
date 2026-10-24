@@ -6,8 +6,8 @@
 use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
-use dashql_core::shell::vt100::{self, sequence, Command};
-use dashql_core::shell::{PromptInputAction, PromptInputKey as Key, SharedCatalog, Shell, ShellStatus, TerminalOutput};
+use dashql_core_shell::vt100::{self, sequence, Command};
+use dashql_core_shell::{PromptInputAction, PromptInputKey as Key, SharedCatalog, Shell, ShellStatus, TerminalOutput};
 use std::cell::RefCell;
 use std::rc::Rc;
 

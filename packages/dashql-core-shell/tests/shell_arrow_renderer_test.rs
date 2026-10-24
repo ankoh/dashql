@@ -9,9 +9,9 @@ use arrow_array::{
 use arrow_ipc::writer::{FileWriter, StreamWriter};
 use arrow_schema::{DataType, Field, Schema};
 use dashql_core::catalog::Catalog;
-use dashql_core::shell::unicode::display_width;
-use dashql_core::shell::vt100::{self, Command};
-use dashql_core::shell::{
+use dashql_core_shell::unicode::display_width;
+use dashql_core_shell::vt100::{self, Command};
+use dashql_core_shell::{
     ArrowRenderer, EffectCompletionStatus, EffectType, PromptInputKey, ShellSession, ShellStatus,
 };
 use std::sync::Arc;

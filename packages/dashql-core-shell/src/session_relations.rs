@@ -1,9 +1,9 @@
 //! Relations created during a shell session, published as a descriptor entry of the catalog
 //! (`src/shell/session_relation_catalog.cc`).
 
-use crate::catalog::changes::{derive_catalog_change, qualify_catalog_changes, CatalogChangeOptions, CatalogNameDefaults};
-use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer};
-use crate::script::Script;
+use dashql_core::catalog::changes::{derive_catalog_change, qualify_catalog_changes, CatalogChangeOptions, CatalogNameDefaults};
+use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
+use dashql_core::script::Script;
 
 const SESSION_SCHEMA: &str = "public";
 

@@ -5,8 +5,8 @@
 //! offsets are those of the whole text; the Rust prompt segments the (short) text on demand.
 
 use super::unicode::{grapheme_boundaries, is_valid, next_grapheme, previous_grapheme};
-use crate::catalog::Catalog;
-use crate::script::Script;
+use dashql_core::catalog::Catalog;
+use dashql_core::script::Script;
 
 /// A grapheme position: the byte and code point offsets of a grapheme cluster boundary
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

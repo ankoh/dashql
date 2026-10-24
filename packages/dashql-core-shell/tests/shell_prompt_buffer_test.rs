@@ -1,7 +1,7 @@
 //! A port of the C++ `test/shell_prompt_buffer_test.cc`.
 
 use dashql_core::catalog::Catalog;
-use dashql_core::shell::PromptBuffer;
+use dashql_core_shell::PromptBuffer;
 
 fn prompt() -> PromptBuffer {
     PromptBuffer::new(&Catalog::new())
@@ -281,7 +281,7 @@ fn replaces_byte_ranges_with_validated_text() {
 
 #[test]
 fn measures_display_width_of_text() {
-    use dashql_core::shell::unicode::{display_width, graphemes, is_valid, next_grapheme, previous_grapheme};
+    use dashql_core_shell::unicode::{display_width, graphemes, is_valid, next_grapheme, previous_grapheme};
     assert_eq!(display_width(b"abc"), 3);
     assert_eq!(display_width("界".as_bytes()), 2);
     assert_eq!(display_width("e\u{301}".as_bytes()), 1);

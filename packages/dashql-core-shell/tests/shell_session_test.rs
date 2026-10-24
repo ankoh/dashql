@@ -2,8 +2,8 @@
 //! effect protocol of queries and commands. They drive the C ABI mapping [`Shell`].
 
 use dashql_core::catalog::Catalog;
-use dashql_core::shell::vt100;
-use dashql_core::shell::{PromptInputAction, PromptInputKey as Key, SharedCatalog, Shell, ShellStatus, TerminalOutput};
+use dashql_core_shell::vt100;
+use dashql_core_shell::{PromptInputAction, PromptInputKey as Key, SharedCatalog, Shell, ShellStatus, TerminalOutput};
 use std::cell::RefCell;
 use std::rc::Rc;
 
