@@ -26,7 +26,7 @@ describe('DashQL Analyzer', () => {
         expect(extParsedPtr.read().nodesLength()).toBeGreaterThan(0);
         expect(extAnalyzedPtr.read().tablesLength()).toEqual(1);
 
-        catalog.loadScript(extScript, 0);
+        catalog.loadScript(extScript, dashql.buffers.catalog.CatalogLayer.SESSION);
         expect(catalog.containsEntryId(1)).toBeTruthy();
 
         const mainScript = dql!.createScript(catalog);

@@ -11,15 +11,15 @@ them.
  text ──scan──▶ ScannedScript ──parse──▶ ParsedScript ──analyze(catalog)──▶ AnalyzedScript
                  Arc, immutable           Arc, immutable                      Arc, immutable
                                                                                    │
-                                          load_script(analysis, rank) ◀────────────┘
+                                          load_script(analysis, layer) ◀───────────┘
                                                      │
  ┌───────────────────────────────── Catalog ─────────▼──────────────────────────────────┐
  │  current             Arc<CatalogSnapshot>            ← copied on write                │
  │  ids                 canonical database and schema ids, never reused                 │
  │ ┌───────────────────────────── CatalogSnapshot ─────────────────────────────────────┐ │
- │ │ script entries      (PublishedScript, Rank)         ← declarations of editor scripts│ │
+ │ │ script entries      (PublishedScript, CatalogLayer) ← declarations of editor scripts│ │
  │ │ descriptor entries  Arc<DescriptorEntry>            ← schemas of connections       │ │
- │ │ global indexes      by rank, by schema, by (database, schema)                     │ │
+ │ │ global indexes      by layer, by schema, by (database, schema)                    │ │
  │ │ version             bumped when what other entries resolve against changes        │ │
  │ └───────────────────────────────────────────────────────────────────────────────────┘ │
  └───────────────────────────────────────────────────────────────────────────────────────┘
@@ -131,11 +131,11 @@ pub struct CatalogSnapshot {
     id: u64,
     version: CatalogVersion,
     entries: HashMap<CatalogEntryId, CatalogEntryRef>,
-    script_entries: HashMap<CatalogEntryId, (PublishedScript, Rank)>,
+    script_entries: HashMap<CatalogEntryId, (PublishedScript, CatalogLayer)>,
     descriptor_entries: HashMap<CatalogEntryId, Arc<DescriptorEntry>>,
-    entries_ranked: BTreeSet<(Rank, CatalogEntryId)>,
-    entries_by_qualified_schema: BTreeMap<(db, schema, Rank, CatalogEntryId), SchemaEntryInfo>,
-    entries_by_schema: BTreeMap<(schema, Rank, CatalogEntryId), SchemaEntryInfo>,
+    entries_ranked: BTreeSet<(CatalogLayer, CatalogEntryId)>,
+    entries_by_qualified_schema: BTreeMap<(db, schema, CatalogLayer, CatalogEntryId), SchemaEntryInfo>,
+    entries_by_schema: BTreeMap<(schema, CatalogLayer, CatalogEntryId), SchemaEntryInfo>,
     databases: BTreeMap<db, Arc<DatabaseDeclaration>>,
     schemas: BTreeMap<(db, schema), Arc<SchemaDeclaration>>,
 }
@@ -149,9 +149,22 @@ published snapshot never changes. The copy clones the maps of entry `Arc`s, O(en
 
 `Catalog::is_current(snapshot)` holds while the snapshot belongs to the catalog and has its version.
 
-**Ranks.** Every entry has a `Rank`; a lower rank wins on name conflicts, in resolution and in
-`flatten`. The app publishes editor scripts with their script key as rank and connection descriptors
-with a large constant, so session scripts shadow connection tables.
+**Layers.** Every entry is published in a `CatalogLayer`. Names resolve in this order, in
+resolution and in `flatten`, and within a layer against the entry with the older (smaller) entry id:
+
+| Layer | Content | Published by |
+|---|---|---|
+| `SESSION` | The scripts of a session | `ScriptSession::load_into_catalog`; in JS `loadIntoCatalog()` takes no layer |
+| `EXECUTED` | Relations created by executed statements | The shell's session relations (`shell/session_relations.rs`) |
+| `CONNECTION` | The schema of the connection | Connection catalog batches (`catalog_batch.ts`), the shell's catalog scripts, the CLI's schema files |
+
+The layer is part of the core, not chosen by the app: session scripts always shadow the connection
+schema. Ranks used to be numbers chosen by the app (the script key for scripts, 9999 for
+descriptors); since script keys are entry ids, which every script of the module consumes, a long
+session could rank its scripts behind the connection schema
+(`catalog_descriptor_test::session_scripts_shadow_the_connection_whatever_their_entry_ids`).
+`CatalogLayer` is a FlatBuffers enum; publishing rejects other values, and the JS wrapper checks
+them before the bindings would wrap them into a byte.
 
 ### Operations and versions
 
@@ -160,7 +173,7 @@ catalog, so it only moves when what other entries resolve against may have chang
 
 | Operation | Effect | Version |
 |---|---|---|
-| `load_script` / `load_scripts` | Publish analyses atomically. Validates catalog id, entry id collisions and canonical ids (`CATALOG_ID_OUT_OF_SYNC`). | **Unchanged** if every analysis replaces a published script with the same rank and `CatalogEntryData::same_declarations`; the entries are swapped in place. Otherwise +1 and all indexes are rebuilt. |
+| `load_script` / `load_scripts` | Publish analyses atomically. Validates catalog id, entry id collisions and canonical ids (`CATALOG_ID_OUT_OF_SYNC`). | **Unchanged** if every analysis replaces a published script in the same layer and `CatalogEntryData::same_declarations`; the entries are swapped in place. Otherwise +1 and all indexes are rebuilt. |
 | `drop_script` | Remove a script entry and its index entries. | +1 if the entry existed |
 | `replace_descriptor` | Import descriptor bytes and publish them. | +1 |
 | `drop_descriptor` | Remove a descriptor. | +1 if it existed |
@@ -171,7 +184,7 @@ catalog, so it only moves when what other entries resolve against may have chang
 schemas, tables, columns and functions, plus column order, function params and return types. It
 ignores AST positions and name ids, which only the declaring script reads. So typing in a query of
 a script that also declares tables republishes without a version bump, while adding a column, renaming
-a table or changing the rank bumps it.
+a table or changing the layer bumps it.
 
 A rebuilding publish stages new maps and swaps them in at the end, so a failed publish leaves the
 catalog unchanged.
@@ -182,9 +195,9 @@ catalog unchanged.
 
 | Name | Strategy |
 |---|---|
-| `db.schema.table` | Exact lookup in the entries of (db, schema), in rank order. A direct hit wins. |
-| `schema.table` | Entries that populate the schema in any database, by rank. |
-| `table` | All entries by rank, by unqualified name. |
+| `db.schema.table` | Exact lookup in the entries of (db, schema), in resolution order. A direct hit wins. |
+| `schema.table` | Entries that populate the schema in any database, in resolution order. |
+| `table` | All entries in resolution order, by unqualified name. |
 
 `ignore_entry` is the analyzing script's own entry id: a script resolves its own declarations from
 its in-progress analysis, never from its published version. Further matches up to `limit` are kept as
@@ -310,7 +323,7 @@ analysis per declaration change.
 |---|---|
 | `apply(event)` | None; analyzes if `event.analyze` or if a selection change meets a stale analysis |
 | `analyze()` | None; re-analyzes if not current |
-| `load_into_catalog(rank)` | `load_script` of the analysis |
+| `load_into_catalog(layer)` | `load_script` of the analysis |
 | `drop_from_catalog()` | `drop_script` |
 | `Drop` | `drop_script` through `try_borrow_mut`; **silently skipped** if the catalog is borrowed at that moment |
 
@@ -333,9 +346,9 @@ as the analysis saw it.
 ## Descriptors and catalog changes
 
 Connections publish their schema as descriptor entries:
-- `replace_descriptor(id, rank, bytes)` imports a full schema (from a batch: metadata → catalog SQL →
+- `replace_descriptor(id, layer, bytes)` imports a full schema (from a batch: metadata → catalog SQL →
   `process_batch` in a worker → descriptor bytes).
-- `apply_catalog_changes(id, rank, changes)` follows the DDL the user runs, without a full refresh.
+- `apply_catalog_changes(id, layer, changes)` follows the DDL the user runs, without a full refresh.
 
 `catalog/changes.rs`:
 1. `derive_catalog_change(analysis, statement)`: a successful `CREATE TABLE`, `CREATE TABLE AS`,

@@ -8,7 +8,6 @@ import {
     HyperDB,
     HyperDBConnection,
 } from '../platform/hyperdb/hyperdb_wasm.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../app/connections/catalog_update_state.js';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 
 declare const DASHQL_SHELL_PRECOMPILED: Promise<Uint8Array>;
@@ -38,7 +37,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('switches keyword completion case without changing catalog names or prompt state', () => {
-        shell.loadCatalogScript('create table orders(id int);', CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+        shell.loadCatalogScript('create table orders(id int);');
         shell.setPrompt('sel');
         expect(shell.completePrompt(50).some(candidate => candidate.completionText === 'select')).toBe(true);
         shell.setKeywordCase(dashql.buffers.formatting.KeywordCase.UPPER);
@@ -54,11 +53,9 @@ describe('DashQL shell Wasm', () => {
     it('owns an independent catalog and completes from copied relation and function scripts', () => {
         shell.loadCatalogScript(
             'CREATE TABLE sales.orders (order_id BIGINT, amount DOUBLE);',
-            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
         );
         shell.loadCatalogScript(
             'CREATE FUNCTION sales.discount(DOUBLE) RETURNS DOUBLE;',
-            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
         );
 
         expect(shell.setPrompt('select * from sales.ord')).toMatchObject({
@@ -74,7 +71,6 @@ describe('DashQL shell Wasm', () => {
     it('replaces a loaded catalog script in place', () => {
         const script = shell.loadCatalogScript(
             'CREATE TABLE sales.orders (order_id BIGINT);',
-            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
         );
         shell.setPrompt('select * from ord');
         expect(shell.completePrompt(20).some(candidate => candidate.completionText === 'orders')).toBe(true);
@@ -82,7 +78,6 @@ describe('DashQL shell Wasm', () => {
         shell.replaceCatalogScript(
             script,
             'CREATE TABLE sales.customers (customer_id BIGINT);',
-            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
         );
 
         shell.setPrompt('select * from ord');
@@ -101,7 +96,6 @@ describe('DashQL shell Wasm', () => {
         });
         shell.loadCatalogScript(
             'CREATE TABLE "Salesforce".public."Account" (id BIGINT);',
-            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
         );
         shell.openTerminal('db> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'select * from Acc');
@@ -125,7 +119,6 @@ describe('DashQL shell Wasm', () => {
     it('keeps automatic table qualification disabled by default', () => {
         shell.loadCatalogScript(
             'CREATE TABLE "Salesforce".public."Account" (id BIGINT);',
-            CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
         );
         shell.openTerminal('db> ');
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'select * from Acc');

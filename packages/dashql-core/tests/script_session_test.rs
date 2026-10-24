@@ -4,6 +4,7 @@
 //! The C ABI tests (`CAbi...`, `Compatibility...`, `CatalogLoadAndDrop...`) call the Rust session
 //! API directly; buffers go through `apply_buffer`.
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::cursor::RelativeSymbolPosition;
 use dashql_buffers::diff::ScriptDiffOpCode;
 use dashql_buffers::editor::{
@@ -88,7 +89,7 @@ fn load_schema(catalog: &CatalogHandle, text: &str) -> Script {
     let mut schema = Script::new(&catalog);
     schema.replace_text(text);
     schema.analyze(&catalog, true).unwrap();
-    catalog.load_script(schema.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     schema
 }
 
@@ -350,7 +351,7 @@ fn cursor_move_refreshes_analysis_after_catalog_revision() {
 
     let mut schema = session(&catalog, UTF16);
     assert!(analyze(&mut schema, "create table items (value int)").analysis_available);
-    schema.load_into_catalog(0).unwrap();
+    schema.load_into_catalog(CatalogLayer::SESSION).unwrap();
 
     let moved = source.set_primary_cursor(source.text_version(), 7);
     assert_eq!(moved.status, EditorUpdateStatus::OK);
@@ -364,7 +365,7 @@ fn editing_published_script_keeps_catalog_entry_until_republished() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
     assert!(analyze(&mut session, "create table items (id int)").analysis_available);
-    session.load_into_catalog(0).unwrap();
+    session.load_into_catalog(CatalogLayer::SESSION).unwrap();
     assert!(catalog.borrow().contains(session.catalog_entry_id()));
 
     let published_revision = catalog.borrow().version();
@@ -402,7 +403,7 @@ fn editing_published_script_keeps_catalog_entry_until_republished() {
     assert_eq!(&*analyzed.table(loc).unwrap().table_name.table_name.text, "updated");
 
     // Publishing the new declarations bumps the version
-    session.load_into_catalog(0).unwrap();
+    session.load_into_catalog(CatalogLayer::SESSION).unwrap();
     assert_eq!(catalog.borrow().version(), published_revision + 1);
 }
 
@@ -412,9 +413,9 @@ fn published_sessions_refresh_at_final_catalog_revision_before_planning() {
     let mut schema = session(&catalog, UTF8);
     let mut query = session(&catalog, UTF8);
     assert!(analyze(&mut schema, "create table items (id int)").analysis_available);
-    schema.load_into_catalog(0).unwrap();
+    schema.load_into_catalog(CatalogLayer::SESSION).unwrap();
     assert!(analyze(&mut query, "select id from items").analysis_available);
-    query.load_into_catalog(1).unwrap();
+    query.load_into_catalog(CatalogLayer::SESSION).unwrap();
 
     let final_revision = catalog.borrow().version();
     assert_ne!(query.script().analyzed.as_ref().unwrap().entry.catalog_version, final_revision);
@@ -781,7 +782,7 @@ fn inserts_dashboard_into_terminal_visualization() {
 }
 
 #[test]
-fn catalog_load_and_drop_use_session_owned_script_and_rank() {
+fn catalog_load_and_drop_use_session_owned_script_and_layer() {
     let catalog = new_catalog();
     let entry_id;
     {
@@ -790,16 +791,16 @@ fn catalog_load_and_drop_use_session_owned_script_and_rank() {
         session.replace_text(0, "create table items (id int)");
         session.analyze();
 
-        session.load_into_catalog(17).unwrap();
+        session.load_into_catalog(CatalogLayer::SESSION).unwrap();
         assert!(catalog.borrow().contains(entry_id));
         let entries: Vec<_> =
-            catalog.borrow().entries_ranked().map(|(rank, e)| (e.data().catalog_entry_id, rank)).collect();
-        assert_eq!(entries, vec![(entry_id, 17)]);
+            catalog.borrow().entries_ranked().map(|(layer, e)| (e.data().catalog_entry_id, layer)).collect();
+        assert_eq!(entries, vec![(entry_id, CatalogLayer::SESSION)]);
 
         session.drop_from_catalog();
         assert!(!catalog.borrow().contains(entry_id));
 
-        session.load_into_catalog(23).unwrap();
+        session.load_into_catalog(CatalogLayer::SESSION).unwrap();
         assert!(catalog.borrow().contains(entry_id));
     }
     assert!(!catalog.borrow().contains(entry_id));
@@ -983,15 +984,15 @@ fn republishing_equal_declarations_keeps_other_analyses_current() {
     let mut schema = session(&catalog, UTF8);
     let mut query = session(&catalog, UTF8);
     assert!(analyze(&mut schema, "create table items (id int)").analysis_available);
-    schema.load_into_catalog(0).unwrap();
+    schema.load_into_catalog(CatalogLayer::SESSION).unwrap();
     assert!(analyze(&mut query, "select id from items").analysis_available);
-    query.load_into_catalog(1).unwrap();
+    query.load_into_catalog(CatalogLayer::SESSION).unwrap();
     assert!(query.analyze().analysis_available);
     let revision = catalog.borrow().version();
 
     // Re-analyzing and republishing the schema changes nothing the query resolves against
     assert!(schema.analyze().analysis_available);
-    schema.load_into_catalog(0).unwrap();
+    schema.load_into_catalog(CatalogLayer::SESSION).unwrap();
     assert_eq!(catalog.borrow().version(), revision);
     let update = query.analyze();
     assert!(update.analysis_available);
@@ -1003,7 +1004,7 @@ fn completion_ignores_published_version_of_edited_script() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
     assert!(analyze(&mut session, "create table items_old (id int)").analysis_available);
-    session.load_into_catalog(0).unwrap();
+    session.load_into_catalog(CatalogLayer::SESSION).unwrap();
 
     let text = "create table items_new (id int); select * from items_";
     assert!(analyze(&mut session, text).analysis_available);

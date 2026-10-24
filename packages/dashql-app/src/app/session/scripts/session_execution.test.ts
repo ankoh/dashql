@@ -30,8 +30,8 @@ function fixture(entries: Array<{ file: string; outputs: boolean[]; connection?:
             preparation.push(`analyze:${entry.file}`);
             return { status: core.buffers.editor.EditorUpdateStatus.OK, analysisAvailable: true, statusMessage: null };
         }),
-        loadIntoCatalog: vi.fn((rank: number) => {
-            preparation.push(`load:${entry.file}:${rank}`);
+        loadIntoCatalog: vi.fn(() => {
+            preparation.push(`load:${entry.file}`);
             catalogRevision++;
         }),
         startExecution: vi.fn(() => { throw new Error('Must not start core script execution'); }),
@@ -92,9 +92,9 @@ describe('runSessionExecution', () => {
         const run = runSessionExecution(f.args);
         await run;
         expect(f.preparation).toEqual([
-            'analyze:1_empty.sql', 'load:1_empty.sql:102',
-            'analyze:2_commands.sql', 'load:2_commands.sql:101',
-            'analyze:10_last.sql', 'load:10_last.sql:100',
+            'analyze:1_empty.sql', 'load:1_empty.sql',
+            'analyze:2_commands.sql', 'load:2_commands.sql',
+            'analyze:10_last.sql', 'load:10_last.sql',
             'analyze:1_empty.sql', 'analyze:2_commands.sql', 'analyze:10_last.sql',
         ]);
         expect(f.plan).toHaveBeenCalledWith([f.scriptSessions[2], f.scriptSessions[1], f.scriptSessions[0]]);

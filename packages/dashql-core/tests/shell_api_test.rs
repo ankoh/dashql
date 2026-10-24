@@ -3,6 +3,7 @@
 //! The C++ tests drive the C ABI of the shell wasm. They drive [`Shell`] here, which maps the C ABI
 //! one to one (keys and completion statuses as integers, the same results and actions).
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
 use dashql_core::shell::vt100::{self, sequence, Command};
@@ -22,7 +23,7 @@ fn load_schema(catalog: &SharedCatalog, text: &str) -> Script {
     let mut schema = Script::new(&catalog.borrow());
     schema.insert_text_at(0, text);
     schema.analyze(&catalog.borrow(), true).unwrap();
-    catalog.borrow_mut().load_script(schema.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.borrow_mut().load_script(schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     schema
 }
 

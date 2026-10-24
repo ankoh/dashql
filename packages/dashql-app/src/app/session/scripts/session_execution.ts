@@ -139,7 +139,7 @@ export async function runSessionExecution(args: {
         // Publish all declarations into the catalogs of their connections
         for (const [index, script] of scripts.entries()) {
             analyze(script);
-            script.scriptSession.loadIntoCatalog(script.scriptKey);
+            script.scriptSession.loadIntoCatalog();
             if ((index + 1) % PREPARATION_YIELD_INTERVAL === 0) await cooperate();
         }
         // The session must keep its scripts, their order and their connections for the whole run

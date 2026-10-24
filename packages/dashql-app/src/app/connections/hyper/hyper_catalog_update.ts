@@ -3,7 +3,6 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from '../connection_state.js';
 import { DynamicConnectionDispatch } from '../connection_registry.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../catalog_update_state.js';
 import { CatalogSource, DEFAULT_DATABASE_NAME, generateCatalogScriptHeader, generateCatalogScriptHeaderForSource, generateSchemaSQL, quoteIdentifier, type ColumnMetadata } from '../catalog_sql_generator.js';
 import { CATALOG_QUERY_READ_TIMEOUT_MS, queryPgAttribute, generateCatalogSQLFromPgAttribute } from '../catalog_query_pg_attribute.js';
 import { QueryExecutionArgs } from '../query_execution_args.js';
@@ -302,8 +301,8 @@ export async function updateHyperCatalog(
         value: [updateId],
     });
     const [relations, functions] = await publishCatalogBatch(dql, catalog, [
-        { script: catalogRelationScript, text: nextText, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK },
-        { script: catalogFunctionScript, text: functionSQL, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, requireFunctions: !resolveLiveFunctionCatalog },
+        { script: catalogRelationScript, text: nextText },
+        { script: catalogFunctionScript, text: functionSQL, requireFunctions: !resolveLiveFunctionCatalog },
     ], options, validate);
     logger.info('Updated Hyper catalog relations', {
         updateId: updateId.toString(),

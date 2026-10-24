@@ -1,6 +1,7 @@
 //! Name resolution through the FROM sources of the name scopes: derived tables, column aliases,
 //! correlation, qualified stars, merged join columns and output column names.
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::AnalyzerErrorType;
 use dashql_core::analyzer::{AnalyzedScript, ColumnResolution};
 use dashql_core::catalog::Catalog;
@@ -24,7 +25,7 @@ impl NameResolutionTest {
             "create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);",
         );
         schema.analyze(&catalog, true).unwrap();
-        catalog.load_script(schema.analyzed.clone().unwrap(), 0).unwrap();
+        catalog.load_script(schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
         Self { catalog, _schema: schema }
     }
 

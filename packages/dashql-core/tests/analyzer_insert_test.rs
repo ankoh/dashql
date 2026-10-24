@@ -1,5 +1,6 @@
 //! A port of the C++ `test/analyzer_insert_test.cc`.
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::TableReferenceRole;
 use dashql_core::analyzer::{AnalyzedScript, TableRole};
 use dashql_core::catalog::Catalog;
@@ -10,7 +11,7 @@ use std::sync::Arc;
 /// Analyze a schema script and load it into the catalog
 fn load_schema(catalog: &mut Catalog, sql: &str) -> Script {
     let script = analyze(catalog, sql);
-    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     script
 }
 

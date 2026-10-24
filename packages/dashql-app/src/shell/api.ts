@@ -287,14 +287,15 @@ export class DashQLShell {
         return shell;
     }
 
-    loadCatalogScript(text: string, rank: number): DashQLScript {
+    /// Load a script of the connection catalog
+    loadCatalogScript(text: string): DashQLScript {
         this.assertAlive();
         const script = this.core.createScript(this.catalog);
         try {
             script.replaceText(text);
             if (text.trim().length !== 0) {
                 script.analyze();
-                this.catalog.loadScript(script, rank);
+                this.catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
             }
             this.catalogScripts.push(script);
             return script;
@@ -304,11 +305,11 @@ export class DashQLShell {
         }
     }
 
-    replaceCatalogScript(script: DashQLScript, text: string, rank: number): void {
+    replaceCatalogScript(script: DashQLScript, text: string): void {
         this.assertAlive();
         script.replaceText(text);
         script.analyze();
-        this.catalog.loadScript(script, rank);
+        this.catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
     }
 
     resize(terminalColumns: number): void {

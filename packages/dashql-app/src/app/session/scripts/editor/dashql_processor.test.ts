@@ -164,7 +164,7 @@ describe('CodeMirror portable editor events', () => {
         const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (value int)');
         schemaSession.analyze();
-        schemaSession.loadIntoCatalog(0);
+        schemaSession.loadIntoCatalog();
 
         editorState = editorState.update({ selection: EditorSelection.cursor(7) }).state;
         const moved = editorState.field(DashQLProcessorPlugin).editorUpdate;
@@ -180,7 +180,7 @@ describe('CodeMirror portable editor events', () => {
         const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
         schemaSession.analyze();
-        schemaSession.loadIntoCatalog(0);
+        schemaSession.loadIntoCatalog();
 
         const text = 'select identifier from items where identifier > 0';
         const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 0);
@@ -231,7 +231,7 @@ describe('CodeMirror portable editor events', () => {
         const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
         schemaSession.analyze();
-        schemaSession.loadIntoCatalog(0);
+        schemaSession.loadIntoCatalog();
 
         const text = 'select identifier from items where identifier > 0';
         const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 0);
@@ -271,7 +271,7 @@ describe('CodeMirror portable editor events', () => {
         const schemaSession = dql!.createScriptSession(catalog);
         schemaSession.replaceText(0n, 'create table items (identifier int)');
         schemaSession.analyze();
-        schemaSession.loadIntoCatalog(0);
+        schemaSession.loadIntoCatalog();
 
         const text = 'select count(identifier) from items';
         const { scriptSession, editorUpdate } = createScriptSession(catalog, text, 0);

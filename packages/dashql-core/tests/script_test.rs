@@ -3,6 +3,7 @@
 //! Not ported: `TextVersionAndAnalysisSnapshotExceed32Bits`, which writes the public C++ field
 //! `text_version`; the Rust text version is private and only bumped by edits.
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::status::StatusCode;
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
@@ -177,7 +178,7 @@ limit 100
     main_script.scan();
     main_script.parse();
 
-    catalog.load_script(external_script.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(external_script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     main_script.analyze(&catalog, true).unwrap();
 }
 

@@ -3,7 +3,7 @@
 use super::{plain, Map};
 use crate::ryml::Node;
 use dashql_buffers::execution::{ExecutionGraphEntityType, ExecutionGraphT};
-use dashql_core::catalog::Catalog;
+use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
 use dashql_core::utils::quote_identifier;
 use dashql_parser::keywords::Keyword;
@@ -110,7 +110,7 @@ pub fn encode_planner_fixture(fixture: &Fixture) -> Result<Node, String> {
         if !publishable(&script) {
             return Err("invalid planner fixture catalog".into());
         }
-        catalog.load_script(script.analyzed.clone().unwrap(), 0).map_err(|e| e.message)?;
+        catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
         catalog_script = Some(script);
     }
     let mut names = Vec::new();
@@ -127,7 +127,7 @@ pub fn encode_planner_fixture(fixture: &Fixture) -> Result<Node, String> {
         .iter()
         .enumerate()
         .filter(|(_, (s, _))| publishable(s) && !s.analyzed.as_ref().unwrap().entry.table_declarations.is_empty())
-        .map(|(i, (s, _))| (s.analyzed.clone().unwrap(), (i + 1) as u32))
+        .map(|(_, (s, _))| (s.analyzed.clone().unwrap(), CatalogLayer::SESSION))
         .collect();
     catalog.load_scripts(&definitions).map_err(|e| e.message)?;
     for (script, _) in scripts.iter_mut() {

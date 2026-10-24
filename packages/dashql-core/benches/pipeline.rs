@@ -7,6 +7,7 @@
 
 mod harness;
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_core::catalog::Catalog;
 use dashql_core::formatter::Formatter;
@@ -638,7 +639,7 @@ fn bench_script() {
     let mut external = Script::new(&catalog);
     external.insert_text_at(0, EXTERNAL_SCRIPT);
     external.analyze(&catalog, true).expect("external script");
-    catalog.load_script(external.analyzed.clone().unwrap(), 0).expect("load external script");
+    catalog.load_script(external.analyzed.clone().unwrap(), CatalogLayer::SESSION).expect("load external script");
 
     let mut main = Script::new(&catalog);
     main.insert_text_at(0, MAIN_SCRIPT);
@@ -715,7 +716,7 @@ fn bench_analyze() {
     let external_id = catalog.allocate_entry_id();
     let external = Arc::new(parse(Arc::new(scan(EXTERNAL_SCRIPT, 0, external_id))));
     let external = analyze(external, &catalog).expect("external script");
-    catalog.load_script(Arc::new(external), 0).expect("load external script");
+    catalog.load_script(Arc::new(external), CatalogLayer::SESSION).expect("load external script");
     let main_id = catalog.allocate_entry_id();
     let main = Arc::new(parse(Arc::new(scan(MAIN_SCRIPT, 0, main_id))));
     bench("analyze_query_only", || {

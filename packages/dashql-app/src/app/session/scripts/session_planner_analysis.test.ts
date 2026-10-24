@@ -55,7 +55,7 @@ function fixture() {
     // Publish before capturing snapshots, matching the planner's final catalog revision.
     for (const script of [definition, query, other]) {
         script.scriptSession.analyze();
-        script.scriptSession.loadIntoCatalog(script.scriptKey);
+        script.scriptSession.loadIntoCatalog();
     }
     const updates = [definition, query].map(script => ({
         scriptKey: script.scriptKey, editorUpdate: script.scriptSession.analyze(),
@@ -107,7 +107,7 @@ describe('planner analysis projection', () => {
         const session = f.other.scriptSession;
         session.replaceText(session.getTextVersion(), 'create table other (id int);');
         session.analyze();
-        session.loadIntoCatalog(f.other.scriptKey);
+        session.loadIntoCatalog();
         expect(f.query.scriptSession.getCatalogRevision()).not.toBe(f.updates[1].editorUpdate.catalogRevision);
         expect(f.apply()).toBe(f.state);
     });

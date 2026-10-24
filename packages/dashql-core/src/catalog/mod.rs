@@ -154,6 +154,14 @@ impl EntryIdSource {
     }
 }
 
+/// Fail for a value that is not a layer, the FlatBuffers enum admits every byte
+fn check_layer(layer: CatalogLayer) -> Result<()> {
+    match layer.variant_name() {
+        Some(_) => Ok(()),
+        None => Err(Error::invalid_argument("invalid catalog layer")),
+    }
+}
+
 /// The source of unique catalog ids
 static NEXT_CATALOG_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
@@ -170,16 +178,16 @@ pub struct CatalogSnapshot {
     version: CatalogVersion,
     /// The published entries
     entries: HashMap<CatalogEntryId, CatalogEntryRef>,
-    /// The ranks of published scripts
-    script_entries: HashMap<CatalogEntryId, (PublishedScript, Rank)>,
+    /// The published scripts and their layers
+    script_entries: HashMap<CatalogEntryId, (PublishedScript, CatalogLayer)>,
     /// The published descriptor pools
     descriptor_entries: HashMap<CatalogEntryId, Arc<DescriptorEntry>>,
-    /// The entries ordered by (rank, id)
-    entries_ranked: BTreeSet<(Rank, CatalogEntryId)>,
-    /// The entries by (database, schema, rank, id)
-    entries_by_qualified_schema: BTreeMap<(Arc<str>, Arc<str>, Rank, CatalogEntryId), SchemaEntryInfo>,
-    /// The entries by (schema, rank, id)
-    entries_by_schema: BTreeMap<(Arc<str>, Rank, CatalogEntryId), SchemaEntryInfo>,
+    /// The entries ordered by (layer, id)
+    entries_ranked: BTreeSet<(CatalogLayer, CatalogEntryId)>,
+    /// The entries by (database, schema, layer, id)
+    entries_by_qualified_schema: BTreeMap<(Arc<str>, Arc<str>, CatalogLayer, CatalogEntryId), SchemaEntryInfo>,
+    /// The entries by (schema, layer, id)
+    entries_by_schema: BTreeMap<(Arc<str>, CatalogLayer, CatalogEntryId), SchemaEntryInfo>,
     /// The databases referenced by entries
     databases: BTreeMap<Arc<str>, Arc<DatabaseDeclaration>>,
     /// The schemas referenced by entries
@@ -280,9 +288,17 @@ impl CatalogSnapshot {
         self.entries.get(&id)
     }
 
-    /// The entries in ranked order
-    pub fn entries_ranked(&self) -> impl Iterator<Item = (Rank, &CatalogEntryRef)> {
-        self.entries_ranked.iter().map(|(rank, id)| (*rank, &self.entries[id]))
+    /// The layer of an entry
+    pub fn layer(&self, id: CatalogEntryId) -> Option<CatalogLayer> {
+        match self.script_entries.get(&id) {
+            Some((_, layer)) => Some(*layer),
+            None => self.descriptor_entries.get(&id).map(|d| d.layer),
+        }
+    }
+
+    /// The entries in resolution order: by layer, then by entry id
+    pub fn entries_ranked(&self) -> impl Iterator<Item = (CatalogLayer, &CatalogEntryRef)> {
+        self.entries_ranked.iter().map(|(layer, id)| (*layer, &self.entries[id]))
     }
 
     pub fn databases(&self) -> &BTreeMap<Arc<str>, Arc<DatabaseDeclaration>> {
@@ -293,13 +309,13 @@ impl CatalogSnapshot {
         &self.schemas
     }
 
-    /// The entries by (database, schema, rank, id)
-    pub fn entries_by_qualified_schema(&self) -> &BTreeMap<(Arc<str>, Arc<str>, Rank, CatalogEntryId), SchemaEntryInfo> {
+    /// The entries by (database, schema, layer, id)
+    pub fn entries_by_qualified_schema(&self) -> &BTreeMap<(Arc<str>, Arc<str>, CatalogLayer, CatalogEntryId), SchemaEntryInfo> {
         &self.entries_by_qualified_schema
     }
 
-    /// The entries by (schema, rank, id)
-    pub fn entries_by_schema(&self) -> &BTreeMap<(Arc<str>, Rank, CatalogEntryId), SchemaEntryInfo> {
+    /// The entries by (schema, layer, id)
+    pub fn entries_by_schema(&self) -> &BTreeMap<(Arc<str>, CatalogLayer, CatalogEntryId), SchemaEntryInfo> {
         &self.entries_by_schema
     }
 }
@@ -361,18 +377,21 @@ impl Catalog {
     }
 
     /// Load an analyzed script (`LoadScript`)
-    pub fn load_script(&mut self, script: impl Into<PublishedScript>, rank: Rank) -> Result<()> {
-        self.load_scripts(&[(script.into(), rank)])
+    pub fn load_script(&mut self, script: impl Into<PublishedScript>, layer: CatalogLayer) -> Result<()> {
+        self.load_scripts(&[(script.into(), layer)])
     }
 
-    /// Atomically add or replace ranked scripts (`LoadScripts`)
-    pub fn load_scripts<S: Clone + Into<PublishedScript>>(&mut self, scripts: &[(S, Rank)]) -> Result<()> {
+    /// Atomically add or replace scripts (`LoadScripts`)
+    pub fn load_scripts<S: Clone + Into<PublishedScript>>(&mut self, scripts: &[(S, CatalogLayer)]) -> Result<()> {
         if scripts.is_empty() {
             return Ok(());
         }
-        let scripts: Vec<(PublishedScript, Rank)> =
-            scripts.iter().map(|(script, rank)| (script.clone().into(), *rank)).collect();
+        let scripts: Vec<(PublishedScript, CatalogLayer)> =
+            scripts.iter().map(|(script, layer)| (script.clone().into(), *layer)).collect();
         let mut batch_ids = BTreeSet::new();
+        for (_, layer) in &scripts {
+            check_layer(*layer)?;
+        }
         for (script, _) in &scripts {
             if script.catalog_id != self.id {
                 return Err(Error::status(StatusCode::CATALOG_MISMATCH));
@@ -389,22 +408,22 @@ impl Catalog {
         // Scripts that declare what their published versions declare replace them in place: the
         // indexes stay valid and the catalog version stays, so the analyses of other scripts remain
         // current
-        let unchanged = scripts.iter().all(|(script, rank)| {
-            self.script_entries.get(&script.entry.catalog_entry_id).is_some_and(|(published, published_rank)| {
-                published_rank == rank && published.entry.same_declarations(&script.entry)
+        let unchanged = scripts.iter().all(|(script, layer)| {
+            self.script_entries.get(&script.entry.catalog_entry_id).is_some_and(|(published, published_layer)| {
+                published_layer == layer && published.entry.same_declarations(&script.entry)
             })
         });
         if unchanged {
-            for (script, rank) in &scripts {
+            for (script, layer) in &scripts {
                 let id = script.entry.catalog_entry_id;
-                self.script_entries.insert(id, (script.clone(), *rank));
+                self.script_entries.insert(id, (script.clone(), *layer));
                 self.entries.insert(id, CatalogEntryRef::Script(script.clone()));
             }
             return Ok(());
         }
         let mut staged = self.script_entries.clone();
-        for (script, rank) in &scripts {
-            staged.insert(script.entry.catalog_entry_id, (script.clone(), *rank));
+        for (script, layer) in &scripts {
+            staged.insert(script.entry.catalog_entry_id, (script.clone(), *layer));
         }
         let descriptors = self.descriptor_entries.clone();
         self.publish_entries(staged, descriptors)
@@ -413,7 +432,7 @@ impl Catalog {
     /// Build all indexes before committing (`PublishEntries`)
     fn publish_entries(
         &mut self,
-        script_entries: HashMap<CatalogEntryId, (PublishedScript, Rank)>,
+        script_entries: HashMap<CatalogEntryId, (PublishedScript, CatalogLayer)>,
         descriptor_entries: HashMap<CatalogEntryId, Arc<DescriptorEntry>>,
     ) -> Result<()> {
         let mut entries = HashMap::default();
@@ -423,10 +442,10 @@ impl Catalog {
         let mut databases: BTreeMap<Arc<str>, Arc<DatabaseDeclaration>> = BTreeMap::new();
         let mut schemas: BTreeMap<(Arc<str>, Arc<str>), Arc<SchemaDeclaration>> = BTreeMap::new();
 
-        let mut stage = |entry: CatalogEntryRef, rank: Rank| -> Result<()> {
+        let mut stage = |entry: CatalogEntryRef, layer: CatalogLayer| -> Result<()> {
             let data = entry.data();
             let entry_id = data.catalog_entry_id;
-            entries_ranked.insert((rank, entry_id));
+            entries_ranked.insert((layer, entry_id));
             for (name, &i) in &data.databases_by_name {
                 let db = &data.database_references[i];
                 if let Some(existing) = databases.get(name) {
@@ -470,19 +489,19 @@ impl Catalog {
                     catalog_entry_id: entry_id,
                     catalog_schema_id: data.schema_references[i].object_id,
                 };
-                entries_by_qualified_schema.insert((db_name.clone(), schema_name.clone(), rank, entry_id), info);
-                entries_by_schema.insert((schema_name.clone(), rank, entry_id), info);
+                entries_by_qualified_schema.insert((db_name.clone(), schema_name.clone(), layer, entry_id), info);
+                entries_by_schema.insert((schema_name.clone(), layer, entry_id), info);
             }
             if entries.insert(entry_id, entry.clone()).is_some() {
                 return Err(Error::status(StatusCode::EXTERNAL_ID_COLLISION));
             }
             Ok(())
         };
-        for (script, rank) in script_entries.values() {
-            stage(CatalogEntryRef::Script(script.clone()), *rank)?;
+        for (script, layer) in script_entries.values() {
+            stage(CatalogEntryRef::Script(script.clone()), *layer)?;
         }
         for descriptor in descriptor_entries.values() {
-            stage(CatalogEntryRef::Descriptor(descriptor.clone()), descriptor.rank)?;
+            stage(CatalogEntryRef::Descriptor(descriptor.clone()), descriptor.layer)?;
         }
         self.script_entries = script_entries;
         self.descriptor_entries = descriptor_entries;
@@ -497,13 +516,14 @@ impl Catalog {
     }
 
     /// Replace a descriptor pool atomically (`ReplaceDescriptor`)
-    pub fn replace_descriptor(&mut self, id: CatalogEntryId, rank: Rank, descriptor: &[u8]) -> Result<()> {
+    pub fn replace_descriptor(&mut self, id: CatalogEntryId, layer: CatalogLayer, descriptor: &[u8]) -> Result<()> {
         if !self.entry_id_allocated(id)
             || (self.entries.contains_key(&id) && !self.descriptor_entries.contains_key(&id))
         {
             return Err(Error::invalid_argument("invalid or colliding receiver catalog entry ID"));
         }
-        let entry = DescriptorEntry::new(self, id, rank, descriptor)?;
+        check_layer(layer)?;
+        let entry = DescriptorEntry::new(self, id, layer, descriptor)?;
         let mut staged = self.descriptor_entries.clone();
         staged.insert(id, Arc::new(entry));
         let scripts = self.script_entries.clone();
@@ -523,17 +543,17 @@ impl Catalog {
 
     /// Drop a script (`DropScript`)
     pub fn drop_script(&mut self, id: CatalogEntryId) {
-        let Some((analyzed, rank)) = self.script_entries.remove(&id) else {
+        let Some((analyzed, layer)) = self.script_entries.remove(&id) else {
             return;
         };
         for (db_name, schema_name) in analyzed.entry.schemas_by_qualified_name.keys() {
-            self.entries_by_qualified_schema.remove(&(db_name.clone(), schema_name.clone(), rank, id));
-            self.entries_by_schema.remove(&(schema_name.clone(), rank, id));
+            self.entries_by_qualified_schema.remove(&(db_name.clone(), schema_name.clone(), layer, id));
+            self.entries_by_schema.remove(&(schema_name.clone(), layer, id));
         }
-        self.entries_ranked.remove(&(rank, id));
+        self.entries_ranked.remove(&(layer, id));
         self.entries.remove(&id);
         for (db_name, schema_name) in analyzed.entry.schemas_by_qualified_name.keys() {
-            let lower = (db_name.clone(), schema_name.clone(), 0, 0);
+            let lower = (db_name.clone(), schema_name.clone(), MIN_LAYER, 0);
             let remaining = self.entries_by_qualified_schema.range(lower..).next();
             match remaining {
                 Some(((d, s, _, _), _)) if d == db_name && s == schema_name => {}
@@ -570,8 +590,8 @@ impl CatalogSnapshot {
     /// Flatten the catalog (`Catalog::Flatten`).
     ///
     /// Databases, schemas and tables are merged across entries and ordered by name. A table name that
-    /// occurs in several entries is taken from the entry with the lowest rank. Names go through a
-    /// dictionary, built in rank order, so that JS only decodes the names it renders.
+    /// occurs in several entries is taken from the first entry in resolution order. Names go through a
+    /// dictionary, built in resolution order, so that JS only decodes the names it renders.
     pub fn flatten(&self) -> FlatCatalogT {
         /// A table of the flattened catalog
         struct TableNode {
@@ -621,7 +641,7 @@ impl CatalogSnapshot {
         let mut database_node_map: HashMap<QualifiedCatalogObjectId, usize> = HashMap::default();
         let mut schema_node_map: HashMap<QualifiedCatalogObjectId, usize> = HashMap::default();
 
-        // Visit entries in rank order, the name dictionary must not depend on the hash implementation
+        // Visit entries in resolution order, the name dictionary must not depend on the hash implementation
         for (_, entry) in self.entries_ranked() {
             let data = entry.data();
             for db_ref in &data.database_references {
@@ -655,7 +675,7 @@ impl CatalogSnapshot {
             }
         }
 
-        // Tables are not deduplicated among entries, the entry with the lowest rank wins
+        // Tables are not deduplicated among entries, the first entry in resolution order wins
         for (_, entry) in self.entries_ranked() {
             for table in &entry.data().table_declarations {
                 let schema_node = schema_node_map[&table.catalog_schema_id];
@@ -763,8 +783,8 @@ impl CatalogSnapshot {
         let db = name.database_name.text.clone();
         let schema = name.schema_name.text.clone();
         // Direct lookups of the qualified name
-        let lower = (db.clone(), schema.clone(), 0, 0);
-        let upper = (db.clone(), schema.clone(), Rank::MAX, CatalogEntryId::MAX);
+        let lower = (db.clone(), schema.clone(), MIN_LAYER, 0);
+        let upper = (db.clone(), schema.clone(), MAX_LAYER, CatalogEntryId::MAX);
         let key = name.key();
         for ((_, _, _, candidate), _) in self.entries_by_qualified_schema.range(lower..=upper) {
             if *candidate == ignore_entry {
@@ -787,8 +807,8 @@ impl CatalogSnapshot {
         }
         if !name.schema_name.text.is_empty() {
             // Table and schema name: search the entries that populate the schema in any database
-            let lower = (schema.clone(), 0, 0);
-            let upper = (schema.clone(), Rank::MAX, CatalogEntryId::MAX);
+            let lower = (schema.clone(), MIN_LAYER, 0);
+            let upper = (schema.clone(), MAX_LAYER, CatalogEntryId::MAX);
             for ((schema_name, _, candidate), _) in self.entries_by_schema.range(lower..=upper) {
                 if *candidate == ignore_entry {
                     continue;
@@ -799,7 +819,7 @@ impl CatalogSnapshot {
                 }
             }
         } else {
-            // Only the table name: search all entries by rank
+            // Only the table name: search all entries in resolution order
             for (_, entry_id) in &self.entries_ranked {
                 if *entry_id == ignore_entry {
                     continue;
@@ -813,17 +833,17 @@ impl CatalogSnapshot {
     }
 }
 
-/// Describe a catalog entry (`CatalogEntry::DescribeEntry`)
-fn describe_entry(entry: &CatalogEntryRef) -> dashql_buffers::catalog::CatalogEntryT {
+/// Describe a catalog entry of a layer (`CatalogEntry::DescribeEntry`)
+fn describe_entry(layer: CatalogLayer, entry: &CatalogEntryRef) -> dashql_buffers::catalog::CatalogEntryT {
     use dashql_buffers::catalog::{CatalogEntryT, CatalogEntryType, SchemaDescriptorT, SchemaTableColumnT, SchemaTableT};
     let data = entry.data();
     let mut out = CatalogEntryT::default();
     out.catalog_entry_id = data.catalog_entry_id;
     out.catalog_entry_type = CatalogEntryType::DESCRIPTOR_POOL;
+    out.layer = layer;
     match entry {
-        // Scripts are described as one anonymous schema with all tables, with rank 0
+        // Scripts are described as one anonymous schema with all tables
         CatalogEntryRef::Script(_) => {
-            out.rank = 0;
             let tables = data
                 .table_declarations
                 .iter()
@@ -850,8 +870,7 @@ fn describe_entry(entry: &CatalogEntryRef) -> dashql_buffers::catalog::CatalogEn
             schema.tables = Some(tables);
             out.schemas = Some(vec![schema]);
         }
-        CatalogEntryRef::Descriptor(descriptor) => {
-            out.rank = descriptor.rank;
+        CatalogEntryRef::Descriptor(_) => {
             let schemas = data
                 .schemas_by_qualified_name
                 .iter()
@@ -894,18 +913,19 @@ fn describe_entry(entry: &CatalogEntryRef) -> dashql_buffers::catalog::CatalogEn
 }
 
 impl CatalogSnapshot {
-    /// Describe all entries in rank order (`DescribeEntries`)
+    /// Describe all entries in resolution order (`DescribeEntries`)
     pub fn describe_entries(&self) -> dashql_buffers::catalog::CatalogEntriesT {
         let mut out = dashql_buffers::catalog::CatalogEntriesT::default();
-        out.entries = Some(self.entries_ranked().map(|(_, e)| describe_entry(e)).collect());
+        out.entries = Some(self.entries_ranked().map(|(layer, e)| describe_entry(layer, e)).collect());
         out
     }
 
     /// Describe one entry (`DescribeEntriesOf`), None if the entry is unknown
     pub fn describe_entries_of(&self, id: CatalogEntryId) -> Option<dashql_buffers::catalog::CatalogEntriesT> {
         let entry = self.entries.get(&id)?;
+        let layer = self.layer(id)?;
         let mut out = dashql_buffers::catalog::CatalogEntriesT::default();
-        out.entries = Some(vec![describe_entry(entry)]);
+        out.entries = Some(vec![describe_entry(layer, entry)]);
         Some(out)
     }
 

@@ -157,9 +157,9 @@ describe('updateSalesforceCatalog', () => {
         };
         const replaceDescriptor = catalog.replaceDescriptor.bind(catalog);
         const replace = failure === 'publication' || failure === 'later publication'
-            ? vi.spyOn(catalog, 'replaceDescriptor').mockImplementation((id, rank, descriptor) => {
+            ? vi.spyOn(catalog, 'replaceDescriptor').mockImplementation((id, layer, descriptor) => {
                 if (failure === 'publication' || id === functions.catalog_entry_id) throw new Error('import failed');
-                replaceDescriptor(id, rank, descriptor);
+                replaceDescriptor(id, layer, descriptor);
             })
             : null;
         try {

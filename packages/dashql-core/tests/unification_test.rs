@@ -1,5 +1,6 @@
 //! A port of the C++ `test/unification_test.cc`.
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::{Catalog, ExternalObjectId, INITIAL_DATABASE_ID, INITIAL_ENTRY_ID, INITIAL_SCHEMA_ID};
 use dashql_core::script::Script;
 use std::collections::HashSet;
@@ -13,8 +14,8 @@ fn analyze(catalog: &Catalog, text: &str) -> Script {
     script
 }
 
-fn load(catalog: &mut Catalog, script: &Script, rank: u32) {
-    catalog.load_script(script.analyzed.clone().unwrap(), rank).unwrap();
+fn load(catalog: &mut Catalog, script: &Script, layer: CatalogLayer) {
+    catalog.load_script(script.analyzed.clone().unwrap(), layer).unwrap();
 }
 
 fn schema_key(database: &str, schema: &str) -> (Arc<str>, Arc<str>) {
@@ -37,7 +38,7 @@ fn single_table_in_default_schema() {
     script.scan();
     script.parse();
     script.analyze(&catalog, true).unwrap();
-    load(&mut catalog, &script, 1);
+    load(&mut catalog, &script, CatalogLayer::SESSION);
 
     let flat = catalog.flatten();
     let (databases, schemas, tables, columns) =
@@ -71,9 +72,9 @@ fn multiple_tables_in_default_schema() {
     schema1.insert_text_at(0, "create table bar(a int);");
 
     schema0.analyze(&catalog, true).unwrap();
-    load(&mut catalog, &schema0, 1);
+    load(&mut catalog, &schema0, CatalogLayer::SESSION);
     schema1.analyze(&catalog, true).unwrap();
-    load(&mut catalog, &schema1, 2);
+    load(&mut catalog, &schema1, CatalogLayer::SESSION);
 
     let flat = catalog.flatten();
     let (databases, schemas, tables, columns) =
@@ -106,9 +107,9 @@ fn multiple_tables_in_multiple_schemas() {
     schema1.insert_text_at(0, "create table in_default_1(a int); create table separate.schema.in_separate_0(b int);");
 
     schema0.analyze(&catalog, true).unwrap();
-    load(&mut catalog, &schema0, 1);
+    load(&mut catalog, &schema0, CatalogLayer::SESSION);
     schema1.analyze(&catalog, true).unwrap();
-    load(&mut catalog, &schema1, 2);
+    load(&mut catalog, &schema1, CatalogLayer::SESSION);
 
     let flat = catalog.flatten();
     let (databases, schemas, tables, columns) =
@@ -144,7 +145,7 @@ fn simple_table_reference() {
     query.insert_text_at(0, "select * from db2.schema2.table2");
 
     schema.analyze(&catalog, true).unwrap();
-    load(&mut catalog, &schema, 1);
+    load(&mut catalog, &schema, CatalogLayer::SESSION);
 
     // Analyze query after loading the schema script in the catalog
     query.analyze(&catalog, true).unwrap();
@@ -191,8 +192,8 @@ fn parallel_database_registration() {
     let db_id = db0.database_id();
     assert_eq!(db1.database_id(), db_id);
 
-    load(&mut catalog, &schema0, 1);
-    load(&mut catalog, &schema1, 2);
+    load(&mut catalog, &schema0, CatalogLayer::SESSION);
+    load(&mut catalog, &schema1, CatalogLayer::SESSION);
     assert_eq!(catalog.databases().len(), 1);
     let db = catalog.databases().get("db1").expect("db1");
     assert_eq!(db.object_id.unpack_database_id(), db_id);
@@ -212,8 +213,8 @@ fn independent_schema_registration() {
     let schema_id = analyzed0.schema_references[analyzed0.schemas_by_qualified_name[&key]].object_id;
     assert_eq!(analyzed1.schema_references[analyzed1.schemas_by_qualified_name[&key]].object_id, schema_id);
 
-    load(&mut catalog, &schema0, 1);
-    load(&mut catalog, &schema1, 2);
+    load(&mut catalog, &schema0, CatalogLayer::SESSION);
+    load(&mut catalog, &schema1, CatalogLayer::SESSION);
     assert_eq!(catalog.databases().len(), 1);
     assert_eq!(catalog.schemas().len(), 1);
     let schema = catalog.schemas().get(&key).expect("schema1");
@@ -245,8 +246,8 @@ fn independent_declaration_analysis_uses_canonical_ids() {
     let s1 = analyzed1.schemas_by_qualified_name.get(&key).expect("schema1");
     assert_eq!(analyzed0.schema_references[*s0].object_id, analyzed1.schema_references[*s1].object_id);
 
-    load(&mut catalog, &schema0, 1);
-    load(&mut catalog, &schema1, 2);
+    load(&mut catalog, &schema0, CatalogLayer::SESSION);
+    load(&mut catalog, &schema1, CatalogLayer::SESSION);
     assert!(catalog.contains(schema0.catalog_entry_id()));
     assert!(catalog.contains(schema1.catalog_entry_id()));
 

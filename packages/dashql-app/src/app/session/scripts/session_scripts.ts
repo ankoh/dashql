@@ -519,7 +519,7 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                 nextScript.annotations = deriveScriptAnnotations(update.editorUpdate, updateSession,
                     prevScript.connection.connectorInfo.connectorType, logger);
                 const catalogRevision = updateSession.getCatalogRevision();
-                updateSession.loadIntoCatalog(nextScript.scriptKey);
+                updateSession.loadIntoCatalog();
                 catalogChanged = updateSession.getCatalogRevision() !== catalogRevision;
             }
             // Update semantic user focus
@@ -1292,7 +1292,7 @@ export function analyzeScriptData(scriptData: ScriptData, logger: Logger): Scrip
         logger,
     );
 
-    next.scriptSession.loadIntoCatalog(next.scriptKey);
+    next.scriptSession.loadIntoCatalog();
     return next;
 }
 

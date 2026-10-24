@@ -60,11 +60,11 @@ describe('DashQL planner', () => {
             span.resolution === dashql.buffers.editor.EditorSemanticResolution.RESOLVED);
     }
 
-    function prepare(catalog: dashql.DashQLCatalog, sql: string, rank = 0, publish = false): dashql.DashQLScriptSession {
+    function prepare(catalog: dashql.DashQLCatalog, sql: string, publish = false): dashql.DashQLScriptSession {
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, sql);
         expect(session.analyze().analysisAvailable).toBe(true);
-        session.loadIntoCatalog(rank);
+        session.loadIntoCatalog();
         if (!publish) {
             // Dropping forces analysis to refresh past the publication's catalog revision.
             session.dropFromCatalog();
@@ -92,9 +92,9 @@ describe('DashQL planner', () => {
 
     it('preserves script order, source SQL, revisions, and independent reads', () => {
         const catalog = dql!.createCatalog();
-        prepare(catalog, 'create table a (id int); create table b (id int)', 0, true);
-        const first = prepare(catalog, '-- description\nselect * from a; select * from b;', 20);
-        const second = prepare(catalog, 'select 1; select * from a;', 10);
+        prepare(catalog, 'create table a (id int); create table b (id int)', true);
+        const first = prepare(catalog, '-- description\nselect * from a; select * from b;');
+        const second = prepare(catalog, 'select 1; select * from a;');
         // Refresh earlier sessions after all publications, without changing their documents.
         const tables = resolvedTables(first);
         second.analyze();
@@ -151,10 +151,10 @@ describe('DashQL planner', () => {
 
     it('packs DDL and read/write conflicts across sessions', () => {
         const catalog = dql!.createCatalog();
-        const create = prepare(catalog, 'create table a (id int)', 0, true);
-        const reads = prepare(catalog, 'select * from a; select * from a', 1);
+        const create = prepare(catalog, 'create table a (id int)', true);
+        const reads = prepare(catalog, 'select * from a; select * from a');
         const writes = prepare(catalog,
-            'insert into a values (1); select * from a; insert into a values (2) returning id', 2);
+            'insert into a values (1); select * from a; insert into a values (2) returning id');
         create.analyze();
         const [table] = resolvedTables(reads);
         writes.analyze();
@@ -196,9 +196,9 @@ describe('DashQL planner', () => {
 
     it.each([false, true])('keeps external/participating declaration identities across drop/recreate (participating=%s)', participating => {
         const catalog = dql!.createCatalog();
-        const create = prepare(catalog, 'create table db.s.a (id int); select * from db.s.a', 0, true);
+        const create = prepare(catalog, 'create table db.s.a (id int); select * from db.s.a', true);
         const use = prepare(catalog,
-            'select * from db.s.a; drop table a; create table db.s.a (id int); select * from db.s.a', 1);
+            'select * from db.s.a; drop table a; create table db.s.a (id int); select * from db.s.a');
         const [oldTable] = resolvedTables(create);
         const tables = resolvedTables(use);
         const newTable = tables[tables.length - 1];
@@ -299,7 +299,7 @@ describe('DashQL planner', () => {
         expect(session.getCatalogRevision()).toBe(version);
         expect(catalog.containsEntryId(session.catalog_entry_id)).toBe(false);
         session.analyze();
-        session.loadIntoCatalog(0);
+        session.loadIntoCatalog();
         session.replaceText(1n, 'select 2');
         const stale = dql!.plan([session]).unpackAndDestroy();
         expect(stale.valid).toBe(false);
@@ -329,7 +329,7 @@ describe('DashQL planner', () => {
     it('reports catalog-stale analysis without refreshing it automatically', () => {
         const catalog = dql!.createCatalog();
         const session = prepare(catalog, 'select 1');
-        prepare(catalog, 'create table added (id int)', 1, true);
+        prepare(catalog, 'create table added (id int)', true);
         const revision = session.getCatalogRevision();
         const state = session.getStateRevision();
         const stale = dql!.plan([session]).unpackAndDestroy();
@@ -448,7 +448,7 @@ describe('DashQL editor sessions', () => {
         const entryId = original.getCatalogEntryId();
         original.replaceText(0n, 'create table foo(a int)');
         original.analyze();
-        original.loadIntoCatalog(entryId);
+        original.loadIntoCatalog();
         // The entry id is in use in the first catalog
         expect(() => dql!.createScriptSessionWithEntryId(first, entryId)).toThrow();
         // An id that no catalog allocated is refused
@@ -625,12 +625,12 @@ describe('DashQL editor sessions', () => {
         session.analyze();
 
         expect(catalog.containsEntryId(session.catalog_entry_id)).toBeFalsy();
-        session.loadIntoCatalog(17);
+        session.loadIntoCatalog();
         expect(catalog.containsEntryId(session.catalog_entry_id)).toBeTruthy();
         session.dropFromCatalog();
         expect(catalog.containsEntryId(session.catalog_entry_id)).toBeFalsy();
 
-        session.loadIntoCatalog(23);
+        session.loadIntoCatalog();
         session.destroy();
         expect(catalog.containsEntryId(session.catalog_entry_id)).toBeFalsy();
     });

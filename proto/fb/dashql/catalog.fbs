@@ -55,15 +55,28 @@ enum CatalogEntryType: uint8 {
     DESCRIPTOR_POOL = 1,
 }
 
+/// The layer of a catalog entry.
+/// Names resolve against the layers in this order, and within a layer against older entries first:
+/// the scripts of a session shadow the relations created by executed statements, which shadow the
+/// schema of the connection.
+enum CatalogLayer: uint8 {
+    /// The scripts of a session
+    SESSION = 0,
+    /// The relations created by executed statements
+    EXECUTED = 1,
+    /// The schema of the connection
+    CONNECTION = 2,
+}
+
 /// A catalog entry.
-/// Catalaog entries are ordered by rank and contain an external id.
+/// Catalog entries are ordered by layer and entry id.
 table CatalogEntry {
     // The catalog entry id
     catalog_entry_id: uint32;
     // The entry type
     catalog_entry_type: CatalogEntryType;
-    // The rank that the user assigned
-    rank: uint32;
+    // The layer of the entry
+    layer: CatalogLayer;
     // The schemas contained in this catalog entry
     schemas: [SchemaDescriptor];
 }

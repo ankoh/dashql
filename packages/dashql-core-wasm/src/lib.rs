@@ -11,7 +11,7 @@
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
 use dashql_core::catalog::changes::{append_catalog_changes_sql, parse_catalog_changes_sql, qualify_catalog_changes, CatalogNameDefaults};
-use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
+use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer, EntryIdSource};
 use dashql_core::completion::Completion;
 use dashql_core::error::Error;
 use dashql_core::script::Script as CoreScript;
@@ -81,9 +81,10 @@ impl Catalog {
         self.inner.borrow().allocate_entry_id()
     }
 
+    /// Publish descriptor bytes in a `CatalogLayer`
     #[wasm_bindgen(js_name = replaceDescriptor)]
-    pub fn replace_descriptor(&self, id: u32, rank: u32, descriptor: &[u8]) -> Result<(), JsError> {
-        self.inner.borrow_mut().replace_descriptor(id, rank, descriptor).map_err(js_error)
+    pub fn replace_descriptor(&self, id: u32, layer: u8, descriptor: &[u8]) -> Result<(), JsError> {
+        self.inner.borrow_mut().replace_descriptor(id, CatalogLayer(layer), descriptor).map_err(js_error)
     }
 
     #[wasm_bindgen(js_name = dropDescriptor)]
@@ -91,18 +92,18 @@ impl Catalog {
         self.inner.borrow_mut().drop_descriptor(id).map_err(js_error)
     }
 
-    /// Apply packed `CatalogChanges` to a descriptor entry, an unknown entry is created with the rank
+    /// Apply packed `CatalogChanges` to a descriptor entry, an unknown entry is created in the layer
     #[wasm_bindgen(js_name = applyCatalogChanges)]
-    pub fn apply_catalog_changes(&self, id: u32, rank: u32, changes: &[u8]) -> Result<(), JsError> {
+    pub fn apply_catalog_changes(&self, id: u32, layer: u8, changes: &[u8]) -> Result<(), JsError> {
         let changes = unpack_catalog_changes(changes)?;
-        self.inner.borrow_mut().apply_catalog_changes(id, rank, &changes).map_err(js_error)
+        self.inner.borrow_mut().apply_catalog_changes(id, CatalogLayer(layer), &changes).map_err(js_error)
     }
 
-    /// Apply catalog changes SQL to a descriptor entry, an unknown entry is created with the rank
+    /// Apply catalog changes SQL to a descriptor entry, an unknown entry is created in the layer
     #[wasm_bindgen(js_name = applyCatalogChangesSql)]
-    pub fn apply_catalog_changes_sql(&self, id: u32, rank: u32, changes_sql: &str) -> Result<(), JsError> {
+    pub fn apply_catalog_changes_sql(&self, id: u32, layer: u8, changes_sql: &str) -> Result<(), JsError> {
         let changes = parse_catalog_changes_sql(changes_sql).map_err(js_error)?;
-        self.inner.borrow_mut().apply_catalog_changes(id, rank, &changes).map_err(js_error)
+        self.inner.borrow_mut().apply_catalog_changes(id, CatalogLayer(layer), &changes).map_err(js_error)
     }
 
     #[wasm_bindgen(js_name = containsEntryId)]
@@ -132,11 +133,11 @@ impl Catalog {
         finish!(self.inner.borrow().statistics())
     }
 
-    /// Load the analysis of a script
+    /// Load the analysis of a script into a `CatalogLayer`
     #[wasm_bindgen(js_name = loadScript)]
-    pub fn load_script(&self, script: &Script, rank: u32) -> Result<(), JsError> {
+    pub fn load_script(&self, script: &Script, layer: u8) -> Result<(), JsError> {
         let analyzed = script.inner.analyzed.clone().ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED)))?;
-        self.inner.borrow_mut().load_script(analyzed, rank).map_err(js_error)
+        self.inner.borrow_mut().load_script(analyzed, CatalogLayer(layer)).map_err(js_error)
     }
 
     /// Load the analyses of several scripts atomically
@@ -168,8 +169,8 @@ impl Catalog {
 /// A batch of analyzed scripts for `Catalog::loadScripts`
 #[wasm_bindgen]
 pub struct ScriptBatch {
-    /// The analyzed scripts with their catalog ranks
-    scripts: Vec<(std::sync::Arc<dashql_core::analyzer::AnalyzedScript>, u32)>,
+    /// The analyzed scripts with their catalog layers
+    scripts: Vec<(std::sync::Arc<dashql_core::analyzer::AnalyzedScript>, CatalogLayer)>,
 }
 
 #[wasm_bindgen]
@@ -179,14 +180,14 @@ impl ScriptBatch {
         ScriptBatch { scripts: Vec::new() }
     }
 
-    /// Add the analysis of a script
-    pub fn add(&mut self, script: &Script, rank: u32) -> Result<(), JsError> {
+    /// Add the analysis of a script in a `CatalogLayer`
+    pub fn add(&mut self, script: &Script, layer: u8) -> Result<(), JsError> {
         let analyzed = script
             .inner
             .analyzed
             .clone()
             .ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED)))?;
-        self.scripts.push((analyzed, rank));
+        self.scripts.push((analyzed, CatalogLayer(layer)));
         Ok(())
     }
 }
@@ -623,9 +624,10 @@ impl ScriptSession {
         Ok(finish!(diff))
     }
 
+    /// Publish the analysis into the session layer of the catalog
     #[wasm_bindgen(js_name = loadIntoCatalog)]
-    pub fn load_into_catalog(&self, rank: u32) -> Result<(), JsError> {
-        self.inner.borrow_mut().load_into_catalog(rank).map_err(js_error)
+    pub fn load_into_catalog(&self) -> Result<(), JsError> {
+        self.inner.borrow_mut().load_into_catalog(CatalogLayer::SESSION).map_err(js_error)
     }
 
     #[wasm_bindgen(js_name = dropFromCatalog)]

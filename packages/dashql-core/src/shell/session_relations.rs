@@ -2,10 +2,9 @@
 //! (`src/shell/session_relation_catalog.cc`).
 
 use crate::catalog::changes::{derive_catalog_change, qualify_catalog_changes, CatalogChangeOptions, CatalogNameDefaults};
-use crate::catalog::{Catalog, CatalogEntryId};
+use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer};
 use crate::script::Script;
 
-const SESSION_RELATION_CATALOG_RANK: u32 = 9998;
 const SESSION_SCHEMA: &str = "public";
 
 /// The relations of successful DDL statements (`SessionRelationCatalog`)
@@ -57,7 +56,7 @@ impl SessionRelationCatalog {
         if let Some(change) = derive_catalog_change(&analyzed, 0, &self.options) {
             let mut changes = [change];
             qualify_catalog_changes(&mut changes, &self.defaults);
-            let _ = catalog.apply_catalog_changes(self.entry_id, SESSION_RELATION_CATALOG_RANK, &changes);
+            let _ = catalog.apply_catalog_changes(self.entry_id, CatalogLayer::EXECUTED, &changes);
         }
     }
 }

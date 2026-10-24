@@ -9,7 +9,6 @@ import { LoggerLike } from '../../../platform/logger/logger.js';
 import { fetchPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
 import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '../catalog_batch.js';
 
-const SALESFORCE_CATALOG_RANK = 100;
 export const SALESFORCE_CATALOG_DATABASE = 'lakehouse';
 export const SALESFORCE_CATALOG_SCHEMA = 'public';
 
@@ -100,14 +99,13 @@ export async function updateSalesforceCatalog(
     }, "salesforce_catalog");
 
     const [relations, functions] = await publishCatalogBatch(dql, catalog, [
-        { script: catalogRelationScript, text: `${header}${catalogSQL}`, rank: SALESFORCE_CATALOG_RANK },
-        { script: catalogFunctionScript, text: functionsSQL, rank: SALESFORCE_CATALOG_RANK, requireFunctions: true },
+        { script: catalogRelationScript, text: `${header}${catalogSQL}` },
+        { script: catalogFunctionScript, text: functionsSQL, requireFunctions: true },
     ], options, validate);
     logger.info("Loaded Salesforce catalog script", {
         dataSpace,
         tables: relations.tables.toString(),
         functions: functions.functions.toString(),
-        rank: SALESFORCE_CATALOG_RANK.toString(),
     }, "salesforce_catalog");
 
     return catalogRelationScript;

@@ -6,10 +6,10 @@ import { createBatchWorker, type DashQLBatchWorker } from '@ankoh/dashql-core/br
 
 export type BatchProcessor = (request: BatchRequest) => Promise<BatchResult>;
 
+/// A script of the connection catalog, published as a descriptor in the connection layer
 export interface CatalogBatchEntry {
     script: DashQLScript;
     text: string;
-    rank: number;
     requireFunctions?: boolean;
 }
 
@@ -95,7 +95,7 @@ function commitCatalogBatch(catalog: DashQLCatalog, entries: CatalogBatchEntry[]
         const previousText = entry.script.toString();
         try {
             entry.script.replaceText(entry.text);
-            catalog.replaceDescriptor(entry.script.catalog_entry_id, entry.rank, prepared[i].descriptor);
+            catalog.replaceDescriptor(entry.script.catalog_entry_id, buffers.catalog.CatalogLayer.CONNECTION, prepared[i].descriptor);
         } catch (error) {
             try {
                 entry.script.replaceText(previousText);

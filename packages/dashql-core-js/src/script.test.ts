@@ -78,7 +78,7 @@ describe('DashQL scripts', () => {
         const schema = dql!.createScript(catalog);
         schema.insertTextAt(0, 'create table target(id int, label text);');
         schema.analyze();
-        catalog.loadScript(schema, 0);
+        catalog.loadScript(schema, dashql.buffers.catalog.CatalogLayer.SESSION);
 
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, "insert into target(id, label) values (1, 'one') returning id");

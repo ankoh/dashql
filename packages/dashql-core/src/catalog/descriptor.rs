@@ -25,8 +25,8 @@ pub struct DescriptorName {
 pub struct DescriptorEntry {
     /// The declarations of the entry, shared with the analyzed scripts that depend on it
     pub entry: Arc<CatalogEntryData>,
-    /// The rank of the entry, entries with a lower rank win on name conflicts
-    pub rank: Rank,
+    /// The layer of the entry
+    pub layer: CatalogLayer,
     /// The names in registration order
     pub names: Vec<DescriptorName>,
     /// The objects the names resolve to, in registration order (`RegisteredName::resolved_objects`)
@@ -129,11 +129,11 @@ impl DescriptorEntry {
     }
 
     /// Import descriptor bytes (`DescriptorEntry::DescriptorEntry`)
-    pub fn new(catalog: &Catalog, id: CatalogEntryId, rank: Rank, bytes: &[u8]) -> Result<Self> {
+    pub fn new(catalog: &Catalog, id: CatalogEntryId, layer: CatalogLayer, bytes: &[u8]) -> Result<Self> {
         let descriptor = validate_descriptor(bytes)?;
         let mut out = DescriptorEntry {
             entry: Arc::new(CatalogEntryData::new(id, catalog.version())),
-            rank,
+            layer,
             names: Vec::new(),
             name_objects: Vec::new(),
             bytes: bytes.to_vec(),

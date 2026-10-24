@@ -1,4 +1,3 @@
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from '../../connections/catalog_update_state.js';
 import { DashQLShell, DashQLShellEnvironment, DashQLShellOptions } from '../../../shell/api.js';
 
 export interface SessionShellCatalog {
@@ -13,8 +12,8 @@ export async function createSessionShell(
 ): Promise<DashQLShell> {
     const shell = await DashQLShell.create({ ...options, environment });
     try {
-        shell.loadCatalogScript(catalog.relationsSql, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
-        shell.loadCatalogScript(catalog.functionsSql, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+        shell.loadCatalogScript(catalog.relationsSql);
+        shell.loadCatalogScript(catalog.functionsSql);
         return shell;
     } catch (error) {
         shell.destroy();

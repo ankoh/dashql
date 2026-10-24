@@ -59,7 +59,7 @@ describe('Catalog changes', () => {
         const changes = runScript('create table t (a int); create table u (b int); drop table t');
         const catalog = dql.createCatalog();
         const entryId = catalog.allocateEntryId();
-        catalog.applyCatalogChanges(entryId, 10, changes);
+        catalog.applyCatalogChanges(entryId, dashql.buffers.catalog.CatalogLayer.CONNECTION, changes);
         expect(tablesOf(catalog, entryId)).toEqual(['db.main.u(b)']);
 
         const changesSql = dql.appendCatalogChangesSql('', changes);
@@ -67,8 +67,8 @@ describe('Catalog changes', () => {
         expect(changesSql).toContain('DROP TABLE "db"."main"."t"');
         const restored = dql.createCatalog();
         const restoredId = restored.allocateEntryId();
-        restored.applyCatalogChangesSql(restoredId, 10, changesSql);
+        restored.applyCatalogChangesSql(restoredId, dashql.buffers.catalog.CatalogLayer.CONNECTION, changesSql);
         expect(tablesOf(restored, restoredId)).toEqual(['db.main.u(b)']);
-        expect(() => restored.applyCatalogChangesSql(restoredId, 10, 'create table (')).toThrow();
+        expect(() => restored.applyCatalogChangesSql(restoredId, dashql.buffers.catalog.CatalogLayer.CONNECTION, 'create table (')).toThrow();
     });
 });

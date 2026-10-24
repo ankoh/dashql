@@ -1,6 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { CatalogSource } from './catalog_sql_generator.js';
 import { publishCatalogBatchSync } from './catalog_batch.js';
@@ -28,9 +27,8 @@ export function loadPrefetchedHyperFunctions(
     catalog: dashql.DashQLCatalog,
     catalogFunctionScript: dashql.DashQLScript,
     sql: string,
-    rank = CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
 ): number {
     return publishCatalogBatchSync(dql, catalog, [{
-        script: catalogFunctionScript, text: sql, rank, requireFunctions: true,
+        script: catalogFunctionScript, text: sql, requireFunctions: true,
     }])[0].functions;
 }

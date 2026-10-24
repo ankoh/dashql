@@ -42,7 +42,7 @@ describe('PostgreSQL function query integration', () => {
             expect(power!.returnType()).toBe('any');
             const catalog = dql.createCatalog();
             const id = catalog.allocateEntryId();
-            catalog.replaceDescriptor(id, 20, output.catalogDescriptor!);
+            catalog.replaceDescriptor(id, dashql.buffers.catalog.CatalogLayer.CONNECTION, output.catalogDescriptor!);
             expect(catalog.containsEntryId(id)).toBe(true);
             const query = dql.createScript(catalog);
             query.replaceText('SELECT pow');

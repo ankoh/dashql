@@ -11,8 +11,6 @@ import {
     UPDATE_CATALOG,
 } from './connection_state.js';
 
-/// Rank used for the default descriptor pool loaded by app and shell catalogs.
-export const CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK = 9999;
 
 export enum CatalogUpdateVariant {
     FULL_CATALOG_REFRESH

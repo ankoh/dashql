@@ -7,7 +7,7 @@ use dashql_buffers::analyzer::{
 use dashql_buffers::catalog::{CatalogDescriptorT, CatalogEntryType};
 use dashql_core::analyzer::ColumnResolution;
 use dashql_core::catalog::descriptor::validate_descriptor;
-use dashql_core::catalog::{Catalog, CatalogEntryId};
+use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
 use dashql_core::pack::pack_catalog_descriptor;
 use dashql_core::script::Script;
 
@@ -68,9 +68,9 @@ fn tables_only(tables: Vec<TableT>) -> Vec<u8> {
     encode(tables, vec![])
 }
 
-fn add(catalog: &mut Catalog, rank: u32, bytes: &[u8]) -> CatalogEntryId {
+fn add(catalog: &mut Catalog, layer: CatalogLayer, bytes: &[u8]) -> CatalogEntryId {
     let id = catalog.allocate_entry_id();
-    catalog.replace_descriptor(id, rank, bytes).unwrap();
+    catalog.replace_descriptor(id, layer, bytes).unwrap();
     id
 }
 
@@ -157,7 +157,7 @@ fn validation_rejects_bad_functions() {
 fn import_resolves_scripts_against_descriptor_tables() {
     let mut catalog = Catalog::new();
     let version = catalog.version();
-    let id = add(&mut catalog, 5, &tables_only(vec![table("db", "main", "orders", &["id", "total"])]));
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "main", "orders", &["id", "total"])]));
     assert!(catalog.version() > version);
     assert!(catalog.contains(id));
 
@@ -180,7 +180,7 @@ fn import_resolves_scripts_against_descriptor_tables() {
 #[test]
 fn columns_of_descriptor_tables_are_ambiguous_across_tables() {
     let mut catalog = Catalog::new();
-    add(&mut catalog, 0, &tables_only(vec![table("", "main", "a", &["id"]), table("", "main", "b", &["id", "x"])]));
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "a", &["id"]), table("", "main", "b", &["id", "x"])]));
     assert_eq!(resolve(&catalog, "select x from a, b"), vec!["x -> b.x"]);
     assert_eq!(resolve(&catalog, "select a.id, b.id from a, b"), vec!["id -> a.id", "id -> b.id"]);
 }
@@ -190,7 +190,7 @@ fn import_registers_functions() {
     let mut catalog = Catalog::new();
     let id = add(
         &mut catalog,
-        0,
+        CatalogLayer::CONNECTION,
         &encode(vec![], vec![function("main", "twice", &[("x", "int")], "int", false), function("main", "total", &[("x", "int")], "int", true)]),
     );
     let data = catalog.entry(id).unwrap().data();
@@ -211,7 +211,7 @@ fn descriptor_round_trips_through_pack() {
         vec![table("db", "main", "t", &["a", "b"])],
         vec![function("main", "f", &[("x", "text")], "int", true)],
     );
-    let id = add(&mut catalog, 0, &bytes);
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &bytes);
     let packed = pack_catalog_descriptor(catalog.entry(id).unwrap().data()).unwrap();
     let descriptor = validate_descriptor(&packed).unwrap();
     let tables = descriptor.tables().unwrap();
@@ -228,9 +228,9 @@ fn descriptor_round_trips_through_pack() {
 #[test]
 fn replace_swaps_the_declarations_of_an_entry() {
     let mut catalog = Catalog::new();
-    let id = add(&mut catalog, 0, &tables_only(vec![table("", "main", "old", &["a"])]));
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "old", &["a"])]));
     let version = catalog.version();
-    catalog.replace_descriptor(id, 0, &tables_only(vec![table("", "main", "new", &["a"])])).unwrap();
+    catalog.replace_descriptor(id, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "new", &["a"])])).unwrap();
     assert!(catalog.version() > version);
     let data = catalog.entry(id).unwrap().data();
     assert_eq!(data.table_declarations.len(), 1);
@@ -244,44 +244,76 @@ fn replace_rejects_unknown_and_colliding_ids() {
     let mut catalog = Catalog::new();
     let bytes = tables_only(vec![table("", "main", "t", &["a"])]);
     // Never allocated
-    assert!(catalog.replace_descriptor(1, 0, &bytes).is_err());
-    assert!(catalog.replace_descriptor(0, 0, &bytes).is_err());
-    let error = catalog.replace_descriptor(catalog.allocate_entry_id() + 100, 0, &bytes).unwrap_err();
+    assert!(catalog.replace_descriptor(1, CatalogLayer::CONNECTION, &bytes).is_err());
+    assert!(catalog.replace_descriptor(0, CatalogLayer::CONNECTION, &bytes).is_err());
+    let error = catalog.replace_descriptor(catalog.allocate_entry_id() + 100, CatalogLayer::CONNECTION, &bytes).unwrap_err();
     assert_eq!(error.message, "invalid or colliding receiver catalog entry ID");
 
     // An entry of a script cannot be replaced by a descriptor
     let mut script = Script::new(&catalog);
     script.insert_text_at(0, "create table s (a int)");
     script.analyze(&catalog, true).unwrap();
-    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
-    let error = catalog.replace_descriptor(script.catalog_entry_id(), 0, &bytes).unwrap_err();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    let error = catalog.replace_descriptor(script.catalog_entry_id(), CatalogLayer::CONNECTION, &bytes).unwrap_err();
     assert_eq!(error.message, "invalid or colliding receiver catalog entry ID");
 }
 
 #[test]
 fn invalid_replacement_keeps_the_catalog() {
     let mut catalog = Catalog::new();
-    let id = add(&mut catalog, 0, &tables_only(vec![table("", "main", "keep", &["a"])]));
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "keep", &["a"])]));
     let version = catalog.version();
-    assert!(catalog.replace_descriptor(id, 0, &tables_only(vec![table("", "main", "", &[])])).is_err());
+    assert!(catalog.replace_descriptor(id, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "", &[])])).is_err());
     assert_eq!(catalog.version(), version);
     assert_eq!(catalog.entry(id).unwrap().data().table_declarations[0].table_name.table_name.text(), "keep");
 }
 
 #[test]
-fn lower_ranks_win_name_conflicts() {
+fn lower_layers_win_name_conflicts() {
     let mut catalog = Catalog::new();
-    add(&mut catalog, 10, &tables_only(vec![table("", "main", "t", &["slow"])]));
-    add(&mut catalog, 1, &tables_only(vec![table("", "main", "t", &["fast"])]));
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "t", &["slow"])]));
+    add(&mut catalog, CatalogLayer::EXECUTED, &tables_only(vec![table("", "main", "t", &["fast"])]));
     assert_eq!(resolve(&catalog, "select fast from t"), vec!["fast -> t.fast"]);
-    let ranks: Vec<_> = catalog.entries_ranked().map(|(rank, _)| rank).collect();
-    assert_eq!(ranks, vec![1, 10]);
+    let layers: Vec<_> = catalog.entries_ranked().map(|(layer, _)| layer).collect();
+    assert_eq!(layers, vec![CatalogLayer::EXECUTED, CatalogLayer::CONNECTION]);
+}
+
+#[test]
+fn session_scripts_shadow_the_connection_whatever_their_entry_ids() {
+    let mut catalog = Catalog::new();
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "t", &["connection_column"])]));
+    // Every script of a module allocates an entry id, ids pass any number that a rank could reserve
+    for _ in 0..10_000 {
+        catalog.allocate_entry_id();
+    }
+    let mut session = Script::new(&catalog);
+    session.insert_text_at(0, "create table t (session_column integer)");
+    session.analyze(&catalog, true).unwrap();
+    catalog.load_script(session.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    assert_eq!(resolve(&catalog, "select session_column from t"), vec!["session_column -> t.session_column"]);
+}
+
+#[test]
+fn older_entries_win_name_conflicts_within_a_layer() {
+    let mut catalog = Catalog::new();
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "t", &["first"])]));
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "t", &["second"])]));
+    assert_eq!(resolve(&catalog, "select first from t"), vec!["first -> t.first"]);
+}
+
+#[test]
+fn rejects_unknown_layers() {
+    let mut catalog = Catalog::new();
+    let id = catalog.allocate_entry_id();
+    let bytes = tables_only(vec![table("", "main", "t", &["a"])]);
+    assert!(catalog.replace_descriptor(id, CatalogLayer(7), &bytes).is_err());
+    assert!(!catalog.contains(id));
 }
 
 #[test]
 fn drop_removes_the_entry() {
     let mut catalog = Catalog::new();
-    let id = add(&mut catalog, 0, &tables_only(vec![table("db", "main", "t", &["a"])]));
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "main", "t", &["a"])]));
     let version = catalog.version();
     catalog.drop_descriptor(id).unwrap();
     assert!(!catalog.contains(id));
@@ -298,7 +330,7 @@ fn drop_removes_the_entry() {
 #[test]
 fn name_search_index_finds_substrings() {
     let mut catalog = Catalog::new();
-    let id = add(&mut catalog, 0, &tables_only(vec![table("", "main", "customer_orders", &["order_id", "customer"])]));
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "customer_orders", &["order_id", "customer"])]));
     let entry = catalog.entry(id).unwrap();
     let index = entry.name_search_index();
     let found = |prefix: &str| -> Vec<String> {
@@ -321,13 +353,13 @@ fn name_search_index_finds_substrings() {
 #[test]
 fn descriptors_are_described_with_their_schemas() {
     let mut catalog = Catalog::new();
-    let id = add(&mut catalog, 7, &tables_only(vec![table("db", "main", "t", &["a", "b"]), table("db", "other", "u", &["c"])]));
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "main", "t", &["a", "b"]), table("db", "other", "u", &["c"])]));
     let described = catalog.describe_entries_of(id).unwrap().entries.unwrap();
     assert_eq!(described.len(), 1);
     let entry = &described[0];
     assert_eq!(entry.catalog_entry_id, id);
     assert_eq!(entry.catalog_entry_type, CatalogEntryType::DESCRIPTOR_POOL);
-    assert_eq!(entry.rank, 7);
+    assert_eq!(entry.layer, CatalogLayer::CONNECTION);
     let mut schemas: Vec<_> = entry.schemas.as_ref().unwrap().iter().collect();
     schemas.sort_by_key(|s| s.schema_name.clone());
     assert_eq!(schemas.len(), 2);
@@ -348,11 +380,11 @@ fn statistics_count_content_of_all_entries() {
     let empty = catalog.statistics().content.unwrap();
     assert_eq!((empty.database_count, empty.schema_count, empty.table_count, empty.table_column_count), (0, 0, 0, 0));
 
-    add(&mut catalog, 0, &tables_only(vec![table("db", "main", "t", &["a", "b"]), table("db", "other", "u", &["c"])]));
+    add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("db", "main", "t", &["a", "b"]), table("db", "other", "u", &["c"])]));
     let mut script = Script::new(&catalog);
     script.insert_text_at(0, "create table db.main.s (x int, y int, z int)");
     script.analyze(&catalog, true).unwrap();
-    catalog.load_script(script.analyzed.clone().unwrap(), 1).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
 
     let content = catalog.statistics().content.unwrap();
     assert_eq!(content.database_count, 1);

@@ -26,8 +26,8 @@ function fixture() {
     const relation = source(1);
     const functions = source(2);
     const entries = [
-        { script: relation, text: 'next relations', rank: 10 },
-        { script: functions, text: 'next functions', rank: 20 },
+        { script: relation, text: 'next relations' },
+        { script: functions, text: 'next functions' },
     ];
     const pools = new Map<number, Uint8Array>([[1, new Uint8Array([1])], [2, new Uint8Array([2])]]);
     const catalog = { replaceDescriptor: vi.fn((id: number, _rank: number, bytes: Uint8Array) => { pools.set(id, bytes); }) } as unknown as DashQLCatalog;
@@ -89,7 +89,7 @@ describe('catalog batch publication', () => {
         const core: DashQL = Object.create(await DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }));
         const catalog = core.createCatalog();
         const script = core.createScript(catalog);
-        const entries = [{ script, text: 'create table worker_items(id int)', rank: 10 }];
+        const entries = [{ script, text: 'create table worker_items(id int)' }];
         const NativeWorker = globalThis.Worker;
         const worker = vi.spyOn(globalThis, 'Worker').mockImplementation(function (url, options) {
             return new NativeWorker(url, options);
@@ -115,7 +115,7 @@ describe('catalog batch publication', () => {
     it('prepares descriptors and publishes each identity immediately after writing its persistence SQL', async () => {
         const f = fixture();
         const replace = vi.mocked(f.catalog.replaceDescriptor).getMockImplementation()!;
-        vi.mocked(f.catalog.replaceDescriptor).mockImplementation((id, rank, bytes) => {
+        vi.mocked(f.catalog.replaceDescriptor).mockImplementation((id, layer, bytes) => {
             expect(f.relation.toString()).toBe('next relations');
             if (id === 1) {
                 expect(f.functions.replaceText).not.toHaveBeenCalled();
@@ -124,7 +124,7 @@ describe('catalog batch publication', () => {
                 expect(f.functions.toString()).toBe('next functions');
                 expect(f.pools.get(1)).toBe(f.descriptor);
             }
-            replace(id, rank, bytes);
+            replace(id, layer, bytes);
         });
         expect(await publishCatalogBatch(f.core, f.catalog, f.entries, { processor: f.processor }))
             .toEqual([{ tables: 0, functions: 0 }, { tables: 0, functions: 0 }]);
@@ -133,8 +133,8 @@ describe('catalog batch publication', () => {
             { id: '2', text: 'next functions', outputs: ['catalogDescriptor'] },
         ] });
         expect(f.catalog.replaceDescriptor).toHaveBeenCalledTimes(2);
-        expect(f.catalog.replaceDescriptor).toHaveBeenNthCalledWith(1, 1, 10, f.descriptor);
-        expect(f.catalog.replaceDescriptor).toHaveBeenNthCalledWith(2, 2, 20, f.descriptor);
+        expect(f.catalog.replaceDescriptor).toHaveBeenNthCalledWith(1, 1, buffers.catalog.CatalogLayer.CONNECTION, f.descriptor);
+        expect(f.catalog.replaceDescriptor).toHaveBeenNthCalledWith(2, 2, buffers.catalog.CatalogLayer.CONNECTION, f.descriptor);
         expect(f.pools.get(1)).toBe(f.descriptor);
         expect(f.pools.get(2)).toBe(f.descriptor);
         expect(f.relation.toString()).toBe('next relations');
@@ -187,7 +187,7 @@ describe('catalog batch publication', () => {
         expect(f.pools.get(2)).toEqual(new Uint8Array([2]));
         if (position === 'first') expect(f.functions.replaceText).not.toHaveBeenCalled();
         else {
-            expect(f.catalog.replaceDescriptor).toHaveBeenCalledExactlyOnceWith(1, 10, f.descriptor);
+            expect(f.catalog.replaceDescriptor).toHaveBeenCalledExactlyOnceWith(1, buffers.catalog.CatalogLayer.CONNECTION, f.descriptor);
             expect(f.relation.replaceText).toHaveBeenCalledExactlyOnceWith('next relations');
         }
     });
@@ -217,15 +217,15 @@ describe('catalog batch publication', () => {
     it.each(['first', 'second'])('rolls back only the %s source on import failure and retains earlier pools', async position => {
         const f = fixture();
         const replace = vi.mocked(f.catalog.replaceDescriptor).getMockImplementation()!;
-        vi.mocked(f.catalog.replaceDescriptor).mockImplementation((id, rank, bytes) => {
+        vi.mocked(f.catalog.replaceDescriptor).mockImplementation((id, layer, bytes) => {
             expect(id === 1 ? f.relation.toString() : f.functions.toString()).toBe(id === 1 ? 'next relations' : 'next functions');
             if (id === (position === 'first' ? 1 : 2)) throw new Error('import failed');
-            replace(id, rank, bytes);
+            replace(id, layer, bytes);
         });
         await expect(publishCatalogBatch(f.core, f.catalog, f.entries, { processor: f.processor }))
             .rejects.toThrow('import failed');
         expect(f.catalog.replaceDescriptor).toHaveBeenCalledTimes(position === 'first' ? 1 : 2);
-        expect(f.catalog.replaceDescriptor).toHaveBeenNthCalledWith(1, 1, 10, f.descriptor);
+        expect(f.catalog.replaceDescriptor).toHaveBeenNthCalledWith(1, 1, buffers.catalog.CatalogLayer.CONNECTION, f.descriptor);
         expect(f.relation.toString()).toBe(position === 'first' ? 'old SQL 1' : 'next relations');
         expect(f.functions.toString()).toBe('old SQL 2');
         expect(f.pools.get(1)).toEqual(position === 'first' ? new Uint8Array([1]) : f.descriptor);
@@ -236,7 +236,7 @@ describe('catalog batch publication', () => {
         expect(script.replaceText).toHaveBeenNthCalledWith(2, position === 'first' ? 'old SQL 1' : 'old SQL 2');
         if (position === 'first') expect(f.functions.replaceText).not.toHaveBeenCalled();
         else {
-            expect(f.catalog.replaceDescriptor).toHaveBeenNthCalledWith(2, 2, 20, f.descriptor);
+            expect(f.catalog.replaceDescriptor).toHaveBeenNthCalledWith(2, 2, buffers.catalog.CatalogLayer.CONNECTION, f.descriptor);
             expect(f.relation.replaceText).toHaveBeenCalledExactlyOnceWith('next relations');
         }
     });

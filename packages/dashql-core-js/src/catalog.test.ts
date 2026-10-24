@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe('DashQLCatalog', () => {
-    it('loads ranked relation and function scripts as one catalog generation', () => {
+    it('loads relation and function scripts of several layers as one catalog generation', () => {
         const catalog = dql.createCatalog();
         const relations = dql.createScript(catalog);
         const functions = dql.createScript(catalog);
@@ -23,7 +23,7 @@ describe('DashQLCatalog', () => {
         functions.analyze();
         const previousVersion = catalog.createSnapshot().read().catalogReader.catalogVersion();
 
-        catalog.loadScripts([[relations, 20], [functions, 10]]);
+        catalog.loadScripts([[relations, dashql.buffers.catalog.CatalogLayer.CONNECTION], [functions, dashql.buffers.catalog.CatalogLayer.SESSION]]);
 
         const snapshot = catalog.createSnapshot().read().catalogReader;
         expect(snapshot.catalogVersion()).toBe(previousVersion + 1n);

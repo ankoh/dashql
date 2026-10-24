@@ -1180,7 +1180,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             }
             out.extend(tables.iter().map(|&t| (own.table_loc(t), false)));
         }
-        let lower = (Arc::<str>::from(schema), 0, 0);
+        let lower = (Arc::<str>::from(schema), MIN_LAYER, 0);
         for ((s, _, entry_id), _) in self.catalog().entries_by_schema().range(lower..) {
             if &**s != schema {
                 break;
@@ -1213,8 +1213,8 @@ impl<'c, 'a> Completion<'c, 'a> {
         if let Some(tables) = own.tables_by_unqualified_schema.get(&key) {
             out.extend(tables.iter().map(|&t| (own.table_loc(t), false)));
         }
-        let lower = (Arc::<str>::from(database), Arc::<str>::from(schema), 0, 0);
-        let upper = (Arc::<str>::from(database), Arc::<str>::from(schema), Rank::MAX, CatalogEntryId::MAX);
+        let lower = (Arc::<str>::from(database), Arc::<str>::from(schema), MIN_LAYER, 0);
+        let upper = (Arc::<str>::from(database), Arc::<str>::from(schema), MAX_LAYER, CatalogEntryId::MAX);
         for ((_, _, _, entry_id), _) in self.catalog().entries_by_qualified_schema().range(lower..=upper) {
             if *entry_id == own.catalog_entry_id {
                 continue;

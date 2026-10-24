@@ -578,12 +578,12 @@ create function days_between(start_date date, end_date date) returns integer;
             const relationsScript = dql!.createScript(catalog);
             relationsScript.insertTextAt(0, RELATIONS_SQL);
             relationsScript.analyze();
-            catalog.loadScript(relationsScript, 0);
+            catalog.loadScript(relationsScript, dashql.buffers.catalog.CatalogLayer.SESSION);
 
             const functionsScript = dql!.createScript(catalog);
             functionsScript.insertTextAt(0, FUNCTIONS_SQL);
             functionsScript.analyze();
-            catalog.loadScript(functionsScript, 0);
+            catalog.loadScript(functionsScript, dashql.buffers.catalog.CatalogLayer.SESSION);
 
             return catalog;
         }

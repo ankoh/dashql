@@ -1,7 +1,7 @@
 //! Scans, parses and analyzes scripts with dashql-core and collects their diagnostics
 
 use dashql_core::batch::{check_script, DiagnosticSeverity, ProcessingStage};
-use dashql_core::catalog::Catalog;
+use dashql_core::catalog::{Catalog, CatalogLayer};
 
 /// A script that should be linted
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -98,10 +98,8 @@ pub fn line_column(text: &str, offset: usize) -> (usize, usize) {
 /// Runs scripts through the DashQL scanner, parser and analyzer against a catalog of schema scripts
 #[derive(Default)]
 pub struct Linter {
-    /// The catalog holding the loaded schema scripts
+    /// The catalog holding the loaded schema scripts, earlier schemas win on name conflicts
     catalog: Catalog,
-    /// The number of schema scripts loaded so far, used as the catalog rank of the next one
-    schemas: u32,
 }
 
 impl Linter {
@@ -115,10 +113,9 @@ impl Linter {
         let checked = check_script(&self.catalog, &input.text, ProcessingStage::ANALYZE);
         let mut diagnostics = to_diagnostics(&input.text, &checked);
         if let (false, Some(analyzed)) = (checked.has_errors(), checked.script.analyzed) {
-            if let Err(e) = self.catalog.load_script(analyzed, self.schemas) {
+            if let Err(e) = self.catalog.load_script(analyzed, CatalogLayer::CONNECTION) {
                 diagnostics.push(Diagnostic::failure(e.message));
             }
-            self.schemas += 1;
         }
         diagnostics
     }
@@ -211,6 +208,6 @@ mod tests {
         let mut linter = Linter::new();
         let diagnostics = linter.add_schema(&Input { id: "schema.sql".into(), text: "create table a (id integer".into() });
         assert!(diagnostics.iter().any(|d| d.severity == Severity::Error));
-        assert_eq!(linter.schemas, 0);
+        assert_eq!(linter.catalog.entries_ranked().count(), 0);
     }
 }

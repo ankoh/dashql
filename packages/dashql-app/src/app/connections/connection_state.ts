@@ -3,7 +3,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { HyperConnectorAction } from './hyper/hyper_connection_state.js';
 import type { SalesforceConnectionStateAction } from './salesforce/salesforce_connection_state.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
+import { CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { generateCatalogScriptHeader, CatalogSource } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { VariantKind } from '../../utils/variant.js';
@@ -507,7 +507,7 @@ function applyCatalogChanges(state: ConnectionState, changes: core.buffers.catal
     if (changes.length === 0) return state;
     try {
         const qualified = state.instance.qualifyCatalogChanges(changes, catalogNameDefaults(state.details));
-        state.catalog.applyCatalogChanges(state.catalogRelationScript.catalog_entry_id, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, qualified);
+        state.catalog.applyCatalogChanges(state.catalogRelationScript.catalog_entry_id, core.buffers.catalog.CatalogLayer.CONNECTION, qualified);
         const catalogChangesSql = state.instance.appendCatalogChangesSql(state.catalogChangesSql, qualified);
         logger.info('Applied catalog changes of executed statements', {
             connectionId: state.connectionId,

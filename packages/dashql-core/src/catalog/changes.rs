@@ -6,7 +6,7 @@
 //! are kept as SQL, a script of `CREATE TABLE` and `DROP TABLE` statements that is
 //! rendered and parsed with the same derivation.
 
-use super::{Catalog, CatalogEntryId, Rank};
+use super::{Catalog, CatalogEntryId, CatalogLayer};
 use crate::analyzer::AnalyzedScript;
 use crate::error::{Error, Result};
 use crate::pack::pack_parsed_statement;
@@ -308,21 +308,21 @@ fn apply_to_descriptor(descriptor: &mut CatalogDescriptorT, changes: &[CatalogCh
 
 impl Catalog {
     /// Apply catalog changes to a descriptor entry.
-    /// An unknown entry is created with the given rank, a known entry keeps its rank.
-    pub fn apply_catalog_changes(&mut self, id: CatalogEntryId, rank: Rank, changes: &[CatalogChangeT]) -> Result<()> {
-        let (mut descriptor, rank) = match self.descriptor_entries.get(&id) {
+    /// An unknown entry is created with the given layer, a known entry keeps its layer.
+    pub fn apply_catalog_changes(&mut self, id: CatalogEntryId, layer: CatalogLayer, changes: &[CatalogChangeT]) -> Result<()> {
+        let (mut descriptor, layer) = match self.descriptor_entries.get(&id) {
             Some(entry) => {
                 let descriptor = flatbuffers::root::<CatalogDescriptor>(&entry.bytes)
                     .map_err(|_| Error::invalid_argument("invalid CatalogDescriptor FlatBuffer"))?
                     .unpack();
-                (descriptor, entry.rank)
+                (descriptor, entry.layer)
             }
-            None => (CatalogDescriptorT::default(), rank),
+            None => (CatalogDescriptorT::default(), layer),
         };
         apply_to_descriptor(&mut descriptor, changes);
         let mut builder = flatbuffers::FlatBufferBuilder::new();
         let packed = descriptor.pack(&mut builder);
         builder.finish(packed, None);
-        self.replace_descriptor(id, rank, builder.finished_data())
+        self.replace_descriptor(id, layer, builder.finished_data())
     }
 }

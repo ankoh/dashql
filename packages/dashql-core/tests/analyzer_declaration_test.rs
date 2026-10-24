@@ -1,5 +1,6 @@
 //! A port of the C++ `test/analyzer_declaration_test.cc`.
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::{Catalog, TableDeclaration};
 use dashql_core::script::Script;
 
@@ -26,7 +27,7 @@ fn load_source_schema(catalog: &mut Catalog) -> Script {
     let mut schema = Script::new(catalog);
     schema.insert_text_at(0, "create table source (id int, amount int)");
     schema.analyze(catalog, true).unwrap();
-    catalog.load_script(schema.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     schema
 }
 

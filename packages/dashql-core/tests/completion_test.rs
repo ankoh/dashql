@@ -3,6 +3,7 @@
 // Bison names some symbol kinds in mixed case (S_Op)
 #![allow(non_upper_case_globals)]
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
 use dashql_core::catalog::Catalog;
@@ -37,7 +38,7 @@ fn analyze(catalog: &Catalog, text: &str) -> Script {
 /// Create, analyze and load a script into the catalog with rank 0
 fn load_schema(catalog: &mut Catalog, text: &str) -> Script {
     let script = analyze(catalog, text);
-    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     script
 }
 
@@ -89,7 +90,7 @@ fn tpch_q2() {
     external_script.scan();
     external_script.parse();
     external_script.analyze(&catalog, true).unwrap();
-    catalog.load_script(external_script.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(external_script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
 
     let mut main_script = Script::new(&catalog);
     main_script.insert_text_at(0, main_script_text);
@@ -263,7 +264,7 @@ fn keyword_continuation_cte_identifier() {
     external_script.scan();
     external_script.parse();
     external_script.analyze(&catalog, true).unwrap();
-    catalog.load_script(external_script.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(external_script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
 
     // Identifier candidate "foo" in CTE position should get "as" continuation
     let continuation = continuation_of(&catalog, "\nWITH fo\n    ", "fo", "foo");

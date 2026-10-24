@@ -17,7 +17,7 @@
 //! convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
 
 use crate::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
-use crate::catalog::{Catalog, CatalogEntryId, QualifiedTableName, Rank};
+use crate::catalog::{Catalog, CatalogEntryId, QualifiedTableName, CatalogLayer};
 use crate::compiler::{compile, CompilationOptions};
 use crate::completion::is_symbol_kind_completable;
 use crate::cursor::CursorContext;
@@ -1054,13 +1054,13 @@ impl ScriptSession {
     }
 
     /// Publish the analyzed script into the catalog (`LoadIntoCatalog`)
-    pub fn load_into_catalog(&mut self, rank: Rank) -> Result<()> {
+    pub fn load_into_catalog(&mut self, layer: CatalogLayer) -> Result<()> {
         let analyzed =
             self.script.analyzed.clone().ok_or_else(|| Error::status(StatusCode::CATALOG_SCRIPT_NOT_ANALYZED))?;
         let mut catalog = self.catalog.borrow_mut();
         // A publish that changes declarations bumps the catalog version, the analysis then needs a
         // refresh against that version before the planner can use it
-        catalog.load_script(analyzed, rank)?;
+        catalog.load_script(analyzed, layer)?;
         self.cursor_catalog_revision = catalog.version() as u64;
         Ok(())
     }

@@ -4,7 +4,7 @@
 //! (`CATALOG_SCRIPT_NOT_ANALYZED`) has no Rust counterpart.
 
 use dashql_buffers::status::StatusCode;
-use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogObjectType, EntryIdSource, ExternalObjectId, QualifiedCatalogObjectId, Rank, INITIAL_ENTRY_ID};
+use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogObjectType, EntryIdSource, ExternalObjectId, QualifiedCatalogObjectId, CatalogLayer, INITIAL_ENTRY_ID};
 use dashql_core::analyzer::ColumnResolution;
 use dashql_core::script::Script;
 
@@ -135,7 +135,7 @@ fn flatten_example_schema() {
     assert_eq!(analyzed.entry.tables_by_qualified_name.len(), 8);
 
     // Add to catalog
-    catalog.load_script(analyzed, 1).unwrap();
+    catalog.load_script(analyzed, CatalogLayer::SESSION).unwrap();
 
     // Flatten the catalog
     let flat = catalog.flatten();
@@ -145,48 +145,59 @@ fn flatten_example_schema() {
 }
 
 #[test]
-fn load_scripts_publishes_one_ranked_generation() {
+fn load_scripts_publishes_one_generation() {
     let mut catalog = Catalog::new();
     let relations = analyze(&catalog, "create table db.schema.items(id int);");
     let functions = analyze(&catalog, "create function db.schema.item_count() returns int;");
     let previous_version = catalog.version();
 
     catalog
-        .load_scripts(&[(relations.analyzed.clone().unwrap(), 20), (functions.analyzed.clone().unwrap(), 10)])
+        .load_scripts(&[
+            (relations.analyzed.clone().unwrap(), CatalogLayer::CONNECTION),
+            (functions.analyzed.clone().unwrap(), CatalogLayer::SESSION),
+        ])
         .unwrap();
 
     assert_eq!(catalog.version(), previous_version + 1);
     assert!(catalog.contains(relations.catalog_entry_id()));
     assert!(catalog.contains(functions.catalog_entry_id()));
-    let entries: Vec<(CatalogEntryId, Rank, usize, usize)> = catalog
+    let entries: Vec<(CatalogEntryId, CatalogLayer, usize, usize)> = catalog
         .entries_ranked()
-        .map(|(rank, entry)| {
+        .map(|(layer, entry)| {
             let data = entry.data();
-            (data.catalog_entry_id, rank, data.table_declarations.len(), data.function_declarations.len())
+            (data.catalog_entry_id, layer, data.table_declarations.len(), data.function_declarations.len())
         })
         .collect();
     assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0], (functions.catalog_entry_id(), 10, 0, 1));
-    assert_eq!(entries[1], (relations.catalog_entry_id(), 20, 1, 0));
+    assert_eq!(entries[0], (functions.catalog_entry_id(), CatalogLayer::SESSION, 0, 1));
+    assert_eq!(entries[1], (relations.catalog_entry_id(), CatalogLayer::CONNECTION, 1, 0));
 }
 
 #[test]
-fn load_scripts_updates_loaded_scripts_and_ranks_once() {
+fn load_scripts_updates_loaded_scripts_and_layers_once() {
     let mut catalog = Catalog::new();
     let mut first = analyze(&catalog, "create table db.schema.old_table(id int);");
     let second = analyze(&catalog, "create table db.schema.second_table(id int);");
-    catalog.load_script(first.analyzed.clone().unwrap(), 1).unwrap();
-    catalog.load_script(second.analyzed.clone().unwrap(), 2).unwrap();
+    catalog.load_script(first.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    catalog.load_script(second.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
 
     first.replace_text("create table db.schema.new_table(id int);");
     first.analyze(&catalog, true).unwrap();
     let previous_version = catalog.version();
-    catalog.load_scripts(&[(first.analyzed.clone().unwrap(), 30), (second.analyzed.clone().unwrap(), 20)]).unwrap();
+    catalog
+        .load_scripts(&[
+            (first.analyzed.clone().unwrap(), CatalogLayer::CONNECTION),
+            (second.analyzed.clone().unwrap(), CatalogLayer::SESSION),
+        ])
+        .unwrap();
 
     assert_eq!(catalog.version(), previous_version + 1);
-    let ranked: Vec<(CatalogEntryId, Rank)> =
-        catalog.entries_ranked().map(|(rank, entry)| (entry.data().catalog_entry_id, rank)).collect();
-    assert_eq!(ranked, vec![(second.catalog_entry_id(), 20), (first.catalog_entry_id(), 30)]);
+    let ranked: Vec<(CatalogEntryId, CatalogLayer)> =
+        catalog.entries_ranked().map(|(layer, entry)| (entry.data().catalog_entry_id, layer)).collect();
+    assert_eq!(
+        ranked,
+        vec![(second.catalog_entry_id(), CatalogLayer::SESSION), (first.catalog_entry_id(), CatalogLayer::CONNECTION)]
+    );
     let entry = catalog.entry(first.catalog_entry_id()).expect("first").data();
     assert_eq!(entry.table_declarations.len(), 1);
     assert_eq!(entry.table_declarations[0].table_name.table_name.text(), "new_table");
@@ -197,12 +208,14 @@ fn load_scripts_validation_failure_preserves_catalog() {
     let mut catalog = Catalog::new();
     let loaded = analyze(&catalog, "create table db.schema.loaded(id int);");
     let valid = analyze(&catalog, "create table db.schema.valid(id int);");
-    catalog.load_script(loaded.analyzed.clone().unwrap(), 1).unwrap();
+    catalog.load_script(loaded.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let previous_version = catalog.version();
 
     // The C++ batch with an unanalyzed script cannot be expressed, see the module comment.
     let valid_analyzed = valid.analyzed.clone().unwrap();
-    let error = catalog.load_scripts(&[(valid_analyzed.clone(), 2), (valid_analyzed.clone(), 3)]).unwrap_err();
+    let error = catalog
+        .load_scripts(&[(valid_analyzed.clone(), CatalogLayer::SESSION), (valid_analyzed.clone(), CatalogLayer::SESSION)])
+        .unwrap_err();
     assert_eq!(error.status, Some(StatusCode::EXTERNAL_ID_COLLISION));
     assert_eq!(catalog.version(), previous_version);
     assert!(catalog.contains(loaded.catalog_entry_id()));
@@ -210,7 +223,9 @@ fn load_scripts_validation_failure_preserves_catalog() {
 
     let other_catalog = Catalog::new();
     let mismatched = analyze(&other_catalog, "create table db.schema.other(id int);");
-    let error = catalog.load_scripts(&[(valid_analyzed, 2), (mismatched.analyzed.clone().unwrap(), 3)]).unwrap_err();
+    let error = catalog
+        .load_scripts(&[(valid_analyzed, CatalogLayer::SESSION), (mismatched.analyzed.clone().unwrap(), CatalogLayer::SESSION)])
+        .unwrap_err();
     assert_eq!(error.status, Some(StatusCode::CATALOG_MISMATCH));
     assert_eq!(catalog.version(), previous_version);
     assert!(!catalog.contains(valid.catalog_entry_id()));
@@ -222,15 +237,16 @@ fn describe_entries_lists_scripts_as_one_anonymous_schema() {
     assert!(catalog.describe_entries().entries.unwrap().is_empty());
     let first = analyze(&catalog, "create table db.main.items(id int, name text); create table db.main.tags(tag text);");
     let second = analyze(&catalog, "create table other.misc(x int);");
-    catalog.load_script(first.analyzed.clone().unwrap(), 5).unwrap();
-    catalog.load_script(second.analyzed.clone().unwrap(), 2).unwrap();
+    catalog.load_script(first.analyzed.clone().unwrap(), CatalogLayer::CONNECTION).unwrap();
+    catalog.load_script(second.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
 
-    // The entries are described in rank order
+    // The entries are described in resolution order, with their layers
     let entries = catalog.describe_entries().entries.unwrap();
     assert_eq!(entries.len(), 2);
     assert_eq!(entries[0].catalog_entry_id, second.catalog_entry_id());
     assert_eq!(entries[1].catalog_entry_id, first.catalog_entry_id());
-    assert!(entries.iter().all(|e| e.rank == 0));
+    assert_eq!(entries[0].layer, CatalogLayer::SESSION);
+    assert_eq!(entries[1].layer, CatalogLayer::CONNECTION);
     let schemas = entries[1].schemas.as_ref().unwrap();
     assert_eq!(schemas.len(), 1);
     let tables = schemas[0].tables.as_ref().unwrap();
@@ -251,7 +267,7 @@ fn describe_entries_lists_scripts_as_one_anonymous_schema() {
 fn statistics_count_scripts() {
     let mut catalog = Catalog::new();
     let script = analyze(&catalog, "create table db.main.t(a int, b int); create table db.other.u(c int);");
-    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let content = catalog.statistics().content.unwrap();
     assert_eq!((content.database_count, content.schema_count, content.table_count, content.table_column_count), (1, 2, 2, 3));
 }
@@ -261,8 +277,8 @@ fn drop_script_removes_unreferenced_databases_and_schemas() {
     let mut catalog = Catalog::new();
     let first = analyze(&catalog, "create table db.main.t(a int);");
     let second = analyze(&catalog, "create table db.main.u(a int); create table other.x.v(a int);");
-    catalog.load_script(first.analyzed.clone().unwrap(), 1).unwrap();
-    catalog.load_script(second.analyzed.clone().unwrap(), 2).unwrap();
+    catalog.load_script(first.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    catalog.load_script(second.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     assert_eq!(catalog.databases().len(), 2);
     assert_eq!(catalog.schemas().len(), 2);
 
@@ -291,7 +307,7 @@ fn drop_script_removes_unreferenced_databases_and_schemas() {
 fn clear_removes_all_entries() {
     let mut catalog = Catalog::new();
     let script = analyze(&catalog, "create table db.main.t(a int);");
-    catalog.load_script(script.analyzed.clone().unwrap(), 1).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let version = catalog.version();
     catalog.clear();
     assert!(catalog.version() > version);
@@ -308,8 +324,8 @@ fn entries_resolve_tables_by_name() {
     let mut catalog = Catalog::new();
     let first = analyze(&catalog, "create table db.main.t(a int); create table db.main.u(b int);");
     let second = analyze(&catalog, "create table db.main.t(c int);");
-    catalog.load_script(first.analyzed.clone().unwrap(), 1).unwrap();
-    catalog.load_script(second.analyzed.clone().unwrap(), 2).unwrap();
+    catalog.load_script(first.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    catalog.load_script(second.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
 
     let entry = catalog.entry(first.catalog_entry_id()).unwrap().data();
     let mut found = Vec::new();
@@ -380,17 +396,17 @@ fn republished_scripts_do_not_retain_earlier_versions() {
     let mut catalog = Catalog::new();
     let mut a = analyze(&catalog, "create table a (x integer); select y from b");
     let mut b = analyze(&catalog, "create table b (y integer); select x from a");
-    catalog.load_script(a.analyzed.clone().unwrap(), 0).unwrap();
-    catalog.load_script(b.analyzed.clone().unwrap(), 1).unwrap();
+    catalog.load_script(a.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    catalog.load_script(b.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let first_a = std::sync::Arc::downgrade(a.analyzed.as_ref().unwrap());
     let first_b = std::sync::Arc::downgrade(b.analyzed.as_ref().unwrap());
 
     // Each analysis depends on the published version of the other script
     for _ in 0..100 {
         a.analyze(&catalog, true).unwrap();
-        catalog.load_script(a.analyzed.clone().unwrap(), 0).unwrap();
+        catalog.load_script(a.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
         b.analyze(&catalog, true).unwrap();
-        catalog.load_script(b.analyzed.clone().unwrap(), 1).unwrap();
+        catalog.load_script(b.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     }
     assert!(first_a.upgrade().is_none());
     assert!(first_b.upgrade().is_none());
@@ -412,30 +428,30 @@ fn republished_scripts_do_not_retain_earlier_versions() {
 fn republishing_equal_declarations_keeps_the_version() {
     let mut catalog = Catalog::new();
     let mut script = analyze(&catalog, "create table a (x integer); select x from a");
-    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let version = catalog.version();
 
     // Another query over the same declarations
     script.replace_text("create table a (x integer); select x + 1 as y from a where x > 0");
     script.analyze(&catalog, true).unwrap();
-    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     assert_eq!(catalog.version(), version);
     assert!(std::sync::Arc::ptr_eq(
         catalog.entry(script.catalog_entry_id()).unwrap().shared_data(),
         &script.analyzed.as_ref().unwrap().entry
     ));
 
-    // A new column, a renamed table and a new rank are new declarations
-    for (text, rank) in [
-        ("create table a (x integer, z integer)", 0),
-        ("create table b (x integer, z integer)", 0),
-        ("create table b (x integer, z integer)", 1),
+    // A new column, a renamed table and a new layer are new declarations
+    for (text, layer) in [
+        ("create table a (x integer, z integer)", CatalogLayer::SESSION),
+        ("create table b (x integer, z integer)", CatalogLayer::SESSION),
+        ("create table b (x integer, z integer)", CatalogLayer::EXECUTED),
     ] {
         script.replace_text(text);
         script.analyze(&catalog, true).unwrap();
         let before = catalog.version();
-        catalog.load_script(script.analyzed.clone().unwrap(), rank).unwrap();
-        assert_eq!(catalog.version(), before + 1, "{text} with rank {rank}");
+        catalog.load_script(script.analyzed.clone().unwrap(), layer).unwrap();
+        assert_eq!(catalog.version(), before + 1, "{text} in layer {layer:?}");
     }
 }
 
@@ -443,7 +459,7 @@ fn republishing_equal_declarations_keeps_the_version() {
 fn published_scripts_do_not_retain_their_analysis() {
     let mut catalog = Catalog::new();
     let mut script = analyze(&catalog, "create table a (x integer); select x from a");
-    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let published = std::sync::Arc::downgrade(script.analyzed.as_ref().unwrap());
 
     // The catalog keeps the declarations and names of the published analysis, not the analysis
@@ -459,7 +475,7 @@ fn published_scripts_do_not_retain_their_analysis() {
 fn analyses_keep_the_snapshot_they_resolved_against() {
     let mut catalog = Catalog::new();
     let mut schema = analyze(&catalog, "create table a (x integer, y integer, z integer)");
-    catalog.load_script(schema.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let mut query = analyze(&catalog, "select z from a where z = 1");
     let analyzed = query.analyzed.clone().unwrap();
     assert!(catalog.is_current(&analyzed.snapshot));
@@ -467,7 +483,7 @@ fn analyses_keep_the_snapshot_they_resolved_against() {
     // The published table loses the columns the query resolved to
     schema.replace_text("create table a (x integer)");
     schema.analyze(&catalog, true).unwrap();
-    catalog.load_script(schema.analyzed.clone().unwrap(), 0).unwrap();
+    catalog.load_script(schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     assert!(!catalog.is_current(&analyzed.snapshot));
 
     // The analysis still resolves its locations through its snapshot

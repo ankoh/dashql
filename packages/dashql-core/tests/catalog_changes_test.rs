@@ -1,6 +1,7 @@
 //! Catalog changes of successful statements: derivation, compaction, the changes SQL, and
 //! applying the changes to descriptor entries.
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::{QualifiedTableNameT, TableColumnT, TableT};
 use dashql_buffers::catalog::{CatalogChangeT, CatalogChangeType, CatalogDescriptorT};
 use dashql_buffers::editor::EditorOffsetUnit;
@@ -105,14 +106,14 @@ fn table(database: &str, schema: &str, name: &str, columns: &[&str]) -> TableT {
 }
 
 /// Load a descriptor with the tables into the catalog
-fn add_descriptor(catalog: &mut Catalog, rank: u32, tables: Vec<TableT>) -> CatalogEntryId {
+fn add_descriptor(catalog: &mut Catalog, layer: CatalogLayer, tables: Vec<TableT>) -> CatalogEntryId {
     let mut descriptor = CatalogDescriptorT::default();
     descriptor.tables = Some(tables);
     let mut builder = flatbuffers::FlatBufferBuilder::new();
     let packed = descriptor.pack(&mut builder);
     builder.finish(packed, None);
     let id = catalog.allocate_entry_id();
-    catalog.replace_descriptor(id, rank, builder.finished_data()).unwrap();
+    catalog.replace_descriptor(id, layer, builder.finished_data()).unwrap();
     id
 }
 
@@ -285,11 +286,11 @@ fn appends_to_changes_sql() {
 #[test]
 fn applies_changes_to_a_descriptor_entry() {
     let mut catalog = Catalog::new();
-    let id = add_descriptor(&mut catalog, 10, vec![table("db", "main", "kept", &["a"]), table("db", "main", "gone", &["b"])]);
+    let id = add_descriptor(&mut catalog, CatalogLayer::CONNECTION, vec![table("db", "main", "kept", &["a"]), table("db", "main", "gone", &["b"])]);
     catalog
         .apply_catalog_changes(
             id,
-            10,
+            CatalogLayer::CONNECTION,
             &[
                 drop("db", "main", "gone"),
                 create("db", "main", "added", &["x", "y", "x"]),
@@ -301,7 +302,7 @@ fn applies_changes_to_a_descriptor_entry() {
     assert_eq!(tables_of(&catalog, id), vec!["db.main.added(x, y)", "db.main.kept(a)", "db.other.kept(c)"]);
 
     // A replacement takes the new columns
-    catalog.apply_catalog_changes(id, 10, &[create("db", "main", "kept", &["new"])]).unwrap();
+    catalog.apply_catalog_changes(id, CatalogLayer::CONNECTION, &[create("db", "main", "kept", &["new"])]).unwrap();
     assert_eq!(tables_of(&catalog, id), vec!["db.main.added(x, y)", "db.main.kept(new)", "db.other.kept(c)"]);
 }
 
@@ -309,15 +310,15 @@ fn applies_changes_to_a_descriptor_entry() {
 fn applying_changes_creates_an_unknown_entry() {
     let mut catalog = Catalog::new();
     let id = catalog.allocate_entry_id();
-    catalog.apply_catalog_changes(id, 10, &[create("db", "main", "t", &["a"]), drop("db", "main", "u")]).unwrap();
+    catalog.apply_catalog_changes(id, CatalogLayer::CONNECTION, &[create("db", "main", "t", &["a"]), drop("db", "main", "u")]).unwrap();
     assert_eq!(tables_of(&catalog, id), vec!["db.main.t(a)"]);
 
     // Scripts are not descriptor entries
     let mut script = Script::new(&catalog);
     script.replace_text("create table s (a int);");
     script.analyze(&catalog, true).unwrap();
-    catalog.load_script(script.analyzed.clone().unwrap(), 10).unwrap();
-    assert!(catalog.apply_catalog_changes(script.catalog_entry_id(), 10, &[drop("db", "main", "s")]).is_err());
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    assert!(catalog.apply_catalog_changes(script.catalog_entry_id(), CatalogLayer::CONNECTION, &[drop("db", "main", "s")]).is_err());
 }
 
 #[test]

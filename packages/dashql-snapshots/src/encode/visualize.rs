@@ -6,10 +6,10 @@ use dashql_buffers::visualization::MarkdownNodeType;
 use dashql_core::analyzer::{AnalyzedScript, DashboardSpec};
 use dashql_core::visualize::{MarkdownDocument, MarkdownNode, UmapDocument};
 
-/// Analyze a script like the visualize snapshot test: the catalog script (if any) is analyzed and loaded with its
-/// entry id as rank, then the main script is analyzed
+/// Analyze a script like the visualize snapshot test: the catalog script (if any) is analyzed and loaded
+/// into the connection layer, then the main script is analyzed
 pub fn analyze_scripts(catalog_input: Option<&str>, main_input: &str) -> Result<AnalyzedScript, String> {
-    use dashql_core::catalog::Catalog;
+    use dashql_core::catalog::{Catalog, CatalogLayer};
     use dashql_parser::parser::parse;
     use dashql_parser::scanner::scan;
     use std::sync::Arc;
@@ -22,8 +22,7 @@ pub fn analyze_scripts(catalog_input: Option<&str>, main_input: &str) -> Result<
     };
     if let Some(input) = catalog_input {
         let analyzed = analyze_text(&catalog, input)?;
-        let rank = analyzed.catalog_entry_id();
-        catalog.load_script(Arc::new(analyzed), rank).map_err(|e| e.message)?;
+        catalog.load_script(Arc::new(analyzed), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
     }
     analyze_text(&catalog, main_input)
 }

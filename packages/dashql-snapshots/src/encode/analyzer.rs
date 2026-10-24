@@ -7,7 +7,7 @@ use dashql_buffers::catalog::CatalogChangeType;
 use dashql_buffers::parser::{Node as AstNode, SymbolSpan};
 use dashql_core::analyzer::*;
 use dashql_core::catalog::changes::{derive_catalog_change, CatalogChangeOptions};
-use dashql_core::catalog::{Catalog, ColumnLoc, QualifiedCatalogObjectId, TableDeclaration};
+use dashql_core::catalog::{Catalog, CatalogLayer, ColumnLoc, QualifiedCatalogObjectId, TableDeclaration};
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
 use yaml_rust2::Yaml;
@@ -682,7 +682,7 @@ pub const COMPARED_KEYS: [&str; 9] = [
 ];
 
 /// Analyze the scripts of an analyzer snapshot case like `AnalyzerSnapshotTest` does: the catalog
-/// script is analyzed and loaded with its entry id as rank, then the main script is analyzed.
+/// script is analyzed and loaded into the connection layer, then the main script is analyzed.
 /// Returns the encoded catalog script (if any) and the encoded main script.
 pub fn analyze_case(catalog_input: Option<&str>, main_input: &str) -> Result<(Option<Yaml>, Yaml), String> {
     use dashql_core::catalog::Catalog;
@@ -700,8 +700,7 @@ pub fn analyze_case(catalog_input: Option<&str>, main_input: &str) -> Result<(Op
     if let Some(input) = catalog_input {
         let analyzed = analyze_text(&catalog, input)?;
         catalog_yaml = Some(encode_script(&analyzed, false, None).to_yaml());
-        let rank = analyzed.catalog_entry_id();
-        catalog.load_script(Arc::new(analyzed), rank).map_err(|e| e.message)?;
+        catalog.load_script(Arc::new(analyzed), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
     }
     let analyzed = analyze_text(&catalog, main_input)?;
     Ok((catalog_yaml, encode_script(&analyzed, true, Some(&catalog)).to_yaml()))

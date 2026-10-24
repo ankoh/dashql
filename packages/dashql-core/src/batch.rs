@@ -1,7 +1,7 @@
 //! Batch processing, a port of `src/batch.cc`: scan, parse and analyze many scripts against shared
 //! descriptor context in one call.
 
-use crate::catalog::Catalog;
+use crate::catalog::{Catalog, CatalogLayer};
 use crate::error::{Error, Result};
 use crate::pack::{pack_analyzed_script, pack_catalog_descriptor, pack_parsed_script, pack_scanned_script, pack_visualization};
 use crate::script::Script;
@@ -110,10 +110,11 @@ pub fn process_batch(request: &[u8]) -> Result<Vec<u8>> {
     let request = request.ok_or_else(|| Error::invalid_argument("invalid BatchRequest FlatBuffer"))?;
     let mut catalog = Catalog::new();
     if let Some(descriptors) = request.catalog_descriptors() {
-        for (rank, descriptor) in descriptors.iter().enumerate() {
+        // Earlier descriptors get older entry ids and win on name conflicts
+        for descriptor in descriptors.iter() {
             let data = descriptor.data().ok_or_else(|| Error::invalid_argument("missing batch catalog descriptor bytes"))?;
             let id = catalog.allocate_entry_id();
-            catalog.replace_descriptor(id, rank as u32, data.bytes())?;
+            catalog.replace_descriptor(id, CatalogLayer::CONNECTION, data.bytes())?;
         }
     }
 

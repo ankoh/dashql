@@ -6,7 +6,6 @@ import { QueryExecutionArgs } from './query_execution_args.js';
 import { DynamicConnectionDispatch } from "./connection_registry.js";
 import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from "./connection_state.js";
 import { QueryType } from "../../query/query_execution_state.js";
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
 import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type ColumnMetadata } from './catalog_sql_generator.js';
 import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from './catalog_batch.js';
 
@@ -167,6 +166,6 @@ export async function updateInformationSchemaCatalog(
     });
 
     await publishCatalogBatch(dql, catalog, [{
-        script: catalogRelationScript, text: `${header}${catalogSQL}`, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+        script: catalogRelationScript, text: `${header}${catalogSQL}`,
     }], options, validate);
 }

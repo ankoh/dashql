@@ -11,7 +11,7 @@
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingMode};
 use dashql_core::analyzer::{analyze, AnalyzedScript};
-use dashql_core::catalog::Catalog;
+use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::completion::Completion;
 use dashql_core::cursor::{ScriptCursor, ScriptView};
 use dashql_core::formatter::{
@@ -195,8 +195,7 @@ fn read_catalog(test: &mut Node) -> Catalog {
     let Some(script_node) = test.get_mut("catalog").and_then(|c| c.get_mut("script")) else { return catalog };
     if let Some(analyzed) = analyze_script(&catalog, &script_input(script_node)) {
         append(script_node, analyzer::encode_script(&analyzed, false, None));
-        let rank = analyzed.catalog_entry_id();
-        if let Err(e) = catalog.load_script(Arc::new(analyzed), rank) {
+        if let Err(e) = catalog.load_script(Arc::new(analyzed), CatalogLayer::CONNECTION) {
             println!("  ERROR {}", e.message);
         }
     }

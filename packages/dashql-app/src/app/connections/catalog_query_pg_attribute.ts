@@ -6,7 +6,6 @@ import { QueryExecutionArgs } from './query_execution_args.js';
 import { DynamicConnectionDispatch } from './connection_registry.js';
 import { CATALOG_UPDATE_SCHEMA_SCRIPT, CATALOG_UPDATE_REGISTER_QUERY } from "./connection_state.js";
 import { QueryType } from '../../query/query_execution_state.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
 import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, quoteIdentifier, type ColumnMetadata } from './catalog_sql_generator.js';
 import { generateFunctionScriptHeader } from './catalog_function_sql_generator.js';
 import { queryPgProc, generateCatalogSQLFromPgProc } from './catalog_query_pg_proc.js';
@@ -191,7 +190,7 @@ export async function updatePgSchemaScript(
     });
 
     const [relations] = await publishCatalogBatch(catalogRelationScript.ptr.api, catalog, [{
-        script: catalogRelationScript, text: `${header}${catalogSQL}`, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
+        script: catalogRelationScript, text: `${header}${catalogSQL}`,
     }], options, validate);
     logger.info("Collected tables from pg_attribute", {
         "updateId": updateId.toString(),
@@ -227,13 +226,11 @@ export async function updatePgCatalog(
     const entries: CatalogBatchEntry[] = [{
         script: catalogRelationScript,
         text: `${generateCatalogScriptHeader(CatalogSource.PgClass)}${relationsSQL}`,
-        rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
     }];
     if (functionsResult == null) throw new Error('pg_proc returned no function metadata result');
     entries.push({
         script: catalogFunctionScript,
         text: `${generateFunctionScriptHeader(CatalogSource.PgClass)}${generateCatalogSQLFromPgProc(functionsResult, databaseName, logger)}`,
-        rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK,
     });
     connectionDispatch(connectionId, { type: CATALOG_UPDATE_SCHEMA_SCRIPT, value: [updateId] });
     const counts = await publishCatalogBatch(dql, catalog, entries, options, validate);

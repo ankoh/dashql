@@ -77,7 +77,7 @@ describe('SQL generation', () => {
             const scriptSession = dql.createScriptSession(catalog);
             scriptSession.replaceText(scriptSession.getTextVersion(), 'create table summary as select 1 as total, 2 as count');
             scriptSession.analyze();
-            scriptSession.loadIntoCatalog(1);
+            scriptSession.loadIntoCatalog();
             const relations = [
                 '-- DashQL Connection Relations.',
                 'CREATE TABLE "db"."public"."orders" ("id" INTEGER, "amount" FLOAT);',

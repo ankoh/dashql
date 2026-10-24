@@ -274,9 +274,9 @@ describe('updateHyperCatalog', () => {
         };
         const replaceDescriptor = catalog.replaceDescriptor.bind(catalog);
         const publication = failure === 'publication' || failure === 'later publication'
-            ? vi.spyOn(catalog, 'replaceDescriptor').mockImplementation((id, rank, descriptor) => {
+            ? vi.spyOn(catalog, 'replaceDescriptor').mockImplementation((id, layer, descriptor) => {
                 if (failure === 'publication' || id === functionScript.catalog_entry_id) throw new Error('descriptor import failed');
-                replaceDescriptor(id, rank, descriptor);
+                replaceDescriptor(id, layer, descriptor);
             })
             : null;
         try {

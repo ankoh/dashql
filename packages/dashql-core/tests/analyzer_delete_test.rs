@@ -1,5 +1,6 @@
 //! A port of the C++ `test/analyzer_delete_test.cc`.
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::TableReferenceRole;
 use dashql_core::analyzer::{AnalyzedScript, ColumnRef, TableRole};
 use dashql_core::catalog::Catalog;
@@ -24,7 +25,7 @@ impl AnalyzerDeleteTest {
             "create table target (id int, label text); create table source (id int, source_only text); create table audit (id int);",
         );
         schema.analyze(&catalog, true).unwrap();
-        catalog.load_script(schema.analyzed.clone().unwrap(), 0).unwrap();
+        catalog.load_script(schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
         Self { catalog, _schema: schema }
     }
 

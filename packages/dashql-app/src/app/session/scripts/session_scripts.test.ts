@@ -316,7 +316,7 @@ describe('V2 flat session script mutations', () => {
         const alpha = current.scripts[current.scriptRefs['1_alpha.sql'].scriptId];
         replaceScriptSessionText(alpha.scriptSession, 'create table only_on_main (a int);');
         alpha.scriptSession.analyze();
-        alpha.scriptSession.loadIntoCatalog(alpha.scriptKey);
+        alpha.scriptSession.loadIntoCatalog();
         const completeTables = (next: SessionScripts) => {
             const beta = next.scripts[next.scriptRefs['2_beta.sql'].scriptId];
             const text = 'select * from only_on';

@@ -181,7 +181,7 @@ describe('Session composer', () => {
             const session = dql.createScriptSession(catalog);
             session.replaceText(session.getTextVersion(), 'create table orders (amount int)');
             session.analyze();
-            session.loadIntoCatalog(1);
+            session.loadIntoCatalog();
             act(() => type(editor, 'total amount of orders '));
             await vi.waitFor(() => expect(Array.from(editor.contentDOM.querySelectorAll(
                 `.${identifierStyles.identifier_table}, .${identifierStyles.identifier_column}`)).map(e => e.textContent))

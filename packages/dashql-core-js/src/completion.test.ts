@@ -53,7 +53,7 @@ describe('DashQL Completion', () => {
 
         schemaScript.insertTextAt(0, "create table tableA(\"attrA\" int)")
         schemaScript.analyze();
-        catalog.loadScript(schemaScript, 0);
+        catalog.loadScript(schemaScript, dashql.buffers.catalog.CatalogLayer.SESSION);
 
         const text = "select * from tableA \"T\" where attr";
         scriptA.insertTextAt(0, text);

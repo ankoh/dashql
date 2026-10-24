@@ -9,6 +9,7 @@
 
 mod harness;
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
 use harness::bench;
@@ -72,7 +73,7 @@ fn setup(cte_count: usize) -> (Catalog, Script) {
     schema.insert_text_at(0, TPCH_SCHEMA);
     schema.analyze(&catalog, true).expect("analyze schema");
     let analyzed = schema.analyzed.clone().expect("analyzed schema");
-    catalog.load_script(analyzed, 0).expect("load schema");
+    catalog.load_script(analyzed, CatalogLayer::SESSION).expect("load schema");
 
     let mut main = Script::new(&catalog);
     main.insert_text_at(0, &generate_query(cte_count));

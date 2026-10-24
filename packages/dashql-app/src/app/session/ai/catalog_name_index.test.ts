@@ -62,7 +62,7 @@ describe('Catalog name index', () => {
             const session = dql.createScriptSession(live);
             session.replaceText(session.getTextVersion(), 'create table attachments (file_name text)');
             session.analyze();
-            session.loadIntoCatalog(1);
+            session.loadIntoCatalog();
             const system = dql.createScript(live);
             // Relation scripts of connections qualify every table with database and schema
             system.replaceText('create table db.pg_catalog.pg_class (relname text); create table db.information_schema.columns (data_type text);');

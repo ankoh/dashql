@@ -513,8 +513,9 @@ export class DashQLScriptSession {
         return new FlatBufferPtr(SCRIPT_DIFF_TYPE, this.ptr.api, bytes, () => new buffers.diff.ScriptDiff());
     }
 
-    public loadIntoCatalog(rank: number): void {
-        this.ptr.assertNotNull().loadIntoCatalog(rank);
+    /// Publish the analysis into the session layer of the catalog
+    public loadIntoCatalog(): void {
+        this.ptr.assertNotNull().loadIntoCatalog();
     }
 
     public dropFromCatalog(): void {
@@ -721,6 +722,13 @@ function assertUint32(value: number, name: string): void {
     }
 }
 
+/// The bindings take a layer as u8 and would wrap other numbers
+function assertLayer(layer: buffers.catalog.CatalogLayer): void {
+    if (buffers.catalog.CatalogLayer[layer] === undefined) {
+        throw new RangeError(`invalid catalog layer: ${layer}`);
+    }
+}
+
 export class DashQLCatalog {
     public readonly ptr: Ptr<typeof CATALOG_TYPE, NativeCatalog>;
     public snapshot: DashQLCatalogSnapshot | null;
@@ -749,11 +757,12 @@ export class DashQLCatalog {
     public allocateEntryId(): number {
         return this.ptr.assertNotNull().allocateEntryId();
     }
-    public replaceDescriptor(catalogEntryId: number, rank: number, descriptor: Uint8Array): void {
+    /// Publish descriptor bytes in a layer
+    public replaceDescriptor(catalogEntryId: number, layer: buffers.catalog.CatalogLayer, descriptor: Uint8Array): void {
         const catalog = this.ptr.assertNotNull();
         assertUint32(catalogEntryId, 'catalogEntryId');
-        assertUint32(rank, 'rank');
-        catalog.replaceDescriptor(catalogEntryId, rank, descriptor);
+        assertLayer(layer);
+        catalog.replaceDescriptor(catalogEntryId, layer, descriptor);
         this.deleteSnapshot();
     }
     public dropDescriptor(id: number): void {
@@ -761,18 +770,18 @@ export class DashQLCatalog {
         this.ptr.assertNotNull().dropDescriptor(id);
         this.deleteSnapshot();
     }
-    /// Apply catalog changes to a descriptor entry, an unknown entry is created with the rank
-    public applyCatalogChanges(catalogEntryId: number, rank: number, changes: buffers.catalog.CatalogChangeT[]): void {
+    /// Apply catalog changes to a descriptor entry, an unknown entry is created in the layer
+    public applyCatalogChanges(catalogEntryId: number, layer: buffers.catalog.CatalogLayer, changes: buffers.catalog.CatalogChangeT[]): void {
         assertUint32(catalogEntryId, 'catalogEntryId');
-        assertUint32(rank, 'rank');
-        this.ptr.assertNotNull().applyCatalogChanges(catalogEntryId, rank, packCatalogChanges(changes));
+        assertLayer(layer);
+        this.ptr.assertNotNull().applyCatalogChanges(catalogEntryId, layer, packCatalogChanges(changes));
         this.deleteSnapshot();
     }
-    /// Apply catalog changes SQL to a descriptor entry, an unknown entry is created with the rank
-    public applyCatalogChangesSql(catalogEntryId: number, rank: number, changesSql: string): void {
+    /// Apply catalog changes SQL to a descriptor entry, an unknown entry is created in the layer
+    public applyCatalogChangesSql(catalogEntryId: number, layer: buffers.catalog.CatalogLayer, changesSql: string): void {
         assertUint32(catalogEntryId, 'catalogEntryId');
-        assertUint32(rank, 'rank');
-        this.ptr.assertNotNull().applyCatalogChangesSql(catalogEntryId, rank, changesSql);
+        assertLayer(layer);
+        this.ptr.assertNotNull().applyCatalogChangesSql(catalogEntryId, layer, changesSql);
         this.deleteSnapshot();
     }
     /// Contains an entry id?
@@ -811,22 +820,24 @@ export class DashQLCatalog {
             new FlatBufferPtr(FLAT_CATALOG_TYPE, this.ptr.api, bytes, () => new buffers.catalog.FlatCatalog()),
         );
     }
-    /// Add a script in the registry (throws exception on error)
-    public loadScript(script: DashQLScript, rank: number) {
+    /// Add a script to a layer of the catalog (throws exception on error)
+    public loadScript(script: DashQLScript, layer: buffers.catalog.CatalogLayer) {
+        assertLayer(layer);
         this.deleteSnapshot();
-        this.ptr.assertNotNull().loadScript(script.ptr.assertNotNull(), rank);
+        this.ptr.assertNotNull().loadScript(script.ptr.assertNotNull(), layer);
     }
-    /// Atomically add or replace ranked scripts in the catalog.
-    public loadScripts(scripts: ReadonlyArray<readonly [DashQLScript, number]>): void {
+    /// Atomically add or replace scripts in layers of the catalog.
+    public loadScripts(scripts: ReadonlyArray<readonly [DashQLScript, buffers.catalog.CatalogLayer]>): void {
         if (scripts.length === 0) {
             return;
         }
         const catalog = this.ptr.assertNotNull();
-        const natives = scripts.map(([script, rank]) => [script.ptr.assertNotNull(), rank] as const);
+        scripts.forEach(([, layer]) => assertLayer(layer));
+        const natives = scripts.map(([script, layer]) => [script.ptr.assertNotNull(), layer] as const);
         const batch = new this.ptr.api.bindings.ScriptBatch();
         try {
-            for (const [script, rank] of natives) {
-                batch.add(script, rank);
+            for (const [script, layer] of natives) {
+                batch.add(script, layer);
             }
             catalog.loadScripts(batch);
             this.deleteSnapshot();

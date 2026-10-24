@@ -1,6 +1,7 @@
 //! Tests of the FlatBuffer packing of scripts, cursors and completions: the object API values that
 //! the JS bindings read.
 
+use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::algebra::ExpressionSubTypeT;
 use dashql_buffers::completion::CompletionCandidateObjectType;
 use dashql_buffers::cursor::{RelativeSymbolPosition, ScriptCursorContextT};
@@ -212,7 +213,7 @@ fn analyzed_scripts_pack_inferred_schemas() {
 fn cursor_inside_of_a_name_reports_its_context() {
     let mut catalog = Catalog::new();
     let schema = analyzed(&catalog, "create table items (id int, name text)");
-    catalog.load_script(schema, 0).unwrap();
+    catalog.load_script(schema, CatalogLayer::SESSION).unwrap();
     let mut script = Script::new(&catalog);
     script.replace_text("select name from items where id = 1");
     script.analyze(&catalog, true).unwrap();
@@ -242,7 +243,7 @@ fn cursor_inside_of_a_name_reports_its_context() {
 fn completions_are_packed_with_catalog_objects() {
     let mut catalog = Catalog::new();
     let schema = analyzed(&catalog, "create table dbname.schemaname.foo (barcol int); create function dbname.schemaname.fn_sum(x int) returns int;");
-    catalog.load_script(schema, 0).unwrap();
+    catalog.load_script(schema, CatalogLayer::SESSION).unwrap();
 
     let complete = |text: &str, upper: bool| {
         let mut script = Script::new(&catalog);
@@ -279,7 +280,7 @@ fn completions_are_packed_with_catalog_objects() {
 fn quoting_applies_to_completion_text_of_names() {
     let mut catalog = Catalog::new();
     let schema = analyzed(&catalog, "create table \"Mixed Case\" (a int)");
-    catalog.load_script(schema, 0).unwrap();
+    catalog.load_script(schema, CatalogLayer::SESSION).unwrap();
     let mut script = Script::new(&catalog);
     script.replace_text("select * from mix");
     script.analyze(&catalog, true).unwrap();

@@ -6,7 +6,7 @@ use crate::encode::analyzer::encode_script;
 use crate::ryml::Node;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
-use dashql_core::catalog::Catalog;
+use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::completion::{CandidateObjectRef, Completion};
 use dashql_core::cursor::{ScriptCursor, ScriptView};
 use dashql_core::utils::quote_identifier;
@@ -141,8 +141,7 @@ pub fn complete_case(
         let parsed = Arc::new(parse(Arc::new(scan(input, 0, entry_id))));
         let analyzed = dashql_core::analyzer::analyze(parsed, &catalog).map_err(|e| e.message)?;
         catalog_yaml = Some(encode_script(&analyzed, false, None).to_yaml());
-        let rank = analyzed.catalog_entry_id();
-        catalog.load_script(Arc::new(analyzed), rank).map_err(|e| e.message)?;
+        catalog.load_script(Arc::new(analyzed), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
     }
     let entry_id = catalog.allocate_entry_id();
     let scanned = Arc::new(scan(editor_input, 0, entry_id));
@@ -204,8 +203,7 @@ pub fn complete_packed(
         let entry_id = catalog.allocate_entry_id();
         let parsed = Arc::new(parse(Arc::new(scan(input, 0, entry_id))));
         let analyzed = dashql_core::analyzer::analyze(parsed, &catalog).map_err(|e| e.message)?;
-        let rank = analyzed.catalog_entry_id();
-        catalog.load_script(Arc::new(analyzed), rank).map_err(|e| e.message)?;
+        catalog.load_script(Arc::new(analyzed), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
     }
     let entry_id = catalog.allocate_entry_id();
     let scanned = Arc::new(scan(editor_input, 0, entry_id));

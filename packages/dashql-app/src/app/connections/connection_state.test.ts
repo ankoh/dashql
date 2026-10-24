@@ -14,7 +14,7 @@ import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
 import { createConnectionStateDetails } from './connection_state_details.js';
 import { publishCatalogBatch, publishCatalogBatchSync } from './catalog_batch.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
+import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
@@ -34,8 +34,8 @@ function state(): ConnectionState {
 /// Publish the catalog scripts of a connection
 function publishCatalog(database: ConnectionState, relations: string, functions: string | null = null): void {
     publishCatalogBatchSync(dql, database.catalog, [
-        { script: database.catalogRelationScript, text: relations, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK },
-        ...(functions == null ? [] : [{ script: database.catalogFunctionScript, text: functions, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK }]),
+        { script: database.catalogRelationScript, text: relations },
+        ...(functions == null ? [] : [{ script: database.catalogFunctionScript, text: functions }]),
     ]);
 }
 
@@ -61,7 +61,6 @@ describe('attached database descriptor catalogs', () => {
         const publication = publishCatalogBatch(dql, database.catalog, [{
             script: database.catalogRelationScript,
             text: 'CREATE TABLE pending(id int);',
-            rank: 10,
         }], {
             abortSignal: controllers[0].signal,
             processor: () => new Promise(() => {}),

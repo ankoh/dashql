@@ -8,8 +8,13 @@ pub type CatalogDatabaseId = u32;
 pub type CatalogSchemaId = u32;
 /// The catalog version, bumped by every modification
 pub type CatalogVersion = u32;
-/// The rank of a catalog entry
-pub type Rank = u32;
+/// The layer of a catalog entry: names resolve against the session, then the executed statements,
+/// then the connection, and within a layer against older entries first
+pub use dashql_buffers::catalog::CatalogLayer;
+/// The lowest layer in range queries of the catalog indexes
+pub const MIN_LAYER: CatalogLayer = CatalogLayer(u8::MIN);
+/// The highest layer in range queries of the catalog indexes
+pub const MAX_LAYER: CatalogLayer = CatalogLayer(u8::MAX);
 
 /// The null value of u32 fields in FlatBuffers
 pub const PROTO_NULL_U32: u32 = u32::MAX;

@@ -1,10 +1,10 @@
+import * as buffers from '@ankoh/dashql-core/buffers';
 import type { DashQL } from '@ankoh/dashql-core';
 import type { Logger } from '../../platform/logger/logger.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import type { ConnectionState } from './connection_state.js';
 import { decodeConnectionFromProto, restoreConnectionState } from './connection_import.js';
 import { connectionCatalogIsDurable } from './connection_params.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 import { beginCatalogBatch, invalidateCatalogBatch, publishCatalogBatch, type BatchProcessor, type CatalogBatchEntry } from './catalog_batch.js';
 import type { SessionConnection, SessionRegistryBackend } from '../storage/storage_backend.js';
 import { STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS } from '../storage/storage_backend.js';
@@ -80,11 +80,11 @@ export async function restoreConnectionCatalog(
         const catalogScripts: CatalogBatchEntry[] = [];
         if (durable && relations && relations.trim().length > 0) {
             ctx.logger.info("Catalog schema loaded", { ...logContext, schemaLength: relations.length.toString() }, LOG_CTX);
-            catalogScripts.push({ script: catalogRelationScript, text: relations, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK });
+            catalogScripts.push({ script: catalogRelationScript, text: relations });
         }
         if (functions && functions.trim().length > 0) {
             ctx.logger.info("Catalog functions loaded", { ...logContext, functionsLength: functions.length.toString() }, LOG_CTX);
-            catalogScripts.push({ script: catalogFunctionScript, text: functions, rank: CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK });
+            catalogScripts.push({ script: catalogFunctionScript, text: functions });
         }
         if (catalogScripts.length > 0) {
             await publishCatalogBatch(ctx.core, catalog, catalogScripts, { processor: ctx.processor }, validate);
@@ -110,7 +110,7 @@ export async function restoreConnectionCatalog(
 /// Unreadable changes are dropped, the next catalog refresh describes the relations anyway.
 function restoreCatalogChanges(logger: Logger, connection: ConnectionState, changesSql: string, logContext: Record<string, string>): void {
     try {
-        connection.catalog.applyCatalogChangesSql(connection.catalogRelationScript.catalog_entry_id, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, changesSql);
+        connection.catalog.applyCatalogChangesSql(connection.catalogRelationScript.catalog_entry_id, buffers.catalog.CatalogLayer.CONNECTION, changesSql);
         connection.catalogChangesSql = changesSql;
         logger.info("Catalog changes restored", { ...logContext, changesLength: changesSql.length.toString() }, LOG_CTX);
     } catch (error) {
