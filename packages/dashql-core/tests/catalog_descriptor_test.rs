@@ -97,7 +97,7 @@ fn resolve(catalog: &Catalog, sql: &str) -> Vec<String> {
                 (_, Some(ids)) => {
                     let (table_id, column) = ids.catalog_table_column_id.unpack_table_column_id();
                     let table = catalog.table_by_id(table_id).expect("catalog table");
-                    format!("{spelled} -> {}.{}", table.table_name.table_name.text(), table.table_columns[column as usize].column_name.text())
+                    format!("{spelled} -> {}.{}", table.table_name.table_name.text(), table.column_by_id(column).expect("column").column_name.text())
                 }
             }
         })
@@ -166,8 +166,8 @@ fn import_resolves_scripts_against_descriptor_tables() {
     let declaration = &data.table_declarations[0];
     assert_eq!(declaration.table_name.table_name.text(), "orders");
     assert_eq!(declaration.table_columns.len(), 2);
-    assert_eq!(declaration.table_columns[1].column_index(), 1);
-    assert_eq!(declaration.column_by_name("total").unwrap().column_index(), 1);
+    assert_eq!(declaration.table_columns[1].column_id(), 1);
+    assert_eq!(declaration.column_by_name("total").unwrap().column_id(), 1);
     assert!(declaration.column_by_name("missing").is_none());
     assert!(catalog.databases().contains_key("db"));
     assert!(catalog.schemas().contains_key(&("db".into(), "main".into())));
@@ -415,4 +415,26 @@ fn descriptors_keep_the_locations_of_their_declarations() {
     let columns: Vec<_> = table.table_columns.iter().map(|c| text(c.location)).collect();
     assert_eq!(columns, vec!["id integer", "name text"]);
     assert_eq!(text(data.function_declarations[0].location), "main.item_count");
+}
+
+#[test]
+fn replaced_descriptors_keep_the_ids_of_their_tables() {
+    let mut catalog = Catalog::new();
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "orders", &["id"])]));
+    let orders = catalog.entry(id).unwrap().data().table_declarations[0].object_id;
+
+    // A refresh of the connection catalog that lists a new table first
+    catalog
+        .replace_descriptor(
+            id,
+            CatalogLayer::CONNECTION,
+            &tables_only(vec![table("", "main", "customers", &["id"]), table("", "main", "orders", &["total", "id"])]),
+        )
+        .unwrap();
+    let data = catalog.entry(id).unwrap().data();
+    let refreshed = data.table_declarations.iter().find(|t| t.table_name.table_name.text() == "orders").unwrap();
+    assert_eq!(refreshed.object_id, orders);
+    assert_eq!(refreshed.column_by_name("id").unwrap().column_id(), 0);
+    assert_eq!(refreshed.column_by_name("total").unwrap().column_id(), 1);
+    assert_eq!(resolve(&catalog, "select total from orders"), vec!["total -> orders.total"]);
 }

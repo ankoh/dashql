@@ -1089,8 +1089,8 @@ impl<'c, 'a> Completion<'c, 'a> {
                 let table_id = resolved.catalog_table_id.unpack_table_id();
                 // Only tables of the catalog, the script itself is not necessarily published
                 let Some(table) = self.catalog().table_by_id(table_id) else { continue };
-                for i in 0..table.table_columns.len() as u32 {
-                    promote(self, QualifiedCatalogObjectId::table_column(table_id, i));
+                for column in &table.table_columns {
+                    promote(self, column.object_id);
                 }
             }
             // Resolved column refs in scope

@@ -123,7 +123,8 @@ pub struct TableColumn {
 }
 
 impl TableColumn {
-    pub fn column_index(&self) -> u32 {
+    /// The id of the column within its table, stable across versions of the declaring entry
+    pub fn column_id(&self) -> u32 {
         self.object_id.unpack_table_column_id().1
     }
 }
@@ -180,6 +181,11 @@ impl TableDeclaration {
     /// Find a column by name
     pub fn column_by_name(&self, name: &str) -> Option<&TableColumn> {
         self.table_columns_by_name.get(name).map(|&i| &self.table_columns[i])
+    }
+
+    /// Find a column by its id
+    pub fn column_by_id(&self, column_id: u32) -> Option<&TableColumn> {
+        self.table_columns.iter().find(|c| c.column_id() == column_id)
     }
 }
 
@@ -358,6 +364,8 @@ pub struct CatalogEntryData {
     pub functions_by_qualified_name: HashMap<QualifiedKey, usize>,
     /// Functions by name, in declaration order
     pub functions_by_unqualified_name: BTreeMap<Arc<str>, Vec<usize>>,
+    /// Table indexes by table id
+    pub tables_by_id: HashMap<u32, usize>,
 }
 
 impl CatalogEntryData {
@@ -437,11 +445,15 @@ impl CatalogEntryData {
 
     /// A table by id (`ResolveTableById`)
     pub fn table_by_id(&self, table_id: CatalogTableId) -> Option<&TableDeclaration> {
-        if table_id.origin == self.catalog_entry_id {
-            self.table_declarations.get(table_id.object as usize)
-        } else {
-            None
+        self.table_loc_by_id(table_id).map(|loc| &self.table_declarations[loc.index as usize])
+    }
+
+    /// The location of a table by id
+    pub fn table_loc_by_id(&self, table_id: CatalogTableId) -> Option<TableLoc> {
+        if table_id.origin != self.catalog_entry_id {
+            return None;
         }
+        self.tables_by_id.get(&table_id.object).map(|&index| self.table_loc(index))
     }
 
     /// Resolve a table by name (`CatalogEntry::ResolveTable`)
@@ -500,6 +512,7 @@ impl CatalogEntryData {
     /// Index the tables and functions (the first part of `NameResolutionPass::Finish`)
     pub fn index_declarations(&mut self) {
         for (i, table) in self.table_declarations.iter().enumerate() {
+            self.tables_by_id.insert(table.table_id().object, i);
             let name = &table.table_name;
             self.tables_by_qualified_name.entry(name.key()).or_insert(i);
             self.tables_by_unqualified_name.entry(name.table_name.text.clone()).or_default().push(i);

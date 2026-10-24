@@ -49,21 +49,35 @@ them.
 | Catalog entry id | `CatalogEntryId = u32` | an `EntryIdSource` | `Catalog::allocate_entry_id`, from `INITIAL_ENTRY_ID = 1`. Catalogs that share a source never hand out the same id. The wasm module shares one source across all its catalogs (`ENTRY_IDS` in `dashql-core-wasm`). |
 | Database id | `u32` | catalog | Reserved by name on first use, from `INITIAL_DATABASE_ID = 256`. Never reused. |
 | Schema id | `u32` | catalog | Reserved by (database, schema) on first use, from `INITIAL_SCHEMA_ID = 65536`. Never reused. |
-| Table / function id | `ExternalObjectId { origin, object }` | entry | `origin` is the declaring entry, `object` its index in the entry's declarations. |
-| Column id | (table id, column index) | table | Index in `TableDeclaration.table_columns`. |
+| Table / function id | `ExternalObjectId { origin, object }` | entry | `origin` is the declaring entry. `object` is reserved by (entry, qualified name, occurrence of the name in the entry), see below. |
+| Column id | (table id, column id) | table | Reserved by (table, column name, occurrence of the name in the table). |
 | Name id | `NameId = u32` | entry | Index in the name registry of the declaring script or descriptor. |
 
 `QualifiedCatalogObjectId` (`catalog/ids.rs`) packs any of these into (type, u64, u32): database,
 schema (database id, schema id), table (packed `ExternalObjectId`), column (packed table id, column
-index), function. These are the ids the boundary exposes (semantic spans, completion candidates,
-flat catalog).
+id), function. These are the ids the boundary exposes (semantic spans, cursor context, completion
+candidates, flat catalog).
+
+**Stable ids.** Table, function and column ids are keyed by name, not by position:
+`Catalog::reserve_table_id`, `reserve_function_id` and `reserve_column_id` hand out the next id of
+the entry (or table) for a name seen first, and the same id for a name seen before. A script keeps
+the ids of its tables and columns while it is edited, also when a declaration is inserted in front of
+them, and a connection descriptor keeps them when a refresh lists the tables in another order
+(`catalog_test::declarations_keep_their_ids_when_the_script_moves_them`,
+`catalog_descriptor_test::replaced_descriptors_keep_the_ids_of_their_tables`). A name declared twice
+in one entry, e.g. after a DROP, is told apart by its occurrence. A fresh entry gets its ids in
+declaration order, so they equal the positions until the entry is edited. The ids carry the declaring
+entry; positions within the entry are `TableLoc` / `ColumnLoc` and are looked up by id through
+`CatalogEntryData::tables_by_id` and `TableDeclaration::column_by_id`.
 
 **Consequences**
-- Table and column ids are positional. Inserting a table before another one in a script changes the
-  id of the later one.
-- Database and schema ids are reserved through `&Catalog` (`RefCell<IdReservations>`), so analysis
-  has a side effect on the catalog even though it borrows it immutably. Reservations survive drops
-  and `clear`.
+- Ids are reserved through `&Catalog` (`RefCell<IdReservations>`), so analysis has a side effect on
+  the catalog even though it borrows it immutably.
+- Database and schema ids survive drops and `clear`. The table, function and column ids of an entry
+  are released when the entry is dropped (`drop_script`, also for scripts that were analyzed but
+  never published, and `drop_descriptor`); a later version gets fresh ids.
+- While a script is typed, every intermediate name of a declared table reserves an id until the
+  script is dropped.
 
 ## Catalog entries
 

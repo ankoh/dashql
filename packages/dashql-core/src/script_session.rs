@@ -141,7 +141,7 @@ fn declaration(analyzed: &AnalyzedScript, table_id: CatalogTableId, column: Opti
     } else {
         analyzed.snapshot.table_by_id(table_id)
     }?;
-    let column_location = column.and_then(|c| table.table_columns.get(c as usize)?.location);
+    let column_location = column.and_then(|c| table.column_by_id(c)?.location);
     Some((table_id.origin, column_location.or(table.location)))
 }
 

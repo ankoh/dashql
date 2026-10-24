@@ -116,6 +116,44 @@ struct IdReservations {
     next_database_id: CatalogDatabaseId,
     /// The next schema id to reserve
     next_schema_id: CatalogSchemaId,
+    /// The reserved table and function ids of the entries, by (entry, kind, qualified name, occurrence)
+    object_ids: HashMap<(CatalogEntryId, ObjectKind, QualifiedKey, u32), u32>,
+    /// The next table and function id to reserve in an entry
+    next_object_ids: HashMap<(CatalogEntryId, ObjectKind), u32>,
+    /// The reserved column ids of the tables, by (table, column name, occurrence)
+    column_ids: HashMap<(CatalogTableId, Arc<str>, u32), u32>,
+    /// The next column id to reserve in a table
+    next_column_ids: HashMap<CatalogTableId, u32>,
+}
+
+/// The kind of an object that an entry declares
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum ObjectKind {
+    Table,
+    Function,
+}
+
+impl IdReservations {
+    /// Reserve the id of an object of an entry
+    fn object_id(&mut self, entry: CatalogEntryId, kind: ObjectKind, name: &QualifiedKey, occurrence: u32) -> u32 {
+        let key = (entry, kind, name.clone(), occurrence);
+        if let Some(&id) = self.object_ids.get(&key) {
+            return id;
+        }
+        let next = self.next_object_ids.entry((entry, kind)).or_insert(0);
+        let id = *next;
+        *next += 1;
+        self.object_ids.insert(key, id);
+        id
+    }
+
+    /// Release the object and column ids of an entry
+    fn release_entry(&mut self, entry: CatalogEntryId) {
+        self.object_ids.retain(|(e, ..), _| *e != entry);
+        self.next_object_ids.retain(|(e, _), _| *e != entry);
+        self.column_ids.retain(|(table, ..), _| table.origin != entry);
+        self.next_column_ids.retain(|table, _| table.origin != entry);
+    }
 }
 
 /// The source of catalog entry ids.
@@ -253,6 +291,10 @@ impl Catalog {
                 schema_ids_by_name: HashMap::default(),
                 next_database_id: INITIAL_DATABASE_ID,
                 next_schema_id: INITIAL_SCHEMA_ID,
+                object_ids: HashMap::default(),
+                next_object_ids: HashMap::default(),
+                column_ids: HashMap::default(),
+                next_column_ids: HashMap::default(),
             }),
             entry_ids,
         }
@@ -341,6 +383,35 @@ impl Catalog {
         ids.next_database_id += 1;
         ids.database_ids_by_name.insert(database.to_string(), id);
         QualifiedCatalogObjectId::database(id)
+    }
+
+    /// Reserve the id of a table of an entry.
+    ///
+    /// The id is keyed by the qualified name and the occurrence of that name among the tables of the
+    /// entry, so a table keeps its id across versions of the entry however its declarations move. A
+    /// fresh entry gets the ids in declaration order. Dropping the entry releases its ids.
+    pub fn reserve_table_id(&self, entry: CatalogEntryId, name: &QualifiedKey, occurrence: u32) -> CatalogTableId {
+        CatalogTableId::new(entry, self.ids.borrow_mut().object_id(entry, ObjectKind::Table, name, occurrence))
+    }
+
+    /// Reserve the id of a function of an entry, like [`Catalog::reserve_table_id`]
+    pub fn reserve_function_id(&self, entry: CatalogEntryId, name: &QualifiedKey, occurrence: u32) -> CatalogFunctionId {
+        CatalogFunctionId::new(entry, self.ids.borrow_mut().object_id(entry, ObjectKind::Function, name, occurrence))
+    }
+
+    /// Reserve the id of a column of a table, keyed by the column name and its occurrence among the
+    /// columns of the table
+    pub fn reserve_column_id(&self, table: CatalogTableId, name: &Arc<str>, occurrence: u32) -> u32 {
+        let mut ids = self.ids.borrow_mut();
+        let key = (table, name.clone(), occurrence);
+        if let Some(&id) = ids.column_ids.get(&key) {
+            return id;
+        }
+        let next = ids.next_column_ids.entry(table).or_insert(0);
+        let id = *next;
+        *next += 1;
+        ids.column_ids.insert(key, id);
+        id
     }
 
     /// Reserve the canonical id of a schema
@@ -535,6 +606,7 @@ impl Catalog {
         if !self.descriptor_entries.contains_key(&id) {
             return Ok(());
         }
+        self.ids.borrow_mut().release_entry(id);
         let mut staged = self.descriptor_entries.clone();
         staged.remove(&id);
         let scripts = self.script_entries.clone();
@@ -543,6 +615,8 @@ impl Catalog {
 
     /// Drop a script (`DropScript`)
     pub fn drop_script(&mut self, id: CatalogEntryId) {
+        // Also for scripts that were analyzed but never published
+        self.ids.borrow_mut().release_entry(id);
         let Some((analyzed, layer)) = self.script_entries.remove(&id) else {
             return;
         };
@@ -684,9 +758,9 @@ impl CatalogSnapshot {
                     continue;
                 }
                 let columns_begin = column_nodes.len();
-                for (column_id, column) in table.table_columns.iter().enumerate() {
+                for column in &table.table_columns {
                     let name_id = add_name(&column.column_name.text);
-                    column_nodes.push((column_id as u32, name_id));
+                    column_nodes.push((column.column_id(), name_id));
                 }
                 let name_id = add_name(table_name);
                 table_nodes.push(TableNode {
@@ -888,10 +962,11 @@ fn describe_entry(layer: CatalogLayer, entry: &CatalogEntryRef) -> dashql_buffer
                                 table
                                     .table_columns
                                     .iter()
-                                    .map(|c| {
+                                    .enumerate()
+                                    .map(|(i, c)| {
                                         let mut column = SchemaTableColumnT::default();
                                         column.column_name = Some(c.column_name.text.to_string());
-                                        column.ordinal_position = c.column_index();
+                                        column.ordinal_position = i as u32;
                                         column
                                     })
                                     .collect(),

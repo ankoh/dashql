@@ -59,7 +59,7 @@ impl NameResolutionTest {
                     (_, Some(ids)) => {
                         let (table_id, column) = ids.catalog_table_column_id.unpack_table_column_id();
                         let table = self.catalog.table_by_id(table_id).expect("catalog table");
-                        let column = &table.table_columns[column as usize];
+                        let column = table.column_by_id(column).expect("column");
                         format!("{}.{}", table.table_name.table_name.text(), column.column_name.text())
                     }
                 };

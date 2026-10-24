@@ -203,6 +203,15 @@ impl DescriptorEntry {
             schema_id
         };
 
+        // The ids are keyed by name and occurrence, so a table keeps its id when the descriptor of the
+        // entry is replaced with one that declares it at another position
+        let mut table_occurrences: std::collections::HashMap<QualifiedKey, u32> = Default::default();
+        let mut function_occurrences: std::collections::HashMap<QualifiedKey, u32> = Default::default();
+        let next_occurrence = |occurrences: &mut std::collections::HashMap<QualifiedKey, u32>, key: &QualifiedKey| {
+            let occurrence = occurrences.entry(key.clone()).or_insert(0);
+            *occurrence += 1;
+            *occurrence - 1
+        };
         if let Some(tables) = descriptor.tables() {
             for source in tables {
                 let name = source.table_name().unwrap();
@@ -211,17 +220,16 @@ impl DescriptorEntry {
                 let table_name = register(&mut out, name.table_name().unwrap_or(""), NameTag::TABLE_NAME);
                 let schema_id = register_schema(&mut out, &db, &schema);
                 let table_index = out.entry.table_declarations.len();
-                let table_id = CatalogTableId::new(id, table_index as u32);
-                let mut table = TableDeclaration::new(
-                    schema_id,
-                    table_id,
-                    QualifiedTableName {
-                        ast_node_id: None,
-                        database_name: db.clone(),
-                        schema_name: schema.clone(),
-                        table_name: table_name.clone(),
-                    },
-                );
+                let qualified_name = QualifiedTableName {
+                    ast_node_id: None,
+                    database_name: db.clone(),
+                    schema_name: schema.clone(),
+                    table_name: table_name.clone(),
+                };
+                let key = qualified_name.key();
+                let table_id = catalog.reserve_table_id(id, &key, next_occurrence(&mut table_occurrences, &key));
+                let mut table = TableDeclaration::new(schema_id, table_id, qualified_name);
+                let mut column_occurrences: std::collections::HashMap<Arc<str>, u32> = Default::default();
                 table.catalog_version = table_version;
                 table.location = source.location().map(|l| TextSpan::new(l.offset(), l.length()));
                 let table_loc = TableLoc {
@@ -248,7 +256,11 @@ impl DescriptorEntry {
                             column: ordinal,
                         });
                         table.table_columns.push(TableColumn {
-                            object_id: QualifiedCatalogObjectId::table_column(table_id, ordinal),
+                            object_id: QualifiedCatalogObjectId::table_column(table_id, {
+                                let occurrence = column_occurrences.entry(column_name.text.clone()).or_insert(0);
+                                *occurrence += 1;
+                                catalog.reserve_column_id(table_id, &column_name.text, *occurrence - 1)
+                            }),
                             table: Some(table_id),
                             ast_node_id: None,
                             column_name,
@@ -257,6 +269,7 @@ impl DescriptorEntry {
                     }
                 }
                 let entry = Arc::make_mut(&mut out.entry);
+                entry.tables_by_id.insert(table_id.object, table_index);
                 entry.tables_by_qualified_name.entry(table.table_name.key()).or_insert(table_index);
                 entry.tables_by_unqualified_name.entry(table_name.text.clone()).or_default().push(table_index);
                 entry
@@ -275,7 +288,8 @@ impl DescriptorEntry {
                 let function_name = register(&mut out, name.function_name().unwrap_or(""), NameTag::FUNCTION_NAME);
                 let schema_id = register_schema(&mut out, &db, &schema);
                 let function_index = out.entry.function_declarations.len();
-                let function_id = CatalogFunctionId::new(id, function_index as u32);
+                let key = (db.text.clone(), schema.text.clone(), function_name.text.clone());
+                let function_id = catalog.reserve_function_id(id, &key, next_occurrence(&mut function_occurrences, &key));
                 let mut params = Vec::new();
                 if let Some(values) = source.params() {
                     for param in values {

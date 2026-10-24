@@ -511,3 +511,67 @@ fn snapshots_and_analyses_can_be_shared_across_threads() {
     shareable::<dashql_core::catalog::CatalogSnapshot>();
     shareable::<dashql_core::analyzer::AnalyzedScript>();
 }
+
+/// The table ids and column ids of a script by table name
+fn declared_ids(script: &Script) -> Vec<(String, u32, Vec<(String, u32)>)> {
+    let entry = &script.analyzed.as_ref().unwrap().entry;
+    let mut tables: Vec<_> = entry
+        .table_declarations
+        .iter()
+        .map(|t| {
+            let mut columns: Vec<_> =
+                t.table_columns.iter().map(|c| (c.column_name.text().to_string(), c.column_id())).collect();
+            columns.sort();
+            (t.table_name.table_name.text().to_string(), t.table_id().object, columns)
+        })
+        .collect();
+    tables.sort();
+    tables
+}
+
+#[test]
+fn declarations_keep_their_ids_when_the_script_moves_them() {
+    let mut catalog = Catalog::new();
+    let mut script = analyze(&catalog, "create table b (y integer); create function f(x integer) returns integer;");
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    assert_eq!(declared_ids(&script), vec![("b".into(), 0, vec![("y".into(), 0)])]);
+    let b = script.analyzed.as_ref().unwrap().entry.table_declarations[0].object_id;
+
+    // A table and a column declared in front of the earlier ones get new ids, the earlier ones keep theirs
+    script.replace_text(
+        "create table a (x integer); create table b (x integer, y integer); create function g() returns integer; create function f(x integer) returns integer;",
+    );
+    script.analyze(&catalog, true).unwrap();
+    assert_eq!(
+        declared_ids(&script),
+        vec![("a".into(), 1, vec![("x".into(), 0)]), ("b".into(), 0, vec![("x".into(), 1), ("y".into(), 0)])]
+    );
+    let entry = &script.analyzed.as_ref().unwrap().entry;
+    assert_eq!(entry.table_declarations[1].object_id, b);
+    let functions: Vec<_> = entry.function_declarations.iter().map(|f| f.function_id().object).collect();
+    assert_eq!(functions, vec![1, 0]);
+
+    // References resolve to the same ids
+    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    let query = analyze(&catalog, "select y from b");
+    let analyzed = query.analyzed.as_ref().unwrap();
+    let resolved = analyzed.table_references[0].inner.as_ref().unwrap().resolved_table.as_ref().unwrap();
+    assert_eq!(resolved.catalog_table_id, b);
+
+    // Dropping the script releases its ids
+    catalog.drop_script(script.catalog_entry_id());
+    script.replace_text("create table a (x integer)");
+    script.analyze(&catalog, true).unwrap();
+    assert_eq!(declared_ids(&script), vec![("a".into(), 0, vec![("x".into(), 0)])]);
+}
+
+#[test]
+fn repeated_names_get_ids_by_occurrence() {
+    let catalog = Catalog::new();
+    let script = analyze(&catalog, "create table t (a integer); drop table t; create table t (a integer, a text);");
+    let entry = &script.analyzed.as_ref().unwrap().entry;
+    let tables: Vec<_> = entry.table_declarations.iter().map(|t| t.table_id().object).collect();
+    assert_eq!(tables, vec![0, 1]);
+    let columns: Vec<_> = entry.table_declarations[1].table_columns.iter().map(|c| c.column_id()).collect();
+    assert_eq!(columns, vec![0, 1]);
+}

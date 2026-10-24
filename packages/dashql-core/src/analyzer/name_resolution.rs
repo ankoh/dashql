@@ -294,7 +294,7 @@ impl NameResolutionPass {
         let Some(table_name) = state.read_qualified_table_name(name_node) else { return };
         let schema_id = Self::register_schema(state, &table_name.database_name, &table_name.schema_name);
         let index = state.out.entry.table_declarations.len() as u32;
-        let table_id = ExternalObjectId::new(state.entry_id, index);
+        let table_id = state.reserve_table_id(&table_name);
         let name = table_name.table_name.clone();
         let mut table = TableDeclaration::new(schema_id, table_id, table_name);
         table.ast_node_id = Some(declaration_id);
@@ -346,19 +346,20 @@ impl NameResolutionPass {
                 .collect()
         };
         let table_index = pending.table;
-        let table_id = ExternalObjectId::new(state.entry_id, table_index);
+        let table_id = state.out.entry.table_declarations[table_index as usize].table_id();
+        let column_ids = state.reserve_column_ids(table_id, column_names.iter().map(|n| &n.text));
         for (column_index, column_name) in column_names.into_iter().enumerate() {
             let table = &mut state.entry_mut().table_declarations[table_index as usize];
             table.table_columns_by_name.entry(column_name.text.clone()).or_insert(column_index);
             table.table_columns.push(TableColumn {
-                object_id: QualifiedCatalogObjectId::table_column(table_id, column_index as u32),
+                object_id: QualifiedCatalogObjectId::table_column(table_id, column_ids[column_index]),
                 table: Some(table_id),
                 ast_node_id: None,
                 column_name: column_name.clone(),
                 location: None,
             });
             let loc = ColumnLoc {
-                table: TableLoc::from(table_id),
+                table: TableLoc { entry: state.entry_id, index: table_index },
                 column: column_index as u32,
             };
             state.resolve_name(&column_name, CatalogObjectRef::Column(loc));
@@ -1342,7 +1343,7 @@ impl NameResolutionPass {
                 let Some(table_name) = state.read_qualified_table_name(name_node) else { return };
                 let schema_id = Self::register_schema(state, &table_name.database_name, &table_name.schema_name);
                 let index = state.out.entry.table_declarations.len() as u32;
-                let table_id = ExternalObjectId::new(state.entry_id, index);
+                let table_id = state.reserve_table_id(&table_name);
                 // Only the elements are merged
                 if let Some(elements) = elements {
                     let elements_id = state.node_id(elements) as usize;
@@ -1359,10 +1360,11 @@ impl NameResolutionPass {
                 table.ast_node_id = Some(node_id);
                 table.ast_statement_id = Some(state.find_statement_id(node_id));
                 table.location = name_node.map(|n| state.text_span(*n.symbol_span()));
+                let column_ids = state.reserve_column_ids(table_id, columns.iter().map(|c| &c.column_name.text));
                 for (column_index, column) in columns.iter().enumerate() {
                     table.table_columns_by_name.entry(column.column_name.text.clone()).or_insert(column_index);
                     table.table_columns.push(TableColumn {
-                        object_id: QualifiedCatalogObjectId::table_column(table_id, column_index as u32),
+                        object_id: QualifiedCatalogObjectId::table_column(table_id, column_ids[column_index]),
                         table: Some(table_id),
                         ast_node_id: Some(column.ast_node_id),
                         column_name: column.column_name.clone(),
@@ -1373,7 +1375,7 @@ impl NameResolutionPass {
                 state.resolve_name(&name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
                 for (column_index, column) in columns.iter().enumerate() {
                     let loc = ColumnLoc {
-                        table: TableLoc::from(table_id),
+                        table: TableLoc { entry: state.entry_id, index },
                         column: column_index as u32,
                     };
                     state.resolve_name(&column.column_name, CatalogObjectRef::Column(loc));
@@ -1394,7 +1396,7 @@ impl NameResolutionPass {
                 let Some(function_name) = state.read_qualified_function_name(name_node) else { return };
                 let schema_id = Self::register_schema(state, &function_name.database_name, &function_name.schema_name);
                 let index = state.out.entry.function_declarations.len() as u32;
-                let function_id = ExternalObjectId::new(state.entry_id, index);
+                let function_id = state.reserve_function_id(&function_name);
                 let return_type: Arc<str> = returns.map(|r| Arc::from(state.text_at(*r.symbol_span()))).unwrap_or_else(|| Arc::from(""));
                 let mut declaration = FunctionDeclaration {
                     object_id: QualifiedCatalogObjectId::function(function_id),
@@ -1558,18 +1560,19 @@ impl NameResolutionPass {
                 continue;
             };
             let table_id = resolved.catalog_table_id.unpack_table_id();
-            let table = if table_id.origin == state.entry_id {
-                state.out.entry.table_by_id(table_id)
+            let loc = if table_id.origin == state.entry_id {
+                state.out.entry.table_loc_by_id(table_id)
             } else {
-                state.catalog.table_by_id(table_id)
+                state.catalog.entry(table_id.origin).and_then(|e| e.data().table_loc_by_id(table_id))
             };
-            let Some(table) = table else { continue };
+            let Some(loc) = loc else { continue };
+            let Some(table) = state.table(loc) else { continue };
             let resolved: Vec<Option<ColumnLoc>> = state.out.insert_statements[i]
                 .target_columns
                 .iter()
                 .map(|c| {
                     table.table_columns_by_name.get(&c.column_name.text).map(|&column| ColumnLoc {
-                        table: TableLoc::from(table_id),
+                        table: loc,
                         column: column as u32,
                     })
                 })

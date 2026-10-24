@@ -299,8 +299,9 @@ describe('DashQL catalog descriptors', () => {
         const query = dql.createScript(catalog);
         query.replaceText('select id from updated');
         query.analyze();
+        // Table ids are keyed by name, the replaced descriptor declares another table than the original
         expect(query.getAnalyzed().unpackAndDestroy().tableReferences[0].resolvedTable.catalogTableId)
-            .toBe(dashql.ExternalObjectID.create(id, 0));
+            .toBe(dashql.ExternalObjectID.create(id, 1));
 
         catalog.replaceDescriptor(otherId, dashql.buffers.catalog.CatalogLayer.CONNECTION, original);
         expect(current.ptr.isNull()).toBe(true);

@@ -10,6 +10,7 @@ use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::scanner::ScannedScript;
 use dashql_parser::span::TextSpan;
+use crate::hash::HashMap;
 use std::sync::Arc;
 
 /// The state shared between the analysis passes of a script (`AnalysisState`)
@@ -28,6 +29,10 @@ pub(super) struct AnalysisState<'a> {
     pub out: AnalyzedScript,
     /// The expression of every AST node, if it was translated
     pub expression_index: Vec<Option<ExprId>>,
+    /// How often each qualified name was declared by a table so far
+    table_name_occurrences: HashMap<QualifiedKey, u32>,
+    /// How often each qualified name was declared by a function so far
+    function_name_occurrences: HashMap<QualifiedKey, u32>,
 }
 
 impl<'a> AnalysisState<'a> {
@@ -71,7 +76,41 @@ impl<'a> AnalysisState<'a> {
             name_texts,
             out,
             expression_index: vec![None; node_count],
+            table_name_occurrences: HashMap::default(),
+            function_name_occurrences: HashMap::default(),
         }
+    }
+
+    /// Reserve the id of the next table that the script declares, keyed by its name and the
+    /// occurrence of the name among the tables of the script
+    pub fn reserve_table_id(&mut self, name: &QualifiedTableName) -> CatalogTableId {
+        let key = name.key();
+        let occurrence = self.table_name_occurrences.entry(key.clone()).or_insert(0);
+        let id = self.catalog.reserve_table_id(self.entry_id, &key, *occurrence);
+        *occurrence += 1;
+        id
+    }
+
+    /// Reserve the id of the next function that the script declares, like `reserve_table_id`
+    pub fn reserve_function_id(&mut self, name: &QualifiedFunctionName) -> CatalogFunctionId {
+        let key = name.key();
+        let occurrence = self.function_name_occurrences.entry(key.clone()).or_insert(0);
+        let id = self.catalog.reserve_function_id(self.entry_id, &key, *occurrence);
+        *occurrence += 1;
+        id
+    }
+
+    /// Reserve the ids of the columns of a table, keyed by their names and their occurrences
+    pub fn reserve_column_ids<'n>(&self, table: CatalogTableId, names: impl Iterator<Item = &'n Arc<str>>) -> Vec<u32> {
+        let mut occurrences: HashMap<&Arc<str>, u32> = HashMap::default();
+        names
+            .map(|name| {
+                let occurrence = occurrences.entry(name).or_insert(0);
+                let id = self.catalog.reserve_column_id(table, name, *occurrence);
+                *occurrence += 1;
+                id
+            })
+            .collect()
     }
 
     /// Finish the analysis: collect the names of the script for completion

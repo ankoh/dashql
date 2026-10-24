@@ -57,10 +57,9 @@ fn encode_tables(e: &Encoder, tables: &[TableDeclaration]) -> Node {
             let columns = table
                 .table_columns
                 .iter()
-                .enumerate()
-                .map(|(i, column)| {
+                .map(|column| {
                     let mut c = Map::new();
-                    c.quoted("catalog-id", &format!("{id}.{i}"));
+                    c.quoted("catalog-id", &format!("{id}.{}", column.column_id()));
                     let name = &column.column_name.text;
                     c.plain("name", if name.is_empty() { "?" } else { name });
                     if let Some(node_id) = column.ast_node_id {
