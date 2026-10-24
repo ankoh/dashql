@@ -36,14 +36,6 @@ fn tables(entry: &CatalogEntryRef) -> &[TableDeclaration] {
     &entry.data().table_declarations
 }
 
-/// Is a table declared by a CREATE VIEW statement?
-fn is_view(analyzed: &AnalyzedScript, table: &TableDeclaration) -> bool {
-    table
-        .ast_statement_id
-        .and_then(|s| analyzed.parsed.statements.get(s as usize))
-        .is_some_and(|s| s.statement_type == Type::CREATE_VIEW)
-}
-
 /// A table of the plan: a published or an input declaration
 struct PlanState<'a> {
     /// The execution graph, completed with the lists below when finished
@@ -201,28 +193,21 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
     let mut published_views: BTreeMap<QualifiedCatalogObjectId, bool> = BTreeMap::new();
     let mut incompatible_kinds: BTreeSet<QualifiedCatalogObjectId> = BTreeSet::new();
     let mut views: BTreeSet<u64> = BTreeSet::new();
-    let remember_views = |views: &mut BTreeSet<u64>, analyzed: &AnalyzedScript| {
-        for table in &analyzed.entry.table_declarations {
-            if is_view(analyzed, table) {
-                views.insert(table.table_id().pack());
-            }
-        }
+    let remember_views = |views: &mut BTreeSet<u64>, tables: &[TableDeclaration]| {
+        views.extend(tables.iter().filter(|t| t.is_view).map(|t| t.table_id().pack()));
     };
     for (_, entry) in catalog.into_iter().flat_map(|c| c.entries_ranked()) {
-        if let CatalogEntryRef::Script(analyzed) = entry {
-            remember_views(&mut views, analyzed);
-        }
+        remember_views(&mut views, tables(entry));
         for table in tables(entry) {
             declarations.insert(table.object_id, table);
-            published_views.insert(table.object_id, views.contains(&table.table_id().pack()));
+            published_views.insert(table.object_id, table.is_view);
         }
     }
     let analyzed_inputs: Vec<&Arc<AnalyzedScript>> = inputs.iter().map(|s| s.analyzed.as_ref().unwrap()).collect();
     for (i, analyzed) in analyzed_inputs.iter().enumerate() {
-        remember_views(&mut views, analyzed);
+        remember_views(&mut views, &analyzed.entry.table_declarations);
         for table in &analyzed.entry.table_declarations {
-            let view = is_view(analyzed, table);
-            if published_views.get(&table.object_id).is_some_and(|&p| p != view) {
+            if published_views.get(&table.object_id).is_some_and(|&p| p != table.is_view) {
                 incompatible_kinds.insert(table.object_id);
             }
             declarations.insert(table.object_id, table);

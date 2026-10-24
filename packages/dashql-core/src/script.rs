@@ -461,7 +461,8 @@ impl Script {
             + analyzed.name_scopes.len() * size_of::<crate::analyzer::NameScope>();
         let latest = &mut memory.latest_script;
         latest.analyzer_description_bytes = description_bytes as u32;
-        if let Some(index) = analyzed.name_search_index.get() {
+        let index = analyzed.name_search_index();
+        if index.is_built() {
             latest.analyzer_name_index_size = index.len() as u32;
             latest.analyzer_name_index_bytes = index.byte_size() as u32;
         }

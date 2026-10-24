@@ -124,7 +124,7 @@ impl DescriptorEntry {
             for &(name, object) in &self.name_objects {
                 names[name as usize].objects.push(object);
             }
-            super::NameSearchIndex::new(names, super::names::SuffixOrder::LongestFirst)
+            super::NameSearchIndex::new(names)
         })
     }
 

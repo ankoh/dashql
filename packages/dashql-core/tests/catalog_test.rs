@@ -438,3 +438,19 @@ fn republishing_equal_declarations_keeps_the_version() {
         assert_eq!(catalog.version(), before + 1, "{text} with rank {rank}");
     }
 }
+
+#[test]
+fn published_scripts_do_not_retain_their_analysis() {
+    let mut catalog = Catalog::new();
+    let mut script = analyze(&catalog, "create table a (x integer); select x from a");
+    catalog.load_script(script.analyzed.clone().unwrap(), 0).unwrap();
+    let published = std::sync::Arc::downgrade(script.analyzed.as_ref().unwrap());
+
+    // The catalog keeps the declarations and names of the published analysis, not the analysis
+    script.replace_text("create table a (x integer); select 1");
+    script.analyze(&catalog, true).unwrap();
+    assert!(published.upgrade().is_none());
+    let entry = catalog.entry(script.catalog_entry_id()).unwrap();
+    assert_eq!(&*entry.data().table_declarations[0].table_name.table_name.text, "a");
+    assert!(entry.name_search_index().search(b"a").next().is_some());
+}

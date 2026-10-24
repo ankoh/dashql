@@ -863,8 +863,8 @@ fn reports_memory_statistics_of_the_latest_analysis() {
         script.parsed.as_ref().unwrap().nodes.len() * std::mem::size_of::<dashql_buffers::parser::Node>()
     );
     assert_eq!(memory.latest_script.analyzer_name_index_size, 0);
-    let _ = script.analyzed.as_ref().unwrap().name_search_index();
-    // "a" and "b" have one suffix each
+    // The suffixes are sorted on the first search; "a" and "b" have one suffix each
+    let _ = script.analyzed.as_ref().unwrap().name_search_index().search(b"a").count();
     assert_eq!(script.memory_statistics().latest_script.analyzer_name_index_size, 2);
 }
 

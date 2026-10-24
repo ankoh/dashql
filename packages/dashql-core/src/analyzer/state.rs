@@ -80,7 +80,27 @@ impl<'a> AnalysisState<'a> {
         }
     }
 
-    pub fn into_script(self) -> AnalyzedScript {
+    /// Finish the analysis: collect the names of the script for completion
+    pub fn into_script(mut self) -> AnalyzedScript {
+        let out = &mut self.out;
+        let entry_id = out.entry.catalog_entry_id;
+        let mut names: Vec<IndexedName> = out
+            .names
+            .iter()
+            .map(|n| IndexedName {
+                text: self.name_texts[n.name_id as usize].clone(),
+                occurrences: n.occurrences,
+                location: n.location,
+                tags: out.name_tags[n.name_id as usize],
+                objects: Vec::new(),
+            })
+            .collect();
+        for &(entry, name, object) in &out.name_objects {
+            if entry == entry_id {
+                names[name as usize].objects.push(object);
+            }
+        }
+        out.name_search_index = Arc::new(NameSearchIndex::new(names));
         self.out
     }
 

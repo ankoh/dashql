@@ -300,6 +300,7 @@ impl NameResolutionPass {
         table.ast_node_id = Some(declaration_id);
         table.ast_statement_id = Some(state.find_statement_id(declaration_id));
         table.ast_scope_root = Some(state.node_id(select_node));
+        table.is_view = declaration_node.node_type() == NodeType::OBJECT_SQL_VIEW;
         state.entry_mut().table_declarations.push(table);
         state.resolve_name(&name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
 

@@ -1,9 +1,7 @@
-//! The catalog, a port of the C++ `src/catalog.cc`.
-//!
-//! The catalog publishes catalog entries (analyzed scripts and descriptor pools) atomically and
-//! resolves table names across them. Entries are immutable once published and shared through
-//! [`CatalogEntryRef`]: an analyzed script keeps the entries it references alive, which replaces the
-//! `retained_catalog_dependencies` lease of the C++ core.
+//! The catalog publishes catalog entries (the declarations of analyzed scripts and descriptor pools)
+//! atomically and resolves table names across them. Entries are immutable once published and shared
+//! through [`CatalogEntryRef`]. A script entry holds only declarations and names, never the analysis,
+//! so publishing does not keep ASTs or earlier analyses alive (see `docs/design/core_analysis_catalog.md`).
 
 pub mod changes;
 pub mod descriptor;
@@ -16,7 +14,6 @@ pub use entry::*;
 pub use ids::*;
 pub use names::{IndexedName, NameSearchIndex};
 
-use crate::analyzer::AnalyzedScript;
 use crate::error::{Error, Result};
 use dashql_buffers::catalog::{
     FlatCatalogEntryT, FlatCatalogT, IndexedFlatDatabaseEntryT, IndexedFlatSchemaEntryT, IndexedFlatTableEntryT,
@@ -28,10 +25,24 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
+/// A published script: its declarations and the names that completion searches.
+///
+/// The catalog keeps only this part of an analysis. Neither field refers to other entries, so
+/// published scripts never keep earlier versions of each other alive.
+#[derive(Clone, Debug)]
+pub struct PublishedScript {
+    /// The id of the catalog the script was analyzed against (`Catalog::id`)
+    pub catalog_id: u64,
+    /// The declarations
+    pub entry: Arc<CatalogEntryData>,
+    /// The names of the script
+    pub names: Arc<NameSearchIndex>,
+}
+
 /// A published catalog entry
 #[derive(Clone, Debug)]
 pub enum CatalogEntryRef {
-    Script(Arc<AnalyzedScript>),
+    Script(PublishedScript),
     Descriptor(Arc<DescriptorEntry>),
 }
 
@@ -51,7 +62,7 @@ impl CatalogEntryRef {
     /// The name search index of the entry, built on first use
     pub fn name_search_index(&self) -> &NameSearchIndex {
         match self {
-            CatalogEntryRef::Script(s) => s.name_search_index(),
+            CatalogEntryRef::Script(s) => &s.names,
             CatalogEntryRef::Descriptor(d) => d.name_search_index(),
         }
     }
@@ -156,7 +167,7 @@ pub struct Catalog {
     /// The published entries
     entries: HashMap<CatalogEntryId, CatalogEntryRef>,
     /// The ranks of published scripts
-    script_entries: HashMap<CatalogEntryId, (Arc<AnalyzedScript>, Rank)>,
+    script_entries: HashMap<CatalogEntryId, (PublishedScript, Rank)>,
     /// The published descriptor pools
     descriptor_entries: HashMap<CatalogEntryId, Arc<DescriptorEntry>>,
     /// The entries ordered by (rank, id)
@@ -305,17 +316,19 @@ impl Catalog {
     }
 
     /// Load an analyzed script (`LoadScript`)
-    pub fn load_script(&mut self, script: Arc<AnalyzedScript>, rank: Rank) -> Result<()> {
-        self.load_scripts(&[(script, rank)])
+    pub fn load_script(&mut self, script: impl Into<PublishedScript>, rank: Rank) -> Result<()> {
+        self.load_scripts(&[(script.into(), rank)])
     }
 
     /// Atomically add or replace ranked scripts (`LoadScripts`)
-    pub fn load_scripts(&mut self, scripts: &[(Arc<AnalyzedScript>, Rank)]) -> Result<()> {
+    pub fn load_scripts<S: Clone + Into<PublishedScript>>(&mut self, scripts: &[(S, Rank)]) -> Result<()> {
         if scripts.is_empty() {
             return Ok(());
         }
+        let scripts: Vec<(PublishedScript, Rank)> =
+            scripts.iter().map(|(script, rank)| (script.clone().into(), *rank)).collect();
         let mut batch_ids = BTreeSet::new();
-        for (script, _) in scripts {
+        for (script, _) in &scripts {
             if script.catalog_id != self.id {
                 return Err(Error::status(StatusCode::CATALOG_MISMATCH));
             }
@@ -337,7 +350,7 @@ impl Catalog {
             })
         });
         if unchanged {
-            for (script, rank) in scripts {
+            for (script, rank) in &scripts {
                 let id = script.entry.catalog_entry_id;
                 self.script_entries.insert(id, (script.clone(), *rank));
                 self.entries.insert(id, CatalogEntryRef::Script(script.clone()));
@@ -345,7 +358,7 @@ impl Catalog {
             return Ok(());
         }
         let mut staged = self.script_entries.clone();
-        for (script, rank) in scripts {
+        for (script, rank) in &scripts {
             staged.insert(script.entry.catalog_entry_id, (script.clone(), *rank));
         }
         let descriptors = self.descriptor_entries.clone();
@@ -355,7 +368,7 @@ impl Catalog {
     /// Build all indexes before committing (`PublishEntries`)
     fn publish_entries(
         &mut self,
-        script_entries: HashMap<CatalogEntryId, (Arc<AnalyzedScript>, Rank)>,
+        script_entries: HashMap<CatalogEntryId, (PublishedScript, Rank)>,
         descriptor_entries: HashMap<CatalogEntryId, Arc<DescriptorEntry>>,
     ) -> Result<()> {
         let mut entries = HashMap::default();

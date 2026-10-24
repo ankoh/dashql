@@ -72,8 +72,8 @@ pub struct AnalyzedScript {
     /// are kept, never the analyzed scripts of other entries: those hold dependencies of their own, so
     /// scripts that are published in turn would otherwise retain every earlier version of each other.
     pub dependencies: Vec<Arc<CatalogEntryData>>,
-    /// The name search index, built on first use
-    pub(crate) name_search_index: std::sync::OnceLock<NameSearchIndex>,
+    /// The names of the script for completion, shared with the catalog when the script is published
+    pub(crate) name_search_index: Arc<NameSearchIndex>,
 }
 
 impl fmt::Debug for AnalyzedScript {
@@ -98,26 +98,16 @@ impl AnalyzedScript {
 
     /// The name search index (`AnalyzedScript::GetNameSearchIndex`)
     pub fn name_search_index(&self) -> &NameSearchIndex {
-        self.name_search_index.get_or_init(|| {
-            let entry_id = self.entry.catalog_entry_id;
-            let mut names: Vec<IndexedName> = self
-                .names
-                .iter()
-                .map(|n| IndexedName {
-                    text: Arc::from(n.text.as_str()),
-                    occurrences: n.occurrences,
-                    location: n.location,
-                    tags: self.name_tags[n.name_id as usize],
-                    objects: Vec::new(),
-                })
-                .collect();
-            for &(entry, name, object) in &self.name_objects {
-                if entry == entry_id {
-                    names[name as usize].objects.push(object);
-                }
-            }
-            NameSearchIndex::new(names, crate::catalog::names::SuffixOrder::ShortestFirst)
-        })
+        &self.name_search_index
+    }
+
+    /// The part of the analysis that the catalog publishes
+    pub fn publication(&self) -> PublishedScript {
+        PublishedScript {
+            catalog_id: self.catalog_id,
+            entry: self.entry.clone(),
+            names: self.name_search_index.clone(),
+        }
     }
 
     /// A table declared by this script or by a dependency
@@ -168,4 +158,16 @@ pub fn analyze(parsed: Arc<ParsedScript>, catalog: &Catalog) -> Result<AnalyzedS
         });
     }
     Ok(out)
+}
+
+impl From<Arc<AnalyzedScript>> for PublishedScript {
+    fn from(script: Arc<AnalyzedScript>) -> Self {
+        script.publication()
+    }
+}
+
+impl From<&Arc<AnalyzedScript>> for PublishedScript {
+    fn from(script: &Arc<AnalyzedScript>) -> Self {
+        script.publication()
+    }
 }

@@ -140,6 +140,8 @@ pub struct TableDeclaration {
     pub ast_statement_id: Option<u32>,
     /// The root node of the name scope of the defining SELECT, for derived tables
     pub ast_scope_root: Option<u32>,
+    /// Declared by CREATE VIEW?
+    pub is_view: bool,
     /// The qualified table name
     pub table_name: QualifiedTableName,
     /// The columns, in declaration order
@@ -157,6 +159,7 @@ impl TableDeclaration {
             ast_node_id: None,
             ast_statement_id: None,
             ast_scope_root: None,
+            is_view: false,
             table_name,
             table_columns: Vec::new(),
             table_columns_by_name: HashMap::default(),
@@ -373,6 +376,7 @@ impl CatalogEntryData {
             a.object_id == b.object_id
                 && a.catalog_version == b.catalog_version
                 && a.catalog_schema_id == b.catalog_schema_id
+                && a.is_view == b.is_view
                 && same_table_name(&a.table_name, &b.table_name)
                 && a.table_columns.len() == b.table_columns.len()
                 && a.table_columns.iter().zip(&b.table_columns).all(|(a, b)| same_column(a, b))
