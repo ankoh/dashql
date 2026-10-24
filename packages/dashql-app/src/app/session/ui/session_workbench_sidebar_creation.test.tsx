@@ -403,11 +403,8 @@ describe('SessionWorkbenchSidebar session creation', () => {
         const text = container.textContent ?? '';
         expect(text).toContain('Hyper #1');
         expect(text).toContain('Hyper #2');
-        // Every session row shows the connections of its session, the default one first
-        const sessionConnections = Array.from(container.querySelectorAll('[aria-label^="Connections: "]'))
-            .map(element => element.getAttribute('aria-label'));
-        expect(sessionConnections).toHaveLength(2);
-        expect(sessionConnections.find(label => label!.includes('Trino'))).toMatch(/^Connections: Trino \S+ \(default\), Hyper #2 /);
+        // Session rows no longer list the connections of their session
+        expect(container.querySelector('[aria-label^="Connections: "]')).toBeNull();
     });
 
     it('groups the active connections that no session uses apart', () => {

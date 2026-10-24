@@ -178,28 +178,6 @@
     margin-right: 4px;
 }
 
-.session_button_with_connections {
-    grid-template-columns: 14px minmax(0, 1fr) max-content;
-}
-
-.session_connections {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-right: 6px;
-    color: var(--base_color_neutral_6);
-}
-
-.session_connection_icon {
-    display: block;
-    flex: none;
-}
-
-.session_connections_more {
-    font-size: 10px;
-    font-variant-numeric: tabular-nums;
-}
-
 .database_body {
     display: flex;
     flex: 1;

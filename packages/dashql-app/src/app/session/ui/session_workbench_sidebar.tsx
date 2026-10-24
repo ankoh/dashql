@@ -80,7 +80,7 @@ import {
 } from '../scripts/session_scripts_registry.js';
 import { useSessionCreation } from '../session_creation.js';
 import { BundledSessionsOverlay } from '../../ui/bundled_sessions_overlay.js';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/ui/connection_label.js';
+import { connectionLabelParts, connectionLabelText, connectionOrdinals } from '../../connections/ui/connection_label.js';
 import { ConnectionProtocolTag } from '../../connections/ui/connection_label_view.js';
 import { useAppFlavor } from '../../flavor/flavor_provider.js';
 import { SessionURLShareOverlay } from './session_url_share_overlay.js';
@@ -293,36 +293,13 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onDuplicate, onDe
 interface SessionRowProps {
     item: SessionItem;
     selected: boolean;
-    labelOf: (database: ConnectionState) => ConnectionLabelParts;
     onOpen: (anchor: HTMLButtonElement) => void;
     onDuplicate: () => void;
     onDelete: () => void;
     dependencies: SessionWorkbenchSidebarDependencies;
 }
 
-/// The most connector icons that a session row shows
-const MAX_SESSION_CONNECTION_ICONS = 3;
-
-/// The connector icons of the connections of a session
-const SessionConnections: React.FC<{ connections: ConnectionState[]; labelOf: (database: ConnectionState) => ConnectionLabelParts }> = ({ connections, labelOf }) => {
-    const description = connections
-        .map((database, i) => `${connectionLabelText(labelOf(database))}${i === 0 ? ' (default)' : ''}`)
-        .join(', ');
-    const shown = connections.slice(0, MAX_SESSION_CONNECTION_ICONS);
-    const more = connections.length - shown.length;
-    return (
-        <span className={styles.session_connections} title={description} aria-label={`Connections: ${description}`} role="img">
-            {shown.map(database => (
-                <svg key={database.connectionId} className={styles.session_connection_icon} width="12" height="12" aria-hidden="true">
-                    <use xlinkHref={`${symbols}#${database.connectorInfo.icons.uncolored}`} />
-                </svg>
-            ))}
-            {more > 0 && <span className={styles.session_connections_more} aria-hidden="true">+{more}</span>}
-        </span>
-    );
-};
-
-const SessionRow: React.FC<SessionRowProps> = ({ item, selected, labelOf, onOpen, onDuplicate, onDelete, dependencies }) => {
+const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDuplicate, onDelete, dependencies }) => {
     const title = item.scripts.name?.trim() || null;
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.sessionId });
     return (
@@ -343,14 +320,13 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, selected, labelOf, onOpen
         >
             <button
                 type="button"
-                className={classNames(styles.session_button, styles.session_button_with_connections)}
+                className={styles.session_button}
                 aria-current={selected ? 'page' : undefined}
                 title={item.path}
                 onClick={event => onOpen(event.currentTarget)}
             >
                 <FileDirectoryIcon size={14} aria-hidden="true" />
                 <span className={title ? styles.session_name : styles.session_path}>{title ?? item.path}</span>
-                <SessionConnections connections={item.connections} labelOf={labelOf} />
             </button>
             <SessionRowMenu item={item} onDuplicate={onDuplicate} onDelete={onDelete} dependencies={dependencies} />
         </li>
@@ -781,7 +757,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                         key={item.sessionId}
                                         item={item}
                                         selected={item.sessionId === props.sessionScripts.sessionId}
-                                        labelOf={labelOf}
                                         onOpen={() => openSession(item)}
                                         onDuplicate={() => { void duplicateSession(item); }}
                                         onDelete={() => { void deleteSession(item); }}
