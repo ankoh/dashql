@@ -827,12 +827,12 @@ parser-snapshots:
           ast-begin: 0
           ast-size: 52
           description:
-            text: "select a, ..y a limit"
+            text: "select a, ..by a limit"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
-            text: "select a, ..y a limit"
+            text: "select a, ..by a limit"
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY

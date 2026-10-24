@@ -7528,24 +7528,24 @@ parser-snapshots:
                                         text: "lineitem"
                           - key: SQL_SELECT_WHERE
                             type: OBJECT_SQL_NARY_EXPRESSION
-                            text: "l_shipdate..6-04-01'\n	"
+                            text: "l_shipdate..996-04-01'"
                             children:
                               - key: SQL_EXPRESSION_OPERATOR
                                 type: ENUM_SQL_EXPRESSION_OPERATOR
                                 value: AND
                               - key: SQL_EXPRESSION_ARGS
                                 type: ARRAY
-                                text: "l_shipdate..6-04-01'\n	"
+                                text: "l_shipdate..996-04-01'"
                                 children:
                                   - type: OBJECT_SQL_NARY_EXPRESSION
-                                    text: "l_shipdate..-01-01'\n		"
+                                    text: "l_shipdate..996-01-01'"
                                     children:
                                       - key: SQL_EXPRESSION_OPERATOR
                                         type: ENUM_SQL_EXPRESSION_OPERATOR
                                         value: GREATER_EQUAL
                                       - key: SQL_EXPRESSION_ARGS
                                         type: ARRAY
-                                        text: "l_shipdate..-01-01'\n		"
+                                        text: "l_shipdate..996-01-01'"
                                         children:
                                           - type: OBJECT_SQL_COLUMN_REF
                                             text: "l_shipdate"
@@ -7557,7 +7557,7 @@ parser-snapshots:
                                                   - type: NAME
                                                     text: "l_shipdate"
                                           - type: OBJECT_SQL_CONST_FUNCTION_CAST
-                                            text: "date '1996..-01-01'\n		"
+                                            text: "date '1996-01-01'"
                                             children:
                                               - key: SQL_CONST_CAST_FUNC_NAME
                                                 type: ARRAY
@@ -7567,16 +7567,16 @@ parser-snapshots:
                                                     text: "date"
                                               - key: SQL_CONST_CAST_VALUE
                                                 type: LITERAL_STRING
-                                                text: "'1996-01-01'\n		"
+                                                text: "'1996-01-01'"
                                   - type: OBJECT_SQL_NARY_EXPRESSION
-                                    text: "l_shipdate..6-04-01'\n	"
+                                    text: "l_shipdate..996-04-01'"
                                     children:
                                       - key: SQL_EXPRESSION_OPERATOR
                                         type: ENUM_SQL_EXPRESSION_OPERATOR
                                         value: LESS_THAN
                                       - key: SQL_EXPRESSION_ARGS
                                         type: ARRAY
-                                        text: "l_shipdate..6-04-01'\n	"
+                                        text: "l_shipdate..996-04-01'"
                                         children:
                                           - type: OBJECT_SQL_COLUMN_REF
                                             text: "l_shipdate"
@@ -7588,7 +7588,7 @@ parser-snapshots:
                                                   - type: NAME
                                                     text: "l_shipdate"
                                           - type: OBJECT_SQL_CONST_FUNCTION_CAST
-                                            text: "date '1996-04-01'\n	"
+                                            text: "date '1996-04-01'"
                                             children:
                                               - key: SQL_CONST_CAST_FUNC_NAME
                                                 type: ARRAY
@@ -7598,7 +7598,7 @@ parser-snapshots:
                                                     text: "date"
                                               - key: SQL_CONST_CAST_VALUE
                                                 type: LITERAL_STRING
-                                                text: "'1996-04-01'\n	"
+                                                text: "'1996-04-01'"
                           - key: SQL_SELECT_GROUPS
                             type: ARRAY
                             text: "group by\n	..	l_suppkey"

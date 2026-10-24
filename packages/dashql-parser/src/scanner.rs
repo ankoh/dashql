@@ -1,12 +1,10 @@
 //! The SQL scanner.
 //!
-//! A port of the former flex scanner (`grammar/scanner.l`) that reproduces its output exactly,
-//! including its quirks (docs/rust-port/quirks.md). The rules of every flex start condition are a
-//! logos lexer, which matches like flex: the longest match wins, and ties go to the rule that came
-//! first in `scanner.l` (through logos priorities). The lexer of the current start condition matches one
-//! token at a time, so that actions can switch the start condition and put text back with
-//! `yyless`. Line breaks are recorded for every match before its action runs, so text that is put
-//! back is counted again when it is scanned a second time, exactly like the C++ `YY_USER_ACTION`.
+//! A port of the former flex scanner (`grammar/scanner.l`), see docs/rust-port/quirks.md for the
+//! behavior it still inherits. The rules of every flex start condition are a logos lexer, which
+//! matches like flex: the longest match wins, and ties go to the rule that came first in `scanner.l`
+//! (through logos priorities). The lexer of the current start condition matches one token at a time,
+//! so that actions can switch the start condition and put text back with `yyless`.
 //!
 //! [`scan`] then applies the lookahead filter of the C++ `Scanner::Scan`, which turns `NOT`, `NULLS`,
 //! `WITH`, `.` and `VISUALIZE` into their `*_LA` variants depending on the following tokens.
@@ -74,7 +72,7 @@ pub struct ScannedScript {
     pub text: String,
     /// The scanner errors
     pub errors: Vec<ScannerError>,
-    /// The line breaks
+    /// The line breaks (`\n`, `\r\n` or `\r`), including those in comments and literals
     pub line_breaks: Vec<TextSpan>,
     /// The comments
     pub comments: Vec<TextSpan>,
@@ -95,6 +93,7 @@ pub fn scan(text: &str, text_version: u64, external_id: u32) -> ScannedScript {
         symbols: Vec::with_capacity(text.len() / 4 + 8),
         ..Default::default()
     };
+    out.line_breaks = line_breaks(text.as_bytes());
     let mut lexer = Lexer::new(text.as_bytes());
     let mut lookahead: VecDeque<Symbol> = VecDeque::new();
     loop {
@@ -105,6 +104,24 @@ pub fn scan(text: &str, text_version: u64, external_id: u32) -> ScannedScript {
         }
     }
     out
+}
+
+/// Find the line breaks of a text, `\r\n` is one line break.
+fn line_breaks(text: &[u8]) -> Vec<TextSpan> {
+    let mut breaks = Vec::new();
+    let mut i = 0;
+    while i < text.len() {
+        match text[i] {
+            b'\r' if text.get(i + 1) == Some(&b'\n') => {
+                breaks.push(Lexer::span(i, 2));
+                i += 1;
+            }
+            b'\n' | b'\r' => breaks.push(Lexer::span(i, 1)),
+            _ => {}
+        }
+        i += 1;
+    }
+    breaks
 }
 
 /// The lookahead filter of the C++ `Scanner::Scan`.
@@ -231,7 +248,7 @@ enum Initial {
     #[token("=", |_| S_EQUALS)]
     #[token("$", |_| S_DOLLAR)]
     Token(SymbolKind),
-    /// `{raw_dot_trailing}`
+    /// `{raw_dot_trailing}`, the action puts the space back
     #[regex(br"\.(?&space)")]
     DotTrailing,
     /// `{raw_question_mark}`, the action checks the trailing context
@@ -284,31 +301,22 @@ enum Xc {
 /// The rules of xb and xh
 #[derive(Logos, Clone, Copy, Debug, PartialEq, Eq)]
 #[logos(utf8 = false)]
-#[logos(subpattern whitespace = br"[ \t\n\r\f]|--[^\n\r]*")]
 enum XbXh {
-    /// `{quotestop}`
-    #[regex(br"'(?&whitespace)*", allow_greedy = true)]
+    /// The closing quote, the action checks for a continuation (`{quotecontinue}`)
+    #[token("'")]
     QuoteStop,
-    /// `{quotefail}`, below `{quotestop}`
-    #[regex(br"'(?&whitespace)*-", allow_greedy = true, priority = 1)]
-    QuoteFail,
-    /// `{xbinside}`, `{xhinside}`, `{quotecontinue}`
+    /// `{xbinside}`, `{xhinside}`
     #[regex(br"[^']+")]
-    #[regex(br"'([ \t\f]|--[^\n\r]*)*[\n\r]([ \t\n\r\f]|--[^\n\r]*[\n\r])*'", allow_greedy = true)]
     Inside,
 }
 
 /// The rules of xq
 #[derive(Logos, Clone, Copy, Debug, PartialEq, Eq)]
 #[logos(utf8 = false)]
-#[logos(subpattern whitespace = br"[ \t\n\r\f]|--[^\n\r]*")]
 enum Xq {
-    /// `{quotestop}`
-    #[regex(br"'(?&whitespace)*", allow_greedy = true)]
+    /// The closing quote
+    #[token("'")]
     QuoteStop,
-    /// `{quotefail}`, below `{quotestop}`
-    #[regex(br"'(?&whitespace)*-", allow_greedy = true, priority = 1)]
-    QuoteFail,
     /// `{xqdouble}`, `{xqinside}`
     #[token("''")]
     #[regex(br"[^']+")]
@@ -419,16 +427,13 @@ impl<'a> Lexer<'a> {
         TextSpan::new(begin as u32, length as u32)
     }
 
-    /// The location of the end-of-buffer match, which the EOF rules see
+    /// The empty location at the end of the text
     fn eof_location(&self) -> TextSpan {
-        Self::span(self.text.len(), 1)
+        Self::span(self.text.len(), 0)
     }
 
     /// Match the rules of a start condition at the current position and consume the match.
-    ///
-    /// Line breaks are recorded for the whole match before the action runs (`YY_USER_ACTION`), so
-    /// text that the action puts back with `yyless` is counted again when it is scanned once more.
-    fn next_match<T>(&mut self, out: &mut ScannedScript) -> (T, TextSpan)
+    fn next_match<T>(&mut self) -> (T, TextSpan)
     where
         T: Logos<'a, Source = [u8], Extras = ()>,
     {
@@ -439,11 +444,6 @@ impl<'a> Lexer<'a> {
             unreachable!("no rule matches at {start}")
         };
         let length = lexer.span().end;
-        for (i, &c) in self.text[start..start + length].iter().enumerate() {
-            if c == b'\n' {
-                out.line_breaks.push(Self::span(start + i, 1));
-            }
-        }
         self.pos = start + length;
         (token, Self::span(start, length))
     }
@@ -471,10 +471,10 @@ impl<'a> Lexer<'a> {
             }
             let symbol = match self.state {
                 State::Initial => {
-                    let (token, loc) = self.next_match::<Initial>(out);
+                    let (token, loc) = self.next_match::<Initial>();
                     self.initial(out, token, loc)
                 }
-                State::Xc => match self.next_match::<Xc>(out) {
+                State::Xc => match self.next_match::<Xc>() {
                     (Xc::CommentStart, mut loc) => {
                         self.yyless(&mut loc, 2);
                         self.ext_depth += 1;
@@ -490,21 +490,25 @@ impl<'a> Lexer<'a> {
                     }
                     (Xc::Inside, _) => None,
                 },
-                State::Xb | State::Xh => match self.next_match::<XbXh>(out) {
-                    (XbXh::QuoteStop, loc) => Some(self.quote_stop(loc)),
-                    (XbXh::QuoteFail, loc) => Some(self.quote_fail(loc)),
+                State::Xb | State::Xh => match self.next_match::<XbXh>() {
+                    (XbXh::QuoteStop, loc) => {
+                        if self.quote_continue(out) {
+                            None
+                        } else {
+                            Some(self.quote_stop(loc))
+                        }
+                    }
                     (XbXh::Inside, _) => None,
                 },
-                State::Xq => match self.next_match::<Xq>(out) {
+                State::Xq => match self.next_match::<Xq>() {
                     (Xq::QuoteStop, loc) => Some(self.quote_stop(loc)),
-                    (Xq::QuoteFail, loc) => Some(self.quote_fail(loc)),
                     (Xq::Inside, _) => None,
                 },
-                State::Xd => match self.next_match::<Xd>(out) {
+                State::Xd => match self.next_match::<Xd>() {
                     (Xd::Stop, loc) => Some(self.identifier_stop(out, loc, b'"', "zero-length delimited identifier")),
                     (Xd::Inside, _) => None,
                 },
-                State::Xbt => match self.next_match::<Xbt>(out) {
+                State::Xbt => match self.next_match::<Xbt>() {
                     (Xbt::Stop, loc) => {
                         Some(self.identifier_stop(out, loc, b'`', "zero-length backtick-quoted identifier"))
                     }
@@ -548,43 +552,72 @@ impl<'a> Lexer<'a> {
                 None
             }
             Initial::Token(kind) => Some(Symbol::new(kind, loc)),
-            Initial::DotTrailing => Some(Symbol::new(S_DOT_TRAILING, TextSpan::new(loc.offset, 1))),
+            Initial::DotTrailing => {
+                self.yyless(&mut loc, 1);
+                Some(Symbol::new(S_DOT_TRAILING, loc))
+            }
             // ?name, ?1 and ?"name" are named parameters, a standalone ? is a positional parameter
             Initial::QuestionMark => match self.text.get(self.pos) {
                 Some(&c) if is_ident_cont(c) || c == b'"' => Some(Symbol::new(S_QUESTION_MARK, loc)),
                 _ => Some(Symbol::new(S_PARAM, loc)),
             },
             Initial::Operator => Some(self.operator(out, loc)),
-            // ReadInteger returns FCONST only if from_chars reports invalid_argument, which a digit
-            // sequence never does (overflowing integers stay ICONST).
-            Initial::Integer => Some(Symbol::new(S_ICONST, loc)),
+            Initial::Integer => Some(self.number(loc)),
             Initial::Float => Some(Symbol::new(S_FCONST, loc)),
             Initial::DecimalFail | Initial::RealFail1 | Initial::RealFail2 => {
                 // Put back the dots, or the exponent marker and its sign
                 let putback = if token == Initial::RealFail1 { 1 } else { 2 };
                 let keep = loc.length as usize - putback;
                 self.yyless(&mut loc, keep);
-                Some(Symbol::new(S_FCONST, loc))
+                Some(self.number(loc))
             }
             Initial::Identifier => Some(self.read_identifier(out, loc)),
             Initial::Other => Some(Symbol::new(S_RAW_CHAR, loc)),
         }
     }
 
-    /// The `{quotestop}` action of xb, xh and xq
+    /// A number literal: integers that do not fit into an `i64` are FCONST, like in Postgres
+    fn number(&self, loc: TextSpan) -> Symbol {
+        let text = &self.text[loc.offset as usize..loc.end() as usize];
+        let is_integer = utf8(text).parse::<i64>().is_ok();
+        Symbol::new(if is_integer { S_ICONST } else { S_FCONST }, loc)
+    }
+
+    /// The closing quote of a string, bit string or hex string literal
     fn quote_stop(&mut self, loc: TextSpan) -> Symbol {
         let kind = self.literal_kind();
         self.state = State::Initial;
-        self.read_literal(kind, self.ext_begin.cover(loc))
+        Symbol::new(kind, self.ext_begin.cover(loc))
     }
 
-    /// The `{quotefail}` action of xb, xh and xq
-    fn quote_fail(&mut self, mut loc: TextSpan) -> Symbol {
-        let kind = self.literal_kind();
-        let literal_end = TextSpan::new(loc.offset, 1);
-        self.yyless(&mut loc, 1);
-        self.state = State::Initial;
-        self.read_literal(kind, self.ext_begin.cover(literal_end))
+    /// `{quotecontinue}`: a bit or hex string continues after whitespace with a line break and
+    /// another quote. Consumes the whitespace and the quote and records the comments in it.
+    fn quote_continue(&mut self, out: &mut ScannedScript) -> bool {
+        let mut i = self.pos;
+        let mut comments = Vec::new();
+        let mut has_line_break = false;
+        while i < self.text.len() {
+            match self.text[i] {
+                b' ' | b'\t' | b'\x0C' => i += 1,
+                b'\n' | b'\r' => {
+                    has_line_break = true;
+                    i += 1;
+                }
+                b'-' if self.text.get(i + 1) == Some(&b'-') => {
+                    let length = self.text[i..].iter().position(|&c| c == b'\n' || c == b'\r');
+                    let length = length.unwrap_or(self.text.len() - i);
+                    comments.push(Self::span(i, length));
+                    i += length;
+                }
+                b'\'' if has_line_break => {
+                    out.comments.extend(comments);
+                    self.pos = i + 1;
+                    return true;
+                }
+                _ => break,
+            }
+        }
+        false
     }
 
     /// The `{xdstop}` and `{xbtstop}` actions
@@ -607,14 +640,6 @@ impl<'a> Lexer<'a> {
             State::Xh => S_XCONST,
             _ => S_SCONST,
         }
-    }
-
-    /// The location of a literal is trimmed of trailing spaces and newlines that `{quotestop}`
-    /// swallowed (but not of tabs or comments).
-    fn read_literal(&self, kind: SymbolKind, loc: TextSpan) -> Symbol {
-        let text = &self.text[loc.offset as usize..loc.end() as usize];
-        let trimmed = text.len() - text.iter().rev().take_while(|&&c| c == b' ' || c == b'\n').count();
-        Symbol::new(kind, TextSpan::new(loc.offset, trimmed as u32))
     }
 
     fn read_quoted_identifier(&mut self, out: &mut ScannedScript, loc: TextSpan, quote: u8) -> Symbol {
@@ -756,14 +781,25 @@ mod tests {
         assert_eq!(out.symbols[3].value, SymbolValue::Name(0));
         assert_eq!(out.names.get(0).text, "foo");
         assert_eq!(out.names.get(0).occurrences, 2);
-        assert_eq!(out.symbols[4].location, TextSpan::new(15, 1));
+        assert_eq!(out.symbols[4].location, TextSpan::new(15, 0));
     }
 
     #[test]
     fn scans_numbers() {
-        assert_eq!(kinds("1..2"), vec![S_FCONST, S_DOT_DOT, S_ICONST, S_YYEOF]);
-        assert_eq!(spans("1..2"), vec![(0, 1), (1, 2), (3, 1), (4, 1)]);
-        assert_eq!(kinds("1e5 1.5 .5 1. 1e"), vec![S_FCONST, S_FCONST, S_FCONST, S_FCONST, S_FCONST, S_IDENT, S_YYEOF]);
+        assert_eq!(kinds("1..2"), vec![S_ICONST, S_DOT_DOT, S_ICONST, S_YYEOF]);
+        assert_eq!(spans("1..2"), vec![(0, 1), (1, 2), (3, 1), (4, 0)]);
+        assert_eq!(kinds("1e5 1.5 .5 1. 1e"), vec![S_FCONST, S_FCONST, S_FCONST, S_FCONST, S_ICONST, S_IDENT, S_YYEOF]);
+        assert_eq!(kinds("1.5e+"), vec![S_FCONST, S_IDENT, S_PLUS, S_YYEOF]);
+        // Integers that do not fit into an i64 are FCONST
+        assert_eq!(kinds("9223372036854775807 9223372036854775808"), vec![S_ICONST, S_FCONST, S_YYEOF]);
+    }
+
+    #[test]
+    fn scans_trailing_dots() {
+        assert_eq!(kinds("a. b"), vec![S_IDENT, S_DOT_TRAILING, S_IDENT, S_YYEOF]);
+        assert_eq!(spans("a. b")[1], (1, 1));
+        let out = scan("a.\n", 0, 0);
+        assert_eq!(out.line_breaks, vec![TextSpan::new(2, 1)]);
     }
 
     #[test]
@@ -793,14 +829,37 @@ mod tests {
     fn scans_literals_and_comments() {
         let out = scan("'a' --c\n-1", 0, 0);
         assert_eq!(out.symbols[0].location, TextSpan::new(0, 3));
-        // {quotefail} puts back the whitespace, its line break is counted twice.
-        assert_eq!(out.line_breaks, vec![TextSpan::new(7, 1), TextSpan::new(7, 1)]);
+        assert_eq!(out.line_breaks, vec![TextSpan::new(7, 1)]);
         assert_eq!(out.comments, vec![TextSpan::new(4, 3)]);
+        let out = scan("'abc'  -- c", 0, 0);
+        assert_eq!(out.symbols[0].location, TextSpan::new(0, 5));
+        assert_eq!(out.comments, vec![TextSpan::new(7, 4)]);
+        let out = scan("'a''b' ", 0, 0);
+        assert_eq!(out.symbols[0].location, TextSpan::new(0, 6));
         let out = scan("/* a /* b */ c */ 1", 0, 0);
         assert_eq!(out.comments, vec![TextSpan::new(0, 17)]);
         let out = scan("'unterminated", 0, 0);
-        assert_eq!(out.errors[0].location, TextSpan::new(0, 14));
+        assert_eq!(out.errors[0].location, TextSpan::new(0, 13));
         assert_eq!(out.errors[0].message, "unterminated quoted string");
+    }
+
+    #[test]
+    fn continues_bit_and_hex_strings() {
+        let out = scan("x'AB' -- c\n  'CD' 1", 0, 0);
+        assert_eq!(out.symbols.iter().map(|s| s.kind).collect::<Vec<_>>(), vec![S_XCONST, S_ICONST, S_YYEOF]);
+        assert_eq!(out.symbols[0].location, TextSpan::new(0, 17));
+        assert_eq!(out.comments, vec![TextSpan::new(6, 4)]);
+        // Without a line break, the next quote starts another literal
+        assert_eq!(kinds("b'01' '1'"), vec![S_BCONST, S_SCONST, S_YYEOF]);
+        // Strings do not continue
+        assert_eq!(kinds("'a'\n'b'"), vec![S_SCONST, S_SCONST, S_YYEOF]);
+    }
+
+    #[test]
+    fn records_line_breaks() {
+        let out = scan("a\r\nb\rc\n'd\ne' -- f\n", 0, 0);
+        let breaks: Vec<_> = out.line_breaks.iter().map(|s| (s.offset, s.length)).collect();
+        assert_eq!(breaks, vec![(1, 2), (4, 1), (6, 1), (9, 1), (17, 1)]);
     }
 
     #[test]

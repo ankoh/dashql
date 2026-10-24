@@ -114,12 +114,12 @@ parser-snapshots:
           ast-begin: 0
           ast-size: 9
           description:
-            text: "select * f..m dbname."
+            text: "select * f..om dbname."
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
-            text: "select * f..m dbname."
+            text: "select * f..om dbname."
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY

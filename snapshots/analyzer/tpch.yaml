@@ -11917,19 +11917,19 @@ analyzer-snapshots:
           type: literal/string
           is-const: true
           statement-id: 0
-          text: "'1996-01-01'\n		"
+          text: "'1996-01-01'"
         - expression-idx: 20
           type: literal/string
           is-const: true
           statement-id: 0
-          text: "'1996-04-01'\n	"
+          text: "'1996-04-01'"
       constants:
         - expression: 18
           text: "1"
         - expression: 19
-          text: "'1996-01-01'\n		"
+          text: "'1996-01-01'"
         - expression: 20
-          text: "'1996-04-01'\n	"
+          text: "'1996-04-01'"
       name-scopes:
         - scope-id: 0
           parent: 2

@@ -12,29 +12,14 @@ core; C++ function names refer to the original implementation.
 
 ## Scanner (`packages/dashql-parser/src/scanner.rs`, ported from `grammar/scanner.l`)
 
-- **`1..` scans as FCONST.** The `{decimalfail}` rule returns FCONST for `1`, where Postgres returns
-  ICONST.
-- **Integer overflow stays ICONST.** `ReadInteger` falls back to FCONST only on `invalid_argument`, so
-  integers that overflow int64 are still returned as ICONST.
-- **`DOT_TRAILING` has length 1.** The rule matches `\.{space}`, but the token excludes the space.
-- **Literals are right-trimmed.** String, hex and bit literals drop trailing whitespace that
-  `quotestop` swallowed.
 - **`DOT_DOT` and `RAW_CHAR` are emitted, but no rule uses them.** They always end up as syntax
   errors.
-- **UTF-8 is passed through, not decoded.** Bytes `\200-\377` are identifier bytes, with no
-  validation, and case folding is ASCII only.
-- **Hyper obfuscation markers are case-sensitive** (`(?-i:)`), unlike the rest of the scanner.
-- **Unimplemented forms.** No dollar-quoted strings, `E''`, `U&` or `N''`, although the scanner header
-  comment mentions dollar quotes. Backslash has no special meaning in `'...'`, and quoted strings
-  continue across a newline only for bit and hex strings.
-- **`\r` is not recorded as a line break.**
-- **Literals swallow trailing comments.** `{quotestop}` includes trailing `{whitespace}`, comments included,
-  and `Read*Literal` only trims spaces and `\n`. `'abc'  -- c` is an 11-byte SCONST, and the comment is
-  never recorded.
-- **Some line breaks are recorded twice.** A `{quotefail}` match records the line breaks of its whitespace,
-  then `yyless(1)` puts that whitespace back and it is scanned again (`'a'\n-1`).
-- **EOF is located at `(length, 1)`.** Errors of unterminated constructs therefore end one byte past the
-  text.
+- **Case folding is ASCII only.** Bytes `\200-\377` are identifier bytes and keep their case, like in
+  Postgres with a multi-byte encoding.
+- **Unimplemented forms.** No dollar-quoted strings, `E''`, `U&` or `N''`. Backslash has no special
+  meaning in `'...'`, and quoted strings continue across a line break only for bit and hex strings.
+  Consumers read literal values by stripping the outer quotes, so they neither unescape `''` nor join
+  continued bit and hex strings.
 - **Zero-length quoted identifiers still return an IDENT**, with an empty name, next to the error.
 
 ## Parser (`grammar/rules/`, `packages/dashql-parser/src/parser/`)
@@ -193,7 +178,6 @@ them with rapidjson (comments, NaN and infinity, trailing commas, imprecise numb
 - **Offset projection.** In UTF-8 mode, offsets are projected without checks. In UTF-16 mode, spans
   that are not on a code point boundary are dropped, including keyword names whose byte-span fields
   hold token indexes.
-- **Scanner errors at the end of the file** are projected one byte past the text.
 - **Field presence differs by offset unit.** In UTF-16 mode, completions and diffs go through an
   object API round trip, so empty strings and vectors are left out; in UTF-8 mode they are not.
 - **Stale spans.** `PackDiff` and `RewriteDashboard` apply the spans of a possibly outdated parse to
