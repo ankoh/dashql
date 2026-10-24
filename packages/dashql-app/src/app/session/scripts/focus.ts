@@ -129,7 +129,7 @@ export function deriveFocusFromCompletionCandidates(
         return null;
     }
     const completion = scriptData.completion.buffer.read();
-    if (completion.candidates.length == 0 || scriptData.completion.candidateId >= completion.candidates.length) {
+    if (completion.candidatesLength() == 0 || scriptData.completion.candidateId >= completion.candidatesLength()) {
         return null;
     }
 
