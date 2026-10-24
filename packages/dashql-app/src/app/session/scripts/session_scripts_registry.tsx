@@ -270,7 +270,19 @@ export function useSessionScripts(id: string | null): [SessionScripts | null, Mo
                     resolve(null);
                     return reg;
                 }
-                const next = reduceSessionScripts(prev, action, storageWriter, logger);
+                let next: SessionScripts;
+                try {
+                    next = reduceSessionScripts(prev, action, storageWriter, logger);
+                } catch (e: unknown) {
+                    // Drop the action, a throw would also drop the other updates of the queue flush
+                    logger.error('Session script action failed', {
+                        sessionId: id,
+                        actionType: action.type.description ?? action.type.toString(),
+                        error: stringifyError(e),
+                    }, LOG_CTX);
+                    resolve(prev);
+                    return reg;
+                }
                 resolve(next);
                 // Keep the registry identity for no-ops (e.g. re-selecting the hovered script)
                 if (next === prev) return reg;
@@ -311,7 +323,19 @@ export function useConnectionScriptsDispatch(): ModifyConnectionSessionScripts {
             for (const sessionId of [...(reg.sessionScriptsByConnection.get(conn) ?? [])]) {
                 const prev = reg.sessionScriptsMap.get(sessionId);
                 if (prev) {
-                    const next = reduceSessionScripts(prev, action, storage, logger);
+                    let next: SessionScripts;
+                    try {
+                        next = reduceSessionScripts(prev, action, storage, logger);
+                    } catch (e: unknown) {
+                        // Skip the session, the other sessions of the connection still receive the action
+                        logger.error('Connection script action failed', {
+                            connectionId: conn,
+                            sessionId,
+                            actionType: action.type.description ?? action.type.toString(),
+                            error: stringifyError(e),
+                        }, LOG_CTX);
+                        continue;
+                    }
                     reg.sessionScriptsMap.set(sessionId, next);
                     reindexSessionScriptConnections(reg, prev, next);
                     changed ||= next !== prev;

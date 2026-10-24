@@ -74,13 +74,20 @@ export class UpdateQueue<T> {
         }
     }
 
-    /// Apply the pending updates
+    /// Apply the pending updates. An update that throws is skipped, the others still apply.
     flush = (): void => {
         this.scheduled = null;
         const pending = this.pending;
         if (pending.length === 0) return;
         this.pending = [];
-        this.store.update(state => pending.reduce((s, update) => update(s), state));
+        this.store.update(state => pending.reduce((s, update) => {
+            try {
+                return update(s);
+            } catch (e: unknown) {
+                console.error('Store update failed', e);
+                return s;
+            }
+        }, state));
     };
 
     /// Drop the pending updates

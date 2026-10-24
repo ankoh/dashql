@@ -26,6 +26,7 @@ import {
     UPDATE_SESSION_SETTINGS,
     REORDER_SCRIPTS,
     replaceSessionScriptsFromStorage,
+    SET_SCRIPT_TEXT,
     replaceScriptSessionText,
 } from './session_scripts.js';
 import { compileSessionQuery } from './script_compilation.js';
@@ -346,6 +347,48 @@ describe('V2 flat session script mutations', () => {
         next = reduce(next, { type: CATALOG_DID_UPDATE, value: other.connectionId });
         expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].analysisOutdated).toBe(false);
         expect(next.scripts[next.scriptRefs['2_beta.sql'].scriptId].analysisOutdated).toBe(true);
+    });
+
+    it('outdates the other scripts when a background analysis changes the declarations', () => {
+        let current = state(['1_table.sql', '2_view.sql', '3_query.sql']);
+        const key = (name: string) => current.scriptRefs[name].scriptId;
+        const texts: Record<string, string> = {
+            '1_table.sql': 'create table a (x int)',
+            '2_view.sql': 'create view v as select * from a',
+            '3_query.sql': 'select y from v',
+        };
+        for (const [name, text] of Object.entries(texts)) replaceScriptSessionText(current.scripts[key(name)].scriptSession, text);
+        // Publishing a script outdates the others, analyze until no script is outdated
+        for (let pass = 0; pass < 3; ++pass) {
+            for (const name of current.scriptOrder) current = reduce(current, { type: ANALYZE_OUTDATED_SCRIPT, value: key(name) });
+        }
+        expect(Object.values(current.scripts).every(script => !script.analysisOutdated)).toBe(true);
+
+        // Adding the column outdates the view and the query
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey: key('1_table.sql'), text: 'create table a (x int, y int)' } });
+        expect(current.scripts[key('2_view.sql')].analysisOutdated).toBe(true);
+        expect(current.scripts[key('3_query.sql')].analysisOutdated).toBe(true);
+
+        // The query analyzes first and still sees the old view
+        current = reduce(current, { type: ANALYZE_OUTDATED_SCRIPT, value: key('3_query.sql') });
+        expect(current.scripts[key('3_query.sql')].analysisOutdated).toBe(false);
+        // The view publishes the new column, so the query is outdated again
+        current = reduce(current, { type: ANALYZE_OUTDATED_SCRIPT, value: key('2_view.sql') });
+        expect(current.scripts[key('3_query.sql')].analysisOutdated).toBe(true);
+        current = reduce(current, { type: ANALYZE_OUTDATED_SCRIPT, value: key('3_query.sql') });
+        const column = current.scripts[key('3_query.sql')].editorUpdate?.semanticSpans
+            .find(span => span.kind === core.buffers.editor.EditorSemanticReferenceKind.COLUMN);
+        expect(column?.resolution).toBe(core.buffers.editor.EditorSemanticResolution.RESOLVED);
+    });
+
+    it('keeps a failed analysis on the script instead of throwing', () => {
+        let current = state(['1_alpha.sql']);
+        const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
+        const failed = { ...current.scripts[scriptKey].scriptSession.analyze(), status: core.buffers.editor.EditorUpdateStatus.ANALYSIS_FAILED, analysisAvailable: false };
+        vi.spyOn(current.scripts[scriptKey].scriptSession, 'analyze').mockReturnValue(failed as core.buffers.editor.EditorUpdateT);
+        current = reduce(current, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
+        expect(current.scripts[scriptKey].analysisOutdated).toBe(false);
+        expect(current.scripts[scriptKey].editorUpdate?.analysisAvailable).toBe(false);
     });
 
     it('moves the scripts and the default connection of a merged connection', () => {

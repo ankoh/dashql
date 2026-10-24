@@ -455,6 +455,13 @@ statement's successful result.
    scripts of the same connection catalog.
 4. `script_editor.tsx` analyzes flagged scripts: the selected one immediately, others after
    `BACKGROUND_ANALYSIS_DELAY_MS`, through `analyzeScriptData` (analyze, compile, `loadIntoCatalog`).
+   If that publish changes the catalog revision, e.g. a view over a table whose columns changed
+   (`CREATE VIEW v AS SELECT * FROM a`), the other scripts are flagged again.
+
+A failed analysis stays on the script as an update without available analysis, and the script is no
+longer flagged: the same text against the same catalog fails again. A reducer that throws anyway is
+logged and dropped by the session-scripts dispatch, and `UpdateQueue.flush` skips a throwing update
+so the rest of the batch applies.
 
 **Lazy analysis.** Restoring a session loads script text only; scripts stay outdated until first
 use. Connection catalogs are restored and published before sessions open. Executions (feed, details,
@@ -484,12 +491,6 @@ differs from the input.
   every global index, O(all entries).
 - **Analysis side effect.** Id reservations go through `RefCell<IdReservations>` behind `&Catalog`.
   Snapshots are `Sync`, the catalog itself is not.
-- **Cascades.** `analyzeScriptData` republishes without marking other scripts outdated. A script whose
-  declarations depend on another (`CREATE VIEW v AS SELECT * FROM a`) can bump the version without
-  propagating.
-- **Analysis failures.** `analyzeScriptData` throws on a non-OK status inside a queued reducer;
-  `UpdateQueue.flush` does not catch, so a failure is not surfaced and can leave
-  `ensureSessionScriptAnalyzed` pending.
 - **DDL during planned execution.** Statements run through planned session execution do not apply
   their catalog changes; only the single-script `ScriptExecution` path does.
 - **Script table versions.** Script tables carry `catalog_version = 0`, so `referenced_catalog_version`

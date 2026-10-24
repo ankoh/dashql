@@ -818,11 +818,7 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                 return state;
             }
             let [scriptKey, scriptData] = moved;
-            try {
-                scriptData = analyzeScriptData(scriptData, logger);
-            } catch (e: any) {
-                logger.warn("Failed to analyze script on its new connection", { fileName, error: stringifyError(e) }, LOG_CTX);
-            }
+            scriptData = analyzeScriptData(scriptData, logger);
             const scripts: ScriptDataMap = { ...state.scripts };
             // The scripts of both catalogs may have referenced the moved script
             markOtherScriptsOutdatedInPlace(scripts, prev);
@@ -1266,20 +1262,26 @@ function computePendingDiff(
     }
 }
 
+/// Analyze a script and publish it into the catalog of its connection.
+///
+/// A failed analysis is kept on the script (an update without available analysis) instead of thrown, a
+/// throw inside a reducer would drop the whole action. The script is not outdated afterwards: analyzing
+/// the same text against the same catalog fails again, and a change of either marks it outdated.
 export function analyzeScriptData(scriptData: ScriptData, logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
 
     // Analyze the script
-    // Capture the underlying failure so callers can log it with session/script context
-    // instead of writing it directly to the console.
     const update = next.scriptSession.analyze();
-    if (update.status !== core.buffers.editor.EditorUpdateStatus.OK || !update.analysisAvailable) {
-        throw new Error(typeof update.statusMessage === 'string' && update.statusMessage.length > 0
-            ? update.statusMessage
-            : "Failed to analyze script");
-    }
     next.analysisOutdated = false;
     next.editorUpdate = update;
+    if (update.status !== core.buffers.editor.EditorUpdateStatus.OK || !update.analysisAvailable) {
+        logger.error("Failed to analyze script", {
+            scriptKey: next.scriptKey.toString(),
+            status: core.buffers.editor.EditorUpdateStatus[update.status] ?? update.status.toString(),
+            message: typeof update.statusMessage === 'string' ? update.statusMessage : '',
+        }, LOG_CTX);
+        return next;
+    }
     // Rotate the script statistics
     if (update.analysisUpdated) {
         next.statistics = rotateScriptStatistics(next.statistics, update.processingStatistics);
@@ -1292,7 +1294,14 @@ export function analyzeScriptData(scriptData: ScriptData, logger: Logger): Scrip
         logger,
     );
 
-    next.scriptSession.loadIntoCatalog();
+    try {
+        next.scriptSession.loadIntoCatalog();
+    } catch (e: any) {
+        logger.error("Failed to publish script into the catalog", {
+            scriptKey: next.scriptKey.toString(),
+            error: stringifyError(e),
+        }, LOG_CTX);
+    }
     return next;
 }
 
@@ -1310,6 +1319,7 @@ export function analyzeOutdatedScript<V extends SessionScripts>(state: V, script
         return state;
     }
     // Create the next session scripts state
+    const catalogRevision = scriptData.scriptSession.getCatalogRevision();
     const nextScriptData = analyzeScriptData(scriptData, logger);
     const next = {
         ...state,
@@ -1318,6 +1328,11 @@ export function analyzeOutdatedScript<V extends SessionScripts>(state: V, script
             [scriptKey]: nextScriptData
         }
     };
+    // The analysis ran against a newer catalog and may publish different declarations, e.g. a view
+    // over a table of another script. Then the scripts that resolve against them are outdated, too.
+    if (nextScriptData.scriptSession.getCatalogRevision() !== catalogRevision) {
+        markOtherScriptsOutdatedInPlace(next.scripts, nextScriptData);
+    }
 
     // Only the selected script drives the semantic focus.
     // Scripts in the background are re-analyzed whenever another script changes and must not steal it.
