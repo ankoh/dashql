@@ -1,5 +1,4 @@
-//! The vocabulary of the grammar actions, a port of `include/dashql/parser/grammar/nodes.h` and
-//! `enums.h`. The generated rules module (`grammar/rules_rs`) imports everything from here.
+//! The vocabulary of the grammar actions. The generated rules module (`grammar/rules_rs`) imports everything from here.
 
 pub use super::context::{null, IntoNodeList, ParseContext, NO_PARENT};
 pub use super::value::{ExprVariant, FromValue, NodeList, Str, Value};
@@ -13,12 +12,12 @@ pub use dashql_buffers::parser::{
     WindowBoundMode, WindowExclusionMode, WindowRangeMode,
 };
 
-/// Attribute keys, as the C++ actions call them
+/// Attribute keys, as the grammar actions call them
 pub type Key = AttributeKey;
-/// Expression operators, as the C++ actions call them
+/// Expression operators, as the grammar actions call them
 pub type ExprFunc = ExpressionOperator;
 
-/// An empty node list (the C++ `{}`)
+/// An empty node list
 pub const NO_NODES: &[Node; 0] = &[];
 
 /// The parser stack as seen by an action
@@ -250,7 +249,7 @@ pub fn negate(ctx: &ParseContext, loc: SymbolSpan, loc_minus: SymbolSpan, value:
     )
 }
 
-/// A vararg field. Like the C++ `VarArgField`, every level wraps the value, not the inner level.
+/// A vararg field. Every level wraps the value, not the inner level.
 pub fn vararg_field(ctx: &ParseContext, loc: SymbolSpan, path: NodeList, value: Node) -> Node {
     let mut root = value;
     let keys = ctx.state.borrow().lists_snapshot(path);

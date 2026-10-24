@@ -1,6 +1,6 @@
 //! The FlatBuffers enums are the in-memory representation of the AST, and the core relies on their
 //! exact numbering: ordinal range checks on `NodeType`, `LITERAL_* - 5 == LiteralType`, the
-//! catalog object types doubling as completion candidate types, and `Script::ComputeSignature`
+//! catalog object types doubling as completion candidate types, and `Script::compute_signature`
 //! hashing raw enum values into a cache key. These tests pin the invariants so that a schema edit
 //! that breaks them fails loudly.
 
@@ -55,7 +55,7 @@ fn literal_types() {
 
 #[test]
 fn completion_candidate_object_types() {
-    // Must match CatalogObjectType in include/dashql/catalog_object.h.
+    // Must match `CatalogObjectType` in dashql_core::catalog.
     assert_eq!(CompletionCandidateObjectType::DATABASE.0, 1);
     assert_eq!(CompletionCandidateObjectType::SCHEMA.0, 2);
     assert_eq!(CompletionCandidateObjectType::TABLE.0, 3);

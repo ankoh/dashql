@@ -1,4 +1,4 @@
-//! The declarations of a catalog entry (`CatalogEntry` in `include/dashql/catalog.h`).
+//! The declarations of a catalog entry.
 //!
 //! Analyzed scripts and descriptor pools both expose their declarations through [`CatalogEntryData`].
 //! Names are shared strings, so qualified names stay valid across entries without borrowing the name
@@ -51,7 +51,7 @@ impl QualifiedTableName {
         (self.database_name.text.clone(), self.schema_name.text.clone(), self.table_name.text.clone())
     }
 
-    /// `QualifiedTableName::getDebugString`
+    /// The qualified name for debug output
     pub fn debug_string(&self) -> String {
         debug_string(&self.database_name.text, &self.schema_name.text, &self.table_name.text)
     }
@@ -101,7 +101,7 @@ impl QualifiedFunctionName {
         (self.database_name.text.clone(), self.schema_name.text.clone(), self.function_name.text.clone())
     }
 
-    /// `QualifiedFunctionName::getDebugString`
+    /// The qualified name for debug output
     pub fn debug_string(&self) -> String {
         debug_string(&self.database_name.text, &self.schema_name.text, &self.function_name.text)
     }
@@ -302,7 +302,7 @@ pub struct ObjectLoc {
     pub index: u32,
 }
 
-/// A catalog object (`CatalogObject`): a declaration of a catalog entry
+/// A catalog object: a declaration of a catalog entry
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CatalogObjectRef {
     Database(ObjectLoc),
@@ -443,7 +443,7 @@ impl CatalogEntryData {
         }
     }
 
-    /// A table by id (`ResolveTableById`)
+    /// A table by id
     pub fn table_by_id(&self, table_id: CatalogTableId) -> Option<&TableDeclaration> {
         self.table_loc_by_id(table_id).map(|loc| &self.table_declarations[loc.index as usize])
     }
@@ -456,7 +456,7 @@ impl CatalogEntryData {
         self.tables_by_id.get(&table_id.object).map(|&index| self.table_loc(index))
     }
 
-    /// Resolve a table by name (`CatalogEntry::ResolveTable`)
+    /// Resolve a table by name
     pub fn resolve_table(&self, name: &QualifiedTableName, out: &mut Vec<TableLoc>, limit: usize) {
         if let Some(&i) = self.tables_by_qualified_name.get(&name.key()) {
             out.push(self.table_loc(i));
@@ -471,7 +471,7 @@ impl CatalogEntryData {
         }
     }
 
-    /// Resolve a table by schema and name across databases (`ResolveTableInSchema`)
+    /// Resolve a table by schema and name across databases
     pub fn resolve_table_in_schema(&self, schema_name: &str, table_name: &str, out: &mut Vec<TableLoc>, limit: usize) {
         let lower = (Arc::<str>::from(schema_name), Arc::<str>::from(""));
         for ((schema, _), tables) in self.tables_by_unqualified_schema.range(lower..) {
@@ -490,7 +490,7 @@ impl CatalogEntryData {
         }
     }
 
-    /// Resolve a table by name only (`ResolveTableEverywhere`)
+    /// Resolve a table by name only
     pub fn resolve_table_everywhere(&self, table_name: &str, out: &mut Vec<TableLoc>, limit: usize) {
         if let Some(tables) = self.tables_by_unqualified_name.get(table_name) {
             for &i in tables {
@@ -502,14 +502,14 @@ impl CatalogEntryData {
         }
     }
 
-    /// The table columns with a name (`ResolveTableColumns`)
+    /// The table columns with a name
     pub fn resolve_table_columns(&self, column_name: &str, out: &mut Vec<ColumnLoc>) {
         if let Some(columns) = self.table_columns_by_name.get(column_name) {
             out.extend_from_slice(columns);
         }
     }
 
-    /// Index the tables and functions (the first part of `NameResolutionPass::Finish`)
+    /// Index the tables and functions (the first step of `NameResolutionPass::finish`)
     pub fn index_declarations(&mut self) {
         for (i, table) in self.table_declarations.iter().enumerate() {
             self.tables_by_id.insert(table.table_id().object, i);

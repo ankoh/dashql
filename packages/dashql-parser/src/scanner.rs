@@ -1,13 +1,12 @@
 //! The SQL scanner.
 //!
-//! A port of the former flex scanner (`grammar/scanner.l`), see docs/design/core_quirks.md for the
-//! behavior it still inherits. The rules of every flex start condition are a logos lexer, which
-//! matches like flex: the longest match wins, and ties go to the rule that came first in `scanner.l`
-//! (through logos priorities). The lexer of the current start condition matches one token at a time,
-//! so that actions can switch the start condition and put text back with `yyless`.
+//! The rules of every flex-style start condition are a logos lexer: the longest match wins, and
+//! logos priorities break ties. The lexer of the current start condition matches one token at a
+//! time, so that actions can switch the start condition and put text back with `yyless`. See
+//! docs/design/core_quirks.md for the quirks of the scanner.
 //!
-//! [`scan`] then applies the lookahead filter of the C++ `Scanner::Scan`, which turns `NOT`, `NULLS`,
-//! `WITH`, `.` and `VISUALIZE` into their `*_LA` variants depending on the following tokens.
+//! [`scan`] then applies a lookahead filter, which turns `NOT`, `NULLS`, `WITH`, `.` and `VISUALIZE`
+//! into their `*_LA` variants depending on the following tokens.
 
 use crate::keywords::{Keyword, KeywordCategory};
 use crate::names::{NameId, NameRegistry};
@@ -124,7 +123,7 @@ fn line_breaks(text: &[u8]) -> Vec<TextSpan> {
     breaks
 }
 
-/// The lookahead filter of the C++ `Scanner::Scan`.
+/// The lookahead filter of [`scan`].
 fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDeque<Symbol>) -> Symbol {
     let current = match lookahead.pop_front() {
         Some(symbol) => symbol,
@@ -176,10 +175,9 @@ enum State {
 }
 
 // The rules of every start condition form a logos lexer. Logos takes the longest match like flex,
-// and resolves a tie by priority where flex takes the rule that comes first in scanner.l. The
-// default priority of a pattern is 2 for every byte or class it has to match, which already ranks
-// `{comment}`, `{xcstart}` and the two-character operators above `{operator}`. The explicit
-// priorities rank the remaining ties in the order of scanner.l.
+// and resolves a tie by priority. The default priority of a pattern is 2 for every byte or class it
+// has to match, which already ranks `{comment}`, `{xcstart}` and the two-character operators above
+// `{operator}`. The explicit priorities rank the remaining ties.
 //
 // Like flex, the lexers match bytes, not characters (`utf8 = false` and byte-string patterns), so
 // `\x80-\xFF` are identifier bytes.
@@ -198,7 +196,7 @@ enum Initial {
     /// `{comment}`
     #[regex(br"--[^\n\r]*", allow_greedy = true)]
     Comment,
-    /// The Hyper obfuscation markers, case-sensitive unlike the rest of scanner.l
+    /// The Hyper obfuscation markers, case-sensitive unlike the other rules
     #[regex(br"/\*String\([0-9A-F]{4}\)\*/", |_| S_SCONST)]
     #[regex(br"/\*Integer\([0-9A-F]{4}\)\*/", |_| S_ICONST)]
     #[regex(br"/\*Float\([0-9A-F]{4}\)\*/", |_| S_FCONST)]
@@ -354,7 +352,7 @@ fn is_ident_cont(c: u8) -> bool {
     c.is_ascii_alphanumeric() || c == b'_' || c == b'$' || c >= 0x80
 }
 
-/// The single-character tokens of `matchSpecialCharacter`
+/// The token of a single special character
 fn special_character(c: u8) -> Option<SymbolKind> {
     Some(match c {
         b',' => S_COMMA,
@@ -734,7 +732,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-/// The C++ `AddObfuscatedLiteral`: derive an executable literal from the hash of a marker.
+/// Derive an executable literal from the hash of a marker.
 fn obfuscated_literal(text: &[u8], location: TextSpan) -> ObfuscatedLiteral {
     let marker = &text[location.offset as usize..location.end() as usize];
     let open = marker.iter().position(|&c| c == b'(').unwrap();

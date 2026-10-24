@@ -1,4 +1,4 @@
-//! Catalog entries backed by descriptor bytes, a port of `src/catalog_descriptor.cc`.
+//! Catalog entries backed by descriptor bytes.
 
 use super::entry::*;
 use super::ids::*;
@@ -30,7 +30,7 @@ pub struct DescriptorEntry {
     pub layer: CatalogLayer,
     /// The names in registration order
     pub names: Vec<DescriptorName>,
-    /// The objects the names resolve to, in registration order (`RegisteredName::resolved_objects`)
+    /// The objects the names resolve to, in registration order
     pub name_objects: Vec<(NameId, CatalogObjectRef)>,
     /// The descriptor bytes
     pub bytes: Vec<u8>,
@@ -51,7 +51,7 @@ fn validate_text(text: Option<&str>, required: bool) -> Result<()> {
     Ok(())
 }
 
-/// Verify descriptor bytes (`ValidateDescriptor`)
+/// Verify descriptor bytes
 pub fn validate_descriptor(data: &[u8]) -> Result<CatalogDescriptor<'_>> {
     if data.is_empty() {
         return Err(invalid("invalid CatalogDescriptor FlatBuffer"));
@@ -108,7 +108,7 @@ pub fn validate_descriptor(data: &[u8]) -> Result<CatalogDescriptor<'_>> {
 }
 
 impl DescriptorEntry {
-    /// The name search index (`DescriptorEntry::GetNameSearchIndex`)
+    /// The name search index
     pub fn name_search_index(&self) -> &super::NameSearchIndex {
         self.name_search_index.get_or_init(|| {
             let mut names: Vec<super::IndexedName> = self
@@ -129,7 +129,7 @@ impl DescriptorEntry {
         })
     }
 
-    /// Import descriptor bytes (`DescriptorEntry::DescriptorEntry`)
+    /// Import descriptor bytes
     pub fn new(catalog: &Catalog, id: CatalogEntryId, layer: CatalogLayer, bytes: &[u8]) -> Result<Self> {
         let descriptor = validate_descriptor(bytes)?;
         let mut out = DescriptorEntry {

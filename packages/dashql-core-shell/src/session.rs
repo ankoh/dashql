@@ -1,4 +1,4 @@
-//! The shell session (`src/shell/shell_session.cc`).
+//! The shell session.
 
 use super::arrow_renderer::ArrowRenderer;
 use super::prompt_buffer::{find_from, PromptBuffer};
@@ -26,7 +26,7 @@ const TERMINAL_COMPLETION_ROWS: usize = 10;
 const TERMINAL_PROMPT_CAPACITY: usize = 256;
 const TERMINAL_QUERY_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-/// The message of a C++ `dashql::Exception` with a status code (`GetDefaultMessage`)
+/// The default error message of a status code
 fn exception_message(status: StatusCode) -> &'static str {
     match status {
         StatusCode::CATALOG_NULL => "Catalog is null",
@@ -56,7 +56,7 @@ fn exception_message(status: StatusCode) -> &'static str {
     }
 }
 
-/// The `what()` of the C++ exception that corresponds to a core error
+/// The message of a core error, the default message of its status code if it has one
 fn error_message(error: Error) -> String {
     match error.status {
         Some(status) => exception_message(status).to_string(),
@@ -99,7 +99,7 @@ fn next_cluster(utf8: Option<&str>, offset: usize) -> usize {
     }
 }
 
-/// Cut a text to a display width and append "..." (`TruncateDisplayText`)
+/// Cut a text to a display width and append "..."
 fn truncate_display_text(text: &[u8], width: usize) -> Vec<u8> {
     if display_width(text) <= width {
         return text.to_vec();
@@ -376,17 +376,17 @@ fn is_non_default_three_part_name(name: &[u8]) -> bool {
     !ci_eq(database, DEFAULT_DATABASE_NAME.as_bytes())
 }
 
-/// `std::string::find_first_not_of(set)`
+/// The first byte that is not in a set
 fn find_first_not_of(text: &[u8], set: &[u8]) -> Option<usize> {
     text.iter().position(|c| !set.contains(c))
 }
 
-/// `std::string::find_last_not_of(set)`
+/// The last byte that is not in a set
 fn find_last_not_of(text: &[u8], set: &[u8]) -> Option<usize> {
     text.iter().rposition(|c| !set.contains(c))
 }
 
-/// `std::string::find_first_of(set, pos)`
+/// The first byte at or after an offset that is in a set
 fn find_first_of(text: &[u8], set: &[u8], from: usize) -> Option<usize> {
     if from > text.len() {
         return None;
@@ -394,7 +394,7 @@ fn find_first_of(text: &[u8], set: &[u8], from: usize) -> Option<usize> {
     text[from..].iter().position(|c| set.contains(c)).map(|i| i + from)
 }
 
-/// The completion overlay of the terminal (`TerminalCompletionOverlay`)
+/// The completion overlay of the terminal
 #[derive(Clone, Debug, Default)]
 struct TerminalCompletionOverlay {
     /// The completion candidates
@@ -427,7 +427,7 @@ struct TerminalCompletionOverlay {
     show_variant_info: bool,
 }
 
-/// The spinner line of a running query (`TerminalQueryProgressState`)
+/// The spinner line of a running query
 #[derive(Clone, Debug, Default)]
 struct TerminalQueryProgress {
     /// The current spinner frame
@@ -436,7 +436,7 @@ struct TerminalQueryProgress {
     message: Vec<u8>,
 }
 
-/// Prefer a real extension over an identity candidate for the passive hint (`SelectTerminalCompletionHint`)
+/// Prefer a real extension over an identity candidate for the passive hint
 fn select_terminal_completion_hint(overlay: &mut TerminalCompletionOverlay, prompt_text: &[u8]) {
     if overlay.candidates.is_empty() {
         return;
@@ -460,7 +460,7 @@ fn select_terminal_completion_hint(overlay: &mut TerminalCompletionOverlay, prom
     }
 }
 
-/// A suspended operation that waits for the host (`PendingEffect`)
+/// A suspended operation that waits for the host
 #[derive(Clone, Debug)]
 struct PendingEffect {
     /// The effect id that the host passes back on completion
@@ -471,11 +471,10 @@ struct PendingEffect {
     payload: Vec<u8>,
 }
 
-/// An interactive shell session (`ShellSession`)
+/// An interactive shell session
 ///
-/// The C++ coroutines `ExecuteQuery` and `ExecuteCommand` suspend once on their effect and finish
-/// when it completes. They become pending effects here: starting one encodes its envelope,
-/// completing it renders the result.
+/// Queries and dot commands suspend once on their effect and finish when it completes. They are
+/// pending effects: starting one encodes its envelope, completing it renders the result.
 pub struct ShellSession {
     /// The relations of successful DDL statements, if tracked
     session_relations: Option<SessionRelationCatalog>,
@@ -557,7 +556,7 @@ impl ShellSession {
         &mut self.prompt
     }
 
-    /// Drop the session relations from the catalog (the destructor of the C++ session)
+    /// Drop the session relations from the catalog
     pub fn detach(&mut self, catalog: &mut Catalog) {
         if let Some(relations) = self.session_relations.take() {
             relations.detach(catalog);
@@ -568,7 +567,7 @@ impl ShellSession {
         self.renderer.resize(terminal_columns);
     }
 
-    /// Set the keyword case of completions, `KeywordCase` as in the C ABI (1 is upper case)
+    /// Set the keyword case of completions as a `KeywordCase` value (1 is upper case)
     pub fn set_keyword_case(&mut self, keyword_case: u32) {
         self.keyword_case = keyword_case;
     }
@@ -586,7 +585,7 @@ impl ShellSession {
         self.keyword_case as u8 == 1
     }
 
-    /// Track relations of successful DDL statements in the catalog (`SetTrackSessionRelations`)
+    /// Track relations of successful DDL statements in the catalog
     pub fn set_track_session_relations(&mut self, enabled: bool, catalog: &mut Catalog) {
         if enabled == self.session_relations.is_some() {
             return;
@@ -598,7 +597,7 @@ impl ShellSession {
         }
     }
 
-    /// Register the dot commands, one name per line (`SetCommands`)
+    /// Register the dot commands, one name per line
     pub fn set_commands(&mut self, commands: &[u8]) -> ShellStatus {
         if !is_valid(commands) {
             return ShellStatus::InvalidArgument;
@@ -676,7 +675,7 @@ impl ShellSession {
         self.snapshot_prompt(ShellStatus::Ok, "")
     }
 
-    /// Complete the prompt at the cursor (`CompletePrompt`). Errors are the messages of the C++ exceptions.
+    /// Complete the prompt at the cursor. Errors are the messages of the core errors (`error_message`).
     pub fn complete_prompt(&mut self, limit: usize, catalog: &Catalog) -> Result<Vec<CompletionCandidate>, String> {
         let prompt_text = self.prompt.text();
         let text = prompt_text.as_bytes();
@@ -789,7 +788,7 @@ impl ShellSession {
         Ok(candidates)
     }
 
-    /// Replace the target of a candidate (`ApplyCompletion`)
+    /// Replace the target of a candidate
     pub fn apply_completion(&mut self, candidate: &CompletionCandidate) -> PromptSnapshot {
         if !self.prompt.replace_byte_range(
             candidate.target_offset as usize,
@@ -802,7 +801,7 @@ impl ShellSession {
         self.snapshot_prompt(ShellStatus::Ok, "")
     }
 
-    /// Apply the completion of the C ABI, whose texts may be invalid UTF-8 (`dashql_shell_prompt_apply_completion`)
+    /// Apply a completion whose texts may be invalid UTF-8
     pub fn apply_completion_bytes(
         &mut self,
         display_text: &[u8],
@@ -827,7 +826,7 @@ impl ShellSession {
         }
     }
 
-    /// Apply a semantic input to the prompt (`ConsumePromptInput`)
+    /// Apply a semantic input to the prompt
     pub fn consume_prompt_input(&mut self, key: PromptInputKey, text: &[u8]) -> PromptSnapshot {
         let mut action = PromptInputAction::None;
         match key {
@@ -983,7 +982,7 @@ impl ShellSession {
         }
     }
 
-    /// Open the terminal with a prompt, "dashql> " if empty (`OpenTerminal`)
+    /// Open the terminal with a prompt, "dashql> " if empty
     pub fn open_terminal(&mut self, prompt: &[u8]) -> TerminalOutput {
         self.terminal_action = PromptInputAction::None;
         self.overlay = None;
@@ -1010,7 +1009,7 @@ impl ShellSession {
         self.terminal_output(Ok(result))
     }
 
-    /// Apply a semantic input to the terminal and render it (`ConsumeTerminalInput`)
+    /// Apply a semantic input to the terminal and render it
     pub fn consume_terminal_input(&mut self, key: PromptInputKey, text: &[u8], catalog: &Catalog) -> TerminalOutput {
         let result = self.consume_terminal_input_impl(key, text, catalog);
         self.terminal_output(result)
@@ -1085,7 +1084,7 @@ impl ShellSession {
                 output_prefix.extend(self.render_terminal_prompt());
             }
             self.terminal_action = action;
-            // The cursor row can be stale after prompt edits outside of the terminal, C++ wraps around like size_t
+            // The cursor row can be stale after prompt edits outside of the terminal, the row count then wraps around
             let rows_below = self.terminal_prompt_rows.wrapping_sub(self.terminal_prompt_cursor_row).wrapping_sub(1);
             append_cursor_move(&mut output_prefix, rows_below, Command::CursorDown);
             self.terminal_prompt_rows = 1;
@@ -1139,7 +1138,7 @@ impl ShellSession {
         Ok(ShellOperation::ok(output_prefix))
     }
 
-    /// Print the output of a query and a fresh prompt (`FinishTerminalQuery`)
+    /// Print the output of a query and a fresh prompt
     pub fn finish_terminal_query(&mut self, output: &[u8], error: bool) -> TerminalOutput {
         self.terminal_action = PromptInputAction::None;
         let mut rendered = self.clear_terminal_completion_overlay();
@@ -1167,7 +1166,7 @@ impl ShellSession {
         self.terminal_output(Ok(ShellOperation::ok(rendered)))
     }
 
-    /// Render the spinner line of a running query (`RenderTerminalQueryProgress`)
+    /// Render the spinner line of a running query
     pub fn render_terminal_query_progress(&mut self, message: &[u8], advance_frame: bool) -> TerminalOutput {
         self.terminal_action = PromptInputAction::None;
         if !is_valid(message) {
@@ -1219,7 +1218,7 @@ impl ShellSession {
         output
     }
 
-    /// Print a status line and a fresh prompt (`RenderTerminalStatus`)
+    /// Print a status line and a fresh prompt
     pub fn render_terminal_status(&mut self, message: &[u8]) -> TerminalOutput {
         self.terminal_action = PromptInputAction::None;
         let mut output = self.clear_terminal_completion_overlay();
@@ -1238,7 +1237,7 @@ impl ShellSession {
         self.terminal_output(Ok(ShellOperation::ok(output)))
     }
 
-    /// Execute the prompt as a dot command or a query (`SubmitPrompt`)
+    /// Execute the prompt as a dot command or a query
     pub fn submit_prompt(&mut self, catalog: &Catalog) -> ShellOperation {
         let query = self.prompt.text();
         if query.is_empty() {
@@ -1259,7 +1258,7 @@ impl ShellSession {
         self.start_query(bytes, catalog)
     }
 
-    /// Is the prompt a complete statement or dot command (`PromptIsComplete`)?
+    /// Is the prompt a complete statement or dot command?
     fn prompt_is_complete(&mut self) -> bool {
         let text = self.prompt.text();
         let bytes = text.as_bytes();
@@ -1305,7 +1304,7 @@ impl ShellSession {
         self.reset_history_cursor();
     }
 
-    /// The history as length-prefixed (u32 little-endian) entries (`ExportHistory`)
+    /// The history as length-prefixed (u32 little-endian) entries
     pub fn export_history(&self) -> Vec<u8> {
         let mut output = Vec::new();
         for entry in &self.history {
@@ -1315,7 +1314,7 @@ impl ShellSession {
         output
     }
 
-    /// Replace the history with exported entries (`ImportHistory`)
+    /// Replace the history with exported entries
     pub fn import_history(&mut self, data: &[u8]) -> ShellStatus {
         let mut history = VecDeque::new();
         let mut offset = 0;
@@ -1354,7 +1353,7 @@ impl ShellSession {
         }
     }
 
-    /// Start a query (`StartQuery`): returns the effect envelope of the query
+    /// Start a query: returns the effect envelope of the query
     pub fn start_query(&mut self, query: &[u8], catalog: &Catalog) -> ShellOperation {
         if !self.pending_effects.is_empty() {
             return ShellOperation::new(ShellStatus::Busy, "the shell already has an active operation");
@@ -1364,7 +1363,7 @@ impl ShellSession {
         }
         let mut script = Script::new(catalog);
         let Ok(text) = std::str::from_utf8(query) else {
-            // The rope rejects invalid UTF-8 with an exception
+            // Invalid UTF-8 is an internal error with the message of the rope
             return ShellOperation::new(ShellStatus::InternalError, "rope input must contain valid UTF-8");
         };
         script.insert_text_at(0, text);
@@ -1378,7 +1377,7 @@ impl ShellSession {
         self.suspend_effect(EffectType::ExecuteQuery, query.to_vec())
     }
 
-    /// Suspend an operation on an effect and encode its envelope (`SuspendEffect`, `EncodeOutgoingEffect`)
+    /// Suspend an operation on an effect and encode its envelope
     fn suspend_effect(&mut self, effect_type: EffectType, payload: Vec<u8>) -> ShellOperation {
         let id = self.next_effect_id;
         self.next_effect_id += 1;
@@ -1391,7 +1390,7 @@ impl ShellSession {
         ShellOperation::new(ShellStatus::Pending, encoded)
     }
 
-    /// Resume the operation of an effect with its result (`CompleteEffect`)
+    /// Resume the operation of an effect with its result
     pub fn complete_effect(
         &mut self,
         effect_id: u64,
@@ -1424,12 +1423,12 @@ impl ShellSession {
         }
     }
 
-    /// Cancel an effect (`CancelEffect`)
+    /// Cancel an effect
     pub fn cancel_effect(&mut self, effect_id: u64, catalog: &mut Catalog) -> ShellOperation {
         self.complete_effect(effect_id, EffectCompletionStatus::Cancelled, &[], catalog)
     }
 
-    /// Redraw the prompt with highlighting (`RenderTerminalPrompt`)
+    /// Redraw the prompt with highlighting
     fn render_terminal_prompt(&mut self) -> Vec<u8> {
         let prompt_text = self.prompt.text();
         let text = prompt_text.as_bytes();
@@ -1893,7 +1892,7 @@ impl ShellSession {
     }
 }
 
-/// `std::string_view::find(needle)`
+/// The first occurrence of a needle, 0 for an empty needle
 fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     if needle.is_empty() {
         return Some(0);

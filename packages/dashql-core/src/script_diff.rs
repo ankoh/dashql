@@ -1,5 +1,4 @@
-//! A statement-level semantic diff between two parsed scripts, a port of
-//! the C++ `src/script_diff.cc`.
+//! A statement-level semantic diff between two parsed scripts.
 //!
 //! A modified patience diff over the statements of two parsed scripts: statements are mapped by
 //! structural equality (order-insensitive), the longest common subsequence of unambiguous pairs is
@@ -98,8 +97,8 @@ fn key_id(n: &Node) -> u16 {
     n.attribute_key().0
 }
 
-/// The text of a span like `ScannedScript::ReadTextAtTextSpan`, which reads the text buffer with its
-/// two padding NUL bytes. Spans of EOF errors end one byte past the text.
+/// The text of a span, read as if the text were followed by two padding NUL bytes. Spans of EOF errors
+/// end one byte past the text (see docs/design/core_quirks.md).
 fn padded_text(script: &ParsedScript, span: TextSpan) -> std::borrow::Cow<'_, [u8]> {
     let text = script.scanned.text.as_bytes();
     let begin = (span.offset as usize).min(text.len() + 2);

@@ -1,4 +1,4 @@
-//! A port of the C++ `test/unification_test.cc`.
+//! Tests of the catalog ids that scripts of one catalog allocate for databases, schemas, tables and entries.
 
 use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::{Catalog, ExternalObjectId, INITIAL_DATABASE_ID, INITIAL_ENTRY_ID, INITIAL_SCHEMA_ID};

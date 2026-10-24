@@ -1,4 +1,4 @@
-//! A port of the C++ `test/analyzer_delete_test.cc`.
+//! Tests of the analysis of DELETE statements.
 
 use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::TableReferenceRole;

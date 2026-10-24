@@ -1,4 +1,4 @@
-//! Identify function calls (`identify_function_calls_pass.cc`).
+//! Identify function calls.
 
 use super::state::AnalysisState;
 use super::types::*;
@@ -46,7 +46,7 @@ pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) -> Result<(
                 }
                 NodeType::ARRAY => match state.read_qualified_function_name(Some(name)) {
                     Some(qualified) => function_name = FunctionName::Qualified(qualified),
-                    // The C++ pass calls `value()` on the empty optional and throws
+                    // An unreadable qualified name fails the analysis (see docs/design/core_quirks.md)
                     None => return Err(Error::invalid_argument("bad optional access")),
                 },
                 _ => {}

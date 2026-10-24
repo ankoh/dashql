@@ -1,8 +1,8 @@
 //! A YAML tree that keeps the emitter style of every node, and an emitter that writes it like rapidyaml.
 //!
-//! The snapshot files were written by the C++ snapshotter through rapidyaml. To regenerate them byte for byte,
-//! the encoders record what the C++ encoders tell rapidyaml: the style of a scalar (plain, quoted, literal, or
-//! chosen by the emitter), the style of a container (block, flow), and the order of the keys. Templates are read
+//! The snapshot files are formatted the way rapidyaml emits them. To regenerate them byte for byte, the encoders
+//! record the style of a scalar (plain, quoted, literal, or chosen by the emitter), the style of a container
+//! (block, flow), and the order of the keys. Templates are read
 //! into the same tree with the styles of their source, which rapidyaml keeps when it emits a parsed tree again.
 
 mod emit;
@@ -17,7 +17,7 @@ use yaml_rust2::Yaml;
 /// The style of a scalar
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ScalarStyle {
-    /// Chosen by the emitter (`scalar_style_choose`), the style of values written with `<<`
+    /// Chosen by the emitter (`scalar_style_choose`)
     #[default]
     Auto,
     Plain,
@@ -71,7 +71,7 @@ pub enum Node {
 }
 
 impl Node {
-    /// A scalar whose style the emitter chooses, like a value written with `<<` in C++
+    /// A scalar whose style the emitter chooses
     pub fn auto(text: impl Into<String>) -> Node {
         Node::Scalar(Scalar::new(text, ScalarStyle::Auto))
     }
@@ -96,12 +96,12 @@ impl Node {
         Node::Scalar(Scalar::default())
     }
 
-    /// An integer, written with `<<`
+    /// An integer in the style the emitter chooses
     pub fn int(value: impl Into<i64>) -> Node {
         Node::auto(value.into().to_string())
     }
 
-    /// A boolean, written with `c4::fmt::boolalpha`
+    /// A boolean, `true` or `false` in the style the emitter chooses
     pub fn boolean(value: bool) -> Node {
         Node::auto(if value { "true" } else { "false" })
     }

@@ -1,4 +1,4 @@
-//! VISUALIZE statements (`formatter/formatter_vis.cc`).
+//! VISUALIZE statements.
 
 use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};

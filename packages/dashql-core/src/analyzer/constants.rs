@@ -1,4 +1,4 @@
-//! Identify constant expressions (`constant_propagation_pass.cc`).
+//! Identify constant expressions.
 //!
 //! Literals, constant interval casts, binary expressions and comparisons over constants, and
 //! function calls without modifiers, FILTER and ORDER BY over constants are constant. Finish stores the roots of the
@@ -12,14 +12,14 @@ use dashql_buffers::parser::{AttributeKey as K, ExpressionOperator as Op, Interv
 use dashql_parser::attrs;
 use std::ops::Range;
 
-/// The pass that identifies constant expressions (`ConstantPropagationPass`)
+/// The pass that identifies constant expressions
 #[derive(Default)]
 pub(super) struct ConstantPropagationPass {
     /// The constant expressions, stored as roots during Finish
     constants: Vec<ExprId>,
 }
 
-/// `AnalysisState::ReadBinaryExpressionFunction`
+/// The binary expression function of an operator, UNKNOWN for operators without one
 fn binary_function(op: Op) -> BinaryExpressionFunction {
     match op {
         Op::PLUS => BinaryExpressionFunction::PLUS,
@@ -32,7 +32,7 @@ fn binary_function(op: Op) -> BinaryExpressionFunction {
     }
 }
 
-/// `AnalysisState::ReadComparisonFunction`
+/// The comparison function of an operator, UNKNOWN for operators without one
 fn comparison_function(op: Op) -> ComparisonFunction {
     match op {
         Op::EQUAL => ComparisonFunction::EQUAL,

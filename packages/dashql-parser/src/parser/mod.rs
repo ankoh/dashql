@@ -33,7 +33,7 @@ pub struct ParsedScript {
     pub comment_blocks: CommentBlocks,
 }
 
-/// Source spans and description comments of a statement (`ParsedScript::StatementDescription`)
+/// Source spans and description comments of a statement
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct StatementDescription {
     /// The text of the statement root
@@ -86,7 +86,7 @@ fn is_leading_description_comment_gap(text: &[u8], previous_end: usize, comment:
 }
 
 impl ParsedScript {
-    /// Derive source spans and contiguous description comment blocks (`AssociateDescriptions`)
+    /// Derive source spans and contiguous description comment blocks
     pub fn associate_descriptions(&self) -> Vec<StatementDescription> {
         let scanned = &*self.scanned;
         let input = scanned.text.as_bytes();

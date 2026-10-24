@@ -1,8 +1,7 @@
-//! The editable prompt of the shell (`src/shell/prompt_buffer.cc`).
+//! The editable prompt of the shell.
 //!
-//! The prompt is a script whose cursor moves by extended grapheme clusters. The C++ rope keeps
-//! grapheme statistics in its nodes and splits leaves on grapheme boundaries, so its grapheme
-//! offsets are those of the whole text; the Rust prompt segments the (short) text on demand.
+//! The prompt is a script whose cursor moves by extended grapheme clusters. Grapheme offsets are
+//! those of the whole text, which is short and segmented on demand.
 
 use super::unicode::{grapheme_boundaries, is_valid, next_grapheme, previous_grapheme};
 use dashql_core::catalog::Catalog;
@@ -19,7 +18,7 @@ struct Position {
     graphemes: usize,
 }
 
-/// The grapheme boundaries of a text (`Rope::ResolveGrapheme*`)
+/// The grapheme boundaries of a text
 struct Positions {
     /// The byte offsets of the boundaries, including the end
     bytes: Vec<usize>,
@@ -49,24 +48,24 @@ impl Positions {
         Position { bytes: self.bytes[idx], codepoints: self.codepoints[idx], graphemes: idx }
     }
 
-    /// `ResolveGrapheme`: the start of a grapheme cluster, the end for indexes past the end
+    /// The start of a grapheme cluster, the end for indexes past the end
     fn resolve(&self, idx: usize) -> Position {
         self.position(idx.min(self.count()))
     }
 
-    /// `ResolveGraphemeBoundary`: the boundary at an exact byte offset
+    /// The boundary at an exact byte offset
     fn boundary(&self, byte: usize) -> Option<Position> {
         self.bytes.binary_search(&byte).ok().map(|idx| self.position(idx))
     }
 
-    /// `ResolveGraphemeBoundaryAtOrAfter`: the first boundary at or after a byte offset
+    /// The first boundary at or after a byte offset
     fn at_or_after(&self, byte: usize) -> Position {
         let byte = byte.min(*self.bytes.last().unwrap());
         self.position(self.bytes.partition_point(|&b| b < byte))
     }
 
-    /// The boundary at a byte offset that C++ dereferences without a check. A line break inside a CR LF cluster
-    /// has no boundary, which is undefined behavior in C++; take the boundary before it.
+    /// The boundary at a byte offset that callers expect to be one. A line break inside a CR LF cluster has no
+    /// boundary; take the boundary before it.
     fn unchecked_boundary(&self, byte: usize) -> Position {
         self.boundary(byte)
             .unwrap_or_else(|| self.position(self.bytes.partition_point(|&b| b <= byte).saturating_sub(1)))
@@ -77,7 +76,7 @@ fn is_word_grapheme(grapheme: &str) -> bool {
     grapheme.chars().next().is_some_and(|c| !c.is_ascii() || c.is_ascii_alphanumeric() || c == '_')
 }
 
-/// The prompt of a shell (`PromptBuffer`)
+/// The prompt of a shell
 pub struct PromptBuffer {
     /// The script that holds the prompt text
     script: Script,
@@ -105,7 +104,7 @@ impl PromptBuffer {
         &mut self.script
     }
 
-    /// The prompt text (`Text`)
+    /// The prompt text
     pub fn text(&self) -> String {
         self.script.to_text()
     }
@@ -127,7 +126,7 @@ impl PromptBuffer {
         self.positions().resolve(self.cursor_grapheme_offset).codepoints
     }
 
-    /// Replace the text and move the cursor to the end (`SetText`)
+    /// Replace the text and move the cursor to the end
     pub fn set_text(&mut self, text: &[u8]) -> bool {
         let Ok(text) = std::str::from_utf8(text) else {
             return false;
@@ -140,7 +139,7 @@ impl PromptBuffer {
         true
     }
 
-    /// Insert text at the cursor (`Insert`)
+    /// Insert text at the cursor
     pub fn insert(&mut self, text: &[u8]) -> bool {
         if text.is_empty() {
             return false;
@@ -277,7 +276,7 @@ impl PromptBuffer {
         true
     }
 
-    /// Move the cursor to a grapheme boundary (`MoveToByteOffset`)
+    /// Move the cursor to a grapheme boundary
     pub fn move_to_byte_offset(&mut self, byte_offset: usize) -> bool {
         match self.positions().boundary(byte_offset) {
             Some(position) => {
@@ -384,7 +383,7 @@ impl PromptBuffer {
         self.replace_byte_range(begin, end - begin, &replacement)
     }
 
-    /// Replace a byte range on grapheme boundaries and move the cursor behind the replacement (`ReplaceByteRange`)
+    /// Replace a byte range on grapheme boundaries and move the cursor behind the replacement
     pub fn replace_byte_range(&mut self, byte_offset: usize, byte_length: usize, text: &str) -> bool {
         let positions = self.positions();
         let (Some(begin), Some(end)) =
@@ -404,7 +403,7 @@ impl PromptBuffer {
         true
     }
 
-    /// Replace a byte range with bytes that must be valid UTF-8 (`ReplaceByteRange` of the C ABI)
+    /// Replace a byte range with bytes that must be valid UTF-8
     pub fn replace_byte_range_bytes(&mut self, byte_offset: usize, byte_length: usize, text: &[u8]) -> bool {
         if !is_valid(text) {
             return false;
@@ -413,7 +412,7 @@ impl PromptBuffer {
     }
 }
 
-/// Find a byte at or after an offset (`std::string::find(char, pos)`)
+/// Find a byte at or after an offset
 pub(super) fn find_from(text: &[u8], needle: u8, from: usize) -> Option<usize> {
     if from > text.len() {
         return None;

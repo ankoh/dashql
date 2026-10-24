@@ -1,4 +1,4 @@
-//! Editor sessions, a port of `src/script_session.cc`.
+//! Editor sessions.
 //!
 //! A session owns the script of one editor document. Editor events are validated and applied
 //! atomically, offsets at the API boundary use the unit chosen when the session is created (UTF-8
@@ -16,8 +16,7 @@
 //! the catalog when the session ends (`drop_from_catalog`); dropping a session leaves the catalog as it
 //! is. The wasm module shares the catalog between its JS objects.
 //!
-//! The C++ session leaves the projection of offsets to the rope for every span. Projections here
-//! convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
+//! Projections convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
 
 use dashql_core::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName, PROTO_NULL_U32};
@@ -51,21 +50,21 @@ use dashql_parser::span::TextSpan;
 use ropey::Rope;
 use std::sync::Arc;
 
-/// A version that never matches (`std::numeric_limits<...>::max()`)
+/// A version that never matches
 const NO_VERSION: u64 = u64::MAX;
 
-/// A vector the C++ object API leaves out when empty
+/// A vector that is left out of the packed buffer when empty
 fn non_empty<T>(v: Vec<T>) -> Option<Vec<T>> {
     (!v.is_empty()).then_some(v)
 }
 
-/// A string the C++ object API leaves out when empty
+/// A string that is left out of the packed buffer when empty
 fn non_empty_string(s: impl Into<String>) -> Option<String> {
     let s = s.into();
     (!s.is_empty()).then_some(s)
 }
 
-/// A text change, validated and resolved to byte and code point offsets (`PreparedChange`)
+/// A text change, validated and resolved to byte and code point offsets
 struct PreparedChange<'e> {
     /// The UTF-8 byte offset where the replaced range begins
     from_byte: usize,
@@ -81,7 +80,7 @@ struct PreparedChange<'e> {
     input_order: usize,
 }
 
-/// The catalog ids of a resolved table (`ResolvedTableIDs`)
+/// The catalog ids of a resolved table
 #[derive(Clone, Copy)]
 struct ResolvedTableIds {
     /// The database id
@@ -100,7 +99,7 @@ impl ResolvedTableIds {
     }
 }
 
-/// The ids of the table a reference resolved to (`GetResolvedTableIDs`)
+/// The ids of the table a reference resolved to
 fn resolved_table_ids(reference: &TableReference) -> Option<ResolvedTableIds> {
     let resolved = reference.inner.as_ref()?.resolved_table.as_ref()?;
     let (database_id, schema_id) = resolved.catalog_schema_id.unpack_schema_id();
@@ -143,7 +142,7 @@ fn declaration(analyzed: &AnalyzedScript, table_id: CatalogTableId, column: Opti
     Some((table_id.origin, column_location.or(table.location)))
 }
 
-/// `FormatTableName`
+/// The table name with its schema, if it has one
 fn format_table_name(name: &QualifiedTableName) -> String {
     let mut out = String::new();
     if !name.schema_name.text.is_empty() {
@@ -155,7 +154,6 @@ fn format_table_name(name: &QualifiedTableName) -> String {
 }
 
 /// Converts internal UTF-8 byte offsets to the offset unit of a session
-/// (`TryProjectByteOffset`, `ProjectTextSpan`)
 enum Projector<'a> {
     Bytes,
     Utf16(Utf16Projector<'a>),
@@ -163,7 +161,7 @@ enum Projector<'a> {
 
 impl Projector<'_> {
     /// Project a byte offset, None if it does not lie on a code point boundary of the text. UTF-8
-    /// offsets are passed through unchecked, like in C++.
+    /// offsets are passed through unchecked (see docs/design/core_quirks.md).
     fn offset(&mut self, offset: u64) -> Option<u64> {
         match self {
             Projector::Bytes => Some(offset),
@@ -174,7 +172,7 @@ impl Projector<'_> {
         }
     }
 
-    /// Project a byte span (`ProjectTextSpan`)
+    /// Project a byte span
     fn span(&mut self, span: TextSpan) -> Option<EditorTextSpanT> {
         let begin = self.offset(span.offset as u64)?;
         let end = self.offset(span.offset as u64 + span.length as u64)?;
@@ -213,7 +211,7 @@ impl Selection {
     }
 }
 
-/// The state of one editor document (`ScriptSession`)
+/// The state of one editor document
 pub struct ScriptSession {
     /// The id of the catalog the session belongs to
     catalog_id: u64,
@@ -308,7 +306,7 @@ impl ScriptSession {
         }
     }
 
-    /// Resolve an offset of the session unit to a position in a text (`ResolveOffset`)
+    /// Resolve an offset of the session unit to a position in a text
     fn resolve_offset(&self, text: &Rope, offset: u64) -> Option<TextPosition> {
         let offset = usize::try_from(offset).ok()?;
         match self.offset_unit {
@@ -329,14 +327,14 @@ impl ScriptSession {
         }
     }
 
-    /// Project a byte offset into the current text or fail (`ProjectByteOffset`)
+    /// Project a byte offset into the current text or fail
     fn project_byte_offset(projector: &mut Projector, offset: u64) -> Result<u64> {
         projector
             .offset(offset)
             .ok_or_else(|| Error::invalid_argument("internal text span is not on a UTF-8 codepoint boundary"))
     }
 
-    /// Does the analysis match the text and the catalog? (`IsAnalysisCurrent`)
+    /// Does the analysis match the text and the catalog?
     ///
     /// The analysis is current if it was analyzed from the current text, and against a snapshot of
     /// the catalog that is still current.
@@ -350,7 +348,7 @@ impl ScriptSession {
             && analyzed.parsed.scanned.text_version == self.text_version()
     }
 
-    /// The revision and selection part of an update (`MakeUpdate`)
+    /// The revision and selection part of an update
     fn make_update(&self, catalog: &Catalog) -> EditorUpdateT {
         debug_assert_eq!(catalog.id(), self.catalog_id, "a session takes the catalog it was created with");
         let mut update = EditorUpdateT::default();
@@ -365,8 +363,7 @@ impl ScriptSession {
         update
     }
 
-    /// The update of an event buffer that is not a valid EditorEvent (`packInvalidEditorEvent` of
-    /// the C API)
+    /// The update of an event buffer that is not a valid EditorEvent
     pub fn invalid_event_update(&self, catalog: &Catalog) -> EditorUpdateT {
         let mut update = EditorUpdateT::default();
         update.status = EditorUpdateStatus::INVALID_EVENT;
@@ -379,7 +376,7 @@ impl ScriptSession {
         update
     }
 
-    /// Bring the analysis up to date with the text and the catalog (`Analyze(EditorUpdate&)`)
+    /// Bring the analysis up to date with the text and the catalog
     fn analyze_into(&mut self, catalog: &Catalog, update: &mut EditorUpdateT) -> bool {
         if self.is_analysis_current(catalog) {
             update.analysis_available = true;
@@ -416,7 +413,7 @@ impl ScriptSession {
         }
     }
 
-    /// Replace the whole text if the expected version matches (`ReplaceText`)
+    /// Replace the whole text if the expected version matches
     pub fn replace_text(&mut self, catalog: &Catalog, expected_text_version: TextVersion, text: &str) -> EditorUpdateT {
         let mut change = EditorTextChangeT::default();
         change.from = 0;
@@ -431,7 +428,7 @@ impl ScriptSession {
         self.apply(catalog, &event)
     }
 
-    /// Move the primary cursor without changing the text (`SetPrimaryCursor`)
+    /// Move the primary cursor without changing the text
     pub fn set_primary_cursor(&mut self, catalog: &Catalog, expected_text_version: TextVersion, offset: u64) -> EditorUpdateT {
         let mut selection = EditorSelectionT::default();
         selection.anchor = offset;
@@ -445,8 +442,8 @@ impl ScriptSession {
     }
 
     /// Apply an EditorEvent FlatBuffer. Buffers that fail verification, including inserts that are
-    /// not valid UTF-8, are rejected with INVALID_EVENT (the C++ session reports INVALID_UTF8 for
-    /// invalid inserts, because the C++ verifier does not check strings).
+    /// not valid UTF-8, are rejected with INVALID_EVENT. The verifier checks strings, so an invalid insert
+    /// never reaches `apply`.
     pub fn apply_buffer(&mut self, catalog: &Catalog, event: &[u8]) -> EditorUpdateT {
         match flatbuffers::root::<EditorEvent>(event) {
             Ok(event) => self.apply(catalog, &event.unpack()),
@@ -454,7 +451,7 @@ impl ScriptSession {
         }
     }
 
-    /// Validate and apply an editor event atomically (`Apply`)
+    /// Validate and apply an editor event atomically
     pub fn apply(&mut self, catalog: &Catalog, event: &EditorEventT) -> EditorUpdateT {
         let known = event.known_analysis.as_deref();
         let mut update = self.make_update(catalog);
@@ -644,7 +641,7 @@ impl ScriptSession {
         self.finalize_update(catalog, update, None)
     }
 
-    /// Add the projections of the analysis to an update (`FinalizeUpdate`). The analysis is left out
+    /// Add the projections of the analysis to an update. The analysis is left out
     /// if the host already holds it (`known`).
     fn finalize_update(
         &self,
@@ -656,7 +653,7 @@ impl ScriptSession {
         update
     }
 
-    /// Project the current analysis and the cursor (`ProjectEditorState`)
+    /// Project the current analysis and the cursor
     fn project_editor_state(
         &self,
         catalog: &Catalog,
@@ -978,8 +975,8 @@ impl ScriptSession {
         }
     }
 
-    /// Complete at the cursor (`PackCompletion`). With UTF-16 offsets, the completion goes through
-    /// the object API like in C++, so empty strings and vectors are left out.
+    /// Complete at the cursor. With UTF-16 offsets, the completion goes through the object API, so
+    /// empty strings and vectors are left out (see docs/design/core_quirks.md).
     pub fn complete(&self, catalog: &Catalog, limit: usize, keyword_case: KeywordCase) -> Result<CompletionT> {
         let cursor = self.script.cursor(catalog).ok_or_else(|| Error::status(StatusCode::COMPLETION_MISSES_CURSOR))?;
         let completion = Script::complete_at_cursor(&cursor, limit)?;
@@ -1023,7 +1020,7 @@ impl ScriptSession {
         Ok(packed)
     }
 
-    /// Compile the current text into executable statements (`CompileQuery`)
+    /// Compile the current text into executable statements
     pub fn compile_query(
         &mut self,
         catalog: &Catalog,
@@ -1034,9 +1031,9 @@ impl ScriptSession {
         compile(&mut self.script, catalog, config, CompilationOptions { allow_extensions, parse_if_outdated })
     }
 
-    /// Format the script into a new script with an entry id of `catalog` (`Format`). The formatter can
-    /// cut a UTF-8 character when it wraps comments; the C++ rope then rejects the text after the entry
-    /// id was allocated, and so does this.
+    /// Format the script into a new script with an entry id of `catalog`. The formatter can cut a
+    /// UTF-8 character when it wraps comments; such output is rejected after the entry id was allocated
+    /// (see docs/design/core_quirks.md).
     pub fn format(&mut self, catalog: &Catalog, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<Script> {
         let text = self.script.format_bytes(config, parse_if_outdated)?;
         let mut result = Script::new(catalog);
@@ -1046,7 +1043,7 @@ impl ScriptSession {
         Ok(result)
     }
 
-    /// Rewrite the dashboard clause of the terminal VISUALIZE statement (`RewriteDashboard`)
+    /// Rewrite the dashboard clause of the terminal VISUALIZE statement
     pub fn rewrite_dashboard(
         &mut self,
         row: Option<i32>,
@@ -1058,13 +1055,13 @@ impl ScriptSession {
         self.script.rewrite_dashboard(row, column, width, height, parse_if_outdated)
     }
 
-    /// Can formatting represent every node? (`IsFullyFormattable`)
+    /// Can formatting represent every node?
     pub fn is_fully_formattable(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<bool> {
         self.script.is_fully_formattable(config, parse_if_outdated)
     }
 
-    /// The statement diff from the session script to a target script (`PackDiff`). Like C++, the
-    /// source spans are projected into the current text even if the parsed script is outdated.
+    /// The statement diff from the session script to a target script. The source spans are projected
+    /// into the current text even if the parsed script is outdated (see docs/design/core_quirks.md).
     pub fn diff(&self, target: &Script) -> Result<ScriptDiffT> {
         let (Some(source_parsed), Some(target_parsed)) = (self.script.parsed.as_ref(), target.parsed.as_ref()) else {
             return Err(Error::status(StatusCode::SCRIPT_NOT_PARSED));
@@ -1104,7 +1101,7 @@ impl ScriptSession {
         Ok(diff)
     }
 
-    /// Publish the analyzed script into the catalog (`LoadIntoCatalog`)
+    /// Publish the analyzed script into the catalog
     pub fn load_into_catalog(&mut self, catalog: &mut Catalog, layer: CatalogLayer) -> Result<()> {
         debug_assert_eq!(catalog.id(), self.catalog_id, "a session takes the catalog it was created with");
         let analyzed =
@@ -1116,7 +1113,7 @@ impl ScriptSession {
         Ok(())
     }
 
-    /// Remove the script from the catalog (`DropFromCatalog`)
+    /// Remove the script from the catalog
     pub fn drop_from_catalog(&self, catalog: &mut Catalog) {
         debug_assert_eq!(catalog.id(), self.catalog_id, "a session takes the catalog it was created with");
         catalog.drop_script(self.catalog_entry_id());

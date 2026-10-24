@@ -1,5 +1,4 @@
-//! Relations created during a shell session, published as a descriptor entry of the catalog
-//! (`src/shell/session_relation_catalog.cc`).
+//! Relations created during a shell session, published as a descriptor entry of the catalog.
 
 use dashql_core_session::catalog_changes::{derive_catalog_change, qualify_catalog_changes, CatalogChangeOptions, CatalogNameDefaults};
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
@@ -7,7 +6,7 @@ use dashql_core::script::Script;
 
 const SESSION_SCHEMA: &str = "public";
 
-/// The relations of successful DDL statements (`SessionRelationCatalog`)
+/// The relations of successful DDL statements
 pub struct SessionRelationCatalog {
     /// The script that analyzes the successful queries
     parser_script: Script,
@@ -33,13 +32,13 @@ impl SessionRelationCatalog {
         }
     }
 
-    /// Remove the published relations from the catalog (the destructor of the C++ scripts)
+    /// Remove the published relations from the catalog
     pub fn detach(&self, catalog: &mut Catalog) {
         catalog.drop_script(self.parser_script.catalog_entry_id());
         let _ = catalog.drop_descriptor(self.entry_id);
     }
 
-    /// Track the relation of a query that succeeded (`ApplySuccessfulQuery`). Errors of the local analysis leave
+    /// Track the relation of a query that succeeded. Errors of the local analysis leave
     /// the catalog as it is, the remote engine may accept syntax that the local analyzer does not understand.
     pub fn apply_successful_query(&mut self, query: &str, catalog: &mut Catalog) {
         self.parser_script.replace_text(query);

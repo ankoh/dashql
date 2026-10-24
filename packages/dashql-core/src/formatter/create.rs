@@ -1,4 +1,4 @@
-//! CREATE, DROP, ATTACH and SET statements (`formatter/formatter_create.cc`).
+//! CREATE, DROP, ATTACH and SET statements.
 
 use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};

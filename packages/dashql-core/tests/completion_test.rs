@@ -1,4 +1,4 @@
-//! A port of the C++ `test/completion_test.cc`.
+//! Tests of completion at the script cursor.
 
 // Bison names some symbol kinds in mixed case (S_Op)
 #![allow(non_upper_case_globals)]
@@ -12,7 +12,7 @@ use dashql_core::pack::pack_completion;
 use dashql_core::script::Script;
 use dashql_parser::symbol_kind::*;
 
-/// The default limit of `Script::CompleteAtCursor`
+/// The completion limit of the tests
 const DEFAULT_LIMIT: usize = 10;
 
 fn find_candidate<'x>(completion: &'x Completion, name: &str) -> Option<&'x Candidate> {

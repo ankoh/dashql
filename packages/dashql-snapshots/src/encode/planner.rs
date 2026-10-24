@@ -1,4 +1,4 @@
-//! A port of `PlannerSnapshotTest::Encode` (`src/testing/planner_snapshot_test.cc`).
+//! The planner snapshot encoder.
 
 use super::{plain, Map};
 use crate::ryml::Node;
@@ -96,7 +96,7 @@ impl Fixture {
     }
 }
 
-/// Plan a fixture and encode the execution graph (`PlannerSnapshotTest::Encode`)
+/// Plan a fixture and encode the execution graph
 pub fn encode_fixture(fixture: &Yaml) -> Result<Yaml, String> {
     encode_planner_fixture(&Fixture::from_yaml(fixture)).map(|node| node.to_yaml())
 }

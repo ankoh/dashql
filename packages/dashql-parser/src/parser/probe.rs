@@ -1,5 +1,4 @@
-//! The LR probes of the completion, a port of `DriveLALR` and its policies in
-//! the C++ `src/parser/parser.cc`.
+//! The LR probes of the completion.
 //!
 //! The probes run the automaton without grammar actions, only the state numbers matter:
 //! - [`parse_until_with_snapshot`] parses up to the cursor token, returns the expected symbols there
@@ -18,7 +17,7 @@ use crate::SymbolKind;
 /// nullable reduction cycles that a regular parse never reaches.
 const MAX_REDUCTIONS_WITHOUT_SHIFT: usize = 128;
 
-/// The state stack before the read of the cursor token (`Parser::PrefixSnapshot`)
+/// The state stack before the read of the cursor token
 #[derive(Clone, Debug, Default)]
 pub struct PrefixSnapshot {
     /// The states, bottom to top
@@ -36,7 +35,7 @@ pub struct ExpectedAtCursor {
     pub prefix: PrefixSnapshot,
 }
 
-/// How a fed symbol fits the tokens after the cursor (`Parser::SuffixProbe`)
+/// How a fed symbol fits the tokens after the cursor
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SuffixProbe {
     /// Did the next real token shift after the fed symbols?
@@ -47,7 +46,7 @@ pub struct SuffixProbe {
     pub reached_eof: bool,
 }
 
-/// The token reader of the probes, `ParseContext::NextSymbol` without semantic values
+/// The token reader of the probes, a `TokenStream` without semantic values
 struct Tokens<'a> {
     /// The scanned symbols
     symbols: &'a [Symbol],
@@ -67,7 +66,7 @@ impl Tokens<'_> {
     }
 }
 
-/// The hooks of the driver (see the policy documentation in parser.cc)
+/// The hooks of the driver
 trait Policy {
     /// Inspect or replace a token that was just read. `pre_index` is the token index before the read,
     /// rewind `tokens` to it to read the real token again later.
@@ -80,7 +79,7 @@ trait Policy {
     }
 }
 
-/// Run the automaton without actions (`Parser::DriveLALR`)
+/// Run the automaton without actions
 fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Tokens) {
     let mut lookahead: Option<SymbolKind> = None;
     let mut lac_established = false;
@@ -212,7 +211,7 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
     }
 }
 
-/// All tokens that the parser would eventually shift (`Parser::CollectExpectedSymbols`)
+/// All tokens that the parser would eventually shift
 pub fn collect_expected_symbols(states: &[StateId]) -> Vec<SymbolKind> {
     let mut scratch = Vec::new();
     (0..YYNTOKENS as SymbolKind)
@@ -238,7 +237,7 @@ impl Policy for PrefixCapture<'_> {
     }
 }
 
-/// Parse until the cursor token and collect the expected symbols there (`ParseUntilWithSnapshot`)
+/// Parse until the cursor token and collect the expected symbols there
 pub fn parse_until_with_snapshot(symbols: &[Symbol], target: u32) -> ExpectedAtCursor {
     let mut out = ExpectedAtCursor::default();
     let mut states = vec![0];
@@ -285,7 +284,6 @@ impl Policy for CollectAfter {
 }
 
 /// Parse until the cursor token, feed a symbol instead, and collect the expected symbols after it
-/// (`ParseUntilAfter`)
 pub fn parse_until_after(symbols: &[Symbol], target: u32, feed: SymbolKind) -> Vec<SymbolKind> {
     let mut policy = CollectAfter {
         target,
@@ -347,7 +345,6 @@ impl Policy for SuffixProbePolicy<'_> {
 }
 
 /// Probe a sequence of symbols fed at the cursor against the tokens after it
-/// (`ProbeSuffixSequenceFromPrefix`)
 pub fn probe_suffix_sequence(symbols: &[Symbol], target: u32, prefix: &PrefixSnapshot, feed: &[SymbolKind], replace_target: bool) -> SuffixProbe {
     if !prefix.reached_target || feed.is_empty() {
         return SuffixProbe::default();
@@ -370,7 +367,7 @@ pub fn probe_suffix_sequence(symbols: &[Symbol], target: u32, prefix: &PrefixSna
     policy.probe
 }
 
-/// Probe every symbol on its own (`ProbeSuffixBatchFromSnapshot`)
+/// Probe every symbol on its own
 pub fn probe_suffix_batch(symbols: &[Symbol], target: u32, prefix: &PrefixSnapshot, feed: &[SymbolKind], replace_target: bool) -> Vec<SuffixProbe> {
     if feed.is_empty() || !prefix.reached_target {
         return vec![SuffixProbe::default(); feed.len()];

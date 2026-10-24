@@ -2,7 +2,7 @@
 //!
 //! The driver below is a minimal LALR(1) loop without LAC or error recovery. It only checks
 //! that the emitted tables, symbol kinds and `reduce` dispatch fit together; the real driver
-//! is a port of the C++ `DriveLALR`.
+//! lives in `src/parser/driver.rs`.
 
 /// A location of the calculator grammar, a span of token indexes
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

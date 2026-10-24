@@ -1,8 +1,7 @@
-//! Encoders that produce the `expected` YAML of the snapshot tests, ports of the C++ encoders in
-//! the C++ `src/testing`.
+//! Encoders that produce the `expected` YAML of the snapshot tests.
 //!
-//! The encoders build styled trees ([`Node`]) so that the snapshotter can write the snapshot files byte for byte
-//! like the C++ snapshotter. The tests compare them structurally through [`Node::to_yaml`]: plain scalars go
+//! The encoders build styled trees ([`Node`]) so that the snapshotter can write the snapshot files in the
+//! format of the checked-in files. The tests compare them structurally through [`Node::to_yaml`]: plain scalars go
 //! through YAML type inference, quoted scalars stay strings.
 
 pub mod analyzer;
@@ -35,7 +34,7 @@ impl Map {
         self
     }
 
-    /// A scalar written with `<<`: plain, unless the emitter has to quote it
+    /// A scalar in the style the emitter chooses: plain, unless it has to be quoted
     pub fn plain(&mut self, key: &str, value: &str) -> &mut Self {
         self.insert(key, plain(value))
     }
@@ -49,7 +48,7 @@ impl Map {
         self.insert(key, Node::int(value))
     }
 
-    /// `c4::fmt::boolalpha`
+    /// A boolean, `true` or `false`
     pub fn boolean(&mut self, key: &str, value: bool) -> &mut Self {
         self.insert(key, Node::boolean(value))
     }
@@ -63,12 +62,12 @@ impl Map {
     }
 }
 
-/// A scalar written with `<<`: plain, unless the emitter has to quote it
+/// A scalar in the style the emitter chooses: plain, unless it has to be quoted
 pub fn plain(value: &str) -> Node {
     Node::auto(value)
 }
 
-/// The text of a location: in full if short, otherwise as prefix..suffix (`EncodeLocationText`)
+/// The text of a location: in full if short, otherwise as prefix..suffix
 pub fn location_text(text: &str, offset: u32, length: u32) -> String {
     let bytes = text.as_bytes();
     let offset = offset as usize;
@@ -83,12 +82,12 @@ pub fn location_text(text: &str, offset: u32, length: u32) -> String {
     }
 }
 
-/// `EncodeLocationText`
+/// Insert the text of a location as a quoted scalar
 pub fn encode_location_text(map: &mut Map, text: &str, offset: u32, length: u32, key: &str) {
     map.quoted(key, &location_text(text, offset, length));
 }
 
-/// `EncodeLocationRange`: `key: [begin,end]`
+/// Insert the byte range of a location: `key: [begin,end]`
 pub fn encode_location_range(map: &mut Map, offset: u32, length: u32, key: &str) {
     map.insert(key, Node::flow_seq(vec![Node::int(offset), Node::int(offset + length)]));
 }

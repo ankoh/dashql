@@ -1,7 +1,7 @@
-//! Pipeline benchmarks, the counterpart of the former C++ `benchmarks/benchmark_pipeline.cc`.
+//! Pipeline benchmarks over TPC-DS query 1 against the TPC-DS schema.
 //!
-//! The benchmarks named like the C++ ones (`scan_query`, `parse_query`, `format_query`, `analyze_query`,
-//! `analyze_query_only`, `move_cursor`, `complete_cursor`) measure the same work. The others isolate parts of it.
+//! `scan_query`, `parse_query`, `format_query`, `analyze_query`, `analyze_query_only`, `move_cursor` and
+//! `complete_cursor` measure whole pipeline steps. The others isolate parts of them.
 //!
 //!   bazel run -c opt //packages/dashql-core:bench_pipeline
 
@@ -18,7 +18,7 @@ use harness::bench;
 use std::hint::black_box;
 use std::sync::Arc;
 
-/// The external script of benchmark_pipeline.cc (the TPC-DS schema)
+/// The external script (the TPC-DS schema)
 const EXTERNAL_SCRIPT: &str = r#"
 create table dbgen_version
 (
@@ -576,7 +576,7 @@ create table store_sales
 
 "#;
 
-/// The main script of benchmark_pipeline.cc (TPC-DS query 1)
+/// The main script (TPC-DS query 1)
 const MAIN_SCRIPT: &str = r#"
 with customer_total_return as
 (select sr_customer_sk as ctr_customer_sk
@@ -633,7 +633,7 @@ fn main() {
     bench_cursor();
 }
 
-/// `scan_query`, `parse_query` and `analyze_query` through the `Script` facade, like the C++ benchmarks
+/// `scan_query`, `parse_query` and `analyze_query` through the `Script` facade
 fn bench_script() {
     let mut catalog = Catalog::new();
     let mut external = Script::new(&catalog);

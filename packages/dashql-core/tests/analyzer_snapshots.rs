@@ -1,5 +1,4 @@
-//! The analyzer snapshots (snapshots/analyzer/*.yaml), compared on the keys of the C++
-//! `AnalyzerSnapshotTest`.
+//! The analyzer snapshots (snapshots/analyzer/*.yaml), compared on the keys in `COMPARED_KEYS`.
 
 use dashql_snapshots::encode::analyzer::{analyze_case, compare_script};
 use dashql_snapshots::{load_category, run, trim_input, Arguments, Failed, Trial};

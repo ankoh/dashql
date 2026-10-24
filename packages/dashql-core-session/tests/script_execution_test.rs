@@ -1,5 +1,4 @@
-//! A port of the C++ `test/script_execution_test.cc` and the execution part of
-//! `ApiTest.SessionAndExecutionExpose64BitTextVersions`.
+//! Tests of the statement-wise execution of a session script and its update protocol.
 
 use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_buffers::execution::{

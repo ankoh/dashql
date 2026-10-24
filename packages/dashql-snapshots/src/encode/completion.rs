@@ -1,5 +1,4 @@
-//! A port of `CompletionSnapshotTest::EncodeCompletion` and the flow of
-//! `test/completion_snapshot_test_suite.cc`.
+//! The completion snapshot encoder and the runner of completion snapshot cases.
 
 use super::{encode_location_text, plain, Map};
 use crate::encode::analyzer::encode_script;
@@ -15,7 +14,7 @@ use dashql_parser::scanner::scan;
 use std::sync::Arc;
 use yaml_rust2::Yaml;
 
-/// The names of the set bits of a tag bitset, in bit order (`EnumBitset::ForEach`)
+/// The names of the set bits of a tag bitset, in bit order
 fn tag_names(value: u32, bits: u32, name: impl Fn(u32) -> Option<&'static str>) -> Vec<Node> {
     (0..bits).map(|b| 1u32 << b).filter(|tag| value & tag != 0).map(|tag| plain(name(tag).unwrap_or(""))).collect()
 }
@@ -30,7 +29,7 @@ fn candidate_tag_names(value: u32) -> Vec<Node> {
     tag_names(value, 32, |t| CandidateTag(t).variant_name())
 }
 
-/// Encode a completion (`CompletionSnapshotTest::EncodeCompletion`), without the limit and text keys
+/// Encode a completion, without the limit and text keys
 pub fn encode_completion(out: &mut Map, completion: &Completion) {
     let cursor = completion.cursor;
     let text = &cursor.script.scanned.unwrap().text;
@@ -168,7 +167,7 @@ pub fn complete_case(
     let completion = Completion::compute(&cursor, limit);
     let mut out = Map::new();
     out.int("limit", limit as i64);
-    // Completions inside comments have no target symbol, the C++ encoder cannot encode them
+    // Completions inside comments have no target symbol (see docs/design/core_quirks.md)
     if completion.target_symbol.is_none() {
         out.int("no-target", 1);
         return Ok(CompletionCase { catalog: catalog_yaml, editor: editor_yaml, completions: out.into_yaml() });

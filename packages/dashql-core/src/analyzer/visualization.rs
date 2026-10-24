@@ -1,4 +1,4 @@
-//! Analyze VISUALIZE statements (`analyze_visualization_pass.cc`).
+//! Analyze VISUALIZE statements.
 
 use super::state::AnalysisState;
 use super::types::*;
@@ -441,7 +441,7 @@ fn read_field_def(state: &AnalysisState, node: &Node, channel: &mut VisEncodingC
     field.map(|f| state.node_id(f))
 }
 
-/// Extract an encoding channel of a nested spec (`ExtractEncodingChannel`)
+/// Extract an encoding channel of a nested spec
 fn extract_encoding_channel(state: &AnalysisState, node: &Node) -> VisEncodingChannel {
     let mut channel = VisEncodingChannel {
         ast_node_id: state.node_id(node),
@@ -468,7 +468,7 @@ fn extract_encoding_channel(state: &AnalysisState, node: &Node) -> VisEncodingCh
     channel
 }
 
-/// Extract a nested Vega-Lite spec (`ExtractVegaLiteSpec`)
+/// Extract a nested Vega-Lite spec
 fn extract_vega_lite_spec(state: &AnalysisState, node: &Node) -> VegaLiteSpec {
     let mut spec = VegaLiteSpec::default();
     let [mark, encoding, layer, resolve, title] = attrs!(state.children(node), [
@@ -521,7 +521,7 @@ fn extract_vega_lite_spec(state: &AnalysisState, node: &Node) -> VegaLiteSpec {
     spec
 }
 
-/// The pass that extracts the visualization specs of VISUALIZE statements (`AnalyzeVisualizationPass`)
+/// The pass that extracts the visualization specs of VISUALIZE statements
 pub(super) struct AnalyzeVisualizationPass {
     /// The node states, only allocated for nodes that carry visualization state
     node_states: Vec<Option<Box<NodeState>>>,

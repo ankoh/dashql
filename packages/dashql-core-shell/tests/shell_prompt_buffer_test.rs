@@ -1,4 +1,4 @@
-//! A port of the C++ `test/shell_prompt_buffer_test.cc`.
+//! Tests of the editable prompt: grapheme cursor moves, edits, kills and byte range replacements.
 
 use dashql_core::catalog::Catalog;
 use dashql_core_shell::PromptBuffer;

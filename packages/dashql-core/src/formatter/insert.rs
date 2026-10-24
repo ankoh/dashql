@@ -1,4 +1,4 @@
-//! INSERT statements (`formatter/formatter_insert.cc`).
+//! INSERT statements.
 
 use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};

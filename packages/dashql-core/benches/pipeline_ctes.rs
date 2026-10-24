@@ -1,9 +1,7 @@
-//! Pipeline benchmarks over growing CTE chains, the counterpart of the former
-//! `benchmarks/benchmark_pipeline_ctes.cc`.
+//! Pipeline benchmarks over growing CTE chains.
 //!
 //! The main script is `with cte_0 as (<TPC-H q1>), ..., cte_<n-1> as (<TPC-H q1>) select 1`, analyzed
-//! against the TPC-H schema in the catalog. Each benchmark goes through the `Script` facade like the
-//! C++ benchmark.
+//! against the TPC-H schema in the catalog. Each benchmark goes through the `Script` facade.
 //!
 //!   bazel run -c opt //packages/dashql-core:bench_pipeline_ctes [-- <filter>]
 
@@ -26,7 +24,7 @@ create table nation (n_nationkey integer not null, n_name char(25) not null, n_r
 create table region (r_regionkey integer not null, r_name char(25) not null, r_comment varchar(152) not null, primary key (r_regionkey));
 "#;
 
-/// TPC-H query 1, verbatim from the C++ benchmark (including its `&#60;=`)
+/// TPC-H query 1, kept verbatim (including its `&#60;=`)
 const TPCH_1: &str = r#"
 select
     l_returnflag,
@@ -51,7 +49,7 @@ order by
     l_linestatus
 "#;
 
-/// The CTE counts of the C++ benchmark
+/// The CTE counts
 const CTE_COUNTS: [usize; 14] = [1, 5, 10, 20, 30, 40, 50, 100, 150, 200, 250, 300, 500, 1000];
 
 fn generate_query(cte_count: usize) -> String {

@@ -1,10 +1,9 @@
-//! The names of enum node values (`parser/grammar/enums.cc`).
+//! The names of enum node values.
 
 use dashql_buffers::parser::*;
 
-/// The name of the value of an enum node. Like the C++ `getEnumText`, names are looked up by the
-/// value as an index (all these enums are contiguous), except for the sparse JoinType. Enums that
-/// are not listed here are named "?".
+/// The name of the value of an enum node. Names are looked up by the value as an index (all these
+/// enums are contiguous), except for the sparse JoinType. Enums that are not listed here are named "?".
 pub fn enum_text(node: &Node) -> &'static str {
     let v = node.children_begin_or_value() as usize;
     macro_rules! by_index {

@@ -3,7 +3,7 @@
 //! `snapshotter --source_dir=<repository> [--filter=<category>]`, categories: parser, analyzer, planner,
 //! completion, formatter, hyper_plan, visualize, diff. An empty filter updates all of them.
 //!
-//! The output is byte for byte the output of the former C++ snapshotter (`tools/snapshotter.cc` with rapidyaml):
+//! The output keeps the format of the checked-in snapshot files (the emitter style of rapidyaml):
 //! - parser, formatter, diff and hyper_plan build new files from the inputs of the templates,
 //! - analyzer, completion, planner and visualize write the templates back with the results appended,
 //! - comments of the templates are dropped,
@@ -106,7 +106,7 @@ fn text<'a>(node: &'a Node, key: &str) -> &'a str {
     node.get(key).and_then(Node::val).unwrap_or("")
 }
 
-/// `std::atoi`: leading whitespace, an optional sign, then digits
+/// Parse the integer prefix of a text: leading whitespace, an optional sign, then digits
 fn atoi(text: &str) -> i64 {
     let text = text.trim_start();
     let (negative, digits) = match text.as_bytes().first() {

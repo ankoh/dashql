@@ -1,4 +1,4 @@
-//! EXPLAIN statements (`formatter/formatter_explain.cc`).
+//! EXPLAIN statements.
 
 use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};

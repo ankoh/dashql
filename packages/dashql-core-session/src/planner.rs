@@ -1,4 +1,4 @@
-//! The planner, a port of `src/planner.cc`.
+//! The planner.
 //!
 //! Plans relation-level hazards between the statements of several scripts: every statement becomes
 //! a node with the relations it reads, writes or defines, and edges order conflicting accesses.
@@ -102,7 +102,7 @@ impl PlanState<'_> {
     }
 }
 
-/// A script to plan and the catalog it was analyzed with (`PlannerInput`)
+/// A script to plan and the catalog it was analyzed with
 #[derive(Clone, Copy)]
 pub struct PlannerInput<'a> {
     /// The script to plan
@@ -111,7 +111,7 @@ pub struct PlannerInput<'a> {
     pub catalog: &'a Catalog,
 }
 
-/// Plan the statements of scripts (`Planner::Plan`). Consumes the current analysis without
+/// Plan the statements of scripts. Consumes the current analysis without
 /// analyzing, publishing or changing scripts. All scripts must belong to the same catalog.
 pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
     let inputs: Vec<&Script> = planner_inputs.iter().map(|input| input.script).collect();
@@ -660,12 +660,12 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
     finish(state, scripts_meta, nodes, edges)
 }
 
-/// A string the C++ object API leaves out when empty
+/// A string that is left out of the packed buffer when empty
 fn opt(s: Option<String>) -> Option<String> {
     s.filter(|s| !s.is_empty())
 }
 
-/// A vector the C++ object API leaves out when empty
+/// A vector that is left out of the packed buffer when empty
 fn opt_vec<T>(v: Vec<T>) -> Option<Vec<T>> {
     (!v.is_empty()).then_some(v)
 }

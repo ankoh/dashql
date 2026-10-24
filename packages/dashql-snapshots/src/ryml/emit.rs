@@ -60,8 +60,8 @@ pub fn emit_root(root: &Node) -> String {
     e.out
 }
 
-/// The post-processing of the C++ snapshotter (`InjectBlankLinesInSnapshot`): a blank line before every entry of
-/// the top-level sequence, and no trailing spaces.
+/// The post-processing of the snapshot files: a blank line before every entry of the top-level sequence, and no
+/// trailing spaces.
 pub fn inject_blank_lines(yaml: &mut String) {
     let spaced = yaml.replace("\n  - ", "\n\n  - ");
     let mut out = String::with_capacity(spaced.len());
@@ -672,7 +672,7 @@ impl Emitter {
                         i = self.write_indented_block(text, i, ilevel);
                     }
                     pos = i;
-                    // The loop increment of the C++ code
+                    // The loop increment of the rapidyaml loop
                     i += 1;
                     continue;
                 }

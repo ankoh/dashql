@@ -19,7 +19,7 @@ impl TextSpan {
         self.offset + self.length
     }
 
-    /// The smallest span that covers both spans (the C++ `Loc({a, b})`)
+    /// The smallest span that covers both spans
     pub fn cover(self, other: TextSpan) -> TextSpan {
         let begin = self.offset.min(other.offset);
         let end = self.end().max(other.end());

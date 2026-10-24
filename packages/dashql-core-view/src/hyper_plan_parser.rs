@@ -1,4 +1,4 @@
-//! Reading Hyper plans into the view model (`hyper_plan_parser.cc`).
+//! Reading Hyper plans into the view model.
 
 use super::plan_view_model::{
     Fragment, OperatorCrossEdge, OperatorEdge, OperatorReference, ParsedOperatorNode, PathComponent, PlanViewModel,

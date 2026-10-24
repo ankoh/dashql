@@ -1,4 +1,4 @@
-//! Property graphs and graph queries (`formatter/formatter_pgq.cc`).
+//! Property graphs and graph queries.
 
 use dashql_parser::attrs;
 use super::{is_true, FmtReg, Formatter, FormattingJoinPolicy, K};

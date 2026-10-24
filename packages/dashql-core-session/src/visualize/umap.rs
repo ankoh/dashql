@@ -1,4 +1,4 @@
-//! The UMAP renderer spec (`umap.cc`).
+//! The UMAP renderer spec.
 
 use super::vegalite_generator::resolve_field_name;
 use dashql_core::analyzer::types::VisualizationSpec;
@@ -8,7 +8,7 @@ use dashql_buffers::visualization::{
 };
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
 
-/// The projection of a UMAP spec (`UmapProjectionSpecT`)
+/// The projection of a UMAP spec
 #[derive(Clone, Debug, PartialEq)]
 pub struct UmapProjectionDocument {
     /// The projection method
@@ -21,7 +21,7 @@ pub struct UmapProjectionDocument {
     pub min_dist: Option<f64>,
 }
 
-/// A compiled UMAP spec (`UmapSpecT`). Empty columns are not set.
+/// A compiled UMAP spec. Empty columns are not set.
 #[derive(Clone, Debug, PartialEq)]
 pub struct UmapDocument {
     /// The column with the vectors to project
@@ -34,7 +34,7 @@ pub struct UmapDocument {
     pub projection: Option<UmapProjectionDocument>,
 }
 
-/// Compile the UMAP spec of a visualization (`CompileUmapSpec`), `None` if it has none
+/// Compile the UMAP spec of a visualization, `None` if it has none
 pub fn compile_umap_spec(spec: &VisualizationSpec, script: &AnalyzedScript) -> Option<UmapDocument> {
     let input = spec.umap.as_ref()?;
     let column = |expression_id: Option<u32>| -> String {
@@ -55,7 +55,7 @@ pub fn compile_umap_spec(spec: &VisualizationSpec, script: &AnalyzedScript) -> O
     })
 }
 
-/// Pack a compiled spec like the C++ object API does (`PackUmapSpec`): empty strings are omitted
+/// Pack a compiled spec, empty strings are omitted
 pub fn pack_umap_spec<'a>(builder: &mut FlatBufferBuilder<'a>, spec: &UmapDocument) -> WIPOffset<UmapSpec<'a>> {
     let mut string = |s: &str| if s.is_empty() { None } else { Some(builder.create_string(s)) };
     let vector_column = string(&spec.vector_column);

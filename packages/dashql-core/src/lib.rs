@@ -1,4 +1,4 @@
-//! The DashQL core, the Rust rewrite of the former C++ `packages/dashql-core`.
+//! The DashQL core: analysis, catalog, completion, cursors, formatting and packing of SQL scripts.
 //!
 //! Builds on `dashql_parser` (scanner and parser) and the FlatBuffers bindings `dashql_buffers`.
 

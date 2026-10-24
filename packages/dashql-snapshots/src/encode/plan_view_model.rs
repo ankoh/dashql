@@ -1,10 +1,10 @@
-//! A port of `PlanViewModelSnapshotTest::EncodePlanViewModel` (`src/testing/plan_view_model_snapshot_test.cc`).
+//! The plan view model snapshot encoder.
 
 use super::{plain, Map};
 use crate::ryml::Node;
 use dashql_buffers::view as fb;
 
-/// The layout config of `HyperPlanSnapshotTestSuite`
+/// The layout config of the plan view model snapshots
 pub fn snapshot_config() -> fb::PlanLayoutConfig {
     let mut config = fb::PlanLayoutConfig::default();
     config.set_level_height(64.0);
@@ -20,7 +20,7 @@ pub fn snapshot_config() -> fb::PlanLayoutConfig {
     config
 }
 
-/// `std::to_string(double)`, which formats with `%f`
+/// Format a double with six decimals (`%f`)
 fn to_string(v: f64) -> String {
     format!("{v:.6}")
 }
@@ -58,7 +58,7 @@ fn encode_operator(vm: &fb::PlanViewModel, oid: u32) -> Node {
     out.into_node()
 }
 
-/// Encode a packed plan view model like `EncodePlanViewModel`: the sections `fragments`, `operators`,
+/// Encode a packed plan view model: the sections `fragments`, `operators`,
 /// `operator-edges` and `pipelines`
 pub fn encode_plan_view_model(buffer: &[u8]) -> Map {
     let vm = flatbuffers::root::<fb::PlanViewModel>(buffer).expect("valid plan view model");

@@ -1,4 +1,4 @@
-//! A port of the visualize snapshot encoders (`src/testing/visualize_snapshot_test.cc`).
+//! The visualize snapshot encoders.
 
 use super::{plain, Map};
 use crate::ryml::Node;
@@ -6,7 +6,7 @@ use dashql_buffers::visualization::MarkdownNodeType;
 use dashql_core::analyzer::{AnalyzedScript, DashboardSpec};
 use dashql_core_session::visualize::{MarkdownDocument, MarkdownNode, UmapDocument};
 
-/// Analyze a script like the visualize snapshot test: the catalog script (if any) is analyzed and loaded
+/// Analyze a script of a visualize snapshot case: the catalog script (if any) is analyzed and loaded
 /// into the connection layer, then the main script is analyzed
 pub fn analyze_scripts(catalog_input: Option<&str>, main_input: &str) -> Result<AnalyzedScript, String> {
     use dashql_core::catalog::{Catalog, CatalogLayer};
@@ -27,7 +27,7 @@ pub fn analyze_scripts(catalog_input: Option<&str>, main_input: &str) -> Result<
     analyze_text(&catalog, main_input)
 }
 
-/// `MarkdownNodeName`
+/// The snapshot name of a markdown node type
 pub fn markdown_node_name(node_type: MarkdownNodeType) -> &'static str {
     match node_type {
         MarkdownNodeType::DOCUMENT => "document",
@@ -51,7 +51,7 @@ pub fn markdown_node_name(node_type: MarkdownNodeType) -> &'static str {
     }
 }
 
-/// `EncodeMarkdownNode`
+/// Encode a markdown node and its children
 fn encode_markdown_node(node: &MarkdownNode) -> Node {
     let mut map = Map::new();
     map.plain("type", markdown_node_name(node.node_type));
@@ -89,7 +89,7 @@ fn encode_markdown_node(node: &MarkdownNode) -> Node {
     map.into_node()
 }
 
-/// `EncodeMarkdownSpec`
+/// Encode a markdown spec
 pub fn encode_markdown_spec(spec: &MarkdownDocument) -> Node {
     let mut map = Map::new();
     // Multi-line templates are emitted as block literals
@@ -103,7 +103,7 @@ pub fn encode_markdown_spec(spec: &MarkdownDocument) -> Node {
     map.into_node()
 }
 
-/// `EncodeUmapSpec`
+/// Encode a UMAP spec
 pub fn encode_umap_spec(spec: &UmapDocument) -> Node {
     let mut map = Map::new();
     map.plain("vector-column", &spec.vector_column);
@@ -130,7 +130,7 @@ pub fn encode_umap_spec(spec: &UmapDocument) -> Node {
     map.into_node()
 }
 
-/// `EncodeDashboardSpec`
+/// Encode a dashboard spec
 pub fn encode_dashboard_spec(spec: &DashboardSpec) -> Node {
     let mut map = Map::new();
     if let Some(row) = spec.row {

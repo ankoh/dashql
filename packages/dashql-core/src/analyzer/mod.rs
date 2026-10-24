@@ -1,11 +1,11 @@
-//! The analyzer, a port of the C++ `src/analyzer`.
+//! The analyzer.
 //!
 //! The analysis runs four left-to-right passes over the post-order AST, interleaved per morsel of
-//! 1024 nodes like the C++ `PassManager`, so expressions get the same ids:
-//! name resolution, function calls, constant propagation and visualizations.
+//! 1024 nodes: name resolution, function calls, constant propagation and visualizations. The
+//! interleaving determines the expression ids.
 //!
-//! Unlike the C++ analyzer, the scanned script is not modified. The analyzed script owns a copy of
-//! the names with the analyzer tags and the objects they resolve to.
+//! The scanned script is not modified. The analyzed script owns a copy of the names with the
+//! analyzer tags and the objects they resolve to.
 
 mod constants;
 mod function_calls;
@@ -40,7 +40,6 @@ pub struct AnalyzedScript {
     /// The analyzer tags of the names
     pub name_tags: Vec<NameTag>,
     /// The objects of this script that names of this or other entries resolve to, in registration order
-    /// (`RegisteredName::resolved_objects`)
     pub name_objects: Vec<(CatalogEntryId, NameId, CatalogObjectRef)>,
     /// The empty name
     pub empty_name: NameId,
@@ -94,7 +93,7 @@ impl AnalyzedScript {
         &self.names.get(id).text
     }
 
-    /// The name search index (`AnalyzedScript::GetNameSearchIndex`)
+    /// The name search index
     pub fn name_search_index(&self) -> &NameSearchIndex {
         &self.name_search_index
     }
@@ -117,7 +116,7 @@ impl AnalyzedScript {
     }
 }
 
-/// Analyze a parsed script against a catalog (`Analyzer::Analyze`)
+/// Analyze a parsed script against a catalog
 pub fn analyze(parsed: Arc<ParsedScript>, catalog: &Catalog) -> Result<AnalyzedScript> {
     let mut state = state::AnalysisState::new(&parsed, catalog);
     let mut name_resolution = name_resolution::NameResolutionPass::new(&state);

@@ -1,17 +1,15 @@
-//! The DashQL shell (the C++ `src/shell`): a readline-like prompt with SQL
-//! highlighting and completion, a VT100 terminal renderer, and the execution protocol of queries
-//! and dot commands.
+//! The DashQL shell: a readline-like prompt with SQL highlighting and completion, a VT100
+//! terminal renderer, and the execution protocol of queries and dot commands.
 //!
-//! The C++ shell runs queries and commands as coroutines that suspend on an effect. Here they are
-//! explicit pending effects with the same protocol: starting an operation returns
+//! Queries and commands are pending effects: starting an operation returns
 //! [`ShellStatus::Pending`] with an effect envelope (version, type, id, payload), and the host
 //! completes or cancels the effect by id, which yields the rendered output.
 //!
 //! The session does not own its catalog. Operations that read it take `&Catalog`, operations that
 //! may publish session relations take `&mut Catalog` (see [`ShellSession`]).
 //!
-//! Inputs that C++ validates as UTF-8 are byte slices so that invalid input fails like in C++, and
-//! outputs are terminal bytes.
+//! Inputs that must be valid UTF-8 are byte slices so that invalid input is reported as an error,
+//! and outputs are terminal bytes.
 
 pub mod arrow_renderer;
 pub mod prompt_buffer;
@@ -24,7 +22,7 @@ pub use arrow_renderer::ArrowRenderer;
 pub use prompt_buffer::PromptBuffer;
 pub use session::ShellSession;
 
-/// The status of a shell operation (`DashQLShellStatus`)
+/// The status of a shell operation
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum ShellStatus {
@@ -37,7 +35,7 @@ pub enum ShellStatus {
     Busy = 6,
 }
 
-/// The type of an effect (`EffectType`)
+/// The type of an effect
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum EffectType {
@@ -45,7 +43,7 @@ pub enum EffectType {
     ExecuteCommand = 2,
 }
 
-/// How the host finished an effect (`DashQLShellEffectCompletionStatus`)
+/// How the host finished an effect
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum EffectCompletionStatus {
@@ -65,7 +63,7 @@ impl EffectCompletionStatus {
     }
 }
 
-/// A semantic input key (`DashQLShellPromptInputKey`)
+/// A semantic input key
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum PromptInputKey {
@@ -133,13 +131,13 @@ impl PromptInputKey {
         Self::Abort,
     ];
 
-    /// The key of a C ABI value, None for values past `ABORT`
+    /// The key of a numeric value, None for values past `ABORT`
     pub fn from_u32(value: u32) -> Option<Self> {
         Self::ALL.get(value as usize).copied()
     }
 }
 
-/// What the host should do after an input (`DashQLShellPromptInputAction`)
+/// What the host should do after an input
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 #[repr(u32)]
 pub enum PromptInputAction {
@@ -150,7 +148,7 @@ pub enum PromptInputAction {
     Exit = 3,
 }
 
-/// The result of an operation: rendered output, an effect envelope or an error message (`ShellOperation`)
+/// The result of an operation: rendered output, an effect envelope or an error message
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ShellOperation {
     /// The status of the operation
@@ -169,7 +167,7 @@ impl ShellOperation {
     }
 }
 
-/// Terminal output with the action of the input (`DashQLShellTerminalResult`)
+/// Terminal output with the action of the input
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TerminalOutput {
     /// The status of the input
@@ -180,7 +178,7 @@ pub struct TerminalOutput {
     pub data: Vec<u8>,
 }
 
-/// A completion candidate of the prompt (`CompletionCandidate`)
+/// A completion candidate of the prompt
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CompletionCandidate {
     /// The text shown in the completion list
@@ -205,7 +203,7 @@ pub struct CompletionCandidate {
     pub qualification_target_length: u32,
 }
 
-/// The state of the prompt after an edit (`PromptSnapshot`)
+/// The state of the prompt after an edit
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PromptSnapshot {
     /// The status of the edit

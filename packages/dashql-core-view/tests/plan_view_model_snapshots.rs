@@ -1,6 +1,6 @@
 //! The Hyper plan view model snapshots (snapshots/plans/hyper/tests/*.yaml), produced by the Rust view model.
 //!
-//! The encoder (`dashql_snapshots::encode::plan_view_model`) ports `PlanViewModelSnapshotTest::EncodePlanViewModel`.
+//! The view model is encoded with `dashql_snapshots::encode::plan_view_model`.
 
 use dashql_core_view::PlanViewModel;
 use dashql_snapshots::encode::plan_view_model::{encode_plan_view_model, snapshot_config};
@@ -14,7 +14,7 @@ fn main() {
         .into_iter()
         .map(|case| {
             Trial::test(case.trial_name(), move || {
-                // The C++ suite passes the input untrimmed
+                // The input is passed untrimmed
                 let input = case.node["input"].as_str().ok_or("case without input")?;
                 let mut view_model = PlanViewModel::new();
                 view_model.parse_hyper_plan(input.as_bytes()).map_err(|e| format!("cannot parse plan: {e:?}"))?;

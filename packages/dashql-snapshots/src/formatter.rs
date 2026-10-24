@@ -1,7 +1,6 @@
 //! The formatter snapshot cases (`snapshots/formatter/*.yaml`).
 //!
-//! Reads the cases like the C++ loader (`src/testing/formatter_snapshot_test.cc`): every dialect of a
-//! case carries formatting expectations and optionally a validation block that executes the
+//! Every dialect of a case carries formatting expectations and optionally a validation block that executes the
 //! formatted output against a live database.
 
 use crate::{load_category, SnapshotCase, Yaml};
@@ -53,12 +52,12 @@ impl FormatterCase {
     }
 }
 
-/// Trim spaces and newlines on both ends (`trim_view(..., is_no_space)`)
+/// Trim spaces and newlines on both ends
 fn trim_no_space(text: &str) -> String {
     text.trim_matches([' ', '\n']).to_string()
 }
 
-/// A scalar as text, like ryml's `val()`
+/// A scalar as text
 fn scalar(node: &Yaml) -> Option<String> {
     match node {
         Yaml::String(s) => Some(s.clone()),
@@ -69,7 +68,7 @@ fn scalar(node: &Yaml) -> Option<String> {
     }
 }
 
-/// `std::atoi`: leading whitespace, an optional sign, then digits
+/// Parse the integer prefix of a text: leading whitespace, an optional sign, then digits
 fn atoi(text: &str) -> usize {
     let text = text.trim_start();
     let (negative, digits) = match text.as_bytes().first() {
@@ -112,7 +111,7 @@ fn read_dialects(case: &Yaml) -> Vec<DialectExpectations> {
     dialects
 }
 
-/// Load the formatter cases. Like the C++ loader, cases without dialect expectations are left out.
+/// Load the formatter cases. Cases without dialect expectations are left out.
 pub fn load_formatter_cases() -> Result<Vec<FormatterCase>, String> {
     let mut out = Vec::new();
     for case in load_category("formatter")? {

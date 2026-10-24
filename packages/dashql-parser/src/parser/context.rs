@@ -1,10 +1,10 @@
-//! The parse context, a port of the C++ `src/parser/parse_context.cc`.
+//! The parse context.
 //!
 //! The grammar actions build the AST through the parse context. Nodes are appended to a flat buffer
 //! in post-order: `object` and `array` emit the children of a node and return the node itself,
 //! which the enclosing rule emits later. Every method takes `&self` (the state sits in a
 //! [`StateCell`]) so that the translated actions can nest calls like
-//! `ctx.object(.., &[attr(.., ctx.array(..))])` with the same evaluation order as the C++ actions.
+//! `ctx.object(.., &[attr(.., ctx.array(..))])`, which emit nodes in argument evaluation order.
 
 // Release builds hand out a plain `&mut State` from `StateCell::borrow_mut`, so the `mut` that the
 // debug `RefMut` guard needs on `let mut state = ..` is unused there.
@@ -160,7 +160,7 @@ pub struct ParseContext<'a> {
     pub(crate) state: StateCell<State>,
 }
 
-/// Arguments that are node lists: list ids and node slices (the C++ initializer lists)
+/// Arguments that are node lists: list ids and node slices
 pub trait IntoNodeList {
     fn into_node_list(self, ctx: &ParseContext) -> NodeList;
 }
@@ -222,7 +222,7 @@ impl<'a> ParseContext<'a> {
         self.state.into_inner()
     }
 
-    /// Resolve a span of symbol indexes to a span of bytes (`ScannedScript::ResolveTextSpan`)
+    /// Resolve a span of symbol indexes to a span of bytes
     pub fn resolve_text_span(&self, span: SymbolSpan) -> TextSpan {
         resolve_text_span(self.text, self.symbols, span)
     }
@@ -276,7 +276,7 @@ impl<'a> ParseContext<'a> {
         std::mem::take(&mut self.state.borrow_mut().lists[list.0 as usize])
     }
 
-    /// Append the nodes of `other` to `list` (`NodeList::append`)
+    /// Append the nodes of `other` to `list`
     fn append(&self, list: NodeList, other: impl IntoNodeList) {
         let other = other.into_node_list(self);
         if other == list {
@@ -321,7 +321,7 @@ impl<'a> ParseContext<'a> {
     // Nodes
     // -----------------------------------------------------------------------------------------
 
-    /// Emit a node and set the parent of its children (`ParseContext::AddNode`)
+    /// Emit a node and set the parent of its children
     pub fn add_node(&self, node: Node) -> u32 {
         let mut state = self.state.borrow_mut();
         let node_id = state.nodes.len() as u32;
@@ -362,7 +362,7 @@ impl<'a> ParseContext<'a> {
         SymbolSpan::new(first, last.offset().wrapping_add(last.length()).wrapping_sub(first))
     }
 
-    /// An array of nodes (`ParseContext::Array`)
+    /// An array of nodes
     pub fn array(&self, loc: SymbolSpan, values: impl IntoNodeList) -> Node {
         self.array_ex(loc, values, true, false)
     }
@@ -390,7 +390,7 @@ impl<'a> ParseContext<'a> {
         self.array(loc, nodes)
     }
 
-    /// An object (`ParseContext::Object`)
+    /// An object
     pub fn object(&self, loc: SymbolSpan, node_type: NodeType, attrs: impl IntoNodeList) -> Node {
         self.object_ex(loc, node_type, attrs, true, false)
     }
@@ -415,7 +415,7 @@ impl<'a> ParseContext<'a> {
         Node::new(&loc, node_type, AttributeKey::NONE, NO_PARENT, begin, n)
     }
 
-    /// Materialize an expression (`ParseContext::Expression`)
+    /// Materialize an expression
     pub fn expression(&self, expr: impl Into<ExprVariant>) -> Node {
         match expr.into() {
             ExprVariant::Node(node) => node,
@@ -434,7 +434,7 @@ impl<'a> ParseContext<'a> {
         }
     }
 
-    /// Flatten an AND / OR expression with nested expressions of the same operator (`TryMerge`)
+    /// Flatten an AND / OR expression with nested expressions of the same operator
     pub(crate) fn try_merge(&self, loc: SymbolSpan, op_node: Node, args: &[ExprVariant]) -> Option<ExprVariant> {
         if op_node.node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR {
             return None;
@@ -475,13 +475,14 @@ impl<'a> ParseContext<'a> {
     // Names
     // -----------------------------------------------------------------------------------------
 
-    /// A name from a keyword. The C++ core registers the symbol span as the name location.
+    /// A name from a keyword. The symbol span, a span of token indexes, is registered as the name
+    /// location (see docs/design/core_quirks.md).
     pub fn name_from_keyword(&self, loc: SymbolSpan, text: &str) -> Node {
         let id = self.state.borrow_mut().names.register(text, TextSpan::new(loc.offset(), loc.length()));
         Node::new(&loc, NodeType::NAME, AttributeKey::NONE, NO_PARENT, id, 0)
     }
 
-    /// A name from a string literal. The C++ core trims double quotes, so single quotes are kept.
+    /// A name from a string literal. Only double quotes are trimmed, so single quotes are kept.
     pub fn name_from_string_literal(&self, loc: SymbolSpan) -> Node {
         let text = self.text_at(loc).trim_matches('"');
         let id = self.state.borrow_mut().names.register(text, TextSpan::new(loc.offset(), loc.length()));
@@ -601,7 +602,7 @@ impl<'a> ParseContext<'a> {
         self.state.borrow_mut().vis_spec_spans.push((loc.offset(), loc.offset() + loc.length()));
     }
 
-    /// Add an error without a hint (`ParseContext::AddError`)
+    /// Add an error without a hint
     pub fn add_error(&self, loc: SymbolSpan, message: &str) {
         self.state.borrow_mut().errors.push(ParseError {
             location: loc,
@@ -610,7 +611,7 @@ impl<'a> ParseContext<'a> {
         });
     }
 
-    /// Report an error from the parser or an action (`Parser::error`), attaching the pending hint
+    /// Report an error from the parser or an action, attaching the pending hint
     pub fn error(&self, loc: SymbolSpan, message: &str) {
         let mut state = self.state.borrow_mut();
         let hint = std::mem::take(&mut state.pending_hint);
@@ -652,7 +653,7 @@ fn select_statement_type(nodes: &[Node], root: Node) -> StatementType {
     StatementType::SELECT
 }
 
-/// Resolve a span of symbol indexes to a span of bytes (`ScannedScript::ResolveTextSpan`)
+/// Resolve a span of symbol indexes to a span of bytes
 pub fn resolve_text_span(text: &str, symbols: &[Symbol], span: SymbolSpan) -> TextSpan {
     if span.length() == 0 {
         return match symbols.get(span.offset() as usize) {

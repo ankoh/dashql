@@ -1,6 +1,6 @@
-//! The visualize snapshots (snapshots/visualize/*.yaml), compared like the C++ `VisualizeSnapshotTestSuite`.
+//! The visualize snapshots (snapshots/visualize/*.yaml).
 //!
-//! Unlike the C++ suite, the Vega-Lite JSON and its round trip are also compared for the `table` renderer.
+//! Renderers other than `umap` and `markdown`, including `table`, compare the Vega-Lite JSON and its round trip.
 
 use dashql_core_session::visualize::{
     compile_markdown_spec, compile_umap_spec, generate_vegalite_spec, parse_vegalite_to_visualize,
@@ -10,7 +10,7 @@ use dashql_snapshots::encode::visualize::{
 };
 use dashql_snapshots::{compare, load_category, run, Arguments, Failed, Trial, Yaml};
 
-/// Trim spaces and line breaks like the C++ suite (`trim_view(..., is_no_space)`)
+/// Trim spaces and line breaks at both ends
 fn trim(input: &str) -> String {
     input.trim_matches([' ', '\n']).to_string()
 }

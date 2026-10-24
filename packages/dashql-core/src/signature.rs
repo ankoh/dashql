@@ -1,9 +1,8 @@
-//! Script signatures (`Script::ComputeSignature` in `src/script.cc`), the persisted cache keys of
-//! compiled queries.
+//! Script signatures, the persisted cache keys of compiled queries.
 //!
 //! The signature hashes the statement types and, per statement, the node types, attribute keys,
-//! names and literal texts in node order. It must stay identical to the C++ value, bump
-//! `SCRIPT_SIGNATURE_VERSION` on both sides when the encoding changes.
+//! names and literal texts in node order. Signatures are persisted, so bump
+//! `SCRIPT_SIGNATURE_VERSION` when the encoding changes.
 
 use crate::error::{Error, Result};
 use dashql_buffers::parser::{AttributeKey, Node, NodeType, StatementType};

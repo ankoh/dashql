@@ -1,6 +1,5 @@
-//! The script cursor, a port of `src/script_cursor.cc` and the location lookups of `src/script.cc`
-//! (`ScannedScript::FindSymbol`, `IsInsideComment`, `ParsedScript::FindNodeAtOffset`,
-//! `AnalyzedScript::FollowPathUpwards`).
+//! The script cursor and the location lookups it builds on: the symbol, comment and AST node at a
+//! text offset and the path from a node to its statement root.
 
 use crate::analyzer::{AnalyzedScript, ExprId, ScopeId, TableRefId};
 use crate::catalog::CatalogSnapshot;
@@ -42,7 +41,7 @@ impl<'a> ScriptView<'a> {
     }
 }
 
-/// A scanner symbol and the position of a text offset relative to it (`SymbolLocationInfo`)
+/// A scanner symbol and the position of a text offset relative to it
 #[derive(Clone, Copy, Debug)]
 pub struct SymbolLocation {
     /// The symbol index
@@ -64,7 +63,7 @@ impl SymbolLocation {
     }
 }
 
-/// The symbol at a text offset and its predecessor (`LocationInfo`)
+/// The symbol at a text offset and its predecessor
 #[derive(Clone, Copy, Debug)]
 pub struct LocationInfo {
     /// The last symbol that does not begin after the text offset
@@ -93,7 +92,7 @@ fn relative_position(symbols: &[Symbol], text_offset: u32, symbol_id: u32) -> Re
     }
 }
 
-/// Find the symbol at a text offset (`ScannedScript::FindSymbol`)
+/// Find the symbol at a text offset
 pub fn find_symbol(scanned: &ScannedScript, text_offset: usize) -> LocationInfo {
     let symbols = &scanned.symbols;
     let text_offset = text_offset.min(scanned.text.len()) as u32;
@@ -127,7 +126,7 @@ pub fn find_symbol(scanned: &ScannedScript, text_offset: usize) -> LocationInfo 
     }
 }
 
-/// Is a text offset strictly inside a comment? (`ScannedScript::IsInsideComment`)
+/// Is a text offset strictly inside a comment?
 ///
 /// The begin of a comment is never inside. A line comment ends at its newline, which is not part of
 /// its span, a block comment ends with its closing `*/`.
@@ -152,7 +151,7 @@ pub fn is_inside_comment(scanned: &ScannedScript, text_offset: usize) -> bool {
     }
 }
 
-/// Find the statement and the innermost AST node at a text offset (`ParsedScript::FindNodeAtOffset`)
+/// Find the statement and the innermost AST node at a text offset
 pub fn find_node_at_offset(parsed: &ParsedScript, text_offset: usize) -> Option<(u32, u32)> {
     if parsed.statements.is_empty() {
         return None;
@@ -207,7 +206,6 @@ pub fn find_node_at_offset(parsed: &ParsedScript, text_offset: usize) -> Option<
 }
 
 /// Collect the path from a node to its statement root and the name scopes on that path
-/// (`AnalyzedScript::FollowPathUpwards`)
 pub fn follow_path_upwards(analyzed: &AnalyzedScript, ast_node_id: u32, path: &mut Vec<u32>, scopes: &mut Vec<ScopeId>) {
     path.clear();
     scopes.clear();
@@ -260,7 +258,7 @@ pub enum CursorContext {
     AliasDot,
 }
 
-/// A cursor in a script (`ScriptCursor`)
+/// A cursor in a script
 pub struct ScriptCursor<'a> {
     /// The script the cursor points into
     pub script: ScriptView<'a>,
@@ -281,7 +279,7 @@ pub struct ScriptCursor<'a> {
 }
 
 impl<'a> ScriptCursor<'a> {
-    /// Place a cursor in a script (`ScriptCursor::Place`)
+    /// Place a cursor in a script
     pub fn place(script: ScriptView<'a>, text_offset: usize) -> Self {
         let mut cursor = ScriptCursor {
             script,
@@ -421,7 +419,7 @@ impl<'a> ScriptCursor<'a> {
         }
     }
 
-    /// Read the name path at the cursor (`ScriptCursor::ReadCursorNamePath`)
+    /// Read the name path at the cursor
     pub fn read_cursor_name_path(&self, name_path_loc: &mut SymbolSpan) -> Vec<NameComponent> {
         let (Some(analyzed), Some(parsed)) = (self.script.analyzed, self.script.parsed) else {
             return Vec::new();

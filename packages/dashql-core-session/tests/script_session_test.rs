@@ -1,8 +1,5 @@
-//! A port of the C++ `test/script_session_test.cc` and the session tests of
-//! `api_test.cc`.
-//!
-//! The C ABI tests (`CAbi...`, `Compatibility...`, `CatalogLoadAndDrop...`) call the Rust session
-//! API directly; buffers go through `apply_buffer`.
+//! Tests of editor sessions: events, offset units, analysis projections, completion, diffs and
+//! catalog publishing. Packed events go through `apply_buffer`.
 
 use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::cursor::RelativeSymbolPosition;
@@ -140,8 +137,8 @@ fn analyze(session: &mut Session, text: &str) -> EditorUpdateT {
     session.apply(&e)
 }
 
-/// The text of a span, clamped like `std::string_view::substr` (scanner errors at EOF end one byte
-/// past the text)
+/// The text of a span, clamped to the end of the text (scanner errors at EOF end one byte past the
+/// text)
 fn read_span<'t>(text: &'t str, span: Option<&EditorTextSpanT>) -> &'t str {
     match span {
         Some(span) => {
@@ -227,7 +224,7 @@ fn no_op_and_rejected_edits_preserve_text_version() {
     assert_eq!(update.state_revision, 1);
 
     // Rust strings are valid UTF-8, an invalid insert can only arrive in a buffer, which fails
-    // verification (C++: INVALID_UTF8)
+    // verification
     e.changes.as_mut().unwrap().push(change(2, 2, "\u{FFFF}"));
     let mut builder = flatbuffers::FlatBufferBuilder::new();
     let packed = e.pack(&mut builder);
@@ -968,7 +965,7 @@ fn catalog_load_and_drop_use_session_owned_script_and_layer() {
     assert!(!catalog.borrow().contains(entry_id));
 }
 
-// api_test.cc
+// Statement text, failed catalog analyses and 64-bit text versions
 
 #[test]
 fn get_statement_text_excludes_separator_and_trivia() {
@@ -1011,7 +1008,7 @@ fn session_exposes_64bit_text_versions() {
     assert_eq!(update.text_version, version);
 }
 
-// Script facade methods without a C++ unit test
+// Script facade methods
 
 #[test]
 fn reports_memory_statistics_of_the_latest_analysis() {

@@ -1,13 +1,12 @@
-//! The SQL formatter, a port of the C++ `src/formatter`.
+//! The SQL formatter.
 //!
 //! The formatter visits the AST in post-order and builds a document for every node in a
 //! [`FormattingProgram`], so the documents of the children always exist when a parent is visited.
 //! Nodes that cannot be formatted are rendered as `'<NODE_TYPE>'` placeholders and recorded as
 //! unformattable. The statements are then rendered with the comments of the script in between.
 //!
-//! The output was byte-identical to the C++ formatter, quirks included (docs/design/core_quirks.md).
-//! Function names follow the C++ methods (`FormatTableRef` is `format_table_ref`), the statement
-//! formatters live in the submodules like in the C++ files `formatter_<kind>.cc`.
+//! The output keeps the quirks listed in docs/design/core_quirks.md. The statement formatters live in
+//! the submodules, one per statement kind.
 
 mod comments;
 mod create;
@@ -109,7 +108,7 @@ fn get_operator_precedence(op: ExpressionOperator) -> (usize, Associativity) {
         O::COLLATE => (16, Associativity::Left),
         O::NEGATE => (17, Associativity::Right),
         O::TYPECAST => (20, Associativity::Left),
-        // DEFAULT (the C++ switch has no case for values outside the enum)
+        // Unknown operators get precedence 0, non-associative (see docs/design/core_quirks.md)
         _ => (0, Associativity::NonAssoc),
     }
 }
@@ -367,7 +366,7 @@ impl<'a> Formatter<'a> {
         &self.ast[begin..begin + count]
     }
 
-    /// The documents of the elements of an array (`GetArrayStates`)
+    /// The documents of the elements of an array
     fn array_regs(&self, node: &Node) -> Vec<FmtReg> {
         let count = node.children_count() as usize;
         if count == 0 {
@@ -377,10 +376,10 @@ impl<'a> Formatter<'a> {
         self.node_states[begin..begin + count].iter().map(|s| s.reg).collect()
     }
 
-    /// Look up attributes of an object (`GetAttributes`, `utils/ast_attributes.h`).
+    /// Look up attributes of an object.
     ///
-    /// Like the C++ lookup, a single key finds the first child with that key, several keys find
-    /// the last child with each key.
+    /// A single key finds the first child with that key, several keys find the last child with each
+    /// key (see docs/design/core_quirks.md).
     fn attrs<const N: usize>(&self, node: &Node, keys: [AttributeKey; N]) -> [Option<&'a Node>; N] {
         let mut out = [None; N];
         for child in self.children(node) {
@@ -504,7 +503,7 @@ impl<'a> Formatter<'a> {
         self.fmt.verbatim(text)
     }
 
-    /// The obfuscated literal whose marker starts at a text offset (`FindObfuscatedLiteral`)
+    /// The obfuscated literal whose marker starts at a text offset
     fn find_obfuscated_literal(&self, offset: u32) -> Option<&'a dashql_parser::scanner::ObfuscatedLiteral> {
         let literals: &'a [dashql_parser::scanner::ObfuscatedLiteral] = &self.scanned.obfuscated_literals;
         let i = literals.partition_point(|l| l.location.offset < offset);
@@ -2969,8 +2968,8 @@ impl<'a> Formatter<'a> {
     }
 }
 
-/// The formatted output as a string. Wrapped comments may split UTF-8 sequences like the C++
-/// formatter does, they are replaced with U+FFFD.
+/// The formatted output as a string. Wrapped comments may split UTF-8 sequences, they are replaced
+/// with U+FFFD.
 fn bytes_to_string(bytes: Vec<u8>) -> String {
     match String::from_utf8(bytes) {
         Ok(text) => text,

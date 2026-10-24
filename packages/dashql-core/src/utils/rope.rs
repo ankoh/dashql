@@ -1,12 +1,8 @@
-//! Offset conversions of the script rope (`Rope::ResolveByteBoundary`, `Rope::ResolveUtf16Boundary`
-//! and `Rope::TextPosition` in `src/utils/rope.cc`).
-//!
-//! The C++ positions also carry a grapheme count, which the boundary lookups never compute (they
-//! return the grapheme count of the leaf prefix). Nothing reads it, so it is left out here.
+//! Offset conversions of the script rope.
 
 use ropey::Rope;
 
-/// A position in the text in all offset units (`Rope::TextPosition`)
+/// A position in the text in all offset units
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct TextPosition {
     /// The UTF-8 byte offset
@@ -17,7 +13,7 @@ pub struct TextPosition {
     pub utf16_code_units: usize,
 }
 
-/// Resolve a UTF-8 byte offset that lies on a code point boundary (`ResolveByteBoundary`)
+/// Resolve a UTF-8 byte offset that lies on a code point boundary
 pub fn resolve_byte_boundary(text: &Rope, byte_idx: usize) -> Option<TextPosition> {
     if byte_idx > text.len_bytes() {
         return None;
@@ -33,7 +29,7 @@ pub fn resolve_byte_boundary(text: &Rope, byte_idx: usize) -> Option<TextPositio
     })
 }
 
-/// Resolve a UTF-16 code unit offset that does not split a surrogate pair (`ResolveUtf16Boundary`)
+/// Resolve a UTF-16 code unit offset that does not split a surrogate pair
 pub fn resolve_utf16_boundary(text: &Rope, utf16_idx: usize) -> Option<TextPosition> {
     if utf16_idx > text.len_utf16_cu() {
         return None;

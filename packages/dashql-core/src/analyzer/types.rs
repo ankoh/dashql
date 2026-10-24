@@ -1,7 +1,6 @@
-//! The analyzer types, a port of `include/dashql/analyzer/analyzer_types.h`.
+//! The analyzer types.
 //!
-//! The C++ types link each other through references and intrusive lists. Here every object lives in
-//! an arena of the analyzed script and is referenced by its index.
+//! Every object lives in an arena of the analyzed script and is referenced by its index.
 
 use crate::catalog::*;
 use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction, LiteralType};
@@ -18,8 +17,7 @@ pub type ScopeId = u32;
 /// A table reference id (index into the table references)
 pub type TableRefId = u32;
 
-/// A map that iterates in insertion order and never overwrites (the `ankerl::unordered_dense::map`
-/// of the C++ core, which is only inserted into)
+/// A map that iterates in insertion order and never overwrites
 #[derive(Clone, Debug)]
 pub struct OrderedMap<V> {
     /// The keys and values in insertion order
@@ -209,7 +207,7 @@ impl ColumnResolution {
     }
 }
 
-/// The catalog ids of a resolved column (`Expression::ResolvedColumnIDs`)
+/// The catalog ids of a resolved column
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ResolvedColumnIds {
     /// The catalog id of the schema
@@ -230,7 +228,7 @@ pub struct ColumnRef {
     /// What the column ref resolved to
     pub resolved: ColumnResolution,
     /// The catalog ids behind the resolution, computed once the analysis is done
-    /// (`GetResolvedColumnIDs` follows scope columns through their source expressions)
+    /// (scope columns are followed through their source expressions)
     pub resolved_ids: Option<ResolvedColumnIds>,
     /// The inferred owner of a column that stays unresolved, set by the schema inference
     pub inferred: Option<InferredOwner>,
@@ -276,7 +274,7 @@ pub struct FunctionArgument {
     pub value_ast_node_id: u32,
     /// The argument name, if the argument is named
     pub name: Option<Name>,
-    /// The expression id (the C++ default is an engaged 0)
+    /// The expression id, `Some(0)` by default
     pub expression_id: Option<u32>,
 }
 

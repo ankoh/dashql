@@ -1,9 +1,8 @@
-//! The formatter snapshots (`snapshots/formatter/*.yaml`), produced by the Rust formatter.
+//! The formatter snapshots (`snapshots/formatter/*.yaml`).
 //!
-//! Reads the snapshots like the C++ suite (`src/testing/formatter_snapshot_test.cc`,
-//! `test/formatter_snapshot_test_suite.cc`): every case formats its input for every expectation of
-//! every dialect that is not skipped. Cases named `coverage_*` must also be fully formattable, and
-//! their formatted output must scan and parse without errors.
+//! Every case formats its input for every expectation of every dialect that is not skipped. Cases
+//! named `coverage_*` must also be fully formattable, and their formatted output must scan and parse
+//! without errors.
 
 use dashql_core::formatter::{formatting_mode_to_string, Formatter};
 use dashql_parser::parser::parse;

@@ -1,4 +1,4 @@
-//! The `VisualizeTest` unit tests of `test/visualize_snapshot_test_suite.cc`.
+//! Unit tests of the renderer specs of VISUALIZE statements.
 
 use super::*;
 use dashql_core::analyzer::analyze;

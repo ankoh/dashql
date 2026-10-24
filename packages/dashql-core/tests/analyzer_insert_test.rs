@@ -1,4 +1,4 @@
-//! A port of the C++ `test/analyzer_insert_test.cc`.
+//! Tests of the analysis of INSERT statements.
 
 use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::TableReferenceRole;

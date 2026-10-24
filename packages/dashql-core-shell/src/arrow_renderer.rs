@@ -1,4 +1,4 @@
-//! Renders Arrow IPC results as box-drawn tables (`src/shell/arrow_renderer.cc`).
+//! Renders Arrow IPC results as box-drawn tables.
 //!
 //! Cell values are formatted by arrow-cast (`ArrayFormatter`): floats with their shortest round-trip digits,
 //! temporal values in ISO 8601, binaries in hex, nested values like `[1, 2]` or `{a: 1}`.
@@ -43,7 +43,7 @@ struct Table {
     rows: Vec<Vec<Cell>>,
 }
 
-/// Make cell text safe for a terminal (`EscapeCellText`)
+/// Make cell text safe for a terminal
 fn escape_cell_text(text: &[u8]) -> Vec<u8> {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut output = Vec::with_capacity(text.len());
@@ -119,8 +119,8 @@ fn append_batch(table: &mut Table, batch: &RecordBatch) {
     }
 }
 
-/// Read an Arrow IPC file, or an IPC stream if the data is no file (`ReadIPC`). Errors carry the Arrow status
-/// text; the messages of Arrow C++ are only reproduced for empty buffers.
+/// Read an Arrow IPC file, or an IPC stream if the data is no file. Errors are the arrow-rs error after
+/// `Invalid: `, empty buffers have a message of their own.
 fn read_ipc(data: &[u8]) -> Result<Table, String> {
     if data.is_empty() {
         return Err("Invalid: Arrow IPC buffer is empty".into());
@@ -144,8 +144,8 @@ fn read_ipc(data: &[u8]) -> Result<Table, String> {
     Ok(table)
 }
 
-/// Check the message framing of an IPC stream like the Arrow C++ `DecodeMessage`: arrow-rs ends a stream at a
-/// truncated message prefix, Arrow C++ reports it. Messages are read up to the end-of-stream marker.
+/// Check the message framing of an IPC stream: arrow-rs ends a stream at a truncated message prefix, this
+/// reports it as an error. Messages are read up to the end-of-stream marker.
 fn check_stream_framing(data: &[u8]) -> Result<(), String> {
     let read_i32 = |pos: usize| i32::from_le_bytes(data[pos..pos + 4].try_into().unwrap());
     let mut pos = 0;
@@ -216,7 +216,7 @@ fn text_graphemes(text: &[u8]) -> Vec<Grapheme> {
         .collect()
 }
 
-/// Cut a text to a width and append "..." (`MarkTruncated`)
+/// Cut a text to a width and append "..."
 fn mark_truncated(text: &[u8], width: usize) -> Vec<u8> {
     let marker_width = width.min(TRUNCATION_MARKER.len());
     let content_width = width - marker_width;
@@ -234,7 +234,7 @@ fn mark_truncated(text: &[u8], width: usize) -> Vec<u8> {
     output
 }
 
-/// `std::isspace` in the C locale
+/// ASCII whitespace, including vertical tab and form feed
 fn is_space(c: u8) -> bool {
     matches!(c, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
 }
@@ -323,8 +323,7 @@ fn resolve_column_widths(table: &Table, terminal_columns: usize) -> Vec<usize> {
     if available < column_count {
         return vec![MIN_CONTENT_WIDTH; column_count];
     }
-    // The C++ loop recomputes the total only right before it breaks, so it runs while the initial total
-    // exceeds the available width
+    // Only the initial total is compared with the available width, the loop does not check it again
     let total: usize = widths.iter().sum();
     if total <= available {
         return widths;
@@ -448,7 +447,7 @@ fn render_table(table: &Table, terminal_columns: usize) -> Vec<u8> {
     output
 }
 
-/// Renders Arrow IPC results for a terminal width (`ArrowRenderer`)
+/// Renders Arrow IPC results for a terminal width
 #[derive(Clone, Debug)]
 pub struct ArrowRenderer {
     /// The terminal width in columns, at least 1
@@ -468,7 +467,7 @@ impl ArrowRenderer {
         self.terminal_columns
     }
 
-    /// Render an Arrow IPC file or stream (`RenderIPC`). Errors are Arrow status texts.
+    /// Render an Arrow IPC file or stream. Errors are Arrow error texts.
     pub fn render_ipc(&self, data: &[u8]) -> Result<Vec<u8>, String> {
         let table = read_ipc(data)?;
         Ok(render_table(&table, self.terminal_columns as usize))

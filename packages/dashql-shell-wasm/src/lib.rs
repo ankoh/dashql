@@ -1,13 +1,14 @@
-//! The wasm-bindgen API of the shell, the replacement of the C ABI in the C++ `src/shell/api.cc`. It drives a
-//! `ShellSession` and checks the integer keys and completion statuses at the boundary.
+//! The wasm-bindgen API of the shell. It drives a `ShellSession` and checks the integer keys and completion
+//! statuses at the boundary.
 //!
-//! Like the C++ shell wasm, the module carries the whole core: it re-exports the core bindings
+//! The module carries the whole core: it re-exports the core bindings
 //! (`Catalog`, `Script`, `ScriptBatch`, `PlanViewModel`, `processBatch`, ...) with their JS names, so a shell
 //! takes a `Catalog` of the same module and JS uses one initialized module for the core and the shell.
 //!
-//! Keys, completion statuses and statuses are the numbers of the C ABI enums (`DashQLShellPromptInputKey`,
-//! `DashQLShellEffectCompletionStatus`, `DashQLShellStatus`). Results carry the status instead of throwing, like
-//! the C ABI, except `completePrompt`, which throws when the completion fails (C ABI: `INTERNAL_ERROR`).
+//! Keys, completion statuses and statuses are the numbers of the TypeScript enums in
+//! `packages/dashql-app/src/shell/api.ts` (`DashQLShellPromptInput`, `DashQLShellEffectCompletionStatus`,
+//! `DashQLShellStatus`). Results carry the status instead of throwing, except `completePrompt`, which throws when
+//! the completion fails.
 
 pub use dashql_core_wasm_lib::*;
 
@@ -17,7 +18,7 @@ use dashql_core_shell::{
 };
 use wasm_bindgen::prelude::*;
 
-/// A prompt after an input (`DashQLShellPromptResult`)
+/// A prompt after an input
 #[wasm_bindgen]
 pub struct ShellPromptResult {
     /// The core prompt snapshot
@@ -55,14 +56,14 @@ impl ShellPromptResult {
         self.inner.message.clone()
     }
 
-    /// The `DashQLShellPromptInputAction`
+    /// The `DashQLShellPromptAction`
     #[wasm_bindgen(getter)]
     pub fn action(&self) -> u32 {
         self.inner.action as u32
     }
 }
 
-/// Terminal output (`DashQLShellTerminalResult`)
+/// Terminal output
 #[wasm_bindgen]
 pub struct ShellTerminalResult {
     /// The core terminal output
@@ -77,7 +78,7 @@ impl ShellTerminalResult {
         self.inner.status as u32
     }
 
-    /// The `DashQLShellPromptInputAction`
+    /// The `DashQLShellPromptAction`
     #[wasm_bindgen(getter)]
     pub fn action(&self) -> u32 {
         self.inner.action as u32
@@ -90,7 +91,7 @@ impl ShellTerminalResult {
     }
 }
 
-/// The result of an operation: rendered output, an effect or an error (`DashQLShellResult`)
+/// The result of an operation: rendered output, an effect or an error
 #[wasm_bindgen]
 pub struct ShellOperation {
     /// The core operation result
@@ -140,7 +141,7 @@ impl ShellOperation {
     }
 }
 
-/// A completion candidate (`DashQLShellCompletionCandidate`)
+/// A completion candidate
 #[wasm_bindgen]
 pub struct ShellCompletionCandidate {
     /// The core completion candidate
@@ -184,7 +185,7 @@ fn operation(inner: CoreOperation) -> ShellOperation {
     ShellOperation { inner }
 }
 
-/// A prompt result for an input key that is not a `DashQLShellPromptInputKey`
+/// A prompt result for an input key that is not a `DashQLShellPromptInput`
 fn invalid_prompt(message: &str) -> ShellPromptResult {
     prompt(PromptSnapshot {
         status: ShellStatus::InvalidArgument,
@@ -196,7 +197,7 @@ fn invalid_prompt(message: &str) -> ShellPromptResult {
     })
 }
 
-/// A terminal result for an input key that is not a `DashQLShellPromptInputKey`
+/// A terminal result for an input key that is not a `DashQLShellPromptInput`
 fn invalid_terminal(message: &str) -> ShellTerminalResult {
     terminal(TerminalOutput {
         status: ShellStatus::InvalidArgument,
@@ -205,7 +206,7 @@ fn invalid_terminal(message: &str) -> ShellTerminalResult {
     })
 }
 
-/// A shell session on a catalog (`dashql_shell_*`). Freeing it drops the session relations from the catalog.
+/// A shell session on a catalog. Freeing it drops the session relations from the catalog.
 #[wasm_bindgen]
 pub struct Shell {
     /// The catalog of the shell
@@ -229,7 +230,7 @@ fn alive(shell: &mut Option<ShellSession>) -> &mut ShellSession {
 
 #[wasm_bindgen]
 impl Shell {
-    /// `dashql_shell_new`
+    /// Create a shell on a catalog for a terminal width
     #[wasm_bindgen(constructor)]
     pub fn new(catalog: &Catalog, terminal_columns: u32, auto_qualify_non_default_database_tables: bool) -> Shell {
         let shared = catalog.shared();
@@ -313,7 +314,7 @@ impl Shell {
         prompt(alive(&mut self.inner).apply_completion_bytes(display_text.as_bytes(), completion_text.as_bytes(), target_offset, target_length))
     }
 
-    /// Consume a `DashQLShellPromptInputKey` with its text
+    /// Consume a `DashQLShellPromptInput` with its text
     #[wasm_bindgen(js_name = consumePromptInput)]
     pub fn consume_prompt_input(&mut self, key: u32, text: &str) -> ShellPromptResult {
         match PromptInputKey::from_u32(key) {
@@ -332,7 +333,7 @@ impl Shell {
         terminal(alive(&mut self.inner).open_terminal(prompt.as_bytes()))
     }
 
-    /// Consume a `DashQLShellPromptInputKey` with its text
+    /// Consume a `DashQLShellPromptInput` with its text
     #[wasm_bindgen(js_name = consumeTerminalInput)]
     pub fn consume_terminal_input(&mut self, key: u32, text: &str) -> ShellTerminalResult {
         match PromptInputKey::from_u32(key) {

@@ -12,7 +12,7 @@ use dashql_buffers::visualization::{
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
 use pulldown_cmark::{CodeBlockKind, Event, LinkType, Parser, Tag, TagEnd};
 
-/// A node of a compiled document (`MarkdownNodeT`). Empty strings are not set.
+/// A node of a compiled document. Empty strings are not set.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MarkdownNode {
     /// The node type
@@ -58,7 +58,7 @@ impl MarkdownNode {
     }
 }
 
-/// A compiled Markdown spec (`MarkdownSpecT`)
+/// A compiled Markdown spec
 #[derive(Clone, Debug, PartialEq)]
 pub struct MarkdownDocument {
     /// The row template
@@ -308,7 +308,7 @@ pub fn compile_markdown_spec(spec: &VisualizationSpec) -> Option<MarkdownDocumen
     Some(compile_markdown_template(&spec.markdown.as_ref()?.row_template))
 }
 
-/// Pack a node like the C++ object API does: empty strings and vectors are omitted
+/// Pack a node, empty strings and vectors are omitted
 fn pack_markdown_node<'a>(
     builder: &mut FlatBufferBuilder<'a>,
     node: &MarkdownNode,
@@ -341,7 +341,7 @@ fn pack_markdown_node<'a>(
     )
 }
 
-/// Pack a compiled document (`PackMarkdownSpec`)
+/// Pack a compiled document
 pub fn pack_markdown_spec<'a>(
     builder: &mut FlatBufferBuilder<'a>,
     spec: &MarkdownDocument,

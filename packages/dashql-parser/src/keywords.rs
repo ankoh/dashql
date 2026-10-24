@@ -1,4 +1,4 @@
-//! The keywords of the grammar, generated from `grammar/lists/*.list` (shared with the C++ scanner).
+//! The keywords of the grammar, generated from `grammar/lists/*.list` (shared with the bison grammar).
 
 use crate::{symbol_kind, SymbolKind};
 
@@ -51,7 +51,7 @@ impl Keyword {
         }
     }
 
-    /// The text of a keyword or operator symbol (`Keyword::GetSymbolText`)
+    /// The text of a keyword or operator symbol
     pub fn symbol_text(symbol: SymbolKind) -> Option<&'static str> {
         if let Some(name) = Self::name_of(symbol) {
             return Some(name);

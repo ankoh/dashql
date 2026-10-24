@@ -1,7 +1,6 @@
 //! The semantic values on the parser stack.
 //!
-//! The C++ parser uses bison variants. Here every value is `Copy`: node lists and n-ary expressions
-//! live in arenas of the parse context and are referenced by id.
+//! Every value is `Copy`: node lists and n-ary expressions live in arenas of the parse context and are referenced by id.
 
 use crate::names::NameId;
 use dashql_buffers::parser::{AttributeKey, JoinType, Node, NumericType};
@@ -9,12 +8,12 @@ use dashql_buffers::parser::{AttributeKey, JoinType, Node, NumericType};
 /// The text of a keyword token
 pub type Str = &'static str;
 
-/// A temporary list of nodes in the parse context (the C++ `BackedUniquePtr<NodeList>`)
+/// A temporary list of nodes in the parse context
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NodeList(pub(crate) u32);
 
 /// An expression that is either a materialized node or an n-ary expression that may still be
-/// flattened into an enclosing AND / OR (the C++ `ExpressionVariant`)
+/// flattened into an enclosing AND / OR
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ExprVariant {
     Node(Node),
@@ -72,8 +71,8 @@ impl From<()> for Value {
 
 /// Read a typed value from the stack.
 ///
-/// Mirrors the conversions of the C++ variants: an `ExpressionVariant` accepts a node, and a symbol
-/// whose action did not set a value holds a default-constructed one.
+/// An [`ExprVariant`] accepts a node, and a symbol whose action did not set a value holds a
+/// default-constructed one.
 pub trait FromValue: Sized {
     fn from_value(v: Value) -> Self;
 }

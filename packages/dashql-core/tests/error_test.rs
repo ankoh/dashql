@@ -1,5 +1,5 @@
 //! Tests of the errors of the core: status errors carry the variant name as message and the default
-//! message of the C++ exception as `what()`, other errors carry their own message.
+//! message as `what()`, other errors carry their own message.
 
 use dashql_buffers::status::StatusCode;
 use dashql_core::error::{default_message, Error};

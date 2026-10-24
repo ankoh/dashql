@@ -1,7 +1,7 @@
-//! Comment output of the formatter (the comment helpers of `formatter/formatter.cc`).
+//! Comment output of the formatter.
 //!
-//! Comments work on bytes like the C++ code: wrapping splits long words at byte offsets, which can
-//! split UTF-8 sequences.
+//! Comments work on bytes: wrapping splits long words at byte offsets, which can split UTF-8
+//! sequences (see docs/design/core_quirks.md).
 
 use dashql_parser::span::TextSpan;
 

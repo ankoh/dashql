@@ -1,4 +1,4 @@
-//! The state shared between the analysis passes (`analysis_state.h`).
+//! The state shared between the analysis passes.
 
 use super::types::*;
 use super::AnalyzedScript;
@@ -13,7 +13,7 @@ use dashql_parser::span::TextSpan;
 use crate::hash::HashMap;
 use std::sync::Arc;
 
-/// The state shared between the analysis passes of a script (`AnalysisState`)
+/// The state shared between the analysis passes of a script
 pub(super) struct AnalysisState<'a> {
     /// The parsed script
     pub parsed: &'a ParsedScript,
@@ -207,7 +207,7 @@ impl<'a> AnalysisState<'a> {
         resolve_text_span(&scanned.text, &scanned.symbols, span)
     }
 
-    /// The text at a symbol span (`ReadTextAtSymbolSpan`)
+    /// The text at a symbol span
     pub fn text_at(&self, span: SymbolSpan) -> &str {
         let text = &self.parsed.scanned.text;
         let ts = self.text_span(span);
@@ -221,7 +221,7 @@ impl<'a> AnalysisState<'a> {
         self.out.node_markers[node_id as usize] = marker;
     }
 
-    /// Add an expression (`AnalyzedScript::AddExpression`)
+    /// Add an expression
     pub fn add_expression(&mut self, node_id: u32, location: SymbolSpan, inner: ExpressionInner) -> ExprId {
         let id = self.out.expressions.len() as ExprId;
         self.out.expressions.push(Expression {
@@ -254,7 +254,7 @@ impl<'a> AnalysisState<'a> {
         });
     }
 
-    /// Read a name path (`ReadNamePath`)
+    /// Read a name path
     pub fn read_name_path(&self, node: &Node) -> Vec<NameId> {
         let mut path = Vec::new();
         if node.node_type() != NodeType::ARRAY {
@@ -275,7 +275,7 @@ impl<'a> AnalysisState<'a> {
         path
     }
 
-    /// Read a qualified table name (`ReadQualifiedTableName`)
+    /// Read a qualified table name
     pub fn read_qualified_table_name(&mut self, node: Option<&Node>) -> Option<QualifiedTableName> {
         let node = node?;
         let path = self.read_name_path(node);
@@ -301,7 +301,7 @@ impl<'a> AnalysisState<'a> {
         })
     }
 
-    /// Read a qualified column name (`ReadQualifiedColumnName`).
+    /// Read a qualified column name.
     /// Paths with more than two names access fields of a row-typed column.
     pub fn read_qualified_column_name(&mut self, node: Option<&Node>) -> Option<QualifiedColumnName> {
         let node = node?;
@@ -332,7 +332,7 @@ impl<'a> AnalysisState<'a> {
         }
     }
 
-    /// Read a qualified function name (`ReadQualifiedFunctionName`)
+    /// Read a qualified function name
     pub fn read_qualified_function_name(&mut self, node: Option<&Node>) -> Option<QualifiedFunctionName> {
         let node = node?;
         let path = self.read_name_path(node);
@@ -367,10 +367,10 @@ impl<'a> AnalysisState<'a> {
         }
     }
 
-    /// The statement that contains an AST node (`FindStatementId`), None outside of statements
+    /// The statement that contains an AST node, None outside of statements
     pub fn find_statement_id(&self, ast_node_id: u32) -> Option<u32> {
         let mut root = ast_node_id;
-        // Statement roots are their own parents (C++ walks on for the remaining depth budget)
+        // Statement roots are their own parents
         for _ in 0..self.ast.len() {
             let parent = self.ast[root as usize].parent();
             if parent as usize >= self.ast.len() || parent == root {

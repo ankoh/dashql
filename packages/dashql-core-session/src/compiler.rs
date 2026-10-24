@@ -1,4 +1,4 @@
-//! The script compiler, a port of `src/script_compiler.cc`: turns a script into the SQL statements
+//! The script compiler: turns a script into the SQL statements
 //! to execute and the compiled visualization of a terminal VISUALIZE statement.
 
 use dashql_core::analyzer::{AnalyzedScript, VisualizationSpec};
@@ -19,7 +19,7 @@ use dashql_parser::parser::{ParsedScript, Statement};
 use dashql_parser::scanner::ScannedScript;
 use dashql_parser::span::TextSpan;
 
-/// Options of the compilation (`ScriptCompilationOptions`)
+/// Options of the compilation
 #[derive(Clone, Copy, Debug)]
 pub struct CompilationOptions {
     /// Allow the DashQL extensions (VISUALIZE)
@@ -53,7 +53,6 @@ fn error(code: ErrorCode, message: &str, statement_id: u32, ast_node_id: u32, te
 }
 
 /// The text of a span with the obfuscated literals replaced, so that it can be executed
-/// (`ScannedScript::ReadExecutableText`)
 pub fn read_executable_text(scanned: &ScannedScript, span: TextSpan) -> String {
     let text = scanned.text.as_bytes();
     let mut begin = span.offset as usize;
@@ -73,7 +72,7 @@ pub fn read_executable_text(scanned: &ScannedScript, span: TextSpan) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-/// The SQL node of the terminal statement (`ReadTerminalSqlNode`)
+/// The SQL node of the terminal statement
 fn read_terminal_sql_node(parsed: &ParsedScript, statement_id: usize, kind: &mut StatementKind) -> Option<u32> {
     let statement = &parsed.statements[statement_id];
     match statement.statement_type {
@@ -103,7 +102,7 @@ fn has_returning(parsed: &ParsedScript, statement: &Statement) -> bool {
     returning.is_some_and(|r| r.node_type() != NodeType::NONE)
 }
 
-/// Does a statement produce output? (`ProducesOutput`)
+/// Does a statement produce output?
 fn produces_output(parsed: &ParsedScript, statement: &Statement) -> bool {
     match statement.statement_type {
         StatementType::SELECT | StatementType::EXPLAIN | StatementType::SELECT_INTO | StatementType::VIS_VISUALISE => true,
@@ -112,11 +111,11 @@ fn produces_output(parsed: &ParsedScript, statement: &Statement) -> bool {
     }
 }
 
-/// Compile the visualization metadata (`ScriptCompiler::CompileVisualization`)
+/// Compile the visualization metadata
 pub fn compile_visualization(spec: &VisualizationSpec, script: &AnalyzedScript) -> Result<CompiledVisualizationT, String> {
     let renderer = spec.renderer.as_ref().ok_or("could not resolve visualization renderer")?.to_ascii_lowercase();
     let mut out = CompiledVisualizationT::default();
-    // The C++ visualization always writes its strings
+    // The compiled visualization always writes its strings
     out.vegalite_spec = Some(String::new());
     let mut dashboard = DashboardSpecT::default();
     dashboard.row = spec.dashboard.row;
@@ -153,12 +152,12 @@ fn is_c_space(c: u8) -> bool {
     matches!(c, b' ' | b'\t' | b'\n' | b'\x0b' | b'\x0c' | b'\r')
 }
 
-/// Compile a script (`ScriptCompiler::Compile`)
+/// Compile a script
 pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfigT, options: CompilationOptions) -> ScriptCompilationResultT {
     let mut result = ScriptCompilationResultT::default();
     result.kind = StatementKind::QUERY;
     result.terminal_statement_id = PROTO_NULL_U32;
-    // The C++ result always writes its strings
+    // The result always writes its strings
     result.sql = Some(String::new());
     result.cache_signature = Some(String::new());
     let mut errors = Vec::new();
@@ -268,7 +267,7 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     if result.kind == StatementKind::VISUALIZE {
         let current = script.analyzed.as_ref().is_some_and(|a| std::sync::Arc::ptr_eq(&a.parsed, &parsed));
         if !current {
-            // The C++ compiler lets the exception of the analysis escape
+            // A failed analysis leaves the visualization without metadata
             if let Err(e) = script.analyze(catalog, false) {
                 errors.push(error(ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE, &e.message, terminal_statement_id as u32, terminal_root, None));
                 return finish(result, errors, statements);

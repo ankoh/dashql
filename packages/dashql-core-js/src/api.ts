@@ -86,7 +86,9 @@ export class DashQL {
     decoder: TextDecoder;
     /// The wasm-bindgen module
     bindings: DashQLBindings;
-    /// The native objects owned by this instance
+    /// The native objects owned by this instance. The set holds them strongly on purpose: the
+    /// finalizers of wasm-bindgen then never free a native object, so a script or session that
+    /// misses its `destroy()` leaks instead of dropping its catalog entry at a random GC time.
     registeredMemory: Set<Ptr<symbol>>;
 
     public constructor(bindings: DashQLBindings) {

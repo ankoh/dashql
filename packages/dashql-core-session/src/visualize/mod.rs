@@ -1,13 +1,12 @@
-//! The renderer specs of VISUALIZE statements, a port of the C++ `src/visualize`.
+//! The renderer specs of VISUALIZE statements.
 //!
-//! - `vegalite_generator`: the Vega-Lite JSON of an analyzed visualization (`GenerateVegaLiteSpec`)
-//! - `vegalite_parser`: a VISUALIZE statement from Vega-Lite JSON (`ParseVegaLiteToVisualize`)
-//! - `markdown`: the Markdown row template compiled into a document tree (`CompileMarkdownSpec`), parsed with
+//! - `vegalite_generator`: the Vega-Lite JSON of an analyzed visualization
+//! - `vegalite_parser`: a VISUALIZE statement from Vega-Lite JSON
+//! - `markdown`: the Markdown row template compiled into a document tree, parsed with
 //!   pulldown-cmark
-//! - `umap`: the UMAP spec (`CompileUmapSpec`)
+//! - `umap`: the UMAP spec
 //!
-//! The C++ core caches the compiled specs in mutable fields of the visualization spec. The Rust functions are
-//! pure, callers cache the results.
+//! The functions are pure, callers cache the results.
 
 mod markdown;
 mod umap;

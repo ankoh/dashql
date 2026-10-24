@@ -1,4 +1,4 @@
-//! Port of the C++ `test/hyper_plan_test.cc`.
+//! Unit tests of reading Hyper plans into the view model and laying them out.
 
 use super::PlanViewModel;
 use dashql_buffers::view as fb;

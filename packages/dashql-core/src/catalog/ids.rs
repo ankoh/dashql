@@ -1,4 +1,4 @@
-//! Catalog object ids (`include/dashql/catalog_object.h`, `include/dashql/external.h`).
+//! Catalog object ids.
 
 /// The id of a catalog entry (a script or a descriptor pool)
 pub type CatalogEntryId = u32;
@@ -25,7 +25,7 @@ pub const INITIAL_SCHEMA_ID: CatalogSchemaId = 1 << 16;
 /// The first entry id
 pub const INITIAL_ENTRY_ID: CatalogEntryId = 1;
 
-/// An object id annotated with the catalog entry it belongs to (`ExternalObjectID`)
+/// An object id annotated with the catalog entry it belongs to
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExternalObjectId {
     /// The catalog entry
@@ -80,7 +80,7 @@ pub enum CatalogObjectType {
     FunctionDeclaration = 5,
 }
 
-/// The id of a catalog object (`QualifiedCatalogObjectID`), ordered by type, part 0, part 1
+/// The id of a catalog object, ordered by type, part 0, part 1
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct QualifiedCatalogObjectId {
     /// The type of the object

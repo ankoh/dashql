@@ -1,4 +1,4 @@
-//! A port of the C++ `test/shell_arrow_renderer_test.cc`.
+//! Tests of rendering Arrow IPC files and streams as box-drawn tables.
 
 use arrow_array::builder::{Int32Builder, ListBuilder};
 use arrow_array::types::Int32Type;

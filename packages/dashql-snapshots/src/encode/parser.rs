@@ -1,4 +1,4 @@
-//! The parser snapshot encoder (`ParserSnapshotTest::EncodeScript`).
+//! The parser snapshot encoder.
 
 use super::{encode_location_range, encode_location_text, Map};
 use crate::ryml::Node;

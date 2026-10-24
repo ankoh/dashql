@@ -1,4 +1,4 @@
-//! VT100 control sequences of the shell (`include/dashql/shell/vt100.h`).
+//! VT100 control sequences of the shell.
 
 pub const CONTROL_SEQUENCE_INTRODUCER: &str = "\x1b[";
 pub const CARRIAGE_RETURN: &str = "\r";
@@ -18,14 +18,14 @@ pub enum Command {
     DeleteCharacter = b'P',
 }
 
-/// Append a parameterized CSI command (`AppendSequence`)
+/// Append a parameterized CSI command
 pub fn append_sequence(output: &mut Vec<u8>, count: usize, command: Command) {
     output.extend_from_slice(CONTROL_SEQUENCE_INTRODUCER.as_bytes());
     output.extend_from_slice(count.to_string().as_bytes());
     output.push(command as u8);
 }
 
-/// A parameterized CSI command (`Sequence`)
+/// A parameterized CSI command
 pub fn sequence(count: usize, command: Command) -> String {
     let mut output = Vec::new();
     append_sequence(&mut output, count, command);

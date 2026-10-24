@@ -1,7 +1,4 @@
-//! A port of the C++ `test/catalog_test.cc`.
-//!
-//! `Catalog::load_scripts` takes analyzed scripts, so the C++ check for unanalyzed scripts
-//! (`CATALOG_SCRIPT_NOT_ANALYZED`) has no Rust counterpart.
+//! Tests of the catalog: loading, publishing, describing, resolving and dropping entries.
 
 use dashql_buffers::status::StatusCode;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogObjectType, EntryIdSource, ExternalObjectId, QualifiedCatalogObjectId, CatalogLayer, INITIAL_ENTRY_ID};
@@ -211,7 +208,7 @@ fn load_scripts_validation_failure_preserves_catalog() {
     catalog.load_script(loaded.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let previous_version = catalog.version();
 
-    // The C++ batch with an unanalyzed script cannot be expressed, see the module comment.
+    // A batch that loads the same script twice collides
     let valid_analyzed = valid.analyzed.clone().unwrap();
     let error = catalog
         .load_scripts(&[(valid_analyzed.clone(), CatalogLayer::SESSION), (valid_analyzed.clone(), CatalogLayer::SESSION)])

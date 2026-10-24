@@ -1,4 +1,4 @@
-//! Generate a Vega-Lite spec from an analyzed VISUALIZE statement (`vegalite_generator.cc`).
+//! Generate a Vega-Lite spec from an analyzed VISUALIZE statement.
 //!
 //! The spec is built as a `serde_json` value and pretty-printed with an indentation of two spaces.
 
@@ -55,12 +55,12 @@ pub(crate) fn channel_name(key: K) -> Option<&'static str> {
     })
 }
 
-/// The lower-cased name of an enum value in its type table (`ToLower(tt->names[value])`)
+/// The lower-cased name of an enum value
 fn enum_name(name: Option<&'static str>) -> Value {
     Value::from(name.unwrap_or_default().to_ascii_lowercase())
 }
 
-/// The field name of an expression (`ResolveFieldName`): the column name of a column reference, the text of the
+/// The field name of an expression: the column name of a column reference, the text of the
 /// expression otherwise
 pub(crate) fn resolve_field_name<'a>(script: &'a AnalyzedScript, expression_id: u32) -> &'a [u8] {
     let expression = &script.expressions[expression_id as usize];
@@ -110,7 +110,7 @@ impl Generator<'_> {
         parse_number(text).map(Value::from).unwrap_or_else(|| text_value(text))
     }
 
-    /// `WriteArrayNode`: the values of an `OBJECT_EXT_VARARG_ARRAY`
+    /// The values of an `OBJECT_EXT_VARARG_ARRAY`
     fn array_node(&self, node_id: u32) -> Value {
         let nodes = &self.script.parsed.nodes;
         let node = &nodes[node_id as usize];
@@ -138,7 +138,7 @@ impl Generator<'_> {
         Value::Array(elements.collect())
     }
 
-    /// `WriteScale`
+    /// The `scale` object of a channel
     fn scale(&self, s: &VisScale) -> Value {
         let mut o = Object::new();
         put(&mut o, "type", s.scale_type.map(|t| enum_name(t.variant_name())));
@@ -167,7 +167,7 @@ impl Generator<'_> {
         Value::Object(o)
     }
 
-    /// `WriteMark`: `point` and `line` overlays recurse, a boolean toggle writes a bool
+    /// The `mark` object: `point` and `line` overlays recurse, a boolean toggle writes a bool
     fn mark(&self, m: &VisMark) -> Value {
         let mut o = Object::new();
         put(&mut o, "type", m.mark_type.map(|t| enum_name(t.variant_name())));
@@ -201,7 +201,7 @@ impl Generator<'_> {
         Value::Object(o)
     }
 
-    /// `WriteStack`: booleans become a JSON bool, everything else a string without single quotes
+    /// The `stack` value of a channel: booleans become a JSON bool, everything else a string without single quotes
     fn stack(&self, node_id: u32) -> Value {
         let node = &self.script.parsed.nodes[node_id as usize];
         if node.node_type() == NodeType::BOOL {
@@ -214,7 +214,7 @@ impl Generator<'_> {
         }
     }
 
-    /// `WriteResolveMap`
+    /// A resolve map from channels to the text of their values, without single quotes
     fn resolve_map(&self, node_id: u32) -> Value {
         let nodes = &self.script.parsed.nodes;
         let mut o = Object::new();
@@ -229,7 +229,7 @@ impl Generator<'_> {
         Value::Object(o)
     }
 
-    /// `WriteEncoding`
+    /// The `encoding` object, `None` without channels
     fn encoding(&self, channels: &[VisEncodingChannel]) -> Option<Value> {
         if channels.is_empty() {
             return None;
@@ -259,7 +259,7 @@ impl Generator<'_> {
         Some(Value::Object(encoding))
     }
 
-    /// `WriteVegaLiteSpecFields`. Nested specs write their layers before `resolve`, the top-level spec writes them
+    /// The fields of a spec. Nested specs write their layers before `resolve`, the top-level spec writes them
     /// after it (the caller does).
     fn spec_fields(&self, o: &mut Object, fields: SpecFields, layers: Option<&[VegaLiteSpec]>) {
         let mark = match fields.mark {
@@ -336,7 +336,7 @@ fn children(node: &Node) -> std::ops::Range<u32> {
     begin..begin + node.children_count()
 }
 
-/// `WriteAxis`
+/// The `axis` object of a channel
 fn axis(a: &VisAxis) -> Value {
     let mut o = Object::new();
     put(&mut o, "orient", a.orient.as_deref());
@@ -358,7 +358,7 @@ fn axis(a: &VisAxis) -> Value {
     Value::Object(o)
 }
 
-/// `WriteLegend`
+/// The `legend` object of a channel
 fn legend(l: &VisLegend) -> Value {
     let mut o = Object::new();
     put(&mut o, "type", l.legend_type.as_deref());
@@ -374,7 +374,7 @@ fn legend(l: &VisLegend) -> Value {
     Value::Object(o)
 }
 
-/// `WriteBin`: `true` without parameters
+/// The `bin` value of a channel: `true` without parameters
 fn bin(b: &VisBin) -> Value {
     let has_params = b.step.is_some()
         || b.maxbins.is_some()
@@ -397,7 +397,7 @@ fn bin(b: &VisBin) -> Value {
     Value::Object(o)
 }
 
-/// Generate the pretty-printed Vega-Lite spec of a visualization (`GenerateVegaLiteSpec`)
+/// Generate the pretty-printed Vega-Lite spec of a visualization
 pub fn generate_vegalite_spec(spec: &VisualizationSpec, script: &AnalyzedScript) -> String {
     let g = Generator { script };
     let mut root = Object::new();

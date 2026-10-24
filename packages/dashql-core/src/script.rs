@@ -1,10 +1,10 @@
 //! A script: the text of an editor or a catalog entry and its latest scanned, parsed and analyzed
-//! versions (`Script` in `src/script.cc`).
+//! versions.
 //!
-//! The text is a rope indexed by Unicode code points, like the C++ rope, so that edits in the middle
-//! of large scripts stay logarithmic.
+//! The text is a rope indexed by Unicode code points, so that edits in the middle of large scripts
+//! stay logarithmic.
 //!
-//! Unlike the C++ script, a script does not hold a reference to its catalog. Operations that read
+//! A script does not hold a reference to its catalog. Operations that read
 //! the catalog take it as an argument, and dropping a script does not modify the catalog: the owner
 //! drops the script from the catalog explicitly (`Catalog::drop_script`).
 
@@ -120,8 +120,7 @@ impl Script {
         &self.text
     }
 
-    /// Overwrite the text version. Only for tests that need versions beyond 32 bits, like the C++
-    /// tests that write the public `text_version`.
+    /// Overwrite the text version. Only for tests that need versions beyond 32 bits.
     #[doc(hidden)]
     pub fn set_text_version(&mut self, text_version: TextVersion) {
         self.text_version = text_version;
@@ -134,7 +133,7 @@ impl Script {
         self.text_version += 1;
     }
 
-    /// Insert text at a code point offset (`InsertTextAt`). Offsets past the end append.
+    /// Insert text at a code point offset. Offsets past the end append.
     pub fn insert_text_at(&mut self, char_idx: usize, text: &str) {
         if text.is_empty() {
             return;
@@ -144,7 +143,7 @@ impl Script {
         self.text_version += 1;
     }
 
-    /// Erase a code point range (`EraseTextRange`)
+    /// Erase a code point range
     pub fn erase_text_range(&mut self, char_idx: usize, count: usize) {
         let len = self.text.len_chars();
         if count == 0 || char_idx >= len {
@@ -155,7 +154,7 @@ impl Script {
         self.text_version += 1;
     }
 
-    /// Replace the text (`ReplaceText`), a no-op if the text is unchanged
+    /// Replace the text, a no-op if the text is unchanged
     pub fn replace_text(&mut self, text: &str) {
         if text.len() == self.text.len_bytes() && self.text == text {
             return;
@@ -169,7 +168,7 @@ impl Script {
         self.text.to_string()
     }
 
-    /// The text of a byte span (`ToString(TextSpan)`), empty if the span begins past the end. The span
+    /// The text of a byte span, empty if the span begins past the end. The span
     /// is clamped to the text; characters cut by the span bounds become replacement characters.
     pub fn to_text_span(&self, span: TextSpan) -> String {
         let len = self.text.len_bytes();
@@ -220,14 +219,14 @@ impl Script {
     }
 
     /// Parse if the parsed script is missing or was parsed from another text version (the check of
-    /// `GetStatementText`, `RewriteDashboard`, `ComputeSignature` and the compiler)
+    /// `statement_text`, `rewrite_dashboard` and `compute_signature`)
     fn parse_if_text_outdated(&mut self) {
         if self.parsed.as_ref().is_none_or(|p| p.scanned.text_version != self.text_version) {
             self.parse();
         }
     }
 
-    /// Analyze the script (`Catalog::AnalyzeScript`)
+    /// Analyze the script
     pub fn analyze(&mut self, catalog: &Catalog, parse_if_outdated: bool) -> Result<()> {
         if parse_if_outdated {
             self.parse_if_outdated();
@@ -252,7 +251,7 @@ impl Script {
         }
     }
 
-    /// Move the cursor to a text offset (`MoveCursor`)
+    /// Move the cursor to a text offset
     pub fn move_cursor<'a>(&'a mut self, catalog: &'a Catalog, text_offset: usize) -> ScriptCursor<'a> {
         self.cursor_offset = Some(text_offset);
         ScriptCursor::place(self.view(catalog), text_offset)
@@ -263,8 +262,8 @@ impl Script {
         self.cursor_offset
     }
 
-    /// Move or reset the cursor without placing it (`MoveCursor`, `cursor.reset()`). The cursor is
-    /// placed when it is read with `cursor`.
+    /// Move or reset the cursor without placing it. The cursor is placed when it is read with
+    /// `cursor`.
     pub fn set_cursor_offset(&mut self, text_offset: Option<usize>) {
         self.cursor_offset = text_offset;
     }
@@ -274,7 +273,7 @@ impl Script {
         self.cursor_offset.map(|offset| ScriptCursor::place(self.view(catalog), offset))
     }
 
-    /// Complete at the cursor (`CompleteAtCursor`)
+    /// Complete at the cursor
     pub fn complete_at_cursor<'c, 'a>(cursor: &'c ScriptCursor<'a>, limit: usize) -> Result<Completion<'c, 'a>> {
         if cursor.scanner_location.is_none() {
             return Err(Error::status(StatusCode::COMPLETION_MISSES_SCANNER_TOKEN));
@@ -282,7 +281,7 @@ impl Script {
         Ok(Completion::compute(cursor, limit))
     }
 
-    /// Compute the signature (`ComputeSignature`)
+    /// Compute the signature
     pub fn compute_signature(&mut self, parse_if_outdated: bool) -> Result<String> {
         if parse_if_outdated {
             self.parse_if_text_outdated();
@@ -292,7 +291,6 @@ impl Script {
     }
 
     /// The text of the first statement without its separator or surrounding trivia
-    /// (`GetStatementText`)
     pub fn statement_text(&mut self, parse_if_outdated: bool) -> Result<String> {
         if parse_if_outdated {
             self.parse_if_text_outdated();
@@ -305,11 +303,11 @@ impl Script {
         Ok(self.to_text_span(span))
     }
 
-    /// Rewrite the dashboard clause of the terminal VISUALIZE statement (`RewriteDashboard`).
+    /// Rewrite the dashboard clause of the terminal VISUALIZE statement.
     ///
-    /// Like C++, the spans of the parsed script are applied to the current text, which differs from
-    /// the parsed text if the script was edited and `parse_if_outdated` is false. Bytes are spliced,
-    /// so a span that cuts a character leaves replacement characters.
+    /// The spans of the parsed script are applied to the current text, which differs from the parsed
+    /// text if the script was edited and `parse_if_outdated` is false (see docs/design/core_quirks.md).
+    /// Bytes are spliced, so a span that cuts a character leaves replacement characters.
     pub fn rewrite_dashboard(
         &mut self,
         mut row: Option<i32>,
@@ -384,7 +382,7 @@ impl Script {
         Ok(String::from_utf8_lossy(&source).into_owned())
     }
 
-    /// Scan and parse like `Format` and `GetUnformattableNodes`, then return the parsed script
+    /// Scan and parse if requested and outdated, then return the parsed script to format
     fn parsed_for_formatting(&mut self, parse_if_outdated: bool) -> Result<&Arc<ParsedScript>> {
         if parse_if_outdated {
             self.parse_if_outdated();
@@ -392,7 +390,7 @@ impl Script {
         self.parsed.as_ref().ok_or_else(|| Error::status(StatusCode::SCRIPT_NOT_PARSED))
     }
 
-    /// Format the script (`Format`)
+    /// Format the script
     pub fn format(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<String> {
         let parsed = self.parsed_for_formatting(parse_if_outdated)?;
         Ok(Formatter::new(parsed).format(config))
@@ -405,7 +403,7 @@ impl Script {
         Ok(Formatter::new(parsed).format_bytes(config))
     }
 
-    /// The nodes that formatting could not represent (`GetUnformattableNodes`)
+    /// The nodes that formatting could not represent
     pub fn unformattable_nodes(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<Vec<u32>> {
         let parsed = self.parsed_for_formatting(parse_if_outdated)?;
         let mut formatter = Formatter::new(parsed);
@@ -413,7 +411,7 @@ impl Script {
         Ok(formatter.unformattable_nodes())
     }
 
-    /// Can formatting represent every node and does the script parse without errors? (`IsFullyFormattable`)
+    /// Can formatting represent every node and does the script parse without errors?
     ///
     /// Statements with syntax errors are copied as written, which is not formatting them.
     pub fn is_fully_formattable(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<bool> {
@@ -428,20 +426,17 @@ impl Script {
         self.timings
     }
 
-    /// The memory statistics (`GetMemoryStatistics`).
+    /// The memory statistics.
     ///
     /// They describe the latest analyzed script and the parsed and scanned script it was analyzed
-    /// from, and are 0 except for the rope size before the first analysis. The rope, input, AST and
-    /// name index sizes follow the C++ definitions exactly. The others measure the Rust data
-    /// structures:
-    /// - `scanner_symbol_bytes` is the size of the symbol vector. C++ adds the size of one bison
-    ///   symbol to the symbol count, which is not a byte size.
-    /// - `scanner_name_dictionary_bytes` counts the registered names and their texts (C++: the name
-    ///   pool and the chunked registry).
-    /// - `analyzer_description_bytes` multiplies the same element counts with the sizes of the Rust
-    ///   types.
-    /// - `analyzer_name_index_bytes` is the size of the suffix vector (C++: the entry count times the
-    ///   average btree bytes per value).
+    /// from, and are 0 except for the rope size before the first analysis. The rope and input sizes
+    /// are text lengths, the AST size is the node count times the node size, and the name index size
+    /// is its entry count. The others measure the Rust data structures:
+    /// - `scanner_symbol_bytes` is the size of the symbol vector.
+    /// - `scanner_name_dictionary_bytes` counts the registered names and their texts.
+    /// - `analyzer_description_bytes` multiplies the element counts of the declarations, references,
+    ///   expressions and scopes with the sizes of their types.
+    /// - `analyzer_name_index_bytes` is the size of the suffix vector.
     pub fn memory_statistics(&self) -> ScriptMemoryStatisticsT {
         use std::mem::size_of;
         let mut memory = ScriptMemoryStatisticsT::default();
@@ -484,7 +479,7 @@ impl Script {
         memory
     }
 
-    /// The processing statistics (`GetStatistics`)
+    /// The processing statistics
     pub fn statistics(&self) -> ScriptStatisticsT {
         let mut statistics = ScriptStatisticsT::default();
         let mut timings = ScriptProcessingTimingsT::default();

@@ -1,4 +1,4 @@
-//! Completion, a port of `src/analyzer/completion.cc`.
+//! Completion at a script cursor.
 //!
 //! Completion collects candidates from the expected grammar symbols at the cursor (probed through
 //! the LR automaton), the name search indexes of the script and the catalog, and the name scopes
@@ -107,7 +107,7 @@ fn compute_candidate_score(tags: CandidateTags) -> Score {
     score.saturating_sub(penalty)
 }
 
-/// The base scores of the name tags per strategy (`NameScoringTable`)
+/// The base scores of the name tags per strategy
 fn name_tag_scores(strategy: CompletionStrategy) -> [(NameTag, Score); 7] {
     match strategy {
         CompletionStrategy::TABLE_REF => [
@@ -140,7 +140,7 @@ fn name_tag_scores(strategy: CompletionStrategy) -> [(NameTag, Score); 7] {
     }
 }
 
-/// The prevalence of a keyword (`GetKeywordPrevalence`)
+/// The prevalence of a keyword
 fn keyword_prevalence(keyword: SymbolKind) -> CandidateTag {
     match keyword {
         S_SELECT | S_FROM | S_WHERE => CandidateTag::KEYWORD_A,
@@ -151,12 +151,12 @@ fn keyword_prevalence(keyword: SymbolKind) -> CandidateTag {
     }
 }
 
-/// Tokens after which no passive keyword hints are shown (`suppressPassiveHint`)
+/// Tokens after which no passive keyword hints are shown
 fn suppress_passive_hint(kind: SymbolKind) -> bool {
     matches!(kind, S_SELECT | S_FROM | S_JOIN | S_WHERE | S_ON | S_AND | S_OR | S_BY | S_VISUALISE | S_VISUALIZE)
 }
 
-/// The continuation score of a keyword (`getKeywordContinuationScore`)
+/// The continuation score of a keyword
 fn keyword_continuation_score(kind: SymbolKind) -> u8 {
     match kind {
         S_BY | S_AS | S_EQUALS_GREATER | S_ON | S_SELECT | S_INTO | S_TABLE | S_SET => 10,
@@ -166,7 +166,7 @@ fn keyword_continuation_score(kind: SymbolKind) -> u8 {
     }
 }
 
-/// Is a scanner symbol kind completable? (`Completion::IsSymbolKindCompletable`)
+/// Is a scanner symbol kind completable?
 pub fn is_symbol_kind_completable(kind: SymbolKind) -> bool {
     !matches!(
         kind,
@@ -226,7 +226,7 @@ impl CandidateObjectRef {
     }
 }
 
-/// A catalog object of a candidate (`CandidateCatalogObject`)
+/// A catalog object of a candidate
 #[derive(Clone, Debug)]
 pub struct CandidateObject {
     /// The candidate (index into the candidate buffer)
@@ -247,7 +247,7 @@ pub struct CandidateObject {
     pub prefer_qualified: bool,
 }
 
-/// A completion candidate (`Completion::Candidate`)
+/// A completion candidate
 #[derive(Clone, Debug)]
 pub struct Candidate {
     /// The text to insert
@@ -493,7 +493,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         self.candidate_objects_by_id.insert(object_id, co);
     }
 
-    /// Compute the completion at a cursor (`Completion::Compute`)
+    /// Compute the completion at a cursor
     pub fn compute(cursor: &'c ScriptCursor<'a>, k: usize) -> Self {
         let mut completion = Completion::new(cursor, k);
         let Some(location) = cursor.scanner_location else { return completion };
@@ -529,7 +529,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                 RelativeSymbolPosition::AFTER_SYMBOL | RelativeSymbolPosition::END_OF_SYMBOL => {
                     completion.dot_completion = true
                 }
-                // Don't complete the dot itself. The C++ switch falls through to the return.
+                // Don't complete the dot itself, and not at its begin either (see docs/design/core_quirks.md)
                 _ => {
                     if target.relative_pos == RelativeSymbolPosition::BEGIN_OF_SYMBOL {
                         use_previous_if_at_end(&mut completion, &mut previous_symbol);
@@ -670,7 +670,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         completion
     }
 
-    /// Is there a real token after the feed point? (`computeHasPostCursorToken`)
+    /// Is there a real token after the feed point?
     fn compute_has_post_cursor_token(&self) -> bool {
         let Some(target) = self.target_symbol else { return false };
         let replace_target = matches!(
@@ -707,7 +707,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         (feed_id, replace_target)
     }
 
-    /// Add the expected keywords to the heap (`AddExpectedKeywordsAsCandidates`)
+    /// Add the expected keywords to the heap
     fn add_expected_keywords_as_candidates(&mut self, symbols: &[SymbolKind], prefix: &PrefixSnapshot) {
         let target = self.target_symbol.unwrap();
         let (feed_id, replace_target) = self.feed_point();
@@ -791,7 +791,6 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     /// The text typed before the cursor in the target symbol, without double quotes
-    /// (`ReadTargetPrefix`)
     fn read_target_prefix(&self) -> &'a [u8] {
         let Some(target) = self.target_symbol else { return &[] };
         let symbol_ofs = target.symbol.location.offset;
@@ -803,7 +802,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         trim_double_quotes(&symbol_text[..prefix_len])
     }
 
-    /// Find candidates in a name search index (`findCandidatesInIndex`)
+    /// Find candidates in a name search index
     fn find_candidates_in_index(&mut self, index: &NameSearchIndex, through_catalog: bool) {
         let target = self.target_symbol.unwrap();
         let symbol_ofs = target.symbol.location.offset;
@@ -865,7 +864,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
     }
 
-    /// Find candidates in the indexes of the script and the catalog (`FindCandidatesInIndexes`)
+    /// Find candidates in the indexes of the script and the catalog
     fn find_candidates_in_indexes(&mut self) {
         let Some(analyzed) = self.analyzed() else { return };
         self.find_candidates_in_index(analyzed.name_search_index(), false);
@@ -878,7 +877,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
     }
 
-    /// Add or merge a candidate without catalog objects (`AddLocalCandidate`)
+    /// Add or merge a candidate without catalog objects
     fn add_local_candidate(
         &mut self,
         name: &Arc<str>,
@@ -911,7 +910,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
     }
 
-    /// The output column names of a CTE or derived table source (`forEachResolvedCTEColumn`)
+    /// The output column names of a CTE or derived table source
     fn derived_columns(analyzed: &AnalyzedScript, source: &ScopeSource) -> Vec<Arc<str>> {
         let (child, aliases) = match &source.table {
             ReferencedTable::Cte(loc) => {
@@ -934,7 +933,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         names
     }
 
-    /// Is a scope within another one? (`isScopeWithin`)
+    /// Is a scope within another one?
     fn is_scope_within(analyzed: &AnalyzedScript, scope: u32, ancestor: Option<u32>) -> bool {
         let mut current = Some(scope);
         while let Some(c) = current {
@@ -946,7 +945,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         false
     }
 
-    /// Add CTEs and the columns of CTE sources in scope (`FindCandidatesInScope`)
+    /// Add CTEs and the columns of CTE sources in scope
     fn find_candidates_in_scope(&mut self) {
         let cursor = self.cursor;
         let (Some(target), Some(parsed), Some(analyzed)) = (self.target_symbol, cursor.script.parsed, self.analyzed())
@@ -1003,7 +1002,6 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     /// Add the output columns of the inline SELECT of a VISUALIZE statement
-    /// (`FindCandidatesInInlineVisualizeSource`)
     fn find_candidates_in_inline_visualize_source(&mut self) {
         let (Some(target), Some(parsed), Some(analyzed)) =
             (self.target_symbol, self.cursor.script.parsed, self.analyzed())
@@ -1061,7 +1059,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         visible
     }
 
-    /// Promote names in the current name scopes (`PromoteIdentifiersInScope`)
+    /// Promote names in the current name scopes
     fn promote_identifiers_in_scope(&mut self) {
         let cursor = self.cursor;
         let Some(analyzed) = self.analyzed() else { return };
@@ -1109,7 +1107,6 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     /// Promote tables that resolve unresolved columns, and their columns
-    /// (`PromoteTablesAndPeersForUnresolvedColumns`)
     fn promote_tables_and_peers_for_unresolved_columns(&mut self) {
         let cursor = self.cursor;
         let (Some(_), Some(analyzed), Some(parsed)) = (cursor.statement_id, self.analyzed(), cursor.script.parsed)
@@ -1159,7 +1156,6 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     /// The table columns with a name in the catalog entries by rank, then in the script
-    /// (`ResolveTableColumnsWithCatalog`)
     fn resolve_table_columns_with_catalog(&self, analyzed: &Arc<AnalyzedScript>, name: &str, out: &mut Vec<ColumnLoc>) {
         for (_, entry) in self.catalog().entries_ranked() {
             if entry.data().catalog_entry_id == analyzed.entry.catalog_entry_id {
@@ -1170,7 +1166,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         analyzed.entry.resolve_table_columns(name, out);
     }
 
-    /// Tables of a schema in any database, the own script first (`ResolveSchemaTablesWithCatalog`)
+    /// Tables of a schema in any database, the own script first
     fn resolve_schema_tables(&self, analyzed: &AnalyzedScript, schema: &str, out: &mut Vec<(TableLoc, bool)>) {
         let own = &analyzed.entry;
         let lower = (Arc::<str>::from(schema), Arc::<str>::from(""));
@@ -1200,7 +1196,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
     }
 
-    /// Tables of a qualified schema, the own script first (`ResolveSchemaTablesWithCatalog`)
+    /// Tables of a qualified schema, the own script first
     fn resolve_qualified_schema_tables(
         &self,
         analyzed: &AnalyzedScript,
@@ -1227,7 +1223,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
     }
 
-    /// Schemas of a database, the own script first (`ResolveDatabaseSchemasWithCatalog`)
+    /// Schemas of a database, the own script first
     fn resolve_database_schemas(
         &self,
         analyzed: &AnalyzedScript,
@@ -1251,7 +1247,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         out
     }
 
-    /// Complete a name path after a dot (`FindCandidatesForNamePath`)
+    /// Complete a name path after a dot
     fn find_candidates_for_name_path(&mut self) {
         let cursor = self.cursor;
         let Some(analyzed) = self.analyzed() else { return };
@@ -1513,7 +1509,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
     }
 
-    /// Score all candidates and select the top k (`SelectTopCandidates`)
+    /// Score all candidates and select the top k
     fn select_top_candidates(&mut self) {
         let scores = name_tag_scores(self.strategy);
         // Objects with higher scores first, then in the order they were found
@@ -1536,7 +1532,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             let objects: Vec<(usize, Score)> = object_heap.finish().clone();
             let candidate = &mut self.candidates[i];
             candidate.catalog_objects = objects.iter().map(|&(co, _)| co).collect();
-            // The C++ core takes the score of the last, i.e. the lowest, of the top objects
+            // The score of the last, i.e. the lowest, of the top objects (see docs/design/core_quirks.md)
             let object_score = match objects.last() {
                 Some(&(_, score)) => score,
                 None => compute_candidate_score(candidate.candidate_tags),
@@ -1565,7 +1561,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         names
     }
 
-    /// Derive qualified names of the top candidates (`QualifyTopCandidates`)
+    /// Derive qualified names of the top candidates
     fn qualify_top_candidates(&mut self) {
         // The column candidates by the table that defines them: (table id, candidate object)
         let mut columns_by_table: Vec<(QualifiedCatalogObjectId, usize)> = Vec::new();
@@ -1682,7 +1678,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
     }
 
-    /// Derive keyword continuations of the top candidates (`DeriveKeywordContinuationsForTopCandidates`)
+    /// Derive keyword continuations of the top candidates
     fn derive_keyword_continuations(&mut self, prefix: &PrefixSnapshot) {
         let Some(target) = self.target_symbol else { return };
         let symbols = self.symbols();

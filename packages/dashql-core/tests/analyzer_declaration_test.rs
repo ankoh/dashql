@@ -1,4 +1,4 @@
-//! A port of the C++ `test/analyzer_declaration_test.cc`.
+//! Tests of the table declarations of CREATE TABLE, CREATE TABLE AS, views and SELECT INTO.
 
 use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::{Catalog, TableDeclaration};

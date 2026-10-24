@@ -1,7 +1,6 @@
-//! A port of the C++ `test/name_tagging_test.cc`.
+//! Tests of the name tags of the analyzer.
 //!
-//! The C++ test reads the tags from the scanned names, which the C++ analyzer modifies. The Rust
-//! analyzer leaves the scan untouched and keeps the names and their tags in the analyzed script.
+//! The analyzer leaves the scan untouched and keeps the names and their tags in the analyzed script.
 
 use dashql_buffers::analyzer::NameTag;
 use dashql_core::analyzer::analyze;

@@ -1,4 +1,4 @@
-//! Name resolution (`name_resolution_pass.cc`).
+//! Name resolution.
 //!
 //! The visit collects table references, derived tables, column references, result targets, CTEs and
 //! declarations bottom-up and groups them into name scopes. Finish resolves the names of all scopes,
@@ -8,8 +8,7 @@
 //! its ordered columns. Expression subqueries see the FROM items of their parents, derived tables and
 //! CTEs only those above their parent, lateral derived tables also the FROM items before them.
 //!
-//! The C++ pass threads intrusive lists through the node states. Here the node states hold vectors
-//! of ids, and merging a child moves its entries to the end, like `IntrusiveList::Append`.
+//! The node states hold vectors of ids, and merging a child moves its entries to the end.
 
 use super::state::{quote_identifier, AnalysisState};
 use super::types::*;
@@ -55,7 +54,7 @@ struct NodeState {
 }
 
 /// Move the entries of a list to the end of another one. Takes over the buffer if the destination is
-/// empty, so states move up the tree without copying, like the C++ intrusive lists.
+/// empty, so states move up the tree without copying.
 #[inline]
 fn append<T>(dst: &mut Vec<T>, src: &mut Vec<T>) {
     if dst.is_empty() {
@@ -125,9 +124,10 @@ struct PendingDerivedTable {
     column_aliases: Vec<Name>,
 }
 
-/// The root scopes, a port of the `ankerl::unordered_dense::set` of the C++ pass.
+/// The root scopes.
 ///
-/// The set iterates in insertion order, and erasing moves the last element into the hole.
+/// The set iterates in insertion order, and erasing moves the last element into the hole (see
+/// docs/design/core_quirks.md).
 #[derive(Default)]
 struct RootScopes {
     /// The root scopes in insertion order
@@ -155,7 +155,7 @@ impl RootScopes {
     }
 }
 
-/// The pass that groups names into scopes and resolves tables and columns (`NameResolutionPass`)
+/// The pass that groups names into scopes and resolves tables and columns
 pub(super) struct NameResolutionPass {
     /// The state of every AST node
     node_states: Vec<NodeState>,
@@ -197,7 +197,7 @@ impl NameResolutionPass {
         }
     }
 
-    /// Create a naming scope (`CreateScope`)
+    /// Create a naming scope
     fn create_scope(&mut self, state: &mut AnalysisState, target: &mut NodeState, scope_root: u32) -> ScopeId {
         let scope_id = state.out.name_scopes.len() as ScopeId;
         state.out.name_scopes_by_root_node.entry(scope_root).or_insert(scope_id);
@@ -234,7 +234,7 @@ impl NameResolutionPass {
         scope_id
     }
 
-    /// Register a schema and its database (`RegisterSchema`)
+    /// Register a schema and its database
     fn register_schema(state: &mut AnalysisState, database_name: &Name, schema_name: &Name) -> QualifiedCatalogObjectId {
         let db_id = match state.out.entry.databases_by_name.get(&database_name.text) {
             Some(&i) => state.out.entry.database_references[i].object_id,
@@ -275,7 +275,7 @@ impl NameResolutionPass {
             .is_some_and(|s| s.statement_type == StatementType::EXPLAIN)
     }
 
-    /// Register a table-like declaration backed by a SELECT scope (`RegisterDerivedTable`)
+    /// Register a table-like declaration backed by a SELECT scope
     fn register_derived_table(
         &mut self,
         state: &mut AnalysisState,
@@ -410,7 +410,7 @@ impl NameResolutionPass {
         state.out.name_scopes[scope as usize].sources.push(source);
     }
 
-    /// Resolve all table refs in a scope and register the FROM items (`ResolveTableRefsInScope`)
+    /// Resolve all table refs in a scope and register the FROM items
     fn resolve_table_refs_in_scope(state: &mut AnalysisState, scope: ScopeId) {
         // The derived tables were added when the scope was created
         let mut sources = std::mem::take(&mut state.out.name_scopes[scope as usize].sources);
@@ -526,7 +526,7 @@ impl NameResolutionPass {
         }
     }
 
-    /// Resolve a column against a FROM item (`ReferencedTable::ResolveColumn`)
+    /// Resolve a column against a FROM item
     fn resolve_column(state: &AnalysisState, source: &ScopeSource, column_name: &str) -> ColumnResolution {
         match &source.table {
             ReferencedTable::Table(loc) => {
@@ -576,7 +576,7 @@ impl NameResolutionPass {
         })
     }
 
-    /// Look up a column ref in the visible FROM items of a scope (`TryResolveColumnInScope`)
+    /// Look up a column ref in the visible FROM items of a scope
     fn try_resolve_column_in_scope(&mut self, state: &mut AnalysisState, expr: ExprId, target: ScopeId, visibility: SourceVisibility) -> Lookup {
         let Some(column_ref) = state.out.expressions[expr as usize].column_ref() else { return Lookup::Missing };
         let column_name = column_ref.column_name.column_name.text.clone();
@@ -634,7 +634,7 @@ impl NameResolutionPass {
         Lookup::Resolved
     }
 
-    /// Try to resolve a column ref against the output columns of a scope (`TryResolveColumnFromOutputs`)
+    /// Try to resolve a column ref against the output columns of a scope
     fn try_resolve_column_from_outputs(state: &mut AnalysisState, expr: ExprId, target: ScopeId) -> bool {
         let Some(column_ref) = state.out.expressions[expr as usize].column_ref() else { return false };
         if column_ref.column_name.table_alias.is_some() {
@@ -675,7 +675,6 @@ impl NameResolutionPass {
     }
 
     /// Resolve column refs against the FROM items and the output columns of the own scope
-    /// (`ResolveColumnRefsLocally`)
     fn resolve_column_refs_locally(&mut self, state: &mut AnalysisState, scope: ScopeId) {
         let exprs = state.out.name_scopes[scope as usize].expressions.clone();
         for expr in exprs {
@@ -700,7 +699,7 @@ impl NameResolutionPass {
         }
     }
 
-    /// Resolve column refs by walking up the parent scopes (`ResolveColumnRefsFromParents`)
+    /// Resolve column refs by walking up the parent scopes
     fn resolve_column_refs_from_parents(&mut self, state: &mut AnalysisState, scope: ScopeId) {
         let exprs = state.out.name_scopes[scope as usize].expressions.clone();
         for expr in exprs {
@@ -724,7 +723,7 @@ impl NameResolutionPass {
         }
     }
 
-    /// Attach parsed CTE definitions to a scope (`AttachCTEs`)
+    /// Attach parsed CTE definitions to a scope
     fn attach_ctes(state: &mut AnalysisState, scope: ScopeId, ctes: Vec<CteDefinition>) {
         for cte in ctes {
             let Some(&child_scope) = state.out.name_scopes_by_root_node.get(&cte.select_node_id) else { continue };
@@ -752,7 +751,7 @@ impl NameResolutionPass {
         }
     }
 
-    /// Look up a FROM item by name in a scope and in the parent scopes it sees (`LookupAliasInScopeChain`)
+    /// Look up a FROM item by name in a scope and in the parent scopes it sees
     fn lookup_source_in_scope_chain<'s>(state: &'s AnalysisState, scope: ScopeId, name: &str) -> Option<&'s ScopeSource> {
         let mut current = scope;
         let mut visibility = SourceVisibility::All;
@@ -768,7 +767,7 @@ impl NameResolutionPass {
     }
 
     /// Resolve qualified column refs whose qualifier is not a table in scope as field accesses of
-    /// row-typed columns (`ResolveRowFieldAccesses`)
+    /// row-typed columns
     fn resolve_row_field_accesses(&mut self, state: &mut AnalysisState, scope: ScopeId) {
         let exprs = state.out.name_scopes[scope as usize].expressions.clone();
         for expr in exprs {
@@ -797,7 +796,7 @@ impl NameResolutionPass {
         }
     }
 
-    /// Associate still-unresolved column refs with unresolved tables in scope (`AssociateUnresolvedColumns`)
+    /// Associate still-unresolved column refs with unresolved tables in scope
     fn associate_unresolved_columns(state: &mut AnalysisState, scope: ScopeId) {
         let s = &state.out.name_scopes[scope as usize];
         // The unresolved relations of this scope in FROM order
@@ -896,7 +895,7 @@ impl NameResolutionPass {
         columns
     }
 
-    /// Populate the output columns of a scope from its result targets (`PopulateOutputColumns`)
+    /// Populate the output columns of a scope from its result targets
     fn populate_output_columns(state: &mut AnalysisState, scope: ScopeId) {
         let mut columns = Vec::new();
         let scope_node = &state.ast[state.out.name_scopes[scope as usize].ast_node_id as usize];
@@ -960,7 +959,7 @@ impl NameResolutionPass {
         }
     }
 
-    /// Resolve all names (`ResolveNames`)
+    /// Resolve all names
     fn resolve_names(&mut self, state: &mut AnalysisState) {
         let roots = self.root_scopes.values.clone();
 
@@ -1349,7 +1348,7 @@ impl NameResolutionPass {
                 }
                 let mut columns = std::mem::take(&mut node_state.table_columns);
                 // Sort the columns by name.
-                // The C++ pass uses the unstable std::sort, duplicate names may be ordered differently.
+                // The sort is stable, duplicate names keep their declaration order.
                 columns.sort_by(|l, r| l.column_name.text.as_bytes().cmp(r.column_name.text.as_bytes()));
                 self.create_scope(state, node_state, node_id);
 
@@ -1550,7 +1549,7 @@ impl NameResolutionPass {
         Self::compute_resolved_column_ids(state);
     }
 
-    /// Bind explicit INSERT target columns after target-table resolution (`ResolveInsertTargetColumns`)
+    /// Bind explicit INSERT target columns after target-table resolution
     fn resolve_insert_target_columns(state: &mut AnalysisState) {
         for i in 0..state.out.insert_statements.len() {
             let target = state.out.insert_statements[i].target;
@@ -1583,7 +1582,7 @@ impl NameResolutionPass {
         }
     }
 
-    /// The catalog ids of a resolved column (`ColumnRef::GetResolvedColumnIDs`)
+    /// The catalog ids of a resolved column
     fn resolved_column_ids(state: &AnalysisState, resolution: ColumnResolution) -> Option<ResolvedColumnIds> {
         let table_column_ids = |loc: ColumnLoc| {
             let table = state.table(loc.table)?;
@@ -1622,7 +1621,7 @@ impl NameResolutionPass {
         }
     }
 
-    /// Solve the schema-inference constraints into inferred table schemas (`RunSchemaInference`)
+    /// Solve the schema-inference constraints into inferred table schemas
     fn run_schema_inference(state: &mut AnalysisState) {
         let constraints = std::mem::take(&mut state.out.inference_constraints);
         if constraints.is_empty() {

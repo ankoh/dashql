@@ -1,4 +1,4 @@
-//! Batch processing, a port of `src/batch.cc`: scan, parse and analyze many scripts against shared
+//! Batch processing: scan, parse and analyze many scripts against shared
 //! descriptor context in one call.
 
 use dashql_core::catalog::{Catalog, CatalogLayer};
@@ -22,7 +22,7 @@ macro_rules! pack_bytes {
     }};
 }
 
-/// A vector the C++ object API leaves out when empty
+/// A vector that is left out of the packed buffer when empty
 fn non_empty<T>(v: Vec<T>) -> Option<Vec<T>> {
     (!v.is_empty()).then_some(v)
 }
@@ -104,7 +104,7 @@ pub fn check_script(catalog: &Catalog, text: &str, until: ProcessingStage) -> Ch
     CheckedScript { script, diagnostics, failure }
 }
 
-/// Process a batch request (`ProcessBatch`). Inputs share only the descriptor context, they never
+/// Process a batch request. Inputs share only the descriptor context, they never
 /// publish declarations to each other.
 pub fn process_batch(request: &[u8]) -> Result<Vec<u8>> {
     let request = if request.is_empty() { None } else { flatbuffers::root::<BatchRequest>(request).ok() };
@@ -135,8 +135,7 @@ pub fn process_batch(request: &[u8]) -> Result<Vec<u8>> {
             } else {
                 ProcessingStage::SCAN
             };
-            // The FlatBuffers verifier already rejects requests with invalid UTF-8 texts, which the C++
-            // core reports per script
+            // The FlatBuffers verifier already rejects the whole request if a text is not valid UTF-8
             let checked = check_script(&catalog, input.text().unwrap_or(""), until);
             let script = &checked.script;
             if outputs & 1 != 0 {

@@ -1,9 +1,9 @@
-//! Statement-wise execution of a compiled script, a port of `src/script_execution.cc`.
+//! Statement-wise execution of a compiled script.
 //!
-//! The C++ execution runs the statements in a coroutine that suspends at every statement until the
-//! host resumes it with the statement result. Here the coroutine is an explicit state machine: the
-//! phase, the 1-based index of the current statement and the id of the pending statement. The
-//! update protocol (`Start`, `Resume`, `Cancel` and their protocol errors) is the same.
+//! The execution suspends at every statement until the host resumes it with the statement result.
+//! It is an explicit state machine: the phase, the 1-based index of the current statement and the
+//! id of the pending statement. The host drives it with `start`, `resume` and `cancel`, which
+//! report protocol errors in their updates.
 
 use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
@@ -19,7 +19,7 @@ use dashql_core::catalog::changes::CatalogChange;
 use dashql_buffers::formatting::FormattingConfigT;
 use std::sync::Arc;
 
-/// The execution of the statements of a script (`ScriptExecution`)
+/// The execution of the statements of a script
 pub struct ScriptExecution {
     /// The text version of the compiled script
     text_version: TextVersion,
@@ -41,7 +41,7 @@ pub struct ScriptExecution {
     catalog_changes: Vec<Option<CatalogChange>>,
 }
 
-/// A string the C++ object API leaves out when empty
+/// A string that is left out of the packed buffer when empty
 fn non_empty_string(s: String) -> Option<String> {
     (!s.is_empty()).then_some(s)
 }
@@ -93,7 +93,7 @@ impl ScriptExecution {
         self.compilation.statements.as_ref().map_or(0, |s| s.len() as u32)
     }
 
-    /// An update with the protocol status and a snapshot of the progress (`MakeUpdate`)
+    /// An update with the protocol status and a snapshot of the progress
     fn make_update(&self, error: ProtocolError, message: &str) -> ScriptExecutionUpdateT {
         let mut snapshot = ScriptExecutionSnapshotT::default();
         snapshot.phase = self.phase;
@@ -109,7 +109,7 @@ impl ScriptExecution {
         update
     }
 
-    /// Finish the execution (`Complete`)
+    /// Finish the execution
     fn complete(&mut self, phase: Phase, error: String) -> ScriptExecutionUpdateT {
         self.phase = phase;
         self.error = error;
@@ -139,7 +139,7 @@ impl ScriptExecution {
         update
     }
 
-    /// Start the execution and return the first pending statement or the terminal update (`Start`)
+    /// Start the execution and return the first pending statement or the terminal update
     pub fn start(&mut self) -> ScriptExecutionUpdateT {
         if self.phase != Phase::IDLE || self.pending_statement_id.is_some() {
             return self.make_update(ProtocolError::BUSY, "the script execution has already started");
@@ -155,7 +155,7 @@ impl ScriptExecution {
         self.run_from(0)
     }
 
-    /// Resume with the result of the pending statement (`Resume`)
+    /// Resume with the result of the pending statement
     pub fn resume(&mut self, result: &StatementResultT) -> ScriptExecutionUpdateT {
         if self.pending_statement_id != Some(result.pending_statement_id) {
             return self.make_update(ProtocolError::STALE_EFFECT, "statement is no longer pending");
@@ -187,7 +187,7 @@ impl ScriptExecution {
         }
     }
 
-    /// Cancel the pending statement and the rest of the plan (`Cancel`)
+    /// Cancel the pending statement and the rest of the plan
     pub fn cancel(&mut self) -> ScriptExecutionUpdateT {
         let Some(id) = self.pending_statement_id else {
             return self.make_update(ProtocolError::NONE, "");

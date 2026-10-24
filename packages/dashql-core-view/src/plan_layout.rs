@@ -1,4 +1,4 @@
-//! The plan layout (`plan_layout.cc`).
+//! The plan layout.
 //!
 //! This layouting algorithm is based on two papers:
 //! - A Node-Positioning Algorithm for General Trees:
@@ -10,13 +10,14 @@
 //!   https://www.researchgate.net/publication/30508504_Improving_Walker%27s_Algorithm_to_Run_in_Linear_Time
 //!   This is an updated version that fixes quadratic runtime in the original paper.
 //!
-//! The floating point operations are mirrored in the order of the C++ code, so positions are bit-identical.
-//! `std::min` and `std::max` are not `f64::min` and `f64::max` (NaN, signed zeros), see `cpp_min` and `cpp_max`.
+//! The floating point operations keep their order, since reordering them changes the last bits of positions.
+//! Minimum and maximum keep the first argument unless the second one is strictly smaller or larger, which differs
+//! from `f64::min` and `f64::max` for NaN and signed zeros, see `cpp_min` and `cpp_max`.
 
 use super::plan_view_model::{OperatorNode, PlanViewModel};
 use dashql_buffers::view as fb;
 
-/// `std::min(a, b)`
+/// The minimum, `a` unless `b` is smaller
 fn cpp_min(a: f64, b: f64) -> f64 {
     if b < a {
         b
@@ -25,7 +26,7 @@ fn cpp_min(a: f64, b: f64) -> f64 {
     }
 }
 
-/// `std::max(a, b)`
+/// The maximum, `a` unless `b` is larger
 fn cpp_max(a: f64, b: f64) -> f64 {
     if a < b {
         b

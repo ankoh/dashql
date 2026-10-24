@@ -447,12 +447,12 @@ impl Catalog {
         Ok(())
     }
 
-    /// Load an analyzed script (`LoadScript`)
+    /// Load an analyzed script
     pub fn load_script(&mut self, script: impl Into<PublishedScript>, layer: CatalogLayer) -> Result<()> {
         self.load_scripts(&[(script.into(), layer)])
     }
 
-    /// Atomically add or replace scripts (`LoadScripts`)
+    /// Atomically add or replace scripts
     pub fn load_scripts<S: Clone + Into<PublishedScript>>(&mut self, scripts: &[(S, CatalogLayer)]) -> Result<()> {
         if scripts.is_empty() {
             return Ok(());
@@ -500,7 +500,7 @@ impl Catalog {
         self.publish_entries(staged, descriptors)
     }
 
-    /// Build all indexes before committing (`PublishEntries`)
+    /// Build all indexes before committing
     fn publish_entries(
         &mut self,
         script_entries: HashMap<CatalogEntryId, (PublishedScript, CatalogLayer)>,
@@ -586,7 +586,7 @@ impl Catalog {
         Ok(())
     }
 
-    /// Replace a descriptor pool atomically (`ReplaceDescriptor`)
+    /// Replace a descriptor pool atomically
     pub fn replace_descriptor(&mut self, id: CatalogEntryId, layer: CatalogLayer, descriptor: &[u8]) -> Result<()> {
         if !self.entry_id_allocated(id)
             || (self.entries.contains_key(&id) && !self.descriptor_entries.contains_key(&id))
@@ -617,7 +617,7 @@ impl Catalog {
         self.publish_entries(scripts, staged)
     }
 
-    /// Drop a script (`DropScript`)
+    /// Drop a script
     pub fn drop_script(&mut self, id: CatalogEntryId) {
         // Also for scripts that were analyzed but never published
         self.ids.borrow_mut().release_entry(id);
@@ -665,7 +665,7 @@ impl Catalog {
 }
 
 impl CatalogSnapshot {
-    /// Flatten the catalog (`Catalog::Flatten`).
+    /// Flatten the catalog.
     ///
     /// Databases, schemas and tables are merged across entries and ordered by name. A table name that
     /// occurs in several entries is taken from the first entry in resolution order. Names go through a
@@ -856,7 +856,7 @@ impl CatalogSnapshot {
         self.entries.get(&loc.entry)?.data().table_declarations.get(loc.index as usize)
     }
 
-    /// Resolve a table across all entries except `ignore_entry` (`Catalog::ResolveTable`)
+    /// Resolve a table across all entries except `ignore_entry`
     pub fn resolve_table(&self, name: &QualifiedTableName, ignore_entry: CatalogEntryId, out: &mut Vec<TableLoc>, limit: usize) {
         let db = name.database_name.text.clone();
         let schema = name.schema_name.text.clone();
@@ -911,7 +911,7 @@ impl CatalogSnapshot {
     }
 }
 
-/// Describe a catalog entry of a layer (`CatalogEntry::DescribeEntry`)
+/// Describe a catalog entry of a layer
 fn describe_entry(layer: CatalogLayer, entry: &CatalogEntryRef) -> dashql_buffers::catalog::CatalogEntryT {
     use dashql_buffers::catalog::{CatalogEntryT, CatalogEntryType, SchemaDescriptorT, SchemaTableColumnT, SchemaTableT};
     let data = entry.data();
@@ -992,14 +992,14 @@ fn describe_entry(layer: CatalogLayer, entry: &CatalogEntryRef) -> dashql_buffer
 }
 
 impl CatalogSnapshot {
-    /// Describe all entries in resolution order (`DescribeEntries`)
+    /// Describe all entries in resolution order
     pub fn describe_entries(&self) -> dashql_buffers::catalog::CatalogEntriesT {
         let mut out = dashql_buffers::catalog::CatalogEntriesT::default();
         out.entries = Some(self.entries_ranked().map(|(layer, e)| describe_entry(layer, e)).collect());
         out
     }
 
-    /// Describe one entry (`DescribeEntriesOf`), None if the entry is unknown
+    /// Describe one entry, None if the entry is unknown
     pub fn describe_entries_of(&self, id: CatalogEntryId) -> Option<dashql_buffers::catalog::CatalogEntriesT> {
         let entry = self.entries.get(&id)?;
         let layer = self.layer(id)?;
@@ -1008,7 +1008,7 @@ impl CatalogSnapshot {
         Some(out)
     }
 
-    /// The statistics of the catalog content (`GetStatistics`)
+    /// The statistics of the catalog content
     pub fn statistics(&self) -> dashql_buffers::catalog::CatalogStatisticsT {
         let mut content = dashql_buffers::catalog::CatalogContentStatisticsT::default();
         content.database_count = self.databases.len() as u32;

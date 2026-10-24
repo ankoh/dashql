@@ -1,4 +1,4 @@
-//! DELETE statements (`formatter/formatter_delete.cc`).
+//! DELETE statements.
 
 use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};

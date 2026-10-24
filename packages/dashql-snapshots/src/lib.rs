@@ -33,8 +33,7 @@ impl SnapshotCase {
         format!("{}::{}::{}", self.category, self.file, self.name)
     }
 
-    /// The input script, trimmed like the C++ snapshot tests do (leading spaces and newlines,
-    /// trailing newlines).
+    /// The input script, trimmed with [`trim_input`].
     pub fn input(&self) -> Option<String> {
         self.node["input"].as_str().map(trim_input)
     }
@@ -48,7 +47,7 @@ impl SnapshotCase {
     }
 }
 
-/// Trim an input the same way the C++ snapshot tests do.
+/// Trim an input: leading spaces and newlines, trailing newlines and carriage returns.
 pub fn trim_input(input: &str) -> String {
     input.trim_start_matches([' ', '\n']).trim_end_matches(['\n', '\r']).to_string()
 }

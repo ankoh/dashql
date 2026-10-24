@@ -1,7 +1,5 @@
-//! A port of the C++ `test/script_test.cc`.
-//!
-//! Not ported: `TextVersionAndAnalysisSnapshotExceed32Bits`, which writes the public C++ field
-//! `text_version`; the Rust text version is private and only bumped by edits.
+//! Tests of `Script`: text edits and versions, parsing, analysis, statement text, dashboard rewrites,
+//! formatting and statistics.
 
 use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::status::StatusCode;
@@ -27,9 +25,6 @@ fn text_version_changes_only_for_successful_text_edits() {
     script.replace_text("a\u{e9}z");
     assert_eq!(script.text_version(), 1);
     assert_eq!(script.to_text(), "a\u{e9}z");
-
-    // The C++ test passes invalid UTF-8 ("\xFF") and expects std::invalid_argument without a version
-    // bump. Rust text is &str, so invalid UTF-8 cannot reach the script.
 
     script.insert_text_at(100, "!");
     assert_eq!(script.text_version(), 2);
@@ -280,7 +275,7 @@ fn rewrite_dashboard_needs_a_terminal_visualize_statement() {
 
 #[test]
 fn rewrite_dashboard_applies_spans_to_the_current_text() {
-    // The spans of the outdated parse are spliced into the new text like in C++
+    // The spans of the outdated parse are spliced into the new text
     let mut script = parsed_script("select 1 visualize using table ()");
     script.replace_text("select 1 visualize using table ()");
     assert!(script.rewrite_dashboard(None, None, 6, 3, false).is_ok());

@@ -1,10 +1,7 @@
-//! FlatBuffer packing of scanned, parsed and analyzed scripts (`ScannedScript::Pack`,
-//! `ParsedScript::Pack`, `AnalyzedScript::Pack` in `src/script.cc`, `PackTokens` in
-//! `src/parser/grammar/tokens.cc`).
+//! FlatBuffer packing of scanned, parsed and analyzed scripts, tokens, cursors and completions.
 //!
-//! The C++ core packs the parsed script through the object API, which leaves out empty vectors and
-//! strings, but builds the analyzed script by hand, which always writes its vectors. The packing
-//! here reproduces the presence of every field.
+//! The parsed script leaves out empty vectors and strings, the analyzed script always writes its
+//! vectors.
 
 // Bison names some symbol kinds in mixed case (S_Op)
 #![allow(non_upper_case_globals)]
@@ -46,12 +43,12 @@ macro_rules! build {
     (@set $v:ident, $field:ident) => { $v.$field = $field; };
 }
 
-/// A vector that the C++ object API leaves out when empty
+/// A vector, left out when empty
 fn non_empty<T>(v: Vec<T>) -> Option<Vec<T>> {
     (!v.is_empty()).then_some(v)
 }
 
-/// A string that the C++ object API leaves out when empty
+/// A string, left out when empty
 fn non_empty_str(s: &str) -> Option<String> {
     (!s.is_empty()).then(|| s.to_string())
 }
@@ -85,7 +82,7 @@ fn node(n: &Node) -> NodeT {
     n.unpack()
 }
 
-/// Pack a scanned script (`ScannedScript::Pack`)
+/// Pack a scanned script
 pub fn pack_scanned_script(scanned: &ScannedScript) -> ScannedScriptT {
     build!(ScannedScriptT {
         external_id: scanned.external_id,
@@ -106,7 +103,7 @@ pub fn pack_scanned_script(scanned: &ScannedScript) -> ScannedScriptT {
     })
 }
 
-/// The token type of a scanner symbol (`MapToken`)
+/// The token type of a scanner symbol
 fn token_type(symbol: &Symbol, text: &str) -> ScannerTokenType {
     match symbol.kind {
         S_NULLS_LA | S_NOT_LA | S_WITH_LA | S_VISUALIZE_LA => ScannerTokenType::KEYWORD,
@@ -130,7 +127,7 @@ fn token_type(symbol: &Symbol, text: &str) -> ScannerTokenType {
     }
 }
 
-/// Pack the tokens for highlighting (`ParsedScript::PackTokens`)
+/// Pack the tokens for highlighting
 pub fn pack_tokens(parsed: &ParsedScript) -> ScannerTokensT {
     let scanned = &parsed.scanned;
     let symbol_count = scanned.symbols.len();
@@ -184,7 +181,7 @@ pub fn pack_tokens(parsed: &ParsedScript) -> ScannerTokensT {
     })
 }
 
-/// Pack a statement with its target (`ParsedScript::PackStatement`)
+/// Pack a statement with its target
 fn pack_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
     let statement = &parsed.statements[statement_id];
     let nodes = &parsed.nodes;
@@ -292,12 +289,12 @@ fn pack_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
     out
 }
 
-/// The statement of a parsed script with its target (`ParsedScript::PackStatement`)
+/// The statement of a parsed script with its target
 pub fn pack_parsed_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
     pack_statement(parsed, statement_id)
 }
 
-/// Pack a parsed script (`ParsedScript::Pack`)
+/// Pack a parsed script
 pub fn pack_parsed_script(parsed: &ParsedScript) -> ParsedScriptT {
     let scanned = &parsed.scanned;
     let descriptions = parsed.associate_descriptions();
@@ -384,7 +381,7 @@ fn qualified_function_name(n: &QualifiedFunctionName) -> QualifiedFunctionNameT 
     })
 }
 
-/// Pack a function declaration (`FunctionDeclaration::Pack`)
+/// Pack a function declaration
 pub fn pack_function_declaration(f: &FunctionDeclaration) -> FunctionDeclarationT {
     build!(FunctionDeclarationT {
         ast_node_id: f.ast_node_id.unwrap_or(PROTO_NULL_U32),
@@ -406,7 +403,7 @@ pub fn pack_function_declaration(f: &FunctionDeclaration) -> FunctionDeclaration
     })
 }
 
-/// Pack a table declaration (`TableDeclaration::Pack`)
+/// Pack a table declaration
 pub fn pack_table(table: &TableDeclaration) -> TableT {
     let (db, schema) = table.catalog_schema_id.unpack_schema_id();
     build!(TableT {
@@ -524,7 +521,7 @@ pub type VisualizationPacker = dyn Fn(
     Option<Box<dashql_buffers::visualization::MarkdownSpecT>>,
 );
 
-/// Pack an analyzed script (`AnalyzedScript::Pack`). `visualize` packs the renderer-specific specs.
+/// Pack an analyzed script. `visualize` packs the renderer-specific specs.
 pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPacker) -> AnalyzedScriptT {
     let entry = &script.entry;
     let tables = entry.table_declarations.iter().map(pack_table).collect();
@@ -733,7 +730,7 @@ pub fn has_visualize(parsed: &ParsedScript) -> bool {
     parsed.feature_flags & ParsedScriptFeature::VISUALIZE.0 != 0
 }
 
-/// Pack a cursor (`ScriptCursor::Pack`)
+/// Pack a cursor
 pub fn pack_cursor(cursor: &crate::cursor::ScriptCursor) -> dashql_buffers::cursor::ScriptCursorT {
     use crate::cursor::CursorContext;
     use dashql_buffers::cursor::{
@@ -785,7 +782,7 @@ pub fn pack_cursor(cursor: &crate::cursor::ScriptCursor) -> dashql_buffers::curs
     out
 }
 
-/// Pack a completion (`Completion::Pack`)
+/// Pack a completion
 pub fn pack_completion(
     completion: &crate::completion::Completion,
     upper_case_keywords: bool,
@@ -898,10 +895,10 @@ pub fn pack_completion(
     out
 }
 
-/// Pack the declarations of a catalog entry as descriptor (`PackCatalogDescriptor`)
+/// Pack the declarations of a catalog entry as descriptor
 pub fn pack_catalog_descriptor(entry: &CatalogEntryData) -> crate::error::Result<Vec<u8>> {
     let mut descriptor = dashql_buffers::catalog::CatalogDescriptorT::default();
-    // The C++ builder always writes both vectors
+    // Both vectors are always written, even when empty
     descriptor.tables = Some(entry.table_declarations.iter().map(pack_table).collect());
     descriptor.function_declarations =
         Some(entry.function_declarations.iter().map(pack_function_declaration).collect());

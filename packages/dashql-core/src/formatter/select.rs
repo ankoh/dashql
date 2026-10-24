@@ -1,4 +1,4 @@
-//! SELECT statements (`formatter/formatter_select.cc`).
+//! SELECT statements.
 
 use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};

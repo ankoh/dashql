@@ -1,4 +1,4 @@
-//! A port of the C++ `test/cursor_test.cc`.
+//! Tests of the script cursor: the token, statement, AST node and table and column refs under it.
 
 use dashql_buffers::parser::{AttributeKey, NodeType};
 use dashql_core::catalog::{Catalog, QualifiedColumnName, QualifiedTableName};

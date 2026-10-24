@@ -1,4 +1,4 @@
-//! A small document arena for width-aware SQL layout (`formatter/formatting_program.h/.cc`).
+//! A small document arena for width-aware SQL layout.
 //!
 //! The formatter builds a program of formatting operations (text, breaks, concatenations, joins,
 //! indentation and parentheses) and renders it with a width-aware stack machine. Joins are rendered
@@ -127,7 +127,7 @@ impl Default for FormattingRenderOptions {
 /// A small document arena for width-aware SQL layout.
 ///
 /// The builder methods take `&self` (the arena lives in a `RefCell`), so that operations can be
-/// nested like in the C++ code: `f.concat(&[f.text("a"), f.text("b")])`.
+/// nested: `f.concat(&[f.text("a"), f.text("b")])`.
 pub struct FormattingProgram<'a> {
     /// The formatting config, selects the default join policy
     pub config: FormattingConfigT,

@@ -1,4 +1,4 @@
-//! A port of `DiffSnapshotTest::EncodeDiff` (`src/testing/diff_snapshot_test.cc`).
+//! The diff snapshot encoder.
 
 use super::{encode_location_text, Map};
 use crate::ryml::Node;

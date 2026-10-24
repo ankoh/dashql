@@ -1,12 +1,11 @@
-//! Attribute lookups over the children of an AST object (`include/dashql/utils/ast_attributes.h`).
+//! Attribute lookups over the children of an AST object.
 //!
-//! The C++ core looks up several attributes at once through a `frozen::unordered_map` that is built
-//! at compile time. [`attrs!`](crate::attrs) fixes the keys at compile time as well, rejects
-//! duplicate keys during constant evaluation, and then scans the children against the constant key
-//! array. LLVM vectorizes that comparison, which measured faster than a static perfect hash table
-//! and than a direct-index table for every object size of the grammar.
+//! [`attrs!`](crate::attrs) fixes the keys at compile time, rejects duplicate keys during constant
+//! evaluation, and then scans the children against the constant key array. LLVM vectorizes that
+//! comparison, which measured faster than a static perfect hash table and than a direct-index table
+//! for every object size of the grammar.
 //!
-//! The semantics follow the C++ lookup exactly:
+//! Duplicate keys resolve differently by key count (see docs/design/core_quirks.md):
 //! - with a single key, the first child with that key is returned,
 //! - with several keys, the last child with each key is returned.
 

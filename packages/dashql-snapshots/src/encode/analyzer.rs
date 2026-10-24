@@ -1,4 +1,4 @@
-//! A port of `AnalyzerSnapshotTest::EncodeScript` (`src/testing/analyzer_snapshot_test.cc`).
+//! The analyzer snapshot encoder.
 
 use super::{encode_location_text, Map};
 use crate::ryml::Node;
@@ -109,7 +109,7 @@ fn boolean(value: bool) -> Node {
     Node::boolean(value)
 }
 
-/// A double as c4 writes it, read back through YAML inference
+/// A double as a plain scalar, read back through YAML inference
 fn real(value: f64) -> Node {
     super::plain(&format_double(value))
 }
@@ -125,7 +125,7 @@ pub fn format_double(value: f64) -> String {
     }
 }
 
-/// Encode an analyzed script (`AnalyzerSnapshotTest::EncodeScript`)
+/// Encode an analyzed script
 pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: ScopeCatalog) -> Node {
     let e = Encoder { script, text: &script.parsed.scanned.text };
     let entry_id = script.catalog_entry_id();
@@ -680,8 +680,7 @@ pub const COMPARED_KEYS: [&str; 9] = [
     "inferred-tables",
 ];
 
-/// Analyze the scripts of an analyzer snapshot case like `AnalyzerSnapshotTest` does: the catalog
-/// script is analyzed and loaded into the connection layer, then the main script is analyzed.
+/// Analyze the scripts of an analyzer snapshot case: the catalog script is analyzed and loaded into the connection layer, then the main script is analyzed.
 /// Returns the encoded catalog script (if any) and the encoded main script.
 pub fn analyze_case(catalog_input: Option<&str>, main_input: &str) -> Result<(Option<Yaml>, Yaml), String> {
     use dashql_core::catalog::Catalog;

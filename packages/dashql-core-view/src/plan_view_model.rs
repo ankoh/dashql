@@ -1,4 +1,4 @@
-//! The plan view model and its FlatBuffers encoding (`plan_view_model.cc`, `plan_view_model.h`).
+//! The plan view model and its FlatBuffers encoding.
 
 use dashql_buffers::parser::SymbolSpan;
 use dashql_buffers::view as fb;
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 /// A component of the path from an operator to the JSON value of its child operator
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum PathComponent {
-    /// A member in an object (the C++ code keeps the index of the object on the DFS stack, but never reads it)
+    /// A member in an object
     MemberInObject { attribute: String },
     /// An entry in an array
     EntryInArray { index: usize },
@@ -27,7 +27,7 @@ pub(super) struct OperatorReference {
     pub(super) attributes: Vec<(String, String)>,
 }
 
-/// An operator found in the JSON plan, before flattening (`ParsedOperatorNode`)
+/// An operator found in the JSON plan, before flattening
 #[derive(Debug, Default)]
 pub(super) struct ParsedOperatorNode {
     /// The path from the parent operator (or the document root)
@@ -258,7 +258,7 @@ impl PlanViewModel {
         self.layout_rect = None;
     }
 
-    /// Reset the view model execution (not implemented in the C++ core either)
+    /// Reset the view model execution (not implemented, does nothing)
     pub fn reset_execution(&mut self) {}
 
     /// Register a pipeline
@@ -280,7 +280,7 @@ impl PlanViewModel {
         let mut pending: Vec<(usize, bool)> = parsed_roots.iter().rev().map(|r| (*r, false)).collect();
         self.operators.reserve(parsed_ops.len());
 
-        // The flattened operators that are not yet placed (`mapped` in C++)
+        // The flattened operators that are not yet placed
         let mut mapped: Vec<Option<OperatorNode>> = (0..parsed_ops.len()).map(|_| None).collect();
         while let Some(&(op, visited)) = pending.last() {
             if visited {
@@ -305,13 +305,8 @@ impl PlanViewModel {
             }
         }
 
-        // Now only the root operators are left.
-        //
-        // The C++ code places them in the iteration order of an `std::unordered_map` keyed by the address of the
-        // parsed operator. When a root is inserted, the map only holds the earlier roots, and libstdc++ puts a new
-        // node in front of the others unless its bucket collides with the bucket of a root that is not first. We
-        // place the roots in reverse plan order, which is what the C++ code does for up to two roots and for more
-        // roots without bucket collisions.
+        // Now only the root operators are left. They are placed in reverse plan order
+        // (see docs/design/core_quirks.md).
         self.root_operators.reserve(parsed_roots.len());
         for root in parsed_roots.into_iter().rev() {
             let node = mapped[root].take().expect("root operator must be flattened");

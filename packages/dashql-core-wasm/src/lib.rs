@@ -1,13 +1,11 @@
-//! The wasm-bindgen API of the Rust core, the replacement of the C ABI in
-//! the C++ `src/api.cc`.
+//! The wasm-bindgen API of the Rust core.
 //!
 //! Objects own their state; results are FlatBuffers returned as byte arrays, which the TypeScript
 //! wrappers in `packages/dashql-core-js/src/api.ts` read with the generated FlatBuffers classes.
 //! Errors become exceptions with the status code name or the error message.
 //!
 //! Scripts share their catalog through a reference-counted handle, so a script can outlive the JS
-//! catalog object. Freeing a script removes it from its catalog, like the destructor of the C++
-//! `Script`.
+//! catalog object. Freeing a script removes it from its catalog.
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
 use dashql_core_session::catalog_changes::{append_catalog_changes_sql, parse_catalog_changes_sql, qualify_catalog_changes, CatalogNameDefaults};
@@ -37,7 +35,7 @@ macro_rules! finish {
     }};
 }
 
-/// A formatting config from the arguments of the C ABI
+/// A formatting config from the numeric arguments of the JS API
 fn formatting_config(dialect: u8, mode: u8, max_width: u32, indentation_width: u32, debug_mode: bool, keyword_case: u8) -> FormattingConfigT {
     let mut config = FormattingConfigT::default();
     config.dialect = FormattingDialect(dialect);

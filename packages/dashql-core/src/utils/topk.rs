@@ -1,4 +1,4 @@
-//! A top-k heap (`include/dashql/utils/topk.h`).
+//! A top-k heap.
 //!
 //! The heap is a min heap over at most `capacity` entries: a new entry replaces the minimum if the
 //! minimum is less. The order should be total, then the top k and their order are well-defined.

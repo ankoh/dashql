@@ -1,4 +1,4 @@
-//! A port of the C++ `test/topk_test.cc`.
+//! Tests of the top-k heap.
 
 use dashql_core::utils::topk::TopKHeap;
 use std::cmp::Ordering;

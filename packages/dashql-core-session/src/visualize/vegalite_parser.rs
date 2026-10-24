@@ -1,4 +1,4 @@
-//! Turn a Vega-Lite spec back into a VISUALIZE statement (`vegalite_parser.cc`).
+//! Turn a Vega-Lite spec back into a VISUALIZE statement.
 
 use serde_json::{Map, Number, Value};
 
@@ -72,7 +72,7 @@ fn to_snake_case(key: &str) -> String {
     out
 }
 
-/// An identifier value: bare when simple, double-quoted otherwise (`EmitIdentifier`)
+/// An identifier value: bare when simple, double-quoted otherwise
 fn emit_identifier(s: &str) -> String {
     if is_simple_ident(s) {
         s.to_string()
@@ -81,7 +81,7 @@ fn emit_identifier(s: &str) -> String {
     }
 }
 
-/// A single-quoted SQL string literal (`EmitStringLiteral`)
+/// A single-quoted SQL string literal
 fn emit_string_literal(s: &str) -> String {
     format!("'{}'", s.replace('\'', "''"))
 }
@@ -109,7 +109,7 @@ fn lower_string(value: &Value) -> Option<String> {
     value.as_str().map(str::to_ascii_lowercase)
 }
 
-/// A scalar as a DSL value, `None` for null, arrays and objects (`EmitScalar`)
+/// A scalar as a DSL value, `None` for null, arrays and objects
 fn emit_scalar(value: &Value, as_ident: bool) -> Option<String> {
     match value {
         Value::String(s) => Some(if as_ident { emit_identifier(s) } else { emit_string_literal(s) }),
@@ -119,7 +119,7 @@ fn emit_scalar(value: &Value, as_ident: bool) -> Option<String> {
     }
 }
 
-/// A scalar or an array of scalars, array strings are always string literals (`EmitValue`)
+/// A scalar or an array of scalars, array strings are always string literals
 fn emit_value(value: &Value, as_ident: bool) -> Option<String> {
     let Value::Array(elements) = value else {
         return emit_scalar(value, as_ident);
@@ -128,8 +128,8 @@ fn emit_value(value: &Value, as_ident: bool) -> Option<String> {
     Some(format!("[{}]", elements.join(", ")))
 }
 
-/// A `( k => v, ... )` sub-object with snake_case keys, `type` is an enum keyword of scales
-/// (`EmitSubObject`). `None` if nothing was emitted.
+/// A `( k => v, ... )` sub-object with snake_case keys, `type` is an enum keyword of scales.
+/// `None` if nothing was emitted.
 fn emit_sub_object(object: &Object, type_is_enum: bool) -> Option<String> {
     let mut parts = Vec::new();
     for (key, value) in object {
@@ -146,7 +146,7 @@ fn emit_sub_object(object: &Object, type_is_enum: bool) -> Option<String> {
     (!parts.is_empty()).then(|| parenthesize(&parts))
 }
 
-/// A mark definition (`EmitMark`): `type` is an enum keyword, `point` and `line` recurse
+/// A mark definition: `type` is an enum keyword, `point` and `line` recurse
 fn emit_mark(object: &Object) -> String {
     let mut parts = Vec::new();
     for (key, value) in object {
@@ -169,7 +169,7 @@ fn emit_mark(object: &Object) -> String {
     parenthesize(&parts)
 }
 
-/// A `bin => ...` value: a boolean or an object of bin parameters (`EmitBin`)
+/// A `bin => ...` value: a boolean or an object of bin parameters
 fn emit_bin(value: &Value) -> Option<String> {
     match value {
         Value::Bool(b) => Some(b.to_string()),
@@ -182,7 +182,7 @@ fn emit_bin(value: &Value) -> Option<String> {
     }
 }
 
-/// An encoding channel `<channel> => (field => ..., type => ..., ...)` (`AppendChannel`)
+/// An encoding channel `<channel> => (field => ..., type => ..., ...)`
 fn emit_channel(channel_name: &str, channel: &Object) -> String {
     let string = |key: &str| channel.get(key).and_then(Value::as_str);
     let mut parts = Vec::new();
@@ -223,7 +223,7 @@ fn emit_channel(channel_name: &str, channel: &Object) -> String {
     format!("{channel_name} => ({})", parts.join(", "))
 }
 
-/// `EmitResolveMap`
+/// A resolve map from channel keywords to their values, `None` if it is empty
 fn emit_resolve_map(value: &Value) -> Option<String> {
     let parts: Vec<String> = value
         .as_object()?
@@ -238,7 +238,7 @@ fn block(open: String, items: &[String], close: String) -> String {
     format!("{open}\n{}\n{close}", items.join(",\n"))
 }
 
-/// `AppendVegaLiteSpecLines`
+/// Append the lines of a spec and its layers at an indentation
 fn append_spec_lines(spec: &Object, lines: &mut Vec<String>, indent: &str) {
     match spec.get("mark") {
         Some(Value::String(mark)) => lines.push(format!("{indent}mark => {}", mark.to_ascii_lowercase())),
@@ -293,14 +293,14 @@ fn append_spec_lines(spec: &Object, lines: &mut Vec<String>, indent: &str) {
     }
 }
 
-/// The query before the VISUALIZE clause, from `$sql` or `$raw` of the `data` member (`EmitSource`)
+/// The query before the VISUALIZE clause, from `$sql` or `$raw` of the `data` member
 fn emit_source(data: &Value) -> Option<&str> {
     let data = data.as_object()?;
     let text = ["$sql", "$raw"].into_iter().find_map(|key| data.get(key).and_then(Value::as_str))?;
     (!text.is_empty()).then_some(text)
 }
 
-/// Parse a Vega-Lite spec and produce a pretty-printed VISUALIZE statement (`ParseVegaLiteToVisualize`).
+/// Parse a Vega-Lite spec and produce a pretty-printed VISUALIZE statement.
 ///
 /// Empty if the spec is not a JSON object or has no source.
 pub fn parse_vegalite_to_visualize(vegalite_json: impl AsRef<[u8]>) -> String {

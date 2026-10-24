@@ -1,4 +1,4 @@
-//! A port of the C++ `test/string_conversion_test.cc` (`quote_anyupper_fuzzy`).
+//! Tests of identifier quoting.
 
 use dashql_core::utils::quote_identifier as quote;
 

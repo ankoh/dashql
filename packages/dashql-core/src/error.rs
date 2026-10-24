@@ -1,12 +1,12 @@
-//! Errors of the core (`include/dashql/exception.h`).
+//! Errors of the core.
 
 use dashql_buffers::status::StatusCode;
 use std::fmt;
 
-/// An error, either a status code of the C++ `dashql::Exception` or an invalid argument
+/// An error, either a status code or an invalid argument
 #[derive(Clone, Debug, PartialEq)]
 pub struct Error {
-    /// The status code, None for invalid arguments (`std::invalid_argument`)
+    /// The status code, None for invalid arguments
     pub status: Option<StatusCode>,
     /// The error message, the variant name of the status code for status errors
     pub message: String,
@@ -29,8 +29,8 @@ impl Error {
         }
     }
 
-    /// The message that `what()` of the C++ exception returns: the default message of the status
-    /// code (`Exception::GetDefaultMessage`), or the message of other errors
+    /// The user-facing message: the default message of the status code, or the message of other
+    /// errors
     pub fn what(&self) -> &str {
         match self.status {
             Some(status) => default_message(status),
@@ -39,7 +39,7 @@ impl Error {
     }
 }
 
-/// The default message of a status code (`Exception::GetDefaultMessage`)
+/// The default message of a status code
 pub fn default_message(status: StatusCode) -> &'static str {
     match status {
         StatusCode::CATALOG_NULL => "Catalog is null",

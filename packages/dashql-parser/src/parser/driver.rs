@@ -1,7 +1,6 @@
-//! The LALR(1) driver, a port of the `parse()` loop of bison's lalr1.cc skeleton as the C++ core
-//! configures it: `parse.lac full`, `parse.error verbose` with the hint of `Parser::yysyntax_error_`,
-//! error recovery through the `error` token, and the custom `YYLLOC_DEFAULT` of the former C++
-//! prologue.
+//! The LALR(1) driver, the `parse()` loop of bison's lalr1.cc skeleton configured with
+//! `parse.lac full`, `parse.error verbose` plus an error hint, error recovery through the `error`
+//! token, and a custom default location for reductions.
 
 use super::actions::{ReduceError, ReduceStack};
 use super::context::ParseContext;
@@ -112,8 +111,8 @@ pub fn feed(states: &mut Vec<StateId>, token: SymbolKind) -> bool {
     }
 }
 
-/// The location of the left-hand side of a reduction (the `YYLLOC_DEFAULT` of the former C++ prologue).
-/// Uses the wrapping uint32 arithmetic of the C++ macro.
+/// The location of the left-hand side of a reduction (bison's `YYLLOC_DEFAULT`).
+/// Uses wrapping uint32 arithmetic.
 fn default_location(rhs: &[SymbolSpan], below: SymbolSpan) -> SymbolSpan {
     match (rhs.first(), rhs.last()) {
         (Some(first), Some(last)) => SymbolSpan::new(
@@ -171,7 +170,7 @@ impl ReduceStack for Stack {
     }
 }
 
-/// The token stream of the parser (`ParseContext::NextSymbol`): scanned symbols located by their
+/// The token stream of the parser: scanned symbols located by their
 /// index, followed by EOF tokens of length 0 once the symbols are exhausted.
 pub struct TokenStream {
     /// The index of the next symbol to return
@@ -205,7 +204,7 @@ enum Label {
     ErrLab1,
 }
 
-/// Build the verbose syntax error message (`yysyntax_error_`) and the hint of the C++ `Parser`.
+/// Build the verbose syntax error message (`yysyntax_error_`) and its hint.
 fn syntax_error(states: &[StateId], lookahead: Option<SymbolKind>, scratch: &mut Vec<StateId>) -> (String, String) {
     const ARGS_MAX: usize = 5;
     let Some(token) = lookahead else {
