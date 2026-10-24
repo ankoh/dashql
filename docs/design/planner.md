@@ -1,6 +1,6 @@
 # Planner
 
-`dashql::Planner` builds a statement-level dependency DAG above the analyzer. It
+`dashql_core::planner` builds a statement-level dependency DAG above the analyzer. It
 consumes an ordered set of analyzed scripts without analyzing, publishing, or
 modifying them. Session order, followed by statement order, defines the baseline
 semantics; independent statements do not acquire source-order edges.
@@ -12,8 +12,9 @@ their text and the catalog revision. Publish participating definitions before
 refreshing every input's analysis. Publishing another script can invalidate an
 earlier analysis, even if that script's text did not change.
 
-The native API is `Planner::Plan(std::span<const PlannerInput>)`. Each input
-contains only a borrowed live `Script*`; there is no caller-supplied revision.
+The native API is `planner::plan(&[PlannerInput])` (`packages/dashql-core/src/planner.rs`). Each
+input borrows a live `Script` and the `Catalog` it was analyzed with; there is no caller-supplied
+revision. Inputs with different catalogs or duplicate scripts invalidate the plan.
 The core-js API is:
 
 ```typescript
@@ -32,15 +33,15 @@ try {
 
 Planning captures executable SQL, script IDs, text versions, catalog revisions, catalog
 entities, unresolved references, accesses, edges, and diagnostics in
-`execution_graph.fbs`. The authoritative native `Script::text_version` is the
-single shared 64-bit text version; `ScriptSession::GetTextVersion()` derives it
+`execution_graph.fbs`. The authoritative native `Script::text_version()` is the
+single shared 64-bit text version; `ScriptSession::text_version()` derives it
 from the script rather than maintaining an independent counter. Script metadata
 records `text_version` directly from the live script, `analyzed_text_version` from
 the text snapshot retained by analysis, and `analyzed_catalog_revision` captured
 by analysis. Valid graphs have equal `text_version` and `analyzed_text_version`.
 A plan is a snapshot, not a live view. Before execution, consumers must compare
 each captured `(text_version, analyzed_catalog_revision)` pair for equality with
-the corresponding current `(session.GetTextVersion(), catalog revision)` pair
+the corresponding current `(session.getTextVersion(), catalog revision)` pair
 and reject the graph if either value changed. Planning rejects missing or stale
 input analysis with diagnostics and no executable partial nodes.
 
@@ -212,6 +213,6 @@ qualified identifiers containing dots, quotes, keywords, or case-sensitive text.
 
 ```bash
 bazel run //snapshots/planner:update
-bazel test //packages/dashql-core:planner_tests //packages/dashql-core:unit_tests
+bazel test //packages/dashql-core:planner_snapshot_test //packages/dashql-core:dashql_core_unit_tests
 bazel test //packages/dashql-core-js:all //packages/dashql-core-js/test:all
 ```

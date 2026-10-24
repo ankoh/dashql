@@ -75,7 +75,7 @@ flowchart TD
 ### Watch Service
 
 `NativeSessionSyncService` in
-`packages/dashql-app/src/platform/storage/native_session_sync.ts` is the platform adapter. It:
+`packages/dashql-app/src/app/session/persistence/native_session_sync.ts` is the platform adapter. It:
 
 - Creates recursive watchers through the Electron preload bridge.
 - Reconciles the desired session-to-directory set with currently active watchers.
@@ -91,7 +91,7 @@ may have changed; it is not trusted to describe which operation happened.
 ### React Coordinator
 
 `NativeSessionSync` in
-`packages/dashql-app/src/platform/storage/native_session_sync_react.tsx` is mounted once inside the
+`packages/dashql-app/src/app/session/persistence/native_session_sync_react.tsx` is mounted once inside the
 connection and session registry providers. It owns:
 
 - Watcher setup and teardown as native sessions enter, leave, or change location.
@@ -108,7 +108,7 @@ same storage and state APIs as before.
 ### Domain Reconciliation
 
 Session scripts reconciliation stays in
-`packages/dashql-app/src/scripts/session_scripts.ts`:
+`packages/dashql-app/src/app/session/scripts/session_scripts.ts`:
 
 - `SessionScriptsStorageSnapshot` is the storage-shaped boundary type.
 - `sessionScriptsMatchStorageSnapshot` detects content and page-structure differences.
@@ -257,12 +257,12 @@ bazel build //packages/dashql-native:compile
 
 ## Implementation References
 
-- Watch adapter: `packages/dashql-app/src/platform/storage/native_session_sync.ts`
-- Reload coordinator: `packages/dashql-app/src/platform/storage/native_session_sync_react.tsx`
-- Native storage reads: `packages/dashql-app/src/platform/storage/native_storage_backend.ts`
-- Writer coordination: `packages/dashql-app/src/platform/storage/storage_writer.ts`
-- Session scripts reconciliation: `packages/dashql-app/src/scripts/session_scripts.ts`
+- Watch adapter: `packages/dashql-app/src/app/session/persistence/native_session_sync.ts`
+- Reload coordinator: `packages/dashql-app/src/app/session/persistence/native_session_sync_react.tsx`
+- Native storage reads: `packages/dashql-app/src/app/storage/native_storage_backend.ts`
+- Writer coordination: `packages/dashql-app/src/app/storage/storage_writer.ts`
+- Session scripts reconciliation: `packages/dashql-app/src/app/session/scripts/session_scripts.ts`
 - Electron main/preload filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
-- Watcher tests: `packages/dashql-app/src/platform/storage/native_session_sync.test.ts`
-- Writer tests: `packages/dashql-app/src/platform/storage/storage_writer.test.ts`
-- Session scripts reconciliation tests: `packages/dashql-app/src/scripts/session_scripts.test.ts`
+- Watcher tests: `packages/dashql-app/src/app/session/persistence/native_session_sync.test.ts`
+- Writer tests: `packages/dashql-app/src/app/storage/storage_writer.test.ts`
+- Session scripts reconciliation tests: `packages/dashql-app/src/app/session/scripts/session_scripts.test.ts`

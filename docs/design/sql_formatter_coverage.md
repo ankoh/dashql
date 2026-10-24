@@ -1,47 +1,38 @@
-# SQL Formatter Coverage Plan
+# SQL Formatter Coverage
 
-## Goal
+Every error-free script accepted by the DashQL grammar formats without source-text fallbacks or
+`format_unimplemented` placeholders, and formatting preserves parse meaning in inline, compact, and pretty
+modes. Three test gates enforce this; `docs/agents/core_sql_formatting.md` describes the workflow for extending
+the formatter.
 
-Every error-free script accepted by the DashQL grammar should format without source-text fallbacks or
-`FormatUnimplemented` placeholders. Formatting must preserve parse meaning in inline, compact, and pretty modes.
+## Gates
 
-## Coverage Model
+1. **Parser-corpus round trip** (`//packages/dashql-core:formatter_roundtrip_test`,
+   `packages/dashql-core/tests/formatter_roundtrip.rs`). Formats every error-free script of `snapshots/parser`
+   in all three modes. Each run must be fully formatted (`Formatter::is_fully_formatted`), its output must scan
+   and parse without errors, and scripts without comments must format to the same text a second time. The test
+   reports the unformattable node types of every failure. `UNFORMATTABLE` lists the scripts the formatter
+   rejects on purpose (currently only `DEFAULT` outside of `INSERT` values).
 
-Track support at three levels:
+   This is the breadth gate and the grammar-change gate in one: a new parser fixture that uses syntax without a
+   formatter handler fails CI.
 
-1. **Grammar inventory**: map every AST node and enum emitted by `grammar/rules/*.y` to a formatter handler or an
-   explicitly transparent structural node.
-2. **Parser-corpus ratchet**: format every error-free case in `snapshots/parser` and report unformattable node type and
-   attribute pairs. New grammar fixtures must not increase the unsupported set.
-3. **Behavior snapshots**: add focused formatter fixtures for each supported syntax family. Require every fixture to be
-   fully formatted, parse the formatted result again, and use Hyper execution validation where the syntax is portable.
+2. **Behavior snapshots** (`//packages/dashql-core:formatter_snapshot_test`). Formatter snapshots define layout
+   quality per syntax family. Cases named `coverage_*` must additionally be fully formatted and reparse without
+   errors.
+
+3. **Hyper validation** (`//packages/dashql-core:formatter_validation_hyper_test`). Snapshot cases with a
+   `dialects.hyper.validation` block execute the formatted SQL in Hyper, which covers meaning-sensitive
+   constructs where the syntax is portable.
 
 The parser corpus is the breadth gate; formatter snapshots define layout quality. Neither replaces the other.
 
-## Execution Order
+## Adding Syntax
 
-1. **Top-level statements**: `CREATE TABLE AS`, `CREATE VIEW`, `CREATE FUNCTION`, `CREATE AGGREGATE`, `SET`, and all
-   modifiers on existing `CREATE TABLE` support.
-2. **SELECT clauses**: `ALL`, `INTO`, named windows, row locking, query sampling, table sampling, and limit/fetch forms.
-3. **Expressions and types**: bit types, type tests, quantified subqueries, indirection, array subscripts, and lambdas.
-4. **FROM variants**: `ROWS FROM` items, aliases with column definitions, ordinality, and nested table-reference forms.
-5. **Dialect corpus**: run TPCH, TPCDS, SSB, Trino, and regression parser fixtures through all formatting modes.
-6. **Grammar-change gate**: make an emitted AST node without a formatter classification fail CI with the node and
-   attribute names needed to add support.
+A grammar change that emits new AST nodes or attributes needs:
 
-## Definition Of Done Per Family
+- a formatter handler in `packages/dashql-core/src/formatter/`,
+- focused formatter snapshot inputs, including optional modifiers and narrow-width wrapping,
+- Hyper validation or AST-equivalence coverage for meaning-sensitive constructs.
 
-- The grammar alternatives have focused formatter inputs, including optional modifiers and narrow-width wrapping.
-- Formatting reports no unformattable nodes for those inputs.
-- Formatted SQL reparses without scanner or parser errors.
-- Meaning-sensitive constructs have execution validation or AST-equivalence coverage.
-- The grammar inventory and unsupported baseline shrink in the same change.
-
-## Initial Milestone
-
-The first implementation covers top-level statement families already present in the parser corpus: `CREATE TABLE AS`,
-`CREATE VIEW`, `CREATE FUNCTION`, `CREATE AGGREGATE`, and nested `SET` varargs. It also formats temporary/unlogged and
-`ON COMMIT` modifiers instead of rejecting otherwise supported `CREATE TABLE` statements.
-
-The second implementation covers SELECT-level `ALL`, `INTO`, named windows, every row-locking strength and blocking
-behavior, query/table sampling forms, `LIMIT ALL`, and count-less `FETCH FIRST ROW ONLY` normalization.
+The parser fixture for the new syntax then passes the round-trip gate without extending `UNFORMATTABLE`.

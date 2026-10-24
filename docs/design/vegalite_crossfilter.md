@@ -14,8 +14,8 @@ specification, dataflow, and scenegraph for every brush.
 
 The implementation lives in:
 
-- `packages/dashql-app/src/view/visualization/vegalite_crossfilter.ts`
-- `packages/dashql-app/src/view/visualization/vegalite_view.tsx`
+- `packages/dashql-app/src/app/session/compute/ui/visualization/vegalite_crossfilter.ts`
+- `packages/dashql-app/src/app/session/compute/ui/visualization/vegalite_view.tsx`
 
 ## Data flow
 

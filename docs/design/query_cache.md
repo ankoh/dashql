@@ -111,9 +111,9 @@ The internals overlay includes a session-scoped **Query Cache** tab. It lists pa
 
 ## Implementation References
 
-- Key derivation: `packages/dashql-app/src/connection/query_result_cache_key.ts`
-- Executor integration: `packages/dashql-app/src/connection/query_executor.tsx`
-- Cache contract: `packages/dashql-app/src/platform/storage/storage_backend.ts`
-- Eviction policy: `packages/dashql-app/src/platform/storage/query_result_cache_eviction.ts`
-- OPFS and native implementations: `packages/dashql-app/src/platform/storage/opfs_storage_backend.ts`, `packages/dashql-app/src/platform/storage/native_storage_backend.ts`
-- Cache inspection UI: `packages/dashql-app/src/view/internals/query_cache_view.tsx`
+- Key derivation: `packages/dashql-app/src/query/query_result_cache_key.ts`
+- Executor integration: `packages/dashql-app/src/app/connections/query_executor.tsx`
+- Cache contract: `packages/dashql-app/src/app/storage/storage_backend.ts`
+- Eviction policy: `packages/dashql-app/src/app/storage/query_result_cache_eviction.ts`
+- OPFS and native implementations: `packages/dashql-app/src/app/storage/opfs_storage_backend.ts`, `packages/dashql-app/src/app/storage/native_storage_backend.ts`
+- Cache inspection UI: `packages/dashql-app/src/app/session/persistence/ui/query_cache_view.tsx`

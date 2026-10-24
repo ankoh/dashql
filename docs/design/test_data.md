@@ -1,8 +1,7 @@
 # Test Data (`data.dashql.app`)
 
-dashql needs real data to demo against. Historically the app had none: example schemas and
-queries are static SQL, and demo mode *synthesizes* random Arrow batches at runtime
-(`packages/dashql-app/src/utils/random_data.ts`). No CSV/Parquet is committed anywhere.
+dashql needs real data to demo against. Example schemas and queries are static SQL, and no
+CSV/Parquet is committed anywhere.
 
 `data.dashql.app` hosts real test datasets (à la
 [vega-datasets](https://github.com/vega/vega-datasets)) that sessions can query over HTTP.
@@ -109,7 +108,7 @@ escaping). The output `.ext` is cosmetic: it becomes the R2 key and drives the u
 `Content-Type`, but does not drive conversion (DuckDB reads sources by content, not extension).
 
 > **Embedding vectors** must be `FLOAT[]` (Float32), not `DOUBLE[]` — the renderer rejects
-> Float64 (`embedding_extraction.ts`). `CAST(… AS FLOAT[])` in the output SQL if the source ships
+> Float64 (`packages/dashql-app/src/compute/umap/umap_extraction.ts`). `CAST(… AS FLOAT[])` in the output SQL if the source ships
 > doubles.
 
 ### The vendored DuckDB CLI
