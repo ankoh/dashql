@@ -6,7 +6,7 @@ DashQL caches successful user-query results in session-local files. A repeat of 
 
 The cache stores an Arrow IPC stream for a result table. It applies only when the caller opts in through `QueryExecutionArgs.cacheable`.
 
-Session user queries opt in, including explicit execution, execute-on-send, and reruns. Shell queries never opt in: the session shell sets `cacheable: false`, and the standalone shell executes directly against its embedded database connection. Internal catalog, setup, and health-check queries also do not set the flag and therefore never read or write the cache. Merely loading or viewing a session does not execute queries or read cached results; a user-triggered execution is required.
+Single-script session executions opt in when the session setting `cacheQueryResults` is on: explicit execution, execute-on-send, reruns, and refreshes, all through `runSessionScript` (`packages/dashql-app/src/app/session/ui/rerun_query.ts`). The setting defaults to the connector's `features.queryResultCaching` (off for Hyper, on for Salesforce and Trino) and can be toggled in the Query Cache tab. Planned execution of a whole session passes `cacheable: false`. Shell queries never opt in: the session shell sets `cacheable: false`, and the standalone shell executes directly against its embedded database connection. Internal catalog, setup, and health-check queries also do not set the flag and therefore never read or write the cache. Merely loading or viewing a session does not execute queries or read cached results; a user-triggered execution is required.
 
 The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and executable script AST. Only scripts whose terminal statement is `SELECT`, `EXPLAIN`, or `VISUALIZE` are cacheable. `CREATE TABLE`, `CREATE VIEW`, and other terminal commands always execute.
 
@@ -45,9 +45,9 @@ cache/
 
 `<hash>.arrow` is the authoritative Arrow IPC stream. Its modification time is the entry's cached-at time. `<hash>.arrow.last_access` is an empty companion file whose modification time records the most recent cache access. Native sessions create a top-level `.gitignore` containing `cache/` when the first entry is written, but only if the user has not already created that file.
 
-The storage interface exposes load, save, touch, list, and delete operations. `CompositeStorageBackend` routes those methods by session UUID to the session's OPFS or native backend.
+The storage interface exposes load, save, touch, list, has, and delete operations. The executor reaches them through the `QueryResultCache` capability of `createSessionQueryResultCache` (`packages/dashql-app/src/app/storage/session_query_result_cache.ts`); queries without a session id are never cached. `CompositeStorageBackend` routes those methods by session UUID to the session's OPFS or native backend.
 
-Session archives and storage migration copy the persisted session metadata, schema, scripts, and draft; they do not copy cache files. Deleting an OPFS session removes its complete session directory and cache. Deleting or clearing a native session unregisters it but intentionally retains its user-owned directory, including the cache.
+Session bundles, duplication, transfer, and storage migration do not copy cache files. Deleting an OPFS session removes its complete session directory and cache. Deleting or clearing a native session unregisters it but intentionally retains its user-owned directory, including the cache.
 
 ## Execution Flow
 
@@ -99,12 +99,13 @@ For a succeeded result, the query result header shows its execution age. When th
 
 The **Refresh** action deletes the current query's cache entry when a key is available, then re-executes the resolved session query. This forces a backend result on the next execution and repopulates the entry after success. Deletion is best-effort; a failed deletion may permit the old entry to be reused.
 
-The internals overlay includes a session-scoped **Query Cache** tab. It lists payload key, size, cached-at time, and last-access time; provides manual refresh of the listing; and allows individual entry deletion. The list omits `.last_access` markers.
+The internals overlay includes a session-scoped **Query Cache** tab. It lists payload key, size, cached-at time, and last-access time; provides manual refresh of the listing; allows deleting individual entries or clearing the cache; and toggles the session's `cacheQueryResults` setting. Feed rows show whether a cached result exists (`hasCachedQueryResult`) without analyzing outdated scripts. The list omits `.last_access` markers.
 
 ## Limits and Correctness
 
 - Cache identity is scoped by the connection signature and a versioned semantic AST signature, but not by a TTL, backend data version, or catalog version.
 - The cache may return stale data after a backend changes. Use Refresh to invalidate a visible result, or change the SQL/signature to create a new key.
+- `hasCachedQueryResult` checks the access marker on OPFS but the Arrow payload on native sessions.
 - Corrupt or incompatible Arrow bytes are not self-healed by automatic deletion. Decode errors follow the executor's normal failure path; the entry can be removed from Refresh or the cache inspector.
 - A duplicate write for the same hash is safe because both writers represent the same key; last writer wins.
 - The cache preserves raw results only. Analyses and projections run again after cache load.

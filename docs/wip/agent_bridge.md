@@ -80,8 +80,7 @@ MCP server (for B) and an ACP client proxy (for A).
 - **An OpenAI-compatible LLM client:** `platform/ai/ai_client.ts` and
   `app/providers/ai_client_provider.tsx`, used by `app/session/ai/sql_generation.ts`.
   `buildSchemaContext` already turns the catalog into prompt text. This is a
-  harness-free one-shot path that already ships. (`docs/wip/account.md` says the AI
-  client was removed; that is out of date.)
+  harness-free one-shot path that already ships.
 - **App actions an agent can drive:**
   - the `session_scripts` reducer (`app/session/scripts/session_scripts.ts`):
     `CREATE_SCRIPT`, `SET_SCRIPT_TEXT`, `RENAME_SCRIPT`, `DELETE_SCRIPT`, and the

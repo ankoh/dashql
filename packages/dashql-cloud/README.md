@@ -9,9 +9,9 @@ gatekept by an Apple account allowlist. One Cloudflare Worker (Rust /
 | `ai.dashql.app`      | Machine API: `GET /v1/models`, `POST /v1/chat/completions`    |
 | `account.dashql.app` | Human dashboard: Sign in with Apple + API-key management      |
 
-The DashQL application does not embed an AI client, but this standalone service remains
-available for future use and for other OpenAI-compatible clients. Chat completions forward OpenAI's `response_format` to Workers AI. Full design
-and rationale live in [`../../docs/wip/account.md`](../../docs/wip/account.md).
+DashQL's AI settings and any other OpenAI-compatible client can use it. Chat completions forward OpenAI's
+`response_format` to Workers AI. Full design and rationale live in
+[`../../docs/design/dashql_cloud.md`](../../docs/design/dashql_cloud.md).
 
 > **Repo isolation:** this crate is deliberately outside the root Cargo workspace (it has its
 > own `[workspace]` table and is not in the root `members` list) and is listed in the repo
@@ -56,7 +56,7 @@ npx wrangler deploy
 
 ## Apple setup (Sign in with Apple, web)
 
-See `docs/wip/account.md` → "One-time Apple setup". In short: create a **Services ID**
+See `DEPLOY.md` → "Apple: create the Services ID". In short: create a **Services ID**
 (this is `APPLE_SERVICE_ID` in `wrangler.jsonc`), enable Sign in with Apple, and register
 `account.dashql.app` + the return URL `https://account.dashql.app/auth/apple/callback`.
 

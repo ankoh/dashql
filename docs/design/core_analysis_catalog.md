@@ -409,6 +409,13 @@ statement's successful result.
 4. `script_editor.tsx` analyzes flagged scripts: the selected one immediately, others after
    `BACKGROUND_ANALYSIS_DELAY_MS`, through `analyzeScriptData` (analyze, compile, `loadIntoCatalog`).
 
+**Lazy analysis.** Restoring a session loads script text only; scripts stay outdated until first
+use. Connection catalogs are restored and published before sessions open. Executions (feed, details,
+commands) go through `ensureSessionScriptAnalyzed` (`session_scripts_registry.tsx`), and mounted editors
+analyze as in step 4. Passive rendering never analyzes. `CATALOG_DID_UPDATE` marks the scripts of that
+connection outdated; a native reload that adds, removes, moves or changes any script marks every script
+of the session outdated.
+
 **Planning and execution** (`session_execution.ts`) analyzes and publishes every script, re-analyzes
 them at the final catalog version, then calls `plan()`. The planner reads the published
 declarations and the inputs, and flags a relation whose published kind (`TableDeclaration.is_view`)
@@ -433,6 +440,9 @@ differs from the input.
 - **Cascades.** `analyzeScriptData` republishes without marking other scripts outdated. A script whose
   declarations depend on another (`CREATE VIEW v AS SELECT * FROM a`) can bump the version without
   propagating.
+- **Analysis failures.** `analyzeScriptData` throws on a non-OK status inside a queued reducer;
+  `UpdateQueue.flush` does not catch, so a failure is not surfaced and can leave
+  `ensureSessionScriptAnalyzed` pending.
 - **DDL during planned execution.** Statements run through planned session execution do not apply
   their catalog changes; only the single-script `ScriptExecution` path does.
 - **Silent drop failure.** `ScriptSession`'s `Drop` silently skips removing its entry if the catalog

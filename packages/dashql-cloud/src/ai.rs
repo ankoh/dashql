@@ -1,7 +1,7 @@
 //! The `ai.dashql.app` machine API: an OpenAI-compatible surface over Workers AI.
 //!
 //! Two endpoints, matching exactly what dashql's `AIClient` needs
-//! (`packages/dashql-app/src/platform/ai_client.ts`):
+//! (`packages/dashql-app/src/platform/ai/ai_client.ts`):
 //!   * `GET  /v1/models`           — static allowlist (Workers AI has no /v1/models shim)
 //!   * `POST /v1/chat/completions` — non-streaming chat, reshaped to OpenAI's response form
 //!

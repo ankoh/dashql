@@ -23,10 +23,10 @@
 //! a different duration, the new counters land on different KV keys than the ones written under
 //! the old duration, so they never collide — the stale ones just TTL away.
 //!
-//! Keys are opaque `dashql_<hex>` strings; only their SHA-256 is ever stored, so a KV
+//! Keys are opaque `dashql_<base64url>` strings; only their SHA-256 is ever stored, so a KV
 //! read never reveals a usable key. Note the counters are read-modify-write and thus not
 //! strictly atomic under concurrency — acceptable for a personal gateway; strict accounting
-//! would need Durable Objects (see `docs/wip/account.md`).
+//! would need Durable Objects (see `docs/design/dashql_cloud.md`).
 
 use base64::Engine;
 use serde::{Deserialize, Serialize};

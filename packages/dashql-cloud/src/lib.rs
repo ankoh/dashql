@@ -2,7 +2,7 @@
 //! `ai.dashql.app` and a Sign-in-with-Apple account dashboard on `account.dashql.app`.
 //!
 //! The `fetch` entrypoint branches on the request host first (see [`Surface`]), then
-//! delegates to a per-surface router. See `docs/wip/account.md` for the full design.
+//! delegates to a per-surface router. See `docs/design/dashql_cloud.md` for the full design.
 
 use worker::*;
 
