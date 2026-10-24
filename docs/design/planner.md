@@ -1,6 +1,6 @@
 # Planner
 
-`dashql_core::planner` builds a statement-level dependency DAG above the analyzer. It
+`dashql_core_session::planner` builds a statement-level dependency DAG above the analyzer. It
 consumes an ordered set of analyzed scripts without analyzing, publishing, or
 modifying them. Session order, followed by statement order, defines the baseline
 semantics; independent statements do not acquire source-order edges.
@@ -14,7 +14,7 @@ earlier analysis, even if that script's text did not change: a publish that chan
 declarations bumps the catalog revision, one with unchanged declarations does not
 (`docs/design/core_analysis_catalog.md`).
 
-The native API is `planner::plan(&[PlannerInput])` (`packages/dashql-core/src/planner.rs`). Each
+The native API is `planner::plan(&[PlannerInput])` (`packages/dashql-core-session/src/planner.rs`). Each
 input borrows a live `Script` and the `Catalog` it was analyzed with; there is no caller-supplied
 revision. Inputs with different catalogs or duplicate scripts invalidate the plan.
 The core-js API is:

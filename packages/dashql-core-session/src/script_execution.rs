@@ -5,10 +5,10 @@
 //! phase, the 1-based index of the current statement and the id of the pending statement. The
 //! update protocol (`Start`, `Resume`, `Cancel` and their protocol errors) is the same.
 
-use crate::catalog::changes::{derive_catalog_change, CatalogChangeOptions};
-use crate::catalog::PROTO_NULL_U32;
+use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
+use dashql_core::catalog::PROTO_NULL_U32;
 use crate::compiler::{compile, CompilationOptions};
-use crate::script::TextVersion;
+use dashql_core::script::TextVersion;
 use crate::script_session::ScriptSession;
 use dashql_buffers::execution::{
     CompiledScriptStatementKind, PendingStatementT, ScriptCompilationResultT, ScriptExecutionPhase as Phase,

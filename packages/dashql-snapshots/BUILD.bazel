@@ -17,10 +17,12 @@ rust_library(
     edition = "2021",
     visibility = [
         "//packages/dashql-core:__pkg__",
+        "//packages/dashql-core-session:__pkg__",
         "//packages/dashql-core-view:__pkg__",
     ],
     deps = [
         "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-session:dashql_core_session",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
@@ -49,6 +51,7 @@ rust_binary(
     deps = [
         ":dashql_snapshots",
         "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-session:dashql_core_session",
         "//packages/dashql-core-view:dashql_core_view",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",

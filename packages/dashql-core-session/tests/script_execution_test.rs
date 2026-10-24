@@ -7,8 +7,8 @@ use dashql_buffers::execution::{
 };
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
 use dashql_core::catalog::Catalog;
-use dashql_core::script_execution::ScriptExecution;
-use dashql_core::script_session::ScriptSession;
+use dashql_core_session::script_execution::ScriptExecution;
+use dashql_core_session::script_session::ScriptSession;
 use std::cell::RefCell;
 use std::rc::Rc;
 

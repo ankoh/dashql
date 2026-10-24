@@ -21,7 +21,7 @@ pub use umap::{compile_umap_spec, pack_umap_spec, UmapDocument, UmapProjectionDo
 pub use vegalite_generator::generate_vegalite_spec;
 pub use vegalite_parser::parse_vegalite_to_visualize;
 
-use crate::analyzer::AnalyzedScript;
+use dashql_core::analyzer::{AnalyzedScript, VisualizationSpec};
 use dashql_parser::parser::context::resolve_text_span;
 
 /// The text of a node (`input.substr(span.offset(), span.length())`)
@@ -46,6 +46,38 @@ fn strip_single_quotes(text: &[u8]) -> &[u8] {
 /// A string from bytes that are UTF-8 unless the input was not
 fn into_string(bytes: Vec<u8>) -> String {
     String::from_utf8(bytes).unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
+}
+
+/// The renderer-specific packing of a visualization (the vegalite, umap and markdown branches of
+/// `AnalyzedScript::Pack`)
+#[allow(clippy::type_complexity)]
+pub fn pack_visualization(
+    script: &AnalyzedScript,
+    spec: &VisualizationSpec,
+) -> (
+    Option<String>,
+    Option<Box<dashql_buffers::visualization::UmapSpecT>>,
+    Option<Box<dashql_buffers::visualization::MarkdownSpecT>>,
+) {
+    use dashql_buffers::visualization::{MarkdownSpec, UmapSpec};
+    let renderer = spec.renderer.as_deref();
+    let vegalite = (renderer == Some("vegalite"))
+        .then(|| generate_vegalite_spec(spec, script))
+        .filter(|json| !json.is_empty());
+    let umap = (renderer == Some("umap")).then(|| compile_umap_spec(spec, script)).flatten().map(|doc| {
+        let mut builder = flatbuffers::FlatBufferBuilder::new();
+        let packed = pack_umap_spec(&mut builder, &doc);
+        builder.finish(packed, None);
+        Box::new(flatbuffers::root::<UmapSpec>(builder.finished_data()).unwrap().unpack())
+    });
+    let markdown =
+        (renderer == Some("markdown")).then(|| compile_markdown_spec(spec)).flatten().map(|doc| {
+            let mut builder = flatbuffers::FlatBufferBuilder::new();
+            let packed = pack_markdown_spec(&mut builder, &doc);
+            builder.finish(packed, None);
+            Box::new(flatbuffers::root::<MarkdownSpec>(builder.finished_data()).unwrap().unpack())
+        });
+    (vegalite, umap, markdown)
 }
 
 #[cfg(test)]

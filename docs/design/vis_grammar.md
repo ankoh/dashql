@@ -285,6 +285,6 @@ inventing a novel clause-based syntax. This has several advantages:
 - Flatbuffer schema: `proto/fb/dashql/parsed_script.fbs` and
   `parsed_script_enums.fbs`
 - Analyzer: `packages/dashql-core/src/analyzer/visualization.rs`
-- Vega-Lite generator: `packages/dashql-core/src/visualize/vegalite_generator.rs`
-- Vega-Lite parser: `packages/dashql-core/src/visualize/vegalite_parser.rs`
+- Vega-Lite generator: `packages/dashql-core-session/src/visualize/vegalite_generator.rs`
+- Vega-Lite parser: `packages/dashql-core-session/src/visualize/vegalite_parser.rs`
 - Test snapshots: `snapshots/visualize/basic.yaml`

@@ -5,7 +5,7 @@
 //! are turned into field nodes again. Raw HTML is dropped, links and images with unsafe URLs or with fields in their
 //! URLs become plain spans. Adjacent text is merged into one text node, soft line breaks are text (`\n`).
 
-use crate::analyzer::types::VisualizationSpec;
+use dashql_core::analyzer::types::VisualizationSpec;
 use dashql_buffers::visualization::{
     MarkdownNode as MarkdownNodeBuffer, MarkdownNodeArgs, MarkdownNodeType, MarkdownSpec, MarkdownSpecArgs,
 };

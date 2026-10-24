@@ -1,8 +1,8 @@
 //! The `VisualizeTest` unit tests of `test/visualize_snapshot_test_suite.cc`.
 
 use super::*;
-use crate::analyzer::analyze;
-use crate::catalog::Catalog;
+use dashql_core::analyzer::analyze;
+use dashql_core::catalog::Catalog;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::scan;

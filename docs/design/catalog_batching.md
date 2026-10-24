@@ -38,7 +38,7 @@ sequenceDiagram
 
 The TypeScript entry point is `DashQL.processBatch(request)` (`packages/dashql-core-js/src/api.ts`,
 `batch.ts`). It calls the wasm-bindgen export `processBatch` (`packages/dashql-core-wasm/src/lib.rs`), which
-wraps `dashql_core::batch::process_batch` (`packages/dashql-core/src/batch.rs`). Request and result are
+wraps `dashql_core_session::batch::process_batch` (`packages/dashql-core-session/src/batch.rs`). Request and result are
 FlatBuffers of `proto/fb/dashql/batch.fbs`.
 
 Each input has a caller-defined string id, SQL text, and a mask of outputs:
@@ -118,7 +118,7 @@ batching does not reconstruct argument metadata the engine does not expose.
 
 ## Tests
 
-- Core: `packages/dashql-core/tests/batch_test.rs`, `catalog_descriptor_test.rs`.
+- Core: `packages/dashql-core-session/tests/batch_test.rs`, `packages/dashql-core/tests/catalog_descriptor_test.rs`.
 - Core JS: `packages/dashql-core-js/src/batch.test.ts`, `batch_worker_client.test.ts`.
 - App: a live Hyper WASM test (`catalog_query_pg_proc.test.ts`) runs the function metadata query, generates
   SQL, prepares a descriptor, imports it and checks completion, which mocked Arrow fixtures cannot establish.
@@ -126,7 +126,7 @@ batching does not reconstruct argument metadata the engine does not expose.
 ## Main Files
 
 - `proto/fb/dashql/batch.fbs`, `catalog.fbs`: wire contracts.
-- `packages/dashql-core/src/batch.rs`: isolated native processing.
+- `packages/dashql-core-session/src/batch.rs`: isolated native processing.
 - `packages/dashql-core/src/catalog/descriptor.rs`, `catalog/mod.rs`: descriptor validation and publication.
 - `packages/dashql-core-js/src/batch.ts`, `api.ts`: API and buffer ownership.
 - `packages/dashql-core-js/src/batch_worker.ts`, `batch_worker_client.ts`, `batch_worker_protocol.ts`: worker

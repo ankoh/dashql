@@ -5,11 +5,11 @@
 //! Opaque SELECT functions may have side effects; barriers order statements but do not promise
 //! backend session affinity.
 
-use crate::analyzer::{AnalyzedScript, ReferencedTable, TableRole};
-use crate::catalog::{Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration};
+use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, TableRole};
+use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration};
 use crate::compiler::compile_visualization;
-use crate::pack;
-use crate::script::Script;
+use dashql_core::pack;
+use dashql_core::script::Script;
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::execution::{
     ExecutionGraphAccessMode as Mode, ExecutionGraphAccessT, ExecutionGraphCatalogObjectIDT, ExecutionGraphDiagnosticT,

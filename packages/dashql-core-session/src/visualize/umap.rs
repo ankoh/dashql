@@ -1,8 +1,8 @@
 //! The UMAP renderer spec (`umap.cc`).
 
 use super::vegalite_generator::resolve_field_name;
-use crate::analyzer::types::VisualizationSpec;
-use crate::analyzer::AnalyzedScript;
+use dashql_core::analyzer::types::VisualizationSpec;
+use dashql_core::analyzer::AnalyzedScript;
 use dashql_buffers::visualization::{
     UmapProjectionMethod, UmapProjectionSpec, UmapProjectionSpecArgs, UmapSpec, UmapSpecArgs,
 };

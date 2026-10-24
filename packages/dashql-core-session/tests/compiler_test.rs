@@ -8,7 +8,7 @@ use dashql_buffers::execution::{
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
 use dashql_buffers::parser::StatementType;
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
-use dashql_core::compiler::{compile, read_executable_text, CompilationOptions};
+use dashql_core_session::compiler::{compile, read_executable_text, CompilationOptions};
 use dashql_core::script::Script;
 use dashql_parser::span::TextSpan;
 

@@ -1,10 +1,10 @@
 //! The script compiler, a port of `src/script_compiler.cc`: turns a script into the SQL statements
 //! to execute and the compiled visualization of a terminal VISUALIZE statement.
 
-use crate::analyzer::{AnalyzedScript, VisualizationSpec};
-use crate::catalog::{Catalog, PROTO_NULL_U32};
-use crate::formatter::Formatter;
-use crate::script::Script;
+use dashql_core::analyzer::{AnalyzedScript, VisualizationSpec};
+use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
+use dashql_core::formatter::Formatter;
+use dashql_core::script::Script;
 use crate::visualize;
 use dashql_buffers::execution::{
     CompiledScriptStatementKind as CompiledKind, CompiledScriptStatementT, CompiledVisualizationT, ScriptCompilationErrorCode as ErrorCode,
@@ -241,7 +241,7 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     if !errors.is_empty() {
         return finish(result, errors, statements);
     }
-    result.cache_signature = Some(crate::signature::compute_signature(&parsed).unwrap_or_default());
+    result.cache_signature = Some(dashql_core::signature::compute_signature(&parsed).unwrap_or_default());
 
     if parsed.feature_flags & execution_features == 0 {
         result.kind = StatementKind::QUERY;

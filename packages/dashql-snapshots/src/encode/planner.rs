@@ -140,8 +140,8 @@ pub fn encode_planner_fixture(fixture: &Fixture) -> Result<Node, String> {
     }
     let inputs: Vec<&Script> = scripts.iter().map(|(s, _)| s).collect();
     let planner_inputs: Vec<_> =
-        inputs.iter().map(|&script| dashql_core::planner::PlannerInput { script, catalog: &catalog }).collect();
-    let graph = dashql_core::planner::plan(&planner_inputs);
+        inputs.iter().map(|&script| dashql_core_session::planner::PlannerInput { script, catalog: &catalog }).collect();
+    let graph = dashql_core_session::planner::plan(&planner_inputs);
     drop(catalog_script);
     Ok(encode_graph(&graph, &inputs, &names))
 }

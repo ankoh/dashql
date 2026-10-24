@@ -3,20 +3,14 @@
 //! Builds on `dashql_parser` (scanner and parser) and the FlatBuffers bindings `dashql_buffers`.
 
 pub mod analyzer;
-pub mod batch;
 pub mod catalog;
-pub mod compiler;
 pub mod completion;
 pub mod cursor;
 pub mod error;
 pub mod formatter;
 pub mod hash;
 pub mod pack;
-pub mod planner;
 pub mod script;
 pub mod script_diff;
-pub mod script_execution;
-pub mod script_session;
 pub mod signature;
 pub mod utils;
-pub mod visualize;

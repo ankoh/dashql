@@ -20,7 +20,7 @@ use dashql_core::formatter::{
 };
 use dashql_core::script_diff::ScriptDiff;
 use dashql_core_view::PlanViewModel;
-use dashql_core::visualize::{
+use dashql_core_session::visualize::{
     compile_markdown_spec, compile_umap_spec, generate_vegalite_spec, parse_vegalite_to_visualize,
 };
 use dashql_parser::parser::{parse, ParsedScript};

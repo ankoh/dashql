@@ -10,13 +10,13 @@
 //! `Script`.
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
-use dashql_core::catalog::changes::{append_catalog_changes_sql, parse_catalog_changes_sql, qualify_catalog_changes, CatalogNameDefaults};
+use dashql_core_session::catalog_changes::{append_catalog_changes_sql, parse_catalog_changes_sql, qualify_catalog_changes, CatalogNameDefaults};
 use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer, EntryIdSource};
 use dashql_core::completion::Completion;
 use dashql_core::error::Error;
 use dashql_core::script::Script as CoreScript;
-use dashql_core::script_execution::ScriptExecution as CoreScriptExecution;
-use dashql_core::script_session::ScriptSession as CoreScriptSession;
+use dashql_core_session::script_execution::ScriptExecution as CoreScriptExecution;
+use dashql_core_session::script_session::ScriptSession as CoreScriptSession;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
@@ -49,7 +49,7 @@ fn formatting_config(dialect: u8, mode: u8, max_width: u32, indentation_width: u
 }
 
 /// The shared handle of a catalog
-type SharedCatalog = dashql_core::script_session::CatalogHandle;
+type SharedCatalog = dashql_core_session::script_session::CatalogHandle;
 
 thread_local! {
     /// The entry ids of all catalogs of the module, so a script key identifies a script across catalogs
@@ -304,7 +304,7 @@ impl Script {
     #[wasm_bindgen(js_name = getAnalyzed)]
     pub fn get_analyzed(&self) -> Result<Vec<u8>, JsError> {
         let analyzed = self.inner.analyzed.as_ref().ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
-        Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed, &dashql_core::pack::pack_visualization)))
+        Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed, &dashql_core_session::visualize::pack_visualization)))
     }
 
     /// The packed `ScriptDiff` from this script to a target script
@@ -353,12 +353,12 @@ impl Script {
         parse_if_outdated: bool,
     ) -> Vec<u8> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
-        let options = dashql_core::compiler::CompilationOptions {
+        let options = dashql_core_session::compiler::CompilationOptions {
             allow_extensions,
             parse_if_outdated,
         };
         let catalog = self.catalog.borrow();
-        finish!(dashql_core::compiler::compile(&mut self.inner, &catalog, &config, options))
+        finish!(dashql_core_session::compiler::compile(&mut self.inner, &catalog, &config, options))
     }
 
     /// The signature of the parsed script
@@ -705,12 +705,12 @@ pub fn plan(sessions: &SessionList) -> Vec<u8> {
     let inputs: Vec<_> = sessions
         .iter()
         .zip(&catalogs)
-        .map(|(session, catalog)| dashql_core::planner::PlannerInput {
+        .map(|(session, catalog)| dashql_core_session::planner::PlannerInput {
             script: session.script(),
             catalog,
         })
         .collect();
-    finish!(dashql_core::planner::plan(&inputs))
+    finish!(dashql_core_session::planner::plan(&inputs))
 }
 
 /// Read packed `CatalogChanges`
@@ -741,13 +741,13 @@ pub fn append_to_catalog_changes_sql(changes_sql: &str, changes: &[u8]) -> Resul
 /// Process a batch request into a `BatchResult`
 #[wasm_bindgen(js_name = processBatch)]
 pub fn process_batch(request: &[u8]) -> Result<Vec<u8>, JsError> {
-    dashql_core::batch::process_batch(request).map_err(js_error)
+    dashql_core_session::batch::process_batch(request).map_err(js_error)
 }
 
 /// Parse a Vega-Lite spec into a DashQL VISUALIZE spec
 #[wasm_bindgen(js_name = parseVegaLiteToVisualize)]
 pub fn parse_vegalite_to_visualize(json: &[u8]) -> Vec<u8> {
-    dashql_core::visualize::parse_vegalite_to_visualize(json).into_bytes()
+    dashql_core_session::visualize::parse_vegalite_to_visualize(json).into_bytes()
 }
 
 /// A plan view model (`dashql_plan_view_model_*`)

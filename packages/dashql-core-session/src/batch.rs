@@ -1,10 +1,11 @@
 //! Batch processing, a port of `src/batch.cc`: scan, parse and analyze many scripts against shared
 //! descriptor context in one call.
 
-use crate::catalog::{Catalog, CatalogLayer};
-use crate::error::{Error, Result};
-use crate::pack::{pack_analyzed_script, pack_catalog_descriptor, pack_parsed_script, pack_scanned_script, pack_visualization};
-use crate::script::Script;
+use dashql_core::catalog::{Catalog, CatalogLayer};
+use dashql_core::error::{Error, Result};
+use dashql_core::pack::{pack_analyzed_script, pack_catalog_descriptor, pack_parsed_script, pack_scanned_script};
+use crate::visualize::pack_visualization;
+use dashql_core::script::Script;
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::batch::{BatchDiagnosticT, BatchRequest, BatchResultT, BatchScriptResultT};
 pub use dashql_buffers::batch::{DiagnosticSeverity, ProcessingStage};

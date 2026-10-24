@@ -12,6 +12,7 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-session:dashql_core_session",
     ],
 )
 

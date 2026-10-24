@@ -1,0 +1,78 @@
+# The workflows on top of the DashQL core: editor sessions, compilation and statement-wise execution, the planner,
+# batch processing, the catalog changes of executed statements and the renderer specs of VISUALIZE statements.
+#
+# All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
+
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_library(
+    name = "dashql_core_session",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_core_session",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:flatbuffers",
+        "@core_crates//:pulldown-cmark",
+        "@core_crates//:ropey",
+        "@core_crates//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "dashql_core_session_unit_tests",
+    size = "small",
+    crate = ":dashql_core_session",
+)
+
+# Tests of the session crate, one libtest binary per test file
+DASHQL_CORE_SESSION_TESTS = [
+    "batch_test",
+    "catalog_changes_test",
+    "compiler_test",
+    "script_execution_test",
+    "script_session_test",
+]
+
+[rust_test(
+    name = name,
+    size = "small",
+    srcs = ["tests/" + name + ".rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_session",
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:flatbuffers",
+        "@core_crates//:serde_json",
+    ],
+) for name in DASHQL_CORE_SESSION_TESTS]
+
+# Snapshot tests: one target per category, each a libtest-mimic binary
+DASHQL_CORE_SESSION_SNAPSHOT_TESTS = {
+    "planner_snapshot_test": ("planner_snapshots.rs", "//snapshots/planner:files"),
+    "visualize_snapshot_test": ("visualize_snapshots.rs", "//snapshots/visualize:files"),
+}
+
+[rust_test(
+    name = name,
+    size = "small",
+    srcs = ["tests/" + src],
+    data = [data],
+    edition = "2021",
+    use_libtest_harness = False,
+    deps = [
+        ":dashql_core_session",
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "//packages/dashql-snapshots:dashql_snapshots",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:flatbuffers",
+        "@core_crates//:serde_json",
+    ],
+) for name, (src, data) in DASHQL_CORE_SESSION_SNAPSHOT_TESTS.items()]

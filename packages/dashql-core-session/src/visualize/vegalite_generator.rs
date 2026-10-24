@@ -3,10 +3,10 @@
 //! The spec is built as a `serde_json` value and pretty-printed with an indentation of two spaces.
 
 use super::{node_text, strip_single_quotes};
-use crate::analyzer::types::{
+use dashql_core::analyzer::types::{
     VegaLiteSpec, VisAxis, VisBin, VisEncodingChannel, VisLegend, VisMark, VisResolve, VisScale, VisualizationSpec,
 };
-use crate::analyzer::AnalyzedScript;
+use dashql_core::analyzer::AnalyzedScript;
 use dashql_buffers::parser::{AttributeKey as K, Node, NodeType, VisMarkType};
 use serde_json::{Map, Value};
 

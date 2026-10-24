@@ -4,7 +4,8 @@ use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::TableReferenceRole;
 use dashql_core::analyzer::{AnalyzedScript, TableRole};
 use dashql_core::catalog::Catalog;
-use dashql_core::pack::{pack_analyzed_script, pack_visualization};
+use dashql_core::pack::{pack_analyzed_script};
+use dashql_core_session::visualize::pack_visualization;
 use dashql_core::script::Script;
 use std::sync::Arc;
 

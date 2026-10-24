@@ -1,6 +1,6 @@
 //! Scans, parses and analyzes scripts with dashql-core and collects their diagnostics
 
-use dashql_core::batch::{check_script, DiagnosticSeverity, ProcessingStage};
+use dashql_core_session::batch::{check_script, DiagnosticSeverity, ProcessingStage};
 use dashql_core::catalog::{Catalog, CatalogLayer};
 
 /// A script that should be linted
@@ -126,7 +126,7 @@ impl Linter {
     }
 }
 
-fn to_diagnostics(text: &str, checked: &dashql_core::batch::CheckedScript) -> Vec<Diagnostic> {
+fn to_diagnostics(text: &str, checked: &dashql_core_session::batch::CheckedScript) -> Vec<Diagnostic> {
     let mut out: Vec<Diagnostic> = checked
         .diagnostics
         .iter()

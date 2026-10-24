@@ -13,11 +13,12 @@ Run LLVM source-based coverage for the test targets of the Rust core (dashql-cor
 
 ```bash
 bazel coverage --config=fastbuild \
-    --instrumentation_filter="//packages/dashql-core[/:],//packages/dashql-parser[/:]" \
-    //packages/dashql-core/... //packages/dashql-parser/... //packages/dashql-snapshots/...
+    --instrumentation_filter="//packages/dashql-core(-session|-shell|-view)?[/:],//packages/dashql-parser[/:]" \
+    //packages/dashql-core/... //packages/dashql-core-session/... //packages/dashql-core-shell/... \
+    //packages/dashql-core-view/... //packages/dashql-parser/... //packages/dashql-snapshots/...
 ```
 
-2. Extract per-file coverage from the lcov report at `$(bazel info output_path)/_coverage/_coverage_report.dat`. Parse each `SF:` record for files matching `packages/dashql-core/src/` and `packages/dashql-parser/src/` and extract `LH:` (lines hit) and `LF:` (lines found) values.
+2. Extract per-file coverage from the lcov report at `$(bazel info output_path)/_coverage/_coverage_report.dat`. Parse each `SF:` record for files matching `packages/dashql-core/src/`, `packages/dashql-core-session/src/`, `packages/dashql-core-shell/src/`, `packages/dashql-core-view/src/` and `packages/dashql-parser/src/` and extract `LH:` (lines hit) and `LF:` (lines found) values.
 
 3. Rewrite `docs/reports/dashql_core_coverage_report.md` with:
    - Today's date

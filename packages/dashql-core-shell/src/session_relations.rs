@@ -1,7 +1,7 @@
 //! Relations created during a shell session, published as a descriptor entry of the catalog
 //! (`src/shell/session_relation_catalog.cc`).
 
-use dashql_core::catalog::changes::{derive_catalog_change, qualify_catalog_changes, CatalogChangeOptions, CatalogNameDefaults};
+use dashql_core_session::catalog_changes::{derive_catalog_change, qualify_catalog_changes, CatalogChangeOptions, CatalogNameDefaults};
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
 use dashql_core::script::Script;
 

@@ -1,9 +1,9 @@
 # Analysis and Catalog
 
-How the Rust core (`packages/dashql-core`) analyzes scripts, publishes their declarations into a
-catalog, resolves names across catalog entries, and decides when an analysis is stale. It covers
-the core types, the editor session on top of them, the wasm boundary, and the way the app drives
-them.
+How the Rust core (`packages/dashql-core`, with the editor session in `packages/dashql-core-session`)
+analyzes scripts, publishes their declarations into a catalog, resolves names across catalog entries,
+and decides when an analysis is stale. It covers the core types, the editor session on top of them,
+the wasm boundary, and the way the app drives them.
 
 ## Overview
 
@@ -381,7 +381,8 @@ Connections publish their schema as descriptor entries:
   `process_batch` in a worker → descriptor bytes).
 - `apply_catalog_changes(id, layer, changes)` follows the DDL the user runs, without a full refresh.
 
-`catalog/changes.rs`:
+The catalog applies changes (`dashql-core`, `catalog/changes.rs`); deriving, qualifying, compacting and
+persisting them needs the analyzer and scripts and lives in `dashql-core-session` (`catalog_changes.rs`):
 1. `derive_catalog_change(analysis, statement)`: a successful `CREATE TABLE`, `CREATE TABLE AS`,
    `CREATE VIEW`, `SELECT INTO` or `DROP` becomes a `CatalogChangeT`, with the relation named as written
    and the columns from the analysis.
@@ -475,16 +476,16 @@ differs from the input.
 | Catalog, snapshots, publishing, resolution, flatten | `packages/dashql-core/src/catalog/mod.rs` |
 | Descriptors | `packages/dashql-core/src/catalog/descriptor.rs` |
 | Name search index | `packages/dashql-core/src/catalog/names.rs` |
-| Catalog changes | `packages/dashql-core/src/catalog/changes.rs` |
+| Catalog changes: applying / deriving and persisting | `packages/dashql-core/src/catalog/changes.rs` / `packages/dashql-core-session/src/catalog_changes.rs` |
 | Analyzer entry point, `AnalyzedScript` | `packages/dashql-core/src/analyzer/mod.rs` |
 | Shared pass state | `packages/dashql-core/src/analyzer/state.rs` |
 | Name resolution, schema inference | `packages/dashql-core/src/analyzer/name_resolution.rs` |
 | Analysis types | `packages/dashql-core/src/analyzer/types.rs` |
 | Script pipeline | `packages/dashql-core/src/script.rs` |
-| Editor session | `packages/dashql-core/src/script_session.rs` |
+| Editor session | `packages/dashql-core-session/src/script_session.rs` |
 | Completion | `packages/dashql-core/src/completion.rs` |
-| Planner | `packages/dashql-core/src/planner.rs` |
+| Planner | `packages/dashql-core-session/src/planner.rs` |
 | Wasm boundary | `packages/dashql-core-wasm/src/lib.rs` |
 | JS wrapper | `packages/dashql-core-js/src/api.ts` |
 | App script state | `packages/dashql-app/src/app/session/scripts/session_scripts.ts` |
-| Tests | `packages/dashql-core/tests/catalog_test.rs`, `script_session_test.rs` |
+| Tests | `packages/dashql-core/tests/catalog_test.rs`, `catalog_descriptor_test.rs`, `packages/dashql-core-session/tests/script_session_test.rs` |

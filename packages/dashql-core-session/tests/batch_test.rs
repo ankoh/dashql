@@ -8,7 +8,7 @@ use dashql_buffers::batch::{
 };
 use dashql_buffers::catalog::CatalogDescriptor;
 use dashql_buffers::parser::{ParsedScript, ScannedScript, ScannerTokenType};
-use dashql_core::batch::{check_script, process_batch};
+use dashql_core_session::batch::{check_script, process_batch};
 use dashql_core::catalog::Catalog;
 
 const SCANNED: u32 = 1;

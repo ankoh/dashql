@@ -15,6 +15,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-session:dashql_core_session",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:arrow-array",

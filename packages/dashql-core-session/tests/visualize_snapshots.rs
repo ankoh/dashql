@@ -2,7 +2,7 @@
 //!
 //! Unlike the C++ suite, the Vega-Lite JSON and its round trip are also compared for the `table` renderer.
 
-use dashql_core::visualize::{
+use dashql_core_session::visualize::{
     compile_markdown_spec, compile_umap_spec, generate_vegalite_spec, parse_vegalite_to_visualize,
 };
 use dashql_snapshots::encode::visualize::{

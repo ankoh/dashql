@@ -7,14 +7,14 @@ use dashql_buffers::catalog::{CatalogChangeT, CatalogChangeType, CatalogDescript
 use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_buffers::execution::{StatementResultStatus, StatementResultT};
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
-use dashql_core::catalog::changes::{
+use dashql_core_session::catalog_changes::{
     append_catalog_changes_sql, compact_catalog_changes, derive_catalog_change, parse_catalog_changes_sql, qualify_catalog_changes,
     render_catalog_changes_sql, CatalogChangeOptions, CatalogNameDefaults,
 };
 use dashql_core::catalog::{Catalog, CatalogEntryId};
 use dashql_core::script::Script;
-use dashql_core::script_execution::ScriptExecution;
-use dashql_core::script_session::ScriptSession;
+use dashql_core_session::script_execution::ScriptExecution;
+use dashql_core_session::script_session::ScriptSession;
 use std::cell::RefCell;
 use std::rc::Rc;
 

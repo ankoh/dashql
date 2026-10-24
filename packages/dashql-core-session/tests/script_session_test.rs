@@ -16,9 +16,9 @@ use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, Formattin
 use dashql_buffers::parser::{ScannerTokenType, StatementType};
 use dashql_core::catalog::Catalog;
 use dashql_core::pack::pack_completion;
-use dashql_core::planner::{plan, PlannerInput};
+use dashql_core_session::planner::{plan, PlannerInput};
 use dashql_core::script::Script;
-use dashql_core::script_session::{CatalogHandle, ScriptSession};
+use dashql_core_session::script_session::{CatalogHandle, ScriptSession};
 use std::cell::RefCell;
 use std::rc::Rc;
 

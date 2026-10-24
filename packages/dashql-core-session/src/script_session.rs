@@ -16,16 +16,16 @@
 //! The C++ session leaves the projection of offsets to the rope for every span. Projections here
 //! convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
 
-use crate::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
-use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName};
+use dashql_core::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
+use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName};
 use crate::compiler::{compile, CompilationOptions};
-use crate::completion::is_symbol_kind_completable;
-use crate::cursor::CursorContext;
-use crate::error::{Error, Result};
-use crate::pack::{pack_completion, pack_tokens};
-use crate::script::{Script, TextVersion};
-use crate::script_diff::ScriptDiff;
-use crate::utils::rope::{resolve_byte_boundary, resolve_utf16_boundary, TextPosition, Utf16Projector};
+use dashql_core::completion::is_symbol_kind_completable;
+use dashql_core::cursor::CursorContext;
+use dashql_core::error::{Error, Result};
+use dashql_core::pack::{pack_completion, pack_tokens};
+use dashql_core::script::{Script, TextVersion};
+use dashql_core::script_diff::ScriptDiff;
+use dashql_core::utils::rope::{resolve_byte_boundary, resolve_utf16_boundary, TextPosition, Utf16Projector};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::completion::CompletionT;
 use dashql_buffers::cursor::RelativeSymbolPosition;
@@ -115,7 +115,7 @@ fn resolved_table_ids(reference: &TableReference) -> Option<ResolvedTableIds> {
 }
 
 /// The ids of the table and column of a resolved column reference
-fn resolved_column_ids(expression: &crate::analyzer::Expression) -> Option<(ResolvedTableIds, u32)> {
+fn resolved_column_ids(expression: &dashql_core::analyzer::Expression) -> Option<(ResolvedTableIds, u32)> {
     let ExpressionInner::ColumnRef(column) = &expression.inner else {
         return None;
     };

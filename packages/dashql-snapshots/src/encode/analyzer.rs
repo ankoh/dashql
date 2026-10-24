@@ -6,7 +6,7 @@ use dashql_buffers::algebra::LiteralType;
 use dashql_buffers::catalog::CatalogChangeType;
 use dashql_buffers::parser::{Node as AstNode, SymbolSpan};
 use dashql_core::analyzer::*;
-use dashql_core::catalog::changes::{derive_catalog_change, CatalogChangeOptions};
+use dashql_core_session::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
 use dashql_core::catalog::{Catalog, CatalogLayer, ColumnLoc, QualifiedCatalogObjectId, TableDeclaration};
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
