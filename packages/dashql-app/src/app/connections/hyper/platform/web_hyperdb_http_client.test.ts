@@ -84,6 +84,24 @@ describe('WebHyperDatabaseClient', () => {
             expect(headers.get('Authorization')).toBe('Bearer test-token');
         });
 
+        it('sends the client context of the connection context', async () => {
+            const spy = vi.spyOn(mock, 'fetch');
+            mock.setHandler(() => ({
+                queryId: 'q-context',
+                completionStatus: 'RESULTS_PRODUCED',
+                arrowBytes: encodeIntTable('n', [1]),
+            }));
+            const context = { dashql: { connectionId: 'c1', queryType: 'user' } };
+            const channel = await client.connect(makeHyperArgs(), { ...noopContext, getClientContext: () => context });
+            await channel.executeQuery({ query: 'select 1 as n' } as any);
+            const headers = (spy.mock.calls[0][1] as RequestInit).headers as Headers;
+            expect(JSON.parse(headers.get('x-hyperdb-external-client-context')!)).toEqual(context);
+
+            spy.mockClear();
+            await (await client.connect(makeHyperArgs(), noopContext)).executeQuery({ query: 'select 1 as n' } as any);
+            expect(((spy.mock.calls[0][1] as RequestInit).headers as Headers).has('x-hyperdb-external-client-context')).toBe(false);
+        });
+
         it('cancels the backend query through the result stream', async () => {
             const spy = vi.spyOn(mock, 'fetch');
             mock.setHandler(() => ({

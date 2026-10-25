@@ -2,7 +2,7 @@ import { createBrowserClient } from 'hyperdb-wasm/raw';
 
 import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
-import type { HyperDBClient } from '../platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDBClient, HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
 import type { SetupProgress } from '../platform/database/embedded_database_provider.js';
 
 /// Start an engine worker with the settings of the app, overridden by the given startup settings.
@@ -10,7 +10,7 @@ import type { SetupProgress } from '../platform/database/embedded_database_provi
 /// A HyperDBEngine would hand out Arrow objects of the frame that created it.
 export async function createTestHyperDBClient(
     onSetupProgress?: (progress: SetupProgress) => void,
-    settings: Record<string, unknown> = {},
+    settings: HyperDBSettings = {},
 ): Promise<HyperDBClient> {
     const { revoke, ...options } = createWebHyperDBClientOptions();
     let client: ReturnType<typeof createBrowserClient>;
@@ -30,7 +30,7 @@ export async function createTestHyperDBClient(
     };
     try {
         await client.ready();
-        const result = await client.initialize(JSON.stringify({ ...HYPERDB_WASM_ENGINE_SETTINGS, ...settings }));
+        const result = await client.initialize({ ...HYPERDB_WASM_ENGINE_SETTINGS, ...settings });
         if (result.state !== 'ok') {
             const detail = result.state === 'error' || result.state === 'busy' ? `: ${JSON.stringify(result.error)}` : '';
             throw new Error(`initialize HyperDB returned ${result.state}${detail}`);

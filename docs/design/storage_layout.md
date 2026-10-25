@@ -18,7 +18,7 @@ a Hyper path: `sessions/<id>/attachments/a.csv` is `/mnt/fs/sessions/<id>/attach
 │   ├── dashql-catalog-relations.sql           catalog of the last refresh
 │   ├── dashql-catalog-functions.sql
 │   ├── dashql-catalog-changes.sql             catalog changes since the refresh
-│   └── logs.hyper                             extract of the Hyper log of the connection
+│   └── monitoring.hyper                       extract of the Hyper log of the connection
 ├── shell/                                     files of the standalone shell
 │   └── salesforce-login-history.json
 ├── instances/<instance-id>/                   embedded database of one app window
@@ -32,7 +32,7 @@ a Hyper path: `sessions/<id>/attachments/a.csv` is `/mnt/fs/sessions/<id>/attach
 |------|------------|----------|-------------------------|
 | `dashql-manifest.json` | `OPFSStorageBackend` | persistent | no |
 | `sessions/<id>/` | `OPFSStorageBackend` | until the session is deleted | yes, except `cache/` |
-| `connections/<id>/` | `OPFSStorageBackend`, log extract | until the connection is deleted | catalog files only |
+| `connections/<id>/` | `OPFSStorageBackend`, `HyperLogMetrics` | until the connection is deleted | catalog files only |
 | `shell/` | `SalesforceLoginHistoryStore` | persistent | no |
 | `instances/<id>/` | `createHyperDBOPFSInstance` | one app window | no |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
@@ -70,9 +70,14 @@ Connections are global and referenced by sessions through `connectionId`. Their 
 - The catalog files. They are a cache of the last catalog refresh and seed the completion before the
   connection comes online. Session bundles carry the catalogs of their connections as
   `connections/<id>/dashql-catalog-*.sql`.
-- `logs.hyper`, the log extract of the connection (`connectionLogsDatabasePath`), written by a
-  `HyperDBIncrementalExtract` with a `HyperDBLogSource`. It must outlive app windows, because a reconnect backfills
-  from the newest extracted timestamp. It is deleted with the connection and never exported.
+- `monitoring.hyper`, the monitoring database of the connection (`connectionMonitoringDatabasePath`). The monitor of
+  the connection in `HyperLogMetrics` fills its tables `query_ends` and `resource_metrics` every 5 seconds with a
+  `HyperDBIncrementalExtract` of the Hyper log: the queries whose client context names the connection, its own reads
+  and writes included, and the resource samples of the Hyper process. The connection overview reads it on a reader
+  connection of the monitor, which attaches it as `monitoring`. It outlives app windows, so the overview keeps the
+  history of earlier windows, the tables keep the last 2 hours. A new monitor backfills the retained log from the
+  newest extracted timestamp. Deleting
+  the connection stops its monitor, which closes the file, and deletes it; it is never exported.
 
 ### Instances
 
@@ -85,7 +90,7 @@ Every app window runs one embedded hyperdb-wasm instance, `setupWebHyperDB` give
   (`connect({ defaultDatabase: 'hyper' })`).
 - `logs/` holds the log files of the Hyper process of the instance, the instance sets it as `log_file_path`. They
   are rotated by `log_file_size_limit` and `log_file_max_count` (`HYPERDB_WASM_ENGINE_SETTINGS`), and
-  `hyper_log()` reads them. A log extract that has to outlive the window copies them into `connections/<id>/logs.hyper`.
+  `hyper_log()` reads them. The monitors of the connections copy them into `connections/<id>/monitoring.hyper`.
 
 Both are scratch space: data frames are computed again when queries run in a new window. `HyperDB.terminate()`
 drops both databases and removes the folder. A Web Lock `dashql-instance-<uuid>` is held while the window lives,

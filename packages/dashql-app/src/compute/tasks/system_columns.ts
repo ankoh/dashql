@@ -11,7 +11,7 @@ const LOG_CTX = "compute";
 
 export async function computeSystemColumns(task: SystemColumnComputationTask, logger: LoggerLike, executeQuery: ComputeQueryExecution = executeDirectly): Promise<[arrow.Table, DataFrame, ColumnGroup[]]> {
     try {
-        const [sqlFrame, columnGroups] = buildSystemColumnSQLFrame(task.inputTable.schema, task.columnEntries, task.inputDataFrame.tableName, task.tableAggregate);
+        const [sqlFrame, columnGroups] = buildSystemColumnSQLFrame(task.inputTable.schema, task.columnEntries, task.inputDataFrame.tableName, task.rowNumberFieldName, task.tableAggregate);
 
         logger.info("Computing system columns", {
             "version": task.tableVersion.toString(),
@@ -51,13 +51,12 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
     }
 }
 
-function buildSystemColumnSQLFrame(schema: arrow.Schema, columns: ColumnGroup[], inputTableName: string, tableAggregate: TableAggregation): [SQLFrame, ColumnGroup[]] {
-    let fieldNames = new Set<string>();
+function buildSystemColumnSQLFrame(schema: arrow.Schema, columns: ColumnGroup[], inputTableName: string, rowNumberFieldName: string, tableAggregate: TableAggregation): [SQLFrame, ColumnGroup[]] {
+    let fieldNames = new Set<string>([rowNumberFieldName]);
     for (const field of schema.fields) {
         fieldNames.add(field.name);
     }
 
-    const rowNumberFieldName = createUniqueColumnName(`_rownum`, fieldNames);
     const rowNumberGridColumn: ColumnGroup = {
         type: ROWNUMBER_COLUMN,
         value: {
@@ -69,8 +68,7 @@ function buildSystemColumnSQLFrame(schema: arrow.Schema, columns: ColumnGroup[],
         ...columns
     ];
 
-    let frame = SQLFrame.from(inputTableName)
-        .rowNumber(rowNumberFieldName);
+    let frame = SQLFrame.from(inputTableName);
 
     for (let i = 1; i <= columns.length; ++i) {
         let column = gridColumns[i];

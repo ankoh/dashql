@@ -34,7 +34,7 @@ function areOrderingConstraintsEqual(left: OrderByConstraint[], right: OrderByCo
     return true;
 }
 
-function createOrderingTask(
+export function createOrderingTask(
     table: TableComputationState,
     orderingConstraints: OrderByConstraint[],
 ): TableOrderingTask | null {

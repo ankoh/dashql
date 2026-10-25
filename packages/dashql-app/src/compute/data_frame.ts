@@ -18,10 +18,13 @@ export function generateTableName(prefix: string = "__df"): string {
 export class DataFrame {
     readonly database: EmbeddedComputeDatabase;
     readonly tableName: string;
+    /// The client context of the queries of the data frame, the one of the query that created it
+    readonly clientContext: EmbeddedClientContext | null;
 
-    constructor(database: EmbeddedComputeDatabase, tableName: string) {
+    constructor(database: EmbeddedComputeDatabase, tableName: string, clientContext: EmbeddedClientContext | null = null) {
         this.database = database;
         this.tableName = tableName;
+        this.clientContext = clientContext;
     }
 
     static async withConnection<T>(
@@ -38,14 +41,19 @@ export class DataFrame {
     }
 
     async withConnection<T>(fn: (conn: EmbeddedTableImportConnection) => Promise<T>): Promise<T> {
-        return await DataFrame.withConnection(this.database, fn);
+        return await DataFrame.withConnection(this.database, fn, this.clientContext);
     }
 
-    static async fromArrowTable(database: EmbeddedComputeDatabase, table: arrow.Table, tableName: string): Promise<DataFrame> {
+    static async fromArrowTable(
+        database: EmbeddedComputeDatabase,
+        table: arrow.Table,
+        tableName: string,
+        clientContext: EmbeddedClientContext | null = null,
+    ): Promise<DataFrame> {
         await DataFrame.withConnection(database, async conn => {
             await conn.insertArrowTable(table, { name: tableName, create: true });
-        });
-        return new DataFrame(database, tableName);
+        }, clientContext);
+        return new DataFrame(database, tableName, clientContext);
     }
 
     static async fromSQL(
@@ -58,7 +66,7 @@ export class DataFrame {
         await DataFrame.withConnection(database, async conn => {
             await conn.createTableAs(tableName, sql, abort);
         }, clientContext);
-        return new DataFrame(database, tableName);
+        return new DataFrame(database, tableName, clientContext);
     }
 
     async readTable(abort?: AbortSignal): Promise<arrow.Table> {

@@ -45,6 +45,7 @@ export function useInitialMemorySetup(
             action => dispatch(database.connectionId, action),
             structuredClone(params.hyper) as Parameters<HyperSetupApi['setup']>[1],
             abort.signal,
+            database.connectionId,
         ).catch(error => {
             if (!abort.signal.aborted) logger.warn('Memory database setup failed', {
                 sessionId, error: stringifyError(error),

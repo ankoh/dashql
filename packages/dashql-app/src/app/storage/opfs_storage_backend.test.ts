@@ -56,6 +56,26 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         expect(await backend.listDataFiles(TEST_SESSION_ID)).toEqual([]);
         await expect(backend.saveDataFile(TEST_SESSION_ID, 'bad\\name', bytes)).rejects.toThrow('basename');
     });
+    it('creates the folder of a connection and deletes it once its files are released', async () => {
+        await backend.createConnectionFolder('connection');
+        expect(dirs.has('connections/connection')).toBe(true);
+        await backend.saveConnectionFile('connection', 'dashql-catalog-relations.sql', 'CREATE TABLE t (x int);');
+        // The monitoring database is still open for a moment after the connection was deleted
+        const removeEntry = OPFSDirectoryMock.prototype.removeEntry;
+        let attempts = 0;
+        const spy = vi.spyOn(OPFSDirectoryMock.prototype, 'removeEntry').mockImplementation(async function (this: OPFSDirectoryMock, ...args) {
+            if (++attempts < 3) throw new DOMException('in use', 'NoModificationAllowedError');
+            return await removeEntry.apply(this, args);
+        });
+        try {
+            await backend.deleteConnectionFiles('connection');
+        } finally {
+            spy.mockRestore();
+        }
+        expect(attempts).toBe(3);
+        expect(dirs.has('connections/connection')).toBe(false);
+        expect(await backend.loadConnectionFile('connection', 'dashql-catalog-relations.sql')).toBeNull();
+    });
     it('round-trips the SQL keyword case preference in the app manifest', async () => {
         await backend.saveAppSettings({ keywordCase: 'upper' });
         expect(await backend.loadAppSettings()).toEqual({ keywordCase: 'upper' });

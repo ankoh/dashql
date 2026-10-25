@@ -239,8 +239,10 @@ class WebHyperDatabaseChannel implements HyperDatabaseChannel {
         const sql = params.query;
         const queryParameters = this.connection.getQueryParameters();
         const settings = Object.keys(queryParameters).length > 0 ? queryParameters : undefined;
+        const clientContext = this.connection.getClientContext?.();
+        const headers = clientContext == null ? undefined : { externalClientContext: JSON.stringify(clientContext) };
         const { status, response } = await this.httpClient
-            .executeQuery({ sql, settings }, undefined, abort)
+            .executeQuery({ sql, settings }, headers, abort)
             .catch(rethrowAsHyperQueryError);
         if (!status || !status.queryId) {
             throw new Error("v3 query response missing status header");

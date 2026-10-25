@@ -35,8 +35,9 @@ export interface EmbeddedConnectionOptions {
     /// Reuse an idle connection and return it to a pool on close.
     /// Only for callers that leave no session state behind, such as settings, transactions or temporary tables.
     pooled?: boolean;
-    /// The client context of the queries of the connection until it is closed.
+    /// The client context of the queries of the connection, set when its session is connected.
     /// Hyper logs it as ctx.client of the query events, e.g. to attribute queries of pooled connections.
+    /// Pooled sessions are only reused for the same client context.
     clientContext?: EmbeddedClientContext;
 }
 

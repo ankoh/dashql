@@ -2,6 +2,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as pb from "../../../proto.js";
 
 import { ChannelMetadataProvider } from '../../../platform/channel_common.js';
+import type { EmbeddedClientContext } from '../../../platform/database/embedded_database.js';
 import { QueryExecutionProgress, QueryExecutionResponseStream } from "../../../query/query_execution_state.js";
 
 export interface AttachedDatabase {
@@ -14,6 +15,8 @@ export interface HyperDatabaseConnectionContext extends ChannelMetadataProvider 
     getAttachedDatabases(): AttachedDatabase[];
     /// Get the query parameters that are added to every query
     getQueryParameters(): Record<string, string>;
+    /// Get the client context of every query, which Hyper logs as ctx.client of the query events
+    getClientContext?(): EmbeddedClientContext | null;
 }
 
 export interface HyperQueryExecutionProgress extends QueryExecutionProgress { }

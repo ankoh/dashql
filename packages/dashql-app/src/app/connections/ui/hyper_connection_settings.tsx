@@ -180,7 +180,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
 
         await connectionSetup.run(async signal => {
             try {
-                const hyperChannel = await hyperSetup.setup(dispatchConnectionState, setupParams, signal);
+                const hyperChannel = await hyperSetup.setup(dispatchConnectionState, setupParams, signal, connectionState.connectionId);
                 if (hyperChannel != null && protocol !== 'WASM') {
                     await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'hyper', channel: hyperChannel }, dispatchConnectionState, signal);
                 }

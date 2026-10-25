@@ -2,9 +2,14 @@ import { type SessionRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
 import { STORAGE_VERSION } from '../../migration/versions.js';
 import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, validateDataFileName } from './storage_backend.js';
+import { sleep } from '../../utils/sleep.js';
 
 /// The name of the web lock that guards the manifest
 export const OPFS_MANIFEST_LOCK = 'dashql-manifest';
+
+/// The attempts to delete the files of a connection while one of them is in use, and the delay between them
+const DELETE_IN_USE_ATTEMPTS = 20;
+const DELETE_IN_USE_RETRY_MS = 100;
 
 /// Origin Private File System storage backend.
 ///
@@ -594,14 +599,25 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
         await writable.close();
     }
 
+    async createConnectionFolder(connectionId: string): Promise<void> {
+        await this.getSessionDir(this.connectionRelPath(connectionId), true);
+    }
+
     async deleteConnectionFiles(connectionId: string): Promise<void> {
         const root = this.ensureInitialized();
-        try {
-            const connections = await root.getDirectoryHandle(STORAGE_CONNECTIONS_FOLDER, { create: false });
-            await connections.removeEntry(connectionId, { recursive: true });
-        } catch (error) {
-            if ((error as any).name !== 'NotFoundError') {
-                throw error;
+        // The embedded Hyper closes the monitoring database of a deleted connection right after the deletion,
+        // until then its file is in use
+        for (let attempt = 1; ; ++attempt) {
+            try {
+                const connections = await root.getDirectoryHandle(STORAGE_CONNECTIONS_FOLDER, { create: false });
+                await connections.removeEntry(connectionId, { recursive: true });
+                return;
+            } catch (error) {
+                const name = (error as any).name;
+                if (name === 'NotFoundError') return;
+                const inUse = name === 'NoModificationAllowedError' || name === 'InvalidModificationError';
+                if (!inUse || attempt >= DELETE_IN_USE_ATTEMPTS) throw error;
+                await sleep(DELETE_IN_USE_RETRY_MS);
             }
         }
     }

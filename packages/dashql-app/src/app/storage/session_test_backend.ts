@@ -51,6 +51,9 @@ export class SessionTestBackend implements StorageBackend {
         this.calls.push(`connection-file:${connectionId}/${fileName}`);
         this.connectionFiles.set(`${connectionId}/${fileName}`, text);
     }
+    async createConnectionFolder(connectionId: string): Promise<void> {
+        this.calls.push(`connection-folder:${connectionId}`);
+    }
     async deleteConnectionFiles(connectionId: string): Promise<void> {
         for (const key of [...this.connectionFiles.keys()]) {
             if (key.startsWith(`${connectionId}/`)) this.connectionFiles.delete(key);

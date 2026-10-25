@@ -23,13 +23,13 @@ export const STORAGE_CACHE_ACCESS_SUFFIX = '.last_access';
 export const STORAGE_SHELL_FOLDER = 'shell';
 /// The folder that holds the files of the connections, e.g. `connections/<uuid>/…`
 export const STORAGE_CONNECTIONS_FOLDER = 'connections';
-/// The extract of the Hyper log of a connection, e.g. `connections/<uuid>/logs.hyper`.
+/// The monitoring database of a connection with the extract of its Hyper log, e.g. `connections/<uuid>/monitoring.hyper`.
 /// It is deleted with the files of the connection, and it is not part of session bundles.
-export const STORAGE_CONNECTION_LOGS_FILE = 'logs.hyper';
+export const STORAGE_CONNECTION_MONITORING_FILE = 'monitoring.hyper';
 
-/// The Hyper path of the log extract of a connection
-export function connectionLogsDatabasePath(connectionId: string): string {
-    return `${HYPER_OPFS_ROOT}/${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${STORAGE_CONNECTION_LOGS_FILE}`;
+/// The Hyper path of the monitoring database of a connection, its folder must exist, see createConnectionFolder()
+export function connectionMonitoringDatabasePath(connectionId: string): string {
+    return `${HYPER_OPFS_ROOT}/${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${STORAGE_CONNECTION_MONITORING_FILE}`;
 }
 
 /// The relations of the catalog, as the last catalog refresh described them
@@ -199,6 +199,8 @@ export interface SessionRegistryBackend extends StorageBackend {
     loadConnectionFile(connectionId: string, fileName: string): Promise<string | null>;
     /// Save a file of a connection
     saveConnectionFile(connectionId: string, fileName: string, text: string): Promise<void>;
+    /// Create the folder of a connection when missing, e.g. for Hyper to create a database in it
+    createConnectionFolder(connectionId: string): Promise<void>;
     /// Delete all files of a connection
     deleteConnectionFiles(connectionId: string): Promise<void>;
 }

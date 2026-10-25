@@ -8,6 +8,7 @@ import {
     type HyperDBClient,
     type HyperDBOptions,
     type HyperDBResult,
+    type HyperDBSettings,
 } from './hyperdb_wasm.js';
 
 type MountSource = Parameters<HyperDBClient['mount']>[0];
@@ -105,14 +106,14 @@ class FakeHyperDBEngineClient implements HyperDBClient {
         return Promise.resolve();
     }
 
-    initialize(settings: string): Promise<HyperDBResult> {
-        this.calls.push(`initialize:${settings}`);
+    initialize(settings: HyperDBSettings): Promise<HyperDBResult> {
+        this.calls.push(`initialize:${JSON.stringify(settings)}`);
         return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
     }
 
-    connect(): Promise<HyperDBResult> {
+    connect(settings?: Record<string, string>): Promise<HyperDBResult> {
         const connection = this.nextConnection++;
-        this.calls.push(`connect:${connection}`);
+        this.calls.push(`connect:${connection}${settings == null ? '' : `:${JSON.stringify(settings)}`}`);
         this.connectCount++;
         return Promise.resolve(handle(connection));
     }
@@ -147,7 +148,7 @@ class FakeHyperDBEngineClient implements HyperDBClient {
             this.queries.set(query, [{ state: 'done' }]);
             return handle(query);
         }
-        const sessionStatement = /^(?:\/\* dashql:internal \*\/ )?(?:(?:CREATE|DROP|ATTACH|DETACH) DATABASE|(?:SET|RESET) external_client_context)\b/.test(sql);
+        const sessionStatement = /^(?:CREATE|DROP|ATTACH|DETACH) DATABASE\b/.test(sql);
         if (sessionStatement) {
             this.beginOperation();
             this.calls.push(`query:${connection}:${sql}`);
@@ -481,7 +482,7 @@ describe('HyperDB embedded database adapter', () => {
         expect(client.disconnectCount).toBe(client.connectCount);
     });
 
-    it('sets the client context of a connection and resets it before pooling the session', async () => {
+    it('connects with the client context and pools the sessions per client context', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await createDatabase(client, { computeDatabasePath: '/mnt/fs/compute.hyper' });
         const setupConnects = client.connectCount;
@@ -493,12 +494,17 @@ describe('HyperDB embedded database adapter', () => {
         }
         const plain = await database.connect({ pooled: true });
         await plain.close();
+        const other = await database.connect({ pooled: true, clientContext: { dashql: { connectionId: 'other', queryType: 'sqlframe' } } });
+        await other.close();
 
-        expect(client.connectCount - setupConnects).toBe(1);
-        const sets = client.calls.filter(call => call.includes('SET external_client_context ='));
-        expect(sets).toHaveLength(2);
-        expect(sets[0]).toContain(`'{"dashql":{"connectionId":"it''s","queryType":"sqlframe"}}'`);
-        expect(client.calls.filter(call => call.includes('RESET external_client_context'))).toHaveLength(2);
+        expect(client.connectCount - setupConnects).toBe(3);
+        const connects = client.calls.filter(call => call.startsWith('connect:')).slice(-3).map(call => call.replace(/^connect:\d+/, ''));
+        expect(connects).toEqual([
+            `:${JSON.stringify({ external_client_context: '{"dashql":{"connectionId":"it\'s","queryType":"sqlframe"}}' })}`,
+            '',
+            `:${JSON.stringify({ external_client_context: '{"dashql":{"connectionId":"other","queryType":"sqlframe"}}' })}`,
+        ]);
+        expect(client.calls.some(call => call.includes('external_client_context') && call.startsWith('query:'))).toBe(false);
         await database.terminate();
     });
 

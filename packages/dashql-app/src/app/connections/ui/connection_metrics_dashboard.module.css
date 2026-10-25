@@ -6,14 +6,7 @@
     gap: 20px;
 }
 
-.toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-}
-
-/* Sections of the connection and the engine */
+/* Sections of the activity and the engine */
 
 .section {
     display: flex;
@@ -29,11 +22,19 @@
     min-height: 28px;
 }
 
-.section_title {
+/* A small label that names the section */
+.section_label {
     margin: 0;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--base_color_neutral_9);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--base_color_neutral_5);
+}
+
+/* Pushes the scope and the time window to the end of the header of the activity */
+.section_spacer {
+    flex: 1;
 }
 
 .section_detail {
@@ -41,40 +42,17 @@
     color: var(--base_color_neutral_5);
 }
 
-/* Activity and details */
-
-.activity {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
-    gap: 12px;
-}
-
-/* The details next to the queries set the height of the row, the queries scroll within it */
-.activity > .panel {
-    contain: size;
-    min-height: 160px;
-}
-
-@container (max-width: 900px) {
-    .activity {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .activity > .panel {
-        contain: none;
-    }
-
-    .activity .table_scroll {
-        flex: none;
-        max-height: 280px;
-    }
+.section_empty {
+    margin: 0;
+    font-size: 12px;
+    color: var(--base_color_neutral_5);
 }
 
 .panel {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--border_color_primary);
     border-radius: var(--border_radius);
     background-color: white;
 }
@@ -85,21 +63,16 @@
     justify-content: space-between;
     gap: 8px;
     height: 36px;
-    padding: 0 8px 0 12px;
-    border-bottom: 1px solid var(--base_color_neutral_1);
+    /* The refresh button keeps the same distance to the right as to the top */
+    padding: 0 4px 0 12px;
+    border-bottom: 1px solid var(--border_color_primary);
 }
 
 .panel_title {
-    margin: 0;
+    margin: 0 auto 0 0;
     font-size: 12px;
     font-weight: 600;
     color: var(--base_color_neutral_8);
-}
-
-.panel_detail {
-    margin-right: auto;
-    font-size: 11px;
-    color: var(--base_color_neutral_5);
 }
 
 .panel_empty {
@@ -109,89 +82,67 @@
     color: var(--base_color_neutral_5);
 }
 
-.table_scroll {
-    flex: 1 1 0;
-    min-height: 0;
-    overflow: auto;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
+/* Why the log cannot be read, with the message of the error below */
+.panel_notice {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 12px;
     font-size: 12px;
+    color: var(--base_color_neutral_7);
 }
 
-.table th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    padding: 6px 12px;
-    font-size: 11px;
-    font-weight: 500;
-    text-align: left;
+.panel_notice p {
+    margin: 0;
+}
+
+.panel_notice_detail {
     color: var(--base_color_neutral_5);
-    background-color: white;
-    border-bottom: 1px solid var(--base_color_neutral_1);
+    font-family: var(--font_family_mono);
+    overflow-wrap: anywhere;
 }
 
-.table td {
-    padding: 5px 12px;
-    border-bottom: 1px solid var(--base_color_neutral_0);
-    color: var(--base_color_neutral_8);
-    white-space: nowrap;
-}
-
-.table .table_time {
-    width: 64px;
-}
-
-.table .table_number {
-    width: 64px;
-}
-
-.table .table_status {
-    width: 56px;
-}
-
-.table td.table_time {
-    color: var(--base_color_neutral_5);
-    font-variant-numeric: tabular-nums;
-}
-
-.table .table_query {
+/* The data table of the queries has room for a few rows below the header of the panel */
+.panel_table {
+    height: 200px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    font-family: var(--font_family_mono, monospace);
-    font-size: 11px;
-}
-
-.table .table_number {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-
-.status_ok {
-    color: var(--base_color_green_5);
-}
-
-.status_failed {
-    color: var(--base_color_red_5);
-    font-variant-numeric: tabular-nums;
+    border-bottom-left-radius: var(--border_radius);
+    border-bottom-right-radius: var(--border_radius);
 }
 
 /* Metrics */
 
+/* The sections lay out their cards on a grid of 12 columns that share its width */
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 12px;
 }
 
-/* Five cards per row once they fit, the queries and details below span them */
-@container (min-width: 948px) {
-    .grid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+.grid > * {
+    grid-column: span 12;
+}
+
+/* The six query cards fill rows of 1, 2, 3 or 6 cards, the four engine cards rows of 1, 2 or 4 cards */
+@container (min-width: 372px) {
+    .grid > .card {
+        grid-column: span 6;
+    }
+}
+
+@container (min-width: 564px) {
+    .query_cards > .card {
+        grid-column: span 4;
+    }
+}
+
+@container (min-width: 1020px) {
+    .query_cards > .card {
+        grid-column: span 2;
+    }
+
+    .engine_cards > .card {
+        grid-column: span 3;
     }
 }
 
@@ -201,7 +152,7 @@
     gap: 4px;
     min-width: 0;
     padding: 6px 10px 6px 10px;
-    border: 1px solid var(--log_border_color);
+    border: 1px solid var(--border_color_primary);
     border-radius: var(--border_radius);
     background-color: white;
 }
@@ -226,10 +177,26 @@
 .card_value {
     flex-shrink: 0;
     margin-left: auto;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--base_color_neutral_9);
+}
+
+.card_aggregate {
+    margin-right: 3px;
+    font-weight: 400;
+    color: var(--base_color_neutral_5);
+}
+
+/* Words like p95 are smaller so they weigh as much as a single symbol like ⌀ */
+.card_aggregate_word {
+    font-size: 10px;
+}
+
+/* Capital letters like Σ fill the cap height, they are shrunk to the size of ⌀ */
+.card_aggregate_capital {
+    font-size: 9px;
 }
 
 .chart {

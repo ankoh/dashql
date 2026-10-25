@@ -563,6 +563,7 @@ describe('ComputationState', () => {
                         inputDataFrame,
                         inputTable: inputTable,
                         columnEntries: inputTableColumns,
+                        rowNumberFieldName: '_rownum',
                         tableAggregate: {
                             dataFrame: aggregateDataFrame,
                             table: aggregateTable,

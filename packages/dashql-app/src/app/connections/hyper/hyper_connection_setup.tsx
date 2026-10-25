@@ -24,8 +24,10 @@ import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_pr
 import { RESET_CONNECTION } from '../connection_state.js';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../../platform/database/embedded_database_provider.js';
 import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
-import type { HyperLogMetrics } from './hyper_log_metrics.js';
+import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
+import { HyperChannelDatabase } from './hyper_channel_database.js';
+import type { EmbeddedClientContext } from '../../../platform/database/embedded_database.js';
 
 const LOG_CTX = "hyper_setup";
 
@@ -38,7 +40,26 @@ function resolveClient(protocol: connection.HyperProtocol, grpcClient: HyperData
     return grpcClient;
 }
 
-export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, setupEmbeddedDatabase: EmbeddedDatabaseSetupFn, abortSignal: AbortSignal, logMetrics: HyperLogMetrics | null = null): Promise<HyperDatabaseChannel | null> {
+/// The context of the channels of a remote Hyper connection, whose queries have a client context.
+/// The direct gRPC Hyper connector never changes the headers it injects.
+function hyperConnectionContext(params: connection.HyperConnectionParams, clientContext: EmbeddedClientContext | null): HyperDatabaseConnectionContext {
+    return {
+        getAttachedDatabases(): pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabase[] {
+            return (params.attachedDatabases ?? []) as any;
+        },
+        async getRequestMetadata(): Promise<Record<string, string>> {
+            return params.metadata ?? {};
+        },
+        getQueryParameters(): Record<string, string> {
+            return params.queryParameters ?? {};
+        },
+        getClientContext(): EmbeddedClientContext | null {
+            return clientContext;
+        },
+    };
+}
+
+export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, setupEmbeddedDatabase: EmbeddedDatabaseSetupFn, abortSignal: AbortSignal, logMetrics: HyperLogMetrics | null = null, connectionId: string | null = null): Promise<HyperDatabaseChannel | null> {
     params = structuredClone(params);
     delete params.draftRows;
     let channel: HyperDatabaseChannel | null = null;
@@ -52,27 +73,21 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
 
         if (params.protocol === 'WASM') {
             const database = await setupEmbeddedDatabase('hyper_wasm_connector');
-            const embeddedConnection = await database.connect({ defaultDatabase: 'hyper' });
-            const sessionId = await logMetrics?.track(database, embeddedConnection) ?? null;
-            channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(embeddedConnection), sessionId);
+            // The Hyper log attributes the queries of the session to the connection by its client context
+            const embeddedConnection = await database.connect({
+                defaultDatabase: 'hyper',
+                clientContext: connectionId == null ? undefined : connectionClientContext(connectionId),
+            });
+            if (connectionId != null) logMetrics?.watch({ database, sessions: true }, connectionId);
+            channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(embeddedConnection));
         } else {
             const client = resolveClient(params.protocol, grpcClient, httpClient);
-
-            // Static connection context.
-            // The direct gRPC Hyper connector never changes the headers it injects.
-            const connectionContext: HyperDatabaseConnectionContext = {
-                getAttachedDatabases(): pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabase[] {
-                    return (params.attachedDatabases ?? []) as any;
-                },
-                async getRequestMetadata(): Promise<Record<string, string>> {
-                    return params.metadata ?? {};
-                },
-                getQueryParameters(): Record<string, string> {
-                    return params.queryParameters ?? {};
-                }
-            };
-
-            channel = await client.connect(params, connectionContext);
+            const connectParams = params;
+            // The Hyper log attributes the queries of the channel to the connection by its client context
+            channel = await client.connect(params, hyperConnectionContext(params, connectionId == null ? null : connectionClientContext(connectionId)));
+            // Every query of a remote channel runs in a session of its own
+            const database = new HyperChannelDatabase(clientContext => client.connect(connectParams, hyperConnectionContext(connectParams, clientContext)));
+            if (connectionId != null) logMetrics?.watch({ database, sessions: false }, connectionId);
         }
         abortSignal.throwIfAborted();
 
@@ -107,7 +122,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
     return channel;
 }
 export interface HyperSetupApi {
-    setup(dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null>
+    setup(dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abortSignal: AbortSignal, connectionId: string): Promise<HyperDatabaseChannel | null>
     reset(dispatch: Dispatch<HyperConnectorAction>): Promise<void>
 }
 
@@ -132,8 +147,8 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
         if (!connectorConfig) {
             return null;
         }
-        const setup = async (dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abort: AbortSignal) => {
-            return await setupHyperConnection(dispatch, logger, params, connectorConfig, grpcClient, httpClient, setupEmbeddedDatabase, abort, logMetrics);
+        const setup = async (dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abort: AbortSignal, connectionId: string) => {
+            return await setupHyperConnection(dispatch, logger, params, connectorConfig, grpcClient, httpClient, setupEmbeddedDatabase, abort, logMetrics, connectionId);
         };
         const reset = async (dispatch: Dispatch<HyperConnectorAction>) => {
             dispatch({

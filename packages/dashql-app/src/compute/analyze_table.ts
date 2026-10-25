@@ -6,7 +6,7 @@ import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, CREATED_DATA_FRAME, U
 import { ColumnAggregationTask, TableAggregationTask, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, ListGridColumnGroup, SystemColumnComputationTask, ROWNUMBER_COLUMN, ComputationStateVersion } from './computation_types.js';
 import { Dispatch, VariantKind } from '../utils/variant.js';
 import { LoggerLike, stringifyError } from '../platform/logger/logger.js';
-import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
+import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
 import { UmapRequest, projectWithUMAP } from './umap/umap_projection.js';
 import { extractEmbeddingMatrix } from './umap/umap_extraction.js';
 import { scheduleTask } from './computation_tasks.js';
@@ -16,6 +16,14 @@ const LOG_CTX = "compute";
 
 /// The number of bins of an ordinal column
 const BIN_COUNT = 16;
+
+/// Options of the analysis of a table
+export interface AnalyzeTableOptions {
+    /// The client context of the queries of a table without a connection, e.g. of the connection overview
+    clientContext?: EmbeddedClientContext | null;
+    /// Compute the aggregates of the columns, e.g. false for a table that shows no column plots
+    columnAggregates?: boolean;
+}
 
 /// Analyze a table.
 ///
@@ -50,7 +58,7 @@ const BIN_COUNT = 16;
 ///     The upside here is that the bin count is dictated by what we can show in the UI and is thus usually small.
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
-export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, database: EmbeddedComputeDatabase, logger: LoggerLike, projection?: UmapRequest, connectionId: string | null = null): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, database: EmbeddedComputeDatabase, logger: LoggerLike, projection?: UmapRequest, connectionId: string | null = null, options: AnalyzeTableOptions = {}): Promise<void> {
     // Statements such as DDL can legitimately produce an Arrow table without columns. There is
     // nothing to summarize, and embedded databases reject importing a zero-column table.
     if (table.numCols === 0) {
@@ -61,11 +69,12 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     const computeAbortCtrl = new AbortController();
     dispatch({
         type: COMPUTATION_FROM_QUERY_RESULT,
-        value: [tableId, table!, gridColumnGroups, computeAbortCtrl, connectionId]
+        value: [tableId, table!, gridColumnGroups, computeAbortCtrl, connectionId, options.clientContext ?? null]
     });
 
+    const [numberedTable, rowNumberFieldName] = appendRowNumbers(table);
     const inputTableName = generateTableName("__input");
-    let dataFrame = await DataFrame.fromArrowTable(database, table, inputTableName);
+    let dataFrame = await DataFrame.fromArrowTable(database, numberedTable, inputTableName, options.clientContext ?? null);
     dispatch({
         type: CREATED_DATA_FRAME,
         value: [tableId, dataFrame]
@@ -88,6 +97,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         columnEntries: gridColumnGroups,
         inputTable: table,
         inputDataFrame: dataFrame,
+        rowNumberFieldName,
         tableAggregate
     };
     let [newTable, newDataFrame, updatedColumnGroups] = await scheduleTask(SYSTEM_COLUMN_COMPUTATION_TASK, precomputationTask, dispatch);
@@ -105,7 +115,9 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         "rows": newTable.numRows.toString(),
         "columns": gridColumnGroups.length.toString(),
     }, LOG_CTX);
-    for (let columnId = 0; columnId < gridColumnGroups.length; ++columnId) {
+    // A table without column plots needs no column aggregates
+    const aggregatedColumns = options.columnAggregates === false ? 0 : gridColumnGroups.length;
+    for (let columnId = 0; columnId < aggregatedColumns; ++columnId) {
         // LIST columns (e.g. float32 embedding arrays) are not aggregated: their value
         // identifier / frequent-value / distinct-count computations are very expensive
         // (full-vector sort/hash) and buy nothing — no summary histogram is rendered for
@@ -300,7 +312,16 @@ async function computeUmapProjection(
     return [outputTable, outputDataFrame, updatedColumnGroups];
 }
 
-function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
+/// A table with the positions of its rows as an appended row-number column, from 1, and the name of the column.
+/// The row numbers are appended before the import into the embedded database because Hyper numbers the rows of
+/// row_number() OVER () in no particular order.
+export function appendRowNumbers(table: arrow.Table): [arrow.Table, string] {
+    const fieldName = createUniqueColumnName("_rownum", new Set(table.schema.fields.map(field => field.name)));
+    const rowNumbers = BigInt64Array.from({ length: table.numRows }, (_, i) => BigInt(i + 1));
+    return [table.assign(new arrow.Table({ [fieldName]: arrow.makeVector(rowNumbers) })), fieldName];
+}
+
+export function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
     const columnGroups: ColumnGroup[] = [];
     for (let i = 0; i < table.schema.fields.length; ++i) {
         const field = table.schema.fields[i];

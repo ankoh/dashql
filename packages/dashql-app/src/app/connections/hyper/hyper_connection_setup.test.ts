@@ -5,6 +5,7 @@ import { setupHyperConnection } from './hyper_connection_setup.js';
 import { HYPER_CHANNEL_READY } from './hyper_connection_state.js';
 import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from './hyperdb_grpc_client.js';
 import { TestLogger } from '../../../platform/logger/test_logger.js';
+import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 
 describe('Hyper connection setup', () => {
     it('publishes WASM setup parameters with the ready channel', async () => {
@@ -67,5 +68,44 @@ describe('Hyper connection setup', () => {
         expect(capturedContext).not.toBeNull();
         params.metadata!['ctx-tenant-id'] = 'edited-after-setup';
         expect(await capturedContext!.getRequestMetadata()).toEqual({ 'ctx-tenant-id': 'tenant-123' });
+        expect(capturedContext!.getClientContext?.()).toBeNull();
+    });
+
+    it('attributes the queries of a remote channel and monitors its log without sessions', async () => {
+        const contexts: HyperDatabaseConnectionContext[] = [];
+        const client: HyperDatabaseClient = {
+            connect: vi.fn(async (_params, context) => {
+                contexts.push(context);
+                return { close: vi.fn() } as unknown as HyperDatabaseChannel;
+            }),
+        };
+        const logMetrics = { watch: vi.fn() };
+        const params = {
+            protocol: 'V3_HTTP',
+            endpoint: 'https://hyper.example.com',
+            tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
+        } as connection.HyperConnectionParams;
+
+        await setupHyperConnection(
+            vi.fn(),
+            new TestLogger(),
+            params,
+            {},
+            null,
+            client,
+            vi.fn(),
+            new AbortController().signal,
+            logMetrics as unknown as HyperLogMetrics,
+            'connection-1',
+        );
+
+        expect(contexts.map(context => context.getClientContext?.())).toEqual([connectionClientContext('connection-1')]);
+        expect(logMetrics.watch).toHaveBeenCalledTimes(1);
+        const [origin, connectionId] = logMetrics.watch.mock.calls[0];
+        expect(connectionId).toBe('connection-1');
+        expect(origin.sessions).toBe(false);
+        // The monitor connects channels of its own, with its own client context
+        await origin.database.connect({ clientContext: { dashql: { connectionId: 'connection-1', queryType: 'monitor' } } });
+        expect(contexts[1].getClientContext?.()).toEqual({ dashql: { connectionId: 'connection-1', queryType: 'monitor' } });
     });
 });

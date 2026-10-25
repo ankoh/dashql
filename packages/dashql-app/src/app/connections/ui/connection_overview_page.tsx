@@ -6,14 +6,12 @@ import type { ConnectionState } from '../connection_state.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
 import { ConnectionMetricsDashboard } from './connection_metrics_dashboard.js';
-import { ConnectionOverviewDetails } from './connection_overview_details.js';
-import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
+import { ConnectionEngineFacts } from './connection_engine_facts.js';
 import * as styles from './connection_overview_page.module.css';
 
-/// Does a connection run its queries in the embedded Hyper, whose log the metrics are read from?
-function isEmbeddedHyperConnection(connection: ConnectionState): boolean {
-    const params = connection.params;
-    return 'hyper' in params && params.hyper.protocol === 'WASM';
+/// Does a connection run its queries in a Hyper, whose log the metrics are read from?
+function isHyperConnection(connection: ConnectionState): boolean {
+    return 'hyper' in connection.params;
 }
 
 interface Props {
@@ -47,17 +45,13 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
                         <span className={styles.title_separator}>/</span>
                         <span>Overview</span>
                     </h2>
-                    <span className={styles.status_pill} data-testid="connection-overview-status">
-                        <span className={styles.status_dot} style={{ backgroundColor: CONNECTION_HEALTH_COLORS[connection.connectionHealth ?? 0] }} />
-                        {CONNECTION_HEALTH_NAMES[connection.connectionHealth ?? 0]}
-                    </span>
                 </header>
                 <div>
-                    {isEmbeddedHyperConnection(connection)
-                        ? <ConnectionMetricsDashboard connectionId={connectionId} details={<ConnectionOverviewDetails connection={connection} />} />
+                    {isHyperConnection(connection)
+                        ? <ConnectionMetricsDashboard connectionId={connectionId} engine={<ConnectionEngineFacts connection={connection} />} />
                         : (
                             <p className={styles.unavailable} data-testid="connection-metrics-unavailable">
-                                Query metrics are available for embedded Hyper connections.
+                                Query metrics are available for Hyper connections.
                             </p>
                         )}
                 </div>

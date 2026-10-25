@@ -76,7 +76,7 @@ describe('V2 app state loader', () => {
             upsertSessionEntry: vi.fn(), removeSessionEntry: vi.fn(), reorderSessions: vi.fn(), deleteSessionFiles: vi.fn(),
             loadManifest: vi.fn(async () => ({ version: 1, sessions: [] }) as any), updateConnections: vi.fn(),
             loadConnectionFile: vi.fn(async (connectionId: string, fileName: string) => connectionFiles.get(`${connectionId}/${fileName}`) ?? null),
-            saveConnectionFile: vi.fn(), deleteConnectionFiles: vi.fn(),
+            saveConnectionFile: vi.fn(), createConnectionFolder: vi.fn(), deleteConnectionFiles: vi.fn(),
         };
     });
     const relationsFile = `${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`;

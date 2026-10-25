@@ -49,7 +49,7 @@ describe('initial Memory setup', () => {
 
     it('uses committed Memory params and never reconnects after disconnect or reselection', async () => {
         await render();
-        expect(setup.setup).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ protocol: 'WASM' }), expect.any(AbortSignal));
+        expect(setup.setup).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ protocol: 'WASM' }), expect.any(AbortSignal), 'memory');
         await render({ ...database, connectionHealth: ConnectionHealth.ONLINE });
         await render({ ...database, connectionHealth: ConnectionHealth.NOT_STARTED });
         await render(database, null);

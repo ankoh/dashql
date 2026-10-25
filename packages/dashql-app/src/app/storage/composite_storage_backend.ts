@@ -133,6 +133,9 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     saveConnectionFile(connectionId: string, fileName: string, text: string): Promise<void> {
         return this.opfs.saveConnectionFile(connectionId, fileName, text);
     }
+    createConnectionFolder(connectionId: string): Promise<void> {
+        return this.opfs.createConnectionFolder(connectionId);
+    }
     deleteConnectionFiles(connectionId: string): Promise<void> {
         return this.opfs.deleteConnectionFiles(connectionId);
     }

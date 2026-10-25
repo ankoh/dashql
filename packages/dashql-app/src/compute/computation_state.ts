@@ -5,6 +5,7 @@ import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, Tabl
 import { VariantKind } from '../utils/variant.js';
 import { CrossFilters } from './cross_filters.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
+import type { EmbeddedClientContext } from '../platform/database/embedded_database.js';
 import { COLUMN_AGGREGATION_TASK, DATA_SEARCH_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_types.js';
 import { parseDataSearchMatches } from './sql/query_result_search_sql.js';
 
@@ -17,6 +18,8 @@ export interface TableComputationState {
     /// The connection that ran the query of the table, its query history lists the computation queries.
     /// Null for a host without connections.
     connectionId: string | null;
+    /// The client context of the queries of a computation without a connection, e.g. of the connection overview
+    clientContext: EmbeddedClientContext | null;
     /// The tasks
     tasks: TableComputationTasks;
 
@@ -113,10 +116,11 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 }
 
 /// Create the table computation state
-export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController, connectionId: string | null = null): TableComputationState {
+export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController, connectionId: string | null = null, clientContext: EmbeddedClientContext | null = null): TableComputationState {
     return {
         tableId: computationId,
         connectionId,
+        clientContext,
         tasks: {
             filteringTask: null,
             orderingTask: null,
@@ -174,7 +178,7 @@ export type ComputationAction =
     | VariantKind<typeof UPDATE_SCHEDULER_TASK, [TaskVariant, Partial<TaskProgress>]>
     | VariantKind<typeof UNREGISTER_SCHEDULER_TASK, TaskVariant>
 
-    | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, ColumnGroup[], AbortController, (string | null)?]>
+    | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, ColumnGroup[], AbortController, (string | null)?, (EmbeddedClientContext | null)?]>
     | VariantKind<typeof DELETE_COMPUTATION, [number]>
     | VariantKind<typeof CREATED_DATA_FRAME, [number, DataFrame]>
 
@@ -228,12 +232,12 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
 
         case COMPUTATION_FROM_QUERY_RESULT: {
-            const [tableId, table, tableColumns, tableLifetime, connectionId] = action.value;
+            const [tableId, table, tableColumns, tableLifetime, connectionId, clientContext] = action.value;
             const previousTableState = state.tableComputations[tableId];
             if (previousTableState !== undefined) {
                 destroyTableComputationState(previousTableState, memory);
             }
-            const tableState = createTableComputationState(tableId, table, tableColumns, tableLifetime, connectionId ?? null);
+            const tableState = createTableComputationState(tableId, table, tableColumns, tableLifetime, connectionId ?? null, clientContext ?? null);
             return {
                 ...state,
                 tableComputations: {
@@ -979,6 +983,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                         columnEntries: sysTask.columnEntries,
                         inputTable: sysTask.inputTable,
                         inputDataFrame: sysTask.inputDataFrame,
+                        rowNumberFieldName: sysTask.rowNumberFieldName,
                         tableAggregate: sysTask.tableAggregate,
                         progress: {
                             ...tasks.systemColumnTask?.progress,

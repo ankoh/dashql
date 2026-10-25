@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 import { createTestHyperDBClient } from '../../../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBConnection } from '../hyperdb_wasm.js';
+import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBConnection, type HyperDBSettings } from '../hyperdb_wasm.js';
 import { HyperDBIncrementalExtract } from '../hyperdb_incremental_extract.js';
 import { HYPER_LOG_RESOURCE_METRICS_TABLE, HyperDBLogSource } from '../hyperdb_log_extract.js';
 
@@ -160,7 +160,7 @@ describe('HyperDB Wasm resource metrics', () => {
     let nextDatabase = 1;
 
     /// Start a separate Hyper with additional startup settings and run a test with it.
-    async function withHyper(settings: Record<string, unknown>, test: (database: HyperDB) => Promise<void>): Promise<void> {
+    async function withHyper(settings: HyperDBSettings, test: (database: HyperDB) => Promise<void>): Promise<void> {
         const client = await createTestHyperDBClient(undefined, settings);
         try {
             const database = await HyperDB.create(new HyperDBEngine(client), {
@@ -179,7 +179,7 @@ describe('HyperDB Wasm resource metrics', () => {
     }
 
     /// Wait for the first resource-metrics events of the recorders and infer their schema.
-    async function discoverSchema(settings: Record<string, unknown>): Promise<{
+    async function discoverSchema(settings: HyperDBSettings): Promise<{
         schema: Record<string, string>;
         trackers: string[];
         errors: unknown[];
@@ -253,6 +253,7 @@ describe('HyperDB Wasm resource metrics', () => {
                         { name: 'process_memory_mb', type: 'double precision' },
                         { name: 'total_memory_mb', type: 'double precision' },
                         { name: 'transaction_memory_mb', type: 'double precision' },
+                        { name: 'storage_memory_mb', type: 'double precision' },
                         { name: 'overall_load', type: 'double precision' },
                         { name: 'scheduler_load', type: 'double precision' },
                         { name: 'memory_load', type: 'double precision' },

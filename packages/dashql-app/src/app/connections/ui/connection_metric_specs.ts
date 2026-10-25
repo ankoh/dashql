@@ -9,10 +9,6 @@ export const WINDOW_END_SIGNAL = 'windowEnd';
 /// The dataset of the rows of a chart
 export const ROWS_DATASET = 'rows';
 
-/// The outcomes of queries, see QueryRow
-export const QUERY_SUCCEEDED = 'Succeeded';
-export const QUERY_FAILED = 'Failed';
-
 // The axis labels are compact for small charts and leave out the zero of the baseline
 
 /// An axis label of a duration in seconds, e.g. 850µs, 12ms, 1.2s
@@ -43,17 +39,6 @@ const TIME_X = {
     axis: { format: '%H:%M', tickCount: 3, labelPadding: 3, labelSeparation: 8 },
 } as const;
 
-const QUERY_TOOLTIP = [
-    { field: 'clock', title: 'Time' },
-    { field: 'outcome', title: 'Outcome' },
-    { field: 'elapsedText', title: 'Elapsed' },
-    { field: 'peakMemoryText', title: 'Peak memory' },
-    { field: 'processedRowsText', title: 'Rows processed' },
-    { field: 'cpuTimeText', title: 'CPU time' },
-    { field: 'waitTimeText', title: 'Wait time' },
-    { field: 'query', title: 'Query' },
-];
-
 /// The kind of a value of queries, it picks the axis labels
 export type QueryValueKind = 'duration' | 'count' | 'memory';
 
@@ -80,37 +65,37 @@ function hoverRule(colors: ChartColors, tooltip: object[]) {
     };
 }
 
-/// The mark of the queries in a query chart
-export type QueryMark = 'bar' | 'line';
+/// A field of a row in the tooltip of a chart
+export interface TooltipField {
+    /// The field of the row
+    field: string;
+    /// The title in the tooltip
+    title: string;
+}
 
-/// A value per finished query over time in a single color, e.g. its elapsed time or its processed rows.
-/// Bars draw a thin bar per query, lines connect the queries.
-export function queryChartSpec(colors: ChartColors, field: string, kind: QueryValueKind, mark: QueryMark): TopLevelSpec {
-    const y = {
-        field,
-        type: 'quantitative',
-        title: null,
-        axis: { ...Y_AXIS, labelExpr: QUERY_VALUE_LABELS[kind] },
-    };
-    const layers = mark === 'bar'
-        ? [{
-            data: { name: ROWS_DATASET },
-            mark: { type: 'bar', width: 3, clip: true },
-            encoding: { x: TIME_X, y },
-        }]
-        : [
-            {
-                data: { name: ROWS_DATASET },
-                mark: { type: 'area', opacity: 0.1, clip: true },
-                encoding: { x: TIME_X, y },
+/// A value per bucket of time as bars that span their bucket, with a tooltip of the bucket on its bar.
+/// The rows are `{ t0, t1, clock, ... }` with the bucket from t0 to t1 and its time of day as clock.
+/// A chart draws one bar per bucket, its marks do not grow with the queries of the window.
+export function bucketChartSpec(field: string, kind: QueryValueKind, tooltip: readonly TooltipField[]): TopLevelSpec {
+    return {
+        params: WINDOW_PARAMS,
+        data: { name: ROWS_DATASET },
+        // A gap of 1px between the bars
+        mark: { type: 'bar', clip: true, xOffset: 0.5, x2Offset: -0.5 },
+        encoding: {
+            x: { ...TIME_X, field: 't0' },
+            x2: { field: 't1' },
+            // The bars span a range of time, they need a range of values as well to not draw horizontally
+            y2: { datum: 0 },
+            y: {
+                field,
+                type: 'quantitative',
+                title: null,
+                axis: { ...Y_AXIS, labelExpr: QUERY_VALUE_LABELS[kind], ...(kind === 'count' ? { tickMinStep: 1 } : {}) },
             },
-            {
-                data: { name: ROWS_DATASET },
-                mark: { type: 'line', clip: true },
-                encoding: { x: TIME_X, y },
-            },
-        ];
-    return { params: WINDOW_PARAMS, layer: [...layers, hoverRule(colors, QUERY_TOOLTIP)] } as TopLevelSpec;
+            tooltip: [{ field: 'clock', title: 'Time' }, ...tooltip],
+        },
+    } as TopLevelSpec;
 }
 
 /// The kind of the values of a series chart, it picks the axis labels and the tooltip format

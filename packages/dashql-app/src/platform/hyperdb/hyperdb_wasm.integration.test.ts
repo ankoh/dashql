@@ -8,7 +8,7 @@ import { setupWebHyperDB } from './hyperdb_provider_web.js';
 import { createTestHyperDBClient } from '../../tests/hyperdb_test_client.js';
 import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from './hyperdb_opfs_instance.js';
 import { TestLogger } from '../logger/test_logger.js';
-import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult } from './hyperdb_wasm.js';
+import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from './hyperdb_parquet_export.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
@@ -37,13 +37,13 @@ class CountingClient implements HyperDBClient {
         return this.client.ready();
     }
 
-    initialize(settings: string): Promise<HyperDBResult> {
+    initialize(settings: HyperDBSettings): Promise<HyperDBResult> {
         return this.client.initialize(settings);
     }
 
-    connect(): Promise<HyperDBResult> {
+    connect(settings?: Record<string, string>): Promise<HyperDBResult> {
         this.connectCount++;
-        return this.client.connect();
+        return this.client.connect(settings);
     }
 
     disconnect(connection: number): Promise<HyperDBResult> {

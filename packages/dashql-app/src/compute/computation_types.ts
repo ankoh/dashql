@@ -173,6 +173,8 @@ export interface SystemColumnComputationTask {
     inputTable: arrow.Table;
     /// The input data frame
     inputDataFrame: DataFrame;
+    /// The column of the input data frame with the row numbers of the input table, from 1
+    rowNumberFieldName: string;
     /// The stats table
     tableAggregate: TableAggregation;
 }

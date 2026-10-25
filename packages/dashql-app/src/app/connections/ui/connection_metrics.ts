@@ -6,13 +6,19 @@ export interface MetricsWindow {
     key: string;
     /// The duration of the window in milliseconds
     durationMs: number;
+    /// The duration of a bucket of the charts in milliseconds, 60 buckets per window.
+    /// A chart draws a bucket and not every query or sample, its marks do not grow with the queries.
+    bucketMs: number;
+    /// The time before the end of a bucket whose queries its p95 latency covers, 12 buckets.
+    /// A bucket alone holds too few queries for a p95, its p95 would mostly be its slowest query.
+    p95WindowMs: number;
 }
 
 /// The time windows that the metrics can show
 export const METRICS_WINDOWS: readonly MetricsWindow[] = [
-    { key: '5m', durationMs: 5 * 60_000 },
-    { key: '15m', durationMs: 15 * 60_000 },
-    { key: '1h', durationMs: 60 * 60_000 },
+    { key: '5m', durationMs: 5 * 60_000, bucketMs: 5_000, p95WindowMs: 60_000 },
+    { key: '15m', durationMs: 15 * 60_000, bucketMs: 15_000, p95WindowMs: 3 * 60_000 },
+    { key: '1h', durationMs: 60 * 60_000, bucketMs: 60_000, p95WindowMs: 12 * 60_000 },
 ];
 
 /// A time range in milliseconds since the epoch.
@@ -28,19 +34,19 @@ export enum QueryScope {
     /// The queries of the user, e.g. of scripts
     User = 'user',
     /// The queries that the app runs, e.g. the SQLFrame queries of computations
-    System = 'system',
+    App = 'app',
     /// All queries
     All = 'all',
 }
 
 /// The query scopes in the order of the picker
-export const QUERY_SCOPES: readonly QueryScope[] = [QueryScope.User, QueryScope.System, QueryScope.All];
+export const QUERY_SCOPES: readonly QueryScope[] = [QueryScope.User, QueryScope.App, QueryScope.All];
 
 /// The queries of a scope, keeps the array of all queries
 export function queriesInScope(queries: readonly HyperQueryEnd[], scope: QueryScope): readonly HyperQueryEnd[] {
     switch (scope) {
-        case QueryScope.User: return queries.filter(query => !query.system);
-        case QueryScope.System: return queries.filter(query => query.system);
+        case QueryScope.User: return queries.filter(query => !query.sentByApp);
+        case QueryScope.App: return queries.filter(query => query.sentByApp);
         case QueryScope.All: return queries;
     }
 }
@@ -57,13 +63,13 @@ export interface QueryMetrics extends TimeRange {
     threadTime: number;
     /// The rows that the queries processed
     processedRows: number;
-    /// The CPU time of the queries in seconds
-    cpuTime: number;
-    /// The time that the queries waited in seconds
-    waitTime: number;
+    /// The mean CPU time of a query in seconds, null without queries
+    meanCpuTime: number | null;
+    /// The mean time that a query waited in seconds, null without queries
+    meanWaitTime: number | null;
     /// The highest peak memory of the queries in MB, null without a recorded peak
     peakMemoryMb: number | null;
-    /// The 95th percentile of the elapsed times in seconds, null without queries
+    /// The 95th percentile of the elapsed times in seconds, null without a recorded one
     elapsedP95: number | null;
 }
 
@@ -81,6 +87,9 @@ export function percentile(values: number[], p: number): number | null {
     const sorted = [...values].sort((l, r) => l - r);
     return sorted[Math.max(Math.ceil(p * sorted.length) - 1, 0)];
 }
+
+/// The recorded elapsed times of queries
+const elapsedTimes = (queries: readonly HyperQueryEnd[]) => queries.flatMap(query => query.elapsed == null ? [] : [query.elapsed]);
 
 function maxOrNull(values: (number | null)[]): number | null {
     let max: number | null = null;
@@ -127,10 +136,10 @@ export function computeQueryMetrics(queries: readonly HyperQueryEnd[], window: M
         failed: inWindow.length - succeeded,
         threadTime,
         processedRows,
-        cpuTime,
-        waitTime,
+        meanCpuTime: inWindow.length === 0 ? null : cpuTime / inWindow.length,
+        meanWaitTime: inWindow.length === 0 ? null : waitTime / inWindow.length,
         peakMemoryMb: maxOrNull(inWindow.map(query => query.peakMemoryMb)),
-        elapsedP95: percentile(inWindow.flatMap(query => query.elapsed == null ? [] : [query.elapsed]), 0.95),
+        elapsedP95: percentile(elapsedTimes(inWindow), 0.95),
     };
 }
 
@@ -141,49 +150,132 @@ export function computeResourceMetrics(samples: readonly HyperResourceSample[], 
     return { ...range, samples: inWindow, latest: inWindow.length > 0 ? inWindow[inWindow.length - 1] : null };
 }
 
-/// The finished queries of one shape, e.g. the runs of a query with different literals
-export interface QueryGroup {
-    /// The shape of the queries, or the query text when Hyper logged no hash
-    shape: string;
-    /// The text of the newest query
-    query: string | null;
-    /// The runs
+/// The queries that ended in a bucket of time
+export interface QueryBucket {
+    /// The start of the bucket in milliseconds since the epoch
+    start: number;
+    /// The end of the bucket, exclusive
+    end: number;
+    /// The queries that ended in the bucket
     count: number;
-    /// The runs that failed
+    /// The queries that failed
     failed: number;
-    /// The elapsed time of all runs in seconds
-    totalElapsed: number;
-    /// The mean elapsed time of a run in seconds
-    meanElapsed: number;
-    /// The CPU time of all runs in seconds
-    cpuTime: number;
-    /// The rows that all runs processed
+    /// The 95th percentile of the elapsed times of the queries that ended in the p95 window before the end of the
+    /// bucket, see MetricsWindow, null without a recorded one
+    elapsedP95: number | null;
+    /// The rows that the queries processed
     processedRows: number;
-    /// The highest peak memory of a run in MB
+    /// The mean CPU time of a query in seconds
+    meanCpuTime: number;
+    /// The mean time that a query waited in seconds
+    meanWaitTime: number;
+    /// The highest peak memory in MB, null without a recorded one
     peakMemoryMb: number | null;
 }
 
-/// Group the queries by their shape, the groups with the most elapsed time first
-export function groupQueries(queries: readonly HyperQueryEnd[]): QueryGroup[] {
-    const groups = new Map<string, QueryGroup>();
-    for (const query of queries) {
-        const shape = query.queryShape ?? `text:${query.query ?? ''}`;
-        let group = groups.get(shape);
-        if (group == null) {
-            group = { shape, query: null, count: 0, failed: 0, totalElapsed: 0, meanElapsed: 0, cpuTime: 0, processedRows: 0, peakMemoryMb: null };
-            groups.set(shape, group);
+/// Iterate the buckets of items that are ordered by time, aligned to multiples of their duration
+function forEachBucket<T>(items: readonly T[], time: (item: T) => number, bucketMs: number, visit: (start: number, items: T[]) => void): void {
+    let start: number | null = null;
+    let bucket: T[] = [];
+    for (const item of items) {
+        const itemStart = Math.floor(time(item) / bucketMs) * bucketMs;
+        if (itemStart !== start) {
+            if (start != null) visit(start, bucket);
+            start = itemStart;
+            bucket = [];
         }
-        // The queries are ordered by their end, the last one is the newest
-        group.query = query.query ?? group.query;
-        group.count += 1;
-        group.failed += query.succeeded ? 0 : 1;
-        group.totalElapsed += query.elapsed ?? 0;
-        group.cpuTime += query.cpuTime;
-        group.processedRows += query.processedRows;
-        group.peakMemoryMb = maxOrNull([group.peakMemoryMb, query.peakMemoryMb]);
+        bucket.push(item);
     }
-    for (const group of groups.values()) group.meanElapsed = group.totalElapsed / group.count;
-    return [...groups.values()].sort((l, r) => r.totalElapsed - l.totalElapsed);
+    if (start != null) visit(start, bucket);
+}
+
+/// Aggregate the queries of a window per bucket, the buckets are aligned to multiples of their duration and empty ones
+/// are left out. The p95 of a bucket covers the queries of the history in the p95 window before its end, also those
+/// before the window. The queries and the history, e.g. all queries of a scope, are ordered by their end.
+/// The cache keeps the p95 of the p95 windows of the last call: the history only grows at its end, a later call only
+/// computes the p95 of the windows whose queries changed, e.g. of the newest bucket.
+export function bucketQueries(
+    queries: readonly HyperQueryEnd[],
+    window: MetricsWindow,
+    history: readonly HyperQueryEnd[],
+    cache: Map<string, number | null> = new Map(),
+): QueryBucket[] {
+    const used = new Map<string, number | null>();
+    /// The p95 of history[from, to), identified by its bounds, its first and last query and its size
+    const p95 = (end: number, from: number, to: number) => {
+        const key = from === to ? `${end}` : `${end}:${history[from].endedAt}:${history[to - 1].endedAt}:${to - from}`;
+        const value = cache.has(key) ? cache.get(key)! : percentile(elapsedTimes(history.slice(from, to)), 0.95);
+        used.set(key, value);
+        return value;
+    };
+    const { bucketMs, p95WindowMs } = window;
+    const buckets: QueryBucket[] = [];
+    // The queries in the p95 window of the current bucket are history[from, to)
+    let from = 0;
+    let to = 0;
+    forEachBucket(queries, query => query.endedAt, bucketMs, (start, inBucket) => {
+        const end = start + bucketMs;
+        while (from < history.length && history[from].endedAt < end - p95WindowMs) ++from;
+        to = Math.max(to, from);
+        while (to < history.length && history[to].endedAt < end) ++to;
+        const bucket: QueryBucket = {
+            start,
+            end,
+            count: inBucket.length,
+            failed: 0,
+            elapsedP95: p95(end, from, to),
+            processedRows: 0,
+            meanCpuTime: 0,
+            meanWaitTime: 0,
+            peakMemoryMb: maxOrNull(inBucket.map(query => query.peakMemoryMb)),
+        };
+        for (const query of inBucket) {
+            bucket.failed += query.succeeded ? 0 : 1;
+            bucket.processedRows += query.processedRows;
+            bucket.meanCpuTime += query.cpuTime / inBucket.length;
+            bucket.meanWaitTime += query.waitTime / inBucket.length;
+        }
+        buckets.push(bucket);
+    });
+    cache.clear();
+    for (const [key, value] of used) cache.set(key, value);
+    return buckets;
+}
+
+/// A value of the resource samples in a bucket of time
+export interface SampleBucket {
+    /// The start of the bucket in milliseconds since the epoch
+    start: number;
+    /// The end of the bucket, exclusive
+    end: number;
+    /// The value of the bucket
+    value: number;
+}
+
+/// How a bucket combines the values of its samples
+export type SampleAggregate = 'max' | 'mean';
+
+/// Aggregate a value of the resource samples per bucket, the buckets without a recorded value are left out.
+/// The samples are ordered by time.
+export function bucketSamples(
+    samples: readonly HyperResourceSample[],
+    bucketMs: number,
+    value: (sample: HyperResourceSample) => number | null,
+    aggregate: SampleAggregate,
+): SampleBucket[] {
+    const buckets: SampleBucket[] = [];
+    forEachBucket(samples, sample => sample.sampledAt, bucketMs, (start, inBucket) => {
+        const values = inBucket.flatMap(sample => {
+            const v = value(sample);
+            return v == null ? [] : [v];
+        });
+        if (values.length === 0) return;
+        const combined = aggregate === 'max'
+            ? Math.max(...values)
+            : values.reduce((sum, v) => sum + v, 0) / values.length;
+        buckets.push({ start, end: start + bucketMs, value: combined });
+    });
+    return buckets;
 }
 
 /// Format a duration in seconds, e.g. 850 µs, 12.3 ms, 1.24 s, 2m 03s

@@ -18,9 +18,10 @@ export function SessionComputeQueryExecutionProvider(props: React.PropsWithChild
     const computations = useComputationStore();
     const dispatch = useConnectionDispatch();
     const createExecution = React.useCallback((task: TaskVariant) => {
-        const connectionId = computations.current.tableComputations[task.value.tableId]?.connectionId ?? null;
+        const computation = computations.current.tableComputations[task.value.tableId];
+        const connectionId = computation?.connectionId ?? null;
         const execution: ComputeQueryExecution = (query, execute) => {
-            if (connectionId == null) return execute(null);
+            if (connectionId == null) return execute(computation?.clientContext ?? null);
             return executeTrackedQuery({
                 query,
                 tracker: { dispatch: action => dispatch(connectionId, action) },

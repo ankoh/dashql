@@ -7,12 +7,13 @@ import {
     HyperDBIncrementalExtract,
     type HyperDBIncrementalExtractOptions,
     type HyperDBIncrementalExtractSource,
+    type HyperDBSourceDatabase,
 } from '../hyperdb_incremental_extract.js';
 import {
     HYPER_LOG_EVENTS_TABLE,
-    HYPER_LOG_MONITOR_SESSION_KEY,
     HYPER_LOG_QUERY_ENDS_TABLE,
     HyperDBLogSource,
+    hyperLogQueryEndsTable,
 } from '../hyperdb_log_extract.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
@@ -50,7 +51,7 @@ async function readNumber(connection: HyperDBConnection, sql: string): Promise<n
     return Number(result.getChild(result.schema.fields[0].name)?.get(0) ?? 0);
 }
 
-/// Count the user errors since the last log scope reset of the connection.
+/// Count the user errors in the log scope of the connection, since it was connected.
 async function countScopeUserErrors(connection: HyperDBConnection, currentSession = false): Promise<number> {
     return await readNumber(connection, `
         SELECT count(*) AS n
@@ -187,32 +188,6 @@ describe('HyperDB Wasm log extract', () => {
         }
     });
 
-    it('advances the log scope per connection', async () => {
-        const first = await database!.connect();
-        const second = await database!.connect();
-        const worker = await database!.connect();
-        const tag = uniqueTag('scope');
-        try {
-            await first.execute('RESET hyper_log_scope_start');
-            await second.execute('RESET hyper_log_scope_start');
-            await failQueries(worker, `${tag}_a`, 2);
-            await second.execute('RESET hyper_log_scope_start');
-            await failQueries(worker, `${tag}_b`, 1);
-
-            expect(await countScopeUserErrors(first)).toBe(3);
-            expect(await countScopeUserErrors(second)).toBe(1);
-            // The scope of the monitor's own session contains none of the worker's errors.
-            expect(await countScopeUserErrors(first, true)).toBe(0);
-
-            await first.execute('RESET hyper_log_scope_start');
-            expect(await countScopeUserErrors(first)).toBe(0);
-        } finally {
-            await worker.close();
-            await second.close();
-            await first.close();
-        }
-    });
-
     it('starts the log scope of a new connection at its creation', async () => {
         const worker = await database!.connect();
         const tag = uniqueTag('fresh');
@@ -340,6 +315,10 @@ describe('HyperDB Wasm log extract', () => {
             .rejects.toThrow(/column name __row of the extract table internal is reserved/);
         await expect(openExtract({ tables: [{ name: 'limited', query: 'SELECT ts FROM log', maxRows: 0 }] }))
             .rejects.toThrow(/row limit of the extract table limited must be a positive integer/);
+        await expect(openExtract({ tables: [{ name: 'aged', query: 'SELECT ts FROM log', maxAgeMs: 0 }] }))
+            .rejects.toThrow(/age limit of the extract table aged must be positive/);
+        await expect(openExtract({ tables: [{ name: 'timeless', query: 'SELECT k FROM log', maxAgeMs: 1_000 }] }))
+            .rejects.toThrow(/extract table timeless needs the watermark column ts for its age limit/);
         extract = null;
     }, 60_000);
 
@@ -469,14 +448,138 @@ describe('HyperDB Wasm log extract', () => {
                     SELECT count(*) AS n FROM (SELECT * FROM ${table} GROUP BY ALL HAVING count(*) > 1) duplicates
                 `)).toBe(0);
             }
-            // The monitor sessions of all four connections are recorded, and none of their events are extracted.
-            const monitors = `
-                SELECT value FROM ${READER_ALIAS}.public.__state WHERE key = '${HYPER_LOG_MONITOR_SESSION_KEY}'
-            `;
-            expect(await readNumber(connection, `SELECT count(*) AS n FROM (${monitors}) m`)).toBe(4);
+        } finally {
+            await worker.close();
+        }
+    }, 60_000);
+
+    it('extracts its own reads once', async () => {
+        await openExtract();
+        const connection = await openReader();
+        // Every read is logged after its scan, the next reader reads it with the next poll
+        for (let i = 0; i < 4; ++i) await extract!.poll();
+        const reads = await readNumber(connection, `
+            SELECT count(*) AS n FROM ${QUERY_ENDS} WHERE query LIKE '%last_log_scope := true%' AND statement = 'SELECT'
+        `);
+        expect(reads).toBeGreaterThanOrEqual(3);
+        expect(await readNumber(connection, `
+            SELECT count(*) AS n FROM (SELECT * FROM ${EVENTS} GROUP BY ALL HAVING count(*) > 1) duplicates
+        `)).toBe(0);
+    }, 60_000);
+
+    it('extracts the events during a poll with the next poll', async () => {
+        const worker = await database!.connect();
+        const tag = uniqueTag('handover');
+        let armed = false;
+        let reads = 0;
+        // Log an event right after the scan of every read, before the poll replaces its reader
+        const sourceDatabase: HyperDBSourceDatabase = {
+            connect: async options => {
+                const connection = await database!.connect(options);
+                return {
+                    query: async (sql, abort) => {
+                        const result = await connection.query(sql, abort);
+                        if (armed && sql.includes('last_log_scope := true')) await failQueries(worker, `${tag}_${reads++}`, 1);
+                        return result;
+                    },
+                    execute: (statement, abort) => connection.execute(statement, abort),
+                    close: () => connection.close(),
+                };
+            },
+        };
+        try {
+            await openExtract({ sourceDatabase });
+            armed = true;
+            for (let i = 0; i < 3; ++i) await extract!.poll();
+            const connection = await openReader();
+            expect(reads).toBe(3);
+            expect(await countUserErrors(connection, `${tag}_0`)).toBe(1);
+            expect(await countUserErrors(connection, `${tag}_1`)).toBe(1);
+        } finally {
+            await worker.close();
+        }
+    }, 60_000);
+
+    it('extracts every event from the watermark without sessions', async () => {
+        const worker = await database!.connect();
+        const tag = uniqueTag('sessionless');
+        try {
+            await openExtract({ source: new HyperDBLogSource(undefined, false) });
+            await failQueries(worker, `${tag}_a`, 2);
+            await extract!.poll();
+            await failQueries(worker, `${tag}_b`, 1);
+            await extract!.poll();
+            await extract!.poll();
+            const connection = await openReader();
+            expect(await countUserErrors(connection, `${tag}_a`)).toBe(2);
+            expect(await countUserErrors(connection, `${tag}_b`)).toBe(1);
             expect(await readNumber(connection, `
-                SELECT count(*) AS n FROM ${EVENTS} WHERE sess IN (${monitors})
+                SELECT count(*) AS n FROM (SELECT * FROM ${EVENTS} GROUP BY ALL HAVING count(*) > 1) duplicates
             `)).toBe(0);
+        } finally {
+            await worker.close();
+        }
+    }, 60_000);
+
+    it('reads the clock offset of the log', async () => {
+        const offset = -new Date().getTimezoneOffset() * 60_000;
+        for (const scoped of [true, false]) {
+            const connection = await database!.connect();
+            try {
+                expect(await new HyperDBLogSource(undefined, scoped).readClockOffset(connection)).toBe(offset);
+            } finally {
+                await connection.close();
+            }
+        }
+    }, 60_000);
+
+    it('attributes the queries of its connections by their client context', async () => {
+        const worker = await database!.connect();
+        const tag = uniqueTag('context');
+        try {
+            await openExtract({
+                tables: [hyperLogQueryEndsTable([{ name: 'client_role', path: ['role'] }]), HYPER_LOG_EVENTS_TABLE],
+                clientContext: { role: 'monitor' },
+            });
+            await succeedQueries(worker, tag, 1);
+            for (let i = 0; i < 2; ++i) await extract!.poll();
+            const connection = await openReader();
+            expect(await readNumber(connection, `
+                SELECT count(*) AS n FROM ${QUERY_ENDS} WHERE query LIKE '%${tag}%' AND client_role IS NULL
+            `)).toBe(1);
+            // The sink is another Hyper, the source log only holds the reads of the readers
+            expect(await readNumber(connection, `
+                SELECT count(*) AS n FROM ${QUERY_ENDS} WHERE query LIKE '%last_log_scope := true%' AND client_role = 'monitor'
+            `)).toBeGreaterThanOrEqual(1);
+        } finally {
+            await worker.close();
+        }
+    }, 60_000);
+
+    it('names the tables of an extract file by its alias', async () => {
+        await openExtract({ databaseAlias: 'monitoring' });
+        expect(extract!.tableName('query_ends')).toBe('"monitoring"."public"."query_ends"');
+        const connection = await openReader();
+        expect(await readNumber(connection, `SELECT count(*) AS n FROM ${QUERY_ENDS}`)).toBeGreaterThanOrEqual(0);
+    }, 60_000);
+
+    it('extracts into a schema of the compute database of the sink', async () => {
+        const worker = await database!.connect();
+        const tag = uniqueTag('compute');
+        try {
+            await openExtract({ databasePath: undefined, schema: 'hyper_log' });
+            expect(extract!.tableName('query_ends')).toBe('"__dashql_compute"."hyper_log"."query_ends"');
+            await failQueries(worker, tag, 2);
+            await extract!.poll();
+            // A compute connection of the sink reads the extract without attaching it
+            const compute = await sinkDatabase!.connect({ pooled: true });
+            try {
+                expect(await readNumber(compute, `
+                    SELECT count(*) AS n FROM hyper_log.query_ends WHERE outcome = 'query-end-user-error' AND query LIKE '%${tag}%'
+                `)).toBe(2);
+            } finally {
+                await compute.close();
+            }
         } finally {
             await worker.close();
         }
@@ -486,9 +589,11 @@ describe('HyperDB Wasm log extract', () => {
         const worker = await database!.connect();
         const tag = uniqueTag('timer');
         const errors: unknown[] = [];
+        let transfers = 0;
         try {
             await openExtract({
                 intervalMs: 50,
+                onTransfer: () => { ++transfers; },
                 onError: error => errors.push(error),
             });
             const connection = await openReader();
@@ -503,6 +608,7 @@ describe('HyperDB Wasm log extract', () => {
             await extract!.stop();
             extract = null;
             expect(errors).toEqual([]);
+            expect(transfers).toBeGreaterThan(0);
 
             const rows = await readNumber(connection, `SELECT count(*) AS n FROM ${EVENTS}`);
             await failQueries(worker, `${tag}_late`, 1);
@@ -510,6 +616,40 @@ describe('HyperDB Wasm log extract', () => {
             expect(await readNumber(connection, `SELECT count(*) AS n FROM ${EVENTS}`)).toBe(rows);
         } finally {
             await worker.close();
+        }
+    }, 60_000);
+
+    it('keeps the rows of an age before the newest row', async () => {
+        const writer = await database!.connect();
+        const sourceTable = uniqueTag('aged');
+        try {
+            await writer.execute(`CREATE TABLE ${sourceTable} (ts TIMESTAMP, id INTEGER)`);
+            await writer.execute(`INSERT INTO ${sourceTable} VALUES
+                ('2026-10-23 10:00:00', 1), ('2026-10-23 10:00:01', 2), ('2026-10-23 10:00:02', 3)`);
+            const source: HyperDBIncrementalExtractSource = {
+                relation: 'changes',
+                columns: [{ name: 'ts', type: 'TIMESTAMP' }, { name: 'id', type: 'INTEGER' }],
+                watermarkColumn: 'ts',
+                backfillQuery: since => `SELECT ts, id FROM ${sourceTable}${since == null ? '' : ` WHERE ${since}`}`,
+            };
+            extract = await HyperDBIncrementalExtract.open({
+                sourceDatabase: database!,
+                source,
+                sink: sinkDatabase!,
+                databasePath: extractPath,
+                tables: [{ name: 'recent', query: 'SELECT ts, id FROM changes', maxAgeMs: 1_500 }],
+                backfillOverlapMs: 1_000,
+            });
+            // The rows older than 1.5s before 10:00:02 are deleted
+            expect(extract.backfill.deleted).toEqual({ recent: 1 });
+            await writer.execute(`INSERT INTO ${sourceTable} VALUES ('2026-10-23 10:00:04', 4)`);
+            expect((await extract.poll()).deleted).toEqual({ recent: 2 });
+
+            const connection = await openReader();
+            expect(toPlainObjects(await connection.query(`SELECT id FROM ${READER_ALIAS}.public.recent ORDER BY id`)))
+                .toEqual([{ id: 4 }]);
+        } finally {
+            await writer.close();
         }
     }, 60_000);
 
