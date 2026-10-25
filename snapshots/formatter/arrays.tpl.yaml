@@ -1,0 +1,55 @@
+formatter-snapshots:
+  # Array constructors
+  - name: array_constructor
+    input: SELECT ARRAY[1,2,3],ARRAY['a','b'],ARRAY[1+2,a*2],ARRAY[]::INT[] FROM t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # Array constructors from subqueries
+  - name: array_subquery
+    input: SELECT ARRAY(SELECT a FROM t ORDER BY a),ARRAY(SELECT 1)
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # Arrays in quantified comparisons, operators and subscripts
+  - name: array_operators
+    input: SELECT a=ANY(ARRAY[21,23,20]),a<>ALL(ARRAY[1]),ARRAY[1,2]||ARRAY[3],(ARRAY[1,2,3])[2] FROM t WHERE a=ANY(ARRAY[1,a+1])
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # Long arrays break like function arguments
+  - name: array_long
+    input: SELECT ARRAY[first_value_column,second_value_column,third_value_column,fourth_value_column,fifth_value_column,sixth_value_column] FROM wide
+    dialects:
+      hyper:
+        validation:
+          setup: create table wide(first_value_column int, second_value_column int, third_value_column int, fourth_value_column int, fifth_value_column int, sixth_value_column int);
+
+  # Long array subqueries break inside the parentheses
+  - name: array_subquery_long
+    input: SELECT ARRAY(SELECT first_value_column FROM wide WHERE second_value_column > 0 AND third_value_column < 10 ORDER BY first_value_column) FROM wide
+    dialects:
+      hyper:
+        validation:
+          setup: create table wide(first_value_column int, second_value_column int, third_value_column int);
+
+  # A Postgres catalog query with an array in a case expression
+  - name: array_catalog_query
+    input: |-
+      SELECT a.attname,
+        CASE
+          WHEN a.atttypid = ANY (ARRAY[21, 23, 20]) THEN a.atttypmod - 4
+          WHEN a.atttypid = 1700 THEN ((a.atttypmod - 4) >> 16) & 65535
+          ELSE NULL
+        END AS numeric_precision
+      FROM pg_catalog.pg_attribute a
+      WHERE a.attnum > 0 AND NOT a.attisdropped
+    dialects:
+      hyper:
+        validation: {}

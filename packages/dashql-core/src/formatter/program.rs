@@ -63,6 +63,7 @@ pub enum FormattingOpCode {
     Join,
     Indent,
     Parenthesis,
+    Brackets,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -85,7 +86,7 @@ pub struct FormattingOperation<'a> {
     pub text: &'a str,
     /// Verbatim text keeps its case when keywords are upper-cased
     pub verbatim: bool,
-    /// The child documents of a concat, join, indent or parenthesis operation
+    /// The child documents of a concat, join, indent, parenthesis or brackets operation
     pub children: Vec<FmtReg>,
     /// The separator between join children when rendered inline
     pub inline_separator: FmtReg,
@@ -221,6 +222,13 @@ impl<'a> FormattingProgram<'a> {
         })
     }
 
+    pub fn bracketed(&self, child: FmtReg) -> FmtReg {
+        if child == 0 {
+            return self.empty();
+        }
+        self.push(FormattingOperation { code: FormattingOpCode::Brackets, children: vec![child], ..Default::default() })
+    }
+
     /// Join documents with separators, skipping empty ones.
     ///
     /// Without a policy, joins break all or none in pretty mode and on overflow otherwise.
@@ -281,8 +289,10 @@ fn remaining_inline_width(max_width: usize, current_line_width: usize) -> isize 
 enum RendererOpCode {
     Format,
     JoinNextBreakOnOverflow,
-    CloseParenthesis,
-    CloseParenthesisAfterBreak,
+    /// Close a parenthesis or brackets on the same line
+    Close(char),
+    /// Close a parenthesis or brackets on a new line
+    CloseAfterBreak(char),
 }
 
 /// A pending document of an inline dry run
@@ -382,7 +392,7 @@ fn dry_run_inline(
                     });
                 }
             }
-            FormattingOpCode::Parenthesis => {
+            FormattingOpCode::Parenthesis | FormattingOpCode::Brackets => {
                 remaining -= 2;
                 if !doc.children.is_empty() {
                     stack.push(InlineRenderCommand { doc: get_only_child(doc), indentation: command.indentation });
@@ -486,14 +496,14 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
     let mut stack = vec![RenderCommand::format(root, 0)];
     while let Some(command) = stack.pop() {
         match command.kind {
-            RendererOpCode::CloseParenthesis => {
-                output.push(')');
+            RendererOpCode::Close(close) => {
+                output.push(close);
                 current_line_width += 1;
                 continue;
             }
-            RendererOpCode::CloseParenthesisAfterBreak => {
+            RendererOpCode::CloseAfterBreak(close) => {
                 append_line_break(&mut output, &mut current_line_width, command.indentation, options.debug_mode);
-                output.push(')');
+                output.push(close);
                 current_line_width += 1;
                 continue;
             }
@@ -596,7 +606,8 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                     ));
                 }
             }
-            FormattingOpCode::Parenthesis => {
+            FormattingOpCode::Parenthesis | FormattingOpCode::Brackets => {
+                let (open, close) = if doc.code == FormattingOpCode::Brackets { ('[', ']') } else { ('(', ')') };
                 let render_flat = force_inline
                     || parenthesis_fits_inline(
                         remaining_inline_width(options.max_width, current_line_width),
@@ -605,10 +616,10 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                         program,
                         options,
                     );
-                output.push('(');
+                output.push(open);
                 current_line_width += 1;
                 let close = if render_flat {
-                    RendererOpCode::CloseParenthesis
+                    RendererOpCode::Close(close)
                 } else {
                     append_line_break(
                         &mut output,
@@ -616,7 +627,7 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                         command.indentation + options.indentation_width,
                         options.debug_mode,
                     );
-                    RendererOpCode::CloseParenthesisAfterBreak
+                    RendererOpCode::CloseAfterBreak(close)
                 };
                 stack.push(RenderCommand { kind: close, reg: 0, indentation: command.indentation, next_index: 0 });
                 if !doc.children.is_empty() {

@@ -93,23 +93,23 @@ formatter-snapshots:
 
   - name: syntax_error_partial_parse
     input: |-
-      select * from t where a = any (array[1]); select  2
+      select * from t where a = any (array[1][1]); select  2
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              select * from t where a = any (array[1]);
+              select * from t where a = any (array[1][1]);
 
               select 2;
           - mode: compact
             expected: |-
-              select * from t where a = any (array[1]);
+              select * from t where a = any (array[1][1]);
 
               select 2;
           - mode: pretty
             expected: |-
-              select * from t where a = any (array[1]);
+              select * from t where a = any (array[1][1]);
 
               select 2;
 

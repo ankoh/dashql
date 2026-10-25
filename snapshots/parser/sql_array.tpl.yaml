@@ -1,0 +1,21 @@
+parser-snapshots:
+  # Array constructors with values
+  - name: array_values
+    input: |
+      select array[1, 2, 3], array[a + 1, b]
+  # An empty array constructor needs a cast
+  - name: array_empty
+    input: |
+      select array[]::int[]
+  # Array constructors from subqueries
+  - name: array_subquery
+    input: |
+      select array(select a from t order by a)
+  # Arrays in quantified comparisons and subscripts
+  - name: array_any
+    input: |
+      select (array[1, 2])[1] from t where a = any (array[21, 23, 20])
+  # Array constructors cannot be subscripted without parentheses
+  - name: array_subscript_unparenthesized
+    input: |
+      select array[1, 2][1]

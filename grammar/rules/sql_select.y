@@ -1853,6 +1853,20 @@ sql_c_expr:
       let s = ctx.object(@2, NodeType::OBJECT_SQL_SELECT, $2);
       ctx.object(@$, NodeType::OBJECT_SQL_EXISTS_EXPRESSION, &[attr(Key::SQL_EXISTS_EXPRESSION_STATEMENT, s)])
   }
+  | ARRAY sql_select_with_parens {
+      let s = ctx.object(@2, NodeType::OBJECT_SQL_SELECT, $2);
+      ctx.object(@$, NodeType::OBJECT_SQL_ARRAY_EXPRESSION, &[attr(Key::SQL_ARRAY_EXPRESSION_STATEMENT, s)])
+  }
+  | ARRAY LSB sql_expr_list RSB {
+      ctx.object(@$, NodeType::OBJECT_SQL_ARRAY_EXPRESSION, &[attr(Key::SQL_ARRAY_EXPRESSION_VALUES, ctx.array(@3, $3))])
+  }
+  | ARRAY LSB RSB {
+      ctx.object(
+          @$,
+          NodeType::OBJECT_SQL_ARRAY_EXPRESSION,
+          &[attr(Key::SQL_ARRAY_EXPRESSION_VALUES, ctx.array_ex(loc(&[@2, @3]), ctx.list(NO_NODES), false, false))],
+      )
+  }
     ;
 
 sql_func_application:

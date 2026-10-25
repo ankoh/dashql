@@ -668,7 +668,7 @@ impl<'a> Formatter<'a> {
                 f.parenthesized(self.format_comma_list(node, true))
             }
             K::SQL_INDIRECTION_PATH | K::SQL_SELECT_EXPRESSION_INDIRECTION => self.format_indirection_path(node),
-            K::SQL_ROW_EXPRESSION_VALUES => {
+            K::SQL_ROW_EXPRESSION_VALUES | K::SQL_ARRAY_EXPRESSION_VALUES => {
                 let values = self.array_regs(node);
                 if values.iter().any(|&v| v == 0) {
                     return self.format_unimplemented(node);
@@ -1389,6 +1389,27 @@ impl<'a> Formatter<'a> {
             return f.concat(&[f.text("row"), f.parenthesized(values_reg)]);
         }
         f.parenthesized(values_reg)
+    }
+
+    /// `array[...]` or `array(select ...)`
+    fn format_array_expression(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [values, statement] =
+            attrs!(self.children(node), [K::SQL_ARRAY_EXPRESSION_VALUES, K::SQL_ARRAY_EXPRESSION_STATEMENT]);
+        if statement.is_some() {
+            return self.format_keyword_call(node, K::SQL_ARRAY_EXPRESSION_STATEMENT, "array");
+        }
+        let Some(values) = values.filter(|v| v.node_type() == NodeType::ARRAY) else {
+            return self.format_unimplemented(node);
+        };
+        if values.children_count() == 0 {
+            return f.text("array[]");
+        }
+        let values_reg = self.reg(values);
+        if values_reg == 0 {
+            return self.format_unimplemented(node);
+        }
+        f.concat(&[f.text("array"), f.bracketed(values_reg)])
     }
 
     // -----------------------------------------------------------------------------------------
@@ -2661,6 +2682,7 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_INDIRECTION => self.format_indirection(node),
             NodeType::OBJECT_SQL_ROW_TYPE => self.format_row_type(node),
             NodeType::OBJECT_SQL_ROW_EXPRESSION => self.format_row_expression(node),
+            NodeType::OBJECT_SQL_ARRAY_EXPRESSION => self.format_array_expression(node),
             NodeType::OBJECT_SQL_SELECT_EXPRESSION => self.format_select_expression(node),
             NodeType::OBJECT_SQL_RESULT_TARGET => self.format_result_target(node),
             NodeType::OBJECT_SQL_COLUMN_DEF => self.format_column_def(node),

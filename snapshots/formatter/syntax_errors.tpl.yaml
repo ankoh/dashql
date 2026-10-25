@@ -31,7 +31,7 @@ formatter-snapshots:
 
   # A statement with a partial parse is copied completely
   - name: syntax_error_partial_parse
-    input: select * from t where a = any (array[1]); select  2
+    input: select * from t where a = any (array[1][1]); select  2
     dialects:
       hyper:
 

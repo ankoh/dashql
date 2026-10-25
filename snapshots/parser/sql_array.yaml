@@ -1,0 +1,343 @@
+parser-snapshots:
+
+  - name: array_values
+    input: |-
+      select array[1, 2, 3], array[a + 1, b]
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 21
+          description:
+            text: "select arr..[a + 1, b]"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select arr..[a + 1, b]"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "array[1, 2..[a + 1, b]"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "array[1, 2, 3]"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_ARRAY_EXPRESSION
+                        text: "array[1, 2, 3]"
+                        children:
+                          - key: SQL_ARRAY_EXPRESSION_VALUES
+                            type: ARRAY
+                            text: "1, 2, 3"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "1"
+                              - type: LITERAL_INTEGER
+                                text: "2"
+                              - type: LITERAL_INTEGER
+                                text: "3"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "array[a + 1, b]"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_ARRAY_EXPRESSION
+                        text: "array[a + 1, b]"
+                        children:
+                          - key: SQL_ARRAY_EXPRESSION_VALUES
+                            type: ARRAY
+                            text: "a + 1, b"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "a + 1"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: PLUS
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "a + 1"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "a"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "a"
+                                            children:
+                                              - type: NAME
+                                                text: "a"
+                                      - type: LITERAL_INTEGER
+                                        text: "1"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: array_empty
+    input: |-
+      select array[]::int[]
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 10
+          description:
+            text: "select arr..y[]::int[]"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select arr..y[]::int[]"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "array[]::int[]"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "array[]::int[]"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_TYPECAST_EXPRESSION
+                        text: "array[]::int[]"
+                        children:
+                          - key: SQL_TYPECAST_VALUE
+                            type: OBJECT_SQL_ARRAY_EXPRESSION
+                            text: "array[]"
+                            children:
+                              - key: SQL_ARRAY_EXPRESSION_VALUES
+                                type: ARRAY
+                                text: "[]"
+                                children: []
+                          - key: SQL_TYPECAST_TYPE
+                            type: OBJECT_SQL_TYPENAME
+                            text: "int[]"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: INT4
+                              - key: SQL_TYPENAME_ARRAY
+                                type: ARRAY
+                                text: "[]"
+                                children:
+                                  - type: BOOL
+                                    value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: array_subquery
+    input: |-
+      select array(select a from t order by a)
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 19
+          description:
+            text: "select arr..rder by a)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select arr..rder by a)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "array(sele..rder by a)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "array(sele..rder by a)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_ARRAY_EXPRESSION
+                        text: "array(sele..rder by a)"
+                        children:
+                          - key: SQL_ARRAY_EXPRESSION_STATEMENT
+                            type: OBJECT_SQL_SELECT
+                            text: "(select a ..rder by a)"
+                            children:
+                              - key: SQL_SELECT_TARGETS
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: OBJECT_SQL_RESULT_TARGET
+                                    text: "a"
+                                    children:
+                                      - key: SQL_RESULT_TARGET_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "a"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "a"
+                                            children:
+                                              - type: NAME
+                                                text: "a"
+                              - key: SQL_SELECT_FROM
+                                type: ARRAY
+                                text: "from t"
+                                children:
+                                  - type: OBJECT_SQL_TABLEREF
+                                    text: "t"
+                                    children:
+                                      - key: SQL_TABLEREF_NAME
+                                        type: ARRAY
+                                        text: "t"
+                                        children:
+                                          - type: NAME
+                                            text: "t"
+                              - key: SQL_SELECT_ORDER
+                                type: ARRAY
+                                text: "order by a"
+                                children:
+                                  - type: OBJECT_SQL_ORDER
+                                    text: "a"
+                                    children:
+                                      - key: SQL_ORDER_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "a"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "a"
+                                            children:
+                                              - type: NAME
+                                                text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: array_any
+    input: |-
+      select (array[1, 2])[1] from t where a = any (array[21, 23, 20])
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 26
+          description:
+            text: "select (ar.., 23, 20])"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select (ar.., 23, 20])"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "(array[1, 2])[1]"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "(array[1, 2])[1]"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_INDIRECTION
+                        text: "(array[1, 2])[1]"
+                        children:
+                          - key: SQL_INDIRECTION_VALUE
+                            type: OBJECT_SQL_ARRAY_EXPRESSION
+                            text: "array[1, 2]"
+                            children:
+                              - key: SQL_ARRAY_EXPRESSION_VALUES
+                                type: ARRAY
+                                text: "1, 2"
+                                children:
+                                  - type: LITERAL_INTEGER
+                                    text: "1"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                          - key: SQL_INDIRECTION_PATH
+                            type: ARRAY
+                            text: "[1]"
+                            children:
+                              - type: OBJECT_SQL_INDIRECTION_INDEX
+                                text: "[1]"
+                                children:
+                                  - key: SQL_INDIRECTION_INDEX_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_SUBQUERY_EXPRESSION
+                text: "a = any (a.., 23, 20])"
+                children:
+                  - key: SQL_SUBQUERY_ARG0
+                    type: OBJECT_SQL_COLUMN_REF
+                    text: "a"
+                    children:
+                      - key: SQL_COLUMN_REF_PATH
+                        type: ARRAY
+                        text: "a"
+                        children:
+                          - type: NAME
+                            text: "a"
+                  - key: SQL_SUBQUERY_ARG1
+                    type: OBJECT_SQL_ARRAY_EXPRESSION
+                    text: "array[21, 23, 20]"
+                    children:
+                      - key: SQL_ARRAY_EXPRESSION_VALUES
+                        type: ARRAY
+                        text: "21, 23, 20"
+                        children:
+                          - type: LITERAL_INTEGER
+                            text: "21"
+                          - type: LITERAL_INTEGER
+                            text: "23"
+                          - type: LITERAL_INTEGER
+                            text: "20"
+                  - key: SQL_SUBQUERY_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_SUBQUERY_QUANTIFIER
+                    type: ENUM_SQL_SUBQUERY_QUANTIFIER
+                    value: ANY
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: array_subscript_unparenthesized
+    input: |-
+      select array[1, 2][1]
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected LSB'
+          text: "["
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

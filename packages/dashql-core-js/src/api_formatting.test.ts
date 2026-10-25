@@ -57,6 +57,26 @@ describe('DashQL formatting', () => {
         catalog.destroy();
     });
 
+    it('formats array constructors through WebAssembly', () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `SELECT ARRAY(SELECT 1), ARRAY[]::INT[] FROM t WHERE a = ANY(ARRAY[21,23,20])`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            120,
+            4,
+        );
+        const formatted = script.format(config, catalog, true);
+        try {
+            expect(formatted.toString()).toBe("select array(select 1), array[]::integer[] from t where a = any (array[21, 23, 20]);");
+        } finally {
+            formatted.destroy();
+            script.destroy();
+            catalog.destroy();
+        }
+    });
+
     it('uppercases generated keywords without changing source names or strings', () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

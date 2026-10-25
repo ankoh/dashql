@@ -1,0 +1,161 @@
+formatter-snapshots:
+
+  - name: array_constructor
+    input: |-
+      SELECT ARRAY[1,2,3],ARRAY['a','b'],ARRAY[1+2,a*2],ARRAY[]::INT[] FROM t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select array[1, 2, 3], array['a', 'b'], array[1 + 2, a * 2], array[]::integer[] from t;
+          - mode: compact
+            expected: |-
+              select array[1, 2, 3], array['a', 'b'], array[1 + 2, a * 2], array[]::integer[] from t;
+          - mode: pretty
+            expected: |-
+              select array[1, 2, 3], array['a', 'b'], array[1 + 2, a * 2], array[]::integer[]
+              from t;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: array_subquery
+    input: |-
+      SELECT ARRAY(SELECT a FROM t ORDER BY a),ARRAY(SELECT 1)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select array(select a from t order by a), array(select 1);
+          - mode: compact
+            expected: |-
+              select array(select a from t order by a), array(select 1);
+          - mode: pretty
+            expected: |-
+              select array(
+                  select a
+                  from t
+                  order by a
+                ),
+                array(select 1);
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: array_operators
+    input: |-
+      SELECT a=ANY(ARRAY[21,23,20]),a<>ALL(ARRAY[1]),ARRAY[1,2]||ARRAY[3],(ARRAY[1,2,3])[2] FROM t WHERE a=ANY(ARRAY[1,a+1])
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a = any (array[21, 23, 20]), a <> all (array[1]), array[1, 2] || array[3], (array[1, 2, 3])[2] from t where a = any (array[1, a + 1]);
+          - mode: compact
+            expected: |-
+              select a = any (array[21, 23, 20]), a <> all (array[1]), array[1, 2] || array[3], (array[1, 2, 3])[2]
+              from t
+              where a = any (array[1, a + 1]);
+          - mode: pretty
+            expected: |-
+              select a = any (array[21, 23, 20]), a <> all (array[1]), array[1, 2] || array[3], (array[1, 2, 3])[2]
+              from t
+              where a = any (array[1, a + 1]);
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: array_long
+    input: |-
+      SELECT ARRAY[first_value_column,second_value_column,third_value_column,fourth_value_column,fifth_value_column,sixth_value_column] FROM wide
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select array[first_value_column, second_value_column, third_value_column, fourth_value_column, fifth_value_column, sixth_value_column] from wide;
+          - mode: compact
+            expected: |-
+              select array[
+                first_value_column, second_value_column, third_value_column, fourth_value_column, fifth_value_column,
+                  sixth_value_column
+              ]
+              from wide;
+          - mode: pretty
+            expected: |-
+              select array[
+                first_value_column, second_value_column, third_value_column, fourth_value_column, fifth_value_column,
+                  sixth_value_column
+              ]
+              from wide;
+        validation:
+          setup: |-
+            create table wide(first_value_column int, second_value_column int, third_value_column int, fourth_value_column int, fifth_value_column int, sixth_value_column int);
+
+  - name: array_subquery_long
+    input: |-
+      SELECT ARRAY(SELECT first_value_column FROM wide WHERE second_value_column > 0 AND third_value_column < 10 ORDER BY first_value_column) FROM wide
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select array(select first_value_column from wide where second_value_column > 0 and third_value_column < 10 order by first_value_column) from wide;
+          - mode: compact
+            expected: |-
+              select array(
+                select first_value_column
+                from wide
+                where second_value_column > 0 and third_value_column < 10
+                order by first_value_column
+              )
+              from wide;
+          - mode: pretty
+            expected: |-
+              select array(
+                select first_value_column
+                from wide
+                where second_value_column > 0 and third_value_column < 10
+                order by first_value_column
+              )
+              from wide;
+        validation:
+          setup: |-
+            create table wide(first_value_column int, second_value_column int, third_value_column int);
+
+  - name: array_catalog_query
+    input: |-
+      SELECT a.attname,
+        CASE
+          WHEN a.atttypid = ANY (ARRAY[21, 23, 20]) THEN a.atttypmod - 4
+          WHEN a.atttypid = 1700 THEN ((a.atttypmod - 4) >> 16) & 65535
+          ELSE NULL
+        END AS numeric_precision
+      FROM pg_catalog.pg_attribute a
+      WHERE a.attnum > 0 AND NOT a.attisdropped
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a.attname, case when a.atttypid = any (array[21, 23, 20]) then a.atttypmod - 4 when a.atttypid = 1700 then a.atttypmod - 4 >> 16 & 65535 else NULL end as numeric_precision from pg_catalog.pg_attribute a where a.attnum > 0 and not a.attisdropped;
+          - mode: compact
+            expected: |-
+              select a.attname,
+                case when a.atttypid = any (array[21, 23, 20]) then a.atttypmod - 4
+                  when a.atttypid = 1700 then a.atttypmod - 4 >> 16 & 65535 else NULL end as numeric_precision
+              from pg_catalog.pg_attribute a
+              where a.attnum > 0 and not a.attisdropped;
+          - mode: pretty
+            expected: |-
+              select a.attname,
+                case
+                  when a.atttypid = any (array[21, 23, 20]) then a.atttypmod - 4
+                  when a.atttypid = 1700 then a.atttypmod - 4 >> 16 & 65535
+                  else NULL
+                end as numeric_precision
+              from pg_catalog.pg_attribute a
+              where a.attnum > 0 and not a.attisdropped;
+        validation:
