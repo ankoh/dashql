@@ -13,11 +13,14 @@ import {
     CATALOG_DID_UPDATE,
     CREATE_SCRIPT,
     DELETE_SCRIPT,
+    DETACH_CONNECTION,
     defaultScriptConnection,
     MERGE_CONNECTION,
     type ScriptConnection,
     SET_DEFAULT_CONNECTION,
     SET_SCRIPT_CONNECTION,
+    scriptsOnConnection,
+    sessionConnectionIds,
     sessionScriptsMatchStorageSnapshot,
     type SessionScripts,
     reduceSessionScripts,
@@ -332,6 +335,29 @@ describe('V2 flat session script mutations', () => {
         // The same connection changes nothing, a connection without params can't be copied into the session file
         expect(reduce(next, { type: SET_DEFAULT_CONNECTION, value: other })).toBe(next);
         expect(reduce(current, { type: SET_DEFAULT_CONNECTION, value: connection() })).toBe(current);
+    });
+
+    it('detaches a default connection that no script uses', () => {
+        const current = state(['1_alpha.sql']);
+        const embedded = { ...connection(), params: { hyper: { protocol: 'WASM' } } as any };
+        const server = { ...connection(ConnectorType.HYPER), params: { hyper: { protocol: 'V3_HTTP' } } as any };
+        const onServer = reduce(current, { type: SET_DEFAULT_CONNECTION, value: server });
+        // The scripts keep the session on the previous connection, the server is only the default
+        const detached = reduce(onServer, { type: DETACH_CONNECTION, value: { from: server.connectionId, into: embedded } });
+        expect(detached.connectionId).toBe(embedded.connectionId);
+        expect(sessionConnectionIds(detached)).not.toContain(server.connectionId);
+        // Another connection than the default changes nothing
+        expect(reduce(detached, { type: DETACH_CONNECTION, value: { from: server.connectionId, into: embedded } })).toBe(detached);
+    });
+
+    it('keeps a default connection attached while scripts use it', () => {
+        const current = state(['1_alpha.sql']);
+        const embedded = { ...connection(), params: { hyper: { protocol: 'WASM' } } as any };
+        const server = { ...connection(ConnectorType.HYPER), params: { hyper: { protocol: 'V3_HTTP' } } as any };
+        let next = reduce(current, { type: SET_DEFAULT_CONNECTION, value: server });
+        next = reduce(next, { type: SET_SCRIPT_CONNECTION, value: { fileName: '1_alpha.sql', connection: server } });
+        expect(scriptsOnConnection(next, server.connectionId)).toBe(1);
+        expect(reduce(next, { type: DETACH_CONNECTION, value: { from: server.connectionId, into: embedded } })).toBe(next);
     });
 
     it('completes a script against the catalog of its own connection', () => {

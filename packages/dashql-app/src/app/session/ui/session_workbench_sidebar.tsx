@@ -71,7 +71,7 @@ import {
 } from '../persistence/app_state_loader.js';
 import { useSessionImport } from '../persistence/session_import_provider.js';
 import { describeSessionValidationError } from '../../storage/session_validation.js';
-import type { SessionScripts } from '../scripts/session_scripts.js';
+import { DETACH_CONNECTION, scriptConnectionOf, scriptsOnConnection, type SessionScripts } from '../scripts/session_scripts.js';
 import {
     useInvalidSessions,
     useSessionScripts,
@@ -82,10 +82,11 @@ import { useSessionCreation } from '../session_creation.js';
 import { RENAME_SESSION } from '../scripts/session_scripts.js';
 import { NameInput } from '../../../ui/foundations/name_input.js';
 import { useMergeConnections } from '../session_connection_merge.js';
+import { useDetachConnection } from '../session_connection_detach.js';
 import { useDeleteConnection } from '../../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../../connections/connection_merge.js';
 import { BundledSessionsOverlay } from '../../ui/bundled_sessions_overlay.js';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals } from '../../connections/ui/connection_label.js';
+import { connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../../connections/ui/connection_label.js';
 import { useAppFlavor } from '../../flavor/flavor_provider.js';
 import { SessionURLShareOverlay } from './session_url_share_overlay.js';
 import { SessionFileSaveOverlay } from './session_file_save_overlay.js';
@@ -136,6 +137,7 @@ export interface SessionWorkbenchSidebarDependencies {
     useConnectionAllocator: typeof useConnectionAllocator;
     useSessionCreation: typeof useSessionCreation;
     useMergeConnections: typeof useMergeConnections;
+    useDetachConnection: typeof useDetachConnection;
     useDeleteConnection: typeof useDeleteConnection;
     useSessionScriptsDeletion: typeof useSessionScriptsDeletion;
     useComputationDispatch: typeof useComputationDispatch;
@@ -167,6 +169,7 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useConnectionAllocator,
     useSessionCreation,
     useMergeConnections,
+    useDetachConnection,
     useDeleteConnection,
     useSessionScriptsDeletion,
     useComputationDispatch,
@@ -420,6 +423,8 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const createSession = dependencies.useSessionCreation();
     const resolveEmbeddedConnection = dependencies.useEmbeddedConnection();
     const mergeConnections = dependencies.useMergeConnections();
+    const detachConnectionFromSessions = dependencies.useDetachConnection();
+    const [, modifyCurrentSession] = dependencies.useSessionScripts(props.sessionScripts.sessionId);
     const shutDownAndDeleteConnection = dependencies.useDeleteConnection();
     const deleteSessionScripts = dependencies.useSessionScriptsDeletion();
     const computationDispatch = dependencies.useComputationDispatch();
@@ -527,10 +532,23 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         [ordinals],
     );
     const connectionCount = connectionRows.length;
-    const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => ({
-        sessionCount: references.sessionsOf(connectionId).length,
-        usedHere: sessionConnectionRows.some(database => database.connectionId === connectionId),
-    }), [sessionConnectionRows, references, scriptsRegistry]);
+    const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
+        const sessionIds = references.sessionsOf(connectionId);
+        const database = databaseRegistry.connections.get(connectionId);
+        const scriptsOf = (sessionId: string) => {
+            const scripts = scriptsRegistry.sessionScriptsMap.get(sessionId);
+            return scripts == null ? 0 : scriptsOnConnection(scripts, connectionId);
+        };
+        return {
+            sessionCount: sessionIds.length,
+            // The sessions fall back to the embedded Hyper, every session that uses it keeps it
+            blockingSessionCount: database != null && isHyperWasmConnection(database)
+                ? sessionIds.length
+                : sessionIds.filter(sessionId => scriptsOf(sessionId) > 0).length,
+            usedHere: sessionConnectionRows.some(database => database.connectionId === connectionId),
+            scriptCountHere: scriptsOf(props.sessionScripts.sessionId),
+        };
+    }, [databaseRegistry, props.sessionScripts.sessionId, sessionConnectionRows, references, scriptsRegistry]);
     const initiallyExpanded = React.useCallback((database: ConnectionState, _count: number) => (
         sessionConnectionRows.includes(database)
         && isConnectionInitiallyExpanded(database, sessionConnectionRows.length)
@@ -577,15 +595,25 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         setConnectionOverlayDatabaseId(database.connectionId);
     }, [allocateConnection, dependencies, props.sessionScripts.instance]);
 
-    /// Delete a connection that no session uses
+    /// Delete a connection that no script uses.
+    /// The sessions whose new scripts default to the connection are detached from it first.
     const deleteConnection = React.useCallback((connectionId: string) => {
         const database = databaseRegistry.connections.get(connectionId);
-        if (database == null || references.sessionsOf(connectionId).length > 0) return;
+        if (database == null || describeUsage(connectionId).blockingSessionCount > 0) return;
         if (!window.confirm(`Delete the connection "${connectionLabelText(labelOf(database))}"?`)) return;
-        shutDownAndDeleteConnection(connectionId).catch(error => {
-            logger.warn('failed to delete the connection', { connectionId, error: String(error) }, 'session_workbench');
-        });
-    }, [databaseRegistry, labelOf, logger, references, shutDownAndDeleteConnection]);
+        detachConnectionFromSessions(props.sessionScripts.instance, connectionId)
+            .then(() => shutDownAndDeleteConnection(connectionId))
+            .catch(error => {
+                logger.warn('failed to delete the connection', { connectionId, error: String(error) }, 'session_workbench');
+            });
+    }, [databaseRegistry, describeUsage, detachConnectionFromSessions, labelOf, logger, props.sessionScripts.instance, shutDownAndDeleteConnection]);
+
+    /// Detach a connection that no script of the current session uses, its new scripts use the embedded Hyper again
+    const detachConnection = React.useCallback((connectionId: string) => {
+        const embedded = resolveEmbeddedConnection(props.sessionScripts.instance);
+        if (embedded.connectionId === connectionId) return;
+        void modifyCurrentSession({ type: DETACH_CONNECTION, value: { from: connectionId, into: scriptConnectionOf(embedded) } });
+    }, [modifyCurrentSession, props.sessionScripts.instance, resolveEmbeddedConnection]);
 
     /// The number of duplicates of a connection
     const mergeCandidateCount = React.useCallback(
@@ -847,6 +875,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                         databases={connectionRows}
                         describeUsage={describeUsage}
                         onDelete={deleteConnection}
+                        onDetach={detachConnection}
                         mergeCandidateCount={mergeCandidateCount}
                         onMerge={mergeDuplicates}
                         initiallyExpanded={initiallyExpanded}

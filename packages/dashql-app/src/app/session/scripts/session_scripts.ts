@@ -110,6 +110,16 @@ export function sessionConnectionIds(state: SessionScripts): string[] {
     return [...ids];
 }
 
+/// The number of scripts of a session that run on a connection.
+/// The scripts keep the connection in the session, the default connection alone does not.
+export function scriptsOnConnection(state: SessionScripts, connectionId: string): number {
+    let count = 0;
+    for (const script of Object.values(state.scripts)) {
+        if (script.connection.connectionId === connectionId) count += 1;
+    }
+    return count;
+}
+
 /// A script as storage holds it
 export interface StoredSessionScript {
     /// The file name
@@ -205,6 +215,7 @@ export const UPDATE_SESSION_SETTINGS = Symbol('UPDATE_SESSION_SETTINGS');
 export const SET_SCRIPT_CONNECTION = Symbol('SET_SCRIPT_CONNECTION');
 export const SET_DEFAULT_CONNECTION = Symbol('SET_DEFAULT_CONNECTION');
 export const MERGE_CONNECTION = Symbol('MERGE_CONNECTION');
+export const DETACH_CONNECTION = Symbol('DETACH_CONNECTION');
 
 export type SessionScriptsAction =
     | VariantKind<typeof SELECT_NEXT_SCRIPT, null>
@@ -229,6 +240,7 @@ export type SessionScriptsAction =
     | VariantKind<typeof SET_SCRIPT_CONNECTION, { fileName: string, connection: ScriptConnection }>
     | VariantKind<typeof SET_DEFAULT_CONNECTION, ScriptConnection>
     | VariantKind<typeof MERGE_CONNECTION, { from: string, into: ConnectionState }>
+    | VariantKind<typeof DETACH_CONNECTION, { from: string, into: ScriptConnection }>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
@@ -855,6 +867,13 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                 connectorInfo: connection.connectorInfo,
                 connectionCatalog: connection.catalog,
             };
+        }
+
+        case DETACH_CONNECTION: {
+            // A session lets go of a connection that only its new scripts use, they use the other connection then
+            const { from, into } = action.value;
+            if (state.connectionId !== from || scriptsOnConnection(state, from) > 0) return state;
+            return reduceSessionScripts(state, { type: SET_DEFAULT_CONNECTION, value: into }, storage, logger);
         }
 
         case MERGE_CONNECTION: {

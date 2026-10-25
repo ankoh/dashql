@@ -8,6 +8,7 @@ import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_
 import { connectionLabelParts } from '../../connections/ui/connection_label.js';
 import { SessionSetupStatus } from '../../loading/session_setup_status.js';
 import { SELECT_SESSION } from '../../router/router.js';
+import { DETACH_CONNECTION } from '../scripts/session_scripts.js';
 import { SessionWorkbenchSidebar, type SessionWorkbenchSidebarDependencies } from './session_workbench_sidebar.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -23,6 +24,8 @@ const state = {
     deleteSession: vi.fn(),
     allocateConnection: vi.fn(),
     resolveEmbeddedConnection: vi.fn(),
+    detachConnection: vi.fn<() => Promise<void>>(),
+    deleteConnection: vi.fn<() => Promise<void>>(),
     local: null as ConnectionState | null,
     overlayProps: null as { connectionId: string | null; headerTitle?: string; isOpen: boolean; onClose: () => void; onConnected?: (database: ConnectionState) => void } | null,
     shareProps: null as { isOpen: boolean; sessionId?: string } | null,
@@ -86,7 +89,8 @@ const dependencies = {
     useSessionScripts: () => [null, state.modifySessionScripts],
     useSessionCreation: () => state.createSession,
     useMergeConnections: () => async () => {},
-    useDeleteConnection: () => async () => {},
+    useDetachConnection: () => state.detachConnection,
+    useDeleteConnection: () => state.deleteConnection,
     useStorageReader: () => storageReader,
     useStorageWriter: () => storageWriter,
     useComputationDispatch: () => vi.fn(),
@@ -152,6 +156,8 @@ describe('SessionWorkbenchSidebar session creation', () => {
         } as unknown as ConnectionState;
         state.allocateConnection.mockReset().mockReturnValue(state.local);
         state.resolveEmbeddedConnection.mockReset().mockReturnValue(state.local);
+        state.detachConnection.mockReset().mockResolvedValue();
+        state.deleteConnection.mockReset().mockResolvedValue();
         vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000001');
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
             sessionId: 'current-session',
@@ -201,6 +207,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             sessionId: 'current-session',
             name: 'Current session',
             sessionMetadata: {},
+            scripts: {},
         });
         state.sessionAttachedDatabases = { main, attached: [attached] };
 
@@ -274,6 +281,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             sessionId: 'salesforce-session',
             name: 'Salesforce session',
             sessionMetadata: {},
+            scripts: {},
         });
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
             sessionId: 'current-session',
@@ -304,6 +312,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             sessionId,
             name: 'Current session',
             sessionMetadata: { originalFileName: 'current' },
+            scripts: {},
         });
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
             sessionId,
@@ -330,6 +339,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             sessionId,
             name: 'Untitled',
             sessionMetadata: { originalFileName: 'current' },
+            scripts: {},
         });
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
             sessionId,
@@ -371,6 +381,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             sessionId,
             name: 'Current session',
             sessionMetadata: { originalFileName: 'current' },
+            scripts: {},
         });
         const render = (openOverviewId: string | null) => act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
             sessionId,
@@ -395,6 +406,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             sessionId,
             name: 'Current session',
             sessionMetadata: { originalFileName: 'current' },
+            scripts: {},
         });
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
             sessionId,
@@ -424,7 +436,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
         state.attachedDatabasesBySession.set('shell', { mainDatabaseId: 'shell', attachedDatabaseIds: [] });
         state.connections.set('shell', { ...other, connectionId: 'shell' } as ConnectionState);
         for (const sessionId of ['current-session', 'trino-session']) {
-            state.sessionScriptsMap.set(sessionId, { sessionId, name: sessionId, sessionMetadata: {} });
+            state.sessionScriptsMap.set(sessionId, { sessionId, name: sessionId, sessionMetadata: {}, scripts: {} });
         }
         state.sessionAttachedDatabases = { main: state.local!, attached: [] };
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
@@ -443,7 +455,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
         state.attachedDatabasesBySession.set('current-session', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
         state.attachedDatabasesBySession.set('trino-session', { mainDatabaseId: trino.connectionId, attachedDatabaseIds: [secondHyper.connectionId] });
         for (const sessionId of ['current-session', 'trino-session']) {
-            state.sessionScriptsMap.set(sessionId, { sessionId, name: sessionId, sessionMetadata: {} });
+            state.sessionScriptsMap.set(sessionId, { sessionId, name: sessionId, sessionMetadata: {}, scripts: {} });
         }
         state.sessionAttachedDatabases = { main: state.local!, attached: [] };
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
@@ -465,7 +477,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
         state.attachedDatabasesBySession.set('current-session', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
         state.attachedDatabasesBySession.set('trino-session', { mainDatabaseId: trino.connectionId, attachedDatabaseIds: [] });
         for (const sessionId of ['current-session', 'trino-session']) {
-            state.sessionScriptsMap.set(sessionId, { sessionId, name: sessionId, sessionMetadata: {} });
+            state.sessionScriptsMap.set(sessionId, { sessionId, name: sessionId, sessionMetadata: {}, scripts: {} });
         }
         state.sessionAttachedDatabases = { main: state.local!, attached: [] };
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
@@ -475,5 +487,78 @@ describe('SessionWorkbenchSidebar session creation', () => {
         // The unused connection is listed after the connections of other sessions
         expect(groups()).toEqual(['session', 'other', 'unused']);
         expect(container.textContent).not.toContain('unused');
+    });
+    /// A Hyper server that the current session attached through the composer, the scripts named here run on it
+    function attachServer(scriptConnections: Record<string, string> = {}): ConnectionState {
+        const server = {
+            ...state.local!,
+            connectionId: 'hyper-server',
+            details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: { protocol: 'V3_HTTP' } } } },
+            params: { hyper: { protocol: 'V3_HTTP' } },
+        } as unknown as ConnectionState;
+        for (const database of [state.local!, server]) state.connections.set(database.connectionId, database);
+        const scripts = Object.fromEntries(Object.entries(scriptConnections)
+            .map(([fileName, connectionId], i) => [i, { fileName, connection: { connectionId } }]));
+        const usesLocal = Object.values(scriptConnections).includes(state.local!.connectionId);
+        state.attachedDatabasesBySession.set('current-session', {
+            mainDatabaseId: server.connectionId,
+            attachedDatabaseIds: usesLocal ? [state.local!.connectionId] : [],
+        });
+        state.sessionScriptsMap.set('current-session', { sessionId: 'current-session', name: 'Current', sessionMetadata: {}, scripts });
+        state.sessionAttachedDatabases = { main: server, attached: usesLocal ? [state.local!] : [] };
+        act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
+            sessionId: 'current-session', instance: {},
+        } as any} dependencies={dependencies} />));
+        return server;
+    }
+
+    function menuItem(connectionId: string, action: string): HTMLButtonElement | null {
+        act(() => {
+            container.querySelector<HTMLButtonElement>(`[data-connection-id="${connectionId}"] [data-testid="connection-row-menu"]`)!.click();
+        });
+        return document.querySelector(`[data-testid="connection-menu-item"][data-action="${action}"]`);
+    }
+
+    it('detaches a connection that only the new scripts of the session use', () => {
+        const server = attachServer({ '1_alpha.sql': 'local-database' });
+        const detach = menuItem(server.connectionId, 'detach')!;
+        expect(detach.disabled).toBe(false);
+        act(() => detach.click());
+        expect(state.modifySessionScripts).toHaveBeenCalledWith({
+            type: DETACH_CONNECTION,
+            value: { from: server.connectionId, into: expect.objectContaining({ connectionId: state.local!.connectionId }) },
+        });
+    });
+
+    it('keeps a connection attached while scripts of the session use it', () => {
+        const server = attachServer({ '1_alpha.sql': 'hyper-server' });
+        const detach = menuItem(server.connectionId, 'detach')!;
+        expect(detach.disabled).toBe(true);
+        act(() => detach.click());
+        expect(state.modifySessionScripts).not.toHaveBeenCalled();
+    });
+
+    it('does not offer to detach the embedded connection', () => {
+        attachServer({ '1_alpha.sql': 'local-database' });
+        expect(menuItem(state.local!.connectionId, 'detach')).toBeNull();
+    });
+
+    it('deletes a connection that sessions only create new scripts on', async () => {
+        const server = attachServer();
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        const remove = menuItem(server.connectionId, 'delete')!;
+        expect(remove.disabled).toBe(false);
+        await act(async () => remove.click());
+        expect(state.detachConnection).toHaveBeenCalledWith(expect.anything(), server.connectionId);
+        expect(state.deleteConnection).toHaveBeenCalledWith(server.connectionId);
+        expect(state.detachConnection.mock.invocationCallOrder[0]).toBeLessThan(state.deleteConnection.mock.invocationCallOrder[0]);
+    });
+
+    it('refuses to delete a connection that scripts use', () => {
+        const server = attachServer({ '1_alpha.sql': 'hyper-server' });
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+        act(() => menuItem(server.connectionId, 'delete')!.click());
+        expect(confirm).not.toHaveBeenCalled();
+        expect(state.deleteConnection).not.toHaveBeenCalled();
     });
 });

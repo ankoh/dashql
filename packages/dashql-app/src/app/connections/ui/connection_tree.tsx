@@ -20,6 +20,7 @@ import {
     SyncIcon,
     TableIcon,
     TrashIcon,
+    UnlinkIcon,
 } from '../../../ui/foundations/symbol_icon.js';
 import { classNames } from '../../../utils/classnames.js';
 import { ConnectionHealth, type ConnectionState } from '../connection_state.js';
@@ -285,6 +286,7 @@ interface ConnectionTreeRowProps {
     onOpenSettings: (connectionId: string, anchor: HTMLButtonElement) => void;
     describeUsage?: (connectionId: string) => ConnectionUsage;
     onDelete?: (connectionId: string) => void;
+    onDetach?: (connectionId: string) => void;
     mergeCandidateCount?: (connectionId: string) => number;
     onMerge?: (connectionId: string) => void;
     labelOf: (database: ConnectionState) => ConnectionLabelParts;
@@ -299,8 +301,13 @@ interface ConnectionTreeRowProps {
 export interface ConnectionUsage {
     /// The number of sessions that use the connection
     sessionCount: number;
+    /// The number of sessions that keep the connection from being deleted.
+    /// A session whose new scripts merely default to the connection lets go of it.
+    blockingSessionCount: number;
     /// Does the current session use the connection?
     usedHere: boolean;
+    /// The number of scripts of the current session on the connection, they keep it attached to the session
+    scriptCountHere: number;
 }
 
 export function connectionTreeRowHeight(index: number, props: Pick<ConnectionTreeRowProps, 'rows'>): number {
@@ -375,9 +382,14 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         label={label}
                         onOpenSettings={anchor => props.onOpenSettings(row.database.connectionId, anchor)}
                         onDelete={props.onDelete == null || usage == null ? undefined : () => props.onDelete!(row.database.connectionId)}
+                        // The embedded Hyper is the connection that a session falls back to
+                        onDetach={props.onDetach == null || usage?.usedHere !== true || isHyperWasmConnection(row.database)
+                            ? undefined
+                            : () => props.onDetach!(row.database.connectionId)}
                         onMerge={props.onMerge == null ? undefined : () => props.onMerge!(row.database.connectionId)}
                         mergeCandidateCount={props.mergeCandidateCount?.(row.database.connectionId)}
-                        sessionCount={usage?.sessionCount}
+                        sessionCount={usage?.blockingSessionCount}
+                        scriptCount={usage?.scriptCountHere}
                     />
                 </ConnectionTreeEntry>
             </div>
@@ -447,6 +459,8 @@ interface ConnectionTreeProps {
     describeUsage?: (connectionId: string) => ConnectionUsage;
     /// Delete a connection that no session uses
     onDelete?: (connectionId: string) => void;
+    /// Detach a connection from the current session
+    onDetach?: (connectionId: string) => void;
     /// The number of connections that can be merged into a connection
     mergeCandidateCount?: (connectionId: string) => number;
     /// Merge other connections into a connection
@@ -498,6 +512,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     onOpenSettings,
     describeUsage,
     onDelete,
+    onDetach,
     mergeCandidateCount,
     onMerge,
     initiallyExpanded = isConnectionInitiallyExpanded,
@@ -603,13 +618,14 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         onOpenSettings,
         describeUsage,
         onDelete,
+        onDetach,
         mergeCandidateCount,
         onMerge,
         labelOf,
         attention,
         onOpenOverview,
         openOverviewId,
-    }), [attention, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onMerge, onOpenOverview, onOpenSettings, openOverviewId, rows, toggle]);
+    }), [attention, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onDetach, onMerge, onOpenOverview, onOpenSettings, openOverviewId, rows, toggle]);
     return (
         <div ref={containerRef} className={styles.database_list} aria-label="Connections and catalogs">
             <List
@@ -655,14 +671,18 @@ interface ConnectionRowMenuProps {
     database: ConnectionState;
     label: string;
     onOpenSettings: (anchor: HTMLButtonElement) => void;
-    /// Delete the connection, only possible if no session uses it
+    /// Delete the connection, only possible if no session keeps it
     onDelete?: () => void;
+    /// Detach the connection from the current session, only possible if no script of the session uses it
+    onDetach?: () => void;
     /// Merge other connections into the connection
     onMerge?: () => void;
     /// The number of connections that can be merged into the connection
     mergeCandidateCount?: number;
-    /// The number of sessions that use the connection
+    /// The number of sessions that keep the connection from being deleted
     sessionCount?: number;
+    /// The number of scripts of the current session on the connection
+    scriptCount?: number;
     dependencies?: ConnectionRefreshDependencies;
 }
 
@@ -674,7 +694,7 @@ const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
     useCatalogLoaderQueue,
 };
 
-export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onDelete, onMerge, mergeCandidateCount = 0, sessionCount = 0, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
+export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onDelete, onDetach, onMerge, mergeCandidateCount = 0, sessionCount = 0, scriptCount = 0, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const refreshCatalog = dependencies.useCatalogLoaderQueue();
@@ -746,6 +766,26 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                             <ActionList.ItemText>
                                 <ActionList.ItemTextTitle>Merge…</ActionList.ItemTextTitle>
                                 <ActionList.ItemTextDescription>{`${mergeCandidateCount} ${mergeCandidateCount === 1 ? 'duplicate' : 'duplicates'}`}</ActionList.ItemTextDescription>
+                            </ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
+                    <>{onDetach && (
+                        <ActionList.ListItem
+                            data-testid="connection-menu-item"
+                            data-action="detach"
+                            disabled={scriptCount > 0}
+                            title={scriptCount > 0 ? `Used by ${scriptCount} ${scriptCount === 1 ? 'script' : 'scripts'}` : undefined}
+                            onClick={() => {
+                                setOpen(false);
+                                onDetach();
+                            }}
+                        >
+                            <ActionList.Leading><UnlinkIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>
+                                <ActionList.ItemTextTitle>Detach from session</ActionList.ItemTextTitle>
+                                {scriptCount > 0
+                                    ? <ActionList.ItemTextDescription>{`Used by ${scriptCount} ${scriptCount === 1 ? 'script' : 'scripts'}`}</ActionList.ItemTextDescription>
+                                    : <></>}
                             </ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
