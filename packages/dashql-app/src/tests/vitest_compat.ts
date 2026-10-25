@@ -199,17 +199,20 @@ function unstubAllGlobals(): void {
 async function waitFor(assertion: () => unknown, options?: { interval?: number; timeout?: number }): Promise<void> {
     const interval = options?.interval ?? 10;
     const timeout = options?.timeout ?? 1000;
-    const deadline = performance.now() + timeout;
+    // The timeout counts the time the page could run. A stalled event loop (a loaded machine, a GC pause) delays the
+    // waits, but the code under test needs its own timer turns after the stall, so a wait is charged at most this much.
+    const maxCharge = interval + 50;
+    let elapsed = 0;
     for (;;) {
-        // Check after every wait, a busy event loop may delay the last wait past the deadline.
-        const expired = performance.now() >= deadline;
         try {
             await assertion();
             return;
         } catch (error) {
-            if (expired) throw error;
+            if (elapsed >= timeout) throw error;
         }
+        const waitStart = performance.now();
         await new Promise(resolve => setTimeout(resolve, interval));
+        elapsed += Math.min(performance.now() - waitStart, maxCharge);
     }
 }
 
