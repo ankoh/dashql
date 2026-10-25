@@ -61,6 +61,10 @@ describe("application responses", () => {
         expect(APP_RESPONSE_HEADERS["Content-Security-Policy"]).toContain("script-src 'self' 'wasm-unsafe-eval' blob:");
     });
 
+    it("lets the HyperDB worker fetch the blob URLs of mounted files", () => {
+        expect(APP_RESPONSE_HEADERS["Content-Security-Policy"]).toMatch(/connect-src [^;]*\bblob:/);
+    });
+
     it("serves Wasm with the streaming compilation MIME type", () => {
         expect(contentTypeFor("hyperdb.wasm")).toBe("application/wasm");
     });

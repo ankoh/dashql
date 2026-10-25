@@ -29,7 +29,8 @@ export const APP_RESPONSE_HEADERS = Object.freeze({
     "Cross-Origin-Resource-Policy": "same-origin",
     "Content-Security-Policy": [
         "default-src 'self'",
-        "connect-src 'self' app: data: dashql-native: http: https: ws: wss:",
+        // The HyperDB worker reads mounted files with ranged fetches of their blob URLs
+        "connect-src 'self' app: blob: data: dashql-native: http: https: ws: wss:",
         "font-src 'self' data:",
         "img-src 'self' data: blob: https:",
         "script-src 'self' 'wasm-unsafe-eval' blob:",
