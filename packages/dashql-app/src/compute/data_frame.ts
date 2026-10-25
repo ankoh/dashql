@@ -6,10 +6,22 @@ import type {
     EmbeddedComputeDatabase,
     EmbeddedTableImportConnection,
 } from '../platform/database/embedded_database.js';
+import { OrderByConstraint, SQLFrame } from './sql/sqlframe_builder.js';
 
 const LOG_CTX = "data_frame";
 
 let nextTableId = 0;
+
+/// The options of a read of the rows of a data frame
+export interface DataFrameReadOptions {
+    /// The order of the rows. A table does not keep the order of the query that created it, the order of a read
+    /// without constraints is arbitrary.
+    orderBy?: OrderByConstraint[];
+    /// The columns to read, all columns by default
+    columns?: string[];
+    /// Cancels the read
+    abort?: AbortSignal;
+}
 
 export function generateTableName(prefix: string = "__df"): string {
     return `${prefix}_${nextTableId++}`;
@@ -69,8 +81,12 @@ export class DataFrame {
         return new DataFrame(database, tableName, clientContext);
     }
 
-    async readTable(abort?: AbortSignal): Promise<arrow.Table> {
-        return await this.withConnection(async conn => await conn.query(`SELECT * FROM "${this.tableName}"`, abort));
+    async readTable(options: DataFrameReadOptions = {}): Promise<arrow.Table> {
+        let frame = SQLFrame.from(this.tableName);
+        if (options.orderBy != null) frame = frame.orderBy(options.orderBy);
+        if (options.columns != null) frame = frame.project(options.columns);
+        const sql = frame.toSQL();
+        return await this.withConnection(async conn => await conn.query(sql, options.abort));
     }
 
     async destroy(): Promise<void> {

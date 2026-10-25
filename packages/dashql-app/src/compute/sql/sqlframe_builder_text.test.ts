@@ -6,17 +6,6 @@ describe('SQLFrame SQL generation', () => {
         expect(sql).toBe('SELECT * FROM "t"');
     });
 
-    it('row number', () => {
-        const sql = SQLFrame.from("t").rowNumber("rn").toSQL();
-        expect(sql).toBe(
-            `WITH\n` +
-            `  __rownumber AS (\n` +
-            `    SELECT *, row_number() OVER () AS "rn" FROM "t"\n` +
-            `  )\n` +
-            `SELECT * FROM __rownumber`
-        );
-    });
-
     it('single value identifier', () => {
         const sql = SQLFrame.from("t").valueIdentifier("category", "cat_id").toSQL();
         expect(sql).toBe(
@@ -193,15 +182,13 @@ describe('SQLFrame SQL generation', () => {
         expect(sql).toBe('SELECT "id", "name" FROM "t"');
     });
 
-    it('combined: row_number + filter + order + projection', () => {
+    it('combined: filter + order + projection', () => {
         const sql = SQLFrame.from("input")
-            .rowNumber("rn")
             .filter("score", ">=", 10)
             .orderBy([{ field: "rn" }])
             .project(["rn"])
             .toSQL();
 
-        expect(sql).toContain('__rownumber');
         expect(sql).toContain('__filtered');
         expect(sql).toContain('SELECT "rn" FROM __filtered');
         expect(sql).toContain('ORDER BY "rn" ASC NULLS LAST');
@@ -209,7 +196,7 @@ describe('SQLFrame SQL generation', () => {
 
     it('quotes identifiers with special characters', () => {
         const sql = SQLFrame.from("my table")
-            .rowNumber("row num")
+            .project(["row num"])
             .toSQL();
         expect(sql).toContain('"my table"');
         expect(sql).toContain('"row num"');

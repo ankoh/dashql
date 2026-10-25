@@ -52,24 +52,6 @@ describe('SQLFrame execution', () => {
         ]);
     });
 
-    it('row number', async () => {
-        const table = arrow.tableFromArrays({
-            id: new Int32Array([10, 20, 30]),
-            name: ['Alice', 'Bob', 'Charlie'],
-        });
-        await conn.insertArrowTable(table, { name: 'input', create: true });
-
-        const sql = SQLFrame.from("input")
-            .rowNumber("rn")
-            .toSQL();
-        const result = await conn.query(sql);
-        const rows = toPlainObjects(result);
-
-        expect(rows.length).toBe(3);
-        const rns = rows.map((r: any) => r.rn).sort();
-        expect(rns).toEqual([1n, 2n, 3n]);
-    });
-
     it('value identifier (dense_rank)', async () => {
         const table = arrow.tableFromArrays({
             category: ['B', 'A', 'C', 'A', 'B'],
@@ -99,11 +81,11 @@ describe('SQLFrame execution', () => {
     it('filters rows by categorical value identifier', async () => {
         const table = arrow.tableFromArrays({
             category: ['B', 'A', null, 'A', 'B'],
+            rn: new BigInt64Array([1n, 2n, 3n, 4n, 5n]),
         });
         await conn.insertArrowTable(table, { name: 'input', create: true });
 
         const sql = SQLFrame.from("input")
-            .rowNumber("rn")
             .valueIdentifier("category", "cat_id")
             .filter("cat_id", "=", 1)
             .project(["rn"])
@@ -117,11 +99,11 @@ describe('SQLFrame execution', () => {
     it('assigns null categories a filterable value identifier', async () => {
         const table = arrow.tableFromArrays({
             category: ['B', 'A', null, 'A', 'B'],
+            rn: new BigInt64Array([1n, 2n, 3n, 4n, 5n]),
         });
         await conn.insertArrowTable(table, { name: 'input', create: true });
 
         const sql = SQLFrame.from("input")
-            .rowNumber("rn")
             .valueIdentifier("category", "cat_id")
             .filter("cat_id", "=", 3)
             .project(["rn"])
@@ -135,11 +117,11 @@ describe('SQLFrame execution', () => {
     it('scalar filter range', async () => {
         const table = arrow.tableFromArrays({
             score: new Float64Array([42.0, 10.2, 10.1, 30.005]),
+            rn: new BigInt64Array([1n, 2n, 3n, 4n]),
         });
         await conn.insertArrowTable(table, { name: 'input', create: true });
 
         const sql = SQLFrame.from("input")
-            .rowNumber("rn")
             .filter("score", ">=", 10.1)
             .filter("score", "<=", 10.2)
             .project(["rn"])

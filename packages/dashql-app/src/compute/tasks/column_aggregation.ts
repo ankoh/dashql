@@ -2,12 +2,19 @@ import { ArrowTableFormatter } from '../arrow_formatter.js';
 import { DataFrame, generateTableName } from '../data_frame.js';
 import { ColumnAggregationVariant, ColumnAggregationTask, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ROWNUMBER_COLUMN, getGridColumnTypeName, WithFilter, WithFilterEpoch } from '../computation_types.js';
 import { LoggableException, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
-import { SQLFrame } from '../sql/sqlframe_builder.js';
+import { OrderByConstraint, SQLFrame } from '../sql/sqlframe_builder.js';
 import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
 import { getToNumericFn, isIntegerType } from '../arrow_columns.js';
 import { analyzeOrdinalColumn, analyzeStringColumn } from '../column_analysis.js';
 
 const LOG_CTX = "compute";
+
+/// The order of the bins of an ordinal column
+const BIN_ORDER: OrderByConstraint[] = [{ field: "bin", ascending: true }];
+/// The order of the frequent values of a string column, most frequent first
+const FREQUENT_VALUE_ORDER: OrderByConstraint[] = [{ field: "count", ascending: false }];
+/// The number of frequent values of a string column
+const FREQUENT_VALUE_COUNT = 32;
 
 export async function computeColumnAggregates(task: ColumnAggregationTask, logger: LoggerLike, executeQuery: ComputeQueryExecution = executeDirectly): Promise<ColumnAggregationVariant> {
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.type == LIST_COLUMN) {
@@ -16,7 +23,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
         }, LOG_CTX);
     }
 
-    const sql = buildColumnAggregationSQL(task);
+    const [sql, orderBy] = buildColumnAggregationSQL(task);
 
     try {
         const transformStart = performance.now();
@@ -24,7 +31,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
         const aggregateDataFrame = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
         const transformEnd = performance.now();
 
-        const aggregateTable = await aggregateDataFrame.readTable();
+        const aggregateTable = await aggregateDataFrame.readTable({ orderBy });
         const aggregateTableFormatter = new ArrowTableFormatter(aggregateTable.schema, aggregateTable.batches, logger);
         const readEnd = performance.now();
 
@@ -89,7 +96,8 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
     }
 }
 
-function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: WithFilter<ColumnAggregationTask> | null = null): string {
+/// The SQL of the aggregates of a column, and the order of their rows
+function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: WithFilter<ColumnAggregationTask> | null = null): [string, OrderByConstraint[]] {
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.value.statsFields == null) {
         throw new Error("Column summary requires precomputed table summary");
     }
@@ -141,8 +149,8 @@ function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: WithFi
                     func: "count_star",
                     outputAlias: "count",
                 }]
-            }).orderBy([{ field: "bin", ascending: true }]);
-            break;
+            });
+            return [frame.toSQL(), BIN_ORDER];
         }
         case STRING_COLUMN: {
             if (task.columnEntry.value.valueIdFieldName == null) {
@@ -157,12 +165,12 @@ function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: WithFi
                     func: "count_star",
                     outputAlias: "count",
                 }]
-            }).orderBy([{ field: "count", ascending: false }], 32);
-            break;
+            }).orderBy(FREQUENT_VALUE_ORDER, FREQUENT_VALUE_COUNT);
+            return [frame.toSQL(), FREQUENT_VALUE_ORDER];
         }
     }
 
-    return frame.toSQL();
+    return [frame.toSQL(), []];
 }
 
 export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAggregationTask>, logger: LoggerLike, executeQuery: ComputeQueryExecution = executeDirectly): Promise<WithFilterEpoch<ColumnAggregationVariant> | null> {
@@ -172,7 +180,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
         }, LOG_CTX);
     }
 
-    const sql = buildColumnAggregationSQL(task, task);
+    const [sql, orderBy] = buildColumnAggregationSQL(task, task);
 
     try {
         logger.info("Aggregating filtered table column", {
@@ -196,7 +204,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
             "sql": sql
         }, LOG_CTX);
 
-        const aggregateTable = await aggregateDataFrame.readTable();
+        const aggregateTable = await aggregateDataFrame.readTable({ orderBy });
         const aggregateTableFormatter = new ArrowTableFormatter(aggregateTable.schema, aggregateTable.batches, logger);
 
         let columnAggregate: WithFilterEpoch<ColumnAggregationVariant>;

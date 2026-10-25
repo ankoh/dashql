@@ -126,7 +126,6 @@ function formatOrderByItem(c: OrderByConstraint): string {
 
 export class SQLFrame {
     private _inputTable: string;
-    private _rowNumber: string | null = null;
     private _valueIdentifiers: ValueIdentifierEntry[] = [];
     private _binnings: BinningConfig[] = [];
     private _scalarFilters: ScalarFilter[] = [];
@@ -142,11 +141,6 @@ export class SQLFrame {
 
     static from(inputTable: string): SQLFrame {
         return new SQLFrame(inputTable);
-    }
-
-    rowNumber(outputAlias: string): SQLFrame {
-        this._rowNumber = outputAlias;
-        return this;
     }
 
     valueIdentifier(fieldName: string, outputAlias: string): SQLFrame {
@@ -189,15 +183,7 @@ export class SQLFrame {
         const ctes: string[] = [];
         let prev = quoteIdent(this._inputTable);
 
-        // 1. RowNumber
-        if (this._rowNumber !== null) {
-            const cteName = "__rownumber";
-            const body = `SELECT *, row_number() OVER () AS ${quoteIdent(this._rowNumber)} FROM ${prev}`;
-            ctes.push(`${cteName} AS (\n    ${body}\n  )`);
-            prev = cteName;
-        }
-
-        // 2. ValueIdentifiers
+        // 1. ValueIdentifiers
         if (this._valueIdentifiers.length > 0) {
             const cteName = "__value_ids";
             const windowExprs = this._valueIdentifiers.map(vi =>
@@ -208,7 +194,7 @@ export class SQLFrame {
             prev = cteName;
         }
 
-        // 3. Binning
+        // 2. Binning
         if (this._binnings.length > 0) {
             const cteName = "__binning";
             const binExprs: string[] = [];
@@ -234,7 +220,7 @@ export class SQLFrame {
             prev = cteName;
         }
 
-        // 4. Filters (scalar)
+        // 3. Filters (scalar)
         if (this._scalarFilters.length > 0) {
             const cteName = "__filtered";
             const conditions = this._scalarFilters.map(f =>
@@ -245,7 +231,7 @@ export class SQLFrame {
             prev = cteName;
         }
 
-        // 4b. Filters (semi-join)
+        // 3b. Filters (semi-join)
         for (let i = 0; i < this._semiJoinFilters.length; i++) {
             const sj = this._semiJoinFilters[i];
             const cteName = `__semi_${i}`;
@@ -254,7 +240,7 @@ export class SQLFrame {
             prev = cteName;
         }
 
-        // 5. GroupBy
+        // 4. GroupBy
         if (this._groupBy !== null) {
             const gb = this._groupBy;
             let binnedKey: { key: GroupByKey; binning: GroupByKeyBinning } | null = null;
@@ -280,12 +266,12 @@ export class SQLFrame {
 
         let finalSelect = `SELECT ${selectCols} FROM ${prev}`;
 
-        // 6. OrderBy
+        // 5. OrderBy
         if (this._orderBy !== null && this._orderBy.length > 0) {
             finalSelect += `\nORDER BY ${this._orderBy.map(formatOrderByItem).join(", ")}`;
         }
 
-        // 6b. Limit
+        // 5b. Limit
         if (this._limit !== undefined) {
             finalSelect += `\nLIMIT ${this._limit}`;
         }

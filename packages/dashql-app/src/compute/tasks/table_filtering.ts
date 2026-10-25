@@ -26,7 +26,8 @@ export async function filterTable(task: TableFilteringTask, logger: LoggerLike, 
         const tableName = generateTableName("__filter");
         const transformed = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
         const filterEnd = performance.now();
-        const filterResultTable = await transformed.readTable();
+        // The rows of the filter are shown in the order of the input
+        const filterResultTable = await transformed.readTable({ orderBy: [{ field: task.rowNumberColumnName }] });
 
         logger.info("Filtered table", {
             "version": task.tableVersion.toString(),

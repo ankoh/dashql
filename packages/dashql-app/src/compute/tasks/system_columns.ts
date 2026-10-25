@@ -21,7 +21,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
         const sql = sqlFrame.toSQL();
         const transformed = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
         const transformEnd = performance.now();
-        const transformedTable = await transformed.readTable();
+        const transformedTable = await transformed.readTable({ orderBy: [{ field: task.rowNumberFieldName }] });
         logger.info("Computed system columns", {
             "version": task.tableVersion.toString(),
             "duration": Math.floor(transformEnd - transformStart).toString(),
@@ -117,8 +117,6 @@ function buildSystemColumnSQLFrame(schema: arrow.Schema, columns: ColumnGroup[],
                 break;
         }
     }
-
-    frame = frame.orderBy([{ field: rowNumberFieldName, ascending: true }]);
 
     return [frame, gridColumns];
 }

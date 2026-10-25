@@ -31,16 +31,20 @@ export async function sortTable(task: TableOrderingTask, logger: LoggerLike, exe
                 task.dataSearchTable.dataTable.schema.fields[0].name,
             );
         }
+        // The table keeps the fields of the ordering, the read sorts the rows. Equal rows keep the order of the input.
+        const fields = new Set([task.rowNumberColumnName, ...task.orderingConstraints.map(constraint => constraint.field)]);
         const sql = frame
-            .orderBy(task.orderingConstraints)
-            .project([task.rowNumberColumnName])
+            .project([...fields])
             .toSQL();
 
         const sortStart = performance.now();
         const tableName = generateTableName("__ordered");
         const transformed = await executeQuery(sql, clientContext => DataFrame.fromSQL(task.inputDataFrame.database, sql, tableName, undefined, clientContext));
+        const orderedTable = await transformed.readTable({
+            orderBy: [...task.orderingConstraints, { field: task.rowNumberColumnName }],
+            columns: [task.rowNumberColumnName],
+        });
         const sortEnd = performance.now();
-        const orderedTable = await transformed.readTable();
         logger.info("Sorted table", {
             "version": task.tableVersion.toString(),
             "duration": Math.floor(sortEnd - sortStart).toString(),

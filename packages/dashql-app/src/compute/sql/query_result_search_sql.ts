@@ -3,6 +3,9 @@ import * as arrow from 'apache-arrow';
 import { quoteIdent, quoteStringLiteral } from './sqlframe_builder.js';
 import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from '../computation_types.js';
 
+/// The row number of a matching row in the result of buildDataSearchSQL()
+export const DATA_SEARCH_ROW_FIELD = 'row_idx';
+
 export interface SearchableResultColumn {
     /// Display-column index among original result columns, excluding the row-number column.
     columnIdx: number;
@@ -104,7 +107,7 @@ export function parseColumnSearchMatches(table: arrow.Table): number[] {
 }
 
 export function parseDataSearchMatches(table: arrow.Table): Map<number, number[]> {
-    const rowColumn = table.getChild('row_idx') ?? table.getChildAt(0);
+    const rowColumn = table.getChild(DATA_SEARCH_ROW_FIELD) ?? table.getChildAt(0);
     const matchColumn = table.getChild('column_indices') ?? table.getChildAt(1);
     const matches = new Map<number, number[]>();
     if (rowColumn == null || matchColumn == null) {

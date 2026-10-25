@@ -1,7 +1,7 @@
 import { DataFrame, generateTableName } from '../data_frame.js';
 import { DataSearchTask, DataSearchTable } from '../computation_types.js';
 import { LoggableException, LoggerLike, stringifyError } from '../../platform/logger/logger.js';
-import { buildDataSearchSQL } from '../sql/query_result_search_sql.js';
+import { buildDataSearchSQL, DATA_SEARCH_ROW_FIELD } from '../sql/query_result_search_sql.js';
 import { ComputeQueryExecution, executeDirectly } from '../computation_tasks.js';
 
 const LOG_CTX = "compute";
@@ -31,7 +31,7 @@ export async function searchData(
             clientContext,
         ));
         try {
-            const dataTable = await dataFrame.readTable(task.abortController.signal);
+            const dataTable = await dataFrame.readTable({ orderBy: [{ field: DATA_SEARCH_ROW_FIELD }], abort: task.abortController.signal });
             return {
                 inputRowNumberColumnName: task.rowNumberColumnName,
                 dataTable,
