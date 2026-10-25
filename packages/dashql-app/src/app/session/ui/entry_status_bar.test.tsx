@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EntryStatusBar, type EntryStatusBarDependencies } from './entry_status_bar.js';
 import { EntryStatusKind } from './entry_status_model.js';
+import { IndicatorStatus } from '../../../ui/foundations/status_indicator.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -35,6 +36,20 @@ describe('EntryStatusBar', () => {
     afterEach(() => {
         act(() => root.unmount());
         container.remove();
+    });
+
+    it('colors the indicator by status instead of inheriting the neutral bar color', () => {
+        const renderIndicatorFill = (indicator: IndicatorStatus) => {
+            act(() => root.render(
+                <EntryStatusBar status={{ kind: EntryStatusKind.Query, indicator, message: 'status', traceId: null, errorDetail: null }} dependencies={dependencies} />,
+            ));
+            return container.querySelector('svg path')!.getAttribute('fill');
+        };
+        const succeeded = renderIndicatorFill(IndicatorStatus.Succeeded);
+        const failed = renderIndicatorFill(IndicatorStatus.Failed);
+        expect(succeeded).not.toBe('currentColor');
+        expect(failed).not.toBe('currentColor');
+        expect(succeeded).not.toBe(failed);
     });
 
     it('shows all known query error details in an anchored dialog', () => {

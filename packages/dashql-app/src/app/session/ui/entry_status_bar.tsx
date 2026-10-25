@@ -115,7 +115,6 @@ export const EntryStatusBar: React.FC<EntryStatusBarProps> = ({ status, onToggle
             status={status.indicator}
             width="14px"
             height="14px"
-            fill="currentColor"
         />
     );
 

@@ -54,7 +54,6 @@
 
 .status_bar_spinner {
     flex-shrink: 0;
-    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 40%);
 }
 
 /* The message truncates so a long log line never wraps the bar onto a second row. */
