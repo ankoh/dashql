@@ -40,6 +40,38 @@ formatter-snapshots:
           setup: |-
             create table t(a int, b int, c int);
 
+  - name: window_alias_after_frame
+    input: |-
+      select day, avg(visitors) over (order by day rows between 2 preceding and current row) as visitors_3d_avg
+      from visits
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select day, avg(visitors) over (order by day rows between 2 preceding and current row) as visitors_3d_avg from visits;
+          - mode: compact
+            indent: 4
+            width: 80
+            expected: |-
+              select day,
+                  avg(visitors) over (
+                      order by day rows between 2 preceding and current row
+                  ) as visitors_3d_avg
+              from visits;
+          - mode: pretty
+            indent: 4
+            width: 80
+            expected: |-
+              select day,
+                  avg(visitors) over (
+                      order by day rows between 2 preceding and current row
+                  ) as visitors_3d_avg
+              from visits;
+        validation:
+          setup: |-
+            create table visits(day date, visitors int);
+
   - name: window_single_bound
     input: |-
       select sum(a) over (order by c rows 2 preceding), sum(a) over (order by c rows unbounded preceding) from t

@@ -18,6 +18,24 @@ formatter-snapshots:
           setup: |-
             create table t(a int, b int, c int);
 
+  # A window that fits the line but not with the alias after it breaks within its parentheses
+  - name: window_alias_after_frame
+    input: |-
+      select day, avg(visitors) over (order by day rows between 2 preceding and current row) as visitors_3d_avg
+      from visits
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 80
+            indent: 4
+          - mode: pretty
+            width: 80
+            indent: 4
+        validation:
+          setup: |-
+            create table visits(day date, visitors int);
+
   # Frame with a single bound
   - name: window_single_bound
     input: select sum(a) over (order by c rows 2 preceding), sum(a) over (order by c rows unbounded preceding) from t

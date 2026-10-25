@@ -24,6 +24,29 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  # The query starts on its own line once the statement does not fit on one
+  - name: create_table_as_query_on_own_line
+    input: |-
+      create table if not exists region as select * from external('https://data.dashql.app/tpch-0.001/v1/region.parquet', format => 'parquet')
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 80
+            indent: 4
+          - mode: pretty
+            width: 80
+            indent: 4
+
+  - name: create_table_as_with_no_data_on_own_line
+    input: create temporary table if not exists result (value) as select some_long_column_name from some_long_table_name with no data
+    dialects:
+      hyper:
+        formatted:
+          - mode: pretty
+            width: 80
+            indent: 4
+
   - name: coverage_create_view
     input: create view analytics.result (value) as select 1
     dialects:

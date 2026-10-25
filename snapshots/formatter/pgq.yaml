@@ -107,7 +107,9 @@ formatter-snapshots:
             expected: |-
               with pg as property graph ()
               select *
-              from graph_table(pg match (a :Person)-[e :Knows]->{1,3}(b :Person) one row per match columns (a.name as source_name)) gt;
+              from graph_table(
+                pg match (a :Person)-[e :Knows]->{1,3}(b :Person) one row per match columns (a.name as source_name)
+              ) gt;
           - mode: pretty
             expected: |-
               with pg as property graph ()

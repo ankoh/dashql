@@ -108,13 +108,17 @@ impl<'a> Formatter<'a> {
             parts.push(f.text(" "));
             parts.push(self.reg(on_commit));
         }
-        parts.push(f.text(" as "));
-        parts.push(self.reg(statement));
-        if let Some(with_data) = with_data {
-            let include_data = with_data.node_type() == NodeType::BOOL && with_data.children_begin_or_value() != 0;
-            parts.push(f.text(if include_data { " with data" } else { " with no data" }));
+        parts.push(f.text(" as"));
+        // The query follows on the same line only if the whole statement fits, like the query of a view
+        let header = f.concat(&parts);
+        let body = self.space_join(&[header, self.reg(statement)], FormattingJoinPolicy::BreakAllOrNone, false);
+        match with_data {
+            Some(with_data) => {
+                let include_data = with_data.node_type() == NodeType::BOOL && with_data.children_begin_or_value() != 0;
+                f.concat(&[body, f.text(if include_data { " with data" } else { " with no data" })])
+            }
+            None => body,
         }
-        f.concat(&parts)
     }
 
     pub(super) fn format_view(&self, node: &'a Node) -> FmtReg {

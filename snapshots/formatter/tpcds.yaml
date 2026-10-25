@@ -3572,8 +3572,12 @@ formatter-snapshots:
               select *
               from (
                 select w_warehouse_name, i_item_id,
-                  sum(case when cast(d_date as date) < cast('2000-03-11' as date) then inv_quantity_on_hand else 0 end) as inv_before,
-                  sum(case when cast(d_date as date) >= cast('2000-03-11' as date) then inv_quantity_on_hand else 0 end) as inv_after
+                  sum(
+                    case when cast(d_date as date) < cast('2000-03-11' as date) then inv_quantity_on_hand else 0 end
+                  ) as inv_before,
+                  sum(
+                    case when cast(d_date as date) >= cast('2000-03-11' as date) then inv_quantity_on_hand else 0 end
+                  ) as inv_after
                 from inventory, warehouse, item, date_dim
                 where i_current_price between 0.99 and 1.49 and i_item_sk = inv_item_sk and inv_warehouse_sk = w_warehouse_sk
                   and inv_date_sk = d_date_sk and d_date between cast('2000-02-10' as date) and cast('2000-04-10' as date)
@@ -5375,7 +5379,9 @@ formatter-snapshots:
                 from results
               )
               select gross_margin, i_category, i_class, lochierarchy,
-                rank() over (partition by lochierarchy, case when t_class = 0 then i_category end order by gross_margin asc) as rank_within_parent
+                rank() over (
+                  partition by lochierarchy, case when t_class = 0 then i_category end order by gross_margin asc
+                ) as rank_within_parent
               from results_rollup
               order by lochierarchy desc nulls first, case when lochierarchy = 0 then i_category end nulls first,
                 rank_within_parent nulls first
@@ -6551,7 +6557,9 @@ formatter-snapshots:
             expected: |-
               with v1 as (
                 select i_category, i_brand, s_store_name, s_company_name, d_year, d_moy, sum(ss_sales_price) as sum_sales,
-                  avg(sum(ss_sales_price)) over (partition by i_category, i_brand, s_store_name, s_company_name, d_year) as avg_monthly_sales,
+                  avg(sum(ss_sales_price)) over (
+                    partition by i_category, i_brand, s_store_name, s_company_name, d_year
+                  ) as avg_monthly_sales,
                   rank() over (partition by i_category, i_brand, s_store_name, s_company_name order by d_year, d_moy) as rn
                 from item, store_sales, date_dim, store
                 where ss_item_sk = i_item_sk and ss_sold_date_sk = d_date_sk and ss_store_sk = s_store_sk and (
@@ -6583,7 +6591,9 @@ formatter-snapshots:
                   d_year,
                   d_moy,
                   sum(ss_sales_price) as sum_sales,
-                  avg(sum(ss_sales_price)) over (partition by i_category, i_brand, s_store_name, s_company_name, d_year) as avg_monthly_sales,
+                  avg(sum(ss_sales_price)) over (
+                    partition by i_category, i_brand, s_store_name, s_company_name, d_year
+                  ) as avg_monthly_sales,
                   rank() over (partition by i_category, i_brand, s_store_name, s_company_name order by d_year, d_moy) as rn
                 from item, store_sales, date_dim, store
                 where ss_item_sk = i_item_sk
@@ -7248,8 +7258,12 @@ formatter-snapshots:
               select *
               from (
                 select item_sk, d_date, web_sales, store_sales,
-                  max(web_sales) over (partition by item_sk order by d_date rows between unbounded preceding and current row) as web_cumulative,
-                  max(store_sales) over (partition by item_sk order by d_date rows between unbounded preceding and current row) as store_cumulative
+                  max(web_sales) over (
+                    partition by item_sk order by d_date rows between unbounded preceding and current row
+                  ) as web_cumulative,
+                  max(store_sales) over (
+                    partition by item_sk order by d_date rows between unbounded preceding and current row
+                  ) as store_cumulative
                 from (
                   select case when web.item_sk is not null then web.item_sk else store.item_sk end as item_sk,
                     case when web.d_date is not null then web.d_date else store.d_date end as d_date, web.cume_sales as web_sales,
@@ -7287,8 +7301,12 @@ formatter-snapshots:
                   d_date,
                   web_sales,
                   store_sales,
-                  max(web_sales) over (partition by item_sk order by d_date rows between unbounded preceding and current row) as web_cumulative,
-                  max(store_sales) over (partition by item_sk order by d_date rows between unbounded preceding and current row) as store_cumulative
+                  max(web_sales) over (
+                    partition by item_sk order by d_date rows between unbounded preceding and current row
+                  ) as web_cumulative,
+                  max(store_sales) over (
+                    partition by item_sk order by d_date rows between unbounded preceding and current row
+                  ) as store_cumulative
                 from (
                   select case
                       when web.item_sk is not null then web.item_sk
@@ -8725,10 +8743,15 @@ formatter-snapshots:
             expected: |-
               select w_substr, sm_type, web_name,
                 sum(case when ws_ship_date_sk - ws_sold_date_sk <= 30 then 1 else 0 end) as "30 days",
-                sum(case when ws_ship_date_sk - ws_sold_date_sk > 30 and ws_ship_date_sk - ws_sold_date_sk <= 60 then 1 else 0 end) as "31-60 days",
-                sum(case when ws_ship_date_sk - ws_sold_date_sk > 60 and ws_ship_date_sk - ws_sold_date_sk <= 90 then 1 else 0 end) as "61-90 days",
-                sum(case when ws_ship_date_sk - ws_sold_date_sk > 90 and ws_ship_date_sk - ws_sold_date_sk <= 120 then 1 else 0 end) as "91-120 days",
-                sum(case when ws_ship_date_sk - ws_sold_date_sk > 120 then 1 else 0 end) as ">120 days"
+                sum(
+                  case when ws_ship_date_sk - ws_sold_date_sk > 30 and ws_ship_date_sk - ws_sold_date_sk <= 60 then 1 else 0 end
+                ) as "31-60 days",
+                sum(
+                  case when ws_ship_date_sk - ws_sold_date_sk > 60 and ws_ship_date_sk - ws_sold_date_sk <= 90 then 1 else 0 end
+                ) as "61-90 days",
+                sum(
+                  case when ws_ship_date_sk - ws_sold_date_sk > 90 and ws_ship_date_sk - ws_sold_date_sk <= 120 then 1 else 0 end
+                ) as "91-120 days", sum(case when ws_ship_date_sk - ws_sold_date_sk > 120 then 1 else 0 end) as ">120 days"
               from web_sales, (select substring(w_warehouse_name, 1, 20) as w_substr, * from warehouse) sq1, ship_mode, web_site,
                 date_dim
               where d_month_seq between 1200 and 1200 + 11 and ws_ship_date_sk = d_date_sk and ws_warehouse_sk = w_warehouse_sk
@@ -12996,7 +13019,9 @@ formatter-snapshots:
               select *
               from (
                 select i_category, i_class, i_brand, s_store_name, s_company_name, d_moy, sum(ss_sales_price) as sum_sales,
-                  avg(sum(ss_sales_price)) over (partition by i_category, i_brand, s_store_name, s_company_name) as avg_monthly_sales
+                  avg(sum(ss_sales_price)) over (
+                    partition by i_category, i_brand, s_store_name, s_company_name
+                  ) as avg_monthly_sales
                 from item, store_sales, date_dim, store
                 where ss_item_sk = i_item_sk and ss_sold_date_sk = d_date_sk and ss_store_sk = s_store_sk and d_year = 1999 and (
                     i_category in ('Books', 'Electronics', 'Sports') and i_class in ('computers', 'stereo', 'football')
@@ -13018,7 +13043,9 @@ formatter-snapshots:
                   s_company_name,
                   d_moy,
                   sum(ss_sales_price) as sum_sales,
-                  avg(sum(ss_sales_price)) over (partition by i_category, i_brand, s_store_name, s_company_name) as avg_monthly_sales
+                  avg(sum(ss_sales_price)) over (
+                    partition by i_category, i_brand, s_store_name, s_company_name
+                  ) as avg_monthly_sales
                 from item, store_sales, date_dim, store
                 where ss_item_sk = i_item_sk
                   and ss_sold_date_sk = d_date_sk
@@ -13730,10 +13757,15 @@ formatter-snapshots:
             expected: |-
               select w_substr, sm_type, cc_name,
                 sum(case when cs_ship_date_sk - cs_sold_date_sk <= 30 then 1 else 0 end) as "30 days",
-                sum(case when cs_ship_date_sk - cs_sold_date_sk > 30 and cs_ship_date_sk - cs_sold_date_sk <= 60 then 1 else 0 end) as "31-60 days",
-                sum(case when cs_ship_date_sk - cs_sold_date_sk > 60 and cs_ship_date_sk - cs_sold_date_sk <= 90 then 1 else 0 end) as "61-90 days",
-                sum(case when cs_ship_date_sk - cs_sold_date_sk > 90 and cs_ship_date_sk - cs_sold_date_sk <= 120 then 1 else 0 end) as "91-120 days",
-                sum(case when cs_ship_date_sk - cs_sold_date_sk > 120 then 1 else 0 end) as ">120 days"
+                sum(
+                  case when cs_ship_date_sk - cs_sold_date_sk > 30 and cs_ship_date_sk - cs_sold_date_sk <= 60 then 1 else 0 end
+                ) as "31-60 days",
+                sum(
+                  case when cs_ship_date_sk - cs_sold_date_sk > 60 and cs_ship_date_sk - cs_sold_date_sk <= 90 then 1 else 0 end
+                ) as "61-90 days",
+                sum(
+                  case when cs_ship_date_sk - cs_sold_date_sk > 90 and cs_ship_date_sk - cs_sold_date_sk <= 120 then 1 else 0 end
+                ) as "91-120 days", sum(case when cs_ship_date_sk - cs_sold_date_sk > 120 then 1 else 0 end) as ">120 days"
               from catalog_sales, (select substring(w_warehouse_name, 1, 20) as w_substr, * from warehouse) sq1, ship_mode,
                 call_center, date_dim
               where d_month_seq between 1200 and 1200 + 11 and cs_ship_date_sk = d_date_sk and cs_warehouse_sk = w_warehouse_sk

@@ -75,6 +75,57 @@ formatter-snapshots:
             expected: |-
               create global temporary table result as select 1 with data;
 
+  - name: create_table_as_query_on_own_line
+    input: |-
+      create table if not exists region as select * from external('https://data.dashql.app/tpch-0.001/v1/region.parquet', format => 'parquet')
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table if not exists region as select * from external('https://data.dashql.app/tpch-0.001/v1/region.parquet', format => 'parquet');
+          - mode: compact
+            indent: 4
+            width: 80
+            expected: |-
+              create table if not exists region as
+              select *
+              from external(
+                  'https://data.dashql.app/tpch-0.001/v1/region.parquet',
+                      format => 'parquet'
+              );
+          - mode: pretty
+            indent: 4
+            width: 80
+            expected: |-
+              create table if not exists region as
+              select *
+              from external(
+                  'https://data.dashql.app/tpch-0.001/v1/region.parquet',
+                      format => 'parquet'
+              );
+
+  - name: create_table_as_with_no_data_on_own_line
+    input: |-
+      create temporary table if not exists result (value) as select some_long_column_name from some_long_table_name with no data
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create temporary table if not exists result(value) as select some_long_column_name from some_long_table_name with no data;
+          - mode: compact
+            expected: |-
+              create temporary table if not exists result(value) as
+              select some_long_column_name from some_long_table_name with no data;
+          - mode: pretty
+            indent: 4
+            width: 80
+            expected: |-
+              create temporary table if not exists result(value) as
+              select some_long_column_name
+              from some_long_table_name with no data;
+
   - name: coverage_create_view
     input: |-
       create view analytics.result (value) as select 1

@@ -363,6 +363,62 @@ fn push_rendered_join(
     }
 }
 
+/// The width of the text that a document starts with, up to its first possible line break.
+/// Returns the width and whether a line break could follow.
+fn leading_inline_width(reg: FmtReg, program: &[FormattingOperation]) -> (usize, bool) {
+    let doc = &program[reg as usize];
+    match doc.code {
+        FormattingOpCode::Empty => (0, false),
+        FormattingOpCode::Text => (doc.text.len(), false),
+        FormattingOpCode::Break => (0, true),
+        FormattingOpCode::Concat => {
+            let mut width = 0;
+            for &child in doc.children.iter() {
+                let (child_width, breaks) = leading_inline_width(child, program);
+                width += child_width;
+                if breaks {
+                    return (width, true);
+                }
+            }
+            (width, false)
+        }
+        FormattingOpCode::Indent => doc.children.first().map_or((0, false), |&child| leading_inline_width(child, program)),
+        // A join may break after its first item, parentheses after the opening one
+        FormattingOpCode::Join => match doc.children.first() {
+            Some(&first) => {
+                let (width, breaks) = leading_inline_width(first, program);
+                (width, breaks || doc.children.len() > 1)
+            }
+            None => (0, false),
+        },
+        FormattingOpCode::Parenthesis | FormattingOpCode::Brackets => (1, true),
+    }
+}
+
+/// The width of the text that follows on the current line, up to the first possible line break of the pending steps.
+/// A document fits inline only if this text fits behind it, e.g. the alias after a parenthesized window.
+fn trailing_inline_width(stack: &[RenderCommand], program: &[FormattingOperation]) -> usize {
+    let mut width = 0;
+    for command in stack.iter().rev() {
+        let (command_width, breaks) = match command.kind {
+            RendererOpCode::Format => leading_inline_width(command.reg, program),
+            RendererOpCode::Close(_) => (1, false),
+            RendererOpCode::CloseAfterBreak(_) => (0, true),
+            // The next item of a join follows its separator, which may break. The safety buffer of the remaining
+            // width covers a separator that stays on the line.
+            RendererOpCode::JoinNextBreakOnOverflow => {
+                let doc = &program[command.reg as usize];
+                (0, command.next_index < doc.children.len())
+            }
+        };
+        width += command_width;
+        if breaks {
+            break;
+        }
+    }
+    width
+}
+
 /// Does the stack render inline within the remaining width?
 fn dry_run_inline(
     mut remaining: isize,
@@ -519,8 +575,14 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                     next_index: command.next_index + 1,
                 };
                 let child = doc.children[command.next_index];
+                // The last item is followed by the text after the join
+                let trailing = if command.next_index + 1 >= doc.children.len() {
+                    trailing_inline_width(&stack, program)
+                } else {
+                    0
+                };
                 if can_inline_join_step(
-                    remaining_inline_width(options.max_width, current_line_width),
+                    remaining_inline_width(options.max_width, current_line_width) - trailing as isize,
                     doc,
                     command.next_index,
                     command.indentation,
@@ -567,7 +629,8 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                 if force_inline
                     || (doc.join_policy != FormattingJoinPolicy::ForceBreak
                         && join_fits_inline(
-                            remaining_inline_width(options.max_width, current_line_width),
+                            remaining_inline_width(options.max_width, current_line_width)
+                                - trailing_inline_width(&stack, program) as isize,
                             doc,
                             command.indentation,
                             program,
@@ -610,7 +673,8 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                 let (open, close) = if doc.code == FormattingOpCode::Brackets { ('[', ']') } else { ('(', ')') };
                 let render_flat = force_inline
                     || parenthesis_fits_inline(
-                        remaining_inline_width(options.max_width, current_line_width),
+                        remaining_inline_width(options.max_width, current_line_width)
+                            - trailing_inline_width(&stack, program) as isize,
                         doc,
                         command.indentation,
                         program,
