@@ -25,4 +25,9 @@ runs:
           exit 1
         fi
 
+        # The runner image preconfigures packages.microsoft.com, which intermittently
+        # answers 403 and fails apt-get update. Nothing we install comes from there.
+        sudo grep -l -R -E 'https?://packages\.microsoft\.com/' /etc/apt/sources.list.d 2>/dev/null \
+          | xargs -r sudo rm -f
+
         sudo apt-get update
