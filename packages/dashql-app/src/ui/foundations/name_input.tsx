@@ -5,6 +5,8 @@ interface Props {
     name: string | null;
     /// Commit an edited name, blank input means no name
     onCommit: (name: string) => void;
+    /// Abandon the edit with Escape
+    onCancel?: () => void;
     /// The accessible label
     ariaLabel: string;
     /// The placeholder while there is no name
@@ -40,9 +42,10 @@ export const NameInput = React.forwardRef<HTMLInputElement, Props>((props, forwa
             cancelBlurRef.current = true;
             e.currentTarget.value = props.name ?? '';
             e.currentTarget.blur();
+            props.onCancel?.();
         }
         e.stopPropagation();
-    }, [props.name]);
+    }, [props.name, props.onCancel]);
     const onPointerDown = React.useCallback((e: React.PointerEvent<HTMLInputElement>) => {
         // Inputs are often portaled from sortable rows. Keep selection gestures from bubbling
         // through the React tree and activating a drag sensor.

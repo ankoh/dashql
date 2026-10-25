@@ -28,6 +28,7 @@ import {
     CopyIcon,
     FileDirectoryIcon,
     LinkIcon,
+    PencilIcon,
     PlusIcon,
     TrashIcon,
     SymbolIcon,
@@ -73,10 +74,13 @@ import { describeSessionValidationError } from '../../storage/session_validation
 import type { SessionScripts } from '../scripts/session_scripts.js';
 import {
     useInvalidSessions,
+    useSessionScripts,
     useSessionScriptsDeletion,
     useSessionScriptsRegistry,
 } from '../scripts/session_scripts_registry.js';
 import { useSessionCreation } from '../session_creation.js';
+import { RENAME_SESSION } from '../scripts/session_scripts.js';
+import { NameInput } from '../../../ui/foundations/name_input.js';
 import { useMergeConnections } from '../session_connection_merge.js';
 import { useDeleteConnection } from '../../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../../connections/connection_merge.js';
@@ -126,6 +130,7 @@ export interface SessionWorkbenchSidebarDependencies {
     useRouteContext: typeof useRouteContext;
     useDynamicConnectionDispatch: typeof useDynamicConnectionDispatch;
     useSessionScriptsRegistry: typeof useSessionScriptsRegistry;
+    useSessionScripts: typeof useSessionScripts;
     useConnectionRegistry: typeof useConnectionRegistry;
     useConnectionReferences: typeof useConnectionReferences;
     useConnectionAllocator: typeof useConnectionAllocator;
@@ -156,6 +161,7 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useRouteContext,
     useDynamicConnectionDispatch,
     useSessionScriptsRegistry,
+    useSessionScripts,
     useConnectionRegistry,
     useConnectionReferences,
     useConnectionAllocator,
@@ -186,12 +192,13 @@ const FileZipIcon = SymbolIcon('file_zip_16');
 
 interface SessionRowMenuProps {
     item: SessionItem;
+    onRename: () => void;
     onDuplicate: () => void;
     onDelete: () => void;
     dependencies: SessionWorkbenchSidebarDependencies;
 }
 
-const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onDuplicate, onDelete, dependencies }) => {
+const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDuplicate, onDelete, dependencies }) => {
     const [open, setOpen] = React.useState(false);
     const [shareOpen, setShareOpen] = React.useState(false);
     const [exportOpen, setExportOpen] = React.useState(false);
@@ -229,6 +236,14 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onDuplicate, onDe
         >
             <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${item.label}`}>
                 <ActionList.List aria-label={`Actions for ${item.label}`}>
+                    <ActionList.ListItem data-testid="session-menu-item" data-action="rename" onClick={(event) => {
+                        event.stopPropagation();
+                        setOpen(false);
+                        onRename();
+                    }}>
+                        <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>Rename</ActionList.ItemText>
+                    </ActionList.ListItem>
                     <dependencies.SessionStorageOverlay
                         sessionId={item.sessionId}
                         isOpen={storageOpen}
@@ -308,6 +323,20 @@ interface SessionRowProps {
 
 const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDuplicate, onDelete, dependencies }) => {
     const title = item.scripts.name?.trim() || null;
+    const [, modifySessionScripts] = dependencies.useSessionScripts(item.sessionId);
+    // The rename action swaps the name for an input until the edit is committed or abandoned
+    const [renaming, setRenaming] = React.useState(false);
+    const renameInputRef = React.useRef<HTMLInputElement>(null);
+    React.useEffect(() => {
+        if (!renaming) return;
+        renameInputRef.current?.focus();
+        renameInputRef.current?.select();
+    }, [renaming]);
+    const commitRename = React.useCallback((name: string) => {
+        setRenaming(false);
+        void modifySessionScripts({ type: RENAME_SESSION, value: name });
+    }, [modifySessionScripts]);
+    const cancelRename = React.useCallback(() => setRenaming(false), []);
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.sessionId });
     return (
         <li
@@ -325,17 +354,32 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDupli
             {...attributes}
             {...listeners}
         >
-            <button
-                type="button"
-                className={styles.session_button}
-                aria-current={selected ? 'page' : undefined}
-                title={item.path}
-                onClick={event => onOpen(event.currentTarget)}
-            >
-                <FileDirectoryIcon size={14} aria-hidden="true" />
-                <span className={title ? styles.session_name : styles.session_path}>{title ?? item.path}</span>
-            </button>
-            <SessionRowMenu item={item} onDuplicate={onDuplicate} onDelete={onDelete} dependencies={dependencies} />
+            {renaming ? (
+                <div className={styles.session_rename}>
+                    <FileDirectoryIcon size={14} aria-hidden="true" />
+                    <NameInput
+                        ref={renameInputRef}
+                        className={styles.session_rename_input}
+                        name={title}
+                        onCommit={commitRename}
+                        onCancel={cancelRename}
+                        ariaLabel="Session name"
+                        placeholder="Name this session"
+                    />
+                </div>
+            ) : (
+                <button
+                    type="button"
+                    className={styles.session_button}
+                    aria-current={selected ? 'page' : undefined}
+                    title={item.path}
+                    onClick={event => onOpen(event.currentTarget)}
+                >
+                    <FileDirectoryIcon size={14} aria-hidden="true" />
+                    <span className={title ? styles.session_name : styles.session_path}>{title ?? item.path}</span>
+                </button>
+            )}
+            <SessionRowMenu item={item} onRename={() => setRenaming(true)} onDuplicate={onDuplicate} onDelete={onDelete} dependencies={dependencies} />
         </li>
     );
 };

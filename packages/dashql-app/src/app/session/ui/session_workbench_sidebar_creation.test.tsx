@@ -16,6 +16,7 @@ const state = {
     navigate: vi.fn(),
     dispatchDatabase: vi.fn(),
     createSession: vi.fn(),
+    modifySessionScripts: vi.fn(),
     write: vi.fn<() => Promise<boolean>>(),
     refreshCatalog: vi.fn(),
     createConnectionStateFromParams: vi.fn(),
@@ -82,6 +83,7 @@ const dependencies = {
     },
     useSessionScriptsDeletion: () => vi.fn(),
     useSessionScriptsRegistry: () => [{ sessionScriptsMap: state.sessionScriptsMap }],
+    useSessionScripts: () => [null, state.modifySessionScripts],
     useSessionCreation: () => state.createSession,
     useMergeConnections: () => async () => {},
     useDeleteConnection: () => async () => {},
@@ -126,6 +128,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
         document.body.appendChild(container);
         root = createRoot(container);
         state.navigate.mockReset();
+        state.modifySessionScripts.mockReset();
         state.dispatchDatabase.mockReset();
         state.createSession.mockReset().mockReturnValue({ sessionId: '00000000-0000-4000-8000-000000000001' });
         state.write.mockReset().mockResolvedValue(true);
@@ -314,6 +317,47 @@ describe('SessionWorkbenchSidebar session creation', () => {
         act(() => share.click());
         expect(state.shareProps).toMatchObject({ isOpen: true, sessionId });
         expect(document.querySelector('[data-testid="share-url-overlay"]')).not.toBeNull();
+    });
+
+    it('renames a session in place from the session row menu', () => {
+        const sessionId = 'current-session';
+        state.connections.set('local-database', state.local!);
+        state.attachedDatabasesBySession.set(sessionId, {
+            mainDatabaseId: 'local-database',
+            attachedDatabaseIds: [],
+        });
+        state.sessionScriptsMap.set(sessionId, {
+            sessionId,
+            name: 'Untitled',
+            sessionMetadata: { originalFileName: 'current' },
+        });
+        act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
+            sessionId,
+            instance: {},
+        } as any} dependencies={dependencies} />));
+
+        click('session-row-menu');
+        act(() => (document.querySelector('[data-testid="session-menu-item"][data-action="rename"]') as HTMLButtonElement).click());
+        const input = container.querySelector('input[aria-label="Session name"]') as HTMLInputElement;
+        expect(input).not.toBeNull();
+        expect(document.activeElement).toBe(input);
+        expect(input.value).toBe('Untitled');
+
+        // Escape abandons the edit
+        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+        expect(container.querySelector('input[aria-label="Session name"]')).toBeNull();
+        expect(state.modifySessionScripts).not.toHaveBeenCalled();
+
+        click('session-row-menu');
+        act(() => (document.querySelector('[data-testid="session-menu-item"][data-action="rename"]') as HTMLButtonElement).click());
+        const second = container.querySelector('input[aria-label="Session name"]') as HTMLInputElement;
+        act(() => {
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(second, 'Revenue');
+            second.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        });
+        expect(state.modifySessionScripts).toHaveBeenCalledOnce();
+        expect(state.modifySessionScripts.mock.calls[0][0]).toMatchObject({ value: 'Revenue' });
+        expect(container.querySelector('input[aria-label="Session name"]')).toBeNull();
     });
 
     it('does not select the session while a connection overview is open', () => {

@@ -5,22 +5,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { NameRow } from './session_storage_overlay.js';
+import { NameInput } from './name_input.js';
 
 function setInputValue(input: HTMLInputElement, value: string) {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-describe('NameRow', () => {
+describe('NameInput', () => {
     let container: HTMLDivElement;
     let root: Root;
     const commitName = vi.fn();
+    const cancelName = vi.fn();
     const parentKeyDown = vi.fn();
     const parentPointerDown = vi.fn();
 
     beforeEach(() => {
         commitName.mockReset();
+        cancelName.mockReset();
         parentKeyDown.mockReset();
         parentPointerDown.mockReset();
         container = document.createElement('div');
@@ -28,7 +30,7 @@ describe('NameRow', () => {
         root = createRoot(container);
         act(() => root.render(
             <div onKeyDown={parentKeyDown} onPointerDown={parentPointerDown}>
-                <NameRow name="Original name" onCommit={commitName} />
+                <NameInput name="Original name" onCommit={commitName} onCancel={cancelName} ariaLabel="Name" placeholder="Name" />
             </div>,
         ));
     });
@@ -99,5 +101,6 @@ describe('NameRow', () => {
 
         expect(input.value).toBe('Original name');
         expect(commitName).not.toHaveBeenCalled();
+        expect(cancelName).toHaveBeenCalledOnce();
     });
 });

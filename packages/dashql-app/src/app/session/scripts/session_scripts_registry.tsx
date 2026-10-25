@@ -45,6 +45,8 @@ export type ModifyConnectionSessionScripts = (conn: string, action: SessionScrip
 // Hooks that only modify the registry subscribe to the setter context and don't re-render on every update.
 const SESSION_SCRIPTS_REGISTRY_CTX = React.createContext<SessionScriptsRegistry | null>(null);
 const SESSION_SCRIPTS_REGISTRY_SETTER_CTX = React.createContext<Dispatch<SetSessionScriptsRegistryAction> | null>(null);
+// Reads the current registry without subscribing to its changes
+const SESSION_SCRIPTS_REGISTRY_READER_CTX = React.createContext<(() => SessionScriptsRegistry) | null>(null);
 // The session script actions of all components are applied in order through one queue
 const SESSION_SCRIPTS_REGISTRY_QUEUE_CTX = React.createContext<UpdateQueue<SessionScriptsRegistry> | null>(null);
 
@@ -64,11 +66,13 @@ export const SessionScriptsRegistryProvider: React.FC<React.PropsWithChildren<Pr
     return (
         <ConnectionReferencesProvider value={references}>
             <SESSION_SCRIPTS_REGISTRY_QUEUE_CTX.Provider value={queue}>
-                <SESSION_SCRIPTS_REGISTRY_SETTER_CTX.Provider value={store.update}>
-                    <SESSION_SCRIPTS_REGISTRY_CTX.Provider value={reg}>
-                        {props.children}
-                    </SESSION_SCRIPTS_REGISTRY_CTX.Provider>
-                </SESSION_SCRIPTS_REGISTRY_SETTER_CTX.Provider>
+                <SESSION_SCRIPTS_REGISTRY_READER_CTX.Provider value={store.get}>
+                    <SESSION_SCRIPTS_REGISTRY_SETTER_CTX.Provider value={store.update}>
+                        <SESSION_SCRIPTS_REGISTRY_CTX.Provider value={reg}>
+                            {props.children}
+                        </SESSION_SCRIPTS_REGISTRY_CTX.Provider>
+                    </SESSION_SCRIPTS_REGISTRY_SETTER_CTX.Provider>
+                </SESSION_SCRIPTS_REGISTRY_READER_CTX.Provider>
             </SESSION_SCRIPTS_REGISTRY_QUEUE_CTX.Provider>
         </ConnectionReferencesProvider>
     );
@@ -93,6 +97,11 @@ export function useSessionScriptsRegistry(): [SessionScriptsRegistry, Dispatch<S
 /// Modify the registry without subscribing to its changes
 export function useSessionScriptsRegistrySetter(): Dispatch<SetSessionScriptsRegistryAction> {
     return React.useContext(SESSION_SCRIPTS_REGISTRY_SETTER_CTX)!;
+}
+
+/// Read the current registry without subscribing to its changes
+export function useSessionScriptsRegistryReader(): () => SessionScriptsRegistry {
+    return React.useContext(SESSION_SCRIPTS_REGISTRY_READER_CTX)!;
 }
 
 /// The sessions that were refused a load

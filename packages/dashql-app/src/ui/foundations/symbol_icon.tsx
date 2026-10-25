@@ -126,6 +126,7 @@ export const ListUnorderedIcon = createIcon({ 16: 'list_unordered_16' });
 export const LockIcon = createIcon({ 16: 'lock_16' });
 export const PaperAirplaneIcon = createIcon({ 16: 'paper_airplane_16' });
 export const PaperclipIcon = createIcon({ 16: 'paperclip_16' });
+export const PencilIcon = createIcon({ 16: 'pencil_16', 24: 'pencil_24' });
 export const PersonIcon = createIcon({ 16: 'person_16', 24: 'person_24' });
 export const PlugIcon = createIcon({ 16: 'plug_16', 24: 'plug_24' });
 export const PlusIcon = createIcon({ 16: 'plus_16', 24: 'plus_24' });

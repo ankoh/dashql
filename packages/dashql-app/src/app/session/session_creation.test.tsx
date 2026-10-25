@@ -10,9 +10,15 @@ import { StorageProvider, useStorageWriter } from '../storage/storage_provider.j
 import type { StorageWriter } from '../storage/storage_writer.js';
 import { SessionTestBackend, TEST_CONNECTION_ID } from '../storage/session_test_backend.js';
 import { SessionScriptsRegistryProvider, useSessionScriptsRegistry, type SessionScriptsRegistry } from './scripts/session_scripts_registry.js';
-import { useSessionCreation, type SessionCreation } from './session_creation.js';
+import { freeSessionName, useSessionCreation, type SessionCreation } from './session_creation.js';
 
 describe('session creation', () => {
+    it('picks the first session name no other session has', () => {
+        expect(freeSessionName([])).toBe('Untitled');
+        expect(freeSessionName(['Default', null])).toBe('Untitled');
+        expect(freeSessionName(['untitled', ' Untitled 2 ', 'Untitled 4'])).toBe('Untitled 3');
+    });
+
     it('registers the scripts of a new session and writes its session file with the default connection', async () => {
         const backend = new SessionTestBackend();
         const params = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as const;
@@ -41,7 +47,16 @@ describe('session creation', () => {
             let sessionId = '';
             await act(async () => { sessionId = createSession(database, 'Default').sessionId; });
             expect(registry.sessionScriptsMap.get(sessionId)?.name).toBe('Default');
-            expect(registry.sessionScriptsByConnection.get(TEST_CONNECTION_ID)).toEqual([sessionId]);
+            // Sessions without a name get free ones, also when created back to back
+            let firstId = '';
+            let secondId = '';
+            await act(async () => {
+                firstId = createSession(database).sessionId;
+                secondId = createSession(database).sessionId;
+            });
+            expect(registry.sessionScriptsMap.get(firstId)?.name).toBe('Untitled');
+            expect(registry.sessionScriptsMap.get(secondId)?.name).toBe('Untitled 2');
+            expect(registry.sessionScriptsByConnection.get(TEST_CONNECTION_ID)).toEqual([sessionId, firstId, secondId]);
             await writer.flush();
             const session = backend.sessions.get(sessionId)!;
             expect(session.defaultConnectionId).toBe(TEST_CONNECTION_ID);

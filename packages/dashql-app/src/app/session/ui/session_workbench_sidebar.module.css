@@ -178,6 +178,35 @@
     margin-right: 4px;
 }
 
+.session_rename {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 3px 0;
+}
+
+.session_rename_input {
+    appearance: none;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 1px 4px;
+    margin-left: -5px;
+    border: 1px solid var(--focus_border_color);
+    border-radius: var(--border_radius);
+    background-color: var(--input_bg, #ffffff);
+    color: inherit;
+    font-family: var(--font_family);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.session_rename_input:focus {
+    outline: none;
+}
+
 .database_body {
     display: flex;
     flex: 1;

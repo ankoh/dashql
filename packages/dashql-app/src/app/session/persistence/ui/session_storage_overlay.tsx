@@ -13,9 +13,6 @@ import { displayPath } from '../../../storage/session_locator.js';
 import { useStorageReader, useStorageWriter } from '../../../storage/storage_provider.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { relocateSessionToNative } from '../session_relocation.js';
-import { useSessionScripts } from '../../scripts/session_scripts_registry.js';
-import { RENAME_SESSION } from '../../scripts/session_scripts.js';
-import { NameInput } from '../../../../ui/foundations/name_input.js';
 
 /// The shared header for the storage view: title on the left, actions + close button on the right.
 function StorageViewHeader(props: {
@@ -62,20 +59,6 @@ function ParamRow(props: { label: string; value: string }) {
     );
 }
 
-/// An editable session-name row; blur or Enter dispatches RENAME_SESSION, which normalises blank
-/// input to "no name".
-export function NameRow(props: { name: string | null; onCommit: (name: string) => void }) {
-    return (
-        <NameInput
-            className={styles.name_input}
-            name={props.name}
-            onCommit={props.onCommit}
-            ariaLabel="Session name"
-            placeholder="Name this session"
-        />
-    );
-}
-
 interface SessionStorageViewerProps {
     sessionId: string | null;
     onClose: () => void;
@@ -86,11 +69,6 @@ export const SessionStorageViewer: React.FC<SessionStorageViewerProps> = (props)
     const writer = useStorageWriter();
     const logger = useLogger();
     const platform = usePlatformType();
-
-    const [sessionScripts, modifySessionScripts] = useSessionScripts(props.sessionId);
-    const onRename = React.useCallback((name: string) => {
-        void modifySessionScripts({ type: RENAME_SESSION, value: name });
-    }, [modifySessionScripts]);
 
     const [migrating, setMigrating] = React.useState(false);
 
@@ -125,7 +103,6 @@ export const SessionStorageViewer: React.FC<SessionStorageViewerProps> = (props)
                 onRelocate={onRelocate}
             />
             <div className={styles.body_content}>
-                {sessionScripts && <NameRow name={sessionScripts.name} onCommit={onRename} />}
                 <ParamRow label="Backend" value={backendValue} />
                 <ParamRow label="Location" value={schemaValue} />
                 {isNative && location?.nativePath && (
