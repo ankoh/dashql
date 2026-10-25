@@ -12,9 +12,29 @@ function quoteIdentifier(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
 }
 
-/// The Hyper type of an Arrow type that Hyper reads, null when the column needs converting first.
+/// The Hyper type that the metadata of a field names, e.g. of a json or varchar(n) column exported by Hyper.
+/// Hyper insists on this type when it reads the field back.
+function annotatedHyperType(field: arrow.Field): string | null {
+    const length = field.metadata.get('hyper:max_string_length');
+    switch (field.metadata.get('hyper:type')) {
+        case 'JSON':
+            return 'json';
+        case 'Oid':
+            return 'oid';
+        case 'Geography':
+            return 'geography';
+        case 'Char':
+            return length == null ? null : `char(${length})`;
+    }
+    return length == null ? null : `varchar(${length})`;
+}
+
+/// The Hyper type of an Arrow field that Hyper reads, null when the column needs converting first.
 /// Hyper insists on the type that corresponds to the Arrow type, a wider type is rejected.
-function readableHyperType(type: arrow.DataType): string | null {
+function readableHyperType(field: arrow.Field): string | null {
+    const type = field.type as arrow.DataType;
+    const annotated = annotatedHyperType(field);
+    if (annotated != null) return annotated;
     switch (type.typeId) {
         case arrow.Type.Int: {
             const int = type as arrow.Int;
@@ -59,8 +79,11 @@ function readableHyperType(type: arrow.DataType): string | null {
         case arrow.Type.Interval:
             return 'interval';
         case arrow.Type.List: {
-            const element = readableHyperType((type as arrow.List).valueType);
-            return element == null ? null : `${element}[]`;
+            // The element nullability is part of the array type, e.g. array_agg yields non-null elements.
+            const child = (type as arrow.List).children[0];
+            const element = readableHyperType(child);
+            if (element == null) return null;
+            return child.nullable ? `array(${element})` : `array(${element} not null)`;
         }
         default:
             return null;
@@ -101,22 +124,24 @@ function convertColumn(vector: arrow.Vector): arrow.Vector {
 /// Prepare an Arrow table for an external Arrow stream scan in Hyper.
 export function prepareHyperArrowInsert(table: arrow.Table): HyperArrowInsert {
     const columns: Record<string, arrow.Vector> = {};
-    const descriptor: string[] = [];
     let converted = false;
     table.schema.fields.forEach((field, index) => {
         let column = table.getChildAt(index)!;
-        let type = readableHyperType(field.type);
-        if (type == null) {
+        if (readableHyperType(field) == null) {
             column = convertColumn(column);
-            type = readableHyperType(column.type);
             converted = true;
         }
+        columns[field.name] = column;
+    });
+    // Converted columns are single chunks, the table redistributes the other columns into matching batches.
+    // The rebuilt table drops the field metadata, so the descriptor follows the fields of the scanned table.
+    const scanned = converted ? new arrow.Table(columns) : table;
+    const descriptor = scanned.schema.fields.map(field => {
+        const type = readableHyperType(field);
         if (type == null) {
             throw new Error(`Hyper cannot import Arrow columns of type ${String(field.type)}`);
         }
-        columns[field.name] = column;
-        descriptor.push(`${quoteIdentifier(field.name)} ${type}`);
+        return `${quoteIdentifier(field.name)} ${type}`;
     });
-    // Converted columns are single chunks, the table redistributes the other columns into matching batches.
-    return { table: converted ? new arrow.Table(columns) : table, columns: descriptor.join(', ') };
+    return { table: scanned, columns: descriptor.join(', ') };
 }
