@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './session_feed_page.module.css';
 
-import { FileDirectoryIcon, LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { ConnectionHealth, type ConnectionState } from '../../../connections/connection_state.js';
 import {
@@ -14,7 +14,6 @@ import { SessionNavigationDrawer } from '../session_navigation_drawer.js';
 import { SessionWorkbenchSidebar } from '../session_workbench_sidebar.js';
 import { SessionURLShareOverlay } from '../session_url_share_overlay.js';
 import { SessionFileSaveOverlay } from '../session_file_save_overlay.js';
-import { SessionStorageOverlay } from '../../persistence/ui/session_storage_overlay.js';
 import { ScriptDetails, TabKey as DetailsTabKey } from '../script_details.js';
 import { SessionFeed } from './session_feed.js';
 import { Dashboard } from '../../dashboard/dashboard.js';
@@ -44,7 +43,6 @@ export interface SessionFeedPageDependencies {
     Dashboard: typeof Dashboard;
     SessionURLShareOverlay: typeof SessionURLShareOverlay;
     SessionFileSaveOverlay: typeof SessionFileSaveOverlay;
-    SessionStorageOverlay: typeof SessionStorageOverlay;
     useSessionViewMode: typeof useSessionViewMode;
     useAppConfig: typeof useAppConfig;
     SegmentedControl: typeof SegmentedControl;
@@ -63,7 +61,6 @@ const DEFAULT_DEPENDENCIES: SessionFeedPageDependencies = {
     Dashboard,
     SessionURLShareOverlay,
     SessionFileSaveOverlay,
-    SessionStorageOverlay,
     useSessionViewMode,
     useAppConfig,
     SegmentedControl,
@@ -95,7 +92,6 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     const [shareOpen, setShareOpen] = React.useState(false);
     const [exportOpen, setExportOpen] = React.useState(false);
     const archiveExport = useAppFlavor().features.sessionArchiveExport;
-    const [storageOpen, setStorageOpen] = React.useState(false);
     const connectionHealth = props.connection?.connectionHealth;
     const disconnected = connectionHealth !== ConnectionHealth.ONLINE;
     const connectionAttention = useSessionConnectionAttention(props.sessionScripts.sessionId, props.connection?.connectionId ?? null, connectionHealth);
@@ -210,7 +206,6 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                     <div className={styles.header_actions}>
                         <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
                             setExportOpen(false);
-                            setStorageOpen(false);
                             setShareOpen(value => !value);
                         }}>
                             <span className={styles.action_label}>Share as URL</span>
@@ -220,7 +215,6 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                             <>
                                 <dependencies.Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-session" aria-expanded={exportOpen} onClick={() => {
                                     setShareOpen(false);
-                                            setStorageOpen(false);
                                     setExportOpen(value => !value);
                                 }}>
                                     <span className={styles.action_label}>Export .dashql</span>
@@ -235,21 +229,6 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                 />
                             </>
                         )}
-                        <dependencies.SessionStorageOverlay
-                            sessionId={props.sessionScripts.sessionId}
-                            isOpen={storageOpen}
-                            onOpen={() => {
-                                setShareOpen(false);
-                                    setExportOpen(false);
-                                setStorageOpen(true);
-                            }}
-                            onClose={() => setStorageOpen(false)}
-                            renderAnchor={(anchorProps) => (
-                                <dependencies.Button {...anchorProps} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileDirectoryIcon} aria-label="Storage" data-testid="session-storage">
-                                    <span className={styles.action_label}>Storage</span>
-                                </dependencies.Button>
-                            )}
-                        />
                     </div>
                 </>}
             </header>

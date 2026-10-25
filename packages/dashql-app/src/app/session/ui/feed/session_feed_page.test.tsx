@@ -21,7 +21,6 @@ const state = {
     dashboardProps: null as any,
     shareProps: null as any,
     exportProps: null as any,
-    storageProps: null as any,
     sidebarProps: null as any,
     attention: null as any,
     execution: { state: null, busy: false, start: vi.fn(), stop: vi.fn() } as any,
@@ -49,10 +48,6 @@ const dependencies = {
     SessionFileSaveOverlay: (props: any) => {
         state.exportProps = props;
         return null;
-    },
-    SessionStorageOverlay: (props: any) => {
-        state.storageProps = props;
-        return props.renderAnchor({ onClick: props.onOpen });
     },
     Dashboard: (props: any) => {
         state.dashboardProps = props;
@@ -91,7 +86,6 @@ describe('SessionFeedPage', () => {
         state.dashboardProps = null;
         state.shareProps = null;
         state.exportProps = null;
-        state.storageProps = null;
         state.execution = { state: null, busy: false, start: vi.fn(), stop: vi.fn() };
         container = document.createElement('div');
         document.body.appendChild(container);
@@ -283,8 +277,7 @@ describe('SessionFeedPage', () => {
         expect(header.querySelector('[data-testid="session-view-switch"]')).not.toBeNull();
         const shareButton = header.querySelector<HTMLButtonElement>('[data-testid="share-url"]')!;
         const exportButton = header.querySelector<HTMLButtonElement>('[data-testid="export-session"]')!;
-        const storageButton = header.querySelector<HTMLButtonElement>('[data-testid="session-storage"]')!;
-        for (const button of [shareButton, exportButton, storageButton]) {
+        for (const button of [shareButton, exportButton]) {
             expect(button).not.toBeNull();
         }
 
@@ -297,9 +290,8 @@ describe('SessionFeedPage', () => {
         expect(state.exportProps).toMatchObject({ sessionScripts, conn: connection, isOpen: true });
         expect(state.exportProps.anchorRef.current).toBe(exportButton);
         expect(exportButton.getAttribute('aria-expanded')).toBe('true');
-
-        act(() => storageButton.click());
-        expect(state.storageProps).toMatchObject({ sessionId: 'session', isOpen: true });
+        // Storage lives in the session row menu of the workbench
+        expect(header.querySelector('[data-testid="session-storage"]')).toBeNull();
     });
 
     it('hides the session controls while a connection overview is open', () => {
@@ -314,7 +306,7 @@ describe('SessionFeedPage', () => {
             />,
         ));
         const header = container.querySelector('header')!;
-        const sessionControls = ['session-view-switch', 'execute-all', 'share-url', 'session-storage'];
+        const sessionControls = ['session-view-switch', 'execute-all', 'share-url'];
         for (const testId of sessionControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
 
         act(() => state.sidebarProps.onOpenOverview('database'));
@@ -341,7 +333,6 @@ describe('SessionFeedPage', () => {
         const header = container.querySelector('header')!;
         expect(header.querySelector('[data-testid="share-url"]')).not.toBeNull();
         expect(header.querySelector('[data-testid="export-session"]')).toBeNull();
-        expect(header.querySelector('[data-testid="session-storage"]')).not.toBeNull();
     });
 
     it('keeps the single action header when dashboards are disabled', () => {
@@ -357,7 +348,7 @@ describe('SessionFeedPage', () => {
 
         expect(container.querySelectorAll('header')).toHaveLength(1);
         expect(container.querySelector('header [data-testid="session-view-switch"]')).toBeNull();
-        expect(container.querySelector('header [data-testid="session-storage"]')).not.toBeNull();
+        expect(container.querySelector('header [data-testid="share-url"]')).not.toBeNull();
     });
 
     it('hides the Dashboard switch by default', () => {
