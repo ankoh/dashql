@@ -62,7 +62,7 @@ function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolea
     return columnCount;
 }
 
-export function computeTableLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null): DataTableLayout {
+export function computeTableLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null, resizedColumnWidths?: ReadonlyMap<string, number> | null): DataTableLayout {
     // Allocate column offsets
     let columnCount = computeColumnCount(state.columnGroups, showSystemColumns, visibleColumnGroups);
     const columnFields = new Uint32Array(columnCount);
@@ -200,11 +200,31 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
         }
     }
 
-    // If columns don't fill the container, distribute extra space across data columns (not row-number columns)
+    // Replace the widths of the columns that the user resized, keyed by field name
+    const isResizedColumn = new Uint8Array(columnCount);
+    if (resizedColumnWidths != null && resizedColumnWidths.size > 0) {
+        let naturalStart = columnOffsets[0];
+        for (let i = 0; i < nextDisplayColumn; ++i) {
+            const naturalEnd = columnOffsets[i + 1];
+            const resizedWidth = resizedColumnWidths.get(tableSchema.fields[columnFields[i]].name);
+            let width = naturalEnd - naturalStart;
+            if (resizedWidth !== undefined) {
+                width = resizedWidth;
+                isResizedColumn[i] = 1;
+            }
+            columnOffsets[i + 1] = columnOffsets[i] + width;
+            naturalStart = naturalEnd;
+        }
+        nextDisplayOffset = columnOffsets[nextDisplayColumn];
+    }
+
+    // If columns don't fill the container, distribute extra space across data columns (not row-number or resized columns)
     if (containerWidth > 0 && nextDisplayOffset < containerWidth) {
+        const stretchesColumn = (i: number) => isResizedColumn[i] == 0
+            && state.columnGroups[columnGroupByColumnIndex[i]].type !== ROWNUMBER_COLUMN;
         let dataColumnCount = 0;
         for (let i = 0; i < nextDisplayColumn; ++i) {
-            if (state.columnGroups[columnGroupByColumnIndex[i]].type !== ROWNUMBER_COLUMN) {
+            if (stretchesColumn(i)) {
                 dataColumnCount++;
             }
         }
@@ -212,7 +232,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
             const extraPerColumn = (containerWidth - nextDisplayOffset) / dataColumnCount;
             let accumulatedExtra = 0;
             for (let i = 0; i < nextDisplayColumn; ++i) {
-                if (state.columnGroups[columnGroupByColumnIndex[i]].type !== ROWNUMBER_COLUMN) {
+                if (stretchesColumn(i)) {
                     accumulatedExtra += extraPerColumn;
                 }
                 columnOffsets[i + 1] += accumulatedExtra;

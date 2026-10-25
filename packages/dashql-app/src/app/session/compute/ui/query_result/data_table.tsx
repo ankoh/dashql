@@ -18,6 +18,7 @@ import { useLogger } from '../../../../../platform/logger/logger_provider.js';
 import { useScrollbarHeight } from '../../../../../utils/scrollbar.js';
 import { useDataTableOrdering } from './data_table_ordering.js';
 import { useDataTablePortalContainers } from './data_table_portals.js';
+import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_column_resize.js';
 import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
 import { DataTableFocusStore } from './data_table_focus.js';
 import { resolveSearchedRowIndices } from './visible_rows.js';
@@ -120,6 +121,9 @@ export const DataTable = React.memo((props: Props) => {
         return new ArrowTableFormatter(dataTable.schema, dataTable.batches, logger);
     }, [dataTable]);
 
+    // Columns that the user resized by dragging a border, kept while the table is mounted
+    const [resizedColumnWidths, setResizedColumnWidths] = React.useState<ResizedColumnWidths>(() => new Map());
+
     // Determine grid dimensions and column widths
     const gridLayout = React.useMemo<DataTableLayout>(() => {
         if (!tableFormatter) {
@@ -134,7 +138,7 @@ export const DataTable = React.memo((props: Props) => {
                 headerRowCount
             };
         }
-        return computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount, gridContainerWidth, visibleColumnGroups);
+        return computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount, gridContainerWidth, visibleColumnGroups, resizedColumnWidths);
     }, [
         computationState.columnGroups,
         tableFormatter,
@@ -142,6 +146,7 @@ export const DataTable = React.memo((props: Props) => {
         gridContainerWidth,
         headerRowCount,
         visibleColumnGroups,
+        resizedColumnWidths,
     ]);
 
     // Compute helper to resolve column widths
@@ -360,6 +365,9 @@ export const DataTable = React.memo((props: Props) => {
     // Create containers for sticky header and sticky column
     const portalContainers = useDataTablePortalContainers(gridApi);
 
+    // Drag the right border of any cell to resize its column
+    const columnResize = useDataTableColumnResize(gridApi, gridLayout, dataTable, setResizedColumnWidths);
+
     // Total height of data content (for sticky column sizing)
     const totalDataHeight = dataRowCount * ROW_HEIGHT;
 
@@ -376,7 +384,7 @@ export const DataTable = React.memo((props: Props) => {
                 ...(props.fitHeight ? { height: gridContainerHeight } : {}),
             } as React.CSSProperties}
         >
-            <div className={styles.grid_container} ref={gridContainerElement}>
+            <div className={styles.grid_container} ref={gridContainerElement} {...columnResize}>
                 <Grid
                     gridRef={setGridApi}
                     style={{

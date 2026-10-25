@@ -30,6 +30,12 @@
     overflow: hidden;
 }
 
+/* The pointer is on a column border, the cells must not override the resize cursor */
+.column_resize_hover,
+.column_resize_hover * {
+    cursor: col-resize !important;
+}
+
 .data_grid {
     position: relative;
 }
