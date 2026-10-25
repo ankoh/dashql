@@ -48,6 +48,7 @@ export function recentQueriesSql(queryEnds: string, scope: QueryScope, since: nu
 
 /// The shapes of queries with the text of their newest query, most elapsed time first.
 /// Queries that only differ in their literals or comments share their shape, see hyperLogQueryEndsTable().
+/// The shape column is the part of the query hash that they share, NULL for queries without a hash.
 export function queryShapesSql(queryEnds: string, scope: QueryScope, since: number): string {
     return `
         WITH newest AS (
@@ -62,7 +63,8 @@ export function queryShapesSql(queryEnds: string, scope: QueryScope, since: numb
             ${rounded('100 * sum(elapsed) / nullif(sum(sum(elapsed)) OVER (), 0)', 1)} AS share_pct,
             ${ms('avg(elapsed)')} AS mean_ms,
             sum(processed_rows)::bigint AS processed_rows,
-            max(peak_memory_mb) AS memory_mb
+            max(peak_memory_mb) AS memory_mb,
+            CASE WHEN query_shape LIKE 'text:%' THEN NULL ELSE query_shape END AS shape
         FROM newest
         GROUP BY query_shape
         ORDER BY total_ms DESC

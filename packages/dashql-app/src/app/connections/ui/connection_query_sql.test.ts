@@ -131,6 +131,8 @@ describe('Connection query SQL', () => {
         // The text of the newest run
         expect(shape.query).toBe('SELECT 1 AS v WHERE 3 > 1');
         expect(shape.failed).toBe(0);
+        // The shared part of the query hash
+        expect(shape.shape).toMatch(/^[0-9a-f]+$/);
         expect(rows.find(row => row.queries === 1)!.failed).toBe(1);
         expect(all.reduce((sum, row) => sum + (row.share_pct ?? 0), 0)).toBeCloseTo(100, 0);
         // The most elapsed time first
