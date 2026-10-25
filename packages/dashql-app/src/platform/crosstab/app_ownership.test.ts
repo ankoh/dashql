@@ -5,6 +5,7 @@ import { OPFSStorageBackend } from '../../app/storage/opfs_storage_backend.js';
 import { STORAGE_SESSIONS_FOLDER } from '../../app/storage/storage_backend.js';
 import { StorageWriter, WRITE_SCRIPT, groupScriptWrites } from '../../app/storage/storage_writer.js';
 import { Logger } from '../logger/logger.js';
+import { getOPFSRoot } from '../opfs_root.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }
@@ -134,7 +135,7 @@ describe('AppOwnership', () => {
             expect((await backend.loadScript(sessionId, 'a.sql')).sql).toBe('SELECT 42');
             expect(await write).toBe(true);
         } finally {
-            const root = await navigator.storage.getDirectory();
+            const root = await getOPFSRoot();
             const sessions = await root.getDirectoryHandle(STORAGE_SESSIONS_FOLDER);
             await sessions.removeEntry(sessionId, { recursive: true });
         }

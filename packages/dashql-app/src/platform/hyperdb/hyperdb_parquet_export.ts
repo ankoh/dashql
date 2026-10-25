@@ -1,6 +1,7 @@
 import type * as arrow from 'apache-arrow';
 
 import type { EmbeddedComputeDatabase, EmbeddedExternalDirectoryDatabase } from '../database/embedded_database.js';
+import { getOPFSRoot } from '../opfs_root.js';
 
 /// Hyper writes Parquet exports below this OPFS directory, they are read back and removed right after.
 export const PARQUET_EXPORT_DIRECTORY = 'exports';
@@ -17,9 +18,9 @@ export function supportsParquetExport(database: EmbeddedComputeDatabase | null):
 export async function exportArrowTableAsParquet(
     database: ParquetExportDatabase,
     table: arrow.Table,
-    getOPFSRoot: () => Promise<FileSystemDirectoryHandle> = () => navigator.storage.getDirectory(),
+    getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
 ): Promise<Uint8Array> {
-    const root = await getOPFSRoot();
+    const root = await getRoot();
     const exports = await root.getDirectoryHandle(PARQUET_EXPORT_DIRECTORY, { create: true });
     const id = crypto.randomUUID();
     const directory = await exports.getDirectoryHandle(id, { create: true });

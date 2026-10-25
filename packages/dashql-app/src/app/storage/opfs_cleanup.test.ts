@@ -51,7 +51,7 @@ function messyStorage() {
         'sessions/s2', 'sessions/s2/attachments', 'sessions/gone',
         'connections', 'connections/c1', 'connections/c2',
         'instances', `instances/${LIVE}`, `instances/${CLOSED}`,
-        'exports', 'exports/e1', 'shell', 'imported', 'logs', 'notebooks',
+        'exports', 'exports/e1', 'shell', 'imported', 'logs', 'notebooks', 'tests',
         `dashql-session-${LEGACY}`,
     ]);
 }
@@ -72,6 +72,7 @@ describe('findOPFSCleanupCandidates', () => {
             'sessions/s1/scripts/page',
             'sessions/s2/dashql-session.json',
             'stray.txt',
+            'tests',
         ].sort());
 
         const byPath = new Map(candidates.map(c => [c.path.join('/'), c]));

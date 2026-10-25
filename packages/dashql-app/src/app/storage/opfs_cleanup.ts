@@ -20,6 +20,7 @@ import {
     isUuid,
 } from '../../platform/hyperdb/hyperdb_opfs_instance.js';
 import { PARQUET_EXPORT_DIRECTORY } from '../../platform/hyperdb/hyperdb_parquet_export.js';
+import { OPFS_TESTS_FOLDER } from '../../platform/opfs_root.js';
 
 /// An OPFS entry that the current app version doesn't use
 export interface OPFSCleanupCandidate {
@@ -148,6 +149,9 @@ export async function findOPFSCleanupCandidates(
                 break;
             case HYPER_LEGACY_LOGS_DIRECTORY:
                 add([name], true, 'Hyper logs of an earlier version');
+                break;
+            case OPFS_TESTS_FOLDER:
+                add([name], true, 'Files of the browser tests');
                 break;
             default:
                 if (name.startsWith(HYPER_LEGACY_INSTANCE_PREFIX) && isUuid(name.slice(HYPER_LEGACY_INSTANCE_PREFIX.length))) {

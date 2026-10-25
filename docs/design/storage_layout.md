@@ -123,8 +123,17 @@ Connections, the manifest, the shell files and the instances stay in OPFS.
 | `/mnt/fs/...` | the OPFS root |
 | `/mnt/external/<name>` | browser files and directories registered with `registerExternalFile` and `registerExternalDirectory`, e.g. shell file mounts and Parquet exports |
 
-`/mnt/external/` paths only exist while they are registered and are not stored. Tests use their own databases,
-e.g. `/mnt/fs/dashql-test-<n>.hyper`.
+`/mnt/external/` paths only exist while they are registered and are not stored.
+
+## Browser tests
+
+`tests.html` runs on the origin of the app, the dev server and the pages deployment serve it next to the app, so the
+tests share its OPFS. They keep every file in `tests/` instead of the OPFS root: the test frame calls
+`setOPFSAppFolder('tests')` before it loads a test, `getOPFSRoot()` then returns `tests/` and `hyperOPFSRoot()`
+returns `/mnt/fs/tests`, the test engine logs to `tests/logs/`. App code never calls
+`navigator.storage.getDirectory()` or writes `/mnt/fs` itself, it goes through these two functions of
+`src/platform/opfs_root.ts`. Test databases live in an instance folder of the frame, see `testDatabasePath()`. The
+cleanup of the app lists `tests/` as files of the browser tests.
 
 ## Versions and migrations
 

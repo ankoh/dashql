@@ -3,6 +3,7 @@ import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './qu
 import { STORAGE_VERSION } from '../../migration/versions.js';
 import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, validateDataFileName } from './storage_backend.js';
 import { sleep } from '../../utils/sleep.js';
+import { getOPFSRoot } from '../../platform/opfs_root.js';
 
 /// The name of the web lock that guards the manifest
 export const OPFS_MANIFEST_LOCK = 'dashql-manifest';
@@ -24,12 +25,14 @@ export class OPFSStorageBackend implements SessionRegistryBackend {
     /// The latest manifest mutation, every read-modify-write of the manifest chains onto it
     private manifestChain: Promise<void> = Promise.resolve();
 
+    constructor(private readonly getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot) {}
+
     getBackendType(): StorageBackendType {
         return StorageBackendType.OPFS;
     }
 
     async initialize(): Promise<void> {
-        this.rootHandle = await navigator.storage.getDirectory();
+        this.rootHandle = await this.getRoot();
     }
 
     /// Run a manifest operation exclusively.

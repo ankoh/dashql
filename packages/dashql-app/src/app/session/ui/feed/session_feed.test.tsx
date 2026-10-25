@@ -17,6 +17,7 @@ import { SessionComposerVariant, type SessionComposerProps } from './session_com
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { CREATE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../../scripts/session_scripts.js';
 import { CONNECTOR_INFOS } from '../../../connections/connector_info.js';
+import { hyperOPFSRoot } from '../../../../platform/opfs_root.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -94,7 +95,7 @@ describe('V2 session feed rows', () => {
             act(() => root.render(<LoggerProvider>
                 <SessionDataCard {...props} conn={conn as any} />
             </LoggerProvider>));
-            expect(container.textContent).not.toContain(`/mnt/fs/sessions/${sessionId}/attachments/sales 2.csv`);
+            expect(container.textContent).not.toContain(`${hyperOPFSRoot()}/sessions/${sessionId}/attachments/sales 2.csv`);
             expect(container.textContent).toContain('sales 2.csv');
             expect(container.querySelector('[data-testid="data-file-type"]')?.textContent).toContain('CSV');
             for (const action of ['data-file-copy-path', 'data-file-download', 'data-file-remove']) {

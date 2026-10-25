@@ -3,6 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../hyperdb_wasm.js';
+import { getOPFSRoot } from '../../opfs_root.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));
@@ -45,7 +46,7 @@ describe('HyperDB Wasm Iceberg integration', () => {
     });
 
     async function withReadWriteDirectory(test: (path: string) => Promise<void>): Promise<void> {
-        const root = await navigator.storage.getDirectory();
+        const root = await getOPFSRoot();
         const name = `dashql-iceberg-${crypto.randomUUID()}`;
         const directory = await root.getDirectoryHandle(name, { create: true });
         let path: string | null = null;

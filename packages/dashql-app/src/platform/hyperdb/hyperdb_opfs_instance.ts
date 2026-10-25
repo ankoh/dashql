@@ -1,4 +1,4 @@
-import { HYPER_OPFS_ROOT } from './hyperdb_opfs.js';
+import { getOPFSRoot, hyperOPFSRoot } from '../opfs_root.js';
 
 /// The OPFS folder with one folder per embedded database instance, e.g. `instances/<uuid>/compute.hyper`
 export const HYPER_INSTANCES_DIRECTORY = 'instances';
@@ -27,7 +27,7 @@ export interface HyperDBOPFSInstance {
 }
 
 export async function createHyperDBOPFSInstance(
-    getRoot: () => Promise<FileSystemDirectoryHandle> = () => navigator.storage.getDirectory(),
+    getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
 ): Promise<HyperDBOPFSInstance> {
     const id = crypto.randomUUID();
     const release = await holdLock(`${HYPER_INSTANCE_LOCK_PREFIX}${id}`);
@@ -35,7 +35,7 @@ export async function createHyperDBOPFSInstance(
         const instances = await (await getRoot()).getDirectoryHandle(HYPER_INSTANCES_DIRECTORY, { create: true });
         const instance = await instances.getDirectoryHandle(id, { create: true });
         await instance.getDirectoryHandle(HYPER_INSTANCE_LOGS_DIRECTORY, { create: true });
-        const folder = `${HYPER_OPFS_ROOT}/${HYPER_INSTANCES_DIRECTORY}/${id}`;
+        const folder = `${hyperOPFSRoot()}/${HYPER_INSTANCES_DIRECTORY}/${id}`;
         let disposed = false;
         return {
             directoryPath: folder,
@@ -61,7 +61,7 @@ export async function createHyperDBOPFSInstance(
 /// Remove the folders of the instances whose app window is gone, including the instance folders and the log
 /// files of earlier app versions.
 export async function cleanupStaleHyperDBOPFSInstances(
-    getRoot: () => Promise<FileSystemDirectoryHandle> = () => navigator.storage.getDirectory(),
+    getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
 ): Promise<void> {
     if (navigator.locks == null) return;
     const root = await getRoot();

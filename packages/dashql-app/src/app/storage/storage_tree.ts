@@ -2,6 +2,7 @@ import { StorageBackendType } from './storage_backend.js';
 import { type SessionLocation, displayPath } from './session_locator.js';
 import { join, readDir, stat } from '../../platform/electron_fs.js';
 import { isDesktopHost } from '../../platform/native_globals.js';
+import { getOPFSRoot } from '../../platform/opfs_root.js';
 
 /// The kind of a directory entry
 export enum StorageTreeEntryKind {
@@ -51,7 +52,7 @@ export function sortStorageTreeEntries(entries: StorageTreeEntry[]): StorageTree
 }
 
 /// The Origin Private File System as a storage tree root
-export function opfsTreeRoot(getRoot: () => Promise<FileSystemDirectoryHandle> = () => navigator.storage.getDirectory()): StorageTreeRoot {
+export function opfsTreeRoot(getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot): StorageTreeRoot {
     const directory = async (path: readonly string[]): Promise<FileSystemDirectoryHandle> => {
         let dir = await getRoot();
         for (const name of path) {

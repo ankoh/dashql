@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from './hyperdb_opfs_instance.js';
+import { hyperOPFSRoot } from '../opfs_root.js';
 
 /// An OPFS root with an instances folder, the given folders directly in the root and an optional legacy logs folder
 function mockRoot(instances: string[], legacy: string[], removeEntry: (name: string) => Promise<void>, logs?: string[]) {
@@ -92,10 +93,10 @@ describe('HyperDB stale OPFS instance cleanup', () => {
 
         const instance = await createHyperDBOPFSInstance(async () => root);
         const [id] = folders.keys();
-        expect(instance.directoryPath).toBe(`/mnt/fs/instances/${id}`);
-        expect(instance.computeDatabasePath).toBe(`/mnt/fs/instances/${id}/compute.hyper`);
-        expect(instance.userDatabasePath).toBe(`/mnt/fs/instances/${id}/user.hyper`);
-        expect(instance.logDirectoryPath).toBe(`/mnt/fs/instances/${id}/logs`);
+        expect(instance.directoryPath).toBe(`${hyperOPFSRoot()}/instances/${id}`);
+        expect(instance.computeDatabasePath).toBe(`${hyperOPFSRoot()}/instances/${id}/compute.hyper`);
+        expect(instance.userDatabasePath).toBe(`${hyperOPFSRoot()}/instances/${id}/user.hyper`);
+        expect(instance.logDirectoryPath).toBe(`${hyperOPFSRoot()}/instances/${id}/logs`);
 
         await cleanupStaleHyperDBOPFSInstances(async () => root);
         expect(removeEntry).not.toHaveBeenCalled();

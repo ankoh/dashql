@@ -19,6 +19,7 @@ import {
     validateSessionData,
 } from './session_validation.js';
 import { reconcileSessionScripts, remapSessionScripts, sanitizeSessionFiles, sessionAttachments } from './session_files.js';
+import { hyperOPFSRoot } from '../../platform/opfs_root.js';
 
 /// The durable, portable subset of a session. Derived cache files and storage-location metadata
 /// are intentionally not represented here.
@@ -213,8 +214,8 @@ export function renameBundleCatalogs(catalogs: readonly SessionBundleCatalog[], 
 export function rebaseSessionAttachmentPaths(text: string | null, sourceSessionId: string, targetSessionId: string): string | null {
     if (text == null || sourceSessionId === targetSessionId) return text;
     return text.split(
-        `/mnt/fs/sessions/${sourceSessionId}/attachments/`,
-    ).join(`/mnt/fs/sessions/${targetSessionId}/attachments/`);
+        `${hyperOPFSRoot()}/sessions/${sourceSessionId}/attachments/`,
+    ).join(`${hyperOPFSRoot()}/sessions/${targetSessionId}/attachments/`);
 }
 
 /// Parse catalog files on scratch scripts and omit malformed SQL before it can reach storage.

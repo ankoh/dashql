@@ -11,6 +11,7 @@ import { CopyToClipboardButton } from '../../../../utils/clipboard.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { DownloadIcon, FileIcon, TrashIcon } from '../../../../ui/foundations/symbol_icon.js';
 import { formatBytes } from '../../../../utils/format.js';
+import { hyperOPFSRoot } from '../../../../platform/opfs_root.js';
 
 export interface SessionDataCardProps {
     sessionId: string;
@@ -28,7 +29,7 @@ export const SessionDataCard: React.FC<SessionDataCardProps> = (props) => {
     const enabled = props.conn?.details.type === HYPER_CONNECTOR
         && props.conn.details.value.proto.setupParams?.protocol === 'WASM';
     const disabled = !enabled || busy;
-    const path = `/mnt/fs/sessions/${props.sessionId}/attachments/${props.file.name}`;
+    const path = `${hyperOPFSRoot()}/sessions/${props.sessionId}/attachments/${props.file.name}`;
     const extension = props.file.name.split('.').pop()?.toUpperCase() ?? 'FILE';
 
     const download = async () => {

@@ -1,6 +1,7 @@
 import coreWasmUrl from '@ankoh/dashql-core/wasm?url';
 import shellWasmUrl from '@ankoh/dashql-shell-wasm?url';
 import { installSharedCoreTestPool } from './core_pool.js';
+import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '../platform/opfs_root.js';
 
 import {
     BROWSER_TEST_MESSAGE_SOURCE,
@@ -58,6 +59,8 @@ async function setupBrowserTestEnvironment(): Promise<void> {
         IS_REACT_ACT_ENVIRONMENT?: boolean;
     };
     globals.IS_REACT_ACT_ENVIRONMENT = true;
+    // The tests share the origin and its OPFS with the app, they keep their files in a folder of their own
+    setOPFSAppFolder(OPFS_TESTS_FOLDER);
     const parent = window.parent as typeof window.parent & typeof globalThis;
     globals.DASHQL_PRECOMPILED = parent.DASHQL_PRECOMPILED ?? fetch(coreWasmUrl).then(response => response.bytes());
     globals.__DASHQL_TEST_CORE_FACTORY__ = parent.__DASHQL_TEST_CORE_FACTORY__;

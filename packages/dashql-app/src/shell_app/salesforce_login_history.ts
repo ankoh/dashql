@@ -1,4 +1,5 @@
 import { STORAGE_SHELL_FOLDER } from '../app/storage/storage_backend.js';
+import { getOPFSRoot } from '../platform/opfs_root.js';
 
 const HISTORY_FILE = 'salesforce-login-history.json';
 const HISTORY_LOCK = 'dashql-salesforce-login-history';
@@ -36,7 +37,7 @@ function sortByLastUse(entries: SalesforceLoginHistoryEntry[]): SalesforceLoginH
 
 export class SalesforceLoginHistoryStore {
     constructor(
-        private readonly getOPFSRoot: () => Promise<FileSystemDirectoryHandle> = () => navigator.storage.getDirectory(),
+        private readonly getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
         private readonly now: () => Date = () => new Date(),
     ) {}
 
@@ -123,7 +124,7 @@ export class SalesforceLoginHistoryStore {
 
     private async getDirectory(create: boolean): Promise<FileSystemDirectoryHandle | null> {
         try {
-            return await (await this.getOPFSRoot()).getDirectoryHandle(STORAGE_SHELL_FOLDER, { create });
+            return await (await this.getRoot()).getDirectoryHandle(STORAGE_SHELL_FOLDER, { create });
         } catch (error) {
             if (!create && (error as DOMException).name === 'NotFoundError') return null;
             throw error;

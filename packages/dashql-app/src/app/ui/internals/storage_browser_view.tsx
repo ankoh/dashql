@@ -38,6 +38,7 @@ import {
     type StorageTreeFileStat,
     type StorageTreeRoot,
 } from '../../storage/storage_tree.js';
+import { getOPFSRoot } from '../../../platform/opfs_root.js';
 
 const LOG_CTX = 'storage_browser';
 /// The height of a row: a 32px entry with 1px of space above and below, as in the catalog tree
@@ -343,7 +344,7 @@ export function StorageBrowserView(props: { onClose: () => void }) {
         try {
             // Pending writes may register new sessions and connections
             await storageWriter.flush();
-            const candidates = await findOPFSCleanupCandidates(await navigator.storage.getDirectory());
+            const candidates = await findOPFSCleanupCandidates(await getOPFSRoot());
             setCleanup(candidates.length === 0
                 ? { status: 'done', message: 'Nothing to clean up.', error: false }
                 : { status: 'review', candidates });
@@ -355,7 +356,7 @@ export function StorageBrowserView(props: { onClose: () => void }) {
     const confirmCleanup = React.useCallback(async (candidates: OPFSCleanupCandidate[]) => {
         setCleanup({ status: 'deleting', candidates });
         try {
-            const result = await removeOPFSCleanupCandidates(await navigator.storage.getDirectory(), candidates);
+            const result = await removeOPFSCleanupCandidates(await getOPFSRoot(), candidates);
             logger.info('Cleaned up the OPFS', {
                 removed: result.removed.toString(),
                 skipped: result.skipped.length.toString(),

@@ -10,6 +10,7 @@ import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from './hype
 import { TestLogger } from '../logger/test_logger.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from './hyperdb_parquet_export.js';
+import { getOPFSRoot, hyperOPFSRoot } from '../opfs_root.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));
@@ -171,7 +172,7 @@ describe('HyperDB embedded database integration', () => {
         const factory = globalThis.__DASHQL_TEST_HYPERDB_FACTORY__;
         globalThis.__DASHQL_TEST_HYPERDB_FACTORY__ = undefined;
         const listInstances = async () => {
-            const instances = await (await navigator.storage.getDirectory())
+            const instances = await (await getOPFSRoot())
                 .getDirectoryHandle(HYPER_INSTANCES_DIRECTORY, { create: true });
             const names: string[] = [];
             for await (const name of instances.keys()) names.push(name);
@@ -186,7 +187,7 @@ describe('HyperDB embedded database integration', () => {
             expect(toPlainObjects(await connection.query('SELECT 42::INTEGER AS answer')))
                 .toEqual([{ answer: 42 }]);
             // The instance writes its Hyper log into its own folder, and hyper_log() reads it from there.
-            const logs = await (await (await (await navigator.storage.getDirectory())
+            const logs = await (await (await (await getOPFSRoot())
                 .getDirectoryHandle(HYPER_INSTANCES_DIRECTORY)).getDirectoryHandle(created[0]))
                 .getDirectoryHandle(HYPER_INSTANCE_LOGS_DIRECTORY);
             const logFiles: string[] = [];
@@ -228,7 +229,7 @@ describe('HyperDB embedded database integration', () => {
 
     it('queries session CSV data directly from the canonical OPFS path without registration', async () => {
         const connection = await database!.connect();
-        const root = await navigator.storage.getDirectory();
+        const root = await getOPFSRoot();
         const sessions = await root.getDirectoryHandle('sessions', { create: true });
         const sessionId = crypto.randomUUID();
         try {
@@ -241,7 +242,7 @@ describe('HyperDB embedded database integration', () => {
 
             expect(toPlainObjects(await connection.query(`
                 SELECT value, name
-                FROM external('/mnt/fs/sessions/${sessionId}/attachments/values.csv', format => 'csv', header => true,
+                FROM external('${hyperOPFSRoot()}/sessions/${sessionId}/attachments/values.csv', format => 'csv', header => true,
                     columns => descriptor(value bigint, name text))
                 ORDER BY value
             `))).toEqual([{ value: 1n, name: 'alpha' }, { value: 2n, name: 'beta' }]);
@@ -253,7 +254,7 @@ describe('HyperDB embedded database integration', () => {
 
     it('queries a nested OPFS file through a registered browser directory', async () => {
         const connection = await database!.connect();
-        const root = await navigator.storage.getDirectory();
+        const root = await getOPFSRoot();
         const name = `dashql-directory-${crypto.randomUUID()}`;
         const directory = await root.getDirectoryHandle(name, { create: true });
         const nested = await directory.getDirectoryHandle('input', { create: true });
@@ -289,7 +290,7 @@ describe('HyperDB embedded database integration', () => {
         expect(new TextDecoder().decode(bytes.subarray(0, 4))).toBe('PAR1');
         expect(new TextDecoder().decode(bytes.subarray(bytes.byteLength - 4))).toBe('PAR1');
 
-        const root = await navigator.storage.getDirectory();
+        const root = await getOPFSRoot();
         const exports = await root.getDirectoryHandle(PARQUET_EXPORT_DIRECTORY);
         const remaining: string[] = [];
         for await (const name of exports.keys()) remaining.push(name);

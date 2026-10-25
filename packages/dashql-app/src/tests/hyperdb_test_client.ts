@@ -1,6 +1,7 @@
 import { createBrowserClient } from 'hyperdb-wasm/raw';
 
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '../platform/hyperdb/hyperdb_opfs_instance.js';
+import { OPFS_TESTS_FOLDER } from '../platform/opfs_root.js';
 import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
 import type { HyperDBClient, HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
@@ -9,6 +10,7 @@ import type { SetupProgress } from '../platform/database/embedded_database_provi
 /// Start an engine worker with the settings of the app, overridden by the given startup settings.
 /// Tests share the client between the frames of the test files, every frame wraps it in its own HyperDBEngine.
 /// A HyperDBEngine would hand out Arrow objects of the frame that created it.
+/// The engine keeps its default log folder in the OPFS folder of the tests, not in the one of the app.
 export async function createTestHyperDBClient(
     onSetupProgress?: (progress: SetupProgress) => void,
     settings: HyperDBSettings = {},
@@ -16,7 +18,7 @@ export async function createTestHyperDBClient(
     const { revoke, ...options } = createWebHyperDBClientOptions();
     let client: ReturnType<typeof createBrowserClient>;
     try {
-        client = createBrowserClient({ ...options, onSetupProgress });
+        client = createBrowserClient({ ...options, storagePath: OPFS_TESTS_FOLDER, onSetupProgress });
     } catch (error) {
         revoke();
         throw error;
@@ -56,8 +58,8 @@ let testDatabaseFolder: Promise<string> | null = null;
 
 /// The Hyper path of a database file of a test.
 /// The engines mount /mnt/fs on OPFS, which keeps the files of interrupted runs across reloads, fixed paths would
-/// collide with them. Every test frame puts its files into an instance folder of the app, its Web Lock lives as long
-/// as the frame and the next run removes the folders of earlier runs.
+/// collide with them. Every test frame puts its files into an instance folder in the OPFS folder of the tests, its Web
+/// Lock lives as long as the frame and the next run removes the folders of earlier runs.
 export async function testDatabasePath(name: string): Promise<string> {
     testDatabaseFolder ??= (async () => {
         await cleanupStaleHyperDBOPFSInstances();

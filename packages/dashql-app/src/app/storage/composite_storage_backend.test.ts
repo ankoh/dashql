@@ -12,6 +12,7 @@ import {
     replaceSessionWithPortableBundle,
     writePortableSessionFresh,
 } from './session_import_transaction.js';
+import { getOPFSRoot } from '../../platform/opfs_root.js';
 
 const OTHER_SESSION_ID = '22222222-3333-4444-8555-666666666666';
 
@@ -80,7 +81,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
             await composite.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
             await composite.loadSession(TEST_SESSION_ID);
             await expect(opfs.loadDataFile(TEST_SESSION_ID, 'data.bin')).resolves.toEqual(bytes);
-            const root = await navigator.storage.getDirectory();
+            const root = await getOPFSRoot();
             const sessions = await root.getDirectoryHandle('sessions');
             const session = await sessions.getDirectoryHandle(TEST_SESSION_ID);
             const attachments = await session.getDirectoryHandle('attachments');

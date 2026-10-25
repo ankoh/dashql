@@ -3,7 +3,7 @@ import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
 
 import type { CacheFileStat } from './query_result_cache_eviction.js';
 import type { CachedQueryResult } from '../../query/query_result_cache.js';
-import { HYPER_OPFS_ROOT } from '../../platform/hyperdb/hyperdb_opfs.js';
+import { hyperOPFSRoot } from '../../platform/opfs_root.js';
 export type { CachedQueryResult } from '../../query/query_result_cache.js';
 
 // Storage file and folder naming conventions
@@ -29,7 +29,7 @@ export const STORAGE_CONNECTION_MONITORING_FILE = 'monitoring.hyper';
 
 /// The Hyper path of the monitoring database of a connection, its folder must exist, see createConnectionFolder()
 export function connectionMonitoringDatabasePath(connectionId: string): string {
-    return `${HYPER_OPFS_ROOT}/${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${STORAGE_CONNECTION_MONITORING_FILE}`;
+    return `${hyperOPFSRoot()}/${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${STORAGE_CONNECTION_MONITORING_FILE}`;
 }
 
 /// The relations of the catalog, as the last catalog refresh described them

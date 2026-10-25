@@ -8,6 +8,7 @@ import { globalConnections } from './storage/v3_global_connections.js';
 import { sessionCatalogsToConnections } from './storage/v4_session_catalogs_to_connections.js';
 import { shellFolder } from './storage/v5_shell_folder.js';
 import { dropConnectionAliases } from './storage/v6_drop_connection_aliases.js';
+import { getOPFSRoot } from '../platform/opfs_root.js';
 
 const LOG_CTX = 'storage_migration';
 
@@ -68,7 +69,7 @@ export async function migrateStorage(
     root?: FileSystemDirectoryHandle,
     steps: readonly StorageMigrationStep[] = STORAGE_MIGRATION_STEPS,
 ): Promise<StorageMigrationSummary> {
-    const storageRoot = root ?? await navigator.storage.getDirectory();
+    const storageRoot = root ?? await getOPFSRoot();
     const summary: StorageMigrationSummary = { steps: 0, sessions: 0 };
     await withManifestLock(async () => {
         let manifest = await readManifestJson(storageRoot);

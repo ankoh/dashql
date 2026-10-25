@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { STORAGE_MANIFEST_FILE } from './storage_backend.js';
@@ -14,13 +14,8 @@ describe('OPFSStorageBackend V2 flat storage', () => {
     beforeEach(async () => {
         files = new Map();
         dirs = new Set();
-        vi.stubGlobal('navigator', { storage: { getDirectory: async () => new OPFSDirectoryMock('', files, dirs) } });
-        backend = new OPFSStorageBackend();
+        backend = new OPFSStorageBackend(async () => new OPFSDirectoryMock('', files, dirs) as unknown as FileSystemDirectoryHandle);
         await backend.initialize();
-    });
-
-    afterEach(() => {
-        vi.unstubAllGlobals();
     });
 
     it('round-trips flat scripts without an index', async () => {
