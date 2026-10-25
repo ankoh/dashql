@@ -89,6 +89,8 @@ function toNumeric(expr: string, fn?: string): string {
     switch (fn) {
         case "EPOCH":
             return `EXTRACT(EPOCH FROM ${expr})`;
+        case "TIME_EPOCH":
+            return `EXTRACT(EPOCH FROM CAST(${expr} AS INTERVAL))`;
         case "BOOLEAN":
             return `CASE WHEN ${expr} THEN 1.0 WHEN NOT ${expr} THEN 0.0 END`;
         default:
@@ -325,7 +327,7 @@ export class SQLFrame {
         const statsCteName = "__grp_stats";
         const minField = quoteIdent(binning.statsMinField);
         const maxField = quoteIdent(binning.statsMaxField);
-        const isTemporal = fn === "EPOCH";
+        const isTemporal = fn === "EPOCH" || fn === "TIME_EPOCH";
         const statsSql = isTemporal
             ? `SELECT ` +
               `${minField} AS __min, ` +

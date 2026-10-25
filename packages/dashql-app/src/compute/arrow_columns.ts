@@ -27,6 +27,15 @@ export function isTemporalType(typeId: arrow.Type): boolean {
 }
 
 export function getToNumericFn(typeId: arrow.Type): string | undefined {
+    switch (typeId) {
+        // Hyper extracts no epoch from a time of day, only from its interval since midnight
+        case arrow.Type.Time:
+        case arrow.Type.TimeSecond:
+        case arrow.Type.TimeMillisecond:
+        case arrow.Type.TimeMicrosecond:
+        case arrow.Type.TimeNanosecond:
+            return "TIME_EPOCH";
+    }
     if (isTemporalType(typeId)) {
         return "EPOCH";
     }

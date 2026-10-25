@@ -182,6 +182,67 @@ describe('SQLFrame execution', () => {
         expect(rows.map(row => row.time_bin)).toEqual([0, 1, 2]);
     });
 
+    it('bins times of day using seconds since midnight', async () => {
+        await conn.execute(`CREATE TABLE input (occurred_at TIME)`);
+        await conn.execute(`INSERT INTO input VALUES (TIME '12:00:00'), (TIME '12:00:05'), (TIME '12:00:10')`);
+        await conn.execute(
+            `CREATE TABLE stats AS ` +
+            `SELECT MIN(occurred_at) AS min_time, MAX(occurred_at) AS max_time FROM input`,
+        );
+
+        const sql = SQLFrame.from("input")
+            .binning({
+                fieldName: "occurred_at",
+                statsTable: "stats",
+                statsMinField: "min_time",
+                statsMaxField: "max_time",
+                binCount: 2,
+                outputAlias: "time_bin",
+                toNumericFn: "TIME_EPOCH",
+            })
+            .orderBy([{ field: "occurred_at" }])
+            .toSQL();
+        const rows = toPlainObjects(await conn.query(sql));
+
+        expect(rows.map(row => row.time_bin)).toEqual([0, 1, 2]);
+    });
+
+    it('groups times of day into bins', async () => {
+        await conn.execute(`CREATE TABLE input (occurred_at TIME)`);
+        await conn.execute(`INSERT INTO input VALUES (TIME '12:00:00'), (TIME '12:00:01'), (TIME '12:00:10')`);
+        await conn.execute(
+            `CREATE TABLE stats AS ` +
+            `SELECT MIN(occurred_at) AS min_time, MAX(occurred_at) AS max_time FROM input`,
+        );
+
+        const sql = SQLFrame.from("input")
+            .groupBy({
+                keys: [{
+                    fieldName: "occurred_at",
+                    outputAlias: "bin",
+                    binning: {
+                        binCount: 2,
+                        statsTable: "stats",
+                        statsMinField: "min_time",
+                        statsMaxField: "max_time",
+                        outputBinWidthAlias: "bin_width",
+                        outputBinLbAlias: "bin_lb",
+                        outputBinUbAlias: "bin_ub",
+                        toNumericFn: "TIME_EPOCH",
+                    },
+                }],
+                aggregates: [{ func: "count_star", outputAlias: "count" }],
+            })
+            .orderBy([{ field: "bin", ascending: true }])
+            .toSQL();
+        const rows = toPlainObjects(await conn.query(sql));
+
+        expect(rows.map(row => row.count)).toEqual([2n, 1n]);
+        // The bounds are milliseconds since midnight
+        expect(Number(rows[0].bin_lb)).toBeCloseTo(12 * 3_600_000, 0);
+        expect(Number(rows[1].bin_ub)).toBeCloseTo(12 * 3_600_000 + 10_000, 0);
+    });
+
     it('bins boolean values', async () => {
         await conn.execute(`CREATE TABLE input (email_opt_out BOOLEAN)`);
         await conn.execute(`INSERT INTO input VALUES (FALSE), (TRUE), (NULL)`);
