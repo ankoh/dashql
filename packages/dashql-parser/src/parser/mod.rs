@@ -44,8 +44,10 @@ pub struct StatementDescription {
     pub description_begin: u32,
     /// The number of description comments
     pub description_count: u32,
-    /// The `@dashql:description` block among the description comments
-    pub description_block: Option<u32>,
+    /// The comment blocks of the description comments (a slice of the comment blocks of the script)
+    pub description_blocks_begin: u32,
+    /// The number of comment blocks of the description comments
+    pub description_blocks_count: u32,
 }
 
 /// Only whitespace and semicolons
@@ -150,16 +152,15 @@ impl ParsedScript {
             if begin < end && is_description_gap(input, cursor, statement.source_span.offset as usize) {
                 statement.description_begin = begin as u32;
                 statement.description_count = (end - begin) as u32;
-                // Blocks never straddle the description comments, find the last description block
+                // Blocks never straddle the description comments
                 while block_cursor < blocks.len() && (blocks[block_cursor].comments_begin as usize) < begin {
                     block_cursor += 1;
                 }
+                statement.description_blocks_begin = block_cursor as u32;
                 while block_cursor < blocks.len() && (blocks[block_cursor].comments_begin as usize) < end {
-                    if blocks[block_cursor].block_type == crate::comment_blocks::CommentBlockType::DASHQL_DESCRIPTION {
-                        statement.description_block = Some(block_cursor as u32);
-                    }
                     block_cursor += 1;
                 }
+                statement.description_blocks_count = block_cursor as u32 - statement.description_blocks_begin;
             }
             previous_end = statement.source_span.end() as usize;
             comment_cursor = end;

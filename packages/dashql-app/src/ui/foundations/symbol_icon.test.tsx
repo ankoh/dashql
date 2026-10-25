@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { BeakerIcon, CheckIcon, SymbolIcon, XIcon } from './symbol_icon.js';
+import { CheckIcon, LibraryIcon, SymbolIcon, XIcon } from './symbol_icon.js';
 
 describe('SymbolIcon', () => {
     let container: HTMLDivElement;
@@ -54,10 +54,10 @@ describe('SymbolIcon', () => {
         expectSymbol(svg, 'x_24');
     });
 
-    it('uses the 16px beaker artwork at session-card sizes', () => {
-        const svg = render(<BeakerIcon size={14} />);
+    it('uses the 16px library artwork at session-card sizes', () => {
+        const svg = render(<LibraryIcon size={14} />);
 
-        expectSymbol(svg, 'beaker_16');
+        expectSymbol(svg, 'library_16');
     });
 
     it('forwards SVG properties and exposes explicitly labelled graphics', () => {

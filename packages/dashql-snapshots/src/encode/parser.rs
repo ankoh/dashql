@@ -78,8 +78,14 @@ pub fn encode_script(parsed: &ParsedScript, text: &str) -> Node {
         encode_location_text(&mut d, text, description.source_span.offset, description.source_span.length, "text");
         d.int("description-begin", description.description_begin as i64);
         d.int("description-count", description.description_count as i64);
-        if let Some(block) = description.description_block {
-            d.int("description-block", block as i64);
+        if description.description_blocks_count > 0 {
+            d.insert(
+                "description-blocks",
+                Node::flow_seq(vec![
+                    Node::int(description.description_blocks_begin as i64),
+                    Node::int(description.description_blocks_count as i64),
+                ]),
+            );
         }
         s.insert("description", d.into_node());
         s.insert("ast", encode_node(parsed, text, statement.root as usize));
@@ -164,9 +170,6 @@ pub fn encode_script(parsed: &ParsedScript, text: &str) -> Node {
         })
         .collect();
     root.insert("comment-blocks", Node::seq(comment_blocks));
-    if let Some(block) = blocks.metadata_block {
-        root.int("metadata-block", block as i64);
-    }
     let warnings = blocks
         .warnings
         .iter()

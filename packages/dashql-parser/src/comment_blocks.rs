@@ -6,8 +6,8 @@
 //! `-- @dashql:end`. A block comment is tagged if its first text is `@dashql:<tag>`, the comment end
 //! closes it. The content lines omit comment markers, block comment gutters (` * `), tag lines and
 //! leading or trailing empty lines. Text following the opening tag on the same line is content. The
-//! content of the first `@dashql:metadata` block must be a JSON object, further metadata blocks are
-//! ignored.
+//! parser does not interpret tags or their content, readers pick blocks by tag name and parse the
+//! content themselves, e.g. as JSON.
 
 use crate::span::TextSpan;
 pub use dashql_buffers::parser::CommentBlockType;
@@ -20,7 +20,7 @@ pub const COMMENT_TAG_END: &str = "end";
 /// A block of comments
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CommentBlock {
-    /// The kind of block: an ordinary comment or a tagged `@dashql:<tag>` region
+    /// The kind of block: an ordinary comment or a `@dashql:<tag>` region
     pub block_type: CommentBlockType,
     /// The whole block, including comment markers and tag lines
     pub text_span: TextSpan,
@@ -45,8 +45,6 @@ pub struct CommentBlocks {
     pub lines: Vec<TextSpan>,
     /// Malformed comment tags
     pub warnings: Vec<(TextSpan, String)>,
-    /// The `@dashql:metadata` block whose content is a valid JSON object, if any
-    pub metadata_block: Option<u32>,
 }
 
 /// Group comments into blocks.
@@ -222,14 +220,6 @@ impl<'a> Grouper<'a> {
         lines
     }
 
-    fn tag_type(&self, name: &[u8]) -> CommentBlockType {
-        match name {
-            b"description" => CommentBlockType::DASHQL_DESCRIPTION,
-            b"metadata" => CommentBlockType::DASHQL_METADATA,
-            _ => CommentBlockType::DASHQL_UNKNOWN_TAG,
-        }
-    }
-
     fn warn(&mut self, span: TextSpan, message: String) {
         self.out.warnings.push((span, message));
     }
@@ -272,12 +262,8 @@ impl<'a> Grouper<'a> {
             self.emit(CommentBlockType::COMMENT, comment_id, comment_id + 1, Range::default(), &lines);
             return;
         }
-        let block_type = self.tag_type(name);
-        if block_type == CommentBlockType::DASHQL_UNKNOWN_TAG {
-            self.warn(comment, format!("unknown comment tag @dashql:{}", self.string(tag.name)));
-        }
         lines[first] = tag.rest;
-        self.emit(block_type, comment_id, comment_id + 1, tag.name, &lines[first..]);
+        self.emit(CommentBlockType::DASHQL_TAG, comment_id, comment_id + 1, tag.name, &lines[first..]);
     }
 
     fn group_line_comments(&mut self, run_begin: usize, run_end: usize) {
@@ -313,53 +299,18 @@ impl<'a> Grouper<'a> {
                 i += 1;
                 continue;
             }
-            let block_type = self.tag_type(name);
-            if block_type == CommentBlockType::DASHQL_UNKNOWN_TAG {
-                self.warn(self.comments[i], format!("unknown comment tag @dashql:{}", self.string(tag.name)));
-            }
             if pending < i {
                 self.emit(CommentBlockType::COMMENT, pending, i, Range::default(), &lines[pending - run_begin..i - run_begin]);
             }
             let mut content = Vec::with_capacity(close - i);
             content.push(tag.rest);
             content.extend((i + 1..close).map(line));
-            self.emit(block_type, i, close + 1, tag.name, &content);
+            self.emit(CommentBlockType::DASHQL_TAG, i, close + 1, tag.name, &content);
             pending = close + 1;
             i = close + 1;
         }
         if pending < run_end {
             self.emit(CommentBlockType::COMMENT, pending, run_end, Range::default(), &lines[pending - run_begin..]);
-        }
-    }
-
-    /// Check the metadata blocks, the first one must contain a JSON object
-    fn validate_metadata(&mut self) {
-        let mut seen = false;
-        for i in 0..self.out.blocks.len() {
-            let block = self.out.blocks[i];
-            if block.block_type != CommentBlockType::DASHQL_METADATA {
-                continue;
-            }
-            if seen {
-                self.warn(block.text_span, "@dashql:metadata is ignored, a script has a single metadata block".to_string());
-                continue;
-            }
-            seen = true;
-            let mut json = Vec::new();
-            for j in 0..block.lines_count {
-                let line = self.out.lines[(block.lines_begin + j) as usize];
-                if j > 0 {
-                    json.push(b'\n');
-                }
-                json.extend_from_slice(&self.text[line.offset as usize..line.end() as usize]);
-            }
-            match serde_json::from_slice::<serde_json::Value>(&json) {
-                Err(_) => self.warn(block.text_span, "@dashql:metadata is not valid JSON".to_string()),
-                Ok(value) if !value.is_object() => {
-                    self.warn(block.text_span, "@dashql:metadata must be a JSON object".to_string())
-                }
-                Ok(_) => self.out.metadata_block = Some(i as u32),
-            }
         }
     }
 
@@ -390,7 +341,6 @@ impl<'a> Grouper<'a> {
             self.group_line_comments(i, run_end);
             i = run_end;
         }
-        self.validate_metadata();
     }
 }
 
@@ -424,26 +374,40 @@ mod tests {
 
     #[test]
     fn reads_tagged_regions() {
-        let text = "-- @dashql:description Sales\n-- per region\n-- @dashql:end\n/* @dashql:metadata {\"a\": 1} */";
+        let text = "-- @dashql:description Sales\n-- per region\n-- @dashql:end\n/* @dashql:metadata {\"a\": 1} */\n/* @dashql:foo [1] */";
         let blocks = group(text);
-        assert_eq!(blocks.blocks[0].block_type, CommentBlockType::DASHQL_DESCRIPTION);
+        let tags: Vec<(CommentBlockType, &str)> = blocks
+            .blocks
+            .iter()
+            .map(|b| (b.block_type, &text[b.tag_span.offset as usize..b.tag_span.end() as usize]))
+            .collect();
+        assert_eq!(
+            tags,
+            vec![
+                (CommentBlockType::DASHQL_TAG, "description"),
+                (CommentBlockType::DASHQL_TAG, "metadata"),
+                (CommentBlockType::DASHQL_TAG, "foo"),
+            ]
+        );
         assert_eq!(line_texts(text, &blocks, 0), vec!["Sales", "per region"]);
-        assert_eq!(blocks.blocks[1].block_type, CommentBlockType::DASHQL_METADATA);
-        assert_eq!(blocks.metadata_block, Some(1));
+        // The content is not interpreted, readers check whether it is JSON
+        assert_eq!(line_texts(text, &blocks, 1), vec!["{\"a\": 1}"]);
+        assert_eq!(line_texts(text, &blocks, 2), vec!["[1]"]);
         assert!(blocks.warnings.is_empty());
     }
 
     #[test]
     fn warns_about_malformed_tags() {
-        let blocks = group("-- @dashql:description\n-- x\n/* @dashql:metadata [1] */\n/* @dashql:foo */");
+        let blocks = group("-- @dashql:description\n-- x\n\n-- @dashql:end\n/* @dashql:end */");
         let warnings: Vec<&str> = blocks.warnings.iter().map(|w| w.1.as_str()).collect();
         assert_eq!(
             warnings,
             vec![
                 "@dashql:description is not closed by a -- @dashql:end line",
-                "unknown comment tag @dashql:foo",
-                "@dashql:metadata must be a JSON object",
+                "@dashql:end without an opening tag",
+                "@dashql:end without an opening tag",
             ]
         );
+        assert!(blocks.blocks.iter().all(|b| b.block_type == CommentBlockType::COMMENT));
     }
 }

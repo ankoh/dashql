@@ -110,7 +110,7 @@
     color: var(--status_color_error, #cf222e);
 }
 
-/* Entries look like the rows of the catalog tree: a padded, rounded card that highlights on hover */
+/* The rows hold the entries of the tree, see TreeEntry */
 .row_container {
     display: flex;
     align-items: center;
@@ -122,6 +122,7 @@
     padding-top: 8px;
 }
 
+/* The entries of the cleanup review, sized like the entries of the tree */
 .entry {
     width: 100%;
     height: 32px;
@@ -134,18 +135,6 @@
     background: transparent;
     font: inherit;
     text-align: left;
-}
-
-/* Only keyboard focus highlights an entry, a clicked toggle must not look selected */
-.entry_interactive {
-    cursor: pointer;
-}
-
-.entry_interactive:hover,
-.entry_interactive:focus-visible {
-    border-color: var(--border_color_primary);
-    background: var(--base_color_neutral_0);
-    outline: none;
 }
 
 /* The name takes the remaining space, fixed widths for size and modification time */
@@ -162,15 +151,6 @@
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     align-items: center;
     column-gap: 8px;
-}
-
-/* Chevron, icon and name, as in the catalog tree. Files and status rows leave the chevron cell empty. */
-.cell_name {
-    display: grid;
-    grid-template-columns: 12px 14px minmax(0, 1fr);
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
 }
 
 .cleanup_cell_name {
@@ -207,9 +187,12 @@
     min-width: 0;
 }
 
-.root_label .name {
+.root_name {
     flex: 0 1 auto;
-    font-family: inherit;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 13px;
     font-weight: 500;
 }

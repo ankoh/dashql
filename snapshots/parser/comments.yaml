@@ -14,6 +14,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 2
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -60,6 +61,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 2
+            description-blocks: [0,2]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -113,6 +115,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 5
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -165,6 +168,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 2
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -230,6 +234,7 @@ parser-snapshots:
             text: "select 2"
             description-begin: 1
             description-count: 1
+            description-blocks: [1,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 2"
@@ -282,6 +287,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 1
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -328,6 +334,7 @@ parser-snapshots:
             text: "select 1 /**/"
             description-begin: 0
             description-count: 1
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -372,6 +379,7 @@ parser-snapshots:
             text: "select 1 /***/"
             description-begin: 0
             description-count: 1
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -415,6 +423,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 1
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -457,6 +466,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 3
+            description-blocks: [0,3]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -519,7 +529,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 7
-            description-block: 0
+            description-blocks: [0,2]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -554,7 +564,7 @@ parser-snapshots:
         - text: "-- @dashql:end"
         - text: "-- TPC-H query 3"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "description"
           comments: [0,6]
@@ -587,7 +597,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 5
-            description-block: 1
+            description-blocks: [0,3]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -622,7 +632,7 @@ parser-snapshots:
           comments: [0,1]
           lines:
             - "my own note"
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "description"
           comments: [1,3]
@@ -650,7 +660,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 3
-            description-block: 0
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -676,7 +686,7 @@ parser-snapshots:
         - text: "-- Second line."
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "description"
           comments: [0,3]
@@ -700,7 +710,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 3
-            description-block: 0
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -726,7 +736,7 @@ parser-snapshots:
         - text: "-- Revenue..r segment."
         - text: "--   @dashql:end"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "--   @dash..dashql:end"
           tag: "description"
           comments: [0,3]
@@ -752,7 +762,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 1
-            description-block: 0
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -779,7 +789,7 @@ parser-snapshots:
       comments:
         - text: "/* @dashql..e most?\n*/"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "/* @dashql..e most?\n*/"
           tag: "description"
           comments: [0,1]
@@ -806,7 +816,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 1
-            description-block: 0
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -831,7 +841,7 @@ parser-snapshots:
       comments:
         - text: "/**\n * @da..gment.\n */"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "/**\n * @da..gment.\n */"
           tag: "description"
           comments: [0,1]
@@ -851,7 +861,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 1
-            description-block: 0
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -872,7 +882,7 @@ parser-snapshots:
       comments:
         - text: "/* @dashql..egment. */"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "/* @dashql..egment. */"
           tag: "description"
           comments: [0,1]
@@ -901,7 +911,7 @@ parser-snapshots:
             text: "select 1;"
             description-begin: 0
             description-count: 3
-            description-block: 0
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -923,7 +933,7 @@ parser-snapshots:
             text: "select 2;"
             description-begin: 3
             description-count: 3
-            description-block: 1
+            description-blocks: [1,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 2"
@@ -979,13 +989,13 @@ parser-snapshots:
         - text: "-- Second query."
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "description"
           comments: [0,3]
           lines:
             - "First query."
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "description"
           comments: [3,3]
@@ -1008,7 +1018,7 @@ parser-snapshots:
             text: "select 1;"
             description-begin: 0
             description-count: 3
-            description-block: 0
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1055,7 +1065,7 @@ parser-snapshots:
         - text: "-- First query."
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "description"
           comments: [0,3]
@@ -1079,6 +1089,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 3
+            description-blocks: [0,2]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1138,6 +1149,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 4
+            description-blocks: [0,2]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1165,23 +1177,19 @@ parser-snapshots:
         - text: "-- @dashql:end"
         - text: "/* @dashql..art bar */"
       comment-blocks:
-        - type: DASHQL_UNKNOWN_TAG
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "parameters"
           comments: [0,3]
           lines:
             - "region = 'EUROPE'"
-        - type: DASHQL_UNKNOWN_TAG
+        - type: DASHQL_TAG
           text: "/* @dashql..art bar */"
           tag: "chart"
           comments: [3,1]
           lines:
             - "bar"
-      comment-warnings:
-        - message: 'unknown comment tag @dashql:parameters'
-          text: "-- @dashql..parameters"
-        - message: 'unknown comment tag @dashql:chart'
-          text: "/* @dashql..art bar */"
+      comment-warnings: []
 
   - name: end_tag_without_opening
     input: |-
@@ -1197,6 +1205,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 2
+            description-blocks: [0,2]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1253,6 +1262,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 5
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1309,7 +1319,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 4
-            description-block: 0
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1337,7 +1347,7 @@ parser-snapshots:
         - text: "-- @dashql..escription"
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "description"
           comments: [0,4]
@@ -1364,6 +1374,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 6
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1395,7 +1406,7 @@ parser-snapshots:
         - text: "-- }"
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_METADATA
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "metadata"
           comments: [0,6]
@@ -1404,7 +1415,6 @@ parser-snapshots:
             - "  \"owner\": \"finance\","
             - "  \"avg_runtime_ms\": 1834"
             - "}"
-      metadata-block: 0
       comment-warnings: []
 
   - name: metadata_block_form
@@ -1422,6 +1432,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 1
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1445,13 +1456,12 @@ parser-snapshots:
       comments:
         - text: "/* @dashql..ance\"}\n */"
       comment-blocks:
-        - type: DASHQL_METADATA
+        - type: DASHQL_TAG
           text: "/* @dashql..ance\"}\n */"
           tag: "metadata"
           comments: [0,1]
           lines:
             - "{\"owner\": \"finance\"}"
-      metadata-block: 0
       comment-warnings: []
 
   - name: metadata_nested_values
@@ -1481,6 +1491,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 15
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1530,7 +1541,7 @@ parser-snapshots:
         - text: "-- }"
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_METADATA
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "metadata"
           comments: [0,15]
@@ -1548,7 +1559,6 @@ parser-snapshots:
             - "  \"public\": true,"
             - "  \"deleted_at\": null"
             - "}"
-      metadata-block: 0
       comment-warnings: []
 
   - name: metadata_invalid_json
@@ -1566,6 +1576,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 3
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1591,15 +1602,13 @@ parser-snapshots:
         - text: "-- owner: finance"
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_METADATA
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "metadata"
           comments: [0,3]
           lines:
             - "owner: finance"
-      comment-warnings:
-        - message: '@dashql:metadata is not valid JSON'
-          text: "-- @dashql..dashql:end"
+      comment-warnings: []
 
   - name: metadata_not_an_object
     input: |-
@@ -1616,6 +1625,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 3
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1641,15 +1651,13 @@ parser-snapshots:
         - text: "-- [\"finance\"]"
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_METADATA
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "metadata"
           comments: [0,3]
           lines:
             - "[\"finance\"]"
-      comment-warnings:
-        - message: '@dashql:metadata must be a JSON object'
-          text: "-- @dashql..dashql:end"
+      comment-warnings: []
 
   - name: metadata_twice
     input: |-
@@ -1670,6 +1678,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 6
+            description-blocks: [0,2]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1702,23 +1711,19 @@ parser-snapshots:
         - text: "-- {\"owner..\"finance\"}"
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_METADATA
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "metadata"
           comments: [0,3]
           lines:
             - "{"
-        - type: DASHQL_METADATA
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "metadata"
           comments: [3,3]
           lines:
             - "{\"owner\": \"finance\"}"
-      comment-warnings:
-        - message: '@dashql:metadata is not valid JSON'
-          text: "-- @dashql..dashql:end"
-        - message: '@dashql:metadata is ignored, a script has a single metadata block'
-          text: "-- @dashql..dashql:end"
+      comment-warnings: []
 
   - name: metadata_and_description
     input: |-
@@ -1741,7 +1746,7 @@ parser-snapshots:
             text: "select 1"
             description-begin: 0
             description-count: 8
-            description-block: 1
+            description-blocks: [0,2]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -1778,7 +1783,7 @@ parser-snapshots:
         - text: "-- Revenue..r segment."
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_METADATA
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "metadata"
           comments: [0,5]
@@ -1786,11 +1791,10 @@ parser-snapshots:
             - "{"
             - "  \"owner\": \"finance\""
             - "}"
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "description"
           comments: [5,3]
           lines:
             - "Revenue per segment."
-      metadata-block: 0
       comment-warnings: []

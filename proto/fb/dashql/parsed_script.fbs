@@ -721,12 +721,9 @@ table Error {
 enum CommentBlockType: uint8 {
     /// An ordinary comment
     COMMENT = 0,
-    /// A `@dashql:description` region
-    DASHQL_DESCRIPTION = 1,
-    /// A well-formed `@dashql:<tag>` region whose tag is not known to this version
-    DASHQL_UNKNOWN_TAG = 2,
-    /// A `@dashql:metadata` region, its content is a JSON object with user-provided metadata
-    DASHQL_METADATA = 3,
+    /// A `@dashql:<tag>` region, the parser does not interpret the tag or the content.
+    /// Readers pick blocks by tag name and parse the content, e.g. as JSON.
+    DASHQL_TAG = 1,
 }
 
 /// A group of comments: a single block comment or a run of line comments on consecutive lines.
@@ -755,8 +752,9 @@ table Statement {
     // Slice into ParsedScript.comments containing this statement's description comments.
     description_begin: uint32;
     description_count: uint32;
-    // Index into ParsedScript.comment_blocks of the `@dashql:description` block among the description comments.
-    description_block: uint32 = 4294967295;
+    // Slice into ParsedScript.comment_blocks containing the blocks of this statement's description comments.
+    description_blocks_begin: uint32;
+    description_blocks_count: uint32;
     // Normalized metadata for statement consumers that do not need to traverse the AST.
     target_type: StatementTargetType;
     target: StatementTarget;
@@ -812,6 +810,4 @@ table ParsedScript {
     comment_lines: [TextSpan];
     /// Bitwise OR of ParsedScriptFeature values detected by the parser.
     feature_flags: uint32;
-    /// Index into comment_blocks of the `@dashql:metadata` block whose content is a valid JSON object
-    metadata_block: uint32 = 4294967295;
 }

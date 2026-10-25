@@ -2,15 +2,13 @@ import * as React from 'react';
 import * as styles from './cell_detail_overlay.module.css';
 import * as dashql from '@ankoh/dashql-core';
 
-import { EditorView } from '@codemirror/view';
 import { XIcon, ChevronUpIcon, ChevronDownIcon, ScreenFullIcon, ScreenNormalIcon } from '../../../../../ui/foundations/symbol_icon.js';
 
 import { ButtonSize, IconButton, ButtonVariant } from '../../../../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../../../../ui/foundations/segmented_control.js';
 import { SymbolIcon } from '../../../../../ui/foundations/symbol_icon.js';
 import { JsonView } from '../../../../../ui/json/json_view.js';
-import { CodeMirror, createReadonlyCodeMirrorExtensions } from '../../../scripts/editor/codemirror.js';
-import { DashQLUpdateEffect } from '../../../scripts/editor/dashql_processor.js';
+import { projectSqlText, ReadonlySqlView } from '../../../scripts/editor/readonly_sql_view.js';
 import { Overlay, OverlaySize } from '../../../../../ui/foundations/overlay.js';
 import { useDashQLCoreSetup } from '../../../../providers/core_provider.js';
 import { CopyToClipboardButton } from '../../../../../utils/clipboard.js';
@@ -46,20 +44,6 @@ interface DetectedFormats {
         hasErrors: boolean;
     } | null;
     plan: string | null;
-}
-
-function projectSqlText(
-    core: dashql.DashQL,
-    catalog: dashql.DashQLCatalog,
-    text: string,
-): dashql.buffers.editor.EditorUpdateT {
-    const session = core.createScriptSession(catalog);
-    try {
-        session.replaceText(0n, text);
-        return session.analyze();
-    } finally {
-        session.destroy();
-    }
 }
 
 export function detectFormats(core: dashql.DashQL | null, value: string | null, keywordCase = dashql.buffers.formatting.KeywordCase.LOWER): DetectedFormats {
@@ -157,19 +141,9 @@ function getAvailableModes(formats: DetectedFormats): FormatMode[] {
 
 /// Read-only CodeMirror sub-view (no syntax highlighting)
 function ReadonlyTextView(props: { text: string }) {
-    const [view, setView] = React.useState<EditorView | null>(null);
-    const readonlyExtensions = React.useMemo(() => [...createReadonlyCodeMirrorExtensions(), EditorView.lineWrapping], []);
-
-    React.useEffect(() => {
-        if (view == null) return;
-        view.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: props.text },
-        });
-    }, [view, props.text]);
-
     return (
         <div className={styles.codemirror_container}>
-            <CodeMirror ref={setView} extensions={readonlyExtensions} style={{ height: 'auto' }} />
+            <ReadonlySqlView text={props.text} editorUpdate={null} lineWrapping autoHeight />
         </div>
     );
 }
@@ -185,36 +159,14 @@ interface SqlTextViewProps {
 
 // SQL CodeMirror sub-view (with DashQL syntax highlighting)
 function SqlTextView(props: SqlTextViewProps) {
-    const [view, setView] = React.useState<EditorView | null>(null);
-    const readonlyExtensions = React.useMemo(() => createReadonlyCodeMirrorExtensions(), []);
     const [pretty, setPretty] = React.useState(false);
 
     const activeText = pretty && props.formattedText != null ? props.formattedText : props.originalText;
     const activeUpdate = pretty && props.formattedUpdate != null ? props.formattedUpdate : props.originalUpdate;
 
-    React.useEffect(() => {
-        if (view == null) return;
-        const changes = { from: 0, to: view.state.doc.length, insert: activeText };
-        view.dispatch({
-            changes,
-            effects: [
-                DashQLUpdateEffect.of({
-                    scriptKey: 0,
-                    scriptSession: null,
-                    editorUpdate: activeUpdate,
-                    scriptBuffers: null,
-                    scriptCompletion: null,
-                    scriptPendingDiff: null,
-                    derivedFocus: null,
-                    onUpdate: () => { },
-                }),
-            ],
-        });
-    }, [view, activeText, activeUpdate]);
-
     return (
         <div className={styles.codemirror_container}>
-            <CodeMirror ref={setView} extensions={readonlyExtensions} />
+            <ReadonlySqlView text={activeText} editorUpdate={activeUpdate} />
             {props.formattedText != null && (
                 <div className={styles.pretty_toggle}>
                     <IconButton

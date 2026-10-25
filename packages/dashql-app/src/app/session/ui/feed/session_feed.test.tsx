@@ -190,6 +190,18 @@ describe('V2 session feed rows', () => {
         expect(props.onDelete).toHaveBeenCalledWith('01_alpha.sql');
     });
 
+    it('offers snippets next to the delete button unless a rewrite is pending', () => {
+        const props = baseProps();
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        const snippets = container.querySelector<HTMLButtonElement>('[data-testid="script-snippets"]')!;
+        expect(snippets.disabled).toBe(false);
+        const deleteButton = container.querySelector('[data-testid="script-delete"]')!;
+        expect(snippets.compareDocumentPosition(deleteButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        expect(container.querySelector<HTMLButtonElement>('[data-testid="script-snippets"]')!.disabled).toBe(true);
+    });
+
     it('shows the connection instead of the file name and edits the file in the storage view', () => {
         const props = baseProps();
         Object.assign(props, { connections: new Map([['database', {
@@ -482,6 +494,18 @@ describe('Session feed composer', () => {
             type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: '-- how many rows\nselect count(*) from t' },
         });
         expect(feedState.runSessionScript).toHaveBeenCalledWith(filled, filled.scripts[1], feedState.executeQuery, modify, expect.anything());
+    });
+
+    it('replaces the text of a script with a snippet, as a diff if the script has text', async () => {
+        const modify = vi.fn(() => Promise.resolve(session(['1_alpha.sql'])));
+        const current = session(['1_alpha.sql', '2_beta.sql']);
+        current.scripts[2] = { ...current.scripts[2], scriptSession: { getText: () => '  \n' } } as any;
+        render(current, modify);
+        expect(feedState.rowProps).not.toBeNull();
+        await act(async () => feedState.rowProps.onApplySnippet(1, 'select 2;'));
+        expect(modify).toHaveBeenLastCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: 'select 2;', withDiff: true } });
+        await act(async () => feedState.rowProps.onApplySnippet(2, 'select 3;'));
+        expect(modify).toHaveBeenLastCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 2, text: 'select 3;', withDiff: false } });
     });
 
     it('keeps the commented script when the generation fails', async () => {

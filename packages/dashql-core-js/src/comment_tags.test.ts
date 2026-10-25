@@ -14,18 +14,68 @@ afterEach(async () => {
 
 const encoder = new TextEncoder();
 
-function parseMetadata(text: string): dashql.ScriptMetadata | null {
+function withParsed<T>(text: string, fn: (parsed: dashql.buffers.parser.ParsedScript, bytes: Uint8Array) => T): T {
     const catalog = dql!.createCatalog();
     const script = dql!.createScript(catalog);
     script.insertTextAt(0, text);
     script.parse();
     const parsed = script.getParsed();
-    const metadata = dashql.readMetadata(parsed.read(), encoder.encode(text));
-    parsed.destroy();
-    script.destroy();
-    catalog.destroy();
-    return metadata;
+    try {
+        return fn(parsed.read(), encoder.encode(text));
+    } finally {
+        parsed.destroy();
+        script.destroy();
+        catalog.destroy();
+    }
 }
+
+function parseMetadata(text: string): dashql.ScriptMetadata | null {
+    return withParsed(text, (parsed, bytes) => dashql.readMetadata(parsed, bytes));
+}
+
+describe('Comment tags', () => {
+    it('exposes every tag without interpreting it', () => {
+        const text = [
+            '-- @dashql:description Sales',
+            '-- per région',
+            '-- @dashql:end',
+            '/* @dashql:snippet {"title": "x"} */',
+            '-- plain comment',
+            'select 1;',
+        ].join('\n');
+        const tags = withParsed(text, (parsed, bytes) => dashql.readCommentTags(parsed, bytes));
+        expect(tags.map(tag => [tag.name, tag.text])).toEqual([
+            ['description', 'Sales\nper région'],
+            ['snippet', '{"title": "x"}'],
+        ]);
+        // The spans are byte offsets of the whole block
+        const bytes = encoder.encode(text);
+        const first = new TextDecoder().decode(bytes.subarray(tags[0].offset, tags[0].offset + tags[0].length));
+        expect(first).toEqual('-- @dashql:description Sales\n-- per région\n-- @dashql:end');
+        expect(dashql.parseCommentTagObject(tags[1])).toEqual({ title: 'x' });
+        expect(dashql.parseCommentTagObject(tags[0])).toBeNull();
+    });
+
+    it('reads the tags of the description of a statement', () => {
+        const text = [
+            'select 1;',
+            '',
+            dashql.renderCommentTag('description', 'Second\nstatement'),
+            'select 2;',
+        ].join('\n');
+        const tags = withParsed(text, (parsed, bytes) => [0, 1].map(id => dashql.readStatementCommentTags(parsed, bytes, id)));
+        expect(tags[0]).toEqual([]);
+        expect(tags[1].map(tag => [tag.name, tag.text])).toEqual([['description', 'Second\nstatement']]);
+    });
+
+    it('checks that tag contents are JSON objects', () => {
+        const tag = (text: string): dashql.CommentTag => ({ blockId: 0, name: 'x', text, offset: 0, length: 0 });
+        expect(dashql.parseCommentTagObject(tag('{"a": [1]}'))).toEqual({ a: [1] });
+        expect(dashql.parseCommentTagObject(tag('[1, 2]'))).toBeNull();
+        expect(dashql.parseCommentTagObject(tag('null'))).toBeNull();
+        expect(dashql.parseCommentTagObject(tag('owner: finance'))).toBeNull();
+    });
+});
 
 describe('Comment metadata', () => {
     it('renders pretty-printed JSON as line comments', () => {

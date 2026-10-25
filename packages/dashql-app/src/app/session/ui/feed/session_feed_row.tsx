@@ -37,6 +37,7 @@ import { ScriptActionMenu, type ScriptStorage } from '../script_action_menu.js';
 import { displayPath } from '../../../storage/session_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '../../../storage/storage_backend.js';
 import { ScriptConnectionPicker, type ScriptConnectionView } from '../script_connection_picker.js';
+import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 
 const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
 
@@ -77,6 +78,8 @@ export interface ScriptCardProps {
     onShowDetails: (fileName: string) => void;
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onFormat: (scriptKey: number, text: string) => void;
+    /// Replace the text of the script with the text of a snippet
+    onApplySnippet: (scriptKey: number, text: string) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     resultExpanded: boolean;
@@ -260,6 +263,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
 
     // Labels use the display name (the file name without ".sql"); the raw scriptFileName remains the
     // identity passed to handlers and to RENAME_SCRIPT.
+    const applySnippet = React.useCallback((text: string) => {
+        if (scriptKey != null) props.onApplySnippet(scriptKey, text);
+    }, [scriptKey, props.onApplySnippet]);
+
     const displayName = scriptDisplayName(props.scriptFileName);
     const storage = React.useMemo<ScriptStorage>(() => ({
         fileName: props.scriptFileName,
@@ -330,6 +337,12 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             connectorType={props.connectorType}
                         />
                     )}
+                    <SnippetsOverlay
+                        scriptName={displayName}
+                        connectorType={props.connectorType}
+                        disabled={props.scriptData == null || hasPendingDiff || generating}
+                        onApply={applySnippet}
+                    />
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
@@ -485,6 +498,8 @@ export interface ScriptFeedRowProps {
     onShowDetails: (fileName: string) => void;
     onRerun: (fileName: string, cacheKey: string | null) => void;
     onFormat: (scriptKey: number, text: string) => void;
+    /// Replace the text of a script with the text of a snippet
+    onApplySnippet: (scriptKey: number, text: string) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     collapsedResults: ReadonlyMap<number, number | null>;
@@ -644,6 +659,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onShowDetails={props.onShowDetails}
                     onRerun={props.onRerun}
                     onFormat={props.onFormat}
+                    onApplySnippet={props.onApplySnippet}
                     onAcceptDiff={props.onAcceptDiff}
                     onRejectDiff={props.onRejectDiff}
                     resultExpanded={scriptData == null || !props.collapsedResults.has(scriptData.scriptKey)}

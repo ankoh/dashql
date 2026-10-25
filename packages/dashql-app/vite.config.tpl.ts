@@ -26,6 +26,8 @@ export default vite.defineConfig(({ mode, command }) => {
     // import.meta.url, so only the entry needs an alias — the .wasm has no placeholder.
     const UMAP_JS_PATH = path.resolve(rootDir, "__UMAP_JS_PATH__");
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
+    // The SQL snippets of examples/snippets, bundled as text
+    const SNIPPETS_PATH = path.resolve(rootDir, "__SNIPPETS_PATH__");
     // copy_to_bin can leave deleted sources in the execroot. Only bundle declared test inputs.
     const browserTestPatterns = includesBrowserTests && command === 'build'
         ? nodeFs.readFileSync(path.join(rootDir, 'browser_test_files.txt'), 'utf8')
@@ -265,6 +267,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     replacement: UMAP_JS_PATH + "$1",
                 },
                 { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
+                { find: /^@dashql\/snippets/, replacement: SNIPPETS_PATH },
                 {
                     find: /^@dashql\/browser-test-act$/,
                     replacement: path.resolve(rootDir, "src/tests/react_act.ts"),
@@ -302,6 +305,7 @@ export default vite.defineConfig(({ mode, command }) => {
                         path.dirname(SHELL_JS_PATH),
                         path.dirname(SHELL_WASM_PATH),
                         path.dirname(SVG_SYMBOLS_PATH),
+                        SNIPPETS_PATH,
                         // umap-wasm/index.js + its pkg/ subdir (glue + .wasm).
                         path.dirname(UMAP_JS_PATH),
                         path.join(path.dirname(UMAP_JS_PATH), "pkg"),

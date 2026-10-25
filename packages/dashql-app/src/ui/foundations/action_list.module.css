@@ -31,15 +31,10 @@
     margin-right: 8px;
     align-items: center;
 }
-.item_container.selected::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    bottom: 2px;
-    left: -8px;
-    width: 4px;
-    border-radius: 8px;
-    background-color: hsl(212.44deg 92.07% 44.51%);
+/* The greyish toggled look of the app, like the active tab of the vertical tab bar */
+.item_container.selected {
+    background-color: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.32);
+    border: 1px solid var(--border_color_primary);
 }
 .item_container.disabled {
     cursor: not-allowed;

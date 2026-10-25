@@ -295,6 +295,32 @@ The scanner wraps the raw lexer with a lookahead filter (`next_symbol` in `scann
 - `NULLS` → `NULLS_LA` when followed by `FIRST` or `LAST`
 - `WITH` → `WITH_LA` when followed by `TIME` or `ORDINALITY`
 
+## Comment Tags
+
+The scanner collects comments as trivia. After parsing, `comment_blocks.rs` groups them into blocks:
+a block comment, or a run of line comments on consecutive lines. A run is split around tagged
+regions that open with `-- @dashql:<tag>` and close with `-- @dashql:end`. A block comment is tagged
+if its first text is `@dashql:<tag>`.
+
+```sql
+-- @dashql:metadata
+-- {"owner": "finance"}
+-- @dashql:end
+-- @dashql:description
+-- Revenue per segment.
+-- @dashql:end
+select 1;
+```
+
+The parser does not interpret tags. Every tagged region is a `DASHQL_TAG` block with its tag name
+(`tag_span`) and its content lines (`comment_lines`), whatever the name. Readers pick blocks by
+name and parse the content themselves: `readCommentTags` and `parseCommentTagObject` in
+`dashql-core-js/src/comment_tags.ts`, e.g. `readMetadata` reads the first `metadata` tag as a JSON
+object. A statement points to the blocks of its description comments
+(`description_blocks_begin` / `description_blocks_count`). Only structural problems are warnings
+(`MALFORMED_COMMENT_TAG`): a region without `-- @dashql:end` or an `@dashql:end` without an opening
+tag. The formatter keeps tagged regions verbatim.
+
 ## Location Tracking
 
 ### SymbolSpan

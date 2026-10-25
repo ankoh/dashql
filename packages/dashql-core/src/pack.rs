@@ -305,7 +305,8 @@ pub fn pack_parsed_script(parsed: &ParsedScript) -> ParsedScriptT {
             statement.statement_span = Some(text_span(metadata.statement_span));
             statement.description_begin = metadata.description_begin;
             statement.description_count = metadata.description_count;
-            statement.description_block = metadata.description_block.unwrap_or(PROTO_NULL_U32);
+            statement.description_blocks_begin = metadata.description_blocks_begin;
+            statement.description_blocks_count = metadata.description_blocks_count;
             statement
         })
         .collect();
@@ -345,7 +346,6 @@ pub fn pack_parsed_script(parsed: &ParsedScript) -> ParsedScriptT {
         comments: non_empty(scanned.comments.iter().map(|&s| text_span(s)).collect()),
         comment_blocks: non_empty(blocks.blocks.iter().map(comment_block).collect()),
         comment_lines: non_empty(blocks.lines.iter().map(|&s| text_span(s)).collect()),
-        metadata_block: blocks.metadata_block.unwrap_or(PROTO_NULL_U32),
         feature_flags: parsed.feature_flags,
     })
 }

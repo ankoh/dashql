@@ -39,6 +39,25 @@ export function createScriptFormatConfig(
     );
 }
 
+/// Format a SQL text in a throwaway script, null if the formatter cannot format all of it
+export function formatSqlText(core: dashql.DashQL, text: string, config: dashql.buffers.formatting.FormattingConfigT): string | null {
+    const catalog = core.createCatalog();
+    const script = core.createScript(catalog);
+    let formatted: dashql.DashQLScript | null = null;
+    try {
+        script.insertTextAt(0, text);
+        if (!script.isFullyFormattable(config)) return null;
+        formatted = script.format(config);
+        return formatted.toString();
+    } catch {
+        return null;
+    } finally {
+        formatted?.destroy();
+        script.destroy();
+        catalog.destroy();
+    }
+}
+
 export function measureScriptFormatWidth(editorView: Pick<EditorView, 'defaultCharacterWidth' | 'scrollDOM'>): number {
     const charWidth = editorView.defaultCharacterWidth;
     const availableWidth = editorView.scrollDOM.clientWidth;

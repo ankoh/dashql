@@ -5,8 +5,6 @@ import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 
 import {
-    ChevronDownIcon,
-    ChevronRightIcon,
     FileDirectoryFillIcon,
     FileDirectoryIcon,
     FileIcon,
@@ -15,6 +13,7 @@ import {
     XIcon,
 } from '../../../ui/foundations/symbol_icon.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { TreeEntry, TreeEntryName } from '../../../ui/foundations/tree_entry.js';
 import { VerticalScrollShadows } from '../../../ui/foundations/vertical_scroll_shadows.js';
 import { observeSize } from '../../../ui/foundations/size_observer.js';
 import { classNames } from '../../../utils/classnames.js';
@@ -43,9 +42,6 @@ import { getOPFSRoot } from '../../../platform/opfs_root.js';
 const LOG_CTX = 'storage_browser';
 /// The height of a row: a 32px entry with 1px of space above and below, as in the catalog tree
 const ROW_HEIGHT = 34;
-const INDENT_PX = 16;
-/// The left padding of an entry at depth 0
-const ENTRY_PADDING_PX = 8;
 /// The space above the first row, as in the catalog tree
 const FIRST_ROW_PADDING_PX = 8;
 
@@ -171,62 +167,50 @@ function StorageTreeRowComponent(props: RowComponentProps<StorageTreeRowProps>) 
     if (!row) {
         return <div style={props.style} />;
     }
-    const indent = { paddingLeft: ENTRY_PADDING_PX + row.depth * INDENT_PX };
     switch (row.kind) {
         case 'root':
-        case 'directory': {
-            const Chevron = row.expanded ? ChevronDownIcon : ChevronRightIcon;
+        case 'directory':
             return (
                 <div className={rowContainerClass(props.index)} style={props.style}>
-                    <button
-                        type="button"
-                        className={classNames(styles.entry, styles.entry_interactive, styles.columns, row.kind === 'root' && styles.root_entry)}
-                        style={indent}
-                        aria-expanded={row.expanded}
+                    <TreeEntry
+                        depth={row.depth}
+                        expanded={row.expanded}
+                        icon={row.kind === 'root' ? <FileDirectoryFillIcon size={14} /> : <FileDirectoryIcon size={14} />}
+                        label={row.kind === 'root' ? (
+                            <span className={styles.root_label}>
+                                <span className={styles.root_name} title={row.root.label}>{row.root.label}</span>
+                                <span className={styles.root_path} title={row.root.displayPath}>{row.root.displayPath}</span>
+                            </span>
+                        ) : <TreeEntryName title={row.path}>{row.name}</TreeEntryName>}
+                        className={classNames(styles.columns, row.kind === 'root' && styles.root_entry)}
                         onClick={() => props.toggle(row.key)}
                     >
-                        <span className={styles.cell_name}>
-                            <Chevron size={12} />
-                            <span className={styles.icon} aria-hidden="true">
-                                {row.kind === 'root' ? <FileDirectoryFillIcon size={14} /> : <FileDirectoryIcon size={14} />}
-                            </span>
-                            {row.kind === 'root' ? (
-                                <span className={styles.root_label}>
-                                    <span className={styles.name} title={row.root.label}>{row.root.label}</span>
-                                    <span className={styles.root_path} title={row.root.displayPath}>{row.root.displayPath}</span>
-                                </span>
-                            ) : (
-                                <span className={styles.name} title={row.path}>{row.name}</span>
-                            )}
-                        </span>
                         <span className={styles.cell_size} />
                         <span className={styles.cell_modified} />
-                    </button>
+                    </TreeEntry>
                 </div>
             );
-        }
         case 'file':
             return (
                 <div className={rowContainerClass(props.index)} style={props.style}>
-                    <div className={classNames(styles.entry, styles.columns)} style={indent}>
-                        <span className={styles.cell_name}>
-                            <span />
-                            <span className={styles.icon} aria-hidden="true"><FileIcon size={14} /></span>
-                            <span className={styles.name} title={row.path}>{row.name}</span>
-                        </span>
+                    <TreeEntry
+                        depth={row.depth}
+                        icon={<FileIcon size={14} />}
+                        label={<TreeEntryName title={row.path}>{row.name}</TreeEntryName>}
+                        className={styles.columns}
+                    >
                         <FileStatCells cache={props.statCache} root={row.root} path={row.path} nodeKey={row.key} />
-                    </div>
+                    </TreeEntry>
                 </div>
             );
         case 'status':
             return (
                 <div className={rowContainerClass(props.index)} style={props.style}>
-                    <div className={classNames(styles.entry, styles.columns)} style={indent}>
-                        <span className={styles.cell_name}>
-                            <span />
-                            <span className={classNames(styles.status, row.error && styles.status_error)} title={row.text}>{row.text}</span>
-                        </span>
-                    </div>
+                    <TreeEntry
+                        depth={row.depth}
+                        label={<span className={classNames(styles.status, row.error && styles.status_error)} title={row.text}>{row.text}</span>}
+                        className={styles.columns}
+                    />
                 </div>
             );
     }

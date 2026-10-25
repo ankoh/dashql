@@ -38,6 +38,18 @@ copy_to_directory(
     },
     visibility = ["//visibility:private"],
 )
+# Stage the declared SQL snippets for the @dashql/snippets alias, the app bundles them as text.
+# A fresh output directory, so snippets deleted from examples/snippets don't linger in bazel-bin.
+copy_to_directory(
+    name = "example_snippets",
+    srcs = ["//:example_snippets"],
+    out = "dependencies/snippets",
+    replace_prefixes = {
+        "examples/snippets": "",
+    },
+    visibility = ["//visibility:private"],
+)
+
 # The wasm-bindgen module of the Rust shell, which also carries the core bindings. The glue loads
 # `dashql_shell_bg.wasm` by default; the app ships the optimized module as `dashql_shell.wasm`.
 genrule(
@@ -145,6 +157,7 @@ genrule(
             -e "s|__SHELL_WASM_PATH__|./dependencies/dashql-shell-wasm/dashql_shell.wasm|g" \\
             -e "s|__UMAP_JS_PATH__|./dependencies/umap-wasm/index.js|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
+            -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \\
@@ -178,6 +191,7 @@ genrule(
             -e "s|__SHELL_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-shell-wasm/dashql_shell.wasm|g" \
             -e "s|__UMAP_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/umap-wasm/index.js|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
+            -e "s|__SNIPPETS_PATH__|../../examples/snippets|g" \
             $(location vite.config.tpl.ts) > $@
     """,
 )
@@ -267,6 +281,7 @@ _vite_web_deps = [
     ":srcs",
     ":browser_test_files",
     ":example_sessions",
+    ":example_snippets",
     ":vite_config",
     "//:node_modules/@ankoh/dashql-core",
     ":dep_protobuf",

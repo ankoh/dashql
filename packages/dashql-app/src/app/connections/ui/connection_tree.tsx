@@ -16,7 +16,6 @@ import {
     DashboardIcon,
     DatabaseIcon,
     FileDirectoryIcon,
-    LibraryIcon,
     SymbolIcon,
     SyncIcon,
     TableIcon,
@@ -410,7 +409,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     testId="connection-catalog-toggle"
                     name={`Catalog of ${label}`}
                     label="Catalog"
-                    icon={<LibraryIcon size={14} />}
+                    icon={<DatabaseIcon size={14} />}
                     depth={1}
                     expanded={props.expanded.has(row.key)}
                     onToggle={() => props.onToggle(row.key)}

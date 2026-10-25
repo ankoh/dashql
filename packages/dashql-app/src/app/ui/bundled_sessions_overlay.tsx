@@ -4,7 +4,7 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
-import { BeakerIcon, CheckIcon, CopyIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
+import { CheckIcon, CopyIcon, LibraryIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import {
     BUNDLED_SESSIONS,
     bundledSessionShareUrl,
@@ -68,7 +68,7 @@ export function BundledSessionsOverlay(props: BundledSessionsOverlayProps = {}):
                 aria-expanded={open}
                 onClick={() => setOpen(value => !value)}
             >
-                <BeakerIcon size={props.triggerIconSize ?? 16} />
+                <LibraryIcon size={props.triggerIconSize ?? 16} />
             </IconButton>
             <AnchoredOverlay
                 renderAnchor={null}

@@ -344,6 +344,15 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         });
     }, [props.modifySessionScripts]);
 
+    // A snippet replaces the text of a script, a script with text shows the replacement as a diff to accept or reject
+    const handleApplySnippet = React.useCallback((scriptKey: number, text: string) => {
+        const priorText = props.sessionScripts.scripts[scriptKey]?.scriptSession.getText() ?? '';
+        props.modifySessionScripts({
+            type: SET_SCRIPT_TEXT,
+            value: { scriptKey, text, withDiff: priorText.trim().length > 0 },
+        });
+    }, [props.modifySessionScripts, props.sessionScripts.scripts]);
+
     // Accept / reject a staged rewrite from the feed. Accept keeps the new text; reject restores the
     // prior text and re-analyzes.
     const handleAcceptDiff = React.useCallback((scriptKey: number) => {
@@ -561,6 +570,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onShowDetails: handleShowDetails,
         onRerun: handleRerunEntry,
         onFormat: handleFormat,
+        onApplySnippet: handleApplySnippet,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
         collapsedResults,
@@ -575,7 +585,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleAcceptDiff, handleRejectDiff, collapsedResults, sqlGenerations.generations, sqlGenerations.stop, sqlGenerations.dismiss, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleAcceptDiff, handleRejectDiff, collapsedResults, sqlGenerations.generations, sqlGenerations.stop, sqlGenerations.dismiss, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.

@@ -26,6 +26,11 @@ filegroup(
     ),
 )
 
+filegroup(
+    name = "example_snippets",
+    srcs = glob(["examples/snippets/**/*.sql"], allow_empty = False),
+)
+
 # Wrapper so other packages can use the root tsconfig in data.
 js_library(
     name = "tsconfig_json",

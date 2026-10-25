@@ -498,6 +498,7 @@ parser-snapshots:
             text: "select 3;"
             description-begin: 3
             description-count: 1
+            description-blocks: [3,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 3"
@@ -564,6 +565,7 @@ parser-snapshots:
             text: "select 1;"
             description-begin: 0
             description-count: 1
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -585,6 +587,7 @@ parser-snapshots:
             text: "select 2; -- end"
             description-begin: 1
             description-count: 1
+            description-blocks: [1,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 2"
@@ -645,7 +648,7 @@ parser-snapshots:
             text: "select 1;"
             description-begin: 0
             description-count: 3
-            description-block: 0
+            description-blocks: [0,1]
           ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -671,7 +674,7 @@ parser-snapshots:
         - text: "-- Some text"
         - text: "-- @dashql:end"
       comment-blocks:
-        - type: DASHQL_DESCRIPTION
+        - type: DASHQL_TAG
           text: "-- @dashql..dashql:end"
           tag: "description"
           comments: [0,3]
