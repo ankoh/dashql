@@ -7,387 +7,524 @@ Design only. Nothing in this document is implemented yet.
 | Area | State |
 |---|---|
 | Research and option survey | Complete |
-| App → harness protocol | Decided: DashQL is an ACP client |
-| First target | Decided: web build on Chrome and Firefox; Safari is unsupported on the web |
-| Bridge topology | Decided: one bridge process per harness session |
-| Browser loopback spike | Planned |
-| Tool registry, standalone bridge, pairing | Planned |
-| Headless ACP integration in the editor | Planned |
-| Electron-embedded bridge | Planned |
-| Claude Code channel mode, WebMCP adapter | Optional |
+| Priority | Decided: the web build at https://dashql.app |
+| Transport | Decided: the page connects to a local agent server over `ws://127.0.0.1` |
+| Server host | Decided: DashQL.app on macOS, running as a menu bar app; `dashql-agent serve` as the fallback |
+| Agent side | Decided: a skill plus the `dashql-agent` command line tool |
+| App → agent | Decided: the agent server runs the user's harness headless, once per request |
+| Agent edits | Decided: applied directly, no pending diffs |
+| Agent context | Decided: one harness session per DashQL session |
+| Editor UI | Decided: no agent panel |
+| Browsers | Chrome and Edge (one-time permission), Firefox; Safari unsupported |
+| Browser loopback probe | Built (`~/repos/dashql-agent-bridge-spike`), not yet run in browsers |
+| Agent server, CLI and skill spike | Planned |
+| Menu bar mode | Planned |
+| App implementation | Planned |
+| Earlier MCP, ACP, mailbox and desktop-only designs | Superseded, see [Alternatives Considered](#alternatives-considered) |
 
 ## Motivation
 
 DashQL runs entirely on the client. It talks to embedded HyperDB WASM, remote
-databases, or a local hyperd, and ships as a web build (https://dashql.app) and as
-an Electron desktop build (`packages/dashql-native`). It should work with agents in
-both directions, without DashQL building its own agent harness:
+databases, or a local hyperd, and ships as a web build (https://dashql.app) and as an
+Electron desktop build (`packages/dashql-native`, see `docs/design/electron.md`). It
+should work with agents in both directions, without DashQL building its own agent loop:
 
-- **(A) App → harness.** The user asks something in DashQL and an existing harness
-  (Claude Code, Codex, Gemini CLI, ...) does the agent work.
-- **(B) Harness → app.** The harness calls into a live DashQL session: it reads the
-  catalog, writes scripts, runs queries and reads results.
+- **(A) App → agent.** The user asks something in DashQL and a harness they already
+  use (Codex, Claude Code, Gemini CLI, ...) does the work.
+- **(B) Agent → app.** An agent reads the session's scripts and catalog, edits
+  scripts, and runs queries in the open DashQL tab.
 
-The approach is a localhost bridge. DashQL pairs with a local process that is both an
-MCP server (for B) and an ACP client proxy (for A).
+The web build is the priority. It also has to work on locked-down corporate machines.
+There, harness settings are signed by admins, custom MCP servers cannot be configured
+(or are overwritten after a few days), and only some harnesses are allowed. What works
+there is a skill plus a script plus a local daemon.
+
+## Decision
+
+A browser page cannot listen on a port or start processes, so the page connects out
+to a local **agent server**. On macOS, the agent server runs inside DashQL.app, which
+stays in the menu bar after its windows close and starts at login. Agents reach it
+through the `dashql-agent` command line tool, which a skill teaches them to use.
+
+```
+                       DashQL.app (menu bar, starts at login)
+                       ┌───────────────────────────────────────────────┐
+agent shell            │ main: tray menu, login item, supervision       │
+  dashql-agent <cmd> ──┼─HTTP + token─► agent server (utility process)  │◄──WebSocket── dashql.app tab (Chrome, Edge, Firefox)
+                       │                 127.0.0.1:47100                │◄──WebSocket── DashQL desktop windows
+                       │                   └─ spawns `codex exec …`     │
+                       └───────────────────────────────────────────────┘
+```
+
+- **Agent → app:** the agent calls `dashql-agent` commands. The agent server forwards
+  them to the connected tab, which executes them against the live session.
+- **App → agent:** the tab sends a request to the agent server, which runs the
+  configured harness headless with the request as the prompt. The agent then works
+  through the same commands; its final message is the reply.
+- **The tab is the runtime.** Data, connections and the embedded database live in the
+  page. The agent server only relays and starts harness runs, so the agent can act
+  only while dashql.app (or a desktop window) is open.
+- **No MCP, no ACP, no pairing flow, no files to sync.**
+
+Running the server in a menu bar app solves the problems a script daemon has: it
+starts at login outside any agent sandbox, so a harness cannot kill it; harness runs
+start with the user's normal environment; its state is visible in the menu bar; and
+it installs the command line tool and the skill. The same server code runs as
+`dashql-agent serve` for users without the desktop app.
+
+This is the shape of other web apps with local helpers: Postman's desktop agent for
+the browser version of Postman, Figma's font helper for figma.com, QZ Tray for printing
+from web apps, and Ollama's menu bar app with its localhost API.
 
 ## Constraints
 
 ### Browsers
 
-- **A web page cannot listen on a port.** The page always has to be the client of a
-  local process. Every browser-to-agent bridge uses this shape: a relay listens on
-  localhost and the browser dials into it.
-- **Chrome:** [Local Network Access](https://developer.chrome.com/blog/local-network-access)
-  (Chrome 142+) gates requests from a public HTTPS page to loopback behind the
-  "Apps on device" (`loopback-network`) permission. Since about Chrome 147 this also
-  applies to [WebSockets](https://groups.google.com/a/chromium.org/g/blink-dev/c/4gx2y5jPGbU).
-  The prompt is one-time per origin. Sources disagree on whether WebSockets get a
-  real prompt or are just blocked, so the spike has to check this on current Chrome
-  stable.
+- **A page cannot listen.** It can only be the client of a local process.
+- **Chrome and Edge:** [Local Network Access](https://developer.chrome.com/blog/local-network-access)
+  gates requests from a public HTTPS page to loopback behind the "Apps on device"
+  (`loopback-network`) permission. Since about Chrome 147 this also applies to
+  [WebSockets](https://groups.google.com/a/chromium.org/g/blink-dev/c/4gx2y5jPGbU).
+  Sources disagree on whether WebSockets get a prompt or are blocked outright; the
+  probe settles this. If Chrome blocks without a prompt, this decision has to be
+  revisited.
 - **Firefox:** treats `ws://127.0.0.1` as potentially trustworthy, so it is allowed
   from HTTPS.
-- **Safari/WebKit:** treats `ws://localhost` from an HTTPS page as mixed content and
-  blocks it. This goes against the spec;
-  [WebKit bug 171934](https://bugs.webkit.org/show_bug.cgi?id=171934) has been open
-  since 2017, and Safari 18 also blocked plain `http://localhost`
-  ([279249](https://bugs.webkit.org/show_bug.cgi?id=279249),
-  [tauri#5451](https://github.com/tauri-apps/tauri/issues/5451)). Safari 26 has not
-  been tested yet. Workarounds considered:
-  - **A real TLS certificate on loopback:** `wss://<install-id>.local.dashql.app`
-    resolving to 127.0.0.1, with a per-install certificate issued over ACME DNS-01
-    (the `*.plex.direct` model). Works everywhere but needs cloud infrastructure.
-  - **A relay popup on `http://127.0.0.1`** that talks to the app with postMessage.
-    Ruled out: the app's COOP `same-origin` (needed for cross-origin isolation) cuts
-    the opener link.
-  - **A Safari Web Extension with native messaging.** Works, but is a lot of effort.
-  - **Decision:** Safari is unsupported on the web build; those users are sent to the
-    desktop app.
-- **Electron:** none of these restrictions apply. The main process can listen
-  directly, the same way Figma desktop serves MCP at `127.0.0.1:3845/mcp`.
+- **Safari:** blocks `ws://localhost` from HTTPS pages as mixed content
+  ([WebKit 171934](https://bugs.webkit.org/show_bug.cgi?id=171934), open since 2017).
+  Safari users get a notice pointing to another browser or the desktop app. See
+  [Later](#later) for a certificate-based path.
+- **CSP:** `connect-src` already allows `ws:` (`packages/dashql-app/index.html`).
+
+### macOS
+
+- **Listening on loopback** needs no entitlement: DashQL.app uses the hardened runtime
+  without the App Sandbox (`packages/dashql-native/Entitlements.plist`), and main
+  already runs a loopback server for OAuth (`src/oauth_loopback.ts`). Binding to
+  127.0.0.1 only does not trigger the firewall prompt, and loopback is exempt from
+  macOS's local network privacy prompt.
+- **Login items:** on macOS 13 and later, login items and background agents are
+  registered through `SMAppService`, which Electron exposes through
+  `app.setLoginItemSettings`. macOS notifies the user when one is added, lists it in
+  System Settings → General → Login Items, and lets the user (or MDM) turn it off.
+- **Environment:** apps started at login or from Finder get launchd's minimal `PATH`
+  (`/usr/bin:/bin:/usr/sbin:/sbin`). Harness binaries in Homebrew, nvm or `~/.local/bin`
+  are not on it.
+- **Only macOS is packaged** today (`docs/design/electron.md`). Windows and Linux
+  users use `dashql-agent serve`.
+
+### Corporate harnesses
+
+- Codex with admin-signed settings does not accept custom MCP servers. Claude Code's
+  [managed MCP policy](https://code.claude.com/docs/en/managed-mcp.md) can restrict
+  servers the same way. Skills and the agent's own shell are not affected.
+- Harness sandboxes may block network access from the agent's shell, which would
+  block the CLI's connection to the agent server. The user's existing skill + script +
+  daemon setup works at work, so loopback is presumably allowed; this needs confirming
+  for `codex exec`.
 
 ### What already exists
 
-- **CSP:** `connect-src` already allows `ws:` and `wss:`
-  (`packages/dashql-app/index.html`, `packages/dashql-native/src/app_protocol.ts`).
-- **Single owning tab:** `packages/dashql-app/src/platform/crosstab/app_ownership.ts`
-  (Web Lock plus BroadcastChannel) ensures only one tab owns the app. That tab is
-  the one the bridge attaches to.
-- **Pairing hand-off:** the `?data=<base64 event>` app-event envelope
-  (`packages/dashql-app/src/platform/events/event.ts`, `event_listener_provider.tsx`)
-  and `dashql://localhost?data=` deep links on desktop
-  (`packages/dashql-native/src/deep_link.ts`).
-- **An OpenAI-compatible LLM client:** `platform/ai/ai_client.ts` and
-  `app/providers/ai_client_provider.tsx`, used by `app/session/ai/sql_generation.ts`.
-  `buildSchemaContext` already turns the catalog into prompt text. This is a
-  harness-free one-shot path that already ships.
-- **App actions an agent can drive:**
+- **Single owning tab:** `platform/crosstab/app_ownership.ts` (Web Lock plus
+  BroadcastChannel). Only that tab of a browser profile connects.
+- **Electron lifecycle:** `app.requestSingleInstanceLock()` with `second-instance`
+  handling, and `window-all-closed` already keeps the app running on macOS
+  (`packages/dashql-native/src/main.ts`). Main already supervises a utility process
+  for the native proxy (`src/native_proxy.ts`).
+- **App actions the commands map to:**
   - the `session_scripts` reducer (`app/session/scripts/session_scripts.ts`):
-    `CREATE_SCRIPT`, `SET_SCRIPT_TEXT`, `RENAME_SCRIPT`, `DELETE_SCRIPT`, and the
-    pending-diff actions `ACCEPT_PENDING_DIFF` / `REJECT_PENDING_DIFF`;
+    `CREATE_SCRIPT`, `SET_SCRIPT_TEXT`, `RENAME_SCRIPT`, `DELETE_SCRIPT`;
   - `useQueryExecutor` and `useCancelQuery` (`app/connections/query_executor.tsx`);
-  - the catalog loader (`app/connections/catalog_loader.tsx`);
-  - `completeAtCursor` (`packages/dashql-core-js/src/api.ts`);
-  - `findSqlProblems` (`app/session/ai/sql_generation.ts`);
+  - the catalog loader (`app/connections/catalog_loader.tsx`) and
+    `buildSchemaContext` / `findSqlProblems` (`app/session/ai/sql_generation.ts`);
   - the command-shaped shell API (`packages/dashql-app/src/shell/api.ts`).
+- **Question → SQL UX:** `ComposerInputMode.Ai` (`app/session/ai/input_mode.ts`) and
+  `useSqlGenerations` (`app/session/ai/use_sql_generations.ts`), with the generation
+  placeholder (`ai/editor/generation_placeholder.ts`) and stop button
+  (`ai/ui/script_generation.tsx`).
+- **An OpenAI-compatible LLM client** (`platform/ai/ai_client.ts`): stays as the
+  one-shot path when no agent server is reachable.
 
-### Protocols
+## Design
 
-- **MCP:** the [2026-07-28 spec](https://developertoolkit.ai/en/ecosystem/mcp/spec-2026-07-28/)
-  deprecates sampling, so "the server asks the client's LLM" is not an option for
-  direction A. [MCP Apps](https://blog.modelcontextprotocol.io/posts/2025-11-21-mcp-apps/)
-  (`io.modelcontextprotocol/ui`) renders server UI inside the harness, which is the
-  opposite of what DashQL needs.
-- **[ACP](https://zed.dev/acp) (Agent Client Protocol):** JSON-RPC over stdio. This is
-  how an editor drives any agent: Gemini CLI natively, Claude Code via
-  `@zed-industries/claude-agent-acp`, Codex via
-  [codex-acp](https://zed.dev/blog/codex-is-live-in-zed). Zed and JetBrains are
-  clients. [`session/new`](https://agentclientprotocol.com/protocol/session-setup)
-  takes an `mcpServers` list (stdio required, `http` when the agent reports
-  `mcpCapabilities.http`), so the client can give the agent its own tools per session.
-  A [WebSocket/HTTP transport RFD](https://agentclientprotocol.com/rfds/streamable-http-websocket-transport.md)
-  is active, with a Goose reference implementation in progress. It is not yet usable
-  from a browser.
-- **[Claude Code channels](https://code.claude.com/docs/en/channels-reference)**
-  (research preview): a stdio MCP server declares `experimental['claude/channel']` and
-  pushes `notifications/claude/channel` into a running Claude Code session. A reply
-  tool makes it two-way, and permission prompts can be relayed. Custom channels need
-  `--dangerously-load-development-channels` until allowlisted. Claude Code only.
-- **[Codex app-server](https://learn.chatgpt.com/codex/app-server):** JSON-RPC over
-  stdio; the WebSocket mode is experimental and not for production. Codex only.
-- **WebMCP:** `document.modelContext.registerTool` (formerly `navigator.modelContext`),
-  a [Chrome origin trial](https://groups.google.com/a/chromium.org/g/blink-dev/c/gmYffo5WOE8/m/OJxuQRP3AAAJ)
-  from M149 to M156. Consumed by in-browser agents and by
-  [extension bridges](https://mcpcat.io/guides/connect-webmcp-tools-claude-code-bridge-extension).
-  Desktop harnesses cannot reach it without an extension.
-- **Browser automation** ([Chrome DevTools MCP](https://developer.chrome.com/blog/chrome-devtools-mcp-debug-your-browser-session)
-  `--autoConnect`, Playwright MCP, Claude in Chrome): needs no app code, but works at
-  the UI level and is brittle.
+### Agent server
+
+The agent server is one Node module (`packages/dashql-agent`), bundled into a single
+`.mjs` without dependencies. It runs in two hosts:
+
+- **DashQL.app:** main starts it with `utilityProcess.fork`, restarts it when it
+  crashes, and receives status messages for the menu (connected clients, running
+  harness runs, errors).
+- **`dashql-agent serve`:** the same module in plain Node 22 or newer, in a terminal or
+  as a user-managed login item. For Windows, Linux, and users without the desktop app.
+
+What it does:
+
+- Listens on `127.0.0.1:47100` (configurable). The WebSocket endpoint takes
+  connections from DashQL clients: the owning dashql.app tab of each browser profile,
+  and desktop windows. The HTTP endpoint takes CLI calls.
+- Tracks which client holds which DashQL session, and routes each CLI call to the
+  client holding the target session.
+- Queues CLI calls while no client holds the target session (default wait 30 s), then
+  fails with "DashQL is not connected: open https://dashql.app and turn on agent
+  access".
+- Starts harness runs for requests from clients (see [App → agent](#app--agent)).
+
+Configuration and state live in `~/.dashql/agent/` (readable by the user only):
+`config.json` (port, CLI token, harness commands) and `sessions/<id>/` (working folder
+and harness session id per DashQL session).
+
+### Menu bar app
+
+DashQL.app gains a menu bar mode. One process covers both states: menu bar only, and
+menu bar plus windows.
+
+**States**
+
+| State | Dock | Menu bar | Agent server |
+|---|---|---|---|
+| Started at login | Hidden (`app.setActivationPolicy("accessory")`) | Icon | Running |
+| A window is open | Shown (`"regular"`) | Icon | Running |
+| Last window closed | Hidden again | Icon | Running |
+| Quit from the menu | — | — | Stopped |
+
+- **Starting at login:** a "Start DashQL at login" setting calls
+  `app.setLoginItemSettings`. The app must know it was started at login so it opens no
+  window. On macOS 13 and later the older `openAsHidden` / `wasOpenedAtLogin` flags are
+  unreliable, so the login item is a launch agent bundled with the app
+  (`Contents/Library/LaunchAgents/app.dashql.agent.plist`, registered with `type:
+  "agentService"`) whose program arguments include `--menu-bar`.
+- **Opening DashQL while the menu bar app runs** goes through the existing single
+  instance lock: `second-instance` opens a window in the running process.
+- **First run:** the app offers "Keep DashQL in the menu bar so agents can reach
+  dashql.app", which turns on menu bar mode and starting at login. Both stay
+  switchable in the menu and in settings.
+- **Quit** stops the agent server. If a harness run is going, it asks first, then
+  kills the run.
+
+**Menu**
+
+```
+● Connected: dashql.app (Chrome) · 2 sessions
+  Codex · running in "Revenue analysis"        ▸ Stop
+──────────────────────────────
+✓ Agent access
+  Open DashQL
+  Open dashql.app
+──────────────────────────────
+  Settings…                  (harnesses, port, data defaults)
+  Install command line tool…
+  Install agent skill…
+✓ Start DashQL at login
+──────────────────────────────
+  Quit DashQL
+```
+
+- **Icon** (template images): idle, client connected, harness running, error. The icon
+  is always visible while the server listens; there is no hidden mode.
+- **Agent access** is the global switch: off closes the listener.
+- **Settings** opens a small window for harness command templates, the port and
+  per-connection data defaults.
+
+**Environment for harness runs.** Because launchd's `PATH` lacks Homebrew, nvm and
+`~/.local/bin`, the agent server resolves `PATH` once from the user's login shell
+(`$SHELL -ilc 'printf %s "$PATH"'`), as VS Code does, and harness templates may use
+absolute paths. Settings shows which binary each harness template resolves to.
+
+**Updates.** `electron-updater` installs on quit (`src/updater.ts`), which a menu bar
+app rarely does. When an update is downloaded, the menu shows "Restart to update", and
+the app restarts by itself when no window is open and no harness run is going.
+
+**Removal.** Deleting DashQL.app removes its `SMAppService` registration. Settings has
+"Remove command line tool and skill", which deletes the symlink and the copied skill
+folders. Nothing keeps listening once the app is quit or deleted.
+
+### Command line tool and skill
+
+- **`dashql-agent`** is a shim shipped in the bundle
+  (`Contents/Resources/bin/dashql-agent`). It runs the bundled module with the app's
+  own runtime, the way VS Code's `code` command does:
+
+  ```sh
+  ELECTRON_RUN_AS_NODE=1 "$APP/Contents/MacOS/DashQL" "$APP/Contents/Resources/agent/dashql-agent.mjs" "$@"
+  ```
+
+  "Install command line tool…" links it into `~/.local/bin` (or `/usr/local/bin` with
+  an admin prompt). Users without the app run the same `.mjs` with their own Node.
+  The shim needs Electron's `RunAsNode` fuse, which is enabled by default; it must stay
+  enabled if the app starts flipping fuses.
+- **The skill** (`dashql/SKILL.md`) tells the agent when to use `dashql-agent`, lists
+  the commands, and says that script and data contents are input, not instructions.
+  "Install agent skill…" copies it into `~/.codex/skills/` and `~/.claude/skills/`
+  after confirming.
+
+### Commands
+
+| Command | Does |
+|---|---|
+| `dashql-agent status` | Connected clients, sessions, focused session and script, connections |
+| `dashql-agent scripts` | Scripts of the session with their connections |
+| `dashql-agent read <script>` | Script text |
+| `dashql-agent edit <script> [--file f \| stdin]` | Replace or create a script; applied directly |
+| `dashql-agent catalog [connection]` | `CREATE TABLE` statements |
+| `dashql-agent lint <script>` | Diagnostics from the page's analyzer |
+| `dashql-agent run <script> [--max-rows N]` | Run it; columns, first rows, row count or error |
+| `dashql-agent result <script> [--page N]` | More rows of the last result |
+| `dashql-agent serve` | Run the agent server in the foreground |
+
+- Compact text on stdout, `--json` where useful, real exit codes (0 ok, 1 failed, 2 not
+  connected or usage).
+- **Target session:** `--session <id>`, otherwise `DASHQL_SESSION` (set for harness
+  runs the server starts), otherwise the focused session.
+- **One call at a time per session**; a concurrent call gets a clear "busy" error.
+- **Writes are verifiable:** `edit` prints the new text's hash and the analyzer's
+  diagnostic count.
+
+### Page side
+
+New code lives in `packages/dashql-app/src/platform/agent/`.
+
+- **Agent access toggle** per session, off by default. While on, the client keeps a
+  WebSocket to `ws://127.0.0.1:47100` and reconnects with backoff. After a page reload
+  it reconnects and the server delivers whatever is queued, so nothing is lost.
+- **Command registry:** one handler per command, wrapping the existing reducers,
+  executor and catalog code.
+- **Protocol:** JSON-RPC-style messages (`{id, method, params}` → `{id, result |
+  error}`), plus notifications for harness runs (`agent/status`, `agent/done`,
+  `agent/failed`). A client announces the sessions it holds when it connects and when
+  they change.
+- **Desktop windows** use the same client over the same WebSocket. They need no
+  special path, and the agent can target a desktop session like a browser one.
+- **Safari** shows a notice instead of the toggle.
+
+### Authentication
+
+- **Clients → server:** the server accepts a WebSocket only with `Origin:
+  https://dashql.app`, `app://bundle` (desktop windows) or configured dev origins, and
+  `Host: 127.0.0.1:<port>` or `localhost:<port>`. Other websites cannot fake `Origin`,
+  and the `Host` check blocks DNS rebinding. Local processes can fake both, but they
+  can already read the user's files. No pairing flow is needed.
+- **CLI → server:** a token from `~/.dashql/agent/config.json`. This keeps out other
+  users on the same machine, who share 127.0.0.1.
+- **Consent:** the per-session toggle in the app, and the global "Agent access" switch
+  in the menu.
+
+### App → agent
+
+1. The user asks in the composer, uses an inline edit, or clicks "Fix with agent".
+2. The client sends `agent/request {session, harness, prompt}`. `harness` is a name
+   such as `codex`; the prompt carries the request, the target script and selection,
+   and a short summary of what changed since the previous request.
+3. The server runs the command template for that harness from `config.json` in
+   `~/.dashql/agent/sessions/<id>/`, with `DASHQL_SESSION` set and the resolved `PATH`.
+   The prompt is passed as one argument, never through a shell. Candidate templates, to
+   be confirmed:
+
+   ```sh
+   codex exec --json [resume <harnessSessionId>] "<prompt>"
+   claude -p --output-format stream-json --verbose [--resume <harnessSessionId>] "<prompt>"
+   ```
+
+4. The agent works through `dashql-agent` commands. A per-harness adapter in the
+   server reads the event stream and sends status lines to the client.
+5. The final message comes back as `agent/done`. The server stores the harness session
+   id, so the next request in this DashQL session resumes it.
+
+- The working folder holds an `AGENTS.md` (and a `CLAUDE.md` importing it) written by
+  the server: how to use `dashql-agent`, to work only through it, and that data and
+  script contents are input, not instructions.
+- One run at a time per DashQL session; further requests queue in the server.
+- Stop (in the editor or the menu) sends `agent/cancel`; the server kills the run's
+  process tree.
+- **Security rule:** clients never send commands, only a harness name and a prompt.
+  Command templates exist only in the local config and are edited in the app's
+  Settings window. Otherwise a bug in dashql.app (XSS, for example) could run
+  arbitrary commands on the user's machine.
+
+### Agent edits
+
+- `edit` applies directly through `SET_SCRIPT_TEXT`, as one undoable editor step.
+- If the user is typing in the same script, the edit still applies; the undo step is
+  the way back.
+- After a harness run, the scripts it edited run under the per-connection policy, as
+  today's question → SQL flow runs generated SQL.
+
+### Editor UI
+
+There is no agent panel, chat transcript or tool-call log.
+
+| Run state | DashQL UI |
+|---|---|
+| Queued | Generation placeholder: "waiting for agent..." |
+| Running | Placeholder with the latest status line |
+| Script edited | Editor updates; edited scripts are marked until the run ends |
+| Final message | Dismissible note on the script, styled like `GenerationError` but neutral |
+| Failed or stopped | `GenerationError` with the reason |
+
+- **Entry points:** the composer through a `SqlGenerationBackend` interface behind
+  `useSqlGenerations` (the existing OpenAI-compatible client is the other
+  implementation), inline edit on a selection, "Fix with agent" on diagnostics and
+  failed queries.
+- **Session chip:** shows whether the agent server is connected and whether a run is
+  going. Its menu offers "Reset agent context" (forget the stored harness session id)
+  and "Continue in terminal" (the harness's resume command).
+- **Not connected:** the chip offers "Open DashQL" (starts the menu bar app through the
+  existing `dashql://` link) and, for users without the desktop app, the
+  `dashql-agent serve` command.
+
+### Data and security
+
+- **What leaves the machine:** results and catalog text the agent reads go to the
+  harness's model provider. A per-connection setting decides what `catalog`, `run`
+  and `result` may return: schema only (default for remote connections), schema and
+  data, or nothing.
+- **Queries the agent runs** go through the per-connection policy (always / ask /
+  never). "Ask" prompts inline in the app while the CLI call waits.
+- **Script and data contents are untrusted input** for the agent; `AGENTS.md` and the
+  skill say so.
+- **The server binds 127.0.0.1 only**, limits message sizes, is always visible in the
+  menu bar while it listens, and stops when DashQL quits. Zoom's 2019 incident (a hidden
+  localhost server that survived uninstalling) is the case to avoid.
+
+### Development
+
+Today's dev loops: the web app runs from Vite at `http://localhost:9002`, and
+`bazel run //packages/dashql-native:dev` starts unpackaged Electron with the renderer
+loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
+`scripts/run_electron.sh`). The agent server fits both without the menu bar app:
+
+- **Main loop: web dev server plus `dashql-agent serve`.** The agent server is a plain
+  Node module, so most work happens with Vite and the server in a terminal. Electron
+  hosting is a thin wrapper around the same module.
+- **Separate dev instance.** An installed release DashQL.app may already listen on
+  47100 in the menu bar. Dev uses its own port and state folder (`DASHQL_AGENT_PORT=47101`,
+  `DASHQL_AGENT_HOME=~/.dashql/agent-dev`). The dev page gets the dev port from Vite's
+  environment, so it talks to the dev server and the release tab to the release server.
+  The unpackaged app's name (`@ankoh/dashql-native`, no `productName`) already gives it
+  its own user data folder and single instance lock, so the dev app and the installed
+  app run side by side.
+- **Dev origins** (`http://localhost:9002`) are accepted only by a server started in
+  dev mode, never by the release app's default config.
+- **Menu bar in dev:** the tray, menu and activation policy work in unpackaged Electron;
+  `bazel run //packages/dashql-native:dev -- --menu-bar` simulates a start at login.
+  Registering the login item needs the packaged, signed app (the launch agent plist
+  lives in the bundle), so that is tested with packaged builds only.
+- **CLI in dev:** the bundled module runs with Node directly (a Bazel run target for
+  `dashql-agent`), pointed at the dev port.
+- **Local Network Access is not exercised in dev.** A page on `http://localhost`
+  reaching 127.0.0.1 is local to local, so Chrome shows no permission prompt. Testing the
+  prompt needs the page on a public HTTPS origin: the deployed site, a preview
+  deployment, or a tunnel.
 
 ## Prior Art
 
 | Project | Shape |
 |---|---|
-| [Figma desktop](https://developers.figma.com/docs/figma-mcp-server/local-server-installation) | The app serves MCP over streamable HTTP at `127.0.0.1:3845/mcp`; users run `claude mcp add --transport http ...`. |
-| Blender / Ableton / Unity MCP, cursor-talk-to-figma | A plugin inside the app holds a socket to a local MCP server that the harness spawns over stdio. |
-| [browser-mcp-bridge](https://glama.ai/mcp/servers/robhicks/browser-mcp-bridge), Agentic Browser MCP | A browser extension connects over WebSocket to a local MCP server. Pairing uses a fixed port or a scanned range plus a token, or a native-messaging bootstrap. |
-| webmcp (jasonjmcghee) | A localhost-only WebSocket relay between an MCP client and a page; the page dials in with a token. Closest to the DashQL web build. |
-| Zed, JetBrains (ACP) | The editor spawns agents and renders their streamed updates; the agent gets the editor's tools through `mcpServers`. The model for direction A. |
-| Claude Code fakechat / Telegram channels | A UI connects to a channel server and messages arrive in a running Claude Code session; pairing builds a sender allowlist. |
+| Postman desktop agent, Figma font helper, QZ Tray | A small local helper serves localhost so a web app in the browser can do what the browser can't. QZ Tray installs a local certificate to use `wss://localhost`. |
+| Ollama | Menu bar app keeping a localhost API running for web UIs and CLIs. |
+| Obsidian | [Official CLI](https://www.dsebastien.net/the-complete-guide-to-the-obsidian-cli-everything-you-can-do-from-the-terminal/) that remote-controls the running Electron app over local IPC. Lessons: real exit codes, one call at a time, verifiable writes. |
+| Zotero, Joplin, Anytype | The desktop app serves a local HTTP API with a token; MCP servers and scripts are thin clients ([Zotero](https://mcpservers.org/servers/kujenga/zotero-mcp), [Anytype](https://glama.ai/mcp/servers/ohneben/Anytype-MCP)). |
+| tldraw / Excalidraw MCP servers, Agent MCP Studio | A local process pushes to a browser page over WebSocket ([tldraw](https://glama.ai/mcp/servers/Mihai-Codes/tldraw-mcp-server), [Agent MCP Studio](https://news.ycombinator.com/item?id=47899375)). |
 
-## Options
+## Alternatives Considered
 
-### Direction B: harness → app
+- **A separate menu bar app** (its own small Electron bundle, or a native helper inside
+  DashQL.app). A second Electron runtime doubles the download; a native helper means a
+  second code base. DashQL.app in menu bar mode reuses packaging, signing, notarization
+  and updates.
+- **Script daemon only** (`dashql-agent serve` started by the CLI). Kept as the
+  fallback; as the main path, a daemon started from inside an agent's sandbox may be
+  killed with the agent's call, and runs inherit the sandbox.
+- **Cloud relay on dashql-cloud** (page and agent both connect out, messages
+  end-to-end encrypted). Works in every browser including Safari and lets remote agents
+  reach the tab, but puts a service into the data path. Can reuse the same protocol
+  later.
+- **Shared folder** (File System Access API plus files, Maildir-style mailbox). Chrome
+  and Edge only; one permission click per visit.
+- **Browser extension with native messaging.** Covers Safari, but is heavy to build and
+  ship, and companies often restrict extensions.
+- **Desktop app only** (no web support). Simple, but leaves the web build without agent
+  features.
+- **MCP server or ACP client.** Blocked or overwritten under corporate MCP policy; ACP
+  needs adapter packages, and the browser cannot speak it without a local relay.
+- **[Claude Code channels](https://code.claude.com/docs/en/channels-reference),
+  [Codex app-server](https://learn.chatgpt.com/codex/app-server), MCP sampling,
+  WebMCP, browser automation.** Single-harness, experimental, deprecated, in-browser
+  agents only, or brittle.
 
-1. **B1. Local bridge process.** `dashql-agent-bridge` is an MCP server (stdio for
-   spawn-style harnesses, streamable HTTP on 127.0.0.1) with a WebSocket listener the
-   app dials into. Tool calls are forwarded to the paired tab. Works with every MCP
-   harness and is the only way into the web build. Costs: an `npx` install, the
-   Chrome permission prompt, and no Safari.
-2. **B2. Electron-hosted MCP endpoint.** The desktop main process serves
-   `127.0.0.1:<port>/mcp` itself and relays to the renderer over narrow preload IPC
-   (same pattern as `nativeProxyRequest` and `onDeepLink`). Nothing to install, no
-   browser restrictions, desktop only.
-3. **B3. WebMCP adapter.** Register the same tools with `document.modelContext`.
-   Cheap once a tool registry exists, but origin trial only, and Claude Code and Codex
-   cannot use it without an extension.
-4. **B4. Browser automation.** No work on the DashQL side, but brittle and without a
-   semantic API.
+## Later
 
-### Direction A: app → harness
-
-1. **A1. DashQL as an ACP client (chosen).** The bridge spawns the ACP agent the user
-   picks (claude-agent-acp, codex-acp, `gemini --acp`) over stdio and tunnels ACP
-   JSON-RPC to the app over the same WebSocket. The app runs the session headless: it
-   maps tool effects onto existing editor UI and answers `session/request_permission`
-   by policy. In `session/new` it passes the bridge's own MCP endpoint, so the agent
-   gets the DashQL tools for that tab. Works with any harness, needs no agent loop and
-   no chat UI, and one design covers both A and B. The agent's prose is mostly hidden
-   by design, and each harness keeps its own auth (`claude login`, ...).
-2. **A2. Claude Code channel.** The bridge also declares `claude/channel`. DashQL
-   pushes a request into the user's already-open Claude Code session; Claude answers
-   through a reply tool and acts through the DashQL tools. Tiny UI, but Claude Code
-   only and a research preview. Kept as an optional mode.
-3. **A3. Codex app-server.** Codex only, WebSocket mode experimental. Covered by A1
-   through codex-acp.
-4. **A4. The existing OpenAI-compatible client.** Stays for one-shot SQL generation
-   (local Ollama or ai.dashql.app). It is not an agent.
-5. **A5. MCP sampling.** Deprecated. Not pursued.
-
-## Design
-
-One tool registry in the app and one bridge codebase that runs in two hosts:
-
-```
-             ┌─────────────── dashql-agent-bridge (TS/Node) ───────────────┐
- harness ──► │ MCP server (stdio | http 127.0.0.1/mcp)  ─┐                 │
- (B)         │                                            ├─ tab router ── WS (web) / IPC (Electron) ──► dashql app
- dashql ───► │ ACP proxy: spawn agent, tunnel JSON-RPC  ──┘                 │                         AgentToolRegistry
- (A)         │ [optional] claude/channel capability                        │
-             └──────────────────────────────────────────────────────────────┘
-   standalone: `npx @dashql/agent-bridge`      embedded: Electron main process (same module)
-```
-
-The bridge is TypeScript on Node. Both official SDKs (`@modelcontextprotocol/sdk` and
-the ACP TypeScript SDK) are mature, it is distributable with `npx`, and it is the same
-runtime as Electron main, so the module runs in both hosts unchanged. The work is
-protocol glue, not a hot path, so Rust buys nothing here.
-
-Each harness session gets its own bridge process. The app may be paired with several
-bridges at once.
-
-### App side
-
-New code lives in `packages/dashql-app/src/platform/agent/`.
-
-- **`agent_tool_registry.ts`:** typed tool definitions (name, JSON schema, `readOnly`
-  flag, handler). Handlers wrap existing hooks and dispatchers. A provider sits in
-  `app/app.tsx` next to the other registries.
-- **v1 tools:**
-  - `list_connections`
-  - `get_catalog` (reuses `buildSchemaContext`)
-  - `list_scripts`, `read_script`
-  - `propose_script_edit`: goes through the pending-diff flow, so the user accepts or
-    rejects it
-  - `create_script`
-  - `analyze_script` (uses `findSqlProblems`)
-  - `complete_at_cursor`
-  - `run_query`: approval policy per connection; returns Arrow rows truncated to N
-    plus a result handle
-  - `get_result_page`, `cancel_query`
-- **Transports** over the registry: `bridge_ws_transport.ts` (web),
-  `electron_ipc_transport.ts` (desktop), `webmcp_transport.ts` (later).
-- **Attach point:** only the owning tab from `app_ownership.ts` attaches.
-
-### App → harness in the editor UI
-
-There is no agent panel. The ACP session runs headless and the app shows only what
-the agent does, using UI that already exists. There is no chat transcript, plan view
-or tool-call log.
-
-**Entry points:**
-
-1. **Composer in natural-language mode.** `ComposerInputMode.Ai`
-   (`app/session/ai/input_mode.ts`) already detects questions. `useSqlGenerations`
-   (`app/session/ai/use_sql_generations.ts`) creates a script with the question as a
-   comment, shows the generation placeholder (`ai/editor/generation_placeholder.ts`)
-   and the stop button (`ai/ui/script_generation.tsx`), and runs the SQL when it
-   arrives. A `SqlGenerationBackend` interface goes behind it, with two
-   implementations: the existing OpenAI-compatible client and the ACP agent. When a
-   bridge is paired, the ACP agent is the default and the UX stays the same.
-2. **Inline edit on a selection or script** (Cmd+K style). A small prompt popover in
-   the editor. The result comes back as `SET_SCRIPT_TEXT {withDiff: true}` and shows
-   in the existing pending-diff accept/reject UI.
-3. **"Fix with agent"** on analyzer diagnostics and failed queries. Sends the error,
-   script and catalog as context; the answer is again a pending diff.
-4. **Result actions** (later), such as "explain" or "chart this". The output is a new
-   script or a short note on the script.
-
-**Mapping the ACP stream onto the UI:**
-
-| ACP | DashQL UI |
-|---|---|
-| Agent calls `propose_script_edit`, `create_script` or `run_query` | Pending diff, new feed card, query state. The only real output. |
-| `session/update` tool call or plan | One status line in the generation placeholder ("reading catalog...", "trying query..."). No log. |
-| `agent_message_chunk` | Dropped while running. If the turn ends without an edit, the last message becomes a dismissible note on the script, styled like `GenerationError` but neutral. |
-| `session/request_permission` | Answered by policy: allow DashQL read tools, deny everything else (the agent's own shell, file and web tools). Only DashQL's own consent prompts reach the user, such as running a query on a remote connection, shown inline in the script footer. |
-| Stop button | `session/cancel` |
-
-**Keeping the agent inside DashQL:**
-
-- `initialize` is sent with `clientCapabilities.fs` and `terminal` off.
-- The agent starts in an empty scratch directory as `cwd`.
-- Any permission request outside the DashQL tools is denied.
-
-To check per adapter: claude-agent-acp may run some read-only built-in tools without
-asking. The scratch `cwd` limits what those can see.
-
-### Agent context: one ACP session per DashQL session
-
-- **Lifetime:** the ACP session is created on the first agent request in a DashQL
-  session and reused for every later one, from any entry point and any script. The
-  agent remembers earlier questions, the scripts it wrote, and what came of them.
-- **Context deltas:** the user edits and runs scripts between agent turns, and the
-  agent does not see that by itself. Each `session/prompt` starts with a small
-  embedded-resource block:
-  - which script and selection the request is about;
-  - scripts created, edited or deleted since the last turn, with a short diff summary;
-  - queries run since then: script, status, row count, and the error if any;
-  - which connection is in focus.
-
-  The agent fetches anything more detailed itself through `read_script`,
-  `get_result_page` and `get_catalog`, which keeps prompts small.
-- **Targeting:** mutating tools always name their script. The app routes the result
-  to that script's pending diff or placeholder, so a request from script A can
-  produce a change in script B or a new script.
-- **Concurrency:** ACP runs one prompt turn at a time per session. A second request
-  while a turn is running is queued and its placeholder reads "waiting for agent...".
-  Stop cancels only the running turn.
-- **Persistence:** the ACP `sessionId` is stored per bridge harness in the DashQL
-  session's settings. After a reload, `session/load` is used when the agent
-  advertises `loadSession`; otherwise a fresh session starts with a one-time digest of
-  the whole DashQL session. `loadSession` support in claude-agent-acp and codex-acp is
-  still to be checked.
-- **Session chip:** a small chip in the session header shows the harness name and a
-  busy or queued indicator. Its menu offers "Reset agent context" (starts a new ACP
-  session) and "Continue in terminal" (`claude --resume <sessionId>`) for the full
-  transcript. Whether claude-agent-acp sessions persist like Claude Code sessions is
-  still to be checked.
-- **Trade-off:** a long DashQL session grows the agent's context. Compaction is the
-  harness's job; "Reset agent context" is the manual way out.
-
-A Claude Code channel (A2) is the no-UI extreme: DashQL sends the request and the
-conversation lives in the user's terminal, with only the effects showing up in the app.
-
-### Pairing
-
-1. The bridge starts, spawned by the harness or by hand. It binds `127.0.0.1` on a
-   default port with a small fallback range and mints a one-time pairing secret.
-2. The bridge prints or opens
-   `https://dashql.app/?data=<base64 AgentPairEvent{port, secret, harness}>`
-   (desktop: `dashql://localhost?data=...`). This reuses the existing event envelope
-   and deep-link parser, extended with one new event type.
-3. The app asks for confirmation ("Pair with Claude Code on port N?"), dials
-   `ws://127.0.0.1:N`, swaps the secret for a long-lived device token, and keeps it
-   for reconnects. A manual "Connect agent" dialog (port plus code) is the fallback.
-4. The bridge enforces:
-   - an Origin allowlist: `https://dashql.app`, `app://bundle`, and dev origins;
-   - `Host` must be `127.0.0.1` or `localhost`, which blocks DNS rebinding;
-   - the token on every connection;
-   - one app connection per bridge.
-
-### Security
-
-- Query results and catalog text sent to the agent are untrusted data; tool
-  descriptions say so.
-- Mutating tools go through the pending-diff UI.
-- Running a query needs per-connection consent (always / ask / never), shown in the
-  app and not only in the harness.
-- A visible "agent connected" indicator with a kill switch.
+- **Safari through `wss://localhost`:** the app installs a certificate for
+  `localhost` into the user's trust store (as QZ Tray does), and the server also
+  serves TLS. Corporate machines often block trust store changes; needs testing.
+- **Relay** for remote agents, with the same protocol.
+- **An MCP endpoint on the agent server** for setups that allow MCP.
+- **Windows and Linux** tray modes, once those platforms are packaged.
 
 ## Phasing
 
-1. **Spike.** A standalone `ws://127.0.0.1` echo server opened from the deployed
-   https://dashql.app on current Chrome stable, Firefox and Safari 26. Record the Local
-   Network Access prompt behavior, confirm Safari fails, and check that COOP/COEP does
-   not affect WebSockets.
-2. **Registry, standalone bridge and pairing (B1, web).** `AgentToolRegistry`, the
-   WebSocket transport, and `npx @dashql/agent-bridge` serving MCP over stdio and over
-   `http://127.0.0.1/mcp`. Pairing through the `?data=` event. Checked with
-   `claude mcp add dashql -- npx @dashql/agent-bridge`. Safari shows a "use the
-   desktop app" notice instead of the pairing UI.
-3. **Headless ACP integration (A1).** The bridge spawns claude-agent-acp, codex-acp or
-   `gemini --acp` and tunnels ACP to the tab; the DashQL tools reach the agent through
-   `session/new.mcpServers`. Then the `SqlGenerationBackend`, the inline-edit popover
-   and "Fix with agent".
-4. **Desktop embedding (B2).** The same bridge module runs in Electron main with the
-   IPC transport, so desktop users install nothing.
-5. **Optional.** Claude Code channel mode (A2) and the WebMCP adapter (B3).
+1. **Probe** (built): run `server.mjs` and `probe.js` from the spike folder in Chrome,
+   Edge, Firefox and Safari on https://dashql.app.
+2. **Spike outside this repo:** the agent server, CLI and `SKILL.md`, plus a fake page
+   implementing a few commands. Driven by Claude Code here and Codex at work, including
+   a harness run started by the server.
+3. **Agent → app:** `packages/dashql-agent` with `serve`, the command registry,
+   WebSocket client with reconnect, the toggle, the Safari notice.
+4. **Menu bar mode:** utility process hosting, tray menu and icon states, activation
+   policy, login item with `--menu-bar`, `PATH` resolution, installing the command line
+   tool and skill, update handling.
+5. **App → agent:** harness runs with adapters, the `SqlGenerationBackend`, status
+   lines, notes, stop, the session chip.
+6. **Data settings** per connection.
 
 ## Files
 
-- **New:** `packages/dashql-agent-bridge/`, `packages/dashql-app/src/platform/agent/`.
+- **New:**
+  - `packages/dashql-agent/`: the server and CLI module (TypeScript, bundled to one
+    `.mjs`), the shim, the skill, tests
+  - `packages/dashql-app/src/platform/agent/`: WebSocket client, command registry
+  - `packages/dashql-native/src/agent_host.ts`: utility process supervision, status
+  - `packages/dashql-native/src/menu_bar.ts`: tray, menu, activation policy, login item
 - **Touched:**
-  - `packages/dashql-native/src/main.ts`, `packages/dashql-native/src/preload.ts`
-  - `packages/dashql-app/src/platform/events/event.ts` and the proto/json event schema
-  - `packages/dashql-native/src/deep_link.ts`
-  - `packages/dashql-app/src/app/app.tsx`
-  - `packages/dashql-app/src/app/session/ai/use_sql_generations.ts`
-  - `packages/dashql-app/src/app/session/ai/ui/script_generation.tsx`,
-    `packages/dashql-app/src/app/session/ai/editor/generation_placeholder.ts`
-  - the script editor (inline prompt popover, "Fix with agent")
-- **Reused:** `app/session/scripts/session_scripts.ts`,
-  `app/connections/query_executor.tsx`, `app/session/ai/sql_generation.ts`,
-  `packages/dashql-core-js/src/api.ts`, `platform/crosstab/app_ownership.ts`.
+  - `packages/dashql-native/src/main.ts` (menu bar mode, `--menu-bar`,
+    `second-instance`, quit and update handling)
+  - `packages/dashql-native/electron-builder.yml` (agent module and shim as extra
+    resources, the launch agent plist, tray icons)
+  - `packages/dashql-app/src/app/app.tsx` (provider)
+  - `packages/dashql-app/src/app/session/ai/use_sql_generations.ts`,
+    `ai/ui/script_generation.tsx`, `ai/editor/generation_placeholder.ts`
+  - settings UI for the toggle and data settings
 
 Everything builds through Bazel, per `docs/agents/build_bazel_targets.md`.
 
 ## Verification
 
-- **Unit tests:** registry handlers against a test session; pairing token and
-  Origin/Host checks; the ACP framing round-trip.
-- **Phase 2:** with the web build on Chrome stable and Firefox, pair through the
-  `?data=` link. Claude Code lists the tools, reads the catalog of an embedded HyperDB
-  connection, proposes an edit (shown as a pending diff), and runs a query (which
-  triggers the consent prompt). Safari shows the desktop-app notice.
-- **Phase 3:** with claude-agent-acp and then codex-acp, ask a question in the
-  composer:
-  - the placeholder shows tool-call status lines;
-  - the SQL arrives through `propose_script_edit` and then runs;
-  - a Cmd+K edit shows up as a pending diff;
-  - a request to use the agent's own shell tool is denied;
-  - Stop cancels the turn;
-  - a request in script B can refer to what the agent did in script A;
-  - a query run by hand between turns shows up in the next context block;
-  - a second request during a running turn shows as queued;
-  - after a reload the session resumes through `session/load` where supported;
-  - existing `useSqlGenerations` tests keep passing with the OpenAI backend.
-- **Phase 4:** repeat the phase 2 checks against the Electron-embedded endpoint.
+- **Agent server unit tests:** `Origin`, `Host` and token checks; routing calls to
+  the client holding a session; queuing while disconnected; one call at a time; cancel
+  kills the process tree.
+- **Page tests:** each command against a test session; reconnect after reload delivers
+  queued calls.
+- **Menu bar mode:** started with `--menu-bar`, the app shows no window and no Dock
+  icon but serves the WebSocket; opening DashQL shows a window in the same process;
+  closing it hides the Dock icon and keeps serving; Quit stops the listener. Extends
+  `//packages/dashql-native:startup_smoke_test`.
+- **Harness matrix:** a runner gives each harness (`codex exec`, `claude -p`) a set of
+  tasks against a fixture session (write a query, fix a broken script, a follow-up that
+  refers to the previous request, an impossible request) and checks the resulting
+  scripts, the replies, and that the session id resumes.
+- **Browsers:** Chrome and Edge show the permission once and then connect; Firefox
+  connects; Safari shows the notice.
 
 ## Open Checks
 
-- Chrome's WebSocket behavior under Local Network Access (prompt or hard block).
-- Safari 26 behavior for `ws://127.0.0.1` from HTTPS.
-- Which built-in tools claude-agent-acp runs without a permission request.
-- `loadSession` support in claude-agent-acp and codex-acp.
-- Whether claude-agent-acp sessions can be resumed with `claude --resume`.
+- Chrome's behavior for loopback WebSockets from https://dashql.app: prompt or hard
+  block (the probe).
+- Whether `codex exec` (and Claude Code) allow the agent's shell to reach 127.0.0.1 on
+  the corporate machine.
+- Electron's `app.setLoginItemSettings` with `type: "agentService"` and a bundled
+  launch agent plist on macOS 13+, and how the app detects the `--menu-bar` start.
+- Whether corporate MDM blocks or hides login items for DashQL.
+- Memory use of DashQL.app in menu bar mode with no window open.
+- `codex exec` flags in the corporate build: `--json`, `resume`, and whether it needs
+  a git repository.
+- The default port, and what to do when it is taken.
