@@ -115,11 +115,20 @@ describe('ConnectionMetricsView', () => {
     it('shows the empty state without queries', () => {
         act(() => root.render(<View queries={[]} />));
         expect(container.querySelector('[data-testid="connection-metrics-empty"]')).not.toBeNull();
-        for (const testId of ['recent-queries', 'metric-queries', 'metric-latency', 'metric-rows', 'metric-cpu-time', 'metric-wait-time', 'metric-peak-memory', 'metric-process-memory', 'metric-storage-memory', 'metric-query-memory', 'metric-load']) {
+        for (const testId of ['recent-queries', 'metric-queries', 'metric-latency', 'metric-rows', 'metric-cpu-time', 'metric-wait-time', 'metric-peak-memory', 'metric-process-memory', 'metric-tracked-memory', 'metric-query-memory', 'metric-load']) {
             expect(card(testId)).not.toBeNull();
         }
         expect(rows('metric-latency')).toBe(0);
         expect(listed()).toBeNull();
+    });
+
+    it('describes the Hyper log field of every metric on its name', () => {
+        act(() => root.render(<View queries={[]} />));
+        const names = [...container.querySelectorAll<HTMLElement>('[data-testid="metric-source"]')];
+        expect(names.length).toBe(10);
+        const sources = names.map(name => document.getElementById(name.getAttribute('aria-describedby')!)!.textContent);
+        // Each card names a field of its own
+        expect(new Set(sources).size).toBe(10);
     });
 
     it('lists and draws the queries of the selected window', () => {
@@ -212,12 +221,12 @@ describe('ConnectionMetricsView', () => {
     });
 
     it('draws the resource samples of the window', () => {
-        // The first sample did not record the storage memory
+        // The first sample did not record the tracked memory
         const samples: HyperResourceSample[] = [10_000, 5_000].map((age, i) => ({
             sampledAt: NOW - age,
             processMemoryMb: 256,
             transactionMemoryMb: 1,
-            storageMemoryMb: i === 0 ? null : 70,
+            trackedMemoryMb: i === 0 ? null : 70,
             overallLoad: 0.5,
             schedulerLoad: 0.5,
             memoryLoad: 0.1,
@@ -225,15 +234,15 @@ describe('ConnectionMetricsView', () => {
         act(() => root.render(<View queries={[]} samples={samples} />));
         // A row per bucket with a sample that recorded the metric
         expect(rows('metric-process-memory')).toBe(2);
-        expect(rows('metric-storage-memory')).toBe(1);
+        expect(rows('metric-tracked-memory')).toBe(1);
         expect(rows('metric-query-memory')).toBe(2);
         expect(rows('metric-load')).toBe(2);
         const value = (testId: string) => card(testId).querySelector('[data-testid="metric-value"]')!.textContent;
         expect(value('metric-process-memory')).toBe('256 MB');
-        expect(value('metric-storage-memory')).toBe('70 MB');
+        expect(value('metric-tracked-memory')).toBe('70 MB');
         // The resources are engine wide, not of the connection
         const section = (testId: string) => card(testId).closest('section:not([data-testid^="metric-"])')!.getAttribute('data-testid');
-        for (const testId of ['metric-process-memory', 'metric-storage-memory', 'metric-query-memory', 'metric-load']) {
+        for (const testId of ['metric-process-memory', 'metric-tracked-memory', 'metric-query-memory', 'metric-load']) {
             expect(section(testId)).toBe('connection-metrics-engine');
         }
         expect(section('metric-latency')).toBe('connection-metrics-queries');
@@ -260,7 +269,7 @@ describe('ConnectionMetricsView', () => {
 
         // Samples of an earlier Hyper process are still drawn, as is everything while unknown
         const sample: HyperResourceSample = {
-            sampledAt: NOW - 5_000, processMemoryMb: 256, transactionMemoryMb: 1, storageMemoryMb: 70,
+            sampledAt: NOW - 5_000, processMemoryMb: 256, transactionMemoryMb: 1, trackedMemoryMb: 70,
             overallLoad: 0.5, schedulerLoad: 0.5, memoryLoad: 0.1,
         };
         act(() => root.render(<View queries={[]} samples={[sample]} resourceUsageLogged={false} />));

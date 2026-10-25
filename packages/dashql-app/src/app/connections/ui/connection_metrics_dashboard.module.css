@@ -166,9 +166,11 @@
     white-space: nowrap;
 }
 
+/* The name shows the Hyper log field of the metric on hover */
 .card_title {
     flex-shrink: 0;
     margin: 0;
+    cursor: help;
     font-size: 12px;
     font-weight: 500;
     color: var(--base_color_neutral_6);

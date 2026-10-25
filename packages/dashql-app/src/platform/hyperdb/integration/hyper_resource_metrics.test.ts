@@ -253,7 +253,7 @@ describe('HyperDB Wasm resource metrics', () => {
                         { name: 'process_memory_mb', type: 'double precision' },
                         { name: 'total_memory_mb', type: 'double precision' },
                         { name: 'transaction_memory_mb', type: 'double precision' },
-                        { name: 'storage_memory_mb', type: 'double precision' },
+                        { name: 'tracked_memory_mb', type: 'double precision' },
                         { name: 'overall_load', type: 'double precision' },
                         { name: 'scheduler_load', type: 'double precision' },
                         { name: 'memory_load', type: 'double precision' },
@@ -282,6 +282,7 @@ describe('HyperDB Wasm resource metrics', () => {
                             min(process_memory_mb)                           AS min_process_memory_mb,
                             max(process_memory_mb)                           AS max_process_memory_mb,
                             max(transaction_memory_mb)                       AS peak_transaction_memory_mb,
+                            max(tracked_memory_mb)                           AS peak_tracked_memory_mb,
                             max(total_memory_mb)                             AS total_memory_mb,
                             max(active_threads)                              AS max_active_threads,
                             max(overall_load)                                AS max_overall_load,
@@ -295,6 +296,8 @@ describe('HyperDB Wasm resource metrics', () => {
                     expect(metrics.min_process_memory_mb).toBeGreaterThan(0);
                     expect(metrics.max_process_memory_mb).toBeGreaterThanOrEqual(metrics.min_process_memory_mb as number);
                     expect(metrics.peak_transaction_memory_mb).toBeGreaterThan(0);
+                    // The tracked memory sums all trackers, the transactions among them
+                    expect(metrics.peak_tracked_memory_mb).toBeGreaterThanOrEqual(metrics.peak_transaction_memory_mb as number);
                     expect(metrics.total_memory_mb).toBeGreaterThan(metrics.max_process_memory_mb as number);
                     expect(metrics.max_active_threads).toBeGreaterThan(0);
                     expect(metrics.max_overall_load).toBeGreaterThan(0);

@@ -118,8 +118,8 @@ export interface HyperResourceSample {
     processMemoryMb: number | null;
     /// The memory that the running queries hold in MB
     transactionMemoryMb: number | null;
-    /// The memory of the storage layer in MB, e.g. the table data that is not flushed to the files yet
-    storageMemoryMb: number | null;
+    /// The memory of all memory trackers in MB, e.g. table data, temporary tables, the running queries and caches
+    trackedMemoryMb: number | null;
     /// The overall load between 0 and 1
     overallLoad: number | null;
     /// The load of the scheduler between 0 and 1
@@ -250,7 +250,7 @@ export function readResourceSamples(table: arrow.Table): HyperResourceSample[] {
             sampledAt: Number(row.epoch_ms),
             processMemoryMb: nullableNumber(row.process_memory_mb),
             transactionMemoryMb: nullableNumber(row.transaction_memory_mb),
-            storageMemoryMb: nullableNumber(row.storage_memory_mb),
+            trackedMemoryMb: nullableNumber(row.tracked_memory_mb),
             overallLoad: nullableNumber(row.overall_load),
             schedulerLoad: nullableNumber(row.scheduler_load),
             memoryLoad: nullableNumber(row.memory_load),

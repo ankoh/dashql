@@ -8,6 +8,7 @@ import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../../ui/foundations/segmented_control.js';
 import { SyncIcon } from '../../../ui/foundations/symbol_icon.js';
+import { Tooltip } from '../../../ui/foundations/tooltip.js';
 import { VegaLiteChart, type VegaSignals } from '../../../ui/vegalite/vegalite_chart.js';
 import type { ChartColors } from '../../../ui/vegalite/vegalite_theme.js';
 import type { HyperLogError, HyperQueryEnd, HyperResourceSample } from '../hyper/hyper_log_metrics.js';
@@ -124,12 +125,24 @@ function queryBucketRow(bucket: QueryBucket, window: MetricsWindow) {
     };
 }
 
+/// The fields of the query-end events that the query metrics read, see hyperLogQueryEndsTable
+const QUERY_SOURCES = {
+    queries: 'query-end: one per finished query',
+    latency: 'query-end: elapsed',
+    rows: 'query-end: processed-rows.total of pre-execution + execution',
+    cpuTime: 'query-end: threads.cpu-time of pre-execution + execution',
+    peakMemory: 'query-end: peak-transaction-memory-mb, the larger of pre-execution and execution',
+    waitTime: 'query-end: threads.wait-time of pre-execution + execution',
+};
+
 /// A metric of the engine that Hyper samples, with a card of its own
 interface EngineMetric {
     /// The name of the metric, also the series of its rows
     title: string;
     /// The test id of the card
     testId: string;
+    /// The field of the resource-metrics events that the metric reads
+    source: string;
     /// The value of a sample, null if the sample did not record it
     value: (sample: HyperResourceSample) => number | null;
     /// How a bucket of the chart combines the values of its samples
@@ -143,21 +156,22 @@ interface EngineMetric {
 function engineMetric(
     title: string,
     testId: string,
+    source: string,
     kind: SeriesKind,
     value: (sample: HyperResourceSample) => number | null,
     aggregate: SampleAggregate,
     format: (value: number) => string,
 ): EngineMetric {
     const series: ChartSeries[] = [{ name: title, color: colors => colors.primary, area: true }];
-    return { title, testId, value, aggregate, format, spec: colors => seriesSpec(colors, series, kind) };
+    return { title, testId, source: `resource-metrics: ${source}`, value, aggregate, format, spec: colors => seriesSpec(colors, series, kind) };
 }
 
 /// The memory peaks of a bucket and its mean load
 const ENGINE_METRICS: EngineMetric[] = [
-    engineMetric('Process memory', 'metric-process-memory', 'memory', sample => sample.processMemoryMb, 'max', formatMemory),
-    engineMetric('Storage memory', 'metric-storage-memory', 'memory', sample => sample.storageMemoryMb, 'max', formatMemory),
-    engineMetric('Query memory', 'metric-query-memory', 'memory', sample => sample.transactionMemoryMb, 'max', formatMemory),
-    engineMetric('Load', 'metric-load', 'load', sample => sample.overallLoad, 'mean', formatLoad),
+    engineMetric('Process memory', 'metric-process-memory', 'memory.process_physical_memory_mb', 'memory', sample => sample.processMemoryMb, 'max', formatMemory),
+    engineMetric('Tracked memory', 'metric-tracked-memory', 'mem-trackers.memory_tracked_current_usage_mb.global', 'memory', sample => sample.trackedMemoryMb, 'max', formatMemory),
+    engineMetric('Query memory', 'metric-query-memory', 'mem-trackers.memory_tracked_current_usage_mb.global_transactions', 'memory', sample => sample.transactionMemoryMb, 'max', formatMemory),
+    engineMetric('Load', 'metric-load', 'load.overall_load', 'load', sample => sample.overallLoad, 'mean', formatLoad),
 ];
 
 interface EngineMetricCardProps {
@@ -184,6 +198,7 @@ const EngineMetricCard: React.FC<EngineMetricCardProps> = ({ metric, samples, la
     return (
         <MetricCard
             title={metric.title}
+            source={metric.source}
             value={optionalValue(latest == null ? null : metric.value(latest), metric.format)}
             data-testid={metric.testId}
         >
@@ -221,6 +236,8 @@ const TOTAL: CardAggregate = { symbol: 'Σ', label: 'total', sizeClass: styles.c
 interface MetricCardProps {
     /// The name of the metric
     title: string;
+    /// The Hyper log field that the metric reads, shown on hover of the name
+    source: string;
     /// The summary of the metric in the window, e.g. its total
     value: string;
     /// The aggregate of the summary, e.g. MEAN
@@ -235,7 +252,9 @@ interface MetricCardProps {
 const MetricCard: React.FC<MetricCardProps> = props => (
     <section className={styles.card} aria-label={props.title} data-testid={props['data-testid']}>
         <header className={styles.card_header}>
-            <h4 className={styles.card_title}>{props.title}</h4>
+            <Tooltip type="description" direction="n" text={props.source}>
+                <h4 className={styles.card_title} data-testid="metric-source">{props.title}</h4>
+            </Tooltip>
             <span className={styles.card_value}>
                 {props.aggregate != null && <span className={props.aggregate.sizeClass != null ? `${styles.card_aggregate} ${props.aggregate.sizeClass}` : styles.card_aggregate} aria-label={props.aggregate.label}>{props.aggregate.symbol}</span>}
                 <span data-testid="metric-value">{props.value}</span>
@@ -525,27 +544,28 @@ export const ConnectionMetricsView: React.FC<ViewProps> = ({ queries, queryEnds,
                     </SegmentedControl>
                 </header>
                 <div className={`${styles.grid} ${styles.query_cards}`}>
-                    <MetricCard title="Queries" aggregate={TOTAL} value={formatCount(metrics.queries.length)} data-testid="metric-queries">
+                    <MetricCard title="Queries" source={QUERY_SOURCES.queries} aggregate={TOTAL} value={formatCount(metrics.queries.length)} data-testid="metric-queries">
                         <VegaLiteChart className={styles.chart} spec={COUNT_SPEC} datasets={datasets} signals={signals} />
                     </MetricCard>
                     <MetricCard
                         title="Latency"
+                        source={QUERY_SOURCES.latency}
                         aggregate={P95}
                         value={optionalValue(metrics.elapsedP95, formatDuration)}
                         data-testid="metric-latency"
                     >
                         <VegaLiteChart className={styles.chart} spec={LATENCY_SPEC} datasets={datasets} signals={signals} />
                     </MetricCard>
-                    <MetricCard title="Rows processed" aggregate={TOTAL} value={formatCount(metrics.processedRows)} data-testid="metric-rows">
+                    <MetricCard title="Rows processed" source={QUERY_SOURCES.rows} aggregate={TOTAL} value={formatCount(metrics.processedRows)} data-testid="metric-rows">
                         <VegaLiteChart className={styles.chart} spec={ROWS_SPEC} datasets={datasets} signals={signals} />
                     </MetricCard>
-                    <MetricCard title="CPU time" aggregate={MEAN} value={optionalValue(metrics.meanCpuTime, formatDuration)} data-testid="metric-cpu-time">
+                    <MetricCard title="CPU time" source={QUERY_SOURCES.cpuTime} aggregate={MEAN} value={optionalValue(metrics.meanCpuTime, formatDuration)} data-testid="metric-cpu-time">
                         <VegaLiteChart className={styles.chart} spec={CPU_TIME_SPEC} datasets={datasets} signals={signals} />
                     </MetricCard>
-                    <MetricCard title="Peak memory" aggregate={MAX} value={optionalValue(metrics.peakMemoryMb, formatMemory)} data-testid="metric-peak-memory">
+                    <MetricCard title="Peak memory" source={QUERY_SOURCES.peakMemory} aggregate={MAX} value={optionalValue(metrics.peakMemoryMb, formatMemory)} data-testid="metric-peak-memory">
                         <VegaLiteChart className={styles.chart} spec={PEAK_MEMORY_SPEC} datasets={datasets} signals={signals} />
                     </MetricCard>
-                    <MetricCard title="Wait time" aggregate={MEAN} value={optionalValue(metrics.meanWaitTime, formatDuration)} data-testid="metric-wait-time">
+                    <MetricCard title="Wait time" source={QUERY_SOURCES.waitTime} aggregate={MEAN} value={optionalValue(metrics.meanWaitTime, formatDuration)} data-testid="metric-wait-time">
                         <VegaLiteChart className={styles.chart} spec={WAIT_TIME_SPEC} datasets={datasets} signals={signals} />
                     </MetricCard>
                 </div>

@@ -342,7 +342,7 @@ describe('Hyper log metrics of resources', () => {
             expect(sample.sampledAt).toBeLessThanOrEqual(after + 1_000);
             expect(sample.processMemoryMb).toBeGreaterThan(0);
             expect(sample.transactionMemoryMb).not.toBeNull();
-            expect(sample.storageMemoryMb).not.toBeNull();
+            expect(sample.trackedMemoryMb).not.toBeNull();
             for (const load of [sample.overallLoad, sample.schedulerLoad, sample.memoryLoad]) {
                 expect(load).toBeGreaterThanOrEqual(0);
                 expect(load).toBeLessThanOrEqual(1);

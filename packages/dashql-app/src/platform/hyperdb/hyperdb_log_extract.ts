@@ -97,8 +97,9 @@ export const HYPER_LOG_QUERY_ENDS_TABLE: HyperDBExtractTable = hyperLogQueryEnds
 
 /// An extract table with one row per resource-metrics event, which Hyper writes every log_resource_usage_interval.
 /// The process memory is the size of the Wasm memory, which never shrinks. The transaction memory is the memory that
-/// the running queries hold, the storage memory the table data that is not flushed to the files yet. The loads are
-/// between 0 and 1.
+/// the running queries hold. The tracked memory is the sum of all memory trackers, e.g. the table data of the attached
+/// databases, temporary tables, the running queries and the plan cache, and shrinks again when they are freed. The
+/// loads are between 0 and 1.
 export const HYPER_LOG_RESOURCE_METRICS_TABLE: HyperDBExtractTable = {
     name: 'resource_metrics',
     query: `
@@ -107,7 +108,7 @@ export const HYPER_LOG_RESOURCE_METRICS_TABLE: HyperDBExtractTable = {
             ${hyperLogValue(['memory', 'process_physical_memory_mb'], 'double precision')} AS process_memory_mb,
             ${hyperLogValue(['memory', 'total_physical_memory_mb'], 'double precision')} AS total_memory_mb,
             ${hyperLogValue(['mem-trackers', 'memory_tracked_current_usage_mb', 'global_transactions'], 'double precision')} AS transaction_memory_mb,
-            ${hyperLogValue(['mem-trackers', 'memory_tracked_current_usage_mb', 'storage_layer_unflushed_memory'], 'double precision')} AS storage_memory_mb,
+            ${hyperLogValue(['mem-trackers', 'memory_tracked_current_usage_mb', 'global'], 'double precision')} AS tracked_memory_mb,
             ${hyperLogValue(['load', 'overall_load'], 'double precision')} AS overall_load,
             ${hyperLogValue(['load', 'scheduler_load'], 'double precision')} AS scheduler_load,
             ${hyperLogValue(['load', 'memory_load'], 'double precision')} AS memory_load,
