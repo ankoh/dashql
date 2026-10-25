@@ -76,7 +76,8 @@ Connections are global and referenced by sessions through `connectionId`. Their 
   and writes included, and the resource samples of the Hyper process. The connection overview reads it on a reader
   connection of the monitor, which attaches it as `monitoring`. It outlives app windows, so the overview keeps the
   history of earlier windows, the tables keep the last 2 hours. A new monitor backfills the retained log from the
-  newest extracted timestamp. Deleting
+  newest extracted timestamp. The file is derived from the log and has no migrations: when its tables no longer
+  match the columns of the app, the monitor drops them and backfills the retained log again. Deleting
   the connection stops its monitor, which closes the file, and deletes it; it is never exported.
 
 ### Instances

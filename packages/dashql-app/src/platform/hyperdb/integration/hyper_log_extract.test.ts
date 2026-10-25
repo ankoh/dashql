@@ -322,13 +322,26 @@ describe('HyperDB Wasm log extract', () => {
         extract = null;
     }, 60_000);
 
-    it('rejects a table query that no longer matches its table', async () => {
-        await openExtract({ tables: [{ name: 'changing', query: 'SELECT ts, k FROM log' }] });
+    it('rebuilds an extract whose table no longer matches its query', async () => {
+        const kept = { name: 'kept', query: 'SELECT ts FROM log' };
+        await openExtract({ tables: [{ name: 'changing', query: 'SELECT ts, k FROM log' }, kept] });
         await extract!.stop();
         extract = null;
-        await expect(openExtract({ tables: [{ name: 'changing', query: 'SELECT ts, k, v FROM log' }] }))
-            .rejects.toThrow(/the extract table changing has the columns \(ts timestamp, k text\)/);
+        const reasons: string[] = [];
+        const tables = [{ name: 'changing', query: 'SELECT ts, k, v FROM log' }, kept];
+        await openExtract({ tables, onRebuild: reason => reasons.push(reason) });
+        expect(reasons).toEqual([expect.stringMatching(/the extract table changing has the columns \(ts timestamp, k text\)/)]);
+        expect(extract!.schemas.changing.map(({ name }) => name)).toEqual(['ts', 'k', 'v']);
+        // The backfill read the log again, both tables hold each event once
+        const connection = await openReader();
+        const changing = await readNumber(connection, `SELECT count(*) AS n FROM ${READER_ALIAS}.public.changing`);
+        expect(changing).toBeGreaterThan(0);
+        expect(await readNumber(connection, `SELECT count(*) AS n FROM ${READER_ALIAS}.public.kept`)).toBe(changing);
+        // The rebuilt extract opens again without a rebuild
+        await extract!.stop();
         extract = null;
+        await openExtract({ tables, onRebuild: reason => reasons.push(reason) });
+        expect(reasons.length).toBe(1);
     }, 60_000);
 
     it('computes operational metrics over the extract', async () => {

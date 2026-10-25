@@ -90,6 +90,8 @@ export interface HyperDBIncrementalExtractOptions {
     onTransfer?: (transfer: HyperDBExtractTransfer) => void;
     /// Receives the errors of polls started by the timer
     onError?: (error: unknown) => void;
+    /// Receives why open() rebuilt an extract whose tables no longer match the source or the table queries
+    onRebuild?: (reason: string) => void;
 }
 
 /// The row counts of one transfer from the source into the extract.
@@ -147,14 +149,17 @@ const DEFAULT_BACKFILL_OVERLAP_MS = 10_000;
 /// not the rows of the read itself. The sink skips the rows of the overlap.
 ///
 /// open() checks the queries with `EXPLAIN (FORMAT SCHEMA)` before it reads any rows. The schema of every extract
-/// table is the result schema of its query, and an existing table must still match it. Every extract table also has
+/// table is the result schema of its query. The extract is derived from the source, so when an existing table no
+/// longer matches the source columns or its query, open() drops all tables and backfills them from the source again.
+/// The tables share the watermark, a single rebuilt table would miss the rows before it. Every extract table also has
 /// the row number column `__row`, which its row limit deletes by.
 ///
 /// The extract is either a file that the sink attaches, or a schema of the compute database of the sink.
 ///
 /// Limits of this proof of concept:
 /// - Source rows older than the overlap before the watermark are never read again.
-/// - An extract holds the rows of one source, and the source and the tables should stay the same across runs.
+/// - An extract holds the rows of one source. Changing the source or a table loses the rows that the source no longer
+///   holds.
 export class HyperDBIncrementalExtract {
     /// The pending timer of start(), null when not polling periodically
     private timer: ReturnType<typeof setTimeout> | null = null;
@@ -202,9 +207,14 @@ export class HyperDBIncrementalExtract {
             }
             const names = new ExtractNames(`${quoteIdentifier(database)}.${quoteIdentifier(options.schema ?? 'public')}`);
             if (options.schema != null) await sink.execute(`CREATE SCHEMA IF NOT EXISTS ${names.schema}`);
-            await sink.execute(`CREATE TABLE IF NOT EXISTS ${names.recentRows} (${columnDefinitions(source.columns)})`);
-            await sink.execute(`CREATE TABLE IF NOT EXISTS ${names.newRows} (${columnDefinitions(source.columns)})`);
-            const schemas = await prepareTables(sink, source, names, options.tables);
+            let prepared = await prepareTables(sink, source, names, options.tables);
+            if (prepared.outdated != null) {
+                options.onRebuild?.(prepared.outdated);
+                await dropTables(sink, names, options.tables);
+                prepared = await prepareTables(sink, source, names, options.tables);
+                if (prepared.outdated != null) throw new Error(`the rebuilt extract is outdated: ${prepared.outdated}`);
+            }
+            const { schemas } = prepared;
 
             await checkSourceQuery(reader, source, source.backfillQuery(null));
             const updateQuery = source.updateQuery?.();
@@ -342,13 +352,30 @@ async function checkSourceQuery(
     }
 }
 
+/// The extract tables prepared by open()
+interface PreparedTables {
+    /// The columns of every extract table, by table name
+    schemas: Record<string, readonly HyperDBExtractColumn[]>;
+    /// Why an existing table no longer matches the source columns or its query, null when all match
+    outdated: string | null;
+}
+
 /// Create the missing extract tables with the result schemas of their queries, and check the existing ones.
 async function prepareTables(
     sink: EmbeddedConnection,
     source: HyperDBIncrementalExtractSource,
     names: ExtractNames,
     tables: readonly HyperDBExtractTable[],
-): Promise<Record<string, readonly HyperDBExtractColumn[]>> {
+): Promise<PreparedTables> {
+    // The table queries read the new rows, which have the source columns
+    for (const name of [names.recentRows, names.newRows]) {
+        await sink.execute(`CREATE TABLE IF NOT EXISTS ${name} (${columnDefinitions(source.columns)})`);
+        const existing = await describeQuery(sink, `SELECT * FROM ${name}`, `extract table ${name}`);
+        if (formatColumns(existing) !== formatColumns(source.columns)) {
+            return { schemas: {}, outdated: `the extract table ${name} has the columns (${formatColumns(existing)}), `
+                + `but the source has (${formatColumns(source.columns)})` };
+        }
+    }
     const schemas: Record<string, readonly HyperDBExtractColumn[]> = {};
     for (const table of tables) {
         if (table.name in schemas) throw new Error(`the extract table ${table.name} is configured twice`);
@@ -371,12 +398,19 @@ async function prepareTables(
         const existing = await describeQuery(sink, `SELECT * FROM ${names.table(table.name)}`, `extract table ${table.name}`)
             .then(existing => existing.filter(({ name }) => name !== HYPER_EXTRACT_ROW_COLUMN));
         if (formatColumns(existing) !== formatColumns(columns)) {
-            throw new Error(`the extract table ${table.name} has the columns (${formatColumns(existing)}), `
-                + `but its query returns (${formatColumns(columns)})`);
+            return { schemas, outdated: `the extract table ${table.name} has the columns (${formatColumns(existing)}), `
+                + `but its query returns (${formatColumns(columns)})` };
         }
         schemas[table.name] = columns;
     }
-    return schemas;
+    return { schemas, outdated: null };
+}
+
+/// Drop all tables of an extract, the next backfill reads all source rows again
+async function dropTables(sink: EmbeddedConnection, names: ExtractNames, tables: readonly HyperDBExtractTable[]): Promise<void> {
+    for (const name of [names.recentRows, names.newRows, ...tables.map(table => names.table(table.name))]) {
+        await sink.execute(`DROP TABLE IF EXISTS ${name}`);
+    }
 }
 
 /// The result columns of a query, from `EXPLAIN (FORMAT SCHEMA)`.

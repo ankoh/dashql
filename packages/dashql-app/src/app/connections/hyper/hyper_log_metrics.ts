@@ -464,6 +464,7 @@ export class HyperLogMetrics {
                 clientContext: monitorClientContext(connectionId),
                 intervalMs: this.options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
                 onTransfer: transfer => this.transferred(connectionId, transfer),
+                onRebuild: reason => this.options.logger.info('Rebuilding the extract of the Hyper log', { connectionId, reason }, LOG_CTX),
                 onError: error => {
                     // A Hyper that was terminated, e.g. by a hand-over to another tab, fails every poll.
                     // Setting up the connection again starts a new monitor.
