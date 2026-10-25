@@ -59,6 +59,18 @@
     --focus_outline_color: #0969da;
     --focus_border_color: var(--focus_outline_color);
 
+    /* The colors of charts: the color of a single series and the categorical colors of series in the order they are
+       assigned. Flavors override them, adjacent categorical colors must stay apart for color-blind readers. */
+    --chart_color_primary: var(--base_color_blue_5);
+    --chart_color_1: var(--base_color_blue_5);
+    --chart_color_2: var(--base_color_orange_4);
+    --chart_color_3: var(--base_color_purple_5);
+    --chart_color_4: var(--base_color_green_5);
+    --chart_color_5: var(--base_color_pink_4);
+    --chart_color_6: var(--base_color_yellow_4);
+    --chart_color_7: var(--base_color_blue_3);
+    --chart_color_8: var(--base_color_orange_6);
+
     --logo_color_salesforce: rgb(0, 161, 224);
 
     /* --shell_prompt_color: the color of the shell prompt, bold in the terminal foreground color if unset */

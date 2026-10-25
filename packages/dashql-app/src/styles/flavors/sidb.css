@@ -35,4 +35,9 @@
     --focus_outline_color: var(--sidb_si_on_light);
 
     --nav_tab_bg_active: hsla(186, 40%, 50%, 30%);
+
+    /* Charts lead with a Verdigris that is a little more saturated than the accent, so that it does not read gray
+       next to the other categorical colors. Blue cannot take the slot of the green, it would follow the purple. */
+    --chart_color_primary: #00897b;
+    --chart_color_1: #00897b;
 }

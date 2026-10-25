@@ -3,29 +3,31 @@ import type { EmbedOptions } from 'vega-embed';
 
 import './vegalite_tooltip.css';
 
-/// The categorical colors of series in the order they are assigned, as color tokens of the app.
-/// The order is validated: adjacent colors stay apart for color-blind readers (CVD ΔE >= 16).
+/// The categorical colors of series in the order they are assigned, as chart color tokens of the app.
+/// The tokens default to the base colors in globals.css, flavors override them.
+/// The default order is validated: adjacent colors stay apart for color-blind readers (CVD ΔE >= 16).
 export const CATEGORICAL_COLOR_TOKENS = [
-    '--base_color_blue_5',
-    '--base_color_orange_4',
-    '--base_color_purple_5',
-    '--base_color_green_5',
-    '--base_color_pink_4',
-    '--base_color_yellow_4',
-    '--base_color_blue_3',
-    '--base_color_orange_6',
+    '--chart_color_1',
+    '--chart_color_2',
+    '--chart_color_3',
+    '--chart_color_4',
+    '--chart_color_5',
+    '--chart_color_6',
+    '--chart_color_7',
+    '--chart_color_8',
 ] as const;
 
 /// The fallbacks of the color tokens, used when a token is not defined, e.g. outside of the app styles
 const TOKEN_FALLBACKS: Record<string, string> = {
-    '--base_color_blue_5': '#0969da',
-    '--base_color_orange_4': '#e16f24',
-    '--base_color_purple_5': '#8250df',
-    '--base_color_green_5': '#1a7f37',
-    '--base_color_pink_4': '#e85aad',
-    '--base_color_yellow_4': '#bf8700',
-    '--base_color_blue_3': '#54aeff',
-    '--base_color_orange_6': '#953800',
+    '--chart_color_primary': '#0969da',
+    '--chart_color_1': '#0969da',
+    '--chart_color_2': '#e16f24',
+    '--chart_color_3': '#8250df',
+    '--chart_color_4': '#1a7f37',
+    '--chart_color_5': '#e85aad',
+    '--chart_color_6': '#bf8700',
+    '--chart_color_7': '#54aeff',
+    '--chart_color_8': '#953800',
     '--base_color_red_5': '#cf222e',
     '--base_color_neutral_1': '#eaeef2',
     '--base_color_neutral_5': '#6e7781',
@@ -80,7 +82,7 @@ export function resolveChartColors(): ChartColors {
     const colors = resolveColorTokens([...new Set(tokens)]);
     return {
         categorical: CATEGORICAL_COLOR_TOKENS.map(token => colors.get(token)!),
-        primary: colors.get('--base_color_blue_5')!,
+        primary: colors.get('--chart_color_primary')!,
         critical: colors.get('--base_color_red_5')!,
         grid: colors.get('--base_color_neutral_1')!,
         label: colors.get('--base_color_neutral_5')!,
