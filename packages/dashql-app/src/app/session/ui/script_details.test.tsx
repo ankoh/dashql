@@ -67,6 +67,11 @@ function scripts(): SessionScripts {
     };
 }
 
+/// A connection the details header can label
+function connectionState(connectionId: string, connectionHealth: ConnectionHealth): any {
+    return { connectionId, connectionHealth, details: { type: null }, connectorInfo: { names: { displayLong: 'Trino' } } };
+}
+
 function menuItem(action: string): HTMLButtonElement | null {
     return document.querySelector(`[data-testid="script-menu-item"][data-action="${action}"]`);
 }
@@ -101,7 +106,7 @@ describe('ScriptDetails V2 flat scripts', () => {
 
     it('executes the pinned script from Ctrl+E', () => {
         const modify = vi.fn();
-        const connection = { connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE } as any;
+        const connection = connectionState('database', ConnectionHealth.ONLINE);
         act(() => root.render(<ScriptDetails sessionScripts={scripts()} modifySessionScripts={modify}
             connection={connection} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
         const handler = state.keyHandlers.find(value => value.key === 'e' && value.ctrlKey === true);
@@ -113,7 +118,7 @@ describe('ScriptDetails V2 flat scripts', () => {
     it('blocks pinned Ctrl+E and cached reruns before cache deletion while main is offline', async () => {
         const request = vi.fn();
         state.deleteCache.mockReset().mockResolvedValue(undefined);
-        const connection = { connectionId: 'main', connectionHealth: ConnectionHealth.FAILED } as any;
+        const connection = connectionState('main', ConnectionHealth.FAILED);
         act(() => root.render(<SessionConnectionAttentionContext.Provider value={{ sessionId: 'session', active: false, request }}>
             <ScriptDetails sessionScripts={scripts()} modifySessionScripts={vi.fn()}
                 connection={connection} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />
@@ -146,7 +151,7 @@ describe('ScriptDetails V2 flat scripts', () => {
             }),
             startExecution: () => ({}),
         } as any;
-        const connection = { connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE } as any;
+        const connection = connectionState('database', ConnectionHealth.ONLINE);
         act(() => root.render(<ScriptDetails sessionScripts={sessionScripts} modifySessionScripts={vi.fn()}
             connection={connection} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
 

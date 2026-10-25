@@ -33,10 +33,15 @@ import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ScriptDiagnosticsButton } from './script_diagnostics.js';
 import { formatScriptEditor, formattingDialectForConnector, getKeywordCase, isScriptFormattable } from './script_format.js';
-import { ScriptActionMenu } from './script_action_menu.js';
+import { ScriptActionMenu, type ScriptStorage } from './script_action_menu.js';
 import { ScriptDetailsEditorPane, ScriptDetailsOutputPane } from './script_details_panes.js';
 import { VerticalSplit } from '../../../ui/foundations/vertical_split.js';
 import { SessionConnectionAttentionContext } from './session_connection_attention.js';
+import { scriptConnectionView, usePickScriptConnection } from './script_connection_picker.js';
+import { useConnectionLabeler } from './connection_labels.js';
+import { displayPath } from '../../storage/session_locator.js';
+import { STORAGE_SCRIPTS_FOLDER } from '../../storage/storage_backend.js';
+import { queryIsDone } from '../../../query/query_execution_state.js';
 
 export { ScriptDetailsTab as TabKey };
 
@@ -105,45 +110,23 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const hasExecution = scriptData?.latestQueryId != null;
     const [resultExpanded, setResultExpanded] = React.useState(hasExecution);
 
-    // The raw scriptFileName stays the rename identity; the label and draft use the display name
-    // (no ".sql").
+    // The raw scriptFileName stays the rename identity; labels use the display name (no ".sql").
     const scriptFileName = sessionEntry?.fileName ?? 'script.sql';
     const scriptDisplay = scriptDisplayName(scriptFileName);
 
-    const PencilIcon: Icon = SymbolIcon('pencil_16');
     const CheckIcon: Icon = SymbolIcon('check_16');
     const FormatXIcon: Icon = SymbolIcon('x_16');
-    const [isEditingName, setIsEditingName] = React.useState(false);
-    const [draftFileName, setDraftFileName] = React.useState(scriptDisplay);
-    const editInputRef = React.useRef<HTMLInputElement>(null);
 
-    const startEditingName = React.useCallback((event?: React.MouseEvent) => {
-        event?.stopPropagation();
-        setDraftFileName(scriptDisplay);
-        setIsEditingName(true);
-    }, [scriptDisplay]);
-
-    const saveNameEdit = React.useCallback(() => {
-        const trimmed = draftFileName.trim();
-        if (trimmed && trimmed !== scriptDisplay) {
-            props.modifySessionScripts({ type: RENAME_SCRIPT, value: { fileName: scriptFileName, newFileName: trimmed } });
-        }
-        setIsEditingName(false);
-    }, [draftFileName, scriptDisplay, scriptFileName, props.modifySessionScripts]);
-
-    const cancelNameEdit = React.useCallback(() => {
-        setIsEditingName(false);
-    }, []);
+    // The header shows the connection of the script like the feed cards, the storage view of the
+    // more menu renames the file
+    const labeler = useConnectionLabeler();
+    const connectionView = React.useMemo(
+        () => connection == null ? null : scriptConnectionView(connection, labeler(connection)),
+        [connection, labeler],
+    );
+    const pickConnection = usePickScriptConnection(props.sessionScripts.sessionId, props.modifySessionScripts);
 
     React.useEffect(() => {
-        if (isEditingName && editInputRef.current) {
-            editInputRef.current.focus();
-            editInputRef.current.select();
-        }
-    }, [isEditingName]);
-
-    React.useEffect(() => {
-        setIsEditingName(false);
         setResultExpanded(hasExecution);
     }, [sessionEntry?.scriptId, hasExecution]);
 
@@ -227,6 +210,12 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     // current result was served from cache.
     const executeQuery = dependencies.useQueryExecutor();
     const storageReader = dependencies.useStorageReader();
+    const sessionId = props.sessionScripts.sessionId;
+    const storage = React.useMemo<ScriptStorage>(() => ({
+        fileName: scriptFileName,
+        resolvePath: () => `${displayPath(sessionId, storageReader.getSessionLocation(sessionId))}/${STORAGE_SCRIPTS_FOLDER}/${scriptFileName}`,
+        onRename: name => props.modifySessionScripts({ type: RENAME_SCRIPT, value: { fileName: scriptFileName, newFileName: name } }),
+    }), [scriptFileName, sessionId, storageReader, props.modifySessionScripts]);
     const handleExecute = React.useCallback(() => {
         if (connection?.connectionHealth !== ConnectionHealth.ONLINE) {
             connectionAttention?.request(props.sessionScripts.sessionId);
@@ -269,11 +258,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 key: 'Escape',
                 ctrlKey: false,
                 callback: (event) => {
-                    if (isEditingName) {
-                        cancelNameEdit();
-                        event.stopImmediatePropagation();
-                        return;
-                    }
                     if (editorView) {
                         const processor = editorView.state.field(DashQLProcessorPlugin, false);
                         if (processor?.scriptCompletion?.status === DashQLCompletionStatus.AVAILABLE) {
@@ -287,7 +271,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                 },
             },
         ],
-        [props.hideDetails, isEditingName, cancelNameEdit, editorView, handleExecute],
+        [props.hideDetails, editorView, handleExecute],
     );
     dependencies.useKeyEvents(keyHandlers);
 
@@ -331,13 +315,12 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             scriptDebugMode={scriptDebugMode}
                             executeDisabled={sessionExecution.busy || connection?.connectionHealth !== ConnectionHealth.ONLINE}
                             connectionBlocked={connection?.connectionHealth !== ConnectionHealth.ONLINE}
-                            isEditingName={isEditingName}
-                            draftFileName={draftFileName}
-                            editInputRef={editInputRef}
+                            connection={connectionView}
+                            connectionPickDisabled={sessionExecution.busy || (activeQueryState != null && !queryIsDone(activeQueryState.status))}
+                            onPickConnection={connectionId => pickConnection(scriptFileName, connectionId)}
                             isFormattable={isFormattable}
                             connectorType={scriptData?.connection.connectorInfo.connectorType ?? props.sessionScripts.connectorInfo?.connectorType}
                             hasPendingDiff={hasPendingDiff}
-                            PencilIcon={PencilIcon}
                             CheckIcon={CheckIcon}
                             CancelIcon={FormatXIcon}
                             CollapseIcon={ScreenNormalIcon}
@@ -347,14 +330,11 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                                     formatDisabled={!isFormattable || hasPendingDiff || editorView == null}
                                     onFormat={handleFormat}
                                     onDelete={handleDelete}
+                                    storage={storage}
                                 />
                             )}
                             onExecute={handleExecute}
                             onHide={props.hideDetails}
-                            onStartEditingName={startEditingName}
-                            onDraftFileNameChange={setDraftFileName}
-                            onSaveName={saveNameEdit}
-                            onCancelName={cancelNameEdit}
                             onEditorView={setEditorView}
                             onNavigateToScript={navigateToScript}
                             onAcceptDiff={handleAcceptDiff}

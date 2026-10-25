@@ -13,7 +13,7 @@ import { ButtonGroup } from '../../../ui/foundations/button_group.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { ScriptDiagnosticsButton } from './script_diagnostics.js';
 import { ScriptEditor } from './script_editor.js';
-import { ScriptName } from './script_name.js';
+import { ScriptConnectionPicker, type ScriptConnectionView } from './script_connection_picker.js';
 import { ScriptOutputDetails, type ScriptDetailsTab } from './script_output_details.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import { ExecuteConnectionGuard } from './session_connection_attention.js';
@@ -25,23 +25,21 @@ interface ScriptDetailsEditorPaneProps {
     scriptDebugMode: boolean;
     executeDisabled: boolean;
     connectionBlocked: boolean;
-    isEditingName: boolean;
-    draftFileName: string;
-    editInputRef: React.RefObject<HTMLInputElement | null>;
+    /// The connection the script runs on, null while it is not registered
+    connection: ScriptConnectionView | null;
+    /// Picking another connection is disabled, e.g. while the script runs
+    connectionPickDisabled: boolean;
+    /// Run the script on another connection
+    onPickConnection: (connectionId: string) => void;
     isFormattable: boolean;
     connectorType: ConnectorType;
     hasPendingDiff: boolean;
-    PencilIcon: Icon;
     CheckIcon: Icon;
     CancelIcon: Icon;
     CollapseIcon: Icon;
     formatMenu: React.ReactNode;
     onExecute: () => void;
     onHide: () => void;
-    onStartEditingName: (event?: React.MouseEvent) => void;
-    onDraftFileNameChange: (value: string) => void;
-    onSaveName: () => void;
-    onCancelName: () => void;
     onEditorView: (view: EditorView) => void;
     onNavigateToScript: (scriptKey: number) => void;
     onAcceptDiff: () => void;
@@ -62,30 +60,14 @@ export const ScriptDetailsEditorPane: React.FC<ScriptDetailsEditorPaneProps> = (
                 <PaperAirplaneIcon size={16} />
             </IconButton>
             </ExecuteConnectionGuard>
+            <span className={styles.entry_card_action_separator} aria-hidden="true" />
             <div className={styles.entry_card_file_name}>
-                <ScriptName
-                    file={props.scriptDisplay}
-                    onFileClick={props.onStartEditingName}
-                    editing={props.isEditingName ? {
-                        value: props.draftFileName,
-                        onChange: props.onDraftFileNameChange,
-                        onCommit: props.onSaveName,
-                        onCancel: props.onCancelName,
-                        inputRef: props.editInputRef,
-                    } : undefined}
-                    fileNameTrailing={(
-                        <span className={styles.entry_card_file_name_actions}>
-                            <IconButton
-                                variant={ButtonVariant.Invisible}
-                                size={ButtonSize.Tiny}
-                                aria-label="Rename script"
-                                onClick={props.onStartEditingName}
-                                className={styles.entry_card_file_name_action_button}
-                            >
-                                <props.PencilIcon size={12} />
-                            </IconButton>
-                        </span>
-                    )}
+                <ScriptConnectionPicker
+                    sessionId={props.sessionId}
+                    scriptName={props.scriptDisplay}
+                    connection={props.connection}
+                    disabled={props.connectionPickDisabled}
+                    onPick={props.onPickConnection}
                 />
             </div>
             {props.scriptDebugMode && (
