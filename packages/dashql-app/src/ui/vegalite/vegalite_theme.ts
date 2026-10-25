@@ -156,5 +156,11 @@ export function createEmbedOptions(
         expr: expressionInterpreter,
         config: createVegaLiteConfig(colors),
         tooltip: { theme: VEGA_TOOLTIP_THEME },
+        logLevel: VEGA_LOG_LEVEL_ERROR,
     };
 }
+
+/// The Vega log level that only logs errors (vega.Error).
+/// Charts are embedded with empty datasets and filled by updates, and windows can be empty,
+/// on empty data the extent transforms warn "Infinite extent" for every scale.
+const VEGA_LOG_LEVEL_ERROR = 1;
