@@ -84,6 +84,18 @@ describe('FeedEntryFooter', () => {
         expect(Array.from(exported.getChild('value')!)).toEqual([10, 20, 30]);
     });
 
+    it('opens Details from the expand button beside the download button', () => {
+        renderFooter(arrow.tableFromArrays({ value: [10, 20, 30] }));
+        const download = container.querySelector('[data-testid="download-query-result"]')!;
+        const expand = container.querySelector<HTMLButtonElement>('[data-testid="tab-header-expand"]')!;
+        expect(expand).not.toBeNull();
+        expect(download.compareDocumentPosition(expand) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+        act(() => expand.click());
+
+        expect(onShowTable).toHaveBeenCalledTimes(1);
+    });
+
     it('downloads the full original result as Parquet through the compute database', async () => {
         const resultTable = arrow.tableFromArrays({ value: [10, 20, 30] });
         const parquet = new TextEncoder().encode('PAR1');

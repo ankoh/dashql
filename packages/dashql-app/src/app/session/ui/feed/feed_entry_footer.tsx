@@ -127,6 +127,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
 
     const displayedRows = searchRows.matchingRows ?? totalRows;
     const dataRowCount = displayedRows != null ? Math.min(displayedRows, FEED_LIMIT_RESULT_ROWS) : null;
+    const previewTruncated = displayedRows != null && displayedRows > FEED_LIMIT_RESULT_ROWS;
     const rowCountDetail = totalRows != null
         ? (searchRows.matchingRows != null
             ? (searchRows.matchingRows > FEED_LIMIT_RESULT_ROWS
@@ -156,6 +157,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                     title="Query Results"
                     detail={rowCountDetail}
                     onClick={props.onShowTable}
+                    detailIsLink={previewTruncated}
                     actions={props.queryState == null ? undefined : (
                         <>
                             <dependencies.QueryResultToolbar query={props.queryState} />
@@ -196,7 +198,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 )}
             </div>
         ),
-    }), [queryTraceId, props.queryState, props.visualizeQuery, rowCountDetail, pointCountDetail, props.onShowStatus, props.onShowTable, props.onShowVisualization]);
+    }), [queryTraceId, props.queryState, props.visualizeQuery, rowCountDetail, previewTruncated, pointCountDetail, props.onShowStatus, props.onShowTable, props.onShowVisualization]);
 
     return (
         <VerticalTabs

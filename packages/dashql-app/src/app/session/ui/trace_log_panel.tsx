@@ -4,6 +4,7 @@ import * as styles from './trace_log_panel.module.css';
 import { LogRecord } from '../../../platform/logger/log_buffer.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { TraceLogViewer } from './trace_log_viewer.js';
+import { TabHeader } from './tab_header.js';
 
 /// Track the number of log records on a trace, updating as records stream in. Returns 0 when the
 /// trace has no id. Drives the right-aligned "N of M rows" indicator.
@@ -38,22 +39,19 @@ interface TraceLogPanelProps {
 export const TraceLogPanel: React.FC<TraceLogPanelProps> = (props) => {
     const totalLogRows = useTraceLogCount(props.traceId);
     const shownLogRows = props.maxRows != null ? Math.min(totalLogRows, props.maxRows) : totalLogRows;
-    const logCountDetail = (props.maxRows != null && totalLogRows > props.maxRows)
+    const truncated = props.maxRows != null && totalLogRows > props.maxRows;
+    const logCountDetail = truncated
         ? `${shownLogRows} of ${totalLogRows} rows`
         : `${totalLogRows} ${totalLogRows === 1 ? 'row' : 'rows'}`;
 
     return (
         <>
-            <div className={styles.log_header}>
-                {props.onHeaderClick != null ? (
-                    <button type="button" className={styles.log_header_target} onClick={props.onHeaderClick}>
-                        <span className={styles.log_header_title}>{props.title}</span>
-                    </button>
-                ) : (
-                    <span className={styles.log_header_title}>{props.title}</span>
-                )}
-                <span className={styles.log_header_detail}>{logCountDetail}</span>
-            </div>
+            <TabHeader
+                title={props.title}
+                detail={logCountDetail}
+                onClick={props.onHeaderClick}
+                detailIsLink={truncated}
+            />
             {props.traceId == null ? (
                 <div className={styles.log_empty}>No logs available</div>
             ) : props.maxRows != null ? (

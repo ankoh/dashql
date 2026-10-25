@@ -2,14 +2,20 @@ import * as React from 'react';
 import * as styles from './tab_header.module.css';
 
 import { QueryExecutionState, QueryExecutionStatus } from '../../../query/query_execution_state.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
+import { ScreenFullIcon } from '../../../ui/foundations/symbol_icon.js';
+import { classNames } from '../../../utils/classnames.js';
 import { useComputationRegistry } from '../../../compute/computation_registry.js';
 
 interface TabHeaderProps {
     title: string;
     detail?: string | null;
     /// When set, the header becomes a clickable navigation target (the feed footer uses this to open
-    /// Details). Omitted in Details, where the header is a plain, non-clickable label + count.
+    /// Details) and ends with an expand button doing the same. Omitted in Details, where the header
+    /// is a plain, non-clickable label + count.
     onClick?: () => void;
+    /// Render the count as a link, for previews that only show part of the rows (clickable variant).
+    detailIsLink?: boolean;
     /// Optional right-aligned content (e.g. a "delete cached" button). Rendered on both variants; on
     /// the clickable variant the title/count sit in an inner button while the actions sit beside it,
     /// since nesting interactive controls inside a button is invalid.
@@ -19,15 +25,30 @@ interface TabHeaderProps {
 /// The header bar shown atop a session tab body: a title with an optional greyish "N of M rows"
 /// count. Shared by the feed footer (clickable — opens Details) and the Details tabs (inert), so the
 /// two surfaces read identically.
-export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, actions }) => {
+export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, detailIsLink, actions }) => {
     if (onClick != null) {
         return (
             <div className={styles.tab_header}>
                 <button type="button" className={styles.tab_header_clickable_inner} onClick={onClick}>
                     <span className={styles.tab_header_title}>{title}</span>
-                    {detail && <span className={styles.tab_header_detail}>{detail}</span>}
+                    {detail && (
+                        <span className={classNames(styles.tab_header_detail, { [styles.tab_header_detail_link]: detailIsLink })}>
+                            {detail}
+                        </span>
+                    )}
                 </button>
-                {actions && <div className={styles.tab_header_actions}>{actions}</div>}
+                <div className={styles.tab_header_actions}>
+                    {actions}
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label={`Open ${title} in Details`}
+                        data-testid="tab-header-expand"
+                        onClick={onClick}
+                    >
+                        <ScreenFullIcon size={16} />
+                    </IconButton>
+                </div>
             </div>
         );
     }

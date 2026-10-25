@@ -54,6 +54,22 @@
     color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 44%);
 }
 
+/* Hovering the clickable header underlines the title so it reads as a link into Details. */
+.tab_header_clickable_inner:hover .tab_header_title {
+    text-decoration: underline;
+}
+
+.tab_header_clickable_inner:focus-visible {
+    outline: 2px solid var(--focus_outline_color);
+    outline-offset: -2px;
+}
+
+/* Count of a truncated preview ("6 of 1000 rows"): underlined with the title on hover, since clicking
+   it opens the rest. */
+.tab_header_clickable_inner:hover .tab_header_detail_link {
+    text-decoration: underline;
+}
+
 /* In the clickable feed header, the title/count live inside the inner button. Let the button span
    the row so the count can align to the card's right edge just like the inert Details header. */
 .tab_header_clickable_inner .tab_header_detail {
