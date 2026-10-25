@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { createTestHyperDBClient } from '../../../tests/hyperdb_test_client.js';
+import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBConnection, type HyperDBSettings } from '../hyperdb_wasm.js';
 import { HyperDBIncrementalExtract } from '../hyperdb_incremental_extract.js';
 import { HYPER_LOG_RESOURCE_METRICS_TABLE, HyperDBLogSource } from '../hyperdb_log_extract.js';
@@ -166,8 +166,8 @@ describe('HyperDB Wasm resource metrics', () => {
         const client = await createTestHyperDBClient(undefined, settings);
         try {
             const database = await HyperDB.create(new HyperDBEngine(client), {
-                computeDatabasePath: `/mnt/fs/dashql-resource-metrics-${nextDatabase++}.hyper`,
-                defaultDatabasePath: `/mnt/fs/dashql-resource-metrics-${nextDatabase++}.hyper`,
+                computeDatabasePath: await testDatabasePath(`dashql-resource-metrics-${nextDatabase++}.hyper`),
+                defaultDatabasePath: await testDatabasePath(`dashql-resource-metrics-${nextDatabase++}.hyper`),
                 terminateEngine: false,
             });
             try {
@@ -231,12 +231,12 @@ describe('HyperDB Wasm resource metrics', () => {
 
     it('extracts the resource metrics into typed columns', async () => {
         const sinkClient = await createTestHyperDBClient();
-        const extractPath = `/mnt/fs/hyper_resource_metrics_${crypto.randomUUID().replace(/-/g, '_')}.hyper`;
+        const extractPath = await testDatabasePath(`hyper_resource_metrics_${crypto.randomUUID().replace(/-/g, '_')}.hyper`);
         try {
             await withHyper(RESOURCE_METRICS_SETTINGS, async database => {
                 const sinkDatabase = await HyperDB.create(new HyperDBEngine(sinkClient), {
-                    computeDatabasePath: `/mnt/fs/dashql-resource-metrics-sink-${nextDatabase++}.hyper`,
-                    defaultDatabasePath: `/mnt/fs/dashql-resource-metrics-sink-${nextDatabase++}.hyper`,
+                    computeDatabasePath: await testDatabasePath(`dashql-resource-metrics-sink-${nextDatabase++}.hyper`),
+                    defaultDatabasePath: await testDatabasePath(`dashql-resource-metrics-sink-${nextDatabase++}.hyper`),
                     terminateEngine: false,
                 });
                 const worker = await database.connect();

@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { createTestHyperDBClient } from '../../../tests/hyperdb_test_client.js';
+import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../hyperdb_wasm.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
@@ -29,8 +29,8 @@ describe('HyperDB Wasm Iceberg integration', () => {
 
     beforeEach(async () => {
         database = await HyperDB.create(new HyperDBEngine(engineClient), {
-            computeDatabasePath: `/mnt/fs/dashql-iceberg-${nextDatabase++}.hyper`,
-            defaultDatabasePath: `/mnt/fs/dashql-iceberg-${nextDatabase++}.hyper`,
+            computeDatabasePath: await testDatabasePath(`dashql-iceberg-${nextDatabase++}.hyper`),
+            defaultDatabasePath: await testDatabasePath(`dashql-iceberg-${nextDatabase++}.hyper`),
             terminateEngine: false,
         });
     }, 60_000);

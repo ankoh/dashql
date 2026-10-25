@@ -1,5 +1,6 @@
 import { createBrowserClient } from 'hyperdb-wasm/raw';
 
+import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '../platform/hyperdb/hyperdb_opfs_instance.js';
 import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
 import type { HyperDBClient, HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
@@ -48,4 +49,19 @@ export async function getTestHyperDBClient(): Promise<{ client: HyperDBClient; s
     return shared
         ? { client: await shared(), shared: true }
         : { client: await createTestHyperDBClient(), shared: false };
+}
+
+/// The folder of the database files of the tests of this frame, see testDatabasePath()
+let testDatabaseFolder: Promise<string> | null = null;
+
+/// The Hyper path of a database file of a test.
+/// The engines mount /mnt/fs on OPFS, which keeps the files of interrupted runs across reloads, fixed paths would
+/// collide with them. Every test frame puts its files into an instance folder of the app, its Web Lock lives as long
+/// as the frame and the next run removes the folders of earlier runs.
+export async function testDatabasePath(name: string): Promise<string> {
+    testDatabaseFolder ??= (async () => {
+        await cleanupStaleHyperDBOPFSInstances();
+        return (await createHyperDBOPFSInstance()).directoryPath;
+    })();
+    return `${await testDatabaseFolder}/${name}`;
 }

@@ -11,7 +11,7 @@ import { ComputeConnectionProvider } from '../../../compute/compute_connection_p
 import { EmbeddedDatabaseProvider } from '../../../platform/database/embedded_database_provider.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../../platform/hyperdb/hyperdb_wasm.js';
 import { LoggerProvider } from '../../../platform/logger/logger_provider.js';
-import { getTestHyperDBClient } from '../../../tests/hyperdb_test_client.js';
+import { getTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { QueryTable } from './connection_query_table.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -34,8 +34,8 @@ describe('QueryTable', () => {
 
     beforeEach(async () => {
         database = await HyperDB.create(new HyperDBEngine(client), {
-            computeDatabasePath: `/mnt/fs/dashql-query-table-${nextDatabase++}.hyper`,
-            defaultDatabasePath: `/mnt/fs/dashql-query-table-${nextDatabase++}.hyper`,
+            computeDatabasePath: await testDatabasePath(`dashql-query-table-${nextDatabase++}.hyper`),
+            defaultDatabasePath: await testDatabasePath(`dashql-query-table-${nextDatabase++}.hyper`),
             terminateEngine: false,
         });
         connection = await database.connect();

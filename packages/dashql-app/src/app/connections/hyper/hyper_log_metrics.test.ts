@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 
-import { createTestHyperDBClient, getTestHyperDBClient } from '../../../tests/hyperdb_test_client.js';
+import { createTestHyperDBClient, getTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '../../../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../../../platform/logger/test_logger.js';
 import type { HyperDBSourceDatabase } from '../../../platform/hyperdb/hyperdb_incremental_extract.js';
@@ -63,8 +63,8 @@ describe('Hyper log metrics', () => {
         ({ client, shared: sharedClient } = await getTestHyperDBClient());
         // The tests share the database, their connections and monitoring databases are unique per test
         database = await HyperDB.create(new HyperDBEngine(client), {
-            computeDatabasePath: `/mnt/fs/dashql-log-metrics-${nextDatabase++}.hyper`,
-            defaultDatabasePath: `/mnt/fs/dashql-log-metrics-${nextDatabase++}.hyper`,
+            computeDatabasePath: await testDatabasePath(`dashql-log-metrics-${nextDatabase++}.hyper`),
+            defaultDatabasePath: await testDatabasePath(`dashql-log-metrics-${nextDatabase++}.hyper`),
             terminateEngine: false,
         });
     }, 60_000);
@@ -80,7 +80,7 @@ describe('Hyper log metrics', () => {
             prepareDatabase: async connectionId => {
                 let path = databases.get(connectionId);
                 if (path == null) {
-                    path = `/mnt/fs/dashql-monitoring-${crypto.randomUUID()}.hyper`;
+                    path = await testDatabasePath(`dashql-monitoring-${crypto.randomUUID()}.hyper`);
                     databases.set(connectionId, path);
                 }
                 return path;
@@ -313,8 +313,8 @@ describe('Hyper log metrics of resources', () => {
         // The app settings log the resource usage every second
         ({ client, shared: sharedClient } = await getTestHyperDBClient());
         database = await HyperDB.create(new HyperDBEngine(client), {
-            computeDatabasePath: '/mnt/fs/dashql-log-metrics-resources-compute.hyper',
-            defaultDatabasePath: '/mnt/fs/dashql-log-metrics-resources-user.hyper',
+            computeDatabasePath: await testDatabasePath('dashql-log-metrics-resources-compute.hyper'),
+            defaultDatabasePath: await testDatabasePath('dashql-log-metrics-resources-user.hyper'),
             terminateEngine: false,
         });
     }, 60_000);
@@ -326,7 +326,7 @@ describe('Hyper log metrics of resources', () => {
     });
 
     it('reads the resource samples of the Hyper process', async () => {
-        const path = `/mnt/fs/dashql-monitoring-${crypto.randomUUID()}.hyper`;
+        const path = await testDatabasePath(`dashql-monitoring-${crypto.randomUUID()}.hyper`);
         logMetrics = new HyperLogMetrics({ logger: new TestLogger(), pollIntervalMs: 3_600_000, sink: async () => database!, prepareDatabase: async () => path });
         const before = Date.now();
         logMetrics.watch({ database: database!, sessions: true }, 'connection');
@@ -376,12 +376,12 @@ describe('Hyper log metrics without the log settings', () => {
 
     /// Start a Hyper with the settings of the app, overridden by the given ones, and monitor its log
     async function startHyper(settings: HyperDBSettings): Promise<HyperDB> {
-        monitoringPath = `/mnt/fs/dashql-monitoring-${crypto.randomUUID()}.hyper`;
+        monitoringPath = await testDatabasePath(`dashql-monitoring-${crypto.randomUUID()}.hyper`);
         const client = await createTestHyperDBClient(undefined, settings);
         clients.push(client);
         const database = await HyperDB.create(new HyperDBEngine(client), {
-            computeDatabasePath: '/mnt/fs/dashql-log-metrics-settings-compute.hyper',
-            defaultDatabasePath: '/mnt/fs/dashql-log-metrics-settings-user.hyper',
+            computeDatabasePath: await testDatabasePath('dashql-log-metrics-settings-compute.hyper'),
+            defaultDatabasePath: await testDatabasePath('dashql-log-metrics-settings-user.hyper'),
             terminateEngine: false,
         });
         databases.push(database);

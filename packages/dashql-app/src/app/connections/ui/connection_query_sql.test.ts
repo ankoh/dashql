@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 
-import { getTestHyperDBClient } from '../../../tests/hyperdb_test_client.js';
+import { getTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../../../platform/logger/test_logger.js';
 import { connectionClientContext, HyperLogMetrics, queryEndsQuery, sqlframeClientContext } from '../hyper/hyper_log_metrics.js';
@@ -22,8 +22,8 @@ describe('Connection query SQL', () => {
 
     beforeEach(async () => {
         database = await HyperDB.create(new HyperDBEngine(client), {
-            computeDatabasePath: `/mnt/fs/dashql-query-sql-${nextDatabase++}.hyper`,
-            defaultDatabasePath: `/mnt/fs/dashql-query-sql-${nextDatabase++}.hyper`,
+            computeDatabasePath: await testDatabasePath(`dashql-query-sql-${nextDatabase++}.hyper`),
+            defaultDatabasePath: await testDatabasePath(`dashql-query-sql-${nextDatabase++}.hyper`),
             terminateEngine: false,
         });
         // Poll explicitly, the timer would race with the assertions
@@ -31,7 +31,7 @@ describe('Connection query SQL', () => {
             logger: new TestLogger(),
             pollIntervalMs: 3_600_000,
             sink: async () => database!,
-            prepareDatabase: async connectionId => `/mnt/fs/dashql-query-sql-monitoring-${connectionId}.hyper`,
+            prepareDatabase: async connectionId => await testDatabasePath(`dashql-query-sql-monitoring-${connectionId}.hyper`),
         });
     }, 60_000);
 

@@ -14,6 +14,8 @@ export const HYPER_LEGACY_LOGS_DIRECTORY = 'logs';
 /// The database files of an embedded database instance, which lives as long as its app window.
 /// A Web Lock marks the instance as alive, the folders of instances without a lock are stale.
 export interface HyperDBOPFSInstance {
+    /// The Hyper path of the instance folder
+    readonly directoryPath: string;
     /// The Hyper path of the compute database with the data frames
     readonly computeDatabasePath: string;
     /// The Hyper path of the user database of the embedded Hyper connector
@@ -36,6 +38,7 @@ export async function createHyperDBOPFSInstance(
         const folder = `${HYPER_OPFS_ROOT}/${HYPER_INSTANCES_DIRECTORY}/${id}`;
         let disposed = false;
         return {
+            directoryPath: folder,
             computeDatabasePath: `${folder}/compute.hyper`,
             userDatabasePath: `${folder}/user.hyper`,
             logDirectoryPath: `${folder}/${HYPER_INSTANCE_LOGS_DIRECTORY}`,

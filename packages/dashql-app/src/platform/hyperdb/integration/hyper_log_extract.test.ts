@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { createTestHyperDBClient } from '../../../tests/hyperdb_test_client.js';
+import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, quoteIdentifier, type HyperDBConnection, type HyperDBClient } from '../hyperdb_wasm.js';
 import {
     HyperDBIncrementalExtract,
@@ -98,19 +98,19 @@ describe('HyperDB Wasm log extract', () => {
         [engineClient, sinkClient] = await Promise.all([createTestHyperDBClient(), createTestHyperDBClient()]);
         // The tests share the databases, they tag their queries and extract into files of their own
         database = await HyperDB.create(new HyperDBEngine(engineClient), {
-            computeDatabasePath: `/mnt/fs/dashql-log-extract-${nextDatabase++}.hyper`,
-            defaultDatabasePath: `/mnt/fs/dashql-log-extract-${nextDatabase++}.hyper`,
+            computeDatabasePath: await testDatabasePath(`dashql-log-extract-${nextDatabase++}.hyper`),
+            defaultDatabasePath: await testDatabasePath(`dashql-log-extract-${nextDatabase++}.hyper`),
             terminateEngine: false,
         });
         sinkDatabase = await HyperDB.create(new HyperDBEngine(sinkClient), {
-            computeDatabasePath: `/mnt/fs/dashql-log-sink-${nextDatabase++}.hyper`,
-            defaultDatabasePath: `/mnt/fs/dashql-log-sink-${nextDatabase++}.hyper`,
+            computeDatabasePath: await testDatabasePath(`dashql-log-sink-${nextDatabase++}.hyper`),
+            defaultDatabasePath: await testDatabasePath(`dashql-log-sink-${nextDatabase++}.hyper`),
             terminateEngine: false,
         });
     }, 60_000);
 
-    beforeEach(() => {
-        extractPath = `/mnt/fs/${uniqueTag('hyper_log_extract')}.hyper`;
+    beforeEach(async () => {
+        extractPath = await testDatabasePath(`${uniqueTag('hyper_log_extract')}.hyper`);
     });
 
     afterEach(async () => {

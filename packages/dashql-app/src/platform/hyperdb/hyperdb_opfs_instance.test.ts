@@ -92,6 +92,7 @@ describe('HyperDB stale OPFS instance cleanup', () => {
 
         const instance = await createHyperDBOPFSInstance(async () => root);
         const [id] = folders.keys();
+        expect(instance.directoryPath).toBe(`/mnt/fs/instances/${id}`);
         expect(instance.computeDatabasePath).toBe(`/mnt/fs/instances/${id}/compute.hyper`);
         expect(instance.userDatabasePath).toBe(`/mnt/fs/instances/${id}/user.hyper`);
         expect(instance.logDirectoryPath).toBe(`/mnt/fs/instances/${id}/logs`);

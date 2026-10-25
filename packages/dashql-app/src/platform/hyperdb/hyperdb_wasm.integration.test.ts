@@ -5,7 +5,7 @@ import { DataFrame, generateTableName } from '../../compute/data_frame.js';
 import { WebFile } from '../file/web_file.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';
-import { createTestHyperDBClient } from '../../tests/hyperdb_test_client.js';
+import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from './hyperdb_opfs_instance.js';
 import { TestLogger } from '../logger/test_logger.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
@@ -100,8 +100,8 @@ describe('HyperDB embedded database integration', () => {
     beforeEach(async () => {
         client = new CountingClient(engineClient);
         database = await HyperDB.create(new HyperDBEngine(client), {
-            computeDatabasePath: `/mnt/fs/dashql-integration-${nextDatabase++}.hyper`,
-            defaultDatabasePath: `/mnt/fs/dashql-integration-${nextDatabase++}.hyper`,
+            computeDatabasePath: await testDatabasePath(`dashql-integration-${nextDatabase++}.hyper`),
+            defaultDatabasePath: await testDatabasePath(`dashql-integration-${nextDatabase++}.hyper`),
             terminateEngine: false,
         });
     }, 60_000);
@@ -117,7 +117,7 @@ describe('HyperDB embedded database integration', () => {
 
     it('persists an OPFS database file across wrapper lifecycles', async () => {
         const name = persistentDatabaseName('dashql_persisted');
-        const path = `/mnt/fs/${name}.hyper`;
+        const path = await testDatabasePath(`${name}.hyper`);
         const first = await database!.connect();
         let created = false;
         try {
@@ -132,8 +132,8 @@ describe('HyperDB embedded database integration', () => {
             database = null;
 
             database = await HyperDB.create(new HyperDBEngine(engineClient), {
-                computeDatabasePath: `/mnt/fs/dashql-integration-${nextDatabase++}.hyper`,
-                defaultDatabasePath: `/mnt/fs/dashql-integration-${nextDatabase++}.hyper`,
+                computeDatabasePath: await testDatabasePath(`dashql-integration-${nextDatabase++}.hyper`),
+                defaultDatabasePath: await testDatabasePath(`dashql-integration-${nextDatabase++}.hyper`),
                 terminateEngine: false,
             });
             const second = await database.connect();

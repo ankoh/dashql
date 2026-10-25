@@ -81,6 +81,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
     private readonly sessions = new Set<HyperDBSession>();
     /// The idle pooled sessions by default database alias and client context, see poolKey()
     private readonly idleSessions = new Map<string, HyperDBSession[]>();
+    /// The sessions of connect calls that are still attaching their database
+    private readonly openingSessions = new Set<Promise<HyperDBSession>>();
     private initialization: Promise<void> | null = null;
     private termination: Promise<void> | null = null;
     private terminated = false;
@@ -127,6 +129,18 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             return new HyperDBConnection(idle, release);
         }
 
+        const opening = this.openSession(compute ? this.computeDatabasePath : this.defaultDatabasePath, alias, clientContext);
+        this.openingSessions.add(opening);
+        try {
+            return new HyperDBConnection(await opening, release);
+        } finally {
+            this.openingSessions.delete(opening);
+        }
+    }
+
+    /// Open an engine connection with the database attached under the alias.
+    /// A termination waits for the opening sessions, they close themselves if it started while they were attaching.
+    private async openSession(databasePath: string | null, alias: string, clientContext: string | null): Promise<HyperDBSession> {
         // Hyper logs the client context as ctx.client of the query events of the session
         const connection = await this.engine.connect(clientContext == null
             ? undefined
@@ -136,7 +150,6 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             throw new Error('database is terminated');
         }
 
-        const databasePath = compute ? this.computeDatabasePath : this.defaultDatabasePath;
         const session = new HyperDBSession(connection, this.mountFile, () => {
             this.sessions.delete(session);
         }, databasePath == null ? undefined : alias);
@@ -144,12 +157,15 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             if (databasePath != null) {
                 await session.execute(`ATTACH DATABASE ${quoteIdentifier(databasePath)} AS ${quoteIdentifier(alias)}`);
             }
+            if (this.termination || this.terminated) {
+                throw new Error('database is terminated');
+            }
         } catch (error) {
             await session.close();
             throw error;
         }
         this.sessions.add(session);
-        return new HyperDBConnection(session, release);
+        return session;
     }
 
     /// Mount a file for a statement of a session
@@ -241,8 +257,12 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             this.termination = (async () => {
                 try {
                     await this.databaseOperation;
+                    await Promise.allSettled([...this.openingSessions]);
                     this.idleSessions.clear();
-                    await Promise.all([...this.sessions].map(session => session.closeForTermination()));
+                    // A failed close must not leave the other closes running into a retried termination
+                    const closes = await Promise.allSettled([...this.sessions].map(session => session.closeForTermination()));
+                    const failed = closes.find(close => close.status === 'rejected');
+                    if (failed) throw failed.reason;
                     for (const mounts of [this.externalFiles, this.externalDirectories]) {
                         for (const [path, resource] of mounts) {
                             await resource.close();
@@ -542,6 +562,11 @@ class HyperDBSession {
     }
 
     async closeForTermination(): Promise<void> {
+        // The running query of a close is its detach, aborting it would keep the database attached
+        if (this.closing) {
+            await this.closing;
+            return;
+        }
         const current = this.current;
         if (current != null) {
             current.cancellation.abort(new Error('database is terminating'));
