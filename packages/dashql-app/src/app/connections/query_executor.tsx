@@ -40,15 +40,17 @@ import { yieldToBrowser } from '../../utils/yield_to_browser.js';
 
 const LOG_CTX = 'query_executor';
 
+/// Query failures are logged as warnings.
+/// The failed run already shows the error inline, error toasts are reserved for failures of the app itself.
 export function logQueryFailure(logger: TracedLogger, error: unknown, queryId: number, sessionId: string): void {
     if (error instanceof LoggableException) {
-        logger.error(error.message, {
+        logger.warn(error.message, {
             ...error.keyValues,
             queryId: queryId.toString(),
             sessionId,
         }, error.target);
     } else {
-        logger.error('Query failed with unknown error', {
+        logger.warn('Query failed with unknown error', {
             queryId: queryId.toString(),
             sessionId,
             raw: stringifyError(error),

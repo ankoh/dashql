@@ -98,7 +98,7 @@ describe('consumeQueryResponseStream', () => {
 });
 
 describe('logQueryFailure', () => {
-    it('records HTTP diagnostics at error level on the query trace', () => {
+    it('records HTTP diagnostics at warn level on the query trace', () => {
         const logger = new TestLogger();
         const trace = createTrace();
         const failure = new HyperHttpError(400, null, {
@@ -111,7 +111,7 @@ describe('logQueryFailure', () => {
         logQueryFailure(logger.withTrace(trace), failure, 2, 'session-1');
 
         expect(logger.buffer.collectTraceLogs(trace.traceId)).toMatchObject([{
-            level: LogLevel.Error,
+            level: LogLevel.Warn,
             target: 'hyperdb_http_client',
             message: 'HTTP 400',
             keyValues: {
