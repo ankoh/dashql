@@ -11,6 +11,9 @@ import { PromptEditor } from '../../scripts/editor/prompt_editor.js';
 import { DashQLCompletionAbortEffect } from '../../scripts/editor/dashql_processor.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useComposerInputMode } from '../../ai/use_composer_input_mode.js';
+import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
+import type { ConnectorType } from '../../../connections/connector_info.js';
+import type { SnippetRegistry } from '../../snippets/snippet_registry.js';
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 
@@ -41,6 +44,10 @@ export interface SessionComposerProps {
     submitRef?: React.RefObject<(() => void) | null>;
     /// Picks the connection that the draft runs on
     connectionPicker?: React.ReactNode;
+    /// The connector of the draft, the landing view offers the snippets that run on it
+    snippetConnector?: ConnectorType;
+    /// The snippets to browse, the bundled ones by default
+    snippetRegistry?: SnippetRegistry;
 }
 
 /// Takes the draft out of a composer editor and clears it, returns null when the draft is blank
@@ -95,6 +102,16 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
             props.onSend(text, mode);
         }
     }, [props.onSend, view, input.resolveSendMode]);
+    // A snippet replaces the draft right away, there is no script yet whose text could be compared
+    const applySnippet = React.useCallback((text: string) => {
+        if (view == null) return;
+        view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: text },
+            selection: { anchor: text.length },
+            effects: DashQLCompletionAbortEffect.of(null),
+        });
+        view.focus();
+    }, [view]);
     const handleSendClick = React.useCallback(() => {
         send();
         view?.focus();
@@ -144,6 +161,16 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                 </SegmentedControl>
                 <div className={styles.composer_trailing_actions}>
                     {props.connectionPicker}
+                    {hero && props.snippetConnector != null && (
+                        <SnippetsOverlay
+                            scriptName="the prompt"
+                            connectorType={props.snippetConnector}
+                            disabled={view == null}
+                            onApply={applySnippet}
+                            registry={props.snippetRegistry}
+                            testId="composer-snippets"
+                        />
+                    )}
                     <IconButton
                         variant={hero ? ButtonVariant.Primary : ButtonVariant.Default}
                         size={ButtonSize.Small}

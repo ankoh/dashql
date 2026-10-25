@@ -29,6 +29,8 @@ export interface SnippetsOverlayProps {
     onApply: (text: string) => void;
     /// The snippets to browse, the bundled ones by default
     registry?: SnippetRegistry;
+    /// The test id of the trigger
+    testId?: string;
 }
 
 /// The registry while the bundled snippets are parsed
@@ -76,7 +78,7 @@ export function SnippetsOverlay(props: SnippetsOverlayProps): React.ReactElement
                 aria-label={`Insert a snippet into ${props.scriptName}`}
                 aria-haspopup="dialog"
                 aria-expanded={open}
-                data-testid="script-snippets"
+                data-testid={props.testId ?? 'script-snippets'}
                 disabled={props.disabled}
                 onClick={(event) => { event.stopPropagation(); setOpen(value => !value); }}
             >

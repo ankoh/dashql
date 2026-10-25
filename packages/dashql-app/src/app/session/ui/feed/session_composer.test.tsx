@@ -6,6 +6,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import type { EditorView } from '@codemirror/view';
 
 import { SessionComposer, SessionComposerVariant } from './session_composer.js';
+import { ConnectorType } from '../../../connections/connector_info.js';
+import { buildSnippetRegistry } from '../../snippets/snippet_registry.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { LoggerProvider } from '../../../../platform/logger/logger_provider.js';
 import * as identifierStyles from '../../ai/editor/nl_identifier_plugin.module.css';
@@ -46,12 +48,15 @@ describe('Session composer', () => {
         container.remove();
         catalog.destroy();
         dql.resetUnsafe();
+        document.getElementById('__dashqlPortalRoot__')?.remove();
     });
 
     // The view is created by a chain of effects, wait until the composer hands it out
     async function render(variant = SessionComposerVariant.Docked, aiAvailable = false) {
+        const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `${core.renderCommentTag('description', 'Text.')}\nselect 42;` });
         act(() => root.render(<LoggerProvider>
             <SessionComposer instance={dql} catalog={catalog} variant={variant} aiAvailable={aiAvailable}
+                snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
                 keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
         </LoggerProvider>));
         await vi.waitFor(() => expect(view).not.toBeNull());
@@ -111,6 +116,20 @@ describe('Session composer', () => {
         act(() => sendButton().click());
         expect(onSend).toHaveBeenCalledExactlyOnceWith('  select 2', ComposerInputMode.Sql);
         expect(editor.state.doc.toString()).toBe('');
+    });
+
+    it('replaces the draft with a snippet on the landing view only', async () => {
+        const editor = await render(SessionComposerVariant.Hero);
+        act(() => type(editor, 'select 1'));
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-snippets"]')!.click());
+        act(() => document.querySelector<HTMLButtonElement>('[data-testid="snippet-apply"]')!.click());
+        expect(editor.state.doc.toString()).toContain('select 42');
+        expect(editor.state.doc.toString()).not.toContain('select 1');
+        expect(sendButton().disabled).toBe(false);
+        expect(document.querySelector('[data-testid="snippets-overlay"]')).toBeNull();
+
+        await render(SessionComposerVariant.Docked);
+        expect(container.querySelector('[data-testid="composer-snippets"]')).toBeNull();
     });
 
     it('keeps the draft across hero and docked variants and disables AI without a provider', async () => {

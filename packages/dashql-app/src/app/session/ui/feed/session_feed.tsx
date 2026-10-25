@@ -706,6 +706,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         onSend={handleComposerSend}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}
+                        snippetConnector={scriptConnections.get(props.sessionScripts.connectionId)?.connectorInfo.connectorType}
                         connectionPicker={(
                             <ScriptConnectionPicker
                                 sessionId={props.sessionScripts.sessionId}
