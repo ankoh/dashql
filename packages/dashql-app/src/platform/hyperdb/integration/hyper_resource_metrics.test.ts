@@ -10,9 +10,11 @@ function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));
 }
 
-/// The startup settings that write resource metrics to the log every second, also without load.
+/// The interval of the resource metrics of the tests, shorter than the one of the app so that samples arrive quickly
+const RESOURCE_METRICS_INTERVAL_MS = 200;
+/// The startup settings that write resource metrics to the log every interval, also without load.
 const RESOURCE_METRICS_SETTINGS = {
-    log_resource_usage_interval: '1s',
+    log_resource_usage_interval: `${RESOURCE_METRICS_INTERVAL_MS}ms`,
     log_resource_usage_always: 1,
 };
 /// All recorders of log_resource_usage_mode, from system memory (1) to cgroup memory (2048).
@@ -136,7 +138,7 @@ async function waitForResourceMetrics(connection: HyperDBConnection, count: numb
                 toPlainObjects(keys).map(({ k, n }) => `${k as string} (${n as bigint})`).join(', ')
             }`);
         }
-        await new Promise(resolve => setTimeout(resolve, 250));
+        await new Promise(resolve => setTimeout(resolve, RESOURCE_METRICS_INTERVAL_MS));
     }
 }
 
@@ -214,8 +216,8 @@ describe('HyperDB Wasm resource metrics', () => {
         // The events belong to no session, the log extract never drops them as events of a monitor.
         expect(sessions).toEqual(['-']);
         for (const interval of intervals) {
-            expect(interval).toBeGreaterThan(500);
-            expect(interval).toBeLessThan(3_000);
+            expect(interval).toBeGreaterThan(RESOURCE_METRICS_INTERVAL_MS / 2);
+            expect(interval).toBeLessThan(RESOURCE_METRICS_INTERVAL_MS * 5);
         }
         expect(schema).toEqual(DEFAULT_RESOURCE_METRICS_SCHEMA);
         expect(trackers).toEqual(expect.arrayContaining(['global', 'global_transactions', 'global_plan_cache']));
@@ -272,8 +274,14 @@ describe('HyperDB Wasm resource metrics', () => {
                         await extract.poll();
                     }
                     // Idle samples follow the workload.
-                    await new Promise(resolve => setTimeout(resolve, 2_000));
-                    await extract.poll();
+                    while (await readNumber(reader, `
+                        SELECT count(*) AS n FROM ${table}
+                        WHERE transaction_memory_mb = 0 AND ts > (SELECT max(ts) FROM ${table} WHERE transaction_memory_mb > 0)
+                    `) === 0) {
+                        if (performance.now() > deadline) throw new Error('no idle resource sample followed the workload in time');
+                        await new Promise(resolve => setTimeout(resolve, RESOURCE_METRICS_INTERVAL_MS));
+                        await extract.poll();
+                    }
 
                     const [metrics] = toPlainObjects(await reader.query(`
                         SELECT

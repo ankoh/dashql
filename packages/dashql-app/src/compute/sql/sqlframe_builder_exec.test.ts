@@ -21,12 +21,17 @@ describe('SQLFrame execution', () => {
     let database: HyperDB | null = null;
     let conn!: HyperDBConnection;
 
-    beforeEach(async () => {
+    beforeAll(async () => {
         database = await setupWebHyperDB('sqlframe_builder_exec_test', new TestLogger());
         conn = await database.connect();
     }, 60_000);
 
+    // The tests share the database, every test creates its tables again
     afterEach(async () => {
+        for (const table of ['input', 'stats', 'ftable']) await conn.execute(`DROP TABLE IF EXISTS ${table}`);
+    });
+
+    afterAll(async () => {
         if (conn) await conn.close();
         await database?.terminate();
     });

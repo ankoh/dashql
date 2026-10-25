@@ -17,8 +17,8 @@ import {
     type HyperQueryEnd,
 } from './hyper_log_metrics.js';
 
-/// The offset of the clock of the embedded Hyper from UTC, the time zone of the app
-const LOCAL_CLOCK_OFFSET_MS = -new Date().getTimezoneOffset() * 60_000;
+/// The offset of the clock of the embedded Hyper from UTC, the time zone of the app, 0 and not -0 in UTC
+const LOCAL_CLOCK_OFFSET_MS = 0 - new Date().getTimezoneOffset() * 60_000;
 
 /// A Hyper whose queries run in sessions of their own, like a remote Hyper over gRPC or HTTP
 function sessionless(database: HyperDB): HyperDBSourceDatabase {
@@ -61,16 +61,17 @@ describe('Hyper log metrics', () => {
 
     beforeAll(async () => {
         ({ client, shared: sharedClient } = await getTestHyperDBClient());
-    }, 60_000);
-
-    beforeEach(async () => {
-        run = crypto.randomUUID();
-        databases.clear();
+        // The tests share the database, their connections and monitoring databases are unique per test
         database = await HyperDB.create(new HyperDBEngine(client), {
             computeDatabasePath: `/mnt/fs/dashql-log-metrics-${nextDatabase++}.hyper`,
             defaultDatabasePath: `/mnt/fs/dashql-log-metrics-${nextDatabase++}.hyper`,
             terminateEngine: false,
         });
+    }, 60_000);
+
+    beforeEach(() => {
+        run = crypto.randomUUID();
+        databases.clear();
         // Poll explicitly, the timer would race with the assertions
         logMetrics = new HyperLogMetrics({
             logger: new TestLogger(),
@@ -85,7 +86,7 @@ describe('Hyper log metrics', () => {
                 return path;
             },
         });
-    }, 60_000);
+    });
 
     afterEach(async () => {
         await logMetrics?.stop();
@@ -95,11 +96,11 @@ describe('Hyper log metrics', () => {
         const cleanup = await database!.connect();
         for (const path of databases.values()) await cleanup.execute(`DROP DATABASE IF EXISTS ${quoteIdentifier(path)}`).catch(() => {});
         await cleanup.close();
-        await database?.terminate();
-        database = null;
     });
 
     afterAll(async () => {
+        await database?.terminate();
+        database = null;
         if (!sharedClient) await client?.terminate();
     });
 
@@ -330,13 +331,18 @@ describe('Hyper log metrics of resources', () => {
         const before = Date.now();
         logMetrics.watch({ database: database!, sessions: true }, 'connection');
         expect(await logMetrics.opened('connection')).toBe(true);
-        await new Promise(resolve => setTimeout(resolve, 2_500));
-        await logMetrics.poll('connection');
-        const after = Date.now();
-
         const { resourceMetrics, clockOffsetMs } = logMetrics.state.current.get('connection')!;
-        const samples = readResourceSamples(await logMetrics.query('connection', resourceSamplesQuery(resourceMetrics!, clockOffsetMs!, { afterRow: 0, since: before })));
-        expect(samples.length).toBeGreaterThanOrEqual(1);
+        const readSamples = async () => readResourceSamples(await logMetrics!.query('connection', resourceSamplesQuery(resourceMetrics!, clockOffsetMs!, { afterRow: 0, since: before })));
+        // Poll until the first sample since the start of the test
+        const deadline = performance.now() + 10_000;
+        let samples = await readSamples();
+        while (samples.length === 0) {
+            if (performance.now() > deadline) throw new Error('the extract holds no resource sample after 10s');
+            await new Promise(resolve => setTimeout(resolve, 250));
+            await logMetrics.poll('connection');
+            samples = await readSamples();
+        }
+        const after = Date.now();
         for (const sample of samples) {
             expect(sample.sampledAt).toBeGreaterThanOrEqual(before - 1_000);
             expect(sample.sampledAt).toBeLessThanOrEqual(after + 1_000);

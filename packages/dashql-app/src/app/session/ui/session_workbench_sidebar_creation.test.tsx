@@ -49,6 +49,19 @@ function connectionsByType(): string[][] {
     return byType;
 }
 
+/// Stable like the storage contexts
+const storageReader = {
+    backend: {},
+    getSessionLocation: () => ({ type: 'opfs' }),
+    getSessionOrder: () => [],
+};
+const storageWriter = {
+    write: state.write,
+    deleteSession: state.deleteSession,
+    backend: {},
+    cancelPendingWritesForSession: vi.fn(),
+};
+
 const dependencies = {
     useRouterNavigate: () => state.navigate,
     useRouteContext: () => ({ sessionId: 'current-session', sessionSetupStatus: SessionSetupStatus.NONE }),
@@ -71,17 +84,8 @@ const dependencies = {
     useSessionCreation: () => state.createSession,
     useMergeConnections: () => async () => {},
     useDeleteConnection: () => async () => {},
-    useStorageReader: () => ({
-        backend: {},
-        getSessionLocation: () => ({ type: 'opfs' }),
-        getSessionOrder: () => [],
-    }),
-    useStorageWriter: () => ({
-        write: state.write,
-        deleteSession: state.deleteSession,
-        backend: {},
-        cancelPendingWritesForSession: vi.fn(),
-    }),
+    useStorageReader: () => storageReader,
+    useStorageWriter: () => storageWriter,
     useComputationDispatch: () => vi.fn(),
     BundledSessionsOverlay: () => null,
     SessionStorageOverlay: () => null,

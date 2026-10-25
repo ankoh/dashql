@@ -62,7 +62,7 @@ function baseProps() {
         focusedFileName: '01_alpha.sql', active: true, onFocus: vi.fn(), onDelete: vi.fn(),
         onRename: vi.fn(), onPickConnection: vi.fn(), onMoveUp: vi.fn(), onMoveDown: vi.fn(), onExecute: vi.fn(), onShowStatus: vi.fn(),
          onShowTable: vi.fn(), onShowVisualization: vi.fn(), onShowDetails: vi.fn(), onRerun: vi.fn(),
-        onFormat: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
+        onFormat: vi.fn(), onApplySnippet: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
         generations: new Map(), onStopGeneration: vi.fn(), onDismissGeneration: vi.fn(),
         onAutoCollapseResult: vi.fn(), onResetAutoCollapsedResult: vi.fn(), topPadding: 16,
         onCreate: vi.fn(), onEditorView: vi.fn(), onRowHeightChange: vi.fn(), dependencies,
@@ -189,6 +189,18 @@ describe('V2 session feed rows', () => {
         expect(props.onDelete).toHaveBeenCalledWith('01_alpha.sql');
     });
 
+    it('offers snippets next to the delete button unless a rewrite is pending', () => {
+        const props = baseProps();
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        const snippets = container.querySelector<HTMLButtonElement>('[data-testid="script-snippets"]')!;
+        expect(snippets.disabled).toBe(false);
+        const deleteButton = container.querySelector('[data-testid="script-delete"]')!;
+        expect(snippets.compareDocumentPosition(deleteButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        expect(container.querySelector<HTMLButtonElement>('[data-testid="script-snippets"]')!.disabled).toBe(true);
+    });
+
     it('shows the connection instead of the file name and edits the file in the storage view', () => {
         const props = baseProps();
         Object.assign(props, { connections: new Map([['database', {
@@ -302,11 +314,15 @@ describe('Session feed composer', () => {
         aiClient: null as any,
         submit: vi.fn(),
         view: null as any,
+        rowProps: null as any,
     };
+    // Stable like the storage contexts, the feed lists the data files again whenever the backend changes
+    const storageReader = { backend: { listDataFiles: () => Promise.resolve([]) } } as any;
+    const storageWriter = { write: () => Promise.resolve({ status: 'written' }) } as any;
     const feedDependencies: SessionFeedDependencies = {
         useQueryExecutor: () => feedState.executeQuery,
-        useStorageReader: () => ({ backend: { listDataFiles: () => Promise.resolve([]) } }) as any,
-        useStorageWriter: () => ({ write: () => Promise.resolve({ status: 'written' }) }) as any,
+        useStorageReader: () => storageReader,
+        useStorageWriter: () => storageWriter,
         usePickScriptConnection: () => vi.fn(),
         useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },
         runSessionScript: feedState.runSessionScript as any,
@@ -318,7 +334,10 @@ describe('Session feed composer', () => {
             React.useEffect(() => props.setView?.(feedState.view), [props.setView]);
             return <div data-testid="composer" />;
         },
-        ScriptFeedRow: () => <div />,
+        ScriptFeedRow: (props: any) => {
+            feedState.rowProps = props;
+            return <div />;
+        },
     };
     const onlineConn = {
         connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE,
@@ -359,6 +378,7 @@ describe('Session feed composer', () => {
         feedState.generateSqlFromPrompt.mockReset();
         feedState.submit.mockReset();
         feedState.aiClient = null;
+        feedState.rowProps = null;
         feedState.view = fakeView('');
         attention = { sessionId: 'session', active: false, request: vi.fn() };
         container = document.createElement('div');
@@ -473,6 +493,18 @@ describe('Session feed composer', () => {
             type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: '-- how many rows\nselect count(*) from t' },
         });
         expect(feedState.runSessionScript).toHaveBeenCalledWith(filled, filled.scripts[1], feedState.executeQuery, modify, expect.anything());
+    });
+
+    it('replaces the text of a script with a snippet, as a diff if the script has text', async () => {
+        const modify = vi.fn(() => Promise.resolve(session(['1_alpha.sql'])));
+        const current = session(['1_alpha.sql', '2_beta.sql']);
+        current.scripts[2] = { ...current.scripts[2], scriptSession: { getText: () => '  \n' } } as any;
+        render(current, modify);
+        expect(feedState.rowProps).not.toBeNull();
+        await act(async () => feedState.rowProps.onApplySnippet(1, 'select 2;'));
+        expect(modify).toHaveBeenLastCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: 'select 2;', withDiff: true } });
+        await act(async () => feedState.rowProps.onApplySnippet(2, 'select 3;'));
+        expect(modify).toHaveBeenLastCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 2, text: 'select 3;', withDiff: false } });
     });
 
     it('keeps the commented script when the generation fails', async () => {

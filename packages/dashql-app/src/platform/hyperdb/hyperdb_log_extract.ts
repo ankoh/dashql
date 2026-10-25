@@ -190,7 +190,8 @@ export class HyperDBLogSource implements HyperDBIncrementalExtractSource {
         `);
         const loggedAt = result.getChild('ended_at')?.get(0);
         if (loggedAt == null) throw new Error('the Hyper log does not hold the end of the clock query');
-        return Math.round((Number(loggedAt) - endedAt) / CLOCK_OFFSET_STEP_MS) * CLOCK_OFFSET_STEP_MS;
+        // + 0 turns the -0 of a log just before the clock of the app into 0
+        return Math.round((Number(loggedAt) - endedAt) / CLOCK_OFFSET_STEP_MS) * CLOCK_OFFSET_STEP_MS + 0;
     }
 
     /// The source query over the scoped or watermarked log

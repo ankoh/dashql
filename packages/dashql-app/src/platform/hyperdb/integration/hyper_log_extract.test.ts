@@ -94,13 +94,9 @@ describe('HyperDB Wasm log extract', () => {
     let reader: HyperDBConnection | null = null;
 
     beforeAll(async () => {
-        engineClient = globalThis.__DASHQL_TEST_HYPERDB_CLIENT__
-            ? await globalThis.__DASHQL_TEST_HYPERDB_CLIENT__()
-            : await createTestHyperDBClient();
-        sinkClient = await createTestHyperDBClient();
-    }, 60_000);
-
-    beforeEach(async () => {
+        // The source is not the shared Hyper, every new extract would backfill the log of all earlier test files
+        [engineClient, sinkClient] = await Promise.all([createTestHyperDBClient(), createTestHyperDBClient()]);
+        // The tests share the databases, they tag their queries and extract into files of their own
         database = await HyperDB.create(new HyperDBEngine(engineClient), {
             computeDatabasePath: `/mnt/fs/dashql-log-extract-${nextDatabase++}.hyper`,
             defaultDatabasePath: `/mnt/fs/dashql-log-extract-${nextDatabase++}.hyper`,
@@ -111,8 +107,11 @@ describe('HyperDB Wasm log extract', () => {
             defaultDatabasePath: `/mnt/fs/dashql-log-sink-${nextDatabase++}.hyper`,
             terminateEngine: false,
         });
-        extractPath = `/mnt/fs/${uniqueTag('hyper_log_extract')}.hyper`;
     }, 60_000);
+
+    beforeEach(() => {
+        extractPath = `/mnt/fs/${uniqueTag('hyper_log_extract')}.hyper`;
+    });
 
     afterEach(async () => {
         if (reader != null) {
@@ -134,15 +133,15 @@ describe('HyperDB Wasm log extract', () => {
         } finally {
             await cleanup.close();
         }
+    });
+
+    afterAll(async () => {
         await sinkDatabase?.terminate();
         sinkDatabase = null;
         await database?.terminate();
         database = null;
-    });
-
-    afterAll(async () => {
         await sinkClient?.terminate();
-        if (!globalThis.__DASHQL_TEST_HYPERDB_CLIENT__) await engineClient.terminate();
+        await engineClient?.terminate();
     });
 
     /// Open an extract of the source log in the sink.
@@ -535,7 +534,8 @@ describe('HyperDB Wasm log extract', () => {
     }, 60_000);
 
     it('reads the clock offset of the log', async () => {
-        const offset = -new Date().getTimezoneOffset() * 60_000;
+        // 0 - avoids the -0 of UTC
+        const offset = 0 - new Date().getTimezoneOffset() * 60_000;
         for (const scoped of [true, false]) {
             const connection = await database!.connect();
             try {

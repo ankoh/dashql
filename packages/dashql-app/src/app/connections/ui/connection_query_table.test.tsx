@@ -52,7 +52,7 @@ describe('QueryTable', () => {
         await connection?.close().catch(() => {});
         connection = null;
         // The unmounted table still drops the tables of its computation, termination closes these connections
-        await database?.terminate().catch(() => {});
+        await database?.terminate();
         database = null;
     });
 

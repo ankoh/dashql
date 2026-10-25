@@ -1,4 +1,4 @@
-import { createReadStream, realpathSync, statSync } from 'node:fs';
+import { createReadStream, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
@@ -108,6 +108,8 @@ try {
         return error.stack.startsWith(header) ? error.stack : `${header}\n${error.stack}`;
     };
     const summary = await page.evaluate(() => globalThis.__DASHQL_BROWSER_TESTS__);
+    const outputs = process.env.TEST_UNDECLARED_OUTPUTS_DIR;
+    if (outputs) writeFileSync(join(outputs, 'browser_test_summary.json'), JSON.stringify(summary, null, 2));
     const failures = summary.files.flatMap(file => {
         const fileFailure = file.error ? [`${file.file}\n${formatError(file.error)}`] : [];
         const testFailures = file.tests

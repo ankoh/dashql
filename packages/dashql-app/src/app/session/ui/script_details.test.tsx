@@ -15,6 +15,8 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
 const state = { keyHandlers: [] as any[], executeQuery: vi.fn(), formatScriptEditor: vi.fn(), deleteCache: vi.fn(), outputProps: null as any };
+/// Stable like the storage context
+const storageReader = { backend: { deleteQueryResultCache: state.deleteCache }, getSessionLocation: () => ({}) };
 const dependencies = {
     useAppConfig: () => ({ settings: {} }),
     useLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn() }),
@@ -24,7 +26,7 @@ const dependencies = {
     useQueryState: () => null,
     useCancelQuery: () => vi.fn(),
     useQueryExecutor: () => state.executeQuery,
-    useStorageReader: () => ({ backend: { deleteQueryResultCache: state.deleteCache } }),
+    useStorageReader: () => storageReader,
     isScriptFormattable: () => true,
     formatScriptEditor: (...args: any[]) => {
         state.formatScriptEditor(...args);
@@ -34,15 +36,8 @@ const dependencies = {
     ScriptDetailsEditorPane: (props: any) => {
         React.useEffect(() => props.onEditorView({ focus: vi.fn() }), [props.onEditorView]);
         return <div>
-            <button aria-label="Rename script" onClick={props.onStartEditingName}>rename</button>
             <button aria-label="Shrink script details" onClick={props.onHide}>shrink</button>
             {props.formatMenu}
-            {props.isEditingName ? <input
-                ref={props.editInputRef}
-                value={props.draftFileName}
-                onChange={(event: any) => props.onDraftFileNameChange(event.target.value)}
-                onKeyDown={(event: any) => event.key === 'Enter' && props.onSaveName()}
-            /> : null}
             <div data-testid="details-editor">{props.scriptDisplay}</div>
         </div>;
     },
@@ -93,15 +88,14 @@ describe('ScriptDetails V2 flat scripts', () => {
         const modify = vi.fn();
         act(() => root.render(<ScriptDetails sessionScripts={scripts()} modifySessionScripts={modify}
             connection={null} hideDetails={() => {}} scriptId={2} dependencies={dependencies} />));
-        const edit = container.querySelector('[aria-label="Rename script"]') as HTMLButtonElement;
-        act(() => edit.click());
-        const input = container.querySelector('input') as HTMLInputElement;
+        act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());
+        act(() => menuItem('storage')!.click());
+        const input = document.querySelector('[data-testid="script-file-name-input"]') as HTMLInputElement;
         act(() => {
-            const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
-            setter.call(input, 'report');
-            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.focus();
+            input.value = 'report';
+            input.blur();
         });
-        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
         expect(modify).toHaveBeenCalledWith({ type: RENAME_SCRIPT, value: { fileName: '02_second.sql', newFileName: 'report' } });
     });
 
