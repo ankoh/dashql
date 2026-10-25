@@ -12,6 +12,10 @@ const rounded = (value: string, decimals: number) => `round((${value})::numeric(
 /// Seconds of a column of the query ends as milliseconds, rounded to hundredths
 const ms = (seconds: string) => rounded(`${seconds} * 1000`, 2);
 
+/// The order of the query ends, newest first. The log times of Hyper in Wasm have millisecond resolution, the request
+/// number orders the queries of a session that end within the same millisecond. It is text, padded to compare as number.
+const NEWEST_FIRST = `epoch_ms DESC, lpad(req, 20, '0') DESC`;
+
 /// The predicate of the query ends of a scope
 function scopePredicate(scope: QueryScope): string {
     switch (scope) {
@@ -42,7 +46,7 @@ export function recentQueriesSql(queryEnds: string, scope: QueryScope, since: nu
             client_query_type AS source,
             error_message AS error
         FROM (${selectQueryEnds(queryEnds, scope, since)}) runs
-        ORDER BY epoch_ms DESC
+        ORDER BY ${NEWEST_FIRST}
         LIMIT ${MAX_ROWS}`;
 }
 
@@ -52,7 +56,7 @@ export function recentQueriesSql(queryEnds: string, scope: QueryScope, since: nu
 export function queryShapesSql(queryEnds: string, scope: QueryScope, since: number): string {
     return `
         WITH newest AS (
-            SELECT *, epoch_ms = max(epoch_ms) OVER (PARTITION BY query_shape) AS is_newest
+            SELECT *, row_number() OVER (PARTITION BY query_shape ORDER BY ${NEWEST_FIRST}) = 1 AS is_newest
             FROM (${selectQueryEnds(queryEnds, scope, since)}) ends
         )
         SELECT
