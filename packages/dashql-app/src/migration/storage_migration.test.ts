@@ -57,7 +57,7 @@ describe('storage migration', () => {
     });
 
     it('leaves a fresh storage untouched', async () => {
-        await migrateStorage(new NullLogger(), root);
+        expect(await migrateStorage(new NullLogger(), root)).toEqual({ steps: 0, sessions: 0 });
         expect(files.size).toBe(0);
         expect(dirs.size).toBe(0);
     });
@@ -76,7 +76,9 @@ describe('storage migration', () => {
         fsStore.dirs.add(NATIVE_DIR);
         fsStore.files.set(`${NATIVE_DIR}/dashql-notebook.json`, notebook(SESSION_B, DB_B));
 
-        await migrateStorage(new NullLogger(), root);
+        const summary = await migrateStorage(new NullLogger(), root);
+        expect(summary.steps).toBe(STORAGE_MIGRATION_STEPS.length);
+        expect(summary.sessions).toBeGreaterThan(0);
 
         // The manifest lists sessions and the consolidated connections
         const manifest = json('dashql-manifest.json');
@@ -128,8 +130,10 @@ describe('storage migration', () => {
         dirs.add(`sessions/${SESSION_A}`);
         files.set(`sessions/${SESSION_A}/dashql-notebook.json`, notebook(SESSION_A, DB_A));
 
-        await migrateStorage(new NullLogger(), root);
+        expect(await migrateStorage(new NullLogger(), root)).toEqual({ steps: 0, sessions: 1 });
         expect(json(`sessions/${SESSION_A}/dashql-session.json`).formatVersion).toBe(SESSION_FORMAT_VERSION);
+        // A current storage has nothing left to migrate
+        expect(await migrateStorage(new NullLogger(), root)).toEqual({ steps: 0, sessions: 0 });
     });
 
     it('seeds connections without a catalog from the catalog copies of the sessions', async () => {

@@ -37,3 +37,10 @@
     font-size: 0.9rem;
     width: 240px;
 }
+
+.detail_error {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--base_color_red_5);
+    overflow-wrap: anywhere;
+}

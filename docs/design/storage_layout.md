@@ -138,3 +138,6 @@ Two versions describe the stored data:
 The current versions are in `migration/versions.ts`. A migration step spells out every file and folder name it
 touches instead of using the storage constants of the app: the constants describe the current layout, a step the
 layout of its version. Steps are idempotent, because an interrupted migration repeats its last step.
+
+The migration runs before the storage backend is set up. Meanwhile the storage provider shows the setup page with the
+step "Apply Migrations", which is skipped when there was nothing to migrate and shows the error when a step fails.

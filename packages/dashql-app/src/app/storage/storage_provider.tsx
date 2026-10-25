@@ -8,6 +8,8 @@ import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import { migrateStorage } from '../../migration/storage_migration.js';
 import { useAppHandOver } from '../../platform/crosstab/app_hand_over.js';
+import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
+import { APP_SETUP_NOT_STARTED, AppSetupPage } from '../ui/app_setup_page.js';
 
 // Storage context for the writer
 const StorageWriterContext = React.createContext<StorageWriter | null>(null);
@@ -25,6 +27,8 @@ export interface StorageReader {
     getSessionOrder(): string[];
 }
 const StorageReaderContext = React.createContext<StorageReader | null>(null);
+/// The status of the migration of the storage at startup, skipped for a provided backend
+const StorageMigrationStatusContext = React.createContext<IndicatorStatus>(IndicatorStatus.Skip);
 
 interface StorageProviderProps {
     backend?: StorageBackend;
@@ -34,6 +38,8 @@ interface StorageProviderProps {
 export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: providedBackend, children }) => {
     const logger = useLogger();
     const [backend, setBackend] = React.useState<StorageBackend | null>(providedBackend || null);
+    const [migrationStatus, setMigrationStatus] = React.useState<IndicatorStatus>(providedBackend ? IndicatorStatus.Skip : IndicatorStatus.None);
+    const [migrationError, setMigrationError] = React.useState<string | null>(null);
     const initialization = React.useRef<Promise<void> | null>(null);
 
     // Initialize the configured backend if no backend was provided
@@ -48,10 +54,14 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
             const initStartTime = performance.now();
 
             // The storage is brought to the current version before anything reads it
+            setMigrationStatus(IndicatorStatus.Running);
             try {
-                await migrateStorage(logger);
+                const migrated = await migrateStorage(logger);
+                setMigrationStatus(migrated.steps + migrated.sessions > 0 ? IndicatorStatus.Succeeded : IndicatorStatus.Skip);
             } catch (error) {
                 logger.error("Failed to migrate the storage", { error: stringifyError(error) }, "storage_provider");
+                setMigrationStatus(IndicatorStatus.Failed);
+                setMigrationError(`The storage could not be migrated: ${error instanceof Error ? error.message : String(error)}`);
                 return;
             }
 
@@ -109,18 +119,25 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
     }, [backend, logger]);
 
     if (!backend || !writer || !reader) {
-        // Still initializing
-        return null;
+        // Still migrating or initializing, the app providers below are not set up yet
+        return <AppSetupPage status={{ ...APP_SETUP_NOT_STARTED, applyMigrations: migrationStatus }} error={migrationError} showInternals={false} />;
     }
 
     return (
-        <StorageReaderContext.Provider value={reader}>
-            <StorageWriterContext.Provider value={writer}>
-                {children}
-            </StorageWriterContext.Provider>
-        </StorageReaderContext.Provider>
+        <StorageMigrationStatusContext.Provider value={migrationStatus}>
+            <StorageReaderContext.Provider value={reader}>
+                <StorageWriterContext.Provider value={writer}>
+                    {children}
+                </StorageWriterContext.Provider>
+            </StorageReaderContext.Provider>
+        </StorageMigrationStatusContext.Provider>
     );
 };
+
+/// The status of the migration of the storage at startup
+export function useStorageMigrationStatus(): IndicatorStatus {
+    return React.useContext(StorageMigrationStatusContext);
+}
 
 export function useStorageWriter(): StorageWriter {
     const writer = React.useContext(StorageWriterContext);

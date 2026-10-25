@@ -43,6 +43,14 @@ export const STORAGE_MIGRATION_STEPS: readonly StorageMigrationStep[] = [
     dropConnectionAliases,
 ];
 
+/// What a storage migration changed
+export interface StorageMigrationSummary {
+    /// The storage steps that ran
+    steps: number;
+    /// The session folders that were brought to the current session format
+    sessions: number;
+}
+
 /// Run an operation while holding the manifest lock, which the tabs of the app share
 async function withManifestLock<T>(fn: () => Promise<T>): Promise<T> {
     const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
@@ -54,13 +62,14 @@ async function withManifestLock<T>(fn: () => Promise<T>): Promise<T> {
 /// The app runs this at startup before anything reads the storage. The storage steps bring the
 /// storage root to the current version, then every reachable session folder is brought to the
 /// current session format. Session folders that become reachable later are migrated when they are
-/// registered. A storage of a newer app version is refused.
+/// registered. A storage of a newer app version is refused. Returns what the migration changed.
 export async function migrateStorage(
     logger: Logger,
     root?: FileSystemDirectoryHandle,
     steps: readonly StorageMigrationStep[] = STORAGE_MIGRATION_STEPS,
-): Promise<void> {
+): Promise<StorageMigrationSummary> {
     const storageRoot = root ?? await navigator.storage.getDirectory();
+    const summary: StorageMigrationSummary = { steps: 0, sessions: 0 };
     await withManifestLock(async () => {
         let manifest = await readManifestJson(storageRoot);
         if (manifest == null) {
@@ -84,6 +93,7 @@ export async function migrateStorage(
             await step.migrate({ root: storageRoot, logger });
             manifest = await readManifestJson(storageRoot) ?? {};
             await writeManifestJson(storageRoot, { ...manifest, storageVersion: step.version });
+            ++summary.steps;
         }
 
         manifest = await readManifestJson(storageRoot) ?? {};
@@ -92,6 +102,7 @@ export async function migrateStorage(
                 const result = await migrateSessionFolder(folder);
                 if (result === SessionMigrationResult.Migrated) {
                     logger.info('Migrated a session', { sessionId }, LOG_CTX);
+                    ++summary.sessions;
                 } else if (result !== SessionMigrationResult.Current) {
                     logger.warn('Session cannot be migrated', { sessionId, result }, LOG_CTX);
                 }
@@ -101,4 +112,5 @@ export async function migrateStorage(
             }
         }
     });
+    return summary;
 }
