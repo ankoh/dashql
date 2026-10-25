@@ -6,7 +6,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Logger } from '../../../platform/logger/logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
-import { PATCH_SESSION_CONNECTION, StorageWriter, WRITE_SESSION_PROPERTIES, WRITE_SESSION_SCRIPTS, type StorageWriteTaskVariant } from '../../storage/storage_writer.js';
+import { PATCH_SESSION_CONNECTION, StorageWriter, WRITE_SESSION_DEFAULT_CONNECTION, WRITE_SESSION_PROPERTIES, WRITE_SESSION_SCRIPTS, type StorageWriteTaskVariant } from '../../storage/storage_writer.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import {
     ANALYZE_OUTDATED_SCRIPT,
@@ -16,6 +16,7 @@ import {
     defaultScriptConnection,
     MERGE_CONNECTION,
     type ScriptConnection,
+    SET_DEFAULT_CONNECTION,
     SET_SCRIPT_CONNECTION,
     sessionScriptsMatchStorageSnapshot,
     type SessionScripts,
@@ -310,6 +311,27 @@ describe('V2 flat session script mutations', () => {
         // A script moves back under its key
         const back = reduce(next, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: defaultScriptConnection(next) } });
         expect(back.scripts[scriptKey].connection.connectionId).toBe(current.connectionId);
+    });
+
+    it('creates new scripts on the default connection that the user picks', () => {
+        const current = state(['1_alpha.sql']);
+        const other = { ...connection(ConnectorType.TRINO), params: { trino: { endpoint: 'https://trino.example' } } as any };
+        const writer = new RecordingWriter(logger, new SessionTestBackend());
+        const next = reduce(current, { type: SET_DEFAULT_CONNECTION, value: other }, writer);
+        expect(next.connectionId).toBe(other.connectionId);
+        expect(next.connectorInfo).toBe(other.connectorInfo);
+        expect(next.connectionCatalog).toBe(other.catalog);
+        // The scripts keep their connection
+        expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].connection.connectionId).toBe(current.connectionId);
+        expect(writer.records).toEqual([{
+            type: WRITE_SESSION_DEFAULT_CONNECTION,
+            value: [current.sessionId, { connectionId: other.connectionId, params: other.params }],
+        }]);
+        const created = reduce(next, { type: CREATE_SCRIPT, value: { index: null } });
+        expect(created.scripts[created.scriptRefs[created.scriptFocus.fileName].scriptId].connection.connectionId).toBe(other.connectionId);
+        // The same connection changes nothing, a connection without params can't be copied into the session file
+        expect(reduce(next, { type: SET_DEFAULT_CONNECTION, value: other })).toBe(next);
+        expect(reduce(current, { type: SET_DEFAULT_CONNECTION, value: connection() })).toBe(current);
     });
 
     it('completes a script against the catalog of its own connection', () => {

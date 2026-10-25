@@ -29,6 +29,8 @@ import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
 import { isDesktopHost } from '../../../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../../../platform/hyperdb/hyperdb_settings.js';
+import { DEFAULT_HYPER_ENDPOINT } from '../connection_params.js';
+import { isHyperWasmConnection } from './connection_label.js';
 
 const LOG_CTX = "hyper_connector";
 
@@ -57,7 +59,7 @@ export function buildHyperConnectionPageState(params: connection.HyperConnection
     const metadata = params?.metadata ?? {};
     return {
         protocol: params?.protocol ?? "WASM",
-        endpoint: params?.endpoint ?? "http://localhost:7484",
+        endpoint: params?.endpoint ?? DEFAULT_HYPER_ENDPOINT,
         mTlsKeyPath: params?.tls?.clientKeyPath ?? "",
         mTlsPubPath: params?.tls?.clientCertPath ?? "",
         mTlsCaPath: params?.tls?.caCertsPath ?? "",
@@ -115,9 +117,11 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const protocol = pageState.protocol;
 
     const wrongPlatform = protocol === "V3_GRPC" && !isDesktopHost();
-    const protocols: connection.HyperProtocol[] = isDesktopHost()
-        ? ["WASM", "V3_GRPC", "V3_HTTP"]
-        : ["WASM", "V3_HTTP"];
+    // The app holds a single connection to the embedded Hyper, connections don't switch between it and a server
+    const embedded = connectionState != null && isHyperWasmConnection(connectionState);
+    const protocols: connection.HyperProtocol[] = embedded
+        ? ["WASM"]
+        : isDesktopHost() ? ["V3_GRPC", "V3_HTTP"] : ["V3_HTTP"];
     const setProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, protocol: v }));
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
     const setMTLSKeyPath = (v: string) => setPageState(s => ({ ...s, mTlsKeyPath: v }));

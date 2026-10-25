@@ -114,3 +114,14 @@ export function createDefaultConnectionParamsForConnector(info: ConnectorInfo): 
     const connector = CONNECTOR_DESCRIPTORS[info.connectorType];
     return connectionParamsOf(connector, connector.defaultParams());
 }
+
+/// The endpoint that a new connection to a Hyper server starts with
+export const DEFAULT_HYPER_ENDPOINT = 'http://localhost:7484';
+
+/// The params of a new connection that the user attaches.
+/// The app holds a single connection to the embedded Hyper, an attached Hyper connection speaks to a server.
+export function createAttachedConnectionParamsForConnector(info: ConnectorInfo): ConnectionParams {
+    const params = createDefaultConnectionParamsForConnector(info);
+    if (info.connectorType !== ConnectorType.HYPER || !('hyper' in params)) return params;
+    return { ...params, hyper: { ...params.hyper, protocol: 'V3_HTTP', endpoint: DEFAULT_HYPER_ENDPOINT } };
+}

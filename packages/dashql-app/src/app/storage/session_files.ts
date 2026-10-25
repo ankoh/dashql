@@ -162,6 +162,14 @@ export function withSessionScripts(session: SessionData, scripts: SessionScript[
     return { ...session, connections, scripts };
 }
 
+/// The session with another default connection.
+/// The copy of the connection replaces the one the session holds, the previous default connection is
+/// left out unless a script uses it.
+export function withDefaultConnection(session: SessionData, copy: SessionConnection): SessionData {
+    const connections = [copy, ...session.connections.filter(connection => connection.connectionId !== copy.connectionId)];
+    return withSessionScripts({ ...session, defaultConnectionId: copy.connectionId, connections }, session.scripts);
+}
+
 /// Replace the connection ids of the scripts, ids without a replacement are kept
 export function remapSessionScripts(scripts: readonly SessionScript[], connectionIds: ReadonlyMap<string, string>): SessionScript[] {
     return scripts.map(script => ({ ...script, connectionId: connectionIds.get(script.connectionId) ?? script.connectionId }));

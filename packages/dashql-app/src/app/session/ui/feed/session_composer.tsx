@@ -39,6 +39,8 @@ export interface SessionComposerProps {
     setView?: (view: EditorView | null) => void;
     /// Receives the send function of the composer, e.g. for global key bindings
     submitRef?: React.RefObject<(() => void) | null>;
+    /// Picks the connection that the draft runs on
+    connectionPicker?: React.ReactNode;
 }
 
 /// Takes the draft out of a composer editor and clears it, returns null when the draft is blank
@@ -140,16 +142,19 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                         AI
                     </SegmentedControl.Button>
                 </SegmentedControl>
-                <IconButton
-                    variant={hero ? ButtonVariant.Primary : ButtonVariant.Default}
-                    size={ButtonSize.Small}
-                    aria-label={naturalLanguage ? 'Ask AI' : 'Run query'}
-                    data-testid="composer-send"
-                    disabled={empty}
-                    onClick={handleSendClick}
-                >
-                    <PaperAirplaneIcon />
-                </IconButton>
+                <div className={styles.composer_trailing_actions}>
+                    {props.connectionPicker}
+                    <IconButton
+                        variant={hero ? ButtonVariant.Primary : ButtonVariant.Default}
+                        size={ButtonSize.Small}
+                        aria-label={naturalLanguage ? 'Ask AI' : 'Run query'}
+                        data-testid="composer-send"
+                        disabled={empty}
+                        onClick={handleSendClick}
+                    >
+                        <PaperAirplaneIcon />
+                    </IconButton>
+                </div>
             </div>
         </div>
     );

@@ -10,6 +10,7 @@ import {
     DEBOUNCE_DURATION_SESSION_WRITE,
     DELETE_SCRIPT as STORAGE_DELETE_SCRIPT,
     groupSessionConnectionCopyWrites,
+    groupSessionDefaultConnectionWrites,
     groupSessionManifestWrites,
     groupSessionScriptListWrites,
     groupScriptDeletes,
@@ -18,6 +19,7 @@ import {
     RENAME_SCRIPT as STORAGE_RENAME_SCRIPT,
     PATCH_SESSION_CONNECTION,
     StorageWriter,
+    WRITE_SESSION_DEFAULT_CONNECTION,
     WRITE_SESSION_PROPERTIES,
     WRITE_SESSION_SCRIPTS,
     WRITE_SCRIPT,
@@ -201,6 +203,7 @@ export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
 export const RENAME_SESSION = Symbol('RENAME_SESSION');
 export const UPDATE_SESSION_SETTINGS = Symbol('UPDATE_SESSION_SETTINGS');
 export const SET_SCRIPT_CONNECTION = Symbol('SET_SCRIPT_CONNECTION');
+export const SET_DEFAULT_CONNECTION = Symbol('SET_DEFAULT_CONNECTION');
 export const MERGE_CONNECTION = Symbol('MERGE_CONNECTION');
 
 export type SessionScriptsAction =
@@ -224,6 +227,7 @@ export type SessionScriptsAction =
     | VariantKind<typeof RENAME_SESSION, string | null>
     | VariantKind<typeof UPDATE_SESSION_SETTINGS, Partial<SessionSettings>>
     | VariantKind<typeof SET_SCRIPT_CONNECTION, { fileName: string, connection: ScriptConnection }>
+    | VariantKind<typeof SET_DEFAULT_CONNECTION, ScriptConnection>
     | VariantKind<typeof MERGE_CONNECTION, { from: string, into: ConnectionState }>
     ;
 
@@ -830,6 +834,27 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             };
             writeSessionScriptList(next, storage);
             return next;
+        }
+
+        case SET_DEFAULT_CONNECTION: {
+            // New scripts use the default connection, the scripts keep theirs
+            const connection = action.value;
+            if (connection.connectionId === state.connectionId) return state;
+            if (connection.params == null) {
+                logger.warn("SET_DEFAULT_CONNECTION misses the params of the connection", { connectionId: connection.connectionId }, LOG_CTX);
+                return state;
+            }
+            void storage.write(
+                groupSessionDefaultConnectionWrites(state.sessionId),
+                { type: WRITE_SESSION_DEFAULT_CONNECTION, value: [state.sessionId, { connectionId: connection.connectionId, params: connection.params }] },
+                DEBOUNCE_DURATION_SESSION_WRITE,
+            );
+            return {
+                ...state,
+                connectionId: connection.connectionId,
+                connectorInfo: connection.connectorInfo,
+                connectionCatalog: connection.catalog,
+            };
         }
 
         case MERGE_CONNECTION: {

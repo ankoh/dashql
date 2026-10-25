@@ -5,7 +5,7 @@ import { VariantKind } from '../../utils/variant.js';
 import type { StorageBackend, SessionData, SessionMetadata as StorageSessionMetadata, SessionSettings, SessionConnection, ConnectionEntry, ConnectionParams, SessionRegistryBackend, SessionScript } from './storage_backend.js';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_SESSION_FILE, STORAGE_CONNECTIONS_FOLDER, isSessionRegistryBackend } from './storage_backend.js';
 import { SESSION_FORMAT_VERSION } from '../../migration/versions.js';
-import { sessionAttachments, withSessionScripts } from './session_files.js';
+import { sessionAttachments, withDefaultConnection, withSessionScripts } from './session_files.js';
 
 const LOG_CTX = 'storage_writer';
 
@@ -93,6 +93,7 @@ export const WRITE_SCRIPT = Symbol('WRITE_SCRIPT');
 export const DELETE_SCRIPT = Symbol('DELETE_SCRIPT');
 export const RENAME_SCRIPT = Symbol('RENAME_SCRIPT');
 export const WRITE_SESSION_SCRIPTS = Symbol('WRITE_SESSION_SCRIPTS');
+export const WRITE_SESSION_DEFAULT_CONNECTION = Symbol('WRITE_SESSION_DEFAULT_CONNECTION');
 export const REFRESH_SESSION_ATTACHMENTS = Symbol('REFRESH_SESSION_ATTACHMENTS');
 
 /// The script list of a session
@@ -115,6 +116,7 @@ export type StorageWriteTaskVariant =
     | VariantKind<typeof DELETE_SCRIPT, [string, string]>
     | VariantKind<typeof RENAME_SCRIPT, [string, string, string]>
     | VariantKind<typeof WRITE_SESSION_SCRIPTS, [string, SessionScriptList]>
+    | VariantKind<typeof WRITE_SESSION_DEFAULT_CONNECTION, [string, SessionConnection]>
     | VariantKind<typeof REFRESH_SESSION_ATTACHMENTS, string>
     ;
 
@@ -145,6 +147,9 @@ export const groupSessionConnectionCopyWrites = (sessionId: string, connectionId
 /// The script list of a session and the connections it uses. It is patched into the session file and
 /// must not coalesce with the other writes of the session file.
 export const groupSessionScriptListWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:scripts`;
+/// The default connection of a session. It is patched into the session file, a later write of the copy
+/// of the connection must not replace it.
+export const groupSessionDefaultConnectionWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:default`;
 /// The attachment list of a session
 export const groupSessionAttachmentListWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:attachments`;
 export const groupScriptWrites = (sessionId: string, fileName: string) =>
@@ -783,6 +788,11 @@ export class StorageWriter {
             case WRITE_SESSION_SCRIPTS: {
                 const [sessionId, list] = task.value;
                 await this.patchSessionFile(key, sessionId, session => withSessionScripts(session, list.scripts, list.connections));
+                break;
+            }
+            case WRITE_SESSION_DEFAULT_CONNECTION: {
+                const [sessionId, copy] = task.value;
+                await this.patchSessionFile(key, sessionId, session => withDefaultConnection(session, copy));
                 break;
             }
             case REFRESH_SESSION_ATTACHMENTS: {

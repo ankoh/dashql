@@ -40,6 +40,13 @@
     padding: 4px 8px 8px 8px;
 }
 
+.composer_trailing_actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
 .composer[data-variant="hero"] .composer_action_bar {
     padding: 6px 12px 12px 12px;
 }

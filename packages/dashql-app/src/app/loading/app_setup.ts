@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { OPEN_LINK_SESSION, useRouterNavigate } from '../router/router.js';
 import { useConnectionAllocator, useConnectionRegistrySetter } from '../connections/connection_registry.js';
-import { isHyperWasmConnection } from '../connections/ui/connection_label.js';
+import { embeddedConnection } from '../connections/embedded_connection.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
@@ -17,7 +17,6 @@ import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_datab
 import { getAppHost } from '../../platform/native_globals.js';
 import { restoreAppState } from '../session/persistence/app_state_loader.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
-import { createDefaultHyperWasmConnectionState } from '../connections/connection_params.js';
 import { useAppSettingsReady } from '../config/app_settings_sync.js';
 
 const LOG_CTX = "app_loader";
@@ -158,9 +157,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             if (await shouldFinishInitialNavigation(initialImport.current)) {
                 let sessionId = selectStartupSession(loaded.restoredSessionIds);
                 if (sessionId == null) {
-                    // The embedded engine is a single database, a known embedded connection is reused
-                    const embedded = [...loaded.restoredConnections.values()].find(isHyperWasmConnection);
-                    const database = embedded ?? allocateConnection({ ...createDefaultHyperWasmConnectionState(core), active: true });
+                    const database = embeddedConnection(loaded.restoredConnections.values(), allocateConnection, core);
                     sessionId = createSession(database, 'Default').sessionId;
                 }
                 navigate({

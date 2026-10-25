@@ -21,6 +21,7 @@ const state = {
     createConnectionStateFromParams: vi.fn(),
     deleteSession: vi.fn(),
     allocateConnection: vi.fn(),
+    resolveEmbeddedConnection: vi.fn(),
     local: null as ConnectionState | null,
     overlayProps: null as { connectionId: string | null; headerTitle?: string; isOpen: boolean; onClose: () => void; onConnected?: (database: ConnectionState) => void } | null,
     shareProps: null as { isOpen: boolean; sessionId?: string } | null,
@@ -102,7 +103,7 @@ const dependencies = {
     useDashQLCoreSetup: () => vi.fn(),
     usePlatformType: () => 0,
     useLogger: () => ({ warn: vi.fn(), error: vi.fn() }),
-    createDefaultHyperWasmConnectionState: () => ({ type: 'local' }),
+    useEmbeddedConnection: () => state.resolveEmbeddedConnection,
     createConnectionStateFromParams: (...args: unknown[]) => state.createConnectionStateFromParams(...args),
 } as unknown as SessionWorkbenchSidebarDependencies;
 
@@ -147,6 +148,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
             ...EMPTY_CATALOG,
         } as unknown as ConnectionState;
         state.allocateConnection.mockReset().mockReturnValue(state.local);
+        state.resolveEmbeddedConnection.mockReset().mockReturnValue(state.local);
         vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000001');
         act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
             sessionId: 'current-session',
@@ -235,46 +237,18 @@ describe('SessionWorkbenchSidebar session creation', () => {
         expect(state.navigate).not.toHaveBeenCalled();
     });
 
-    it.each([
-        ['Hyper', ConnectorType.HYPER, null],
-        ['Trino', ConnectorType.TRINO, 'trino'],
-        ['Salesforce', ConnectorType.SALESFORCE_DATA_CLOUD, 'salesforce'],
-    ] as const)('creates and selects a %s session before connecting', async (_name, connector, paramsKey) => {
+    it('creates and selects a session on the embedded connection with one click', () => {
         state.write.mockReturnValue(new Promise(() => {}));
         click('create-session');
-        expect(state.createSession).not.toHaveBeenCalled();
-        expect(byTestId('session-connection-option')).toBeNull();
-        const choice = document.querySelector(`[data-testid="session-connector-option"][data-connector="${connector}"]`) as HTMLButtonElement;
-        expect(choice.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
-        expect(choice.querySelector('use')?.getAttribute('xlink:href')).toContain(`#${CONNECTOR_INFOS[connector].icons.colored}`);
-        act(() => {
-            choice.click();
-        });
+        expect(state.resolveEmbeddedConnection).toHaveBeenCalledTimes(1);
         expect(state.createSession).toHaveBeenCalledWith(state.local);
-        expect(state.allocateConnection).toHaveBeenCalledWith(expect.objectContaining({ active: true }));
+        expect(state.allocateConnection).not.toHaveBeenCalled();
+        expect(state.createConnectionStateFromParams).not.toHaveBeenCalled();
         expect(state.navigate).toHaveBeenCalledWith({
             type: SELECT_SESSION,
             value: '00000000-0000-4000-8000-000000000001',
         });
         expect(state.overlayProps?.isOpen).toBe(false);
-        if (paramsKey == null) {
-            expect(state.allocateConnection).toHaveBeenCalledWith(expect.objectContaining({ type: 'local' }));
-            expect(state.createConnectionStateFromParams).not.toHaveBeenCalled();
-        } else {
-            const params = state.createConnectionStateFromParams.mock.calls[0][1];
-            expect(Object.keys(params)).toEqual([paramsKey]);
-        }
-        act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
-            sessionId: 'current-session', instance: {},
-        } as any} dependencies={{
-            ...dependencies,
-            useRouteContext: () => ({
-                sessionId: 'current-session', sessionSetupStatus: SessionSetupStatus.CONFIGURING,
-            } as ReturnType<SessionWorkbenchSidebarDependencies['useRouteContext']>),
-        }} />));
-        act(() => state.overlayProps!.onClose());
-        expect(state.deleteSession).not.toHaveBeenCalled();
-        expect(state.dispatchDatabase).not.toHaveBeenCalled();
     });
 
     it.each([ConnectionHealth.NOT_STARTED, ConnectionHealth.CONNECTING, ConnectionHealth.FAILED, ConnectionHealth.CANCELLED])('selects a disconnected session immediately (%s)', async connectionHealth => {
@@ -396,7 +370,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
         expect(document.querySelector('[data-testid="file-save-overlay"]')).not.toBeNull();
     });
 
-    it('lists the connections of other sessions and creates sessions with them', () => {
+    it('lists the connections of other sessions', () => {
         const other = { ...state.local!, connectionId: 'trino-database', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
             details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } } } as unknown as ConnectionState;
         state.connections.set(state.local!.connectionId, state.local!);
@@ -415,12 +389,6 @@ describe('SessionWorkbenchSidebar session creation', () => {
 
         // The shell connection is not referenced by a session of the registry
         expect(byTestId('connection-count')?.textContent).toBe('2');
-        click('create-session');
-        const existing = document.querySelector(`[data-testid="session-connection-option"][data-connection-id="${other.connectionId}"]`) as HTMLButtonElement;
-        act(() => existing.click());
-        expect(state.allocateConnection).not.toHaveBeenCalled();
-        expect(state.createSession).toHaveBeenCalledWith(other);
-        expect(state.navigate).toHaveBeenCalledWith({ type: SELECT_SESSION, value: '00000000-0000-4000-8000-000000000001' });
     });
 
     it('groups the connections of the session and numbers connections of the same connector', () => {

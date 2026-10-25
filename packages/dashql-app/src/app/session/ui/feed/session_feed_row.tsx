@@ -69,6 +69,8 @@ export interface ScriptCardProps {
     onRename: (oldFileName: string, newFileName: string) => void;
     /// Run the script on another connection
     onPickConnection: (fileName: string, connectionId: string) => void;
+    /// Run the script on a new connection of a connector, returns the id of the connection
+    onAttachConnection: (fileName: string, connector: ConnectorType) => string;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
@@ -323,6 +325,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             connection={props.connection}
                             disabled={props.scriptData == null || queryActive || generating || sessionExecution.busy}
                             onPick={connectionId => props.onPickConnection(props.scriptFileName, connectionId)}
+                            onAttach={connector => props.onAttachConnection(props.scriptFileName, connector)}
                         />
                     </div>
                     {props.scriptDebugMode && props.scriptData != null && (
@@ -489,6 +492,7 @@ export interface ScriptFeedRowProps {
     onDelete: (fileName: string) => void;
     onRename: (oldFileName: string, newFileName: string) => void;
     onPickConnection: (fileName: string, connectionId: string) => void;
+    onAttachConnection: (fileName: string, connector: ConnectorType) => string;
     onMoveUp: (fileName: string) => void;
     onMoveDown: (fileName: string) => void;
     onExecute: (fileName: string) => void;
@@ -650,6 +654,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onDelete={props.onDelete}
                     onRename={props.onRename}
                     onPickConnection={props.onPickConnection}
+                    onAttachConnection={props.onAttachConnection}
                     onMoveUp={props.onMoveUp}
                     onMoveDown={props.onMoveDown}
                     onExecute={props.onExecute}

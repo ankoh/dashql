@@ -41,7 +41,15 @@ import { reorderFeedEntries } from './session_feed_drag.js';
 import type { DataFile } from '../../../storage/storage_backend.js';
 import { stringifyError } from '../../../../platform/logger/logger.js';
 import { SessionDataCard } from './session_data_card.js';
-import { scriptConnectionView, usePickScriptConnection, type ScriptConnectionView } from '../script_connection_picker.js';
+import {
+    ScriptConnectionPicker,
+    scriptConnectionView,
+    useAttachDefaultConnection,
+    useAttachScriptConnection,
+    usePickDefaultConnection,
+    usePickScriptConnection,
+    type ScriptConnectionView,
+} from '../script_connection_picker.js';
 import { useConnectionLabeler } from '../connection_labels.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../../../../ui/foundations/symbol_icon.js';
@@ -73,6 +81,9 @@ export interface SessionFeedDependencies {
     useStorageReader: typeof useStorageReader;
     useStorageWriter: typeof useStorageWriter;
     usePickScriptConnection: typeof usePickScriptConnection;
+    useAttachScriptConnection: typeof useAttachScriptConnection;
+    usePickDefaultConnection: typeof usePickDefaultConnection;
+    useAttachDefaultConnection: typeof useAttachDefaultConnection;
     useKeyEvents: typeof useKeyEvents;
     runSessionScript: typeof runSessionScript;
     useAIClient: typeof useAIClient;
@@ -86,6 +97,9 @@ const DEFAULT_DEPENDENCIES: SessionFeedDependencies = {
     useStorageReader,
     useStorageWriter,
     usePickScriptConnection,
+    useAttachScriptConnection,
+    usePickDefaultConnection,
+    useAttachDefaultConnection,
     useKeyEvents,
     runSessionScript,
     useAIClient,
@@ -234,6 +248,10 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const latest = React.useRef({ sessionScripts: props.sessionScripts, conn: props.conn, scriptConnections });
     latest.current = { sessionScripts: props.sessionScripts, conn: props.conn, scriptConnections };
     const pickScriptConnection = dependencies.usePickScriptConnection(props.sessionScripts.sessionId, props.modifySessionScripts);
+    const attachScriptConnection = dependencies.useAttachScriptConnection(props.sessionScripts.instance, props.modifySessionScripts);
+    // New scripts, and the draft of the composer, use the default connection of the session
+    const pickDefaultConnection = dependencies.usePickDefaultConnection(props.modifySessionScripts);
+    const attachDefaultConnection = dependencies.useAttachDefaultConnection(props.sessionScripts.instance, props.modifySessionScripts);
 
     const pendingCreatedScriptKeyRef = React.useRef<number | null>(null);
     const editorViewsRef = React.useRef(new Map<number, EditorView>());
@@ -561,6 +579,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onDelete: handleDelete,
         onRename: handleRename,
         onPickConnection: pickScriptConnection,
+        onAttachConnection: attachScriptConnection,
         onMoveUp: handleMoveUp,
         onMoveDown: handleMoveDown,
         onExecute: handleExecuteEntry,
@@ -585,7 +604,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleAcceptDiff, handleRejectDiff, collapsedResults, sqlGenerations.generations, sqlGenerations.stop, sqlGenerations.dismiss, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, attachScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleAcceptDiff, handleRejectDiff, collapsedResults, sqlGenerations.generations, sqlGenerations.stop, sqlGenerations.dismiss, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.
@@ -687,6 +706,17 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         onSend={handleComposerSend}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}
+                        connectionPicker={(
+                            <ScriptConnectionPicker
+                                sessionId={props.sessionScripts.sessionId}
+                                scriptName="new"
+                                connection={scriptConnections.get(props.sessionScripts.connectionId) ?? null}
+                                disabled={false}
+                                onPick={pickDefaultConnection}
+                                onAttach={attachDefaultConnection}
+                                testId="composer-connection-picker"
+                            />
+                        )}
                     />
                 </div>
             </div>

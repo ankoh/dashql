@@ -31,6 +31,8 @@ interface ScriptDetailsEditorPaneProps {
     connectionPickDisabled: boolean;
     /// Run the script on another connection
     onPickConnection: (connectionId: string) => void;
+    /// Run the script on a new connection of a connector, returns the id of the connection
+    onAttachConnection: (connector: ConnectorType) => string;
     isFormattable: boolean;
     connectorType: ConnectorType;
     hasPendingDiff: boolean;
@@ -68,6 +70,7 @@ export const ScriptDetailsEditorPane: React.FC<ScriptDetailsEditorPaneProps> = (
                     connection={props.connection}
                     disabled={props.connectionPickDisabled}
                     onPick={props.onPickConnection}
+                    onAttach={props.onAttachConnection}
                 />
             </div>
             {props.scriptDebugMode && (

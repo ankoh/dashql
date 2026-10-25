@@ -47,10 +47,11 @@ import {
     useDynamicConnectionDispatch,
 } from '../../connections/connection_registry.js';
 import {
-    createDefaultHyperWasmConnectionState,
     createConnectionStateFromParams,
-    createDefaultConnectionParamsForConnector,
+    createAttachedConnectionParamsForConnector,
 } from '../../connections/connection_params.js';
+import { useEmbeddedConnection } from '../../connections/embedded_connection.js';
+import { ATTACHABLE_CONNECTORS } from '../../connections/attached_connection.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import { ConnectionSettingsOverlay } from '../../connections/ui/connection_settings_overlay.js';
 import { renderSessionName } from './session_name.js';
@@ -81,7 +82,6 @@ import { useDeleteConnection } from '../../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../../connections/connection_merge.js';
 import { BundledSessionsOverlay } from '../../ui/bundled_sessions_overlay.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals } from '../../connections/ui/connection_label.js';
-import { ConnectionProtocolTag } from '../../connections/ui/connection_label_view.js';
 import { useAppFlavor } from '../../flavor/flavor_provider.js';
 import { SessionURLShareOverlay } from './session_url_share_overlay.js';
 import { SessionFileSaveOverlay } from './session_file_save_overlay.js';
@@ -142,7 +142,7 @@ export interface SessionWorkbenchSidebarDependencies {
     useLogger: typeof useLogger;
     useInvalidSessions: typeof useInvalidSessions;
     useSessionConnections: typeof useSessionConnections;
-    createDefaultHyperWasmConnectionState: typeof createDefaultHyperWasmConnectionState;
+    useEmbeddedConnection: typeof useEmbeddedConnection;
     createConnectionStateFromParams: typeof createConnectionStateFromParams;
     BundledSessionsOverlay: typeof BundledSessionsOverlay;
     ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
@@ -172,7 +172,7 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useLogger,
     useInvalidSessions,
     useSessionConnections,
-    createDefaultHyperWasmConnectionState,
+    useEmbeddedConnection,
     createConnectionStateFromParams,
     BundledSessionsOverlay,
     ConnectionSettingsOverlay,
@@ -374,6 +374,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const references = dependencies.useConnectionReferences();
     const allocateConnection = dependencies.useConnectionAllocator();
     const createSession = dependencies.useSessionCreation();
+    const resolveEmbeddedConnection = dependencies.useEmbeddedConnection();
     const mergeConnections = dependencies.useMergeConnections();
     const shutDownAndDeleteConnection = dependencies.useDeleteConnection();
     const deleteSessionScripts = dependencies.useSessionScriptsDeletion();
@@ -392,7 +393,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         [attached?.main, attached?.attached],
     );
     const [connectionOverlayDatabaseId, setConnectionOverlayDatabaseId] = React.useState<string | null>(null);
-    const [createOpen, setCreateOpen] = React.useState(false);
     const [createConnectionOpen, setCreateConnectionOpen] = React.useState(false);
     const createConnectionButtonRef = React.useRef<HTMLButtonElement>(null);
     const createButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -516,18 +516,17 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         });
     }, [logger, storageReader.sessionFolders]);
 
-    /// Create a session that uses an existing connection
-    const createSessionWithConnection = React.useCallback((database: ConnectionState) => {
-        setCreateOpen(false);
-        const { sessionId } = createSession(database);
+    /// Create a session on the embedded Hyper, its scripts attach other connections
+    const createEmbeddedSession = React.useCallback(() => {
+        const { sessionId } = createSession(resolveEmbeddedConnection(props.sessionScripts.instance));
         navigate({ type: SELECT_SESSION, value: sessionId });
         props.closeAfterSelection?.();
-    }, [createSession, navigate, props.closeAfterSelection]);
+    }, [createSession, navigate, props.closeAfterSelection, props.sessionScripts.instance, resolveEmbeddedConnection]);
 
     /// Create a connection that no session uses yet and open its settings
     const createConnection = React.useCallback((connector: ConnectorType) => {
         setCreateConnectionOpen(false);
-        const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
+        const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
         const initialDatabase = dependencies.createConnectionStateFromParams(props.sessionScripts.instance, params);
         const database = allocateConnection({ ...initialDatabase, active: true });
         connectionSettingsAnchorRef.current = createConnectionButtonRef.current;
@@ -560,20 +559,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
             logger.warn('failed to merge connections', { connectionId, error: String(error) }, 'session_workbench');
         });
     }, [databaseRegistry, labelOf, logger, mergeConnections, references]);
-
-    /// Create a session with a new connection of a connector
-    const createSessionWithConnector = React.useCallback((connector: ConnectorType) => {
-        setCreateOpen(false);
-        const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
-        const initialDatabase = connector === ConnectorType.HYPER
-            ? dependencies.createDefaultHyperWasmConnectionState(props.sessionScripts.instance)
-            : dependencies.createConnectionStateFromParams(props.sessionScripts.instance, params);
-        // The session is committed now; settings must not switch its initialized script dialect.
-        const database = allocateConnection({ ...initialDatabase, active: true });
-        const { sessionId } = createSession(database);
-        navigate({ type: SELECT_SESSION, value: sessionId });
-        props.closeAfterSelection?.();
-    }, [allocateConnection, createSession, dependencies, navigate, props.closeAfterSelection, props.sessionScripts.instance]);
 
     const closeConnectionOverlay = React.useCallback(() => {
         setConnectionOverlayDatabaseId(null);
@@ -726,66 +711,14 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                                 )}
                             </>
                         )}
-                        <AnchoredOverlay
-                            open={createOpen}
-                            onOpen={() => setCreateOpen(true)}
-                            onClose={() => setCreateOpen(false)}
-                            anchorRef={createButtonRef}
-                            returnFocusRef={createButtonRef}
-                            side={AnchorSide.OutsideBottom}
-                            align={AnchorAlignment.End}
-                            renderAnchor={anchorProps => <IconButton
-                                {...anchorProps}
-                                ref={createButtonRef}
-                                data-testid="create-session"
-                                size={ButtonSize.Small}
-                                variant={ButtonVariant.Invisible}
-                                aria-label="Create session"
-                            ><PlusIcon size={14} /></IconButton>}
-                        >
-                            <div className={actionMenuStyles.menu} role="dialog" aria-label="Choose session connector">
-                                <ActionList.List aria-label="Session connector">
-                                    {/* The list takes elements only, the fragment wraps the optional group */}
-                                    <>{connectionRows.length > 0 && (
-                                        <>
-                                            <ActionList.GroupHeading>Existing connection</ActionList.GroupHeading>
-                                            {connectionRows.map(database => (
-                                                <ActionList.ListItem
-                                                    key={database.connectionId}
-                                                    data-testid="session-connection-option"
-                                                    data-connection-id={database.connectionId}
-                                                    onClick={() => createSessionWithConnection(database)}
-                                                >
-                                                    <ActionList.Leading>
-                                                        <svg width="16px" height="16px" aria-hidden="true">
-                                                            <use xlinkHref={`${symbols}#${database.connectorInfo.icons.colored}`} />
-                                                        </svg>
-                                                    </ActionList.Leading>
-                                                    <ActionList.ItemText>{labelOf(database).name}</ActionList.ItemText>
-                                                    <ActionList.Trailing><ConnectionProtocolTag detail={labelOf(database).detail} /></ActionList.Trailing>
-                                                </ActionList.ListItem>
-                                            ))}
-                                            <ActionList.GroupHeading>New connection</ActionList.GroupHeading>
-                                        </>
-                                    )}</>
-                                    <>{([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD] as const).map(connector => (
-                                        <ActionList.ListItem
-                                            key={connector}
-                                            data-testid="session-connector-option"
-                                            data-connector={connector}
-                                            onClick={() => createSessionWithConnector(connector)}
-                                        >
-                                            <ActionList.Leading>
-                                                <svg width="16px" height="16px" aria-hidden="true">
-                                                    <use xlinkHref={`${symbols}#${CONNECTOR_INFOS[connector].icons.colored}`} />
-                                                </svg>
-                                            </ActionList.Leading>
-                                            <ActionList.ItemText>{CONNECTOR_INFOS[connector].names.displayShort}</ActionList.ItemText>
-                                        </ActionList.ListItem>
-                                    ))}</>
-                                </ActionList.List>
-                            </div>
-                        </AnchoredOverlay>
+                        <IconButton
+                            ref={createButtonRef}
+                            data-testid="create-session"
+                            size={ButtonSize.Small}
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Create session"
+                            onClick={createEmbeddedSession}
+                        ><PlusIcon size={14} /></IconButton>
                     </div>
                 </header>
                 <div className={styles.scroll_shadow_container}>
@@ -851,7 +784,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                     >
                         <div className={actionMenuStyles.menu} role="dialog" aria-label="Choose connection connector">
                             <ActionList.List aria-label="Connection connector">
-                                {([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD] as const).map(connector => (
+                                {ATTACHABLE_CONNECTORS.map(connector => (
                                     <ActionList.ListItem key={connector} onClick={() => createConnection(connector)}>
                                         <ActionList.Leading>
                                             <svg width="16px" height="16px" aria-hidden="true">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeConnectionParamsForSharing, createDefaultConnectionParamsForConnector, ConnectionParams } from './connection_params.js';
+import { sanitizeConnectionParamsForSharing, createAttachedConnectionParamsForConnector, createDefaultConnectionParamsForConnector, ConnectionParams, DEFAULT_HYPER_ENDPOINT } from './connection_params.js';
 import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
 
 describe('createDefaultConnectionParamsForConnector', () => {
@@ -21,6 +21,20 @@ describe('createDefaultConnectionParamsForConnector', () => {
     it('uses HTTP for Salesforce', () => {
         const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD]);
         expect(params).toMatchObject({ salesforce: { hyperProtocol: 'V3_HTTP' } });
+    });
+});
+
+describe('createAttachedConnectionParamsForConnector', () => {
+    it('attaches a Hyper server, the embedded Hyper has a single connection', () => {
+        const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]);
+        expect(params).toMatchObject({ hyper: { protocol: 'V3_HTTP', endpoint: DEFAULT_HYPER_ENDPOINT } });
+    });
+
+    it('keeps the defaults of the other connectors', () => {
+        for (const connector of [ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD]) {
+            expect(createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]))
+                .toEqual(createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[connector]));
+        }
     });
 });
 
