@@ -40,6 +40,7 @@ const PROTOCOL_LABELS: Record<connection.HyperProtocol, string> = {
     WASM: "WASM",
     V3_GRPC: "gRPC",
     V3_HTTP: "HTTP",
+    V3_HTTP_LINK: "HTTP link",
 };
 
 export function ConnectionInlineHeader(props: Props): React.ReactElement {

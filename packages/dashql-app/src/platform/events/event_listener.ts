@@ -5,6 +5,7 @@ import { BASE64URL_CODEC } from '../../utils/base64.js';
 import { LEGACY_SESSION_QUERY_PARAMETER, migrateAppEventData } from '../../migration/legacy_links.js';
 import { Logger } from '../logger/logger.js';
 import { PlatformDragDropEventVariant, SETUP_SESSION, SETUP_SESSION_URL, SetupEventVariant } from './event.js';
+import { parseHyperLinkTarget, type HyperLinkTarget } from '../../app/hyper_link/hyper_link.js';
 
 const LOG_CTX = "event_listener";
 export const EVENT_QUERY_PARAMETER = "data";
@@ -74,6 +75,10 @@ export abstract class PlatformEventListener {
     private dragDropEventSubscribers: Map<string, (e: PlatformDragDropEventVariant) => void>;
     /// Subscribers for pasted text not handled as an app event
     private fallbackPasteSubscribers: Set<(text: string) => void>;
+    /// The subscriber for Hyper links
+    private hyperLinkSubscriber: ((target: HyperLinkTarget) => void) | null = null;
+    /// The latest Hyper link that arrived without a subscriber
+    private queuedHyperLink: HyperLinkTarget | null = null;
 
     /// Constructor
     constructor(logger: Logger) {
@@ -113,6 +118,12 @@ export abstract class PlatformEventListener {
     public dispatchAppEvent(event: app_event.AppEventData) {
         if ('oauthRedirect' in event) {
             this.dispatchOAuthRedirect(event.oauthRedirect);
+        } else if ('hyperLink' in event) {
+            // Links are not validated against the schema, a malformed link is ignored
+            const { endpoint, token } = (event.hyperLink ?? {}) as { endpoint?: unknown; token?: unknown };
+            const target = typeof endpoint === 'string' && typeof token === 'string' ? parseHyperLinkTarget(endpoint, token) : null;
+            if (target == null) this.logger.warn("Ignoring an invalid Hyper link", {}, LOG_CTX);
+            else this.dispatchHyperLink(target);
         } else if ('session' in event) {
             // Decode base64url session data to Uint8Array
             const sessionBuffer = BASE64URL_CODEC.decode(event.session);
@@ -127,6 +138,26 @@ export abstract class PlatformEventListener {
 
     public dispatchSessionUrl(url: string): void {
         this.dispatchSetup({ type: SETUP_SESSION_URL, value: url });
+    }
+
+    /// Received a Hyper link, e.g. of `hyperd run --ui`
+    protected dispatchHyperLink(target: HyperLinkTarget): void {
+        if (this.hyperLinkSubscriber == null) {
+            this.queuedHyperLink = target;
+        } else {
+            this.hyperLinkSubscriber(target);
+        }
+    }
+
+    /// Subscribe to Hyper links, a link that arrived before is delivered right away
+    public subscribeHyperLinks(handler: (target: HyperLinkTarget) => void): () => void {
+        this.hyperLinkSubscriber = handler;
+        const queued = this.queuedHyperLink;
+        this.queuedHyperLink = null;
+        if (queued != null) handler(queued);
+        return () => {
+            if (this.hyperLinkSubscriber === handler) this.hyperLinkSubscriber = null;
+        };
     }
 
     /// Received navigation event

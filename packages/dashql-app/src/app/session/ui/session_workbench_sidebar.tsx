@@ -51,7 +51,7 @@ import {
     createConnectionStateFromParams,
     createAttachedConnectionParamsForConnector,
 } from '../../connections/connection_params.js';
-import { useEmbeddedConnection } from '../../connections/embedded_connection.js';
+import { useEmbeddedConnection, useNewSessionConnection } from '../../connections/embedded_connection.js';
 import { ATTACHABLE_CONNECTORS } from '../../connections/attached_connection.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import { ConnectionSettingsOverlay } from '../../connections/ui/connection_settings_overlay.js';
@@ -150,6 +150,7 @@ export interface SessionWorkbenchSidebarDependencies {
     useInvalidSessions: typeof useInvalidSessions;
     useSessionConnections: typeof useSessionConnections;
     useEmbeddedConnection: typeof useEmbeddedConnection;
+    useNewSessionConnection: typeof useNewSessionConnection;
     createConnectionStateFromParams: typeof createConnectionStateFromParams;
     BundledSessionsOverlay: typeof BundledSessionsOverlay;
     ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
@@ -182,6 +183,7 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useInvalidSessions,
     useSessionConnections,
     useEmbeddedConnection,
+    useNewSessionConnection,
     createConnectionStateFromParams,
     BundledSessionsOverlay,
     ConnectionSettingsOverlay,
@@ -422,6 +424,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const allocateConnection = dependencies.useConnectionAllocator();
     const createSession = dependencies.useSessionCreation();
     const resolveEmbeddedConnection = dependencies.useEmbeddedConnection();
+    const resolveNewSessionConnection = dependencies.useNewSessionConnection();
     const mergeConnections = dependencies.useMergeConnections();
     const detachConnectionFromSessions = dependencies.useDetachConnection();
     const [, modifyCurrentSession] = dependencies.useSessionScripts(props.sessionScripts.sessionId);
@@ -578,12 +581,13 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         });
     }, [logger, storageReader.sessionFolders]);
 
-    /// Create a session on the embedded Hyper, its scripts attach other connections
-    const createEmbeddedSession = React.useCallback(() => {
-        const { sessionId } = createSession(resolveEmbeddedConnection(props.sessionScripts.instance));
+    /// Create a session on the embedded Hyper, or on the Hyper of the link that the app was opened with.
+    /// Its scripts attach other connections.
+    const createNewSession = React.useCallback(() => {
+        const { sessionId } = createSession(resolveNewSessionConnection(props.sessionScripts.instance));
         navigate({ type: SELECT_SESSION, value: sessionId });
         props.closeAfterSelection?.();
-    }, [createSession, navigate, props.closeAfterSelection, props.sessionScripts.instance, resolveEmbeddedConnection]);
+    }, [createSession, navigate, props.closeAfterSelection, props.sessionScripts.instance, resolveNewSessionConnection]);
 
     /// Create a connection that no session uses yet and open its settings
     const createConnection = React.useCallback((connector: ConnectorType) => {
@@ -789,7 +793,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                             size={ButtonSize.Small}
                             variant={ButtonVariant.Invisible}
                             aria-label="Create session"
-                            onClick={createEmbeddedSession}
+                            onClick={createNewSession}
                         ><PlusIcon size={14} /></IconButton>
                     </div>
                 </header>

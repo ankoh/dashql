@@ -132,8 +132,8 @@
     },
     "HyperProtocol": {
       "type": "string",
-      "enum": ["WASM", "V3_GRPC", "V3_HTTP"],
-      "description": "The Hyper connection protocol"
+      "enum": ["WASM", "V3_GRPC", "V3_HTTP", "V3_HTTP_LINK"],
+      "description": "The Hyper connection protocol. V3_HTTP_LINK speaks V3_HTTP to the hyperd of the link that the app was opened with, e.g. by hyperd run --ui, its endpoint and token are never stored"
     },
     "HyperConnectionParams": {
       "type": "object",

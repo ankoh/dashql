@@ -25,7 +25,7 @@ export interface ConnectionLabelParts {
 
 /// The protocol of a connection as the label shows it
 function protocolLabel(protocol: string | undefined): string {
-    return protocol === 'V3_GRPC' ? 'gRPC' : protocol === 'V3_HTTP' ? 'Http' : 'Local';
+    return protocol === 'V3_GRPC' ? 'gRPC' : protocol === 'V3_HTTP' ? 'Http' : protocol === 'V3_HTTP_LINK' ? 'Link' : 'Local';
 }
 
 /// The parts of the label of a connection.

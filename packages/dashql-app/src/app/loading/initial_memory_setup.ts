@@ -6,6 +6,7 @@ import type { DynamicConnectionDispatch } from '../connections/connection_regist
 import { ConnectionHealth, type ConnectionState } from '../connections/connection_state.js';
 import type { HyperSetupApi } from '../connections/hyper/hyper_connection_setup.js';
 import { cancelConnectionSetup, registerConnectionSetup } from '../connections/connection_setup_cancellation.js';
+import { isHyperLinkParams, useHyperLinkTabState } from '../hyper_link/hyper_link.js';
 
 const startupAttempts = new Map<string, AbortController>();
 
@@ -24,19 +25,30 @@ export function useInitialMemorySetup(
     dispatch: DynamicConnectionDispatch,
     logger: Logger,
 ): void {
+    const hyperLinks = useHyperLinkTabState();
     const considered = React.useRef(new Set<string>());
     const attempts = React.useRef(new Map<string, AbortController>());
     React.useEffect(() => {
         if (sessionId == null || database == null || setup == null) return;
-        if (considered.current.has(database.connectionId)) return;
+        const params = database.params;
+        // The connection to the Hyper of a link connects once per link, without the token of a link it waits for one
+        const linked = isHyperLinkParams(params);
+        const token = hyperLinks.tokens[database.connectionId];
+        if (linked && token == null) return;
+        const key = linked && 'hyper' in params ? `${database.connectionId} ${params.hyper.endpoint} ${token}` : database.connectionId;
+        if (considered.current.has(key)) return;
         // Consume the initial selection even when online, cancelled, or carrying a draft.
         // Later resets, draft discards, and session switches must not opt back into setup.
-        considered.current.add(database.connectionId);
-        const params = database.params;
-        if (database.connectionHealth !== ConnectionHealth.NOT_STARTED
-            || database.paramsDraft != null
+        considered.current.add(key);
+        if (database.paramsDraft != null
             || !('hyper' in params)
-            || params.hyper.protocol !== 'WASM') return;
+            || (params.hyper.protocol !== 'WASM' && !linked)) return;
+        if (database.connectionHealth !== ConnectionHealth.NOT_STARTED) {
+            if (!linked) return;
+            // The connection speaks to the Hyper of an earlier link
+            cancelConnectionSetup(database.connectionId);
+            void setup.reset(action => dispatch(database.connectionId, action));
+        }
         const abort = new AbortController();
         attempts.current.set(database.connectionId, abort);
         startupAttempts.set(database.connectionId, abort);
@@ -55,7 +67,7 @@ export function useInitialMemorySetup(
             attempts.current.delete(database.connectionId);
             if (startupAttempts.get(database.connectionId) === abort) startupAttempts.delete(database.connectionId);
         });
-    }, [database, dispatch, logger, sessionId, setup]);
+    }, [database, dispatch, hyperLinks, logger, sessionId, setup]);
     React.useEffect(() => () => {
         for (const [connectionId, abort] of attempts.current) {
             abort.abort(new DOMException('App loader unmounted', 'AbortError'));

@@ -119,9 +119,11 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const wrongPlatform = protocol === "V3_GRPC" && !isDesktopHost();
     // The app holds a single connection to the embedded Hyper, connections don't switch between it and a server
     const embedded = connectionState != null && isHyperWasmConnection(connectionState);
+    // A connection to the Hyper of a link takes its endpoint from the link, it doesn't switch to another protocol
+    const linked = protocol === "V3_HTTP_LINK";
     const protocols: connection.HyperProtocol[] = embedded
         ? ["WASM"]
-        : isDesktopHost() ? ["V3_GRPC", "V3_HTTP"] : ["V3_HTTP"];
+        : linked ? ["V3_HTTP_LINK"] : isDesktopHost() ? ["V3_GRPC", "V3_HTTP"] : ["V3_HTTP"];
     const setProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, protocol: v }));
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
     const setMTLSKeyPath = (v: string) => setPageState(s => ({ ...s, mTlsKeyPath: v }));
@@ -257,21 +259,35 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 <div className={style.body_container}>
                     <div className={style.section}>
                         <div className={classNames(style.section_layout, style.body_section_layout)}>
-                            <TextField
-                                name={isGrpc ? "gRPC Endpoint" : "HTTP Endpoint"}
-                                caption={isGrpc
-                                    ? "Endpoint of the gRPC service as 'https://host:port'"
-                                    : "Endpoint of the HTTP service as 'https://host:port'"
-                                }
-                                value={pageState.endpoint}
-                                placeholder={isGrpc ? "gRPC endpoint url" : "HTTP endpoint url"}
-                                leadingVisual={() => <div>URL</div>}
-                                onChange={(e) => setEndpoint(e.target.value)}
-                                disabled={freezeInput}
-                                readOnly={freezeInput}
-                                validation={endpointValidation}
-                                logContext={LOG_CTX}
-                            />
+                            {linked ? (
+                                <TextField
+                                    name="HTTP Endpoint"
+                                    caption="Endpoint of the link that the app was opened with, e.g. by 'hyperd run --ui'"
+                                    value={pageState.endpoint}
+                                    placeholder="Open a link to connect"
+                                    leadingVisual={() => <div>URL</div>}
+                                    onChange={() => { }}
+                                    disabled
+                                    readOnly
+                                    logContext={LOG_CTX}
+                                />
+                            ) : (
+                                <TextField
+                                    name={isGrpc ? "gRPC Endpoint" : "HTTP Endpoint"}
+                                    caption={isGrpc
+                                        ? "Endpoint of the gRPC service as 'https://host:port'"
+                                        : "Endpoint of the HTTP service as 'https://host:port'"
+                                    }
+                                    value={pageState.endpoint}
+                                    placeholder={isGrpc ? "gRPC endpoint url" : "HTTP endpoint url"}
+                                    leadingVisual={() => <div>URL</div>}
+                                    onChange={(e) => setEndpoint(e.target.value)}
+                                    disabled={freezeInput}
+                                    readOnly={freezeInput}
+                                    validation={endpointValidation}
+                                    logContext={LOG_CTX}
+                                />
+                            )}
                             {isGrpc && <KeyValueTextField
                                 className={style.grid_column_1}
                                 name="mTLS Client Key"

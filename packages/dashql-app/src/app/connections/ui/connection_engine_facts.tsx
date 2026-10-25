@@ -27,6 +27,7 @@ const HYPER_PROTOCOL_NAMES: Record<string, string> = {
     WASM: 'embedded (WebAssembly)',
     V3_GRPC: 'gRPC',
     V3_HTTP: 'HTTP',
+    V3_HTTP_LINK: 'HTTP link',
 };
 
 interface Props {

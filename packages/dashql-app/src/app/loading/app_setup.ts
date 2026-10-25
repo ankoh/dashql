@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { OPEN_LINK_SESSION, useRouterNavigate } from '../router/router.js';
 import { useConnectionAllocator, useConnectionRegistrySetter } from '../connections/connection_registry.js';
-import { embeddedConnection } from '../connections/embedded_connection.js';
+import { newSessionConnection } from '../connections/embedded_connection.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
@@ -41,6 +41,8 @@ async function loadFonts(): Promise<void> {
 export interface AppSetup {
     /// Resolves once the app state is restored
     done: Promise<void>;
+    /// Resolves once the app opened its first session
+    opened: Promise<void>;
     /// The progress of the restoration
     progress: AppLoadingProgress;
     /// The status of the setup of the embedded database
@@ -72,6 +74,11 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
         restoreSessionScripts: new ProgressCounter(),
     }));
     const [done, resolveDone] = React.useMemo(() => {
+        let resolve: () => void;
+        const promise = new Promise<void>(a => { resolve = a; });
+        return [promise, resolve!] as const;
+    }, []);
+    const [opened, resolveOpened] = React.useMemo(() => {
         let resolve: () => void;
         const promise = new Promise<void>(a => { resolve = a; });
         return [promise, resolve!] as const;
@@ -157,7 +164,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             if (await shouldFinishInitialNavigation(initialImport.current)) {
                 let sessionId = selectStartupSession(loaded.restoredSessionIds);
                 if (sessionId == null) {
-                    const database = embeddedConnection(loaded.restoredConnections.values(), allocateConnection, core);
+                    const database = newSessionConnection(loaded.restoredConnections, allocateConnection, core);
                     sessionId = createSession(database, 'Default').sessionId;
                 }
                 navigate({
@@ -165,6 +172,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                     value: sessionId,
                 });
             }
+            resolveOpened();
             globalThis.__DASHQL_STARTUP__ = {
                 embeddedDatabase: 'hyperdb-wasm',
                 host: getAppHost(),
@@ -184,5 +192,5 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
         });
     }, [appSettingsReady, config]);
 
-    return { done, progress, embeddedDatabaseStatus };
+    return { done, opened, progress, embeddedDatabaseStatus };
 }

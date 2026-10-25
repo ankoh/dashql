@@ -64,8 +64,8 @@ export interface ConnectionSaveState {
 interface ConnectionPersistence {
     /// The save states of connections (connectionId -> state)
     states: Map<string, ConnectionSaveState>;
-    /// Save the draft of a connection
-    save: (connectionId: string) => Promise<ConnectionSaveResult>;
+    /// Save the draft of a connection, or the given params
+    save: (connectionId: string, params?: ConnectionParams) => Promise<ConnectionSaveResult>;
     /// Write the copies of sessions again
     retry: (connectionId: string, sessionIds: string[]) => Promise<ConnectionSaveResult | null>;
 }
@@ -100,12 +100,12 @@ export const ConnectionPersistenceProvider: React.FC<{ children: React.ReactElem
         })));
     }, [storageWriter]);
 
-    const save = React.useCallback(async (connectionId: string): Promise<ConnectionSaveResult> => {
+    const save = React.useCallback(async (connectionId: string, saved?: ConnectionParams): Promise<ConnectionSaveResult> => {
         const connection = registryStore.current.connections.get(connectionId);
         if (connection == null) {
             throw new Error(`no connection registered with id ${connectionId}`);
         }
-        const params = connectionParamsWithoutDraftRows(connection.paramsDraft ?? connection.params);
+        const params = connectionParamsWithoutDraftRows(saved ?? connection.paramsDraft ?? connection.params);
         setState(connectionId, { saving: true, result: null });
         try {
             // Write the source of truth first, the same key replaces pending draft writes
@@ -167,6 +167,14 @@ export function useConnectionSave(connectionId: string | null) {
         return await persistence.retry(connectionId, sessionIds);
     }, [connectionId, persistence]);
     return { ...state, save, retry };
+}
+
+/// Save the params of any connection, e.g. of a connection that is not shown
+export function useConnectionSaver(): (connectionId: string, params: ConnectionParams) => Promise<ConnectionSaveResult | null> {
+    const persistence = React.useContext(CONNECTION_PERSISTENCE_CTX);
+    return React.useCallback(async (connectionId: string, params: ConnectionParams) => {
+        return persistence == null ? null : await persistence.save(connectionId, params);
+    }, [persistence]);
 }
 
 /// Save the draft of a connection before connecting with it.

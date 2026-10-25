@@ -13,6 +13,7 @@ import { SessionSetupStatus } from './session_setup_status.js';
 import { NarrowScreenWarning, useNarrowScreenWarning } from '../ui/narrow_screen_warning.js';
 import { useAppSetup } from './app_setup.js';
 import { useSharedSessionImport } from './shared_session_import.js';
+import { useHyperLinks } from '../hyper_link/hyper_links.js';
 
 interface Props { }
 
@@ -32,6 +33,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const initialImport = React.useRef<Promise<boolean> | null>(null);
     const setup = useAppSetup(initialImport);
     const sharedSessionCard = useSharedSessionImport(setup.done, initialImport);
+    useHyperLinks(setup.opened);
 
     React.useEffect(() => {
         if (routeContext.sessionSetupStatus === SessionSetupStatus.OPENING && routeContext.sessionId != null) {

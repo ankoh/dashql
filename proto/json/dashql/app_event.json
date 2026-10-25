@@ -17,6 +17,28 @@
     },
     {
       "properties": {
+        "hyperLink": {
+          "type": "object",
+          "description": "Point new sessions at a Hyper that speaks the HTTP v3 API, e.g. the hyperd of hyperd run --ui",
+          "properties": {
+            "endpoint": {
+              "type": "string",
+              "description": "The base url of the HTTP v3 API, http only on this machine"
+            },
+            "token": {
+              "type": "string",
+              "description": "The bearer token of the Hyper, it is never stored durably"
+            }
+          },
+          "required": ["endpoint", "token"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["hyperLink"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
         "oauthRedirect": {
           "$ref": "auth.json#/definitions/OAuthRedirectData",
           "description": "Provide the oauth redirect"

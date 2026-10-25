@@ -28,6 +28,7 @@ import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metri
 import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
 import type { EmbeddedClientContext } from '../../../platform/database/embedded_database.js';
+import { getHyperLinkTabState, hyperLinkChannelParams } from '../../hyper_link/hyper_link.js';
 
 const LOG_CTX = "hyper_setup";
 
@@ -81,10 +82,16 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
             if (connectionId != null) logMetrics?.watch({ database, sessions: true }, connectionId);
             channel = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(embeddedConnection));
         } else {
-            const client = resolveClient(params.protocol, grpcClient, httpClient);
-            const connectParams = params;
+            // The Hyper of a link is reached with the token of the link, it is never stored
+            let connectParams = params;
+            if (params.protocol === 'V3_HTTP_LINK') {
+                const token = connectionId == null ? undefined : getHyperLinkTabState().tokens[connectionId];
+                if (token == null) throw new Error("Open the link of this Hyper again, e.g. the one that `hyperd run --ui` prints");
+                connectParams = hyperLinkChannelParams(params, token);
+            }
+            const client = resolveClient(connectParams.protocol, grpcClient, httpClient);
             // The Hyper log attributes the queries of the channel to the connection by its client context
-            channel = await client.connect(params, hyperConnectionContext(params, connectionId == null ? null : connectionClientContext(connectionId)));
+            channel = await client.connect(connectParams, hyperConnectionContext(connectParams, connectionId == null ? null : connectionClientContext(connectionId)));
             // Every query of a remote channel runs in a session of its own
             const database = new HyperChannelDatabase(clientContext => client.connect(connectParams, hyperConnectionContext(connectParams, clientContext)));
             if (connectionId != null) logMetrics?.watch({ database, sessions: false }, connectionId);

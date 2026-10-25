@@ -24,6 +24,7 @@ const state = {
     deleteSession: vi.fn(),
     allocateConnection: vi.fn(),
     resolveEmbeddedConnection: vi.fn(),
+    resolveNewSessionConnection: vi.fn(),
     detachConnection: vi.fn<() => Promise<void>>(),
     deleteConnection: vi.fn<() => Promise<void>>(),
     local: null as ConnectionState | null,
@@ -110,6 +111,7 @@ const dependencies = {
     usePlatformType: () => 0,
     useLogger: () => ({ warn: vi.fn(), error: vi.fn() }),
     useEmbeddedConnection: () => state.resolveEmbeddedConnection,
+    useNewSessionConnection: () => state.resolveNewSessionConnection,
     createConnectionStateFromParams: (...args: unknown[]) => state.createConnectionStateFromParams(...args),
 } as unknown as SessionWorkbenchSidebarDependencies;
 
@@ -156,6 +158,7 @@ describe('SessionWorkbenchSidebar session creation', () => {
         } as unknown as ConnectionState;
         state.allocateConnection.mockReset().mockReturnValue(state.local);
         state.resolveEmbeddedConnection.mockReset().mockReturnValue(state.local);
+        state.resolveNewSessionConnection.mockReset().mockReturnValue(state.local);
         state.detachConnection.mockReset().mockResolvedValue();
         state.deleteConnection.mockReset().mockResolvedValue();
         vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000001');
@@ -247,10 +250,10 @@ describe('SessionWorkbenchSidebar session creation', () => {
         expect(state.navigate).not.toHaveBeenCalled();
     });
 
-    it('creates and selects a session on the embedded connection with one click', () => {
+    it('creates and selects a session on the new session connection with one click', () => {
         state.write.mockReturnValue(new Promise(() => {}));
         click('create-session');
-        expect(state.resolveEmbeddedConnection).toHaveBeenCalledTimes(1);
+        expect(state.resolveNewSessionConnection).toHaveBeenCalledTimes(1);
         expect(state.createSession).toHaveBeenCalledWith(state.local);
         expect(state.allocateConnection).not.toHaveBeenCalled();
         expect(state.createConnectionStateFromParams).not.toHaveBeenCalled();
