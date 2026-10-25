@@ -23,8 +23,13 @@
 
 .composer[data-variant="hero"] .composer_editor {
     padding: 14px 16px 6px 16px;
-    font-size: 14px;
-    line-height: 22px;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+/* The editors of the scripts are larger, the composer keeps its own size */
+.composer_editor :global(.cm-editor) {
+    font-size: inherit;
 }
 
 .composer_editor :global(.cm-placeholder) {
