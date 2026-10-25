@@ -107,7 +107,8 @@ describe('Hyper log metrics', () => {
     /// Monitor the log of a connection
     async function watch(connectionId: string): Promise<void> {
         logMetrics!.watch({ database: database!, sessions: true }, scoped(connectionId));
-        expect(await logMetrics!.opened(scoped(connectionId))).toBe(true);
+        const opened = await logMetrics!.opened(scoped(connectionId));
+        expect(opened, JSON.stringify(logMetrics!.state.current.get(scoped(connectionId))?.error)).toBe(true);
     }
 
     /// A connection of the user that the client context attributes to a connection
@@ -123,6 +124,17 @@ describe('Hyper log metrics', () => {
     /// Poll the log of a connection
     async function poll(connectionId: string): Promise<void> {
         await logMetrics!.poll(scoped(connectionId));
+    }
+
+    /// Poll the log of a connection until its own queries satisfy a condition, at most for 10s.
+    /// The log may not hold the end of a query yet right after its result, e.g. under the load of CI.
+    async function pollUntil(connectionId: string, done: (own: HyperQueryEnd[]) => boolean): Promise<void> {
+        const deadline = performance.now() + 10_000;
+        await poll(connectionId);
+        while (!done(await ownQueries(connectionId)) && performance.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 250));
+            await poll(connectionId);
+        }
     }
 
     /// The finished queries in the extract of a connection, read like the connection overview
@@ -172,8 +184,8 @@ describe('Hyper log metrics', () => {
         await expect(first.query('SELECT * FROM query_log_missing_table')).rejects.toThrow();
         await second.query('SELECT 1 AS one');
         await unattributed.query('SELECT 2 AS two');
-        await poll('first');
-        await poll('second');
+        await pollUntil('first', own => own.length >= 2);
+        await pollUntil('second', own => own.length >= 1);
         const after = Date.now();
 
         const firstQueries = await ownQueries('first');
