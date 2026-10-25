@@ -1,4 +1,4 @@
-import { connectionParamsShareEqual } from './connection_params.js';
+import { connectionCatalogIsDurable, connectionParamsShareEqual } from './connection_params.js';
 import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { isConnectionOpen, type ConnectionState } from './connection_state.js';
 
@@ -21,7 +21,9 @@ export function connectionMergeCandidates(
 }
 
 /// Can a connection be merged into another one?
-/// Only disconnected connections are merged, nothing runs on them while their sessions move.
+/// Only disconnected connections are merged, nothing runs on them while their sessions move. The
+/// embedded database is the exception: it is connected right away and holds nothing that outlives
+/// the app, so its sessions can always move.
 export function canMergeConnection(database: ConnectionState): boolean {
-    return !isConnectionOpen(database.connectionHealth);
+    return !isConnectionOpen(database.connectionHealth) || !connectionCatalogIsDurable(database.params);
 }

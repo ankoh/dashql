@@ -70,6 +70,21 @@ describe('session connection import', () => {
         expect(separate.scripts).toEqual([{ name: 'query.sql', connectionId: FRESH }]);
     });
 
+    it('asks when a session brings the embedded database with empty lists', () => {
+        const embedded: ConnectionEntry = { id: KNOWN, params: { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as ConnectionParams };
+        const session = imported(IMPORTED, { hyper: {
+            protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
+            attachedDatabases: [], metadata: {}, queryParameters: {},
+        } } as ConnectionParams);
+        expect(planConnectionImport(session, [embedded])[0].decision).toEqual({ kind: 'ask', candidates: [embedded] });
+        // An attached database still tells embedded databases apart
+        const attached = imported(IMPORTED, { hyper: {
+            protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
+            attachedDatabases: [{ path: 'tpch.hyper', alias: 'tpch' }],
+        } } as ConnectionParams);
+        expect(planConnectionImport(attached, [embedded])[0].decision).toEqual({ kind: 'register' });
+    });
+
     it('registers unknown connections with their ids', () => {
         const session = imported(IMPORTED, trino('https://unknown'));
         const plan = planConnectionImport(session, ENTRIES);

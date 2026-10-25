@@ -3,7 +3,8 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { connectionMergeCandidates } from './connection_merge.js';
+import { canMergeConnection, connectionMergeCandidates } from './connection_merge.js';
+import { createDefaultConnectionParamsForConnector } from './connection_params.js';
 import { NO_CONNECTION_REFERENCES, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, type ConnectionState } from './connection_state.js';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
@@ -14,6 +15,11 @@ vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect()
 
 const grpc = (endpoint: string, token?: string) => ({ hyper: { protocol: 'V3_GRPC', endpoint, ...(token ? { metadata: { auth: token } } : {}) } }) as any;
 const trino = (endpoint: string) => ({ trino: { endpoint } }) as any;
+/// The embedded database as the example sessions store it
+const wasm = () => ({ hyper: {
+    protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
+    attachedDatabases: [], metadata: {}, queryParameters: {},
+} }) as any;
 
 /// A connection as far as the merge looks at it
 function database(connectionId: string, params: any, health = ConnectionHealth.NOT_STARTED, active = true): ConnectionState {
@@ -49,6 +55,19 @@ describe('connectionMergeCandidates', () => {
             database('unlisted', grpc('http://hyper'), ConnectionHealth.NOT_STARTED, false),
         );
         expect(connectionMergeCandidates(reg, NO_CONNECTION_REFERENCES, 'target').map(db => db.connectionId)).toEqual(['same']);
+    });
+
+    it('lists the embedded database of an example next to the default one', () => {
+        const reg = registry(
+            database('default', createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]), ConnectionHealth.ONLINE),
+            // Example sessions carry every list and map, even when empty
+            database('example', wasm(), ConnectionHealth.ONLINE),
+        );
+        const candidates = connectionMergeCandidates(reg, NO_CONNECTION_REFERENCES, 'default');
+        expect(candidates.map(db => db.connectionId)).toEqual(['example']);
+        // Embedded databases are always connected, they still merge
+        expect(candidates.map(canMergeConnection)).toEqual([true]);
+        expect(canMergeConnection(database('remote', grpc('http://hyper'), ConnectionHealth.ONLINE))).toBe(false);
     });
 
     it('lists unlisted connections once sessions use them', () => {
@@ -99,22 +118,23 @@ describe('connection merge ui', () => {
         expect(onMerge).toHaveBeenCalledTimes(1);
     });
 
-    it('merges only the chosen disconnected connections', () => {
+    it('merges only the chosen disconnected connections and embedded databases', () => {
         const onConfirm = vi.fn();
         const candidates = [
             { database: database('offline', grpc('http://hyper')), label: 'Hyper #2 gRPC', sessionCount: 1 },
             { database: database('online', grpc('http://hyper'), ConnectionHealth.ONLINE), label: 'Hyper #3 gRPC', sessionCount: 0 },
             { database: database('unchecked', grpc('http://hyper'), ConnectionHealth.FAILED), label: 'Hyper #4 gRPC', sessionCount: 2 },
+            { database: database('embedded', wasm(), ConnectionHealth.ONLINE), label: 'Hyper Local', sessionCount: 1 },
         ];
         act(() => root.render(
             <ConnectionMergeDialog targetLabel="Hyper #1 gRPC" candidates={candidates} busy={false} onConfirm={onConfirm} onCancel={vi.fn()} />,
         ));
         const rows = [...document.querySelectorAll<HTMLElement>('[data-testid="connection-merge-candidate"]')];
-        expect(rows.map(row => row.dataset.state)).toEqual(['disconnected', 'connected', 'disconnected']);
+        expect(rows.map(row => row.dataset.state)).toEqual(['mergeable', 'connected', 'mergeable', 'mergeable']);
         const boxes = rows.map(row => row.querySelector<HTMLInputElement>('input[type="checkbox"]')!);
-        expect(boxes.map(box => [box.checked, box.disabled])).toEqual([[true, false], [false, true], [true, false]]);
+        expect(boxes.map(box => [box.checked, box.disabled])).toEqual([[true, false], [false, true], [true, false], [true, false]]);
         act(() => boxes[2].click());
         act(() => document.querySelector<HTMLButtonElement>('[data-testid="connection-merge-confirm"]')!.click());
-        expect(onConfirm).toHaveBeenCalledWith(['offline']);
+        expect(onConfirm).toHaveBeenCalledWith(['offline', 'embedded']);
     });
 });

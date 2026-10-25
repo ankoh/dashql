@@ -18,22 +18,40 @@ export function connectionParamsWithoutDraftRows(params: ConnectionParams): Conn
     return connectionParamsOf(connector, connector.withoutDraftRows(connectorParams(connector, params)));
 }
 
+/// Sort the keys of an object so that its encoding doesn't depend on their order
+function sortObjectKeys(value: unknown): unknown {
+    return value != null && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : value;
+}
+
+/// Is a value an empty list or an empty map?
+function isEmptyCollection(value: unknown): boolean {
+    return value != null && typeof value === 'object' && Object.keys(value).length === 0;
+}
+
 /// A canonical encoding of connection params that doesn't depend on the order of object keys
 export function connectionParamsKey(params: ConnectionParams | undefined): string {
-    return JSON.stringify(params, (_key, value) =>
-        value != null && typeof value === 'object' && !Array.isArray(value)
-            ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : value) ?? '';
+    return JSON.stringify(params, (_key, value) => sortObjectKeys(value)) ?? '';
 }
 
 export function connectionParamsEqual(left: ConnectionParams | undefined, right: ConnectionParams | undefined): boolean {
     return connectionParamsKey(left) === connectionParamsKey(right);
 }
 
+/// A canonical encoding of the database that connection params describe.
+/// Secrets and login hints are stripped like for sharing, and empty lists and maps count as absent:
+/// default params leave them out, params written by a form or a session file carry them empty.
+function connectionIdentityKey(params: ConnectionParams): string {
+    return JSON.stringify(sanitizeConnectionParamsForSharing(params, false), function (this: unknown, _key, value) {
+        return !Array.isArray(this) && isEmptyCollection(value) ? undefined : sortObjectKeys(value);
+    }) ?? '';
+}
+
 /// Do two params describe the same connection, ignoring everything that sharing strips?
 /// Shared sessions carry sanitized params without secrets and login hints, they still describe the
 /// connection a local session uses with the full params.
 export function connectionParamsShareEqual(left: ConnectionParams, right: ConnectionParams): boolean {
-    return connectionParamsEqual(sanitizeConnectionParamsForSharing(left, false), sanitizeConnectionParamsForSharing(right, false));
+    return connectionIdentityKey(left) === connectionIdentityKey(right);
 }
 
 /// Do the relations of a connection outlive the app?

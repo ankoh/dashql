@@ -33,7 +33,7 @@ interface Props {
 }
 
 /// Ask the user which connections to merge into a connection.
-/// Only disconnected connections can be merged, connected ones are listed but disabled. The list
+/// Only disconnected connections and embedded databases can be merged, other connected ones are listed but disabled. The list
 /// follows the connections, a connection that disconnects meanwhile can be chosen right away.
 export function ConnectionMergeDialog(props: Props): React.ReactElement {
     const titleId = React.useId();
@@ -77,7 +77,7 @@ export function ConnectionMergeDialog(props: Props): React.ReactElement {
                                     <label
                                         className={ownStyles.candidate}
                                         data-testid="connection-merge-candidate"
-                                        data-state={mergeable ? 'disconnected' : 'connected'}
+                                        data-state={mergeable ? 'mergeable' : 'connected'}
                                         data-disabled={!mergeable || undefined}
                                     >
                                         <input
