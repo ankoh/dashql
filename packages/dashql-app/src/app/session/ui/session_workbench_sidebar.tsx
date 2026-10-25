@@ -37,10 +37,7 @@ import {
 import { classNames } from '../../../utils/classnames.js';
 import { OPEN_SESSION, SELECT_SESSION, useRouteContext, useRouterNavigate } from '../../router/router.js';
 import { SessionSetupStatus } from '../../loading/session_setup_status.js';
-import {
-    ConnectionState,
-    DELETE_CONNECTION,
-} from '../../connections/connection_state.js';
+import { ConnectionState } from '../../connections/connection_state.js';
 import {
     findSessionQueries,
     useConnectionReferences,
@@ -80,8 +77,8 @@ import {
 } from '../scripts/session_scripts_registry.js';
 import { useSessionCreation } from '../session_creation.js';
 import { useMergeConnections } from '../session_connection_merge.js';
+import { useDeleteConnection } from '../../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../../connections/connection_merge.js';
-import { ConnectionMergeDialog, type ConnectionMergeCandidate } from '../../connections/ui/connection_merge_dialog.js';
 import { BundledSessionsOverlay } from '../../ui/bundled_sessions_overlay.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals } from '../../connections/ui/connection_label.js';
 import { ConnectionProtocolTag } from '../../connections/ui/connection_label_view.js';
@@ -134,6 +131,7 @@ export interface SessionWorkbenchSidebarDependencies {
     useConnectionAllocator: typeof useConnectionAllocator;
     useSessionCreation: typeof useSessionCreation;
     useMergeConnections: typeof useMergeConnections;
+    useDeleteConnection: typeof useDeleteConnection;
     useSessionScriptsDeletion: typeof useSessionScriptsDeletion;
     useComputationDispatch: typeof useComputationDispatch;
     useStorageReader: typeof useStorageReader;
@@ -163,6 +161,7 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useConnectionAllocator,
     useSessionCreation,
     useMergeConnections,
+    useDeleteConnection,
     useSessionScriptsDeletion,
     useComputationDispatch,
     useStorageReader,
@@ -369,13 +368,14 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES;
     const navigate = dependencies.useRouterNavigate();
     const route = dependencies.useRouteContext();
-    const [databaseRegistry, databaseDispatch] = dependencies.useDynamicConnectionDispatch();
+    const [databaseRegistry] = dependencies.useDynamicConnectionDispatch();
     const [scriptsRegistry, setScriptsRegistry] = dependencies.useSessionScriptsRegistry();
     const [, setDatabaseRegistry] = dependencies.useConnectionRegistry();
     const references = dependencies.useConnectionReferences();
     const allocateConnection = dependencies.useConnectionAllocator();
     const createSession = dependencies.useSessionCreation();
     const mergeConnections = dependencies.useMergeConnections();
+    const shutDownAndDeleteConnection = dependencies.useDeleteConnection();
     const deleteSessionScripts = dependencies.useSessionScriptsDeletion();
     const computationDispatch = dependencies.useComputationDispatch();
     const storageReader = dependencies.useStorageReader();
@@ -539,36 +539,27 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         const database = databaseRegistry.connections.get(connectionId);
         if (database == null || references.sessionsOf(connectionId).length > 0) return;
         if (!window.confirm(`Delete the connection "${connectionLabelText(labelOf(database))}"?`)) return;
-        databaseDispatch(connectionId, { type: DELETE_CONNECTION, value: null });
-    }, [databaseDispatch, databaseRegistry, labelOf, references]);
+        shutDownAndDeleteConnection(connectionId).catch(error => {
+            logger.warn('failed to delete the connection', { connectionId, error: String(error) }, 'session_workbench');
+        });
+    }, [databaseRegistry, labelOf, logger, references, shutDownAndDeleteConnection]);
 
-    /// The connection that the merge dialog merges into
-    const [mergeTargetId, setMergeTargetId] = React.useState<string | null>(null);
-    const [merging, setMerging] = React.useState(false);
-    const mergeTarget = mergeTargetId == null ? null : databaseRegistry.connections.get(mergeTargetId) ?? null;
+    /// The number of duplicates of a connection
     const mergeCandidateCount = React.useCallback(
         (connectionId: string) => connectionMergeCandidates(databaseRegistry, references, connectionId).length,
         [databaseRegistry, references, scriptsRegistry],
     );
-    const mergeCandidates = React.useMemo<ConnectionMergeCandidate[]>(() => mergeTargetId == null ? [] : (
-        connectionMergeCandidates(databaseRegistry, references, mergeTargetId).map(database => ({
-            database,
-            label: connectionLabelText(labelOf(database)),
-            sessionCount: references.sessionsOf(database.connectionId).length,
-        }))
-    ), [databaseRegistry, labelOf, mergeTargetId, references, scriptsRegistry]);
-    const mergeIntoTarget = React.useCallback(async (connectionIds: string[]) => {
-        if (mergeTargetId == null) return;
-        setMerging(true);
-        try {
-            await mergeConnections(mergeTargetId, connectionIds);
-        } catch (error) {
-            logger.warn('failed to merge connections', { connectionId: mergeTargetId, error: String(error) }, 'session_workbench');
-        } finally {
-            setMerging(false);
-            setMergeTargetId(null);
-        }
-    }, [logger, mergeConnections, mergeTargetId]);
+    /// Merge the duplicates of a connection into it, their sessions move to the connection
+    const mergeDuplicates = React.useCallback((connectionId: string) => {
+        const database = databaseRegistry.connections.get(connectionId);
+        const duplicates = connectionMergeCandidates(databaseRegistry, references, connectionId);
+        if (database == null || duplicates.length === 0) return;
+        const what = duplicates.length === 1 ? 'its duplicate' : `its ${duplicates.length} duplicates`;
+        if (!window.confirm(`Merge ${what} into the connection "${connectionLabelText(labelOf(database))}"?`)) return;
+        mergeConnections(connectionId, duplicates.map(duplicate => duplicate.connectionId)).catch(error => {
+            logger.warn('failed to merge connections', { connectionId, error: String(error) }, 'session_workbench');
+        });
+    }, [databaseRegistry, labelOf, logger, mergeConnections, references]);
 
     /// Create a session with a new connection of a connector
     const createSessionWithConnector = React.useCallback((connector: ConnectorType) => {
@@ -880,7 +871,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                         describeUsage={describeUsage}
                         onDelete={deleteConnection}
                         mergeCandidateCount={mergeCandidateCount}
-                        onMerge={setMergeTargetId}
+                        onMerge={mergeDuplicates}
                         initiallyExpanded={initiallyExpanded}
                         sessionConnectionIds={sessionConnectionIds}
                         labelOf={labelOf}
@@ -901,15 +892,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                 anchorRef={connectionSettingsAnchorRef}
                 renderSessionName={renderSessionName}
             />
-            {mergeTarget != null && (
-                <ConnectionMergeDialog
-                    targetLabel={connectionLabelText(labelOf(mergeTarget))}
-                    candidates={mergeCandidates}
-                    busy={merging}
-                    onConfirm={connectionIds => void mergeIntoTarget(connectionIds)}
-                    onCancel={() => setMergeTargetId(null)}
-                />
-            )}
         </nav>
     );
 };

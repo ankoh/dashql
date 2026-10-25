@@ -91,8 +91,8 @@ export interface PromptEditorProps {
 
 /// A minimal SQL prompt backed by CodeMirror and wired with a DashQL script session.
 ///
-/// The session belongs to the caller. It is not a session script, so analysis results are kept
-/// local to the editor and never loaded into the catalog.
+/// The session belongs to the caller, a replaced session can be destroyed in an effect. It is not a
+/// session script, so analysis results are kept local to the editor and never loaded into the catalog.
 export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     const callbacks = React.useRef<PromptEditorCallbacks>({});
     callbacks.current = { onSubmit: props.onSubmit, onTextChange: props.onTextChange, onEditorUpdate: props.onEditorUpdate };
@@ -156,8 +156,9 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     React.useEffect(() => () => releaseCompletion(null), [editorView]);
 
     // Bind the script session to the editor.
-    // A new session (e.g. after the connection catalog changed) takes over the current text.
-    React.useEffect(() => {
+    // A new session (e.g. after the connection catalog changed) takes over the current text. The
+    // binding is a layout effect, the caller may destroy the previous session in a regular effect.
+    React.useLayoutEffect(() => {
         const scriptSession = props.scriptSession;
         if (editorView == null || scriptSession == null) {
             return;

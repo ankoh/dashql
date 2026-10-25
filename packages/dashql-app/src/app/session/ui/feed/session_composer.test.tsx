@@ -123,6 +123,18 @@ describe('Session composer', () => {
         expect(modeButton('ai').disabled).toBe(true);
     });
 
+    it('moves the draft to the catalog of a merged connection', async () => {
+        const editor = await render(SessionComposerVariant.Docked, true);
+        act(() => type(editor, 'select 4'));
+        // A merge deletes the connection, and destroys its catalog, before the session renders the target
+        const merged = catalog;
+        catalog = dql.createCatalog();
+        merged.destroy();
+        expect(await render(SessionComposerVariant.Docked, true)).toBe(editor);
+        act(() => type(editor, ' '));
+        await vi.waitFor(() => expect(editor.state.field(DashQLProcessorPlugin).scriptSession?.getText()).toBe('select 4 '));
+    });
+
     describe('with an AI provider', () => {
         const selectedMode = () => container.querySelector('[data-testid="composer-mode"][aria-current="true"]')?.getAttribute('data-mode');
         const typeUser = (editor: EditorView, text: string) => editor.dispatch({

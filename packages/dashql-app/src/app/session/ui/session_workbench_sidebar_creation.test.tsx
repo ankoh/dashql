@@ -70,6 +70,7 @@ const dependencies = {
     useSessionScriptsRegistry: () => [{ sessionScriptsMap: state.sessionScriptsMap }],
     useSessionCreation: () => state.createSession,
     useMergeConnections: () => async () => {},
+    useDeleteConnection: () => async () => {},
     useStorageReader: () => ({
         backend: {},
         getSessionLocation: () => ({ type: 'opfs' }),

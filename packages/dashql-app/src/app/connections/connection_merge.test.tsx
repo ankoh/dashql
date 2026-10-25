@@ -3,12 +3,11 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { canMergeConnection, connectionMergeCandidates } from './connection_merge.js';
+import { connectionMergeCandidates } from './connection_merge.js';
 import { createDefaultConnectionParamsForConnector } from './connection_params.js';
 import { NO_CONNECTION_REFERENCES, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, type ConnectionState } from './connection_state.js';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
-import { ConnectionMergeDialog } from './ui/connection_merge_dialog.js';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './ui/connection_tree.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -63,11 +62,7 @@ describe('connectionMergeCandidates', () => {
             // Example sessions carry every list and map, even when empty
             database('example', wasm(), ConnectionHealth.ONLINE),
         );
-        const candidates = connectionMergeCandidates(reg, NO_CONNECTION_REFERENCES, 'default');
-        expect(candidates.map(db => db.connectionId)).toEqual(['example']);
-        // Embedded databases are always connected, they still merge
-        expect(candidates.map(canMergeConnection)).toEqual([true]);
-        expect(canMergeConnection(database('remote', grpc('http://hyper'), ConnectionHealth.ONLINE))).toBe(false);
+        expect(connectionMergeCandidates(reg, NO_CONNECTION_REFERENCES, 'default').map(db => db.connectionId)).toEqual(['example']);
     });
 
     it('lists unlisted connections once sessions use them', () => {
@@ -116,25 +111,5 @@ describe('connection merge ui', () => {
         const item = render(2)!;
         act(() => item.click());
         expect(onMerge).toHaveBeenCalledTimes(1);
-    });
-
-    it('merges only the chosen disconnected connections and embedded databases', () => {
-        const onConfirm = vi.fn();
-        const candidates = [
-            { database: database('offline', grpc('http://hyper')), label: 'Hyper #2 gRPC', sessionCount: 1 },
-            { database: database('online', grpc('http://hyper'), ConnectionHealth.ONLINE), label: 'Hyper #3 gRPC', sessionCount: 0 },
-            { database: database('unchecked', grpc('http://hyper'), ConnectionHealth.FAILED), label: 'Hyper #4 gRPC', sessionCount: 2 },
-            { database: database('embedded', wasm(), ConnectionHealth.ONLINE), label: 'Hyper Local', sessionCount: 1 },
-        ];
-        act(() => root.render(
-            <ConnectionMergeDialog targetLabel="Hyper #1 gRPC" candidates={candidates} busy={false} onConfirm={onConfirm} onCancel={vi.fn()} />,
-        ));
-        const rows = [...document.querySelectorAll<HTMLElement>('[data-testid="connection-merge-candidate"]')];
-        expect(rows.map(row => row.dataset.state)).toEqual(['mergeable', 'connected', 'mergeable', 'mergeable']);
-        const boxes = rows.map(row => row.querySelector<HTMLInputElement>('input[type="checkbox"]')!);
-        expect(boxes.map(box => [box.checked, box.disabled])).toEqual([[true, false], [false, true], [true, false], [true, false]]);
-        act(() => boxes[2].click());
-        act(() => document.querySelector<HTMLButtonElement>('[data-testid="connection-merge-confirm"]')!.click());
-        expect(onConfirm).toHaveBeenCalledWith(['offline', 'embedded']);
     });
 });

@@ -63,15 +63,10 @@ export function takeComposerDraft(view: EditorView): string | null {
 /// The draft lives in its own script session on the connection catalog. It provides completion and tells SQL
 /// from natural language, but it is not a session script: it is neither persisted nor loaded into the catalog.
 export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
-    const [scriptSession, setScriptSession] = React.useState<core.DashQLScriptSession | null>(null);
-    React.useEffect(() => {
-        const draftSession = props.instance.createScriptSession(props.catalog);
-        setScriptSession(draftSession);
-        return () => {
-            setScriptSession(null);
-            draftSession.destroy();
-        };
-    }, [props.instance, props.catalog]);
+    // The draft session is created while rendering: the editor binds a new session in a layout effect,
+    // before the effect below destroys the previous one.
+    const scriptSession = React.useMemo(() => props.instance.createScriptSession(props.catalog), [props.instance, props.catalog]);
+    React.useEffect(() => () => scriptSession.destroy(), [scriptSession]);
 
     const [view, setView] = React.useState<EditorView | null>(null);
     const [empty, setEmpty] = React.useState(true);
