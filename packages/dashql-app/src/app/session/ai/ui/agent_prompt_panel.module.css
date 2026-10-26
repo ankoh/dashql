@@ -1,0 +1,169 @@
+/* The agent on top of the composer, tinted like the frame of the composer.
+   The composer sets its radius and the padding that lines the panel up with its editor. */
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: var(--composer_agent_padding, 8px 12px);
+    border-bottom: 1px solid var(--base_color_purple_1);
+    border-radius: calc(var(--composer_radius, var(--border_radius)) - 1px) calc(var(--composer_radius, var(--border_radius)) - 1px) 0 0;
+    background: linear-gradient(180deg, var(--base_color_purple_0) 0%, hsla(285, 100%, 97%, 0.4) 100%);
+    font-size: var(--font_size_small);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: var(--base_color_purple_6);
+}
+
+.header_icon {
+    flex: none;
+    color: var(--base_color_purple_5);
+}
+
+.header_title {
+    flex: none;
+    font-weight: 600;
+}
+
+.header_dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #9a6700;
+}
+
+.header_dot[data-connected] {
+    background: #1f883d;
+}
+
+.header_detail {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--base_color_neutral_5);
+}
+
+/* The questions, a long answer scrolls instead of pushing the composer off the page */
+.runs {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: 30vh;
+    overflow-y: auto;
+}
+
+.run {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.run_header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 24px;
+}
+
+.run_indicator {
+    display: flex;
+    flex: none;
+    width: 12px;
+}
+
+.run_question {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--base_color_neutral_8);
+    font-size: var(--font_size_body);
+}
+
+/* The script of the question, scrolls the feed to it */
+.run_script {
+    flex: none;
+    max-width: 40%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    padding: 1px 6px;
+    border: 1px solid var(--base_color_purple_1);
+    border-radius: 4px;
+    background: white;
+    color: var(--base_color_purple_6);
+    font-family: var(--font_family_mono);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.run_script:hover {
+    border-color: var(--base_color_purple_3);
+}
+
+.run_script:focus-visible {
+    outline: 2px solid var(--base_color_purple_5);
+    outline-offset: 1px;
+}
+
+/* The latest status line of the agent, shimmering while it works */
+.run_status {
+    padding-left: 20px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-family: var(--font_family_mono);
+    font-size: 11px;
+    color: var(--base_color_neutral_5);
+    background: linear-gradient(
+        90deg,
+        var(--base_color_neutral_5) 0%,
+        var(--base_color_purple_3) 50%,
+        var(--base_color_neutral_5) 100%
+    );
+    background-size: 200% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: status_shimmer 2s linear infinite;
+}
+
+@keyframes status_shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+}
+
+/* The final message of the agent */
+.run_note {
+    padding-left: 20px;
+    color: var(--base_color_neutral_7);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.run_error {
+    padding-left: 20px;
+    color: var(--fgColor-danger, #cf222e);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .run_status {
+        animation: none;
+        background: none;
+        -webkit-text-fill-color: currentColor;
+    }
+}

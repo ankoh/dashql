@@ -148,8 +148,8 @@ from web apps, and Ollama's menu bar app with its localhost API.
   - the command-shaped shell API (`packages/dashql-app/src/shell/api.ts`).
 - **Question → SQL UX:** `ComposerInputMode.Ai` (`app/session/ai/input_mode.ts`) and
   `useSqlGenerations` (`app/session/ai/use_sql_generations.ts`), with the generation
-  placeholder (`ai/editor/generation_placeholder.ts`) and stop button
-  (`ai/ui/script_generation.tsx`).
+  placeholder (`ai/editor/generation_placeholder.ts`, `ai/ui/script_generation.tsx`) and the agent on top of the
+  composer (`ai/ui/agent_prompt_panel.tsx`).
 - **An OpenAI-compatible LLM client** (`platform/ai/ai_client.ts`) with endpoint settings: removed. The agent
   bridge is the only path to models; without agent access the composer takes SQL only.
 
@@ -379,7 +379,7 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
     step without tool calls.
   - Codex passes the JSON body of a failed API call as the error message, the adapter takes its message.
 - One run at a time per DashQL session; further requests queue in the server.
-- Stop (in the editor or the menu) sends `agent/cancel`; the server kills the run's
+- Stop (in the composer or the menu) sends `agent/cancel`; the server kills the run's
   process tree.
 - **Security rule:** clients never send commands, only a harness name and a prompt.
   Command templates exist only in the local `config.json`. The app may pick the default harness
@@ -407,15 +407,23 @@ shown, so it also works before any session has agent access.
 
 ### Editor UI
 
-There is no agent panel, chat transcript or tool-call log.
+There is no separate agent panel, chat transcript or tool-call log. The scripts show what the agent edits; everything
+else the agent says is shown by the composer (`ai/ui/agent_prompt_panel.tsx`).
 
-| Run state | DashQL UI |
-|---|---|
-| Queued | Generation placeholder: "waiting for agent..." |
-| Running | Placeholder with the latest status line |
-| Script edited | Editor updates; edited scripts are marked until the run ends |
-| Final message | Dismissible note on the script, styled like `GenerationError` but neutral |
-| Failed or stopped | `GenerationError` with the reason |
+- **With agent access** the composer turns purple and shows the agent on top of the prompt: the harness, whether the
+  agent server is connected, whether the next question continues the harness conversation, and the questions of the
+  session. On the landing view of an empty session it takes the place of "What do you want to know about your data
+  today?". While a run is going, the frame of the composer turns.
+- **A question** is a line in that panel with the script that holds it, which scrolls the feed to the script.
+
+| Run state | Composer | Script |
+|---|---|---|
+| Queued | "waiting for agent...", Stop | Placeholder below the text, Play disabled |
+| Running | The latest status line, Stop | Placeholder, Play disabled |
+| Script edited | | Editor updates |
+| Final message | The message until it is dismissed | |
+| Failed | The reason until it is dismissed | |
+| Stopped | Removed | |
 
 - **Entry points:** the composer through `useSqlGenerations`, which sends the question to the agent with
   the target script; later inline edit on a selection, "Fix with agent" on diagnostics and failed queries.
@@ -554,7 +562,7 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
   - `packages/dashql-native/src/updater.ts` (status listener for the menu)
   - `packages/dashql-app/src/app/app.tsx` (provider)
   - `packages/dashql-app/src/app/session/ai/use_sql_generations.ts`,
-    `ai/ui/script_generation.tsx`, `ai/editor/generation_placeholder.ts`
+    `ai/ui/script_generation.tsx`, `ai/ui/agent_prompt_panel.tsx`, `ai/editor/generation_placeholder.ts`
   - settings UI for the toggle and data settings
 
 Everything builds through Bazel, per `docs/agents/build_bazel_targets.md`.

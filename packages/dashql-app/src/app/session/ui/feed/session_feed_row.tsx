@@ -31,7 +31,7 @@ import { ScriptEditor } from '../script_editor.js';
 import { ScriptStatisticsBar } from '../script_statistics_bar.js';
 import { formatScriptEditor, formattingDialectForConnector, isScriptFormattable } from '../script_format.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
-import { GenerationError, GenerationStopButton, isGenerating, useGenerationPlaceholder } from '../../ai/ui/script_generation.js';
+import { isGenerating, useGenerationPlaceholder } from '../../ai/ui/script_generation.js';
 import type { ScriptGeneration } from '../../ai/use_sql_generations.js';
 import { ScriptActionMenu, type ScriptStorage } from '../script_action_menu.js';
 import { displayPath } from '../../../storage/session_locator.js';
@@ -85,12 +85,8 @@ export interface ScriptCardProps {
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     resultExpanded: boolean;
-    /// The running or failed translation of the question of the script into SQL
+    /// The question of the script that the agent answers, the composer shows its status
     generation: ScriptGeneration | null;
-    /// Stop the translation of the script
-    onStopGeneration: (scriptKey: number) => void;
-    /// Dismiss the error of a failed translation
-    onDismissGeneration: (scriptKey: number) => void;
     onToggleResultExpanded: (scriptKey: number) => void;
     onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
     onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
@@ -238,7 +234,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     // A question is being translated into the SQL of the script
     const generating = isGenerating(props.generation);
-    useGenerationPlaceholder(editorView, props.generation?.status ?? null);
+    useGenerationPlaceholder(editorView, generating);
     const formattingDialect = formattingDialectForConnector(props.connectorType);
     // Formattability only depends on the text, cursor moves bump the state revision but not the text version
     const isFormattable = React.useMemo(
@@ -292,9 +288,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
         >
             <div className={styles.feed_entry_cell} data-result-card={hasFooterContent ? '' : undefined}>
                 <div className={styles.feed_entry_action_bar}>
-                    {generating ? (
-                        <GenerationStopButton scriptKey={scriptKey} displayName={displayName} onStop={props.onStopGeneration} />
-                    ) : (
                     <ExecuteConnectionGuard sessionId={props.sessionId} blocked={!queryActive && props.connectionHealth !== ConnectionHealth.ONLINE}>
                     <IconButton
                         className={props.isFocused ? styles.feed_entry_execute_focused : styles.feed_entry_execute_unfocused}
@@ -303,7 +296,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
                         data-testid="script-execute"
                         aria-current={props.isFocused ? 'true' : undefined}
-                        disabled={!queryActive && (!props.canExecute || sessionExecution.busy || props.connectionHealth !== ConnectionHealth.ONLINE)}
+                        disabled={!queryActive && (!props.canExecute || generating || sessionExecution.busy || props.connectionHealth !== ConnectionHealth.ONLINE)}
                         onClick={() => {
                             if (queryActive && props.scriptData?.latestQueryId != null) {
                                 if (sessionExecution.busy) sessionExecution.stop();
@@ -316,7 +309,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         {queryActive ? <SquareFillIcon size={14} /> : <PaperAirplaneIcon size={16} />}
                     </IconButton>
                     </ExecuteConnectionGuard>
-                    )}
                     <span className={styles.feed_entry_action_separator} aria-hidden="true" />
                     <div className={styles.feed_entry_file_name}>
                         <ScriptConnectionPicker
@@ -430,7 +422,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             </div>
                         )}
                     </div>
-                    <GenerationError scriptKey={scriptKey} generation={props.generation} onDismiss={props.onDismissGeneration} />
                 </div>
                 {hasFooterContent && (
                     <div className={styles.feed_entry_footer}>
@@ -507,10 +498,8 @@ export interface ScriptFeedRowProps {
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     collapsedResults: ReadonlyMap<number, number | null>;
-    /// The running or failed translations of questions into SQL by script key
+    /// The questions that the agent answers by script key
     generations: ReadonlyMap<number, ScriptGeneration>;
-    onStopGeneration: (scriptKey: number) => void;
-    onDismissGeneration: (scriptKey: number) => void;
     onToggleResultExpanded: (scriptKey: number) => void;
     onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
     onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
@@ -669,8 +658,6 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onRejectDiff={props.onRejectDiff}
                     resultExpanded={scriptData == null || !props.collapsedResults.has(scriptData.scriptKey)}
                     generation={scriptData != null ? props.generations.get(scriptData.scriptKey) ?? null : null}
-                    onStopGeneration={props.onStopGeneration}
-                    onDismissGeneration={props.onDismissGeneration}
                     onToggleResultExpanded={props.onToggleResultExpanded}
                     onAutoCollapseResult={props.onAutoCollapseResult}
                     onResetAutoCollapsedResult={props.onResetAutoCollapsedResult}

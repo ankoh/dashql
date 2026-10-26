@@ -12,6 +12,7 @@ import { DashQLCompletionAbortEffect } from '../../scripts/editor/dashql_process
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useComposerInputMode } from '../../ai/use_composer_input_mode.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
+import { AgentPromptPanel, isAgentWorking, type ComposerAgent } from '../../ai/ui/agent_prompt_panel.js';
 import type { ConnectorType } from '../../../connections/connector_info.js';
 import type { SnippetRegistry } from '../../snippets/snippet_registry.js';
 
@@ -38,6 +39,8 @@ export interface SessionComposerProps {
     aiAvailable: boolean;
     /// The agent access of the session, next to the connection picker
     agentControl?: React.ReactNode;
+    /// The agent of a session with agent access, shown on top of the prompt
+    agent?: ComposerAgent | null;
     /// Called with the draft and its input mode when the user sends it, the draft is cleared before
     onSend: (text: string, mode: ComposerInputMode) => void;
     /// Receives the editor view once it is mounted
@@ -129,11 +132,17 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     }, [view]);
 
     const naturalLanguage = input.mode === ComposerInputMode.Ai;
+    const agent = props.agent ?? null;
     const placeholder = naturalLanguage
         ? 'Ask a question about your data'
         : (hero ? 'select * from ...' : 'Write a query, press Enter to run it');
     return (
-        <div className={styles.composer} data-variant={hero ? 'hero' : 'docked'}>
+        <div
+            className={styles.composer}
+            data-variant={hero ? 'hero' : 'docked'}
+            data-agent={agent == null ? undefined : (isAgentWorking(agent) ? 'working' : 'ready')}
+        >
+            {agent != null && <AgentPromptPanel agent={agent} />}
             <PromptEditor
                 className={styles.composer_editor}
                 scriptSession={scriptSession}

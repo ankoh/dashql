@@ -66,7 +66,7 @@ function baseProps() {
         onRename: vi.fn(), onPickConnection: vi.fn(), onMoveUp: vi.fn(), onMoveDown: vi.fn(), onExecute: vi.fn(), onShowStatus: vi.fn(),
          onShowTable: vi.fn(), onShowVisualization: vi.fn(), onShowDetails: vi.fn(), onRerun: vi.fn(),
         onFormat: vi.fn(), onApplySnippet: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
-        generations: new Map(), onStopGeneration: vi.fn(), onDismissGeneration: vi.fn(),
+        generations: new Map(),
         onAutoCollapseResult: vi.fn(), onResetAutoCollapsedResult: vi.fn(), topPadding: 16,
         onCreate: vi.fn(), onEditorView: vi.fn(), onRowHeightChange: vi.fn(), dependencies,
     };
@@ -275,34 +275,41 @@ describe('V2 session feed rows', () => {
         expect(wrapper.tabIndex).toBe(0);
     });
 
-    it('offers to stop while the agent answers a question', () => {
+    /// Row props whose scripts can run
+    function executableProps() {
         const props = baseProps();
-        props.generations = new Map([[1, { status: 'dashql agent catalog', error: null, note: null }]]) as any;
+        Object.assign(props, { connections: new Map([['database', {
+            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: null, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino Http',
+            labelParts: { name: 'Trino', detail: 'Http' },
+        }]]) });
+        for (const key of [1, 2] as const) {
+            props.scripts[key] = { ...props.scripts[key], analysisOutdated: false, editorUpdate: { analysisAvailable: true } } as any;
+        }
+        return props;
+    }
+
+    it('holds the execution of a script while the agent answers its question', () => {
+        const props = executableProps();
+        props.generations = new Map([[1, { question: 'how many orders', status: 'dashql agent catalog', error: null, note: null }]]) as any;
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
-        expect(container.querySelector('[data-testid="script-execute"]')).toBeNull();
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="generation-stop"]')!.click());
-        expect(props.onStopGeneration).toHaveBeenCalledExactlyOnceWith(1);
+        expect(container.querySelector<HTMLButtonElement>('[data-testid="script-execute"]')?.disabled).toBe(true);
+        // The composer shows the status line and the stop button
+        expect(container.textContent).not.toContain('dashql agent catalog');
+        expect(container.querySelector('[data-testid="generation-stop"]')).toBeNull();
     });
 
-    it('shows the final message of the agent until it is dismissed', () => {
-        const props = baseProps();
-        props.generations = new Map([[1, { status: null, error: null, note: 'There are 42 orders' }]]) as any;
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
-        expect(container.querySelector('[data-testid="generation-stop"]')).toBeNull();
-        expect(container.querySelector('[role="note"]')?.textContent).toContain('There are 42 orders');
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="generation-error-dismiss"]')!.click());
-        expect(props.onDismissGeneration).toHaveBeenCalledExactlyOnceWith(1);
-    });
-
-    it('shows a failed generation until it is dismissed', () => {
-        const props = baseProps();
-        props.generations = new Map([[1, { status: null, error: 'HTTP 500', note: null }]]) as any;
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
-        expect(container.querySelector('[data-testid="generation-stop"]')).toBeNull();
-        expect(container.querySelector('[role="alert"]')?.textContent).toContain('HTTP 500');
-        expect(container.querySelector('[data-testid="script-execute"]')).not.toBeNull();
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="generation-error-dismiss"]')!.click());
-        expect(props.onDismissGeneration).toHaveBeenCalledExactlyOnceWith(1);
+    it('leaves the answers and errors of the agent to the composer', () => {
+        const props = executableProps();
+        props.generations = new Map([
+            [1, { question: 'how many orders', status: null, error: null, note: 'There are 42 orders' }],
+            [2, { question: 'how many customers', status: null, error: 'HTTP 500', note: null }],
+        ]) as any;
+        for (const index of [1, 3]) {
+            act(() => root.render(<ScriptFeedRow {...({ ...props, index, style: {} } as any)} />));
+            expect(container.querySelector('[role="note"]')).toBeNull();
+            expect(container.querySelector('[role="alert"]')).toBeNull();
+            expect(container.querySelector<HTMLButtonElement>('[data-testid="script-execute"]')?.disabled).toBe(false);
+        }
     });
 
     it('translates a dragged card without applying dnd-kit scale distortion', () => {
@@ -469,9 +476,31 @@ describe('Session feed composer', () => {
             request: vi.fn(request),
             cancel: vi.fn(() => Promise.resolve()),
             reset: vi.fn(() => Promise.resolve()),
-            context: vi.fn(),
+            context: vi.fn(() => Promise.resolve({ folder: '/agent', harness: 'claude', harnessSession: null, terminalCommand: null })),
         };
     }
+
+    it('shows the agent on top of the composer in place of the greeting', async () => {
+        render(session(), vi.fn());
+        expect(feedState.composerProps?.agent).toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
+
+        feedState.agent = { ...connectedAgent(() => Promise.resolve('run')), status: AgentConnectionStatus.Connecting };
+        render(session(), vi.fn());
+        expect(feedState.composerProps?.agent).toMatchObject({ connected: false, port: 47100, context: null, runs: [] });
+        expect(container.querySelector('[data-testid="feed-landing-title"]')).toBeNull();
+
+        feedState.agent = connectedAgent(() => Promise.resolve('run'));
+        render(session(), vi.fn());
+        expect(feedState.agent.context).toHaveBeenCalledWith('session');
+        await vi.waitFor(() => expect(feedState.composerProps?.agent).toMatchObject({ connected: true, context: { harness: 'claude' } }));
+        expect(container.querySelector('[data-testid="feed-landing-title"]')).toBeNull();
+
+        feedState.agent = { ...connectedAgent(() => Promise.resolve('run')), hasAccess: () => false };
+        render(session(), vi.fn());
+        expect(feedState.composerProps?.agent).toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
+    });
 
     it('offers AI only with agent access and a connected agent server', () => {
         render(session(), vi.fn());
@@ -514,11 +543,17 @@ describe('Session feed composer', () => {
         expect(prompt.endsWith('Question:\nhow many rows')).toBe(true);
 
         render(created, modify);
-        expect(feedState.rowProps.generations.get(1)).toEqual({ status: 'waiting for agent...', error: null, note: null });
+        const waiting = { question: 'how many rows', status: 'waiting for agent...', error: null, note: null };
+        expect(feedState.rowProps.generations.get(1)).toEqual(waiting);
+        expect(feedState.composerProps?.agent?.runs).toEqual([{ scriptKey: 1, scriptName: '1_alpha', generation: waiting }]);
         await act(async () => feedState.agentListener!.status('running', 'dashql agent catalog'));
-        expect(feedState.rowProps.generations.get(1)?.status).toBe('dashql agent catalog');
+        expect(feedState.composerProps?.agent?.runs[0].generation.status).toBe('dashql agent catalog');
         await act(async () => feedState.agentListener!.done('There are 3 rows', [1]));
-        expect(feedState.rowProps.generations.get(1)).toEqual({ status: null, error: null, note: 'There are 3 rows' });
+        const answered = { question: 'how many rows', status: null, error: null, note: 'There are 3 rows' };
+        expect(feedState.rowProps.generations.get(1)).toEqual(answered);
+        expect(feedState.composerProps?.agent?.runs).toEqual([{ scriptKey: 1, scriptName: '1_alpha', generation: answered }]);
+        await act(async () => feedState.composerProps!.agent!.onDismiss(1));
+        expect(feedState.composerProps?.agent?.runs).toEqual([]);
         expect(feedState.runSessionScript).toHaveBeenCalledExactlyOnceWith(created, created.scripts[1], feedState.executeQuery, modify, expect.anything());
     });
 
@@ -547,7 +582,7 @@ describe('Session feed composer', () => {
         render({ ...session(), connectionCatalog: emptyCatalog as any }, modify);
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         render(created, modify);
-        await act(async () => feedState.rowProps.onStopGeneration(1));
+        await act(async () => feedState.composerProps!.agent!.onStop(1));
         expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session');
         await act(async () => feedState.agentListener!.failed('Stopped', true));
         expect(feedState.rowProps.generations.size).toBe(0);
@@ -575,6 +610,7 @@ describe('Session feed composer', () => {
         render(created, modify);
         expect(modify).toHaveBeenCalledOnce();
         expect(feedState.rowProps.generations.get(1)?.error).toBe('The agent server is not connected');
+        expect(feedState.composerProps?.agent?.runs[0].generation.error).toBe('The agent server is not connected');
         expect(feedState.runSessionScript).not.toHaveBeenCalled();
     });
 });

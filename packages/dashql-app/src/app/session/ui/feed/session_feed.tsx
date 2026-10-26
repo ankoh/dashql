@@ -60,6 +60,9 @@ import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useAgentBridge } from '../../../agent/agent_bridge.js';
 import { AgentAccessMenu } from '../../../agent/agent_access_menu.js';
 import { useSqlGenerations } from '../../ai/use_sql_generations.js';
+import { useAgentSessionContext, type ComposerAgent, type ComposerAgentRun } from '../../ai/ui/agent_prompt_panel.js';
+import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
+import { scriptDisplayName } from '../../scripts/script_types.js';
 
 export interface SessionFeedProps {
     sessionScripts: SessionScripts;
@@ -542,6 +545,39 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         runScript: runAppendedScript,
     });
 
+    // The composer shows the agent of a session with agent access: its harness, its status lines and its answers.
+    // The scripts only show the edits of the agent.
+    let workingCount = 0;
+    for (const generation of sqlGenerations.generations.values()) {
+        if (generation.status != null) ++workingCount;
+    }
+    const agentContext = useAgentSessionContext(agent, sessionId, workingCount);
+    const handleShowAgentScript = React.useCallback((scriptKey: number) => {
+        const scriptData = latest.current.sessionScripts.scripts[scriptKey];
+        if (scriptData == null) return;
+        handleFocus(scriptData.fileName);
+        const index = entries.findIndex(entry => entry.scriptId === scriptKey);
+        if (index >= 0) feedLayout.listRef.current?.scrollToRow({ index: index * 2 + 1, align: 'smart' });
+    }, [entries, handleFocus, feedLayout.listRef]);
+    const agentAccess = agent != null && agent.supported && agent.hasAccess(sessionId);
+    const composerAgent = React.useMemo<ComposerAgent | null>(() => {
+        if (agent == null || !agentAccess) return null;
+        const runs: ComposerAgentRun[] = [];
+        for (const [scriptKey, generation] of sqlGenerations.generations) {
+            const scriptData = props.sessionScripts.scripts[scriptKey];
+            if (scriptData != null) runs.push({ scriptKey, scriptName: scriptDisplayName(scriptData.fileName), generation });
+        }
+        return {
+            connected: agent.status === AgentConnectionStatus.Connected,
+            port: agent.port,
+            context: agentContext,
+            runs,
+            onStop: sqlGenerations.stop,
+            onDismiss: sqlGenerations.dismiss,
+            onShowScript: handleShowAgentScript,
+        };
+    }, [agent, agentAccess, agentContext, sqlGenerations.generations, sqlGenerations.stop, sqlGenerations.dismiss, props.sessionScripts.scripts, handleShowAgentScript]);
+
     const handleComposerSend = React.useCallback((text: string, mode: ComposerInputMode) => {
         if (mode === ComposerInputMode.Ai) {
             void sqlGenerations.translate(text);
@@ -589,8 +625,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onRejectDiff: handleRejectDiff,
         collapsedResults,
         generations: sqlGenerations.generations,
-        onStopGeneration: sqlGenerations.stop,
-        onDismissGeneration: sqlGenerations.dismiss,
         onToggleResultExpanded: handleToggleResultExpanded,
         onAutoCollapseResult: handleAutoCollapseResult,
         onResetAutoCollapsedResult: handleResetAutoCollapsedResult,
@@ -599,7 +633,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, attachScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleAcceptDiff, handleRejectDiff, collapsedResults, sqlGenerations.generations, sqlGenerations.stop, sqlGenerations.dismiss, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, attachScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleAcceptDiff, handleRejectDiff, collapsedResults, sqlGenerations.generations, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.
@@ -648,9 +682,12 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 )}
                 {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
             </section>}
+            {/* With agent access, the agent on top of the composer takes the place of the greeting */}
             {landing && (
                 <div className={styles.feed_landing_header}>
-                    <h1 className={styles.feed_landing_title} data-testid="feed-landing-title">What do you want to know about your data today?</h1>
+                    {composerAgent == null && (
+                        <h1 className={styles.feed_landing_title} data-testid="feed-landing-title">What do you want to know about your data today?</h1>
+                    )}
                 </div>
             )}
             {/* Hidden rather than unmounted on the landing view, the size observer binds to the element once */}
@@ -699,6 +736,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         keywordCase={keywordCase}
                         aiAvailable={sqlGenerations.available}
                         agentControl={agent != null ? <AgentAccessMenu sessionId={props.sessionScripts.sessionId} /> : undefined}
+                        agent={composerAgent}
                         onSend={handleComposerSend}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}

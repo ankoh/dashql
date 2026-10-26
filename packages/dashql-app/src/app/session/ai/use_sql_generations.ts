@@ -13,6 +13,8 @@ const LOG_CTX = 'sql_generations';
 
 /// The answer of the agent to a question, in the script that holds the question
 export interface ScriptGeneration {
+    /// The question that the agent answers
+    question: string;
     /// The latest status line of the agent while it works, null once it finished
     status: string | null;
     /// The error of a failed request
@@ -129,7 +131,7 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
         if (appended == null) return;
         const scriptKey = appended.scriptData.scriptKey;
         working.current.add(scriptKey);
-        setGeneration(scriptKey, { status: WAITING_STATUS, error: null, note: null });
+        setGeneration(scriptKey, { question, status: WAITING_STATUS, error: null, note: null });
 
         const { sessionScripts } = latest.current;
         const prompt = buildAgentPrompt({
@@ -148,7 +150,7 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
                 done: (message, unrunEdits) => {
                     if (!working.current.delete(scriptKey)) return;
                     const note = message.trim();
-                    setGeneration(scriptKey, note.length > 0 ? { status: null, error: null, note } : null);
+                    setGeneration(scriptKey, note.length > 0 ? { question, status: null, error: null, note } : null);
                     if (!mounted.current) return;
                     // Run what the agent wrote but did not run, the script of the question first
                     const toRun = unrunEdits.includes(scriptKey) ? scriptKey : unrunEdits[0];
@@ -158,13 +160,13 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
                 },
                 failed: (error, cancelled) => {
                     if (!working.current.delete(scriptKey)) return;
-                    setGeneration(scriptKey, cancelled ? null : { status: null, error, note: null });
+                    setGeneration(scriptKey, cancelled ? null : { question, status: null, error, note: null });
                 },
             });
         } catch (e: unknown) {
             if (!working.current.delete(scriptKey)) return;
             logger.error('Asking the agent failed', { scriptKey: String(scriptKey), error: stringifyError(e) }, LOG_CTX);
-            setGeneration(scriptKey, { status: null, error: stringifyError(e), note: null });
+            setGeneration(scriptKey, { question, status: null, error: stringifyError(e), note: null });
         }
     }, [logger, setGeneration, updateGeneration, sessionId]);
 
