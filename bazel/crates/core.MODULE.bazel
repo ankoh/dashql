@@ -1,4 +1,5 @@
-# Crate universe @core_crates of the Rust core (//packages/dashql-{parser,core,snapshots,core-wasm,shell-wasm}).
+# Crate universe @core_crates of the Rust core (//packages/dashql-{parser,core,snapshots,core-wasm,shell-wasm}) and
+# the dashql command line tool built on it (//packages/dashql-cli).
 # Isolated from @crates because the core is built natively (tests, snapshotter, benchmarks) and for
 # wasm32, and its pins (wasm-bindgen, serde_json) conflict with the native crates.
 #
@@ -16,6 +17,14 @@ crate_core.spec(package = "arrow-cast", default_features = False, version = "=60
 crate_core.spec(package = "arrow-ipc", default_features = False, version = "=60.0.0")
 crate_core.spec(package = "arrow-schema", default_features = False, version = "=60.0.0")
 crate_core.spec(package = "flatbuffers", version = "=25.12.19")
+
+# The agent server and its command line tool (//packages/dashql-cli)
+crate_core.spec(package = "futures-util", default_features = False, features = ["sink", "std"], version = "=0.3.34")
+crate_core.spec(package = "getrandom", version = "=0.4.3")
+crate_core.spec(package = "httparse", version = "=1.10.1")
+crate_core.spec(package = "libc", version = "=0.2.191")
+crate_core.spec(package = "tokio", features = ["io-util", "macros", "net", "process", "rt", "signal", "sync", "time"], version = "=1.54.1")
+crate_core.spec(package = "tokio-tungstenite", default_features = False, features = ["handshake"], version = "=0.30.0")
 
 # Snapshot test harness (//packages/dashql-snapshots)
 crate_core.spec(package = "libtest-mimic", version = "=0.8.1")

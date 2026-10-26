@@ -14,6 +14,9 @@ extraResources:
     to: renderer
   - from: dashql_native_napi.node
     to: dashql_native_napi.node
+  # The dashql command line tool and agent server, signed with the app
+  - from: bin/dashql
+    to: bin/dashql
 mac:
   artifactName: DashQL-${version}-${arch}.${ext}
   category: public.app-category.developer-tools

@@ -1,10 +1,13 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("//bazel:macos_packaging.bzl", "platform_binary")
 
 package(default_visibility = ["//visibility:private"])
 
-# bazel run //packages/dashql-cli:cli -- lint <file.sql|dir|->...
+# bazel run //packages/dashql-cli:dashql -- lint <file.sql|dir|->...
+# bazel run //packages/dashql-cli:dashql -- agent serve --dev
+# bazel run //packages/dashql-cli:dashql -- agent --dev status
 rust_binary(
-    name = "cli",
+    name = "dashql",
     srcs = glob(["src/**/*.rs"]),
     crate_name = "dashql_cli",
     crate_root = "src/main.rs",
@@ -13,11 +16,44 @@ rust_binary(
     deps = [
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-core-session:dashql_core_session",
+        "@core_crates//:futures-util",
+        "@core_crates//:getrandom",
+        "@core_crates//:httparse",
+        "@core_crates//:libc",
+        "@core_crates//:serde_json",
+        "@core_crates//:tokio",
+        "@core_crates//:tokio-tungstenite",
     ],
+)
+
+# The binary in each architecture's DashQL.app, Contents/Resources/bin/dashql
+platform_binary(
+    name = "dashql_aarch64",
+    binary = ":dashql",
+    platform = "//bazel/platforms:aarch64_macos",
+    tags = ["manual"],
+    target_compatible_with = ["@platforms//os:macos"],
+    visibility = ["//packages/dashql-native:__pkg__"],
+)
+
+platform_binary(
+    name = "dashql_x86_64",
+    binary = ":dashql",
+    platform = "//bazel/platforms:x86_64_macos",
+    tags = ["manual"],
+    target_compatible_with = ["@platforms//os:macos"],
+    visibility = ["//packages/dashql-native:__pkg__"],
 )
 
 rust_test(
     name = "tests",
     size = "small",
-    crate = ":cli",
+    crate = ":dashql",
+)
+
+# The skill that teaches agents the dashql agent commands
+filegroup(
+    name = "skill",
+    srcs = glob(["skill/**"]),
+    visibility = ["//visibility:public"],
 )

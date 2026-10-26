@@ -60,6 +60,7 @@ bazel build //...
 | `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
 | `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
 | `//packages/dashql-core-js:npm_tarball` | Core npm archive at `bazel-bin/packages/dashql-core-js/dashql-core.tgz` |
+| `//packages/dashql-cli:dashql` | The `dashql` command line tool: `agent` commands and the local agent server (`agent serve`), `lint` for SQL files |
 
 ### Build Configs
 
@@ -109,7 +110,7 @@ bazel test //...
 | `//packages/dashql-core-js/test:all` | Core browser tests in Chromium and Firefox, including browser workers |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
-| `//packages/dashql-cli:tests` | DashQL CLI unit tests |
+| `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint` |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 
@@ -234,6 +235,14 @@ bazel run //packages/dashql-native:dev
 ```
 
 Run the last two commands in separate terminals for Electron development.
+
+For the agent bridge, run the dev agent server next to the dev server; it listens on port 47101 and keeps
+its state in `~/.dashql/agent-dev`, apart from an installed DashQL.app:
+
+```bash
+bazel run //packages/dashql-cli:dashql -- agent serve --dev
+bazel run //packages/dashql-cli:dashql -- agent --dev status
+```
 `//packages/dashql-native:dev` defaults to `http://localhost:9002`; set
 `DASHQL_ELECTRON_RENDERER_URL` to use another loopback HTTP origin.
 
@@ -341,14 +350,14 @@ git diff snapshots/parser/
 
 ### Checking SQL Scripts
 
-`//packages/dashql-cli:cli lint` scans, parses and analyzes SQL scripts with the native dashql-core and prints their
-errors and warnings. Use it to check scripts you write, see `packages/dashql-cli/README.md`.
+`dashql lint` (`//packages/dashql-cli:dashql`) scans, parses and analyzes SQL scripts with the native dashql-core and
+prints their errors and warnings. Use it to check scripts you write, see `packages/dashql-cli/README.md`.
 
 ```bash
-bazel run //packages/dashql-cli:cli -- lint path/to/script.sql path/to/dir
-echo "select 1 +;" | bazel run //packages/dashql-cli:cli -- lint -
+bazel run //packages/dashql-cli:dashql -- lint path/to/script.sql path/to/dir
+echo "select 1 +;" | bazel run //packages/dashql-cli:dashql -- lint -
 # Resolve names against CREATE TABLE statements
-bazel run //packages/dashql-cli:cli -- lint --schema schema.sql query.sql
+bazel run //packages/dashql-cli:dashql -- lint --schema schema.sql query.sql
 ```
 
 ### Before Committing
@@ -372,7 +381,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-view`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-shell-wasm` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-view`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-shell-wasm`, `dashql-cli` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

@@ -76,7 +76,11 @@ sh_binary(
 sh_binary(
     name = "mac_package_arm64",
     srcs = ["scripts/package_macos.sh"],
-    args = ["arm64", "$(location //packages/dashql-native-proxy:addon_aarch64)"],
+    args = [
+        "arm64",
+        "$(location //packages/dashql-native-proxy:addon_aarch64)",
+        "$(location //packages/dashql-cli:dashql_aarch64)",
+    ],
     data = [
         ":compile",
         ":package.json",
@@ -88,6 +92,7 @@ sh_binary(
         "//:node_modules/electron-builder",
         "//:node_modules/electron-updater",
         "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-cli:dashql_aarch64",
         "//packages/dashql-native-proxy:addon_aarch64",
         "//misc/logo-dashql-glyphs:icon_icns_source",
     ],
@@ -99,7 +104,11 @@ sh_binary(
 sh_binary(
     name = "mac_package_x86_64",
     srcs = ["scripts/package_macos.sh"],
-    args = ["x64", "$(location //packages/dashql-native-proxy:addon_x86_64)"],
+    args = [
+        "x64",
+        "$(location //packages/dashql-native-proxy:addon_x86_64)",
+        "$(location //packages/dashql-cli:dashql_x86_64)",
+    ],
     data = [
         ":compile",
         ":package.json",
@@ -111,6 +120,7 @@ sh_binary(
         "//:node_modules/electron-builder",
         "//:node_modules/electron-updater",
         "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-cli:dashql_x86_64",
         "//packages/dashql-native-proxy:addon_x86_64",
         "//misc/logo-dashql-glyphs:icon_icns_source",
     ],

@@ -19,7 +19,7 @@ const GENERATED_FILES: [&str; 5] = [
 ];
 
 /// The directory the user invoked the CLI from. Under `bazel run` the process runs in the runfiles tree.
-fn working_directory() -> std::io::Result<PathBuf> {
+pub fn working_directory() -> std::io::Result<PathBuf> {
     match std::env::var_os("BUILD_WORKING_DIRECTORY") {
         Some(dir) => Ok(dir.into()),
         None => std::env::current_dir(),

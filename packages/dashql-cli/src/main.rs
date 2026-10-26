@@ -1,148 +1,147 @@
-//! dashql-cli: checks DashQL scripts with the native dashql-core
+//! dashql: the command line tool of DashQL.
+//! `dashql agent` reaches the DashQL session that is open in the browser or the desktop app through the local agent
+//! server, which `dashql agent serve` runs. `dashql lint` lints SQL files on disk with the native dashql-core.
 
+mod agent;
 mod inputs;
 mod lint;
+mod lint_files;
 mod report;
 
-use lint::{Linter, Severity};
-use report::{format_file, format_summary, format_timings, Style};
+use agent::client::{self, CliEnvironment, EXIT_FAILED, EXIT_OK, EXIT_USAGE};
+use agent::config::{agent_home, load_config};
+use agent::server::{AgentServer, AgentServerOptions};
 use std::io::Write;
 use std::process::ExitCode;
-use std::time::Instant;
 
-const USAGE: &str = "dashql-cli: check DashQL scripts
+const USAGE: &str = "Usage: dashql <command> [options]
 
-Usage:
-  dashql-cli lint [options] <file.sql|dir|->...
-      Scans, parses and analyzes the scripts with dashql-core and prints the scripts with diagnostics.
-      --schema <file.sql>      Schema script (CREATE TABLE ...) to resolve names against, can be repeated
-      --debug                  Show where the time goes
+Commands:
+  agent <command>                     Work with the DashQL session that is open in the browser or the desktop app,
+                                      through the local agent server, see dashql agent --help
+  lint <file.sql|dir|->...            Lint SQL files on disk with dashql-core, see dashql lint --help";
 
-Directories are searched recursively for *.sql files, - reads a script from stdin.
-Exits with 0 without errors (warnings are fine), 1 with errors and 2 on usage or I/O errors.";
-
-/// The arguments of `lint`
-#[derive(Debug, Default, PartialEq, Eq)]
-struct Args {
-    /// The schema scripts passed with `--schema`
-    schemas: Vec<String>,
-    /// The files, directories or `-` to lint
-    paths: Vec<String>,
-    /// Print timings with `--debug`
-    debug: bool,
-    /// Print the usage with `-h` or `--help`
-    help: bool,
+fn env_var(name: &str) -> Option<String> {
+    std::env::var(name).ok()
 }
 
-fn parse_args(args: &[String]) -> Result<Args, String> {
-    let mut out = Args::default();
-    let mut args = args.iter();
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--schema" => out.schemas.push(args.next().ok_or("option --schema needs a file")?.clone()),
-            "--debug" => out.debug = true,
-            "-h" | "--help" => out.help = true,
-            "--" => out.paths.extend(args.by_ref().cloned()),
-            a if a.starts_with("--schema=") => out.schemas.push(a["--schema=".len()..].to_string()),
-            a if a.starts_with('-') && a != inputs::STDIN => return Err(format!("unknown option {a}")),
-            a => out.paths.push(a.to_string()),
+/// Run the agent server in the foreground until it is interrupted
+fn serve(dev: bool) -> ExitCode {
+    let home = agent_home(&env_var, dev);
+    let config = match load_config(&home, &env_var, dev) {
+        Ok(config) => config,
+        Err(e) => {
+            eprintln!("Cannot read the agent configuration: {e}");
+            return ExitCode::from(EXIT_USAGE);
         }
-    }
-    Ok(out)
-}
-
-fn lint(args: Args) -> Result<ExitCode, String> {
-    let style = Style::for_stdout();
-    let schemas = inputs::read_inputs(&args.schemas)?;
-    let inputs = inputs::read_inputs(&args.paths)?;
-    let mut stdout = std::io::stdout().lock();
-    let mut write = |text: String| writeln!(stdout, "{text}").map_err(|e| format!("stdout: {e}"));
-
-    let start = Instant::now();
-    let mut linter = Linter::new();
-    // Schemas come first, so that the scripts find their tables
-    let schema_diagnostics = schemas.iter().map(|schema| linter.add_schema(schema)).collect::<Vec<_>>();
-    let diagnostics = schema_diagnostics.into_iter().chain(inputs.iter().map(|input| linter.lint(input)));
-    let (mut errors, mut warnings) = (0, 0);
-    for (input, diagnostics) in schemas.iter().chain(&inputs).zip(diagnostics.collect::<Vec<_>>()) {
-        if diagnostics.is_empty() {
-            continue;
+    };
+    let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
+        Ok(runtime) => runtime,
+        Err(e) => {
+            eprintln!("Cannot start the agent server: {e}");
+            return ExitCode::from(EXIT_FAILED);
         }
-        for d in &diagnostics {
-            match d.severity {
-                Severity::Error => errors += 1,
-                Severity::Warning => warnings += 1,
+    };
+    runtime.block_on(async {
+        let port = config.port;
+        let mut options = AgentServerOptions::new(config, home, dev);
+        // Harness runs call this executable as dashql
+        options.cli = std::env::current_exe().ok();
+        options.log = true;
+        let server = match AgentServer::listen(options).await {
+            Ok(server) => server,
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+                eprintln!(
+                    "Port {port} is taken. Is DashQL already running? Set DASHQL_AGENT_PORT to use another port."
+                );
+                return ExitCode::from(EXIT_FAILED);
             }
+            Err(e) => {
+                eprintln!("Cannot start the agent server: {e}");
+                return ExitCode::from(EXIT_FAILED);
+            }
+        };
+        if dev {
+            eprintln!("[dashql] Dev mode: accepting the origins of the dev servers");
         }
-        write(format!("{}\n", format_file(&input.id, &input.text, &diagnostics, style)))?;
+        shutdown_signal().await;
+        server.close().await;
+        ExitCode::from(EXIT_OK)
+    })
+}
+
+async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+        if let Ok(mut terminate) = signal(SignalKind::terminate()) {
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => {}
+                _ = terminate.recv() => {}
+            }
+            return;
+        }
     }
-    if args.debug {
-        write(format!("{}\n", format_timings(start.elapsed(), style)))?;
+    let _ = tokio::signal::ctrl_c().await;
+}
+
+/// Run `dashql agent` with the arguments after `agent`
+fn agent(argv: &[String]) -> ExitCode {
+    let options = match client::parse_args(argv) {
+        Ok(options) => options,
+        Err(e) => {
+            eprintln!("{e}\n\n{}", client::USAGE);
+            return ExitCode::from(EXIT_USAGE);
+        }
+    };
+    if options.help || options.positionals.first().map(String::as_str) == Some("help") {
+        println!("{}", client::USAGE);
+        return ExitCode::SUCCESS;
     }
-    write(format_summary(schemas.len() + inputs.len(), errors, warnings, style))?;
-    // Warnings alone do not fail
-    Ok(ExitCode::from(if errors > 0 { 1 } else { 0 }))
+    if options.positionals == ["serve"] {
+        return serve(options.dev);
+    }
+    let config = match load_config(&agent_home(&env_var, options.dev), &env_var, options.dev) {
+        Ok(config) => config,
+        Err(e) => {
+            eprintln!("Cannot read the agent configuration: {e}");
+            return ExitCode::from(EXIT_USAGE);
+        }
+    };
+    let read_file = |file: &str| {
+        let path = inputs::working_directory().map_err(|e| format!("working directory: {e}"))?.join(file);
+        std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))
+    };
+    let output = client::run_cli(
+        &options,
+        &CliEnvironment {
+            session: env_var("DASHQL_SESSION"),
+            read_stdin: &|| std::io::read_to_string(std::io::stdin()),
+            read_file: &read_file,
+            request: &|method, path, body| client::request(&config, method, path, body),
+        },
+    );
+    let _ = std::io::stdout().write_all(output.stdout.as_bytes());
+    let _ = std::io::stderr().write_all(output.stderr.as_bytes());
+    ExitCode::from(output.exit_code)
 }
 
 fn main() -> ExitCode {
     let argv: Vec<String> = std::env::args().skip(1).collect();
-    let (command, args) = argv.split_first().map_or((None, &[][..]), |(c, a)| (Some(c.as_str()), a));
-    match command {
-        Some("lint") => {}
-        Some("-h" | "--help" | "help") => {
+    match argv.first().map(String::as_str) {
+        Some("agent") => agent(&argv[1..]),
+        Some("lint") => lint_files::main(&argv[1..]),
+        Some("help" | "-h" | "--help") => {
             println!("{USAGE}");
-            return ExitCode::SUCCESS;
+            ExitCode::SUCCESS
         }
         Some(command) => {
-            eprintln!("error: unknown command {command}\n\n{USAGE}");
-            return ExitCode::from(2);
+            eprintln!("Unknown command: {command}\n\n{USAGE}");
+            ExitCode::from(EXIT_USAGE)
         }
         None => {
             eprintln!("{USAGE}");
-            return ExitCode::from(2);
+            ExitCode::from(EXIT_USAGE)
         }
-    }
-    let args = match parse_args(args) {
-        Ok(args) if args.help => {
-            println!("{USAGE}");
-            return ExitCode::SUCCESS;
-        }
-        Ok(args) if args.paths.is_empty() => {
-            eprintln!("{USAGE}");
-            return ExitCode::from(2);
-        }
-        Ok(args) => args,
-        Err(e) => {
-            eprintln!("error: {e}\n\n{USAGE}");
-            return ExitCode::from(2);
-        }
-    };
-    lint(args).unwrap_or_else(|e| {
-        eprintln!("error: {e}");
-        ExitCode::from(2)
-    })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn parse(args: &[&str]) -> Result<Args, String> {
-        parse_args(&args.iter().map(|a| a.to_string()).collect::<Vec<_>>())
-    }
-
-    #[test]
-    fn parses_options_and_paths() {
-        assert_eq!(
-            parse(&["--schema", "s.sql", "a.sql", "--schema=t.sql", "-", "--debug", "--", "--odd.sql"]),
-            Ok(Args {
-                schemas: vec!["s.sql".into(), "t.sql".into()],
-                paths: vec!["a.sql".into(), "-".into(), "--odd.sql".into()],
-                debug: true,
-                help: false,
-            })
-        );
-        assert_eq!(parse(&["--schema"]), Err("option --schema needs a file".into()));
-        assert_eq!(parse(&["--bogus"]), Err("unknown option --bogus".into()));
     }
 }
