@@ -15,6 +15,8 @@ import { SessionTestBackend } from '../../../storage/session_test_backend.js';
 import { SessionFeed, type SessionFeedDependencies } from './session_feed.js';
 import { SessionComposerVariant, type SessionComposerProps } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
+import type { AgentRunListener } from '../../../agent/agent_bridge.js';
+import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
 import { CREATE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../../scripts/session_scripts.js';
 import { CONNECTOR_INFOS } from '../../../connections/connector_info.js';
 import { hyperOPFSRoot } from '../../../../platform/opfs_root.js';
@@ -273,19 +275,28 @@ describe('V2 session feed rows', () => {
         expect(wrapper.tabIndex).toBe(0);
     });
 
-    it('offers to stop while the SQL of a question is generated', () => {
+    it('offers to stop while the agent answers a question', () => {
         const props = baseProps();
-        const controller = new AbortController();
-        props.generations = new Map([[1, { controller, error: null }]]) as any;
+        props.generations = new Map([[1, { status: 'dashql agent catalog', error: null, note: null }]]) as any;
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
         expect(container.querySelector('[data-testid="script-execute"]')).toBeNull();
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="generation-stop"]')!.click());
         expect(props.onStopGeneration).toHaveBeenCalledExactlyOnceWith(1);
     });
 
+    it('shows the final message of the agent until it is dismissed', () => {
+        const props = baseProps();
+        props.generations = new Map([[1, { status: null, error: null, note: 'There are 42 orders' }]]) as any;
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        expect(container.querySelector('[data-testid="generation-stop"]')).toBeNull();
+        expect(container.querySelector('[role="note"]')?.textContent).toContain('There are 42 orders');
+        act(() => container.querySelector<HTMLButtonElement>('[data-testid="generation-error-dismiss"]')!.click());
+        expect(props.onDismissGeneration).toHaveBeenCalledExactlyOnceWith(1);
+    });
+
     it('shows a failed generation until it is dismissed', () => {
         const props = baseProps();
-        props.generations = new Map([[1, { controller: new AbortController(), error: 'HTTP 500' }]]) as any;
+        props.generations = new Map([[1, { status: null, error: 'HTTP 500', note: null }]]) as any;
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
         expect(container.querySelector('[data-testid="generation-stop"]')).toBeNull();
         expect(container.querySelector('[role="alert"]')?.textContent).toContain('HTTP 500');
@@ -311,8 +322,8 @@ describe('Session feed composer', () => {
         composerProps: null as SessionComposerProps | null,
         runSessionScript: vi.fn(),
         executeQuery: vi.fn(),
-        generateSqlFromPrompt: vi.fn(),
-        aiClient: null as any,
+        agent: null as any,
+        agentListener: null as AgentRunListener | null,
         submit: vi.fn(),
         view: null as any,
         rowProps: null as any,
@@ -330,8 +341,7 @@ describe('Session feed composer', () => {
         useAttachDefaultConnection: () => vi.fn(),
         useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },
         runSessionScript: feedState.runSessionScript as any,
-        useAIClient: () => feedState.aiClient,
-        generateSqlFromPrompt: feedState.generateSqlFromPrompt as any,
+        useAgentBridge: () => feedState.agent,
         SessionComposer: (props: SessionComposerProps) => {
             feedState.composerProps = props;
             if (props.submitRef) props.submitRef.current = feedState.submit;
@@ -379,9 +389,9 @@ describe('Session feed composer', () => {
         feedState.keyHandlers = [];
         feedState.composerProps = null;
         feedState.runSessionScript.mockReset();
-        feedState.generateSqlFromPrompt.mockReset();
         feedState.submit.mockReset();
-        feedState.aiClient = null;
+        feedState.agent = null;
+        feedState.agentListener = null;
         feedState.rowProps = null;
         feedState.view = fakeView('');
         attention = { sessionId: 'session', active: false, request: vi.fn() };
@@ -448,15 +458,33 @@ describe('Session feed composer', () => {
         expect(feedState.submit).toHaveBeenCalledOnce();
     });
 
-    it('offers AI only with a configured provider', () => {
+    /// An agent bridge whose session has agent access
+    function connectedAgent(request: (sessionId: string, prompt: string, listener: AgentRunListener) => Promise<string>) {
+        return {
+            status: AgentConnectionStatus.Connected,
+            supported: true,
+            port: 47100,
+            hasAccess: () => true,
+            setAccess: vi.fn(),
+            request: vi.fn(request),
+            cancel: vi.fn(() => Promise.resolve()),
+            reset: vi.fn(() => Promise.resolve()),
+            context: vi.fn(),
+        };
+    }
+
+    it('offers AI only with agent access and a connected agent server', () => {
         render(session(), vi.fn());
         expect(feedState.composerProps?.aiAvailable).toBe(false);
-        feedState.aiClient = {};
+        feedState.agent = { ...connectedAgent(() => Promise.resolve('run')), status: AgentConnectionStatus.Connecting };
+        render(session(), vi.fn());
+        expect(feedState.composerProps?.aiAvailable).toBe(false);
+        feedState.agent = connectedAgent(() => Promise.resolve('run'));
         render(session(), vi.fn());
         expect(feedState.composerProps?.aiAvailable).toBe(true);
     });
 
-    // A catalog without tables and a connection without relations, enough to build the AI prompt
+    // A catalog without tables, enough to build the agent prompt
     const emptyCatalog = {
         createUncachedSnapshot: () => ({
             read: () => ({
@@ -466,37 +494,63 @@ describe('Session feed composer', () => {
             destroy: () => { },
         }),
     };
-    const aiConn = { ...onlineConn, catalogRelationScript: { toString: () => '' } };
 
-    it('creates the script with the question as comment and appends the SQL once it is generated', async () => {
-        let resolveSql: (sql: string) => void = () => { };
-        feedState.generateSqlFromPrompt.mockImplementation(() => new Promise<string>(resolve => { resolveSql = resolve; }));
-        feedState.aiClient = {};
+    it('creates the script with the question as comment and runs it once the agent wrote it', async () => {
+        feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
+            feedState.agentListener = listener;
+            return Promise.resolve('run-1');
+        });
         const created = { ...session(['1_alpha.sql']), connectionCatalog: emptyCatalog as any };
-        created.scripts[1] = { ...created.scripts[1], scriptSession: { getText: () => '-- how many rows' } } as any;
-        const filled = session(['1_alpha.sql']);
-        const modify = vi.fn((action: any) => Promise.resolve(action.type === CREATE_SCRIPT ? created : filled));
-        render({ ...session(), connectionCatalog: emptyCatalog as any }, modify, aiConn);
+        const modify = vi.fn((_action: any) => Promise.resolve(created));
+        render({ ...session(), connectionCatalog: emptyCatalog as any }, modify);
 
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         expect(modify).toHaveBeenCalledExactlyOnceWith({ type: CREATE_SCRIPT, value: { index: null, text: '-- how many rows' } });
-        await vi.waitFor(() => expect(feedState.generateSqlFromPrompt).toHaveBeenCalledOnce());
-        expect(feedState.generateSqlFromPrompt).toHaveBeenCalledWith(feedState.aiClient, {
-            prompt: 'how many rows',
-            dialect: 'Tableau Hyper (PostgreSQL-compatible)',
-            schema: '',
-            mentionedIdentifiers: [],
-        }, expect.any(Function), expect.any(AbortSignal));
-        expect(feedState.runSessionScript).not.toHaveBeenCalled();
+        expect(feedState.agent.request).toHaveBeenCalledOnce();
+        const [sessionId, prompt] = feedState.agent.request.mock.calls[0];
+        expect(sessionId).toBe('session');
+        expect(prompt).toContain('in the DashQL script 1_alpha.');
+        expect(prompt).toContain('The connection speaks Tableau Hyper (PostgreSQL-compatible).');
+        expect(prompt.endsWith('Question:\nhow many rows')).toBe(true);
 
-        // The feed has rendered the created script by the time the SQL arrives
-        render(created, modify, aiConn);
-        await act(async () => resolveSql('select count(*) from t'));
-        await vi.waitFor(() => expect(feedState.runSessionScript).toHaveBeenCalledOnce());
-        expect(modify).toHaveBeenLastCalledWith({
-            type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: '-- how many rows\nselect count(*) from t' },
+        render(created, modify);
+        expect(feedState.rowProps.generations.get(1)).toEqual({ status: 'waiting for agent...', error: null, note: null });
+        await act(async () => feedState.agentListener!.status('running', 'dashql agent catalog'));
+        expect(feedState.rowProps.generations.get(1)?.status).toBe('dashql agent catalog');
+        await act(async () => feedState.agentListener!.done('There are 3 rows', [1]));
+        expect(feedState.rowProps.generations.get(1)).toEqual({ status: null, error: null, note: 'There are 3 rows' });
+        expect(feedState.runSessionScript).toHaveBeenCalledExactlyOnceWith(created, created.scripts[1], feedState.executeQuery, modify, expect.anything());
+    });
+
+    it('does not rerun a script that the agent ran itself', async () => {
+        feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
+            feedState.agentListener = listener;
+            return Promise.resolve('run-1');
         });
-        expect(feedState.runSessionScript).toHaveBeenCalledWith(filled, filled.scripts[1], feedState.executeQuery, modify, expect.anything());
+        const created = { ...session(['1_alpha.sql']), connectionCatalog: emptyCatalog as any };
+        const modify = vi.fn(() => Promise.resolve(created));
+        render({ ...session(), connectionCatalog: emptyCatalog as any }, modify);
+        await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+        render(created, modify);
+        await act(async () => feedState.agentListener!.done('', []));
+        expect(feedState.rowProps.generations.size).toBe(0);
+        expect(feedState.runSessionScript).not.toHaveBeenCalled();
+    });
+
+    it('stops the agent', async () => {
+        feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
+            feedState.agentListener = listener;
+            return Promise.resolve('run-1');
+        });
+        const created = { ...session(['1_alpha.sql']), connectionCatalog: emptyCatalog as any };
+        const modify = vi.fn(() => Promise.resolve(created));
+        render({ ...session(), connectionCatalog: emptyCatalog as any }, modify);
+        await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+        render(created, modify);
+        await act(async () => feedState.rowProps.onStopGeneration(1));
+        expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session');
+        await act(async () => feedState.agentListener!.failed('Stopped', true));
+        expect(feedState.rowProps.generations.size).toBe(0);
     });
 
     it('replaces the text of a script with a snippet, as a diff if the script has text', async () => {
@@ -511,16 +565,16 @@ describe('Session feed composer', () => {
         expect(modify).toHaveBeenLastCalledWith({ type: SET_SCRIPT_TEXT, value: { scriptKey: 2, text: 'select 3;', withDiff: false } });
     });
 
-    it('keeps the commented script when the generation fails', async () => {
-        feedState.generateSqlFromPrompt.mockRejectedValue(new Error('HTTP 500'));
-        feedState.aiClient = {};
+    it('keeps the commented script when the agent fails', async () => {
+        feedState.agent = connectedAgent(() => Promise.reject(new Error('The agent server is not connected')));
         const created = { ...session(['1_alpha.sql']), connectionCatalog: emptyCatalog as any };
         const modify = vi.fn(() => Promise.resolve(created));
-        render({ ...session(), connectionCatalog: emptyCatalog as any }, modify, aiConn);
+        render({ ...session(), connectionCatalog: emptyCatalog as any }, modify);
         await act(async () => feedState.composerProps!.onSend('anything', ComposerInputMode.Ai));
-        await vi.waitFor(() => expect(feedState.generateSqlFromPrompt).toHaveBeenCalledOnce());
         await act(async () => { });
+        render(created, modify);
         expect(modify).toHaveBeenCalledOnce();
+        expect(feedState.rowProps.generations.get(1)?.error).toBe('The agent server is not connected');
         expect(feedState.runSessionScript).not.toHaveBeenCalled();
     });
 });

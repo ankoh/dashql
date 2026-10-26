@@ -85,16 +85,11 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         expect(await backend.loadAppSettings()).toEqual({ narrowScreenLayout: false });
     });
 
-    it('round-trips the AI provider settings in the app manifest', async () => {
-        const aiProvider = {
-            enabled: true,
-            endpointUrl: 'http://localhost:11434',
-            model: 'llama3',
-            headers: [{ name: 'Authorization', value: 'Bearer token' }],
-        };
-        await backend.saveAppSettings({ aiProvider });
-        expect(await backend.loadAppSettings()).toEqual({ aiProvider });
-        expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)! as string).appSettings.aiProvider).toEqual(aiProvider);
+    it('round-trips the sessions with agent access in the app manifest', async () => {
+        const agentSessions = ['session-a', 'session-b'];
+        await backend.saveAppSettings({ agentSessions });
+        expect(await backend.loadAppSettings()).toEqual({ agentSessions });
+        expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)! as string).appSettings.agentSessions).toEqual(agentSessions);
     });
 
     it('stamps the current storage version on every manifest write', async () => {

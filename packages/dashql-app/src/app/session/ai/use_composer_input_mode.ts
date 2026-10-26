@@ -12,7 +12,7 @@ const LOG_CTX = 'composer_input_mode';
 
 /// The input mode of a composer draft
 export interface ComposerInputModeState {
-    /// The mode of the draft, always SQL without an AI provider
+    /// The mode of the draft, always SQL while the agent is unavailable
     mode: ComposerInputMode;
     /// The editor assistance of the mode, undefined for the default SQL assistance
     assist: Extension | undefined;

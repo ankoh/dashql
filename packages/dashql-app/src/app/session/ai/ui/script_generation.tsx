@@ -10,16 +10,16 @@ import type { ScriptGeneration } from '../use_sql_generations.js';
 
 const CrossIcon = SymbolIcon('x_16');
 
-/// Is the SQL of a script being generated?
+/// Is the agent working on a script?
 export function isGenerating(generation: ScriptGeneration | null): boolean {
-    return generation != null && generation.error == null;
+    return generation?.status != null;
 }
 
-/// Mark where the generated SQL will appear in the editor of a script.
+/// Mark where the agent's SQL will appear in the editor of a script, with the agent's latest status line.
 /// Synced after every render, the script editor replaces its state when the script session changes.
-export function useGenerationPlaceholder(view: EditorView | null, generating: boolean): void {
+export function useGenerationPlaceholder(view: EditorView | null, status: string | null): void {
     React.useEffect(() => {
-        if (view?.state != null) setGenerationPlaceholder(view, generating);
+        if (view?.state != null) setGenerationPlaceholder(view, status);
     });
 }
 
@@ -37,7 +37,7 @@ export const GenerationStopButton: React.FC<GenerationStopButtonProps> = (props)
     <IconButton
         variant={ButtonVariant.Invisible}
         size={ButtonSize.Small}
-        aria-label={`Stop generating ${props.displayName} query`}
+        aria-label={`Stop the agent working on ${props.displayName}`}
         data-testid="generation-stop"
         onClick={() => {
             if (props.scriptKey != null) props.onStop(props.scriptKey);
@@ -56,18 +56,20 @@ interface GenerationErrorProps {
     onDismiss: (scriptKey: number) => void;
 }
 
-/// The error of a failed generation until it is dismissed
+/// The error of a failed request or the final message of the agent, until it is dismissed
 export const GenerationError: React.FC<GenerationErrorProps> = (props) => {
-    if (props.generation?.error == null) {
+    const error = props.generation?.error ?? null;
+    const note = props.generation?.note ?? null;
+    if (error == null && note == null) {
         return null;
     }
     return (
-        <div className={styles.generation_error} role="alert">
-            <span className={styles.generation_error_message}>{props.generation.error}</span>
+        <div className={error != null ? styles.generation_error : styles.generation_note} role={error != null ? 'alert' : 'note'}>
+            <span className={styles.generation_error_message}>{error ?? note}</span>
             <IconButton
                 variant={ButtonVariant.Invisible}
                 size={ButtonSize.Small}
-                aria-label="Dismiss the error"
+                aria-label={error != null ? 'Dismiss the error' : 'Dismiss the note'}
                 data-testid="generation-error-dismiss"
                 onClick={() => {
                     if (props.scriptKey != null) props.onDismiss(props.scriptKey);

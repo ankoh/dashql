@@ -17,20 +17,28 @@ describe('Generation placeholder', () => {
     const placeholder = () => view.dom.querySelector('[role="status"]');
 
     it('shows one line after the script until it is hidden', () => {
-        setGenerationPlaceholder(view, false);
+        setGenerationPlaceholder(view, null);
         expect(view.state.field(GenerationPlaceholder, false)).toBeUndefined();
         expect(placeholder()).toBeNull();
-        setGenerationPlaceholder(view, true);
+        setGenerationPlaceholder(view, 'waiting for agent...');
         expect(view.dom.querySelectorAll('[role="status"]').length).toBe(1);
         expect(placeholder()?.previousElementSibling?.textContent).toBe('-- how many rows');
-        setGenerationPlaceholder(view, false);
+        setGenerationPlaceholder(view, null);
         expect(placeholder()).toBeNull();
-        setGenerationPlaceholder(view, true);
+        setGenerationPlaceholder(view, 'waiting for agent...');
         expect(view.dom.querySelectorAll('[role="status"]').length).toBe(1);
     });
 
+    it('shows the latest status line', () => {
+        setGenerationPlaceholder(view, 'dashql agent catalog');
+        expect(placeholder()?.textContent).toBe('dashql agent catalog');
+        setGenerationPlaceholder(view, 'dashql agent run q1');
+        expect(view.dom.querySelectorAll('[role="status"]').length).toBe(1);
+        expect(placeholder()?.textContent).toBe('dashql agent run q1');
+    });
+
     it('stays at the end of the document', () => {
-        setGenerationPlaceholder(view, true);
+        setGenerationPlaceholder(view, 'waiting for agent...');
         view.dispatch({ changes: { from: view.state.doc.length, insert: '\n-- and per day' } });
         expect(placeholder()?.previousElementSibling?.textContent).toBe('-- and per day');
     });

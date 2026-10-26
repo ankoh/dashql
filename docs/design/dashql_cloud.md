@@ -7,8 +7,8 @@ OpenAI-compatible API, gated by a minimal account system. One Worker serves two 
 - **`account.dashql.app`**: the browser dashboard: Sign in with Apple, then create and revoke API keys.
 
 Workers AI is cheap (10,000 neurons per day free, then $0.011 per 1k neurons; `gemma-4-26b-a4b-it` costs
-about 9.1k neurons per million input tokens). DashQL's AI settings (`packages/dashql-app/src/platform/ai/`)
-work with any OpenAI-compatible endpoint, including this one; the app does not default to it.
+about 9.1k neurons per million input tokens). The DashQL app no longer calls OpenAI-compatible endpoints itself,
+it reaches models through the user's agent harness (see `docs/wip/agent_bridge.md`).
 
 Setup and deployment are in `packages/dashql-cloud/README.md` and `DEPLOY.md`.
 

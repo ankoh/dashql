@@ -1,32 +1,18 @@
 import * as core from '@ankoh/dashql-core';
 
-import type { AIClient, ChatMessage, CompletionValidation } from '../../../platform/ai/ai_client.js';
 import type { Logger } from '../../../platform/logger/logger.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import type { SessionScripts } from '../scripts/session_scripts.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { quoteIdentifier } from '../../connections/catalog_sql_generator.js';
 import { isSystemSchema } from '../../connections/system_schemas.js';
-import { verifyScript } from '../scripts/scratch_script_verify.js';
 
 const LOG_CTX = 'sql_generation';
 
-/// The schema context is cut off after this many characters to stay within the context window of small models
+/// The schema context is cut off after this many characters to keep the output of `dashql agent catalog` readable
 const SCHEMA_CONTEXT_BUDGET = 100_000;
 
-/// A request to translate a question into SQL
-export interface SqlGenerationInput {
-    /// The question in natural language
-    prompt: string;
-    /// The SQL dialect of the connection
-    dialect: string;
-    /// The schema as CREATE TABLE statements
-    schema: string;
-    /// The catalog objects that the question mentions, e.g. "orders (table)"
-    mentionedIdentifiers: string[];
-}
-
-/// Describe the SQL dialect of a connector for the model
+/// Describe the SQL dialect of a connector for the agent
 export function describeSqlDialect(connectorType: ConnectorType): string {
     switch (connectorType) {
         case ConnectorType.HYPER:
@@ -156,94 +142,39 @@ export function buildSchemaContext(conn: ConnectionState | null, sessionScripts:
     return schema;
 }
 
-/// Build the messages of a one-shot translation into SQL.
-///
-/// The system message only holds the fixed instructions: providers limit its size (e.g. to 16 KiB),
-/// the schema can be much larger and goes into the user message.
-export function buildSqlGenerationMessages(input: SqlGenerationInput): ChatMessage[] {
-    const system = [
-        `You translate questions about data into a single SQL query in the ${input.dialect} dialect.`,
-        'Return only the SQL query: no explanation, no comments, no markdown code fences.',
-        'Use only the tables and columns of the schema that the user provides and quote identifiers where needed.',
-        'Prefer read-only queries.',
-        'When you create a table, declare only column names and types:',
-        '- no primary keys',
-        '- no indexes',
-        '- no column constraints such as NOT NULL, UNIQUE, CHECK, DEFAULT or REFERENCES',
-    ].join('\n');
-    const user = [
-        'Schema:',
-        input.schema.length > 0 ? input.schema : '-- The schema is empty',
-        '',
-        `Question: ${input.prompt}`,
-    ];
-    if (input.mentionedIdentifiers.length > 0) {
-        user.push(`Referenced catalog objects: ${input.mentionedIdentifiers.join(', ')}`);
-    }
-    return [
-        { role: 'system', content: system },
-        // Providers reject NUL characters
-        { role: 'user', content: user.join('\n').replace(/\0/g, '') },
-    ];
+/// A question that the agent answers in a script
+export interface AgentPromptInput {
+    /// The question in natural language
+    question: string;
+    /// The script that receives the SQL
+    scriptName: string;
+    /// The SQL dialect of the connection
+    dialect: string;
+    /// The catalog objects that the question mentions, e.g. "orders (table)"
+    mentionedIdentifiers: string[];
 }
 
-/// Extract the SQL from the answer of a model, models tend to wrap it in a markdown code fence anyway
-export function extractSql(content: string): string {
-    const fence = /```[a-zA-Z]*[ \t]*\r?\n([\s\S]*?)```/.exec(content);
-    const sql = (fence != null ? fence[1] : content).trim();
-    if (sql.length === 0) {
-        throw new Error('The AI provider returned no SQL');
+/// Build the prompt of a question for the agent.
+/// The agent reads the schema and writes the SQL itself through the dashql command, the prompt only names the target.
+export function buildAgentPrompt(input: AgentPromptInput): string {
+    const lines = [
+        `Answer the question below with a SQL query in the DashQL script ${input.scriptName}.`,
+        `The connection speaks ${input.dialect}.`,
+        `Look up the schema with \`dashql agent catalog\`, write the query with \`dashql agent edit ${input.scriptName}\``
+            + ' and keep the comment lines at the top of the script.',
+        `Check it with \`dashql agent lint ${input.scriptName}\` and run it with \`dashql agent run ${input.scriptName}\`.`,
+        'Prefer read-only queries. End with a one-sentence answer to the question.',
+    ];
+    if (input.mentionedIdentifiers.length > 0) {
+        lines.push(`The question mentions these catalog objects: ${input.mentionedIdentifiers.join(', ')}.`);
     }
-    return sql;
+    // Harnesses reject NUL characters
+    lines.push('', 'Question:', input.question.replace(/\0/g, ''));
+    return lines.join('\n');
 }
 
 /// Render a question as line comments, the preamble of the generated script.
 /// Every line is commented on its own, the question cannot escape the comment.
 export function promptComment(prompt: string): string {
     return prompt.trim().split(/\r?\n/).map(line => `-- ${line}`.trimEnd()).join('\n');
-}
-
-/// Find the problems of a SQL query: parser errors and analyzer errors against the catalog, e.g. unknown tables
-export function findSqlProblems(instance: core.DashQL, catalog: core.DashQLCatalog, sql: string): string[] {
-    const result = verifyScript(instance, catalog, sql);
-    return [...result.parserErrors, ...result.analyzerErrors];
-}
-
-/// Validate an answer of the model: it must contain SQL without problems
-export function validateSqlAnswer(content: string, findProblems: (sql: string) => string[]): CompletionValidation<string> {
-    let sql: string;
-    try {
-        sql = extractSql(content);
-    } catch {
-        return { valid: false, value: null, feedback: 'The answer contains no SQL. Return only the SQL query.' };
-    }
-    const problems = findProblems(sql);
-    if (problems.length === 0) {
-        return { valid: true, value: sql };
-    }
-    return {
-        valid: false,
-        value: sql,
-        feedback: `The query is invalid:\n${problems.map(problem => `- ${problem}`).join('\n')}\nReturn only the corrected SQL query.`,
-    };
-}
-
-/// Translate a question into a SQL query.
-/// A query with problems goes back to the model once. If the retry has problems as well, the query is returned anyway,
-/// the user sees the problems in the editor and can fix them. Only an answer without any SQL fails.
-export async function generateSqlFromPrompt(
-    client: AIClient,
-    input: SqlGenerationInput,
-    findProblems: (sql: string) => string[],
-    signal: AbortSignal,
-): Promise<string> {
-    const verdict = await client.completeValidated(
-        buildSqlGenerationMessages(input),
-        content => validateSqlAnswer(content, findProblems),
-        signal,
-    );
-    if (verdict.value == null) {
-        throw new Error('The AI provider returned no SQL');
-    }
-    return verdict.value;
 }

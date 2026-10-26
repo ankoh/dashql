@@ -238,7 +238,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     // A question is being translated into the SQL of the script
     const generating = isGenerating(props.generation);
-    useGenerationPlaceholder(editorView, generating);
+    useGenerationPlaceholder(editorView, props.generation?.status ?? null);
     const formattingDialect = formattingDialectForConnector(props.connectorType);
     // Formattability only depends on the text, cursor moves bump the state revision but not the text version
     const isFormattable = React.useMemo(

@@ -9,39 +9,6 @@ import { useAppFlavor } from '../flavor/flavor_provider.js';
 
 const CONFIG_URL = new URL('../../../static/config.json', import.meta.url);
 
-export interface AIProviderHeader {
-    name: string;
-    value: string;
-}
-
-/// How the AI provider requests are authorized
-export type AIProviderAuthType = 'none' | 'basic' | 'bearer';
-
-/// The credentials of every method are kept, switching the method does not lose them
-export interface AIProviderAuth {
-    type?: AIProviderAuthType;
-    username?: string;
-    password?: string;
-    token?: string;
-}
-
-export interface AIProviderSettings {
-    enabled?: boolean;
-    endpointUrl?: string;
-    model?: string;
-    headers?: AIProviderHeader[];
-    auth?: AIProviderAuth;
-}
-
-export const DEFAULT_AI_ENDPOINT_URL = "http://127.0.0.1:4097";
-export const DEFAULT_AI_MODEL = "gpt-6-luna";
-
-export const DEFAULT_AI_PROVIDER_SETTINGS: AIProviderSettings = {
-    endpointUrl: DEFAULT_AI_ENDPOINT_URL,
-    model: DEFAULT_AI_MODEL,
-    headers: [],
-};
-
 export interface AppSettings {
     pauseAfterAppSetup?: boolean;
     enableTableColumnPlots?: boolean;
@@ -58,7 +25,10 @@ export interface AppSettings {
     minLogLevel?: number;
     /// The id of the app flavor, the flavor query parameter of the url wins
     flavor?: string;
-    aiProvider?: AIProviderSettings;
+    /// The sessions whose scripts agents may read, edit and run through the local agent server
+    agentSessions?: string[];
+    /// The port of the local agent server, the build's default if unset
+    agentPort?: number;
 }
 
 export interface AppConfig {

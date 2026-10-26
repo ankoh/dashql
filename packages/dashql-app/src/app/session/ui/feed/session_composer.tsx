@@ -34,8 +34,10 @@ export interface SessionComposerProps {
     variant: SessionComposerVariant;
     /// The keyword case for completions
     keywordCase: core.buffers.formatting.KeywordCase;
-    /// Is an AI provider configured? Without one, the composer only takes SQL.
+    /// Can the session ask the agent? Without agent access, the composer only takes SQL.
     aiAvailable: boolean;
+    /// The agent access of the session, next to the connection picker
+    agentControl?: React.ReactNode;
     /// Called with the draft and its input mode when the user sends it, the draft is cleared before
     onSend: (text: string, mode: ComposerInputMode) => void;
     /// Receives the editor view once it is mounted
@@ -66,7 +68,7 @@ export function takeComposerDraft(view: EditorView): string | null {
 
 /// A chat-like input that turns its draft into a new session script.
 ///
-/// The draft is either SQL or a question in natural language that an AI provider translates into SQL,
+/// The draft is either SQL or a question in natural language that the agent answers in SQL,
 /// see useComposerInputMode.
 ///
 /// The draft lives in its own script session on the connection catalog. It provides completion and tells SQL
@@ -154,12 +156,13 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                         disabled={!props.aiAvailable}
                         data-testid="composer-mode"
                         data-mode="ai"
-                        title={props.aiAvailable ? undefined : 'Configure an AI provider in the settings to ask questions'}
+                        title={props.aiAvailable ? undefined : 'Turn on agent access and connect the agent server to ask questions'}
                     >
                         AI
                     </SegmentedControl.Button>
                 </SegmentedControl>
                 <div className={styles.composer_trailing_actions}>
+                    {props.agentControl}
                     {props.connectionPicker}
                     {hero && props.snippetConnector != null && (
                         <SnippetsOverlay
@@ -174,7 +177,7 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                     <IconButton
                         variant={hero ? ButtonVariant.Primary : ButtonVariant.Default}
                         size={ButtonSize.Small}
-                        aria-label={naturalLanguage ? 'Ask AI' : 'Run query'}
+                        aria-label={naturalLanguage ? 'Ask the agent' : 'Run query'}
                         data-testid="composer-send"
                         disabled={empty}
                         onClick={handleSendClick}

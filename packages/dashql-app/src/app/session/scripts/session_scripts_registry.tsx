@@ -258,6 +258,49 @@ export function useSessionScriptsDeletion(): (sessionId: string) => void {
     }, [reg, setReg]);
 }
 
+/// Apply an action to the scripts of a session through the shared queue
+function dispatchSessionScriptsAction(
+    queue: UpdateQueue<SessionScriptsRegistry>,
+    storageWriter: ReturnType<typeof useStorageWriter>,
+    logger: ReturnType<typeof useLogger>,
+    id: string,
+    action: SessionScriptsAction,
+): Promise<SessionScripts | null> {
+    return new Promise<SessionScripts | null>((resolve) => {
+        logger.debug('Queued session script action', {
+            sessionId: id,
+            actionType: action.type.description ?? action.type.toString(),
+        }, LOG_CTX);
+        queue.push(reg => {
+            const prev = reg.sessionScriptsMap.get(id);
+            if (!prev) {
+                logger.warn('No session scripts registered for session', { sessionId: id }, LOG_CTX);
+                resolve(null);
+                return reg;
+            }
+            let next: SessionScripts;
+            try {
+                next = reduceSessionScripts(prev, action, storageWriter, logger);
+            } catch (e: unknown) {
+                // Drop the action, a throw would also drop the other updates of the queue flush
+                logger.error('Session script action failed', {
+                    sessionId: id,
+                    actionType: action.type.description ?? action.type.toString(),
+                    error: stringifyError(e),
+                }, LOG_CTX);
+                resolve(prev);
+                return reg;
+            }
+            resolve(next);
+            // Keep the registry identity for no-ops (e.g. re-selecting the hovered script)
+            if (next === prev) return reg;
+            reg.sessionScriptsMap.set(id, next);
+            reindexSessionScriptConnections(reg, prev, next);
+            return { ...reg };
+        });
+    });
+}
+
 export function useSessionScripts(id: string | null): [SessionScripts | null, ModifySessionScripts] {
     const registry = React.useContext(SESSION_SCRIPTS_REGISTRY_CTX)!;
     const queue = React.useContext(SESSION_SCRIPTS_REGISTRY_QUEUE_CTX)!;
@@ -267,43 +310,22 @@ export function useSessionScripts(id: string | null): [SessionScripts | null, Mo
     /// Wrapper to modify an individual session scripts collection
     const dispatch = React.useCallback((action: SessionScriptsAction) => {
         if (id == null) return Promise.resolve(null);
-        return new Promise<SessionScripts | null>((resolve) => {
-            logger.debug('Queued session script action', {
-                sessionId: id,
-                actionType: action.type.description ?? action.type.toString(),
-            }, LOG_CTX);
-            queue.push(reg => {
-                const prev = reg.sessionScriptsMap.get(id);
-                if (!prev) {
-                    logger.warn('No session scripts registered for session', { sessionId: id }, LOG_CTX);
-                    resolve(null);
-                    return reg;
-                }
-                let next: SessionScripts;
-                try {
-                    next = reduceSessionScripts(prev, action, storageWriter, logger);
-                } catch (e: unknown) {
-                    // Drop the action, a throw would also drop the other updates of the queue flush
-                    logger.error('Session script action failed', {
-                        sessionId: id,
-                        actionType: action.type.description ?? action.type.toString(),
-                        error: stringifyError(e),
-                    }, LOG_CTX);
-                    resolve(prev);
-                    return reg;
-                }
-                resolve(next);
-                // Keep the registry identity for no-ops (e.g. re-selecting the hovered script)
-                if (next === prev) return reg;
-                reg.sessionScriptsMap.set(id, next);
-                reindexSessionScriptConnections(reg, prev, next);
-                return { ...reg };
-            });
-        });
+        return dispatchSessionScriptsAction(queue, storageWriter, logger, id, action);
     }, [id, queue, storageWriter, logger]);
 
     return [id == null ? null : registry.sessionScriptsMap.get(id) ?? null, dispatch];
 };
+
+/// Modify the scripts of any session without subscribing to the registry
+export function useSessionScriptsDispatch(): (id: string, action: SessionScriptsAction) => Promise<SessionScripts | null> {
+    const queue = React.useContext(SESSION_SCRIPTS_REGISTRY_QUEUE_CTX)!;
+    const storageWriter = useStorageWriter();
+    const logger = useLogger();
+    return React.useCallback(
+        (id: string, action: SessionScriptsAction) => dispatchSessionScriptsAction(queue, storageWriter, logger, id, action),
+        [queue, storageWriter, logger],
+    );
+}
 
 /// Return a script with current analysis, synchronizing session state first when necessary.
 export async function ensureSessionScriptAnalyzed(

@@ -2,24 +2,29 @@
 
 ## Status
 
-Design only. Nothing in this document is implemented yet.
+Agent → app and the composer's question flow are implemented; the menu bar mode is not. The agent bridge is
+the only way DashQL reaches models: the OpenAI-compatible client and its endpoint settings are removed.
 
 | Area | State |
 |---|---|
 | Research and option survey | Complete |
 | Priority | Decided: the web build at https://dashql.app |
 | Transport | Decided: the page connects to a local agent server over `ws://127.0.0.1` |
-| Server host | Decided: DashQL.app on macOS, running as a menu bar app; `dashql-agent serve` as the fallback |
-| Agent side | Decided: a skill plus the `dashql-agent` command line tool |
+| Server host | Decided: DashQL.app on macOS, running as a menu bar app; `dashql agent serve` as the fallback |
+| Agent side | Decided: a skill plus the `dashql agent` commands of the `dashql` command line tool |
 | App → agent | Decided: the agent server runs the user's harness headless, once per request |
 | Agent edits | Decided: applied directly, no pending diffs |
 | Agent context | Decided: one harness session per DashQL session |
 | Editor UI | Decided: no agent panel |
 | Browsers | Chrome and Edge (one-time permission), Firefox; Safari unsupported |
 | Browser loopback probe | Built (`~/repos/dashql-agent-bridge-spike`), not yet run in browsers |
-| Agent server, CLI and skill spike | Planned |
+| Agent server, CLI and skill | Built: one Rust binary, `packages/dashql-cli`, `dashql agent serve` |
+| `dashql` in DashQL.app | Bundled as `Contents/Resources/bin/dashql`; the app does not start the server yet |
+| Page client, command registry, per-session toggle | Built: `platform/agent/`, `app/agent/` |
+| App → agent from the composer | Built: questions run the harness, status lines, notes, stop, reset, continue in terminal |
+| OpenAI-compatible client and AI endpoint settings | Removed |
 | Menu bar mode | Planned |
-| App implementation | Planned |
+| Inline edit, "Fix with agent", data settings, query policy | Planned |
 | Earlier MCP, ACP, mailbox and desktop-only designs | Superseded, see [Alternatives Considered](#alternatives-considered) |
 
 ## Motivation
@@ -44,19 +49,19 @@ there is a skill plus a script plus a local daemon.
 A browser page cannot listen on a port or start processes, so the page connects out
 to a local **agent server**. On macOS, the agent server runs inside DashQL.app, which
 stays in the menu bar after its windows close and starts at login. Agents reach it
-through the `dashql-agent` command line tool, which a skill teaches them to use.
+through the `dashql agent` commands of the `dashql` command line tool, which a skill teaches them to use.
 
 ```
-                       DashQL.app (menu bar, starts at login)
-                       ┌───────────────────────────────────────────────┐
-agent shell            │ main: tray menu, login item, supervision       │
-  dashql-agent <cmd> ──┼─HTTP + token─► agent server (utility process)  │◄──WebSocket── dashql.app tab (Chrome, Edge, Firefox)
-                       │                 127.0.0.1:47100                │◄──WebSocket── DashQL desktop windows
-                       │                   └─ spawns `codex exec …`     │
-                       └───────────────────────────────────────────────┘
+                    DashQL.app (menu bar, starts at login)
+                    ┌───────────────────────────────────────────────┐
+agent shell         │ main: tray menu, login item, supervision       │
+  dashql agent … ───┼─HTTP + token─► `dashql agent serve`            │◄──WebSocket── dashql.app tab (Chrome, Edge, Firefox)
+                    │                 127.0.0.1:47100                │◄──WebSocket── DashQL desktop windows
+                    │                   └─ spawns `codex exec …`     │
+                    └───────────────────────────────────────────────┘
 ```
 
-- **Agent → app:** the agent calls `dashql-agent` commands. The agent server forwards
+- **Agent → app:** the agent calls `dashql agent` commands. The agent server forwards
   them to the connected tab, which executes them against the live session.
 - **App → agent:** the tab sends a request to the agent server, which runs the
   configured harness headless with the request as the prompt. The agent then works
@@ -69,8 +74,8 @@ agent shell            │ main: tray menu, login item, supervision       │
 Running the server in a menu bar app solves the problems a script daemon has: it
 starts at login outside any agent sandbox, so a harness cannot kill it; harness runs
 start with the user's normal environment; its state is visible in the menu bar; and
-it installs the command line tool and the skill. The same server code runs as
-`dashql-agent serve` for users without the desktop app.
+it installs the command line tool and the skill. The same binary runs as
+`dashql agent serve` for users without the desktop app.
 
 This is the shape of other web apps with local helpers: Postman's desktop agent for
 the browser version of Postman, Figma's font helper for figma.com, QZ Tray for printing
@@ -111,7 +116,7 @@ from web apps, and Ollama's menu bar app with its localhost API.
   (`/usr/bin:/bin:/usr/sbin:/sbin`). Harness binaries in Homebrew, nvm or `~/.local/bin`
   are not on it.
 - **Only macOS is packaged** today (`docs/design/electron.md`). Windows and Linux
-  users use `dashql-agent serve`.
+  users use `dashql agent serve`.
 
 ### Corporate harnesses
 
@@ -142,21 +147,22 @@ from web apps, and Ollama's menu bar app with its localhost API.
   `useSqlGenerations` (`app/session/ai/use_sql_generations.ts`), with the generation
   placeholder (`ai/editor/generation_placeholder.ts`) and stop button
   (`ai/ui/script_generation.tsx`).
-- **An OpenAI-compatible LLM client** (`platform/ai/ai_client.ts`): stays as the
-  one-shot path when no agent server is reachable.
+- **An OpenAI-compatible LLM client** (`platform/ai/ai_client.ts`) with endpoint settings: removed. The agent
+  bridge is the only path to models; without agent access the composer takes SQL only.
 
 ## Design
 
 ### Agent server
 
-The agent server is one Node module (`packages/dashql-agent`), bundled into a single
-`.mjs` without dependencies. It runs in two hosts:
+The agent server is part of `dashql`, one Rust binary (`packages/dashql-cli`, built with the core crates)
+that also holds the agent commands of the command line tool and `dashql lint` for SQL files on disk. It needs
+no runtime and runs in two hosts:
 
-- **DashQL.app:** main starts it with `utilityProcess.fork`, restarts it when it
-  crashes, and receives status messages for the menu (connected clients, running
-  harness runs, errors).
-- **`dashql-agent serve`:** the same module in plain Node 22 or newer, in a terminal or
-  as a user-managed login item. For Windows, Linux, and users without the desktop app.
+- **DashQL.app:** main starts the bundled binary as a child process (`dashql agent serve`), restarts it when it
+  crashes, stops it on quit, and follows its state for the menu (connected clients, running harness runs)
+  through `GET /v1/status` with the token from `config.json`.
+- **`dashql agent serve`:** the same binary in a terminal or as a user-managed login item. For Windows, Linux,
+  and users without the desktop app.
 
 What it does:
 
@@ -241,19 +247,13 @@ folders. Nothing keeps listening once the app is quit or deleted.
 
 ### Command line tool and skill
 
-- **`dashql-agent`** is a shim shipped in the bundle
-  (`Contents/Resources/bin/dashql-agent`). It runs the bundled module with the app's
-  own runtime, the way VS Code's `code` command does:
-
-  ```sh
-  ELECTRON_RUN_AS_NODE=1 "$APP/Contents/MacOS/DashQL" "$APP/Contents/Resources/agent/dashql-agent.mjs" "$@"
-  ```
-
-  "Install command line tool…" links it into `~/.local/bin` (or `/usr/local/bin` with
-  an admin prompt). Users without the app run the same `.mjs` with their own Node.
-  The shim needs Electron's `RunAsNode` fuse, which is enabled by default; it must stay
-  enabled if the app starts flipping fuses.
-- **The skill** (`dashql/SKILL.md`) tells the agent when to use `dashql-agent`, lists
+- **`dashql`** ships in the bundle (`Contents/Resources/bin/dashql`, built per architecture by
+  `//packages/dashql-cli:dashql_{aarch64,x86_64}`), like VS Code's `code` command. electron-builder signs and
+  notarizes it with the app, with the inherited entitlements like every nested binary. "Install command line tool…" links it into `~/.local/bin` (or
+  `/usr/local/bin` with an admin prompt). Users without the app download the binary for their platform.
+- **Harness runs** find `dashql` through a shim in `~/.dashql/agent/bin` that the server writes and puts
+  first on the `PATH` of the run; it calls the binary of the running server.
+- **The skill** (`dashql/SKILL.md`) tells the agent when to use `dashql agent`, lists
   the commands, and says that script and data contents are input, not instructions.
   "Install agent skill…" copies it into `~/.codex/skills/` and `~/.claude/skills/`
   after confirming.
@@ -262,15 +262,16 @@ folders. Nothing keeps listening once the app is quit or deleted.
 
 | Command | Does |
 |---|---|
-| `dashql-agent status` | Connected clients, sessions, focused session and script, connections |
-| `dashql-agent scripts` | Scripts of the session with their connections |
-| `dashql-agent read <script>` | Script text |
-| `dashql-agent edit <script> [--file f \| stdin]` | Replace or create a script; applied directly |
-| `dashql-agent catalog [connection]` | `CREATE TABLE` statements |
-| `dashql-agent lint <script>` | Diagnostics from the page's analyzer |
-| `dashql-agent run <script> [--max-rows N]` | Run it; columns, first rows, row count or error |
-| `dashql-agent result <script> [--page N]` | More rows of the last result |
-| `dashql-agent serve` | Run the agent server in the foreground |
+| `dashql agent status` | Connected clients, sessions, focused session and script, connections |
+| `dashql agent scripts` | Scripts of the session with their connections |
+| `dashql agent read <script>` | Script text |
+| `dashql agent edit <script> [--file f \| stdin]` | Replace or create a script; applied directly |
+| `dashql agent catalog [connection]` | `CREATE TABLE` statements |
+| `dashql agent lint <script>` | Diagnostics from the page's analyzer |
+| `dashql agent run <script> [--max-rows N]` | Run it; columns, first rows, row count or error |
+| `dashql agent result <script> [--page N]` | More rows of the last result |
+| `dashql agent serve` | Run the agent server in the foreground |
+| `dashql lint <file.sql\|dir\|->...` | Lint SQL files on disk with the native dashql-core, without DashQL |
 
 - Compact text on stdout, `--json` where useful, real exit codes (0 ok, 1 failed, 2 not
   connected or usage).
@@ -282,11 +283,14 @@ folders. Nothing keeps listening once the app is quit or deleted.
 
 ### Page side
 
-New code lives in `packages/dashql-app/src/platform/agent/`.
+The WebSocket client and the protocol types live in `packages/dashql-app/src/platform/agent/`. The command
+registry and the provider wrap app state, so they live in `packages/dashql-app/src/app/agent/`.
 
-- **Agent access toggle** per session, off by default. While on, the client keeps a
-  WebSocket to `ws://127.0.0.1:47100` and reconnects with backoff. After a page reload
-  it reconnects and the server delivers whatever is queued, so nothing is lost.
+- **Agent access toggle** per session, off by default, in the composer next to the connection picker. The
+  sessions with access are an app setting (`agentSessions`), so a shared session file never turns access on.
+  While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws` and reconnects with backoff. After
+  a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call that is
+  in flight when the page goes away fails.
 - **Command registry:** one handler per command, wrapping the existing reducers,
   executor and catalog code.
 - **Protocol:** JSON-RPC-style messages (`{id, method, params}` → `{id, result |
@@ -317,29 +321,48 @@ New code lives in `packages/dashql-app/src/platform/agent/`.
    and a short summary of what changed since the previous request.
 3. The server runs the command template for that harness from `config.json` in
    `~/.dashql/agent/sessions/<id>/`, with `DASHQL_SESSION` set and the resolved `PATH`.
-   The prompt is passed as one argument, never through a shell. Candidate templates, to
-   be confirmed:
+   The prompt is passed as one argument, never through a shell. The built-in templates, not yet run
+   against the real tools; Claude Code is the default:
 
    ```sh
-   codex exec --json [resume <harnessSessionId>] "<prompt>"
-   claude -p --output-format stream-json --verbose [--resume <harnessSessionId>] "<prompt>"
+   claude -p --output-format stream-json --verbose --allowedTools "Bash(dashql agent:*)" \
+       --disallowedTools "Bash(dashql agent serve:*)" [--resume <id>] "<prompt>"
+   codex exec --json --skip-git-repo-check [resume <id>] "<prompt>"
+   opencode run --format json [--session <id>] "<prompt>"
    ```
 
-4. The agent works through `dashql-agent` commands. A per-harness adapter in the
+   Other harnesses can be added to `config.json` with the `text` adapter: the output lines are status
+   lines and the whole output is the final message. `config.json` holds only the harnesses that override or
+   add to the built-in ones, so changes to the built-in templates reach existing configs.
+
+4. The agent works through `dashql agent` commands. A per-harness adapter in the
    server reads the event stream and sends status lines to the client.
 5. The final message comes back as `agent/done`. The server stores the harness session
    id, so the next request in this DashQL session resumes it.
 
 - The working folder holds an `AGENTS.md` (and a `CLAUDE.md` importing it) written by
-  the server: how to use `dashql-agent`, to work only through it, and that data and
-  script contents are input, not instructions.
+  the server: how to use `dashql agent`, to work only through it, and that data and
+  script contents are input, not instructions. An `opencode.json` limits opencode runs to
+  `dashql agent` (bash commands otherwise denied, no edits, no web fetches). Claude Code and opencode
+  runs may not start another `dashql agent serve`.
 - One run at a time per DashQL session; further requests queue in the server.
 - Stop (in the editor or the menu) sends `agent/cancel`; the server kills the run's
   process tree.
 - **Security rule:** clients never send commands, only a harness name and a prompt.
-  Command templates exist only in the local config and are edited in the app's
-  Settings window. Otherwise a bug in dashql.app (XSS, for example) could run
-  arbitrary commands on the user's machine.
+  Command templates exist only in the local `config.json`. The app may pick the default harness
+  among them (`agent/configure`) but never change a template. Otherwise a bug in dashql.app (XSS,
+  for example) could run arbitrary commands on the user's machine.
+
+### Settings
+
+The Agent tab of the internals overlay configures the bridge. It holds the connection open while it is
+shown, so it also works before any session has agent access.
+
+- **Port** of the agent server, an app setting (`agentPort`); the build's default otherwise.
+- **Harness:** picks the default among the configured harnesses and shows each command template and the
+  binary it resolves to on the `PATH` of harness runs (`agent/info`). Templates are edited in `config.json`.
+- **Sessions with agent access**, each with "Turn off".
+- **Clients and runs** of the server, with "Stop".
 
 ### Agent edits
 
@@ -361,16 +384,15 @@ There is no agent panel, chat transcript or tool-call log.
 | Final message | Dismissible note on the script, styled like `GenerationError` but neutral |
 | Failed or stopped | `GenerationError` with the reason |
 
-- **Entry points:** the composer through a `SqlGenerationBackend` interface behind
-  `useSqlGenerations` (the existing OpenAI-compatible client is the other
-  implementation), inline edit on a selection, "Fix with agent" on diagnostics and
-  failed queries.
+- **Entry points:** the composer through `useSqlGenerations`, which sends the question to the agent with
+  the target script; later inline edit on a selection, "Fix with agent" on diagnostics and failed queries.
+- **After a run** the page runs a script that the agent edited and did not run itself, the question's script
+  first.
 - **Session chip:** shows whether the agent server is connected and whether a run is
   going. Its menu offers "Reset agent context" (forget the stored harness session id)
   and "Continue in terminal" (the harness's resume command).
-- **Not connected:** the chip offers "Open DashQL" (starts the menu bar app through the
-  existing `dashql://` link) and, for users without the desktop app, the
-  `dashql-agent serve` command.
+- **Not connected:** the chip shows the `dashql agent serve` command. Once the menu bar mode exists it offers
+  "Open DashQL" (starts the menu bar app through the existing `dashql://` link).
 
 ### Data and security
 
@@ -393,9 +415,9 @@ Today's dev loops: the web app runs from Vite at `http://localhost:9002`, and
 loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
 `scripts/run_electron.sh`). The agent server fits both without the menu bar app:
 
-- **Main loop: web dev server plus `dashql-agent serve`.** The agent server is a plain
-  Node module, so most work happens with Vite and the server in a terminal. Electron
-  hosting is a thin wrapper around the same module.
+- **Main loop: web dev server plus `dashql agent serve`.** The agent server is a standalone
+  binary, so most work happens with Vite and the server in a terminal. Electron
+  hosting starts the same binary.
 - **Separate dev instance.** An installed release DashQL.app may already listen on
   47100 in the menu bar. Dev uses its own port and state folder (`DASHQL_AGENT_PORT=47101`,
   `DASHQL_AGENT_HOME=~/.dashql/agent-dev`). The dev page gets the dev port from Vite's
@@ -405,12 +427,14 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
   app run side by side.
 - **Dev origins** (`http://localhost:9002`) are accepted only by a server started in
   dev mode, never by the release app's default config.
+- **`--dev`** gives `dashql agent` the dev port and state folder (47101, `~/.dashql/agent-dev`) unless
+  `DASHQL_AGENT_PORT` or `DASHQL_AGENT_HOME` say otherwise: `bazel run //packages/dashql-cli:dashql -- agent serve --dev`
+  next to `bazel run //packages/dashql-app:dev`, and `dashql agent --dev status` for calls by hand.
 - **Menu bar in dev:** the tray, menu and activation policy work in unpackaged Electron;
   `bazel run //packages/dashql-native:dev -- --menu-bar` simulates a start at login.
   Registering the login item needs the packaged, signed app (the launch agent plist
   lives in the bundle), so that is tested with packaged builds only.
-- **CLI in dev:** the bundled module runs with Node directly (a Bazel run target for
-  `dashql-agent`), pointed at the dev port.
+- **CLI in dev:** `bazel run //packages/dashql-cli:dashql -- agent --dev <command>`, pointed at the dev port.
 - **Local Network Access is not exercised in dev.** A page on `http://localhost`
   reaching 127.0.0.1 is local to local, so Chrome shows no permission prompt. Testing the
   prompt needs the page on a public HTTPS origin: the deployed site, a preview
@@ -432,7 +456,7 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
   DashQL.app). A second Electron runtime doubles the download; a native helper means a
   second code base. DashQL.app in menu bar mode reuses packaging, signing, notarization
   and updates.
-- **Script daemon only** (`dashql-agent serve` started by the CLI). Kept as the
+- **Script daemon only** (`dashql agent serve` started by the CLI). Kept as the
   fallback; as the main path, a daemon started from inside an agent's sandbox may be
   killed with the agent's call, and runs inherit the sandbox.
 - **Cloud relay on dashql-cloud** (page and agent both connect out, messages
@@ -468,9 +492,10 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
 2. **Spike outside this repo:** the agent server, CLI and `SKILL.md`, plus a fake page
    implementing a few commands. Driven by Claude Code here and Codex at work, including
    a harness run started by the server.
-3. **Agent → app:** `packages/dashql-agent` with `serve`, the command registry,
-   WebSocket client with reconnect, the toggle, the Safari notice.
-4. **Menu bar mode:** utility process hosting, tray menu and icon states, activation
+3. **Agent → app:** the agent server and CLI with `serve` (first a Node module, now the Rust `dashql`
+   binary in `packages/dashql-cli`), the command registry, WebSocket client with reconnect, the toggle,
+   the Safari notice.
+4. **Menu bar mode:** child process hosting of `dashql agent serve`, the binary in the bundle, tray menu and icon states, activation
    policy, login item with `--menu-bar`, `PATH` resolution, installing the command line
    tool and skill, update handling.
 5. **App → agent:** harness runs with adapters, the `SqlGenerationBackend`, status
@@ -480,16 +505,17 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
 ## Files
 
 - **New:**
-  - `packages/dashql-agent/`: the server and CLI module (TypeScript, bundled to one
-    `.mjs`), the shim, the skill, tests
-  - `packages/dashql-app/src/platform/agent/`: WebSocket client, command registry
-  - `packages/dashql-native/src/agent_host.ts`: utility process supervision, status
+  - `packages/dashql-cli/src/agent/`: the agent server and the commands of the `dashql` binary (Rust,
+    tokio and tungstenite), `packages/dashql-cli/skill/`, tests (`bazel test //packages/dashql-cli:tests`)
+  - `packages/dashql-app/src/platform/agent/`: WebSocket client, protocol types
+  - `packages/dashql-app/src/app/agent/`: command registry, provider, agent access menu
+  - `packages/dashql-native/src/agent_host.ts`: supervision of the `dashql agent serve` child process, status
   - `packages/dashql-native/src/menu_bar.ts`: tray, menu, activation policy, login item
 - **Touched:**
   - `packages/dashql-native/src/main.ts` (menu bar mode, `--menu-bar`,
     `second-instance`, quit and update handling)
-  - `packages/dashql-native/electron-builder.yml` (agent module and shim as extra
-    resources, the launch agent plist, tray icons)
+  - `packages/dashql-native/electron-builder.yml` (the launch agent plist, tray icons; the `dashql` binary is
+    already an extra resource)
   - `packages/dashql-app/src/app/app.tsx` (provider)
   - `packages/dashql-app/src/app/session/ai/use_sql_generations.ts`,
     `ai/ui/script_generation.tsx`, `ai/editor/generation_placeholder.ts`

@@ -57,8 +57,8 @@ import { HYPER_CONNECTOR } from '../../../connections/connector_info.js';
 import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
 import { SessionComposer, SessionComposerVariant } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
-import { useAIClient } from '../../../providers/ai_client_provider.js';
-import { generateSqlFromPrompt } from '../../ai/sql_generation.js';
+import { useAgentBridge } from '../../../agent/agent_bridge.js';
+import { AgentAccessMenu } from '../../../agent/agent_access_menu.js';
 import { useSqlGenerations } from '../../ai/use_sql_generations.js';
 
 export interface SessionFeedProps {
@@ -86,8 +86,7 @@ export interface SessionFeedDependencies {
     useAttachDefaultConnection: typeof useAttachDefaultConnection;
     useKeyEvents: typeof useKeyEvents;
     runSessionScript: typeof runSessionScript;
-    useAIClient: typeof useAIClient;
-    generateSqlFromPrompt: typeof generateSqlFromPrompt;
+    useAgentBridge: typeof useAgentBridge;
     SessionComposer: typeof SessionComposer;
     ScriptFeedRow: typeof ScriptFeedRow;
 }
@@ -102,8 +101,7 @@ const DEFAULT_DEPENDENCIES: SessionFeedDependencies = {
     useAttachDefaultConnection,
     useKeyEvents,
     runSessionScript,
-    useAIClient,
-    generateSqlFromPrompt,
+    useAgentBridge,
     SessionComposer,
     ScriptFeedRow,
 };
@@ -535,16 +533,13 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         dependencies.runSessionScript(next, scriptData, executeQuery, props.modifySessionScripts, logger);
     }, [connectionAttention, executeQuery, logger, props.modifySessionScripts]);
 
-    // A question becomes a script that receives its SQL from the AI provider
-    const aiClient = dependencies.useAIClient();
+    // A question becomes a script that the agent writes its SQL into
+    const agent = dependencies.useAgentBridge();
     const sqlGenerations = useSqlGenerations({
-        aiClient,
+        agent,
         sessionScripts: props.sessionScripts,
-        conn: props.conn,
-        modifySessionScripts: props.modifySessionScripts,
         appendScript,
         runScript: runAppendedScript,
-        generateSqlFromPrompt: dependencies.generateSqlFromPrompt,
     });
 
     const handleComposerSend = React.useCallback((text: string, mode: ComposerInputMode) => {
@@ -702,7 +697,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         catalog={props.sessionScripts.connectionCatalog}
                         variant={landing ? SessionComposerVariant.Hero : SessionComposerVariant.Docked}
                         keywordCase={keywordCase}
-                        aiAvailable={aiClient != null}
+                        aiAvailable={sqlGenerations.available}
+                        agentControl={agent != null ? <AgentAccessMenu sessionId={props.sessionScripts.sessionId} /> : undefined}
                         onSend={handleComposerSend}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}

@@ -18,7 +18,6 @@ import { FlavorProvider, FlavorUrlKeeper } from './flavor/flavor_provider.js';
 import { getRequestedFlavor } from './flavor/flavor_resolution.js';
 import { GitHubTheme } from '../theme/github_theme.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
-import { AIClientProvider } from './providers/ai_client_provider.js';
 import { HyperSetupProvider } from './connections/hyper/hyper_connection_setup.js';
 import { HyperLogMetricsProvider } from './connections/hyper/hyper_log_metrics_provider.js';
 import { HyperDatabaseClientProvider } from './connections/hyper/hyperdb_grpc_client_provider.js';
@@ -47,6 +46,7 @@ import { NativeSessionSync } from './session/persistence/native_session_sync_rea
 import { SessionComputeQueryExecutionProvider } from './connections/computation_query_execution.js';
 import { SessionImportProvider } from './session/persistence/session_import_provider.js';
 import { SessionExecutionProvider } from './session/scripts/session_execution_provider.js';
+import { AgentBridgeProvider } from './agent/agent_bridge.js';
 
 import '../../static/fonts/fonts.css';
 import '../styles/colors.css';
@@ -73,17 +73,19 @@ const SessionProviders = (props: { children: React.ReactElement }) => (
                                         <QueryExecutorProvider>
                                             <SessionExecutionProvider>
                                                 <NativeSessionSync />
-                                                <SessionCatalogLoaderProvider>
-                                                    <SessionImportProvider>
-                                                        <SessionViewModeProvider>
-                                                            <SessionCommands>
-                                                                <AppLoader>
-                                                                    {props.children}
-                                                                </AppLoader>
-                                                            </SessionCommands>
-                                                        </SessionViewModeProvider>
-                                                    </SessionImportProvider>
-                                                </SessionCatalogLoaderProvider>
+                                                <AgentBridgeProvider>
+                                                    <SessionCatalogLoaderProvider>
+                                                        <SessionImportProvider>
+                                                            <SessionViewModeProvider>
+                                                                <SessionCommands>
+                                                                    <AppLoader>
+                                                                        {props.children}
+                                                                    </AppLoader>
+                                                                </SessionCommands>
+                                                            </SessionViewModeProvider>
+                                                        </SessionImportProvider>
+                                                    </SessionCatalogLoaderProvider>
+                                                </AgentBridgeProvider>
                                             </SessionExecutionProvider>
                                         </QueryExecutorProvider>
                                     </SessionComputeQueryExecutionProvider>
@@ -108,19 +110,17 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                             <StorageProvider>
                                 <HttpClientProvider>
                                     <AppSettingsSync>
-                                        <AIClientProvider>
-                                            <HyperDatabaseClientProvider>
-                                                <DashQLCoreProvider initialSetup={{ setupBatchWorker: true }}>
-                                                    <EmbeddedDatabaseProvider>
-                                                        <ComputeConnectionProvider>
-                                                            <SessionProviders>
-                                                                {props.children}
-                                                            </SessionProviders>
-                                                        </ComputeConnectionProvider>
-                                                    </EmbeddedDatabaseProvider>
-                                                </DashQLCoreProvider>
-                                            </HyperDatabaseClientProvider>
-                                        </AIClientProvider>
+                                        <HyperDatabaseClientProvider>
+                                            <DashQLCoreProvider initialSetup={{ setupBatchWorker: true }}>
+                                                <EmbeddedDatabaseProvider>
+                                                    <ComputeConnectionProvider>
+                                                        <SessionProviders>
+                                                            {props.children}
+                                                        </SessionProviders>
+                                                    </ComputeConnectionProvider>
+                                                </EmbeddedDatabaseProvider>
+                                            </DashQLCoreProvider>
+                                        </HyperDatabaseClientProvider>
                                     </AppSettingsSync>
                                 </HttpClientProvider>
                             </StorageProvider>

@@ -1,0 +1,42 @@
+.menu {
+    width: 300px;
+    max-width: 90vw;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px 6px 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.hint {
+    padding: 0 12px 10px 12px;
+    font-size: var(--font_size_small);
+    color: var(--base_color_neutral_5);
+    overflow-wrap: anywhere;
+}
+
+.hint code {
+    font-family: var(--font_family_mono, monospace);
+    user-select: all;
+}
+
+.dot {
+    display: inline-block;
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6e7781;
+}
+
+.dot[data-status='connected'] {
+    background: #1f883d;
+}
+
+.dot[data-status='connecting'] {
+    background: #9a6700;
+}

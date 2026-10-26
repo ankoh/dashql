@@ -154,7 +154,7 @@ describe('Session composer', () => {
         await vi.waitFor(() => expect(editor.state.field(DashQLProcessorPlugin).scriptSession?.getText()).toBe('select 4 '));
     });
 
-    describe('with an AI provider', () => {
+    describe('with the agent available', () => {
         const selectedMode = () => container.querySelector('[data-testid="composer-mode"][aria-current="true"]')?.getAttribute('data-mode');
         const typeUser = (editor: EditorView, text: string) => editor.dispatch({
             changes: { from: editor.state.doc.length, insert: text },

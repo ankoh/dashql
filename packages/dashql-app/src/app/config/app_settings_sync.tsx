@@ -35,8 +35,10 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
         storageReader.backend.loadAppSettings().then(stored => {
             if (stored != null) {
                 logger.info("Hydrated app settings from manifest", {}, LOG_CTX);
-                const { lastOpenedSessionId: _lastOpenedSessionId, ...settings } = stored as typeof stored & {
+                // Drop retired settings, the AI provider settings may hold credentials
+                const { lastOpenedSessionId: _lastOpenedSessionId, aiProvider: _aiProvider, ...settings } = stored as typeof stored & {
                     lastOpenedSessionId?: string;
+                    aiProvider?: unknown;
                 };
                 reconfigure(c => c == null ? null : {
                     ...c,
