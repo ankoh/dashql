@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import { ConnectorType } from '../app/connections/connector_info.js';
-import { SnippetBrowser } from '../app/session/ui/snippets/snippets_overlay.js';
-import type { SnippetRegistry } from '../app/session/snippets/snippet_registry.js';
-import { useFocusTrap } from '../ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
+import type { ConnectorType } from '../../connections/connector_info.js';
+import { SnippetBrowser } from '../ui/snippets/snippets_overlay.js';
+import type { SnippetRegistry } from '../snippets/snippet_registry.js';
+import { useFocusTrap } from '../../../ui/foundations/focus.js';
+import { Overlay, OverlaySize } from '../../../ui/foundations/overlay.js';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
 
@@ -24,8 +24,8 @@ export interface SnippetsDialogHookResult {
     dialog: React.ReactElement | null;
 }
 
-/// The snippet browser of the script cards as a dialog of the shell, the shell runs on the embedded Hyper
-export function useSnippetsDialog(registry?: SnippetRegistry): SnippetsDialogHookResult {
+/// The snippet browser of the script cards as a dialog of the shell, listing the snippets of the connector
+export function useSnippetsDialog(connectorType: ConnectorType, registry?: SnippetRegistry): SnippetsDialogHookResult {
     const [open, setOpen] = React.useState(false);
     const pendingRequestRef = React.useRef<PendingRequest | null>(null);
 
@@ -67,11 +67,12 @@ export function useSnippetsDialog(registry?: SnippetRegistry): SnippetsDialogHoo
     const controller = React.useMemo<SnippetsDialogController>(() => ({ request }), [request]);
     return {
         controller,
-        dialog: open ? <SnippetsDialog registry={registry} onApply={finish} onClose={dismiss} /> : null,
+        dialog: open ? <SnippetsDialog connectorType={connectorType} registry={registry} onApply={finish} onClose={dismiss} /> : null,
     };
 }
 
 interface SnippetsDialogProps {
+    connectorType: ConnectorType;
     registry?: SnippetRegistry;
     onApply: (text: string) => void;
     onClose: () => void;
@@ -98,7 +99,7 @@ function SnippetsDialog(props: SnippetsDialogProps): React.ReactElement {
             onClickOutside={IGNORE_OUTSIDE_CLICK}
         >
             <SnippetBrowser
-                connectorType={ConnectorType.HYPER}
+                connectorType={props.connectorType}
                 registry={props.registry}
                 listRef={listRef}
                 onApply={props.onApply}

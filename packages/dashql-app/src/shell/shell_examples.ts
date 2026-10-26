@@ -1,4 +1,4 @@
-import type { DashQLShellCommand } from '../../shell/api.js';
+import type { DashQLShellCommand } from './api.js';
 
 export interface ExamplesCommandDependencies {
     /// Browse the snippets, resolves with the text of the used snippet or null if none was used

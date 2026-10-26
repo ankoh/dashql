@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { createExamplesCommand, type ExamplesCommandDependencies } from './examples.js';
+import { createExamplesCommand, type ExamplesCommandDependencies } from './shell_examples.js';
 
 function dependencies(text: string | null, prompts: string[] = []): ExamplesCommandDependencies {
     return {

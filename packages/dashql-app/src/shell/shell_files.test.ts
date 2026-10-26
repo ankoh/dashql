@@ -59,7 +59,7 @@ describe('shell files command', () => {
     });
 
     it('rejects retired and unknown subcommands', async () => {
-        const command = createShellFilesCommand(new ShellFileRegistry());
+        const command = createShellFilesCommand();
 
         for (const action of ['add', 'import', 'list', 'drop', 'get', 'unknown']) {
             await expect(command[2]([action], {})).resolves.toBe('usage: .fs');
@@ -70,7 +70,6 @@ describe('shell files command', () => {
         const requestFilesystemDialog = vi.fn().mockResolvedValue(undefined);
         const requestMountDialog = vi.fn().mockResolvedValue('/mnt/external/data.csv');
         const command = createShellFilesCommand(
-            new ShellFileRegistry(),
             requestMountDialog,
             requestFilesystemDialog,
         );
@@ -89,7 +88,6 @@ describe('shell files command', () => {
 
     it('does not print mount cancellation', async () => {
         const command = createShellFilesCommand(
-            new ShellFileRegistry(),
             async () => 'Mount cancelled',
         );
 

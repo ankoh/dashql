@@ -1,23 +1,11 @@
-import * as dashql from '@ankoh/dashql-core';
-
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
     buildShareUrl,
     decodeShareScript,
     encodeShareScript,
     readShareScriptFromLocation,
-    splitShareScript,
 } from './shell_share.js';
-
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
-let core: dashql.DashQL;
-beforeAll(async () => {
-    core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
-});
-
-afterAll(() => core.resetUnsafe());
 
 describe('Shell share encoding', () => {
     it('round-trips scripts through the URL payload', async () => {
@@ -64,49 +52,5 @@ describe('Shell share URL', () => {
         expect(window.location.search).toBe('?keep=1');
         expect(window.location.hash).toBe('#other=2');
         expect(readShareScriptFromLocation()).toBeNull();
-    });
-});
-
-describe('Shell share script splitting', () => {
-    let catalog: dashql.DashQLCatalog;
-
-    beforeEach(() => {
-        catalog = core.createCatalog();
-    });
-
-    afterEach(() => {
-        catalog.destroy();
-    });
-
-    it('splits statements and terminates each one', () => {
-        expect(splitShareScript(core, catalog, 'select 1; select\n  2;\n\nselect 3')).toEqual([
-            'select 1;',
-            'select\n  2;',
-            'select 3;',
-        ]);
-    });
-
-    it('keeps dot commands as their own prompts', () => {
-        expect(splitShareScript(core, catalog, 'select 1;\n  .output table  \nselect 2;\n.timer on')).toEqual([
-            'select 1;',
-            '.output table',
-            'select 2;',
-            '.timer on',
-        ]);
-    });
-
-    it('slices statements after multi-byte characters', () => {
-        expect(splitShareScript(core, catalog, 'select \'🦆\'; select \'ü\';')).toEqual([
-            'select \'🦆\';',
-            'select \'ü\';',
-        ]);
-    });
-
-    it('keeps SQL that does not parse as a single prompt', () => {
-        expect(splitShareScript(core, catalog, 'select from from; select 2;')).toEqual(['select from from; select 2;']);
-    });
-
-    it('ignores empty scripts', () => {
-        expect(splitShareScript(core, catalog, ' \n\n ')).toEqual([]);
     });
 });

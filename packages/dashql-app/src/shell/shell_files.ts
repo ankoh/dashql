@@ -27,6 +27,20 @@ interface FileOperationOptions {
     readonly onProgress?: (message: string) => void;
 }
 
+/// The external file registration of a database, if it supports it
+export function externalFileDatabase(database: unknown): EmbeddedExternalFileDatabase | undefined {
+    if (database == null || typeof database !== 'object') return undefined;
+    if (!('registerExternalFile' in database) || !('removeExternalFile' in database)) return undefined;
+    return database as EmbeddedExternalFileDatabase;
+}
+
+/// The external directory registration of a database, if it supports it
+export function externalDirectoryDatabase(database: unknown): EmbeddedExternalDirectoryDatabase | undefined {
+    if (database == null || typeof database !== 'object') return undefined;
+    if (!('registerExternalDirectory' in database) || !('removeExternalDirectory' in database)) return undefined;
+    return database as EmbeddedExternalDirectoryDatabase;
+}
+
 export class ShellFileRegistry {
     private readonly files = new Map<string, ShellFileEntry>();
     private readonly directories = new Map<string, ExternalDirectoryMode>();
@@ -175,7 +189,6 @@ export class ShellFileRegistry {
 }
 
 export function createShellFilesCommand(
-    registry: ShellFileRegistry,
     requestMountDialog?: (signal?: AbortSignal) => Promise<string>,
     requestFilesystemDialog?: (signal?: AbortSignal) => Promise<void>,
 ): DashQLShellCommand {

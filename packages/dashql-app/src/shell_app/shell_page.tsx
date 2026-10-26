@@ -3,7 +3,6 @@ import * as React from 'react';
 import * as connectionTypes from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { EmbeddedConnection } from '../platform/database/embedded_database.js';
-import type { EmbeddedExternalDirectoryDatabase, EmbeddedExternalFileDatabase } from '../platform/database/embedded_database.js';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -15,17 +14,11 @@ import { ShellQueryResultOverlay } from '../app/session/shell/shell_query_result
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { createLoginCommand, type SalesforceLoginAuthentication } from './commands/login.js';
 import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
-import { createExamplesCommand } from './commands/examples.js';
+import { createExamplesCommand } from '../shell/shell_examples.js';
 import { useShellQueryHistory } from './shell_query_history.js';
 import { createShellOutputCommand, type ShellOutputMode } from '../shell/shell_result.js';
-import {
-    createShellFilesCommand,
-    selectPlatformDirectory,
-    selectPlatformFiles,
-    ShellFileRegistry,
-} from '../shell/shell_files.js';
-import { useMountDialog } from './filesystem_mount_dialog.js';
-import { useFilesystemDialog } from './filesystem_dialog.js';
+import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../shell/shell_files.js';
+import { useShellFiles } from '../shell/filesystem_dialog.js';
 import { createFormatCommand } from './commands/format.js';
 import { createPlanCommand } from './commands/plan.js';
 import { createShareCommand } from './commands/share.js';
@@ -41,24 +34,14 @@ import { useShellQueryResult } from './use_shell_query_result.js';
 import { useFormatDialog } from './format_dialog.js';
 import { usePlanDialog } from './plan_dialog.js';
 import { useShareDialog } from './share_dialog.js';
-import { useSnippetsDialog } from './snippets_dialog.js';
-import { decodeShareScript, readShareScriptFromLocation, splitShareScript } from './shell_share.js';
+import { useSnippetsDialog } from '../app/session/shell/snippets_dialog.js';
+import { decodeShareScript, readShareScriptFromLocation } from './shell_share.js';
+import { splitShellScript } from '../shell/shell_script.js';
+import { ConnectorType } from '../app/connections/connector_info.js';
 import { getHyperDBWebSupportError } from '../platform/hyperdb/hyperdb_web_support.js';
 import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';
-
-function externalFileDatabase(database: unknown): EmbeddedExternalFileDatabase | undefined {
-    if (database == null || typeof database !== 'object') return undefined;
-    if (!('registerExternalFile' in database) || !('removeExternalFile' in database)) return undefined;
-    return database as EmbeddedExternalFileDatabase;
-}
-
-function externalDirectoryDatabase(database: unknown): EmbeddedExternalDirectoryDatabase | undefined {
-    if (database == null || typeof database !== 'object') return undefined;
-    if (!('registerExternalDirectory' in database) || !('removeExternalDirectory' in database)) return undefined;
-    return database as EmbeddedExternalDirectoryDatabase;
-}
 
 interface ShellPageProps {
     onEngineVersion: (version: string) => void;
@@ -95,35 +78,9 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const { controller: formatDialog, dialog: formatterDialog } = useFormatDialog();
     const { controller: planDialog, dialog: queryPlanDialog } = usePlanDialog(appEvents);
     const { controller: shareDialog, dialog: shareScriptDialog } = useShareDialog();
-    const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog();
+    const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog(ConnectorType.HYPER);
     const fileRegistryRef = React.useRef<ShellFileRegistry | null>(null);
-    const { controller: mountDialog, dialog: mountDialogOverlay } = useMountDialog({
-        selectFiles: async signal => {
-            const files = await selectPlatformFiles(signal);
-            if (files.length === 0) return null;
-            if (files.length !== 1) throw new Error('select exactly one file to choose a mount path');
-            return { kind: 'file', name: files[0].path, file: files[0] };
-        },
-        selectDirectory: async (mode, signal) => {
-            const handle = await selectPlatformDirectory(mode);
-            return { kind: 'directory', name: handle.name, handle, mode };
-        },
-        mount: async (selection, path, signal) => {
-            const registry = fileRegistryRef.current;
-            if (registry == null) throw new Error('Filesystem mounting is not ready');
-            return selection.kind === 'file'
-                ? await registry.mountFile(selection.file, path, { signal })
-                : await registry.mountDirectory(selection.handle, path, selection.mode);
-        },
-    });
-    const { controller: filesystemDialog, dialog: filesystemDialogOverlay } = useFilesystemDialog({
-        list: async () => fileRegistryRef.current?.listFiles() ?? [],
-        unlink: async path => {
-            const registry = fileRegistryRef.current;
-            if (registry == null || !await registry.drop(path)) throw new Error(`filesystem entry not registered: ${path}`);
-        },
-        mount: mountDialog.request,
-    });
+    const { command: filesCommand, dialogs: fileDialogs } = useShellFiles(fileRegistryRef);
     const containerRef = React.useRef<HTMLDivElement>(null);
     const outputModeRef = React.useRef<ShellOutputMode>('auto');
     const terminalColumnsRef = React.useRef(100);
@@ -261,7 +218,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     requestSnippet: snippetsDialog.request,
                     splitPrompts: text => {
                         if (shell == null) throw new Error('Shell is not ready');
-                        return splitShareScript(shell.core, shell.catalog, text);
+                        return splitShellScript(shell.core, shell.catalog, text);
                     },
                     // The prompts are filled in once the command finished
                     queuePrompts: prompts => controller?.queuePrompts(prompts),
@@ -286,7 +243,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 }),
                 loginCommand,
                 createShellOutputCommand(getOutputMode, mode => { outputModeRef.current = mode; }),
-                createShellFilesCommand(fileRegistry, mountDialog.request, filesystemDialog.request),
+                filesCommand,
             ];
             const nextShell = await createDashQLShell({
                 environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions, {
@@ -344,7 +301,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             try {
                 const text = await decodeShareScript(sharedScript);
                 if (cancelled) return;
-                const prompts = splitShareScript(nextShell.core, nextShell.catalog, text);
+                const prompts = splitShellScript(nextShell.core, nextShell.catalog, text);
                 if (prompts.length === 0) return;
                 nextController.writeStatus(`Shared script with ${prompts.length} ${prompts.length === 1 ? 'statement' : 'statements'}. Press Enter to run each, Ctrl+C to skip the rest.`);
                 nextController.queuePrompts(prompts);
@@ -370,7 +327,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             fileRegistryRef.current = null;
             void fileRegistry?.dispose().finally(() => connection?.close());
         };
-    }, [appEvents, dispatchComputation, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
+    }, [appEvents, dispatchComputation, filesCommand, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
 
     if (hyperDBSupportError != null) {
         return (
@@ -405,8 +362,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             {queryPlanDialog}
             {shareScriptDialog}
             {snippetsBrowserDialog}
-            {mountDialogOverlay}
-            {filesystemDialogOverlay}
+            {fileDialogs}
         </main>
     );
 };

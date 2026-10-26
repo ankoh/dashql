@@ -4,9 +4,17 @@ import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.
 import { useFocusTrap } from '../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
 import { FileDirectoryIcon, FileIcon, PlusIcon, UnlinkIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import type { DashQLShellCommand } from './api.js';
 import type { ExternalDirectoryMode } from '../platform/database/embedded_database.js';
 import { CopyToClipboardButton } from '../utils/clipboard.js';
-import type { ShellFileListing } from '../shell/shell_files.js';
+import {
+    createShellFilesCommand,
+    selectPlatformDirectory,
+    selectPlatformFiles,
+    type ShellFileListing,
+    type ShellFileRegistry,
+} from './shell_files.js';
+import { useMountDialog } from './filesystem_mount_dialog.js';
 import * as styles from './filesystem_dialog.module.css';
 
 export interface FilesystemDialogActions {
@@ -72,6 +80,52 @@ export function useFilesystemDialog(actions: FilesystemDialogActions): Filesyste
     return {
         controller,
         dialog: open ? <FilesystemDialog actions={{ ...actions, mount }} onClose={dismiss} /> : null,
+    };
+}
+
+export interface ShellFilesHookResult {
+    /// The .fs command, opens the dialogs on the mounts of the registry
+    command: DashQLShellCommand;
+    dialogs: React.ReactElement;
+}
+
+/// The filesystem and mount dialogs of the .fs command.
+/// The registry is read when a dialog needs it, it may be created after the command.
+export function useShellFiles(registryRef: React.RefObject<ShellFileRegistry | null>): ShellFilesHookResult {
+    const { controller: mountDialog, dialog: mountDialogOverlay } = useMountDialog({
+        selectFiles: async signal => {
+            const files = await selectPlatformFiles(signal);
+            if (files.length === 0) return null;
+            if (files.length !== 1) throw new Error('select exactly one file to choose a mount path');
+            return { kind: 'file', name: files[0].path, file: files[0] };
+        },
+        selectDirectory: async mode => {
+            const handle = await selectPlatformDirectory(mode);
+            return { kind: 'directory', name: handle.name, handle, mode };
+        },
+        mount: async (selection, path, signal) => {
+            const registry = registryRef.current;
+            if (registry == null) throw new Error('Filesystem mounting is not ready');
+            return selection.kind === 'file'
+                ? await registry.mountFile(selection.file, path, { signal })
+                : await registry.mountDirectory(selection.handle, path, selection.mode);
+        },
+    });
+    const { controller: filesystemDialog, dialog: filesystemDialogOverlay } = useFilesystemDialog({
+        list: async () => registryRef.current?.listFiles() ?? [],
+        unlink: async path => {
+            const registry = registryRef.current;
+            if (registry == null || !await registry.drop(path)) throw new Error(`filesystem entry not registered: ${path}`);
+        },
+        mount: mountDialog.request,
+    });
+    const command = React.useMemo(
+        () => createShellFilesCommand(mountDialog.request, filesystemDialog.request),
+        [mountDialog, filesystemDialog],
+    );
+    return {
+        command,
+        dialogs: <>{mountDialogOverlay}{filesystemDialogOverlay}</>,
     };
 }
 
