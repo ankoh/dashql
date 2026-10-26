@@ -33,6 +33,7 @@ yarn-error.log
 /todo.md
 
 /.claude/settings.local.json
+/.claude/worktrees
 /.cursor
 
 /.local
