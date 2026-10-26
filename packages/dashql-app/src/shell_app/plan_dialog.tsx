@@ -13,10 +13,12 @@ import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.
 import { useFocusTrap } from '../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
 import { SegmentedControl, SegmentedControlSize } from '../ui/foundations/segmented_control.js';
-import { AlertIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { AlertIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { CopyToClipboardButton } from '../utils/clipboard.js';
 import * as styles from './plan_dialog.module.css';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
+const LOG_CTX = 'shell_plan';
 /// Edits are parsed once the user pauses typing, loading the plan per keystroke is too expensive
 const VALIDATION_DELAY_MS = 150;
 
@@ -132,6 +134,7 @@ function PlanDialog(props: PlanDialogProps) {
     const [mode, setMode] = React.useState(PlanMode.Raw);
     const [plan, setPlan] = React.useState<dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel> | null>(null);
     const [diagnostic, setDiagnostic] = React.useState<string | null>(null);
+    const [expanded, setExpanded] = React.useState(false);
     const onRawChangeRef = React.useRef<(text: string) => void>(() => {});
     const rawTextIsValidRef = React.useRef(false);
     const layoutConfig = React.useMemo(() => props.dependencies.createPlanLayoutConfig(false), [props.dependencies]);
@@ -227,6 +230,9 @@ function PlanDialog(props: PlanDialogProps) {
         setMode(nextMode);
     }, [flushValidation]);
 
+    /// Copy the raw plan, also from the viewer
+    const getCopyText = React.useCallback(() => rawTextRef.current, []);
+
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,
         initialFocusRef: editorFocusRef as React.RefObject<HTMLElement>,
@@ -242,6 +248,7 @@ function PlanDialog(props: PlanDialogProps) {
             preventFocusOnOpen
             onEscape={props.onClose}
             onClickOutside={IGNORE_OUTSIDE_CLICK}
+            expanded={expanded}
         >
             <section
                 ref={dialogRef}
@@ -249,6 +256,7 @@ function PlanDialog(props: PlanDialogProps) {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={headingId}
+                data-expanded={expanded || undefined}
             >
                 <header className={styles.header}>
                     <h2 id={headingId} className={styles.title}>Query Plan</h2>
@@ -275,6 +283,25 @@ function PlanDialog(props: PlanDialogProps) {
                             Viewer
                         </SegmentedControl.Button>
                     </SegmentedControl>
+                    <CopyToClipboardButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        getValue={getCopyText}
+                        logContext={LOG_CTX}
+                        aria-label="Copy query plan JSON"
+                        aria-labelledby=""
+                        data-testid="dialog-copy"
+                    />
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label={expanded ? 'Restore size' : 'Expand'}
+                        aria-pressed={expanded}
+                        data-testid="dialog-expand"
+                        onClick={() => setExpanded(e => !e)}
+                    >
+                        {expanded ? <ScreenNormalIcon size={16} /> : <ScreenFullIcon size={16} />}
+                    </IconButton>
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}

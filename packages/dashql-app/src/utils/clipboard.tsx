@@ -29,9 +29,10 @@ export function CopyToClipboardButton(props: Props): React.ReactElement {
     const [lastCopied, setLastCopied] = React.useState<number | null>(null);
     const [wasRecentlyCopied, setWasRecentlyCopied] = React.useState<boolean>(false);
     const timeoutMs = props.timeoutMs ?? DEFAULT_COPY_TIMEOUT;
-    const value = props.value ?? (props.getValue ? props.getValue() : "");
 
     const copy = React.useCallback(async () => {
+        // Read the value when copying, getValue may return text that changes without a re-render
+        const value = props.value ?? (props.getValue ? props.getValue() : "");
         try {
             await navigator.clipboard.writeText(value);
             logger.info("Copied to clipboard", { "chars": value.length.toString() }, props.logContext);
@@ -39,7 +40,7 @@ export function CopyToClipboardButton(props: Props): React.ReactElement {
         } catch (e: any) {
             logger.error("Copying failed", { "error": stringifyError(e) }, props.logContext);
         }
-    }, [setLastCopied, props.value]);
+    }, [setLastCopied, props.value, props.getValue]);
 
     React.useEffect(() => {
         if (lastCopied == null) {

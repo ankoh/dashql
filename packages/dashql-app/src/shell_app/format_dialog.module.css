@@ -9,6 +9,11 @@
     background: #ffffff;
 }
 
+/* Expanded, the overlay fills the window and the dialog fills the overlay */
+.dialog[data-expanded] {
+    height: 100%;
+}
+
 .header {
     display: flex;
     flex: 0 0 auto;

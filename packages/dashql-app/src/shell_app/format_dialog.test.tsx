@@ -132,6 +132,30 @@ describe('SQL formatter dialog', () => {
         await result;
     });
 
+    it('copies the text of the current view and expands to the window', async () => {
+        const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+        const result = open();
+        act(() => setEditorText('select count(*) from items where value > 1'));
+
+        const copyButton = document.querySelector<HTMLButtonElement>('[data-testid="dialog-copy"]')!;
+        await act(async () => copyButton.click());
+        expect(writeText).toHaveBeenLastCalledWith('select count(*) from items where value > 1');
+        act(() => modeButton('pretty').click());
+        await act(async () => copyButton.click());
+        expect(writeText).toHaveBeenLastCalledWith('select count(*)\nfrom items\nwhere value > 1;');
+
+        const expandButton = document.querySelector<HTMLButtonElement>('[data-testid="dialog-expand"]')!;
+        act(() => expandButton.click());
+        expect(expandButton.getAttribute('aria-pressed')).toBe('true');
+        expect(document.querySelector('[data-expanded="true"]')).not.toBeNull();
+        act(() => expandButton.click());
+        expect(document.querySelector('[data-expanded="true"]')).toBeNull();
+
+        act(() => closeButton().click());
+        await result;
+    });
+
     it('refreshes an open formatted view when keyword case changes', async () => {
         await vi.waitFor(() => expect(settingsReady).toBe(true));
         const result = open();

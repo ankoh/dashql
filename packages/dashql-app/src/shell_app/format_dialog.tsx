@@ -17,10 +17,12 @@ import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.
 import { useFocusTrap } from '../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
 import { SegmentedControl, SegmentedControlSize } from '../ui/foundations/segmented_control.js';
-import { AlertIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { AlertIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { CopyToClipboardButton } from '../utils/clipboard.js';
 import * as styles from './format_dialog.module.css';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
+const LOG_CTX = 'shell_format';
 /// Edits are validated once the user pauses typing, analyzing the script per keystroke is too expensive
 const VALIDATION_DELAY_MS = 150;
 
@@ -212,6 +214,7 @@ function FormatDialog(props: FormatDialogProps) {
     const changingViewRef = React.useRef(false);
     const [mode, setMode] = React.useState(FormatMode.Raw);
     const [diagnostic, setDiagnostic] = React.useState<string | null>(null);
+    const [expanded, setExpanded] = React.useState(false);
     const readonlyCompartmentRef = React.useRef(new Compartment());
     const editableCompartmentRef = React.useRef(new Compartment());
     const attributesCompartmentRef = React.useRef(new Compartment());
@@ -350,6 +353,9 @@ function FormatDialog(props: FormatDialogProps) {
         renderedCase.current = keywordCase;
     }, [keywordCase, mode, showMode]);
 
+    /// Copy the text of the current view, the formatted SQL in Compact and Pretty
+    const getCopyText = React.useCallback(() => editorViewRef.current?.state.doc.toString() ?? rawTextRef.current, []);
+
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,
         initialFocusRef: editorFocusRef as React.RefObject<HTMLElement>,
@@ -365,6 +371,7 @@ function FormatDialog(props: FormatDialogProps) {
             preventFocusOnOpen
             onEscape={props.onClose}
             onClickOutside={IGNORE_OUTSIDE_CLICK}
+            expanded={expanded}
         >
             <section
                 ref={dialogRef}
@@ -372,6 +379,7 @@ function FormatDialog(props: FormatDialogProps) {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={headingId}
+                data-expanded={expanded || undefined}
             >
                 <header className={styles.header}>
                     <h2 id={headingId} className={styles.title}>SQL Formatter</h2>
@@ -398,6 +406,25 @@ function FormatDialog(props: FormatDialogProps) {
                             </SegmentedControl.Button>
                         ))}
                     </SegmentedControl>
+                    <CopyToClipboardButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        getValue={getCopyText}
+                        logContext={LOG_CTX}
+                        aria-label="Copy SQL"
+                        aria-labelledby=""
+                        data-testid="dialog-copy"
+                    />
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label={expanded ? 'Restore size' : 'Expand'}
+                        aria-pressed={expanded}
+                        data-testid="dialog-expand"
+                        onClick={() => setExpanded(e => !e)}
+                    >
+                        {expanded ? <ScreenNormalIcon size={16} /> : <ScreenFullIcon size={16} />}
+                    </IconButton>
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}

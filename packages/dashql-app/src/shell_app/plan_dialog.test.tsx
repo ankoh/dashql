@@ -155,6 +155,31 @@ describe('query plan dialog', () => {
         await result;
     });
 
+    it('copies the Raw JSON from the viewer and expands to the window', async () => {
+        const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+        const result = open();
+        await act(async () => {
+            setEditorText(VALID_PLAN);
+            // Edits are parsed once the typing pauses
+            await new Promise(resolve => setTimeout(resolve, 200));
+        });
+        act(() => modeButton('viewer').click());
+
+        await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="dialog-copy"]')!.click());
+        expect(writeText).toHaveBeenCalledExactlyOnceWith(VALID_PLAN);
+
+        const expandButton = document.querySelector<HTMLButtonElement>('[data-testid="dialog-expand"]')!;
+        act(() => expandButton.click());
+        expect(expandButton.getAttribute('aria-pressed')).toBe('true');
+        expect(document.querySelector('[data-expanded="true"]')).not.toBeNull();
+        act(() => expandButton.click());
+        expect(document.querySelector('[data-expanded="true"]')).toBeNull();
+
+        act(() => closeButton().click());
+        await result;
+    });
+
     it('replaces Raw content and opens Viewer after a valid fallback paste', async () => {
         const result = open();
         expect(fallbackPasteHandler).not.toBeNull();
