@@ -11,6 +11,8 @@ import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../.
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { LogLevel } from '../../../platform/logger/log_buffer.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
+import { AppFlavor, FLAVORS } from '../../flavor/flavors.js';
+import { useAppFlavor, useRequestedAppFlavor } from '../../flavor/flavor_provider.js';
 
 export function AppSettings(props: { onClose: () => void; }) {
     const config = useAppConfig();
@@ -106,6 +108,16 @@ export function AppSettings(props: { onClose: () => void; }) {
             settings: { ...config.settings, keywordCase: value },
         });
     };
+    const flavor = useAppFlavor();
+    const flavorRequested = useRequestedAppFlavor() != null;
+    const flavors = [...FLAVORS.values()];
+    // The settings of a flavor are layered over the current settings when switching to it
+    const setFlavor = (next: AppFlavor) => {
+        reconfigure(config => config == null ? null : {
+            ...config,
+            settings: { ...config.settings, ...next.settings, flavor: next.id },
+        });
+    };
     const setMinLogLevel = React.useCallback((level: LogLevel) => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
@@ -171,6 +183,29 @@ export function AppSettings(props: { onClose: () => void; }) {
             </div>
             <div className={styles.internals_container}>
                 <div className={styles.settings_container}>
+                    <div
+                        id="app-setting-flavor"
+                        className={styles.setting_name}
+                        title={flavorRequested ? 'The flavor is set by the url' : undefined}
+                    >
+                        Flavor
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <SegmentedControl
+                            aria-labelledby="app-setting-flavor"
+                            onChange={index => setFlavor(flavors[index])}
+                        >
+                            {flavors.map(f => (
+                                <SegmentedControl.Button
+                                    key={f.id}
+                                    selected={flavor.id === f.id}
+                                    disabled={config == null || flavorRequested}
+                                >
+                                    {f.displayName}
+                                </SegmentedControl.Button>
+                            ))}
+                        </SegmentedControl>
+                    </div>
                     <div id="app-setting-min-log-level" className={styles.setting_name}>
                         Minimum Log Level
                     </div>

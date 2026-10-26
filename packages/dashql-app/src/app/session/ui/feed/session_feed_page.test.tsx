@@ -319,7 +319,7 @@ describe('SessionFeedPage', () => {
 
     it('hides the archive export when the flavor does not support it', () => {
         act(() => root.render(
-            <FlavorProvider flavor={SIDB_FLAVOR}>
+            <FlavorProvider requested={SIDB_FLAVOR}>
                 <SessionFeedPage
                     sessionScripts={scripts()}
                     modifySessionScripts={vi.fn()}

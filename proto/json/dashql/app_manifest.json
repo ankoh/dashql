@@ -115,6 +115,10 @@
         "minLogLevel": {
           "type": "number"
         },
+        "flavor": {
+          "type": "string",
+          "description": "The id of the app flavor, the flavor query parameter of the url wins"
+        },
         "aiProvider": {
           "$ref": "#/definitions/AIProviderSettings",
           "description": "Configuration of the OpenAI-compatible AI provider"

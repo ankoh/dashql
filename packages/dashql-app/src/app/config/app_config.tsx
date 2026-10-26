@@ -56,6 +56,8 @@ export interface AppSettings {
     /// existing browser session. Adds `prompt=login` to the authorization request.
     forceReLogin?: boolean;
     minLogLevel?: number;
+    /// The id of the app flavor, the flavor query parameter of the url wins
+    flavor?: string;
     aiProvider?: AIProviderSettings;
 }
 

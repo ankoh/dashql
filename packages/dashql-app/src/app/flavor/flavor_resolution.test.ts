@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyFlavorToDocument, resolveFlavor, withFlavorParameter } from './flavor_resolution.js';
+import { applyFlavorToDocument, resolveFlavor, selectFlavor, withFlavorParameter } from './flavor_resolution.js';
 import { applyFlavorSettings, DASHQL_FLAVOR, SIDB_FLAVOR } from './flavors.js';
 
 describe('App flavor resolution', () => {
@@ -15,6 +15,14 @@ describe('App flavor resolution', () => {
 
     it('ignores unknown flavors', () => {
         expect(resolveFlavor('unknown')).toEqual({ flavor: DASHQL_FLAVOR, unknownId: 'unknown' });
+    });
+
+    it('lets the url flavor win over the flavor of the app settings', () => {
+        expect(selectFlavor(null, undefined)).toBe(DASHQL_FLAVOR);
+        expect(selectFlavor(null, 'sidb')).toBe(SIDB_FLAVOR);
+        expect(selectFlavor(null, 'unknown')).toBe(DASHQL_FLAVOR);
+        expect(selectFlavor(DASHQL_FLAVOR, 'sidb')).toBe(DASHQL_FLAVOR);
+        expect(selectFlavor(SIDB_FLAVOR, 'dashql')).toBe(SIDB_FLAVOR);
     });
 
     it('adds the flavor parameter to urls that lost it', () => {
@@ -60,6 +68,20 @@ describe('App flavor branding', () => {
             ['manifest', '/static/favicons/dashql/site.webmanifest'],
             ['icon', SIDB_FLAVOR.favicon!.href],
         ]);
+    });
+
+    it('restores the static favicons when switching back to the default flavor', () => {
+        const doc = createDocument();
+        const statics = [...doc.head.querySelectorAll('link')].map(l => [l.rel, l.getAttribute('href')]);
+        applyFlavorToDocument(SIDB_FLAVOR, doc);
+        applyFlavorToDocument(SIDB_FLAVOR, doc);
+        expect(doc.head.querySelectorAll('link[rel="icon"]').length).toBe(1);
+        applyFlavorToDocument(DASHQL_FLAVOR, doc);
+        expect(doc.documentElement.dataset.flavor).toBe('dashql');
+        expect(doc.title).toBe('DashQL');
+        expect(doc.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content')).toBe('DashQL');
+        const links = [...doc.head.querySelectorAll('link')].map(l => [l.rel, l.getAttribute('href')]);
+        expect(links).toEqual([statics[2], statics[0], statics[1], statics[3], statics[4]]);
     });
 
     it('layers flavor settings over the config settings', () => {

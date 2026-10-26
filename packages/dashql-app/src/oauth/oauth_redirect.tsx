@@ -24,7 +24,7 @@ import { classNames } from '../utils/classnames.js';
 import { formatHHMMSS, formatTimeDifference } from '../utils/format.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
 import { isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
-import { applyFlavorToDocument, getAppFlavor } from '../app/flavor/flavor_resolution.js';
+import { getRequestedFlavor } from '../app/flavor/flavor_resolution.js';
 
 import '../../static/fonts/fonts.css';
 import '../styles/globals.css';
@@ -460,15 +460,12 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
     }
 };
 
-const APP_FLAVOR = getAppFlavor();
-applyFlavorToDocument(APP_FLAVOR);
-
 const element = document.getElementById('root');
 const root = createRoot(element!);
 root.render(
     <React.StrictMode>
         <BrowserRouter>
-            <FlavorProvider flavor={APP_FLAVOR}>
+            <FlavorProvider requested={getRequestedFlavor()}>
                 <GitHubTheme>
                     <LoggerProvider>
                         <Routes>

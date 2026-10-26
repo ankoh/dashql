@@ -15,7 +15,7 @@ import { ComputeConnectionProvider } from '../compute/compute_connection_provide
 import { DashQLCoreProvider } from './providers/core_provider.js';
 import { FileDropzone } from './ui/file_dropzone.js';
 import { FlavorProvider, FlavorUrlKeeper } from './flavor/flavor_provider.js';
-import { applyFlavorToDocument, getAppFlavor } from './flavor/flavor_resolution.js';
+import { getRequestedFlavor } from './flavor/flavor_resolution.js';
 import { GitHubTheme } from '../theme/github_theme.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { AIClientProvider } from './providers/ai_client_provider.js';
@@ -54,9 +54,6 @@ import '../styles/globals.css';
 import '../styles/flavors/sidb.css';
 
 const LOG_CTX = 'app';
-
-const APP_FLAVOR = getAppFlavor();
-applyFlavorToDocument(APP_FLAVOR);
 
 // Note that the order among connection providers is important and non-obvious.
 // For example:
@@ -164,7 +161,7 @@ const root = createRoot(element!, {
     onRecoverableError: logRecoverableReactError
 });
 root.render(
-    <FlavorProvider flavor={APP_FLAVOR}>
+    <FlavorProvider requested={getRequestedFlavor()}>
         <Router>
             <RouterReset />
             <FlavorUrlKeeper />

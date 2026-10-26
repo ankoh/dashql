@@ -7,7 +7,7 @@ import { isDesktopHost } from '../../../platform/native_globals.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { useStorage } from '../../storage/storage_provider.js';
-import { getAppFlavor } from '../../flavor/flavor_resolution.js';
+import { useAppFlavor } from '../../flavor/flavor_provider.js';
 import { NativeSessionSyncService, nativeSessionWatchForLocation } from './native_session_sync.js';
 import type { SessionScriptsStorageSnapshot, SessionScripts } from '../scripts/session_scripts.js';
 import { persistedConnectionId, sessionScriptList } from '../scripts/session_scripts.js';
@@ -85,8 +85,7 @@ interface SessionReloadDecision {
     discardPendingWrites: boolean;
 }
 
-async function confirmExternalReload(hasPendingWrites: boolean): Promise<SessionReloadDecision> {
-    const appName = getAppFlavor().displayName;
+async function confirmExternalReload(appName: string, hasPendingWrites: boolean): Promise<SessionReloadDecision> {
     const message = hasPendingWrites
         ? `This session changed on disk while ${appName} still has local changes waiting to be saved. Reload from disk and discard those pending local changes?`
         : `This session changed outside ${appName}. Reload it from disk?`;
@@ -153,6 +152,7 @@ function snapshotMatchesCompletedWrite(
 /// coordination, then delegates session reconciliation to the session domain.
 export const NativeSessionSync: React.FC = () => {
     const logger = useLogger();
+    const appName = useAppFlavor().displayName;
     const [reader, writer] = useStorage();
     const [connectionRegistry, setConnectionRegistry] = useConnectionRegistry();
     const [sessionScriptsRegistry, setSessionScriptsRegistry] = useSessionScriptsRegistry();
@@ -199,7 +199,7 @@ export const NativeSessionSync: React.FC = () => {
             const isReloadedKey = (key: string) => isReloadedStorageKey(sessionId, key);
             const promptGeneration = writer.getSessionWriteGeneration(sessionId, isReloadedKey);
             const pendingKeys = writer.getPendingKeysForSession(sessionId, isReloadedKey);
-            let decision = await confirmExternalReload(pendingKeys.length > 0);
+            let decision = await confirmExternalReload(appName, pendingKeys.length > 0);
             if (!decision.reload) {
                 return;
             }
@@ -207,7 +207,7 @@ export const NativeSessionSync: React.FC = () => {
             // queued during a clean-file prompt, require the explicit destructive confirmation too.
             const pendingAfterPrompt = writer.getPendingKeysForSession(sessionId, isReloadedKey);
             if (pendingKeys.length === 0 && pendingAfterPrompt.length > 0) {
-                decision = await confirmExternalReload(true);
+                decision = await confirmExternalReload(appName, true);
                 if (!decision.reload) {
                     return;
                 }
