@@ -409,10 +409,11 @@ shown, so it also works before any session has agent access.
 There is no separate agent panel, chat transcript or tool-call log. The scripts show what the agent edits; everything
 else the agent says is shown by the composer (`ai/ui/agent_prompt_panel.tsx`).
 
-- **With agent access** the composer turns purple and shows the agent on top of the prompt: the harness, whether the
-  agent server is connected, whether the next question continues the harness conversation, and the questions of the
-  session. On the landing view of an empty session it takes the place of "What do you want to know about your data
-  today?". While a run is going, the frame of the composer turns.
+- **With agent access** the composer takes a frame in the gradient of the agent colors of the flavor (`--agent_*` in
+  `globals.css`, green in sidb) and shows the agent on top of the prompt: the harness, whether the agent server is
+  connected, whether the next question continues the harness conversation, and the questions of the session. On the
+  landing view of an empty session it takes the place of "What do you want to know about your data today?". While a
+  run is going, the frame of the composer turns.
 - **A question** is a line in that panel. Asking creates no script: the agent writes a new script or edits an
   existing one through `dashql agent edit`, and every script it writes shows up as a chip on the question that
   scrolls the feed to the script.

@@ -36,6 +36,14 @@
 
     --nav_tab_bg_active: hsla(186, 40%, 50%, 30%);
 
+    /* The agent runs from a fresh green over Lagoon into a Petrol blue, its accent is Verdigris.
+       The stops need the spread in hue, green, Lagoon and Verdigris alone read as one flat color. */
+    --agent_gradient_1: #34c46a;
+    --agent_gradient_2: var(--sidb_accent);
+    --agent_gradient_3: #147a96;
+    --agent_accent: var(--sidb_si_on_light);
+    --agent_accent_text: hsl(173, 85%, 22%);
+
     /* Charts lead with a Verdigris that is a little more saturated than the accent, so that it does not read gray
        next to the other categorical colors. Blue cannot take the slot of the green, it would follow the purple. */
     --chart_color_primary: #00897b;

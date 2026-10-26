@@ -59,6 +59,14 @@
     --focus_outline_color: #0969da;
     --focus_border_color: var(--focus_outline_color);
 
+    /* The colors of the agent: the three stops of the gradient of its frame, the accent of its icons and the
+       accent of its text. The tints of its surfaces are mixed from them. Flavors derive them from their accent. */
+    --agent_gradient_1: var(--base_color_blue_3);
+    --agent_gradient_2: #3cc4d9;
+    --agent_gradient_3: var(--base_color_blue_4);
+    --agent_accent: var(--base_color_blue_5);
+    --agent_accent_text: var(--base_color_blue_6);
+
     /* The colors of charts: the color of a single series and the categorical colors of series in the order they are
        assigned. Flavors override them, adjacent categorical colors must stay apart for color-blind readers. */
     --chart_color_primary: var(--base_color_blue_5);

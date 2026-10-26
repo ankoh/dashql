@@ -5,9 +5,14 @@
     flex-direction: column;
     gap: 6px;
     padding: var(--composer_agent_padding, 8px 12px);
-    border-bottom: 1px solid var(--base_color_purple_1);
+    border-bottom: 1px solid color-mix(in srgb, var(--agent_accent) 16%, white);
     border-radius: calc(var(--composer_radius, var(--border_radius)) - 1px) calc(var(--composer_radius, var(--border_radius)) - 1px) 0 0;
-    background: linear-gradient(180deg, var(--base_color_purple_0) 0%, hsla(285, 100%, 97%, 0.4) 100%);
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--agent_gradient_1) 10%, white) 0%,
+        color-mix(in srgb, var(--agent_gradient_2) 7%, white) 50%,
+        color-mix(in srgb, var(--agent_gradient_3) 5%, white) 100%
+    );
     font-size: var(--font_size_small);
 }
 
@@ -16,12 +21,12 @@
     align-items: center;
     gap: 6px;
     min-width: 0;
-    color: var(--base_color_purple_6);
+    color: var(--agent_accent_text);
 }
 
 .header_icon {
     flex: none;
-    color: var(--base_color_purple_5);
+    color: var(--agent_accent);
 }
 
 .header_title {
@@ -100,21 +105,21 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     padding: 1px 6px;
-    border: 1px solid var(--base_color_purple_1);
+    border: 1px solid color-mix(in srgb, var(--agent_accent) 20%, white);
     border-radius: 4px;
     background: white;
-    color: var(--base_color_purple_6);
+    color: var(--agent_accent_text);
     font-family: var(--font_family_mono);
     font-size: 11px;
     cursor: pointer;
 }
 
 .run_script:hover {
-    border-color: var(--base_color_purple_3);
+    border-color: color-mix(in srgb, var(--agent_accent) 50%, white);
 }
 
 .run_script:focus-visible {
-    outline: 2px solid var(--base_color_purple_5);
+    outline: 2px solid var(--agent_accent);
     outline-offset: 1px;
 }
 
@@ -130,7 +135,7 @@
     background: linear-gradient(
         90deg,
         var(--base_color_neutral_5) 0%,
-        var(--base_color_purple_3) 50%,
+        var(--agent_gradient_2) 50%,
         var(--base_color_neutral_5) 100%
     );
     background-size: 200% 100%;
