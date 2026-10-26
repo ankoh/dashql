@@ -39,11 +39,6 @@ fn strip_single_quotes(text: &[u8]) -> &[u8] {
     }
 }
 
-/// A string from bytes that are UTF-8 unless the input was not
-fn into_string(bytes: Vec<u8>) -> String {
-    String::from_utf8(bytes).unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
-}
-
 /// The renderer-specific packing of a visualization (the vegalite and markdown branches of
 /// `AnalyzedScript::Pack`)
 #[allow(clippy::type_complexity)]
