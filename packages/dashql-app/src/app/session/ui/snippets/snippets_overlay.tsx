@@ -108,7 +108,7 @@ export function SnippetsOverlay(props: SnippetsOverlayProps): React.ReactElement
     );
 }
 
-interface SnippetBrowserProps {
+export interface SnippetBrowserProps {
     /// The connector of the script
     connectorType: ConnectorType;
     /// The snippets to browse, the bundled ones by default
@@ -122,7 +122,7 @@ interface SnippetBrowserProps {
 }
 
 /// The content of the snippet overlay, mounted while the overlay is open
-function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
+export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
     const bundled = useBundledSnippets();
     const registry = props.registry ?? bundled ?? EMPTY_REGISTRY;
     const titleId = React.useId();

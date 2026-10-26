@@ -15,7 +15,7 @@ import { ShellQueryResultOverlay } from '../app/session/shell/shell_query_result
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { createLoginCommand, type SalesforceLoginAuthentication } from './commands/login.js';
 import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
-import { examplesCommand } from './commands/examples.js';
+import { createExamplesCommand } from './commands/examples.js';
 import { useShellQueryHistory } from './shell_query_history.js';
 import { createShellOutputCommand, type ShellOutputMode } from '../shell/shell_result.js';
 import {
@@ -41,6 +41,7 @@ import { useShellQueryResult } from './use_shell_query_result.js';
 import { useFormatDialog } from './format_dialog.js';
 import { usePlanDialog } from './plan_dialog.js';
 import { useShareDialog } from './share_dialog.js';
+import { useSnippetsDialog } from './snippets_dialog.js';
 import { decodeShareScript, readShareScriptFromLocation, splitShareScript } from './shell_share.js';
 import { getHyperDBWebSupportError } from '../platform/hyperdb/hyperdb_web_support.js';
 import * as styles from './shell_page.module.css';
@@ -94,6 +95,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const { controller: formatDialog, dialog: formatterDialog } = useFormatDialog();
     const { controller: planDialog, dialog: queryPlanDialog } = usePlanDialog(appEvents);
     const { controller: shareDialog, dialog: shareScriptDialog } = useShareDialog();
+    const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog();
     const fileRegistryRef = React.useRef<ShellFileRegistry | null>(null);
     const { controller: mountDialog, dialog: mountDialogOverlay } = useMountDialog({
         selectFiles: async signal => {
@@ -255,7 +257,15 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             );
             fileRegistryRef.current = fileRegistry;
             const commands: DashQLShellCommand[] = [
-                examplesCommand,
+                createExamplesCommand({
+                    requestSnippet: snippetsDialog.request,
+                    splitPrompts: text => {
+                        if (shell == null) throw new Error('Shell is not ready');
+                        return splitShareScript(shell.core, shell.catalog, text);
+                    },
+                    // The prompts are filled in once the command finished
+                    queuePrompts: prompts => controller?.queuePrompts(prompts),
+                }),
                 createFormatCommand({
                     requestDialog: signal => {
                         if (shell == null) throw new Error('Shell is not ready');
@@ -360,7 +370,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             fileRegistryRef.current = null;
             void fileRegistry?.dispose().finally(() => connection?.close());
         };
-    }, [appEvents, dispatchComputation, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setupEmbeddedDatabase, shareDialog, showResultQuery]);
+    }, [appEvents, dispatchComputation, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
 
     if (hyperDBSupportError != null) {
         return (
@@ -394,6 +404,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             {formatterDialog}
             {queryPlanDialog}
             {shareScriptDialog}
+            {snippetsBrowserDialog}
             {mountDialogOverlay}
             {filesystemDialogOverlay}
         </main>
