@@ -64,7 +64,7 @@ export function runSessionScript(
 }
 
 /// Run a script on its connection and wait for its result.
-/// Fails when another script of the session runs or the script holds no query.
+/// Fails when another script of the session runs, the script holds no query, or the query fails or is cancelled.
 export async function runSessionScriptForResult(
     sessionScripts: SessionScripts,
     scriptData: ScriptData,
@@ -81,7 +81,8 @@ export async function runSessionScriptForResult(
     if (analyzed == null) {
         throw new Error('The script could not be analyzed');
     }
-    const execution = executeSessionScript(analyzed, sessionScripts, executeQuery, modifySessionScripts, logger);
+    // The caller reports the failure, e.g. to the agent, the script shows it as well
+    const execution = executeSessionScript(analyzed, sessionScripts, executeQuery, modifySessionScripts, logger, true);
     if (execution == null) {
         throw new Error('The script holds no query');
     }
@@ -94,6 +95,7 @@ function executeSessionScript(
     executeQuery: QueryExecutor,
     modifySessionScripts: ModifySessionScripts,
     logger: LoggerLike,
+    throwOnError: boolean = false,
 ): Promise<arrow.Table | null> | null {
     if (isSessionExecutionRunning(sessionScripts)) return null;
     const { connectionId, connectorInfo } = scriptData.connection;
@@ -109,6 +111,7 @@ function executeSessionScript(
         query: queryText,
         scriptExecution: createScriptExecution(scriptData, connectorInfo.connectorType),
         analyzeResults: true,
+        throwOnError,
         replaceComputationId: scriptData.latestResultQueryId === undefined
             ? scriptData.latestQueryId : scriptData.latestResultQueryId,
         // Sessions opt into reusing cached results, a script decides if its query result can be cached

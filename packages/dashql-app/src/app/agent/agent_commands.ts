@@ -2,6 +2,7 @@ import type * as arrow from 'apache-arrow';
 import * as core from '@ankoh/dashql-core';
 
 import type { LoggerLike, Logger } from '../../platform/logger/logger.js';
+import { stringifyError } from '../../platform/logger/logger.js';
 import type { AgentCommandParams, AgentCommandResult } from '../../platform/agent/agent_protocol.js';
 import { AgentCommandError } from '../../platform/agent/agent_client.js';
 import type { ConnectionRegistry } from '../connections/connection_registry.js';
@@ -232,7 +233,7 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     try {
         table = await runSessionScriptForResult(state, script, env.executeQuery, modify, env.logger as LoggerLike);
     } catch (e: unknown) {
-        fail(`${name} failed: ${e instanceof Error ? e.message : String(e)}`);
+        fail(`${name} failed: ${stringifyError(e)}`);
     }
     if (table == null) {
         return { text: `${name} ran without a result`, data: { script: name, rowCount: 0, columns: [], rows: [], offset: 0 } };

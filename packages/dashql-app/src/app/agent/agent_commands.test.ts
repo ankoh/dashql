@@ -7,6 +7,7 @@ import { AgentCommandError } from '../../platform/agent/agent_client.js';
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { ConnectionHealth } from '../connections/connection_state.js';
+import type { QueryExecutor } from '../connections/query_executor.js';
 import { CREATE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../session/scripts/session_scripts.js';
 
 /// A script with a text and the diagnostics of its analysis
@@ -137,6 +138,28 @@ describe('agent commands', () => {
     it('refuses to run a script on an offline connection', async () => {
         connections.get('db').connectionHealth = ConnectionHealth.FAILED;
         await expect(run('run', { script: 'orders' })).rejects.toThrow('The connection db of orders is not online');
+    });
+
+    it('reports a failed query instead of a run without a result', async () => {
+        const text = 'create table t (a int primary key)';
+        state = session([{
+            ...script(1, 'orders.sql', text),
+            scriptSession: {
+                getText: () => text,
+                compileQuery: () => ({
+                    read: () => ({ errorsLength: () => 0, sql: () => text, cacheSignature: () => '', cacheable: () => false }),
+                    destroy: () => { },
+                }),
+                startExecution: () => ({}),
+            },
+            annotations: { visualizeQuery: null },
+            editorUpdate: { diagnostics: [], textVersion: 1, stateRevision: 1, analysisAvailable: true },
+        }]);
+        // Like the query executor: a failed query resolves with null unless the caller asks for the error
+        const failure = { message: 'Index support is disabled.' };
+        env.executeQuery = vi.fn<QueryExecutor>((_connectionId, args) => [24, args.throwOnError ? Promise.reject(failure) : Promise.resolve(null)]);
+        await expect(run('run', { script: 'orders' })).rejects.toThrow('orders failed: Index support is disabled.');
+        expect(env.executeQuery).toHaveBeenCalledWith('db', expect.objectContaining({ throwOnError: true }));
     });
 
     it('pages through the last result of a script', async () => {
