@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AgentPromptPanel, harnessLabel, isAgentWorking, type ComposerAgent } from './agent_prompt_panel.js';
+import { AgentPromptPanel, harnessLabel, isAgentWorking, plainAgentNote, type ComposerAgent } from './agent_prompt_panel.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -96,6 +96,38 @@ describe('Agent prompt panel', () => {
 
         act(() => runs[1].querySelector<HTMLButtonElement>('[data-testid="generation-dismiss"]')!.click());
         expect(agent.onDismiss).toHaveBeenCalledExactlyOnceWith(2);
+    });
+
+    it('clamps a long answer until it is expanded', () => {
+        container.style.width = '320px';
+        const recap = '## Summary\n\nI wrote **top_customers** with `dashql agent edit` and ran it.\n\n'
+            + Array.from({ length: 8 }, (_, i) => `- step ${i}: looked at the catalog and the scripts again`).join('\n');
+        const agent = composerAgent({
+            runs: [
+                { questionId: 1, question: { question: 'top customers', status: null, error: null, note: recap, scripts: [4] }, scripts: [{ scriptKey: 4, scriptName: 'top_customers' }] },
+                { questionId: 2, question: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders', scripts: [] }, scripts: [] },
+            ],
+        });
+        act(() => root.render(<AgentPromptPanel agent={agent} />));
+        const runs = container.querySelectorAll('[data-testid="composer-agent-run"]');
+        const note = runs[0].querySelector<HTMLElement>('[role="note"]')!;
+        expect(note.textContent!.startsWith('Summary\n\nI wrote top_customers with dashql agent edit and ran it.')).toBe(true);
+        expect(note.hasAttribute('data-expanded')).toBe(false);
+        expect(note.scrollHeight).toBeGreaterThan(note.clientHeight);
+        // A short answer needs no toggle
+        expect(runs[1].querySelector('[data-testid="composer-agent-note-toggle"]')).toBeNull();
+
+        const toggle = runs[0].querySelector<HTMLButtonElement>('[data-testid="composer-agent-note-toggle"]')!;
+        expect(toggle.textContent).toBe('Show more');
+        act(() => toggle.click());
+        expect(note.hasAttribute('data-expanded')).toBe(true);
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect(toggle.textContent).toBe('Show less');
+    });
+
+    it('drops the markdown markers of an answer', () => {
+        expect(plainAgentNote('### Result\n\nThe **top** customer is `acme`.\n\n\n\nDone.')).toBe('Result\n\nThe top customer is acme.\n\nDone.');
+        expect(plainAgentNote('  There are 42 orders  ')).toBe('There are 42 orders');
     });
 
     it('names the built-in harnesses', () => {

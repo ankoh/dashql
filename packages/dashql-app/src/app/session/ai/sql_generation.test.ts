@@ -29,6 +29,7 @@ describe('SQL generation', () => {
         expect(prompt).toContain('The connection speaks Trino.');
         expect(prompt).toContain('`dashql agent scripts`');
         expect(prompt).toContain('`dashql agent edit <script>`, into a new script');
+        expect(prompt).toContain('do not recap your steps');
         expect(prompt).toContain('The question mentions these catalog objects: customers (table).');
         expect(prompt.endsWith('\n\nQuestion:\ntop customers')).toBe(true);
     });

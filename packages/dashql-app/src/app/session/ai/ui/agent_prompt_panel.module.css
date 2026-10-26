@@ -150,12 +150,46 @@
     to { background-position: -100% 0; }
 }
 
-/* The final message of the agent */
-.run_note {
+/* The final message of the agent, two lines with the line breaks folded until it is expanded */
+.run_note_container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
     padding-left: 20px;
+}
+
+.run_note {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
     color: var(--base_color_neutral_7);
-    white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+
+.run_note[data-expanded] {
+    display: block;
+    white-space: pre-wrap;
+}
+
+.run_note_toggle {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--agent_accent_text);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.run_note_toggle:hover {
+    text-decoration: underline;
+}
+
+.run_note_toggle:focus-visible {
+    outline: 2px solid var(--agent_accent);
+    outline-offset: 1px;
 }
 
 .run_error {

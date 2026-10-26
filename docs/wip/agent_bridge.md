@@ -423,12 +423,14 @@ else the agent says is shown by the composer (`ai/ui/agent_prompt_panel.tsx`).
 | Queued | "waiting for agent...", Stop | |
 | Running | The latest status line, Stop | |
 | Script edited | A chip for the script | Created or updated |
-| Final message | The message until it is dismissed | |
+| Final message | Two plain lines, "Show more" for the rest, until it is dismissed | |
 | Failed | The reason until it is dismissed | |
 | Stopped | Removed | |
 
 - **Entry points:** the composer through `useSqlGenerations`, which sends the question to the agent with
   the dialect and the catalog objects it mentions; later inline edit on a selection, "Fix with agent" on diagnostics and failed queries.
+- **The final message** should be one sentence: the prompt tells the agent that the user watched the scripts change
+  and run and not to recap them. Harnesses still write recaps, so the panel drops markdown markers and clamps it.
 - **After a run** the page runs the first script that the agent edited and did not run itself.
 - **Session chip:** shows whether the agent server is connected and whether a run is
   going. Its menu offers "Reset agent context" (forget the stored harness session id)

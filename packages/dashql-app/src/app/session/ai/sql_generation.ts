@@ -162,7 +162,10 @@ export function buildAgentPrompt(input: AgentPromptInput): string {
         'Write the query with `dashql agent edit <script>`, into a new script with a short snake_case name'
             + ' unless the question is about an existing script.',
         'Check it with `dashql agent lint <script>` and run it with `dashql agent run <script>`.',
-        'Prefer read-only queries. End with a one-sentence answer to the question.',
+        'Prefer read-only queries.',
+        'The user watches the scripts change and run, do not recap your steps, the queries or the results.',
+        'End with one plain sentence without markdown that answers the question, or with nothing if the results'
+            + ' already answer it.',
     ];
     if (input.mentionedIdentifiers.length > 0) {
         lines.push(`The question mentions these catalog objects: ${input.mentionedIdentifiers.join(', ')}.`);

@@ -86,11 +86,55 @@ export function useAgentSessionContext(bridge: AgentBridge | null, sessionId: st
     return context;
 }
 
+/// The final message of the agent as plain text, without the markers of the markdown that harnesses like to write
+export function plainAgentNote(note: string): string {
+    return note
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/__(.+?)__/g, '$1')
+        .replace(/`([^`\n]+)`/g, '$1')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+/// The final message of the agent, clamped to two lines until it is expanded.
+/// The user watched the scripts change and run, a recap of them is rarely worth more than a glance.
+const AgentRunNote: React.FC<{ note: string }> = ({ note }) => {
+    const text = React.useMemo(() => plainAgentNote(note), [note]);
+    const ref = React.useRef<HTMLDivElement>(null);
+    const [expanded, setExpanded] = React.useState(false);
+    const [overflows, setOverflows] = React.useState(false);
+    React.useLayoutEffect(() => {
+        const element = ref.current;
+        if (element == null || expanded) return;
+        const measure = () => setOverflows(element.scrollHeight > element.clientHeight + 1);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [text, expanded]);
+    return (
+        <div className={styles.run_note_container}>
+            <div ref={ref} className={styles.run_note} role="note" data-expanded={expanded ? '' : undefined}>{text}</div>
+            {(overflows || expanded) && (
+                <button
+                    type="button"
+                    className={styles.run_note_toggle}
+                    aria-expanded={expanded}
+                    data-testid="composer-agent-note-toggle"
+                    onClick={() => setExpanded(e => !e)}
+                >
+                    {expanded ? 'Show less' : 'Show more'}
+                </button>
+            )}
+        </div>
+    );
+};
+
 const AgentRunItem: React.FC<{ run: ComposerAgentRun; agent: ComposerAgent }> = ({ run, agent }) => {
     const { questionId, question } = run;
     const working = isAgentAnswering(question);
     const failed = !working && question.error != null;
-    const message = question.error ?? question.note;
     const indicator = working ? IndicatorStatus.Running : (failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
     return (
         <li className={styles.run} data-state={working ? 'working' : (failed ? 'failed' : 'done')} data-testid="composer-agent-run">
@@ -134,9 +178,8 @@ const AgentRunItem: React.FC<{ run: ComposerAgentRun; agent: ComposerAgent }> = 
                 )}
             </div>
             {working && <div className={styles.run_status} role="status">{question.status}</div>}
-            {!working && message != null && (
-                <div className={failed ? styles.run_error : styles.run_note} role={failed ? 'alert' : 'note'}>{message}</div>
-            )}
+            {failed && <div className={styles.run_error} role="alert">{question.error}</div>}
+            {!working && !failed && question.note != null && <AgentRunNote note={question.note} />}
         </li>
     );
 };
