@@ -147,9 +147,8 @@ from web apps, and Ollama's menu bar app with its localhost API.
     `buildSchemaContext` / `findSqlProblems` (`app/session/ai/sql_generation.ts`);
   - the command-shaped shell API (`packages/dashql-app/src/shell/api.ts`).
 - **Question → SQL UX:** `ComposerInputMode.Ai` (`app/session/ai/input_mode.ts`) and
-  `useSqlGenerations` (`app/session/ai/use_sql_generations.ts`), with the generation
-  placeholder (`ai/editor/generation_placeholder.ts`, `ai/ui/script_generation.tsx`) and the agent on top of the
-  composer (`ai/ui/agent_prompt_panel.tsx`).
+  `useSqlGenerations` (`app/session/ai/use_sql_generations.ts`), with the agent on top of the composer
+  (`ai/ui/agent_prompt_panel.tsx`).
 - **An OpenAI-compatible LLM client** (`platform/ai/ai_client.ts`) with endpoint settings: removed. The agent
   bridge is the only path to models; without agent access the composer takes SQL only.
 
@@ -414,21 +413,22 @@ else the agent says is shown by the composer (`ai/ui/agent_prompt_panel.tsx`).
   agent server is connected, whether the next question continues the harness conversation, and the questions of the
   session. On the landing view of an empty session it takes the place of "What do you want to know about your data
   today?". While a run is going, the frame of the composer turns.
-- **A question** is a line in that panel with the script that holds it, which scrolls the feed to the script.
+- **A question** is a line in that panel. Asking creates no script: the agent writes a new script or edits an
+  existing one through `dashql agent edit`, and every script it writes shows up as a chip on the question that
+  scrolls the feed to the script.
 
 | Run state | Composer | Script |
 |---|---|---|
-| Queued | "waiting for agent...", Stop | Placeholder below the text, Play disabled |
-| Running | The latest status line, Stop | Placeholder, Play disabled |
-| Script edited | | Editor updates |
+| Queued | "waiting for agent...", Stop | |
+| Running | The latest status line, Stop | |
+| Script edited | A chip for the script | Created or updated |
 | Final message | The message until it is dismissed | |
 | Failed | The reason until it is dismissed | |
 | Stopped | Removed | |
 
 - **Entry points:** the composer through `useSqlGenerations`, which sends the question to the agent with
-  the target script; later inline edit on a selection, "Fix with agent" on diagnostics and failed queries.
-- **After a run** the page runs a script that the agent edited and did not run itself, the question's script
-  first.
+  the dialect and the catalog objects it mentions; later inline edit on a selection, "Fix with agent" on diagnostics and failed queries.
+- **After a run** the page runs the first script that the agent edited and did not run itself.
 - **Session chip:** shows whether the agent server is connected and whether a run is
   going. Its menu offers "Reset agent context" (forget the stored harness session id)
   and "Continue in terminal" (the harness's resume command).
@@ -561,8 +561,7 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
     binary is already an extra resource)
   - `packages/dashql-native/src/updater.ts` (status listener for the menu)
   - `packages/dashql-app/src/app/app.tsx` (provider)
-  - `packages/dashql-app/src/app/session/ai/use_sql_generations.ts`,
-    `ai/ui/script_generation.tsx`, `ai/ui/agent_prompt_panel.tsx`, `ai/editor/generation_placeholder.ts`
+  - `packages/dashql-app/src/app/session/ai/use_sql_generations.ts`, `ai/ui/agent_prompt_panel.tsx`
   - settings UI for the toggle and data settings
 
 Everything builds through Bazel, per `docs/agents/build_bazel_targets.md`.

@@ -142,12 +142,10 @@ export function buildSchemaContext(conn: ConnectionState | null, sessionScripts:
     return schema;
 }
 
-/// A question that the agent answers in a script
+/// A question that the agent answers in the scripts of a session
 export interface AgentPromptInput {
     /// The question in natural language
     question: string;
-    /// The script that receives the SQL
-    scriptName: string;
     /// The SQL dialect of the connection
     dialect: string;
     /// The catalog objects that the question mentions, e.g. "orders (table)"
@@ -155,14 +153,15 @@ export interface AgentPromptInput {
 }
 
 /// Build the prompt of a question for the agent.
-/// The agent reads the schema and writes the SQL itself through the dashql command, the prompt only names the target.
+/// The agent reads the schema and writes the SQL itself through the dashql command, it also picks the script.
 export function buildAgentPrompt(input: AgentPromptInput): string {
     const lines = [
-        `Answer the question below with a SQL query in the DashQL script ${input.scriptName}.`,
+        'Answer the question below with a SQL query in a DashQL script.',
         `The connection speaks ${input.dialect}.`,
-        `Look up the schema with \`dashql agent catalog\`, write the query with \`dashql agent edit ${input.scriptName}\``
-            + ' and keep the comment lines at the top of the script.',
-        `Check it with \`dashql agent lint ${input.scriptName}\` and run it with \`dashql agent run ${input.scriptName}\`.`,
+        'Look up the scripts with `dashql agent scripts` and the schema with `dashql agent catalog`.',
+        'Write the query with `dashql agent edit <script>`, into a new script with a short snake_case name'
+            + ' unless the question is about an existing script.',
+        'Check it with `dashql agent lint <script>` and run it with `dashql agent run <script>`.',
         'Prefer read-only queries. End with a one-sentence answer to the question.',
     ];
     if (input.mentionedIdentifiers.length > 0) {
@@ -171,10 +170,4 @@ export function buildAgentPrompt(input: AgentPromptInput): string {
     // Harnesses reject NUL characters
     lines.push('', 'Question:', input.question.replace(/\0/g, ''));
     return lines.join('\n');
-}
-
-/// Render a question as line comments, the preamble of the generated script.
-/// Every line is commented on its own, the question cannot escape the comment.
-export function promptComment(prompt: string): string {
-    return prompt.trim().split(/\r?\n/).map(line => `-- ${line}`.trimEnd()).join('\n');
 }

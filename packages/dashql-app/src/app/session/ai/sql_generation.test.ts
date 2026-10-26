@@ -1,7 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { buildAgentPrompt, buildSchemaContext, describeSqlDialect, promptComment } from './sql_generation.js';
+import { buildAgentPrompt, buildSchemaContext, describeSqlDialect } from './sql_generation.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { isSystemSchema } from '../../connections/system_schemas.js';
 import { Logger } from '../../../platform/logger/logger.js';
@@ -20,21 +20,15 @@ beforeAll(async () => {
 afterAll(() => dql.resetUnsafe());
 
 describe('SQL generation', () => {
-    it('comments every line of the question', () => {
-        expect(promptComment('how many orders?')).toBe('-- how many orders?');
-        expect(promptComment('  first line\r\n\nsecond line\n')).toBe('-- first line\n--\n-- second line');
-    });
-
-    it('names the target script and the dialect in the agent prompt', () => {
+    it('names the dialect and the dashql commands in the agent prompt', () => {
         const prompt = buildAgentPrompt({
             question: 'top customers\0',
-            scriptName: 'brave-otter',
             dialect: describeSqlDialect(ConnectorType.TRINO),
             mentionedIdentifiers: ['customers (table)'],
         });
-        expect(prompt).toContain('in the DashQL script brave-otter.');
         expect(prompt).toContain('The connection speaks Trino.');
-        expect(prompt).toContain('`dashql agent edit brave-otter`');
+        expect(prompt).toContain('`dashql agent scripts`');
+        expect(prompt).toContain('`dashql agent edit <script>`, into a new script');
         expect(prompt).toContain('The question mentions these catalog objects: customers (table).');
         expect(prompt.endsWith('\n\nQuestion:\ntop customers')).toBe(true);
     });

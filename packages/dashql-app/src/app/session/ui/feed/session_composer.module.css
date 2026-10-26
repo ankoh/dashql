@@ -60,14 +60,14 @@
 .composer_editor {
     padding: 10px 12px 4px 12px;
     font-family: var(--font_family_mono);
-    font-size: 12px;
-    line-height: 18px;
+    font-size: 14px;
+    line-height: 20px;
 }
 
 .composer[data-variant="hero"] .composer_editor {
     padding: 14px 16px 6px 16px;
-    font-size: 13px;
-    line-height: 20px;
+    font-size: 15px;
+    line-height: 22px;
 }
 
 /* The editors of the scripts are larger, the composer keeps its own size */

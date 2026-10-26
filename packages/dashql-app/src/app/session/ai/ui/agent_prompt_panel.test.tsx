@@ -53,7 +53,11 @@ describe('Agent prompt panel', () => {
 
     it('shows the status line of a question and stops the agent', () => {
         const agent = composerAgent({
-            runs: [{ scriptKey: 3, scriptName: '03_orders', generation: { question: 'how many orders', status: 'dashql agent catalog', error: null, note: null } }],
+            runs: [{
+                questionId: 3,
+                question: { question: 'how many orders', status: 'dashql agent catalog', error: null, note: null, scripts: [7] },
+                scripts: [{ scriptKey: 7, scriptName: 'orders' }],
+            }],
         });
         expect(isAgentWorking(agent)).toBe(true);
         act(() => root.render(<AgentPromptPanel agent={agent} />));
@@ -67,22 +71,27 @@ describe('Agent prompt panel', () => {
         act(() => run.querySelector<HTMLButtonElement>('[data-testid="generation-stop"]')!.click());
         expect(agent.onStop).toHaveBeenCalledExactlyOnceWith(3);
         act(() => run.querySelector<HTMLButtonElement>('[data-testid="composer-agent-script"]')!.click());
-        expect(agent.onShowScript).toHaveBeenCalledExactlyOnceWith(3);
+        expect(agent.onShowScript).toHaveBeenCalledExactlyOnceWith(7);
     });
 
     it('shows answers and errors until they are dismissed', () => {
         const agent = composerAgent({
             runs: [
-                { scriptKey: 1, scriptName: '01_orders', generation: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders' } },
-                { scriptKey: 2, scriptName: '02_customers', generation: { question: 'how many customers', status: null, error: 'HTTP 500', note: null } },
+                { questionId: 1, question: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders', scripts: [] }, scripts: [] },
+                { questionId: 2, question: { question: 'how many customers', status: null, error: 'HTTP 500', note: null, scripts: [] }, scripts: [] },
+                { questionId: 3, question: { question: 'top customers', status: null, error: null, note: null, scripts: [4] }, scripts: [{ scriptKey: 4, scriptName: 'top_customers' }] },
             ],
         });
         expect(isAgentWorking(agent)).toBe(false);
         act(() => root.render(<AgentPromptPanel agent={agent} />));
         const runs = container.querySelectorAll('[data-testid="composer-agent-run"]');
-        expect([...runs].map(run => run.getAttribute('data-state'))).toEqual(['done', 'failed']);
+        expect([...runs].map(run => run.getAttribute('data-state'))).toEqual(['done', 'failed', 'done']);
         expect(runs[0].querySelector('[role="note"]')?.textContent).toBe('There are 42 orders');
+        expect(runs[0].querySelector('[data-testid="composer-agent-script"]')).toBeNull();
         expect(runs[1].querySelector('[role="alert"]')?.textContent).toBe('HTTP 500');
+        // Without an answer, the scripts of the agent remain
+        expect(runs[2].querySelector('[role="note"]')).toBeNull();
+        expect(runs[2].querySelector('[data-testid="composer-agent-script"]')?.textContent).toBe('top_customers');
         expect(container.querySelector('[data-testid="generation-stop"]')).toBeNull();
 
         act(() => runs[1].querySelector<HTMLButtonElement>('[data-testid="generation-dismiss"]')!.click());

@@ -92,10 +92,10 @@
     font-size: var(--font_size_body);
 }
 
-/* The script of the question, scrolls the feed to it */
+/* A script that the agent wrote, scrolls the feed to it */
 .run_script {
     flex: none;
-    max-width: 40%;
+    max-width: 30%;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;

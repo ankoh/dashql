@@ -59,8 +59,8 @@ import { SessionComposer, SessionComposerVariant } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useAgentBridge } from '../../../agent/agent_bridge.js';
 import { AgentAccessMenu } from '../../../agent/agent_access_menu.js';
-import { useSqlGenerations } from '../../ai/use_sql_generations.js';
-import { useAgentSessionContext, type ComposerAgent, type ComposerAgentRun } from '../../ai/ui/agent_prompt_panel.js';
+import { isAgentAnswering, useSqlGenerations } from '../../ai/use_sql_generations.js';
+import { useAgentSessionContext, type ComposerAgent, type ComposerAgentRun, type ComposerAgentScript } from '../../ai/ui/agent_prompt_panel.js';
 import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';
 
@@ -536,20 +536,19 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         dependencies.runSessionScript(next, scriptData, executeQuery, props.modifySessionScripts, logger);
     }, [connectionAttention, executeQuery, logger, props.modifySessionScripts]);
 
-    // A question becomes a script that the agent writes its SQL into
+    // The agent answers a question in the scripts of the session
     const agent = dependencies.useAgentBridge();
     const sqlGenerations = useSqlGenerations({
         agent,
         sessionScripts: props.sessionScripts,
-        appendScript,
         runScript: runAppendedScript,
     });
 
     // The composer shows the agent of a session with agent access: its harness, its status lines and its answers.
     // The scripts only show the edits of the agent.
     let workingCount = 0;
-    for (const generation of sqlGenerations.generations.values()) {
-        if (generation.status != null) ++workingCount;
+    for (const question of sqlGenerations.questions.values()) {
+        if (isAgentAnswering(question)) ++workingCount;
     }
     const agentContext = useAgentSessionContext(agent, sessionId, workingCount);
     const handleShowAgentScript = React.useCallback((scriptKey: number) => {
@@ -563,9 +562,14 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const composerAgent = React.useMemo<ComposerAgent | null>(() => {
         if (agent == null || !agentAccess) return null;
         const runs: ComposerAgentRun[] = [];
-        for (const [scriptKey, generation] of sqlGenerations.generations) {
-            const scriptData = props.sessionScripts.scripts[scriptKey];
-            if (scriptData != null) runs.push({ scriptKey, scriptName: scriptDisplayName(scriptData.fileName), generation });
+        for (const [questionId, question] of sqlGenerations.questions) {
+            // Deleted scripts drop out
+            const scripts: ComposerAgentScript[] = [];
+            for (const scriptKey of question.scripts) {
+                const scriptData = props.sessionScripts.scripts[scriptKey];
+                if (scriptData != null) scripts.push({ scriptKey, scriptName: scriptDisplayName(scriptData.fileName) });
+            }
+            runs.push({ questionId, question, scripts });
         }
         return {
             connected: agent.status === AgentConnectionStatus.Connected,
@@ -576,18 +580,18 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             onDismiss: sqlGenerations.dismiss,
             onShowScript: handleShowAgentScript,
         };
-    }, [agent, agentAccess, agentContext, sqlGenerations.generations, sqlGenerations.stop, sqlGenerations.dismiss, props.sessionScripts.scripts, handleShowAgentScript]);
+    }, [agent, agentAccess, agentContext, sqlGenerations.questions, sqlGenerations.stop, sqlGenerations.dismiss, props.sessionScripts.scripts, handleShowAgentScript]);
 
     const handleComposerSend = React.useCallback((text: string, mode: ComposerInputMode) => {
         if (mode === ComposerInputMode.Ai) {
-            void sqlGenerations.translate(text);
+            void sqlGenerations.ask(text);
             return;
         }
         logger.debug('Running the composer draft as SQL', { characters: String(text.length) }, LOG_CTX);
         void appendScript(text).then(appended => {
             if (appended != null) runAppendedScript(appended.next, appended.scriptData);
         });
-    }, [sqlGenerations.translate, appendScript, runAppendedScript, logger]);
+    }, [sqlGenerations.ask, appendScript, runAppendedScript, logger]);
     React.useEffect(() => {
         if (!pendingScrollToEndRef.current || entries.length === 0) return;
         pendingScrollToEndRef.current = false;
@@ -624,7 +628,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
         collapsedResults,
-        generations: sqlGenerations.generations,
         onToggleResultExpanded: handleToggleResultExpanded,
         onAutoCollapseResult: handleAutoCollapseResult,
         onResetAutoCollapsedResult: handleResetAutoCollapsedResult,
@@ -633,7 +636,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, attachScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleAcceptDiff, handleRejectDiff, collapsedResults, sqlGenerations.generations, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, attachScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.

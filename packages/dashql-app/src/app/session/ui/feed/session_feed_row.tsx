@@ -31,8 +31,6 @@ import { ScriptEditor } from '../script_editor.js';
 import { ScriptStatisticsBar } from '../script_statistics_bar.js';
 import { formatScriptEditor, formattingDialectForConnector, isScriptFormattable } from '../script_format.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
-import { isGenerating, useGenerationPlaceholder } from '../../ai/ui/script_generation.js';
-import type { ScriptGeneration } from '../../ai/use_sql_generations.js';
 import { ScriptActionMenu, type ScriptStorage } from '../script_action_menu.js';
 import { displayPath } from '../../../storage/session_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '../../../storage/storage_backend.js';
@@ -85,8 +83,6 @@ export interface ScriptCardProps {
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     resultExpanded: boolean;
-    /// The question of the script that the agent answers, the composer shows its status
-    generation: ScriptGeneration | null;
     onToggleResultExpanded: (scriptKey: number) => void;
     onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
     onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
@@ -232,9 +228,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     }, [scriptKey, props.onRejectDiff]);
 
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
-    // A question is being translated into the SQL of the script
-    const generating = isGenerating(props.generation);
-    useGenerationPlaceholder(editorView, generating);
     const formattingDialect = formattingDialectForConnector(props.connectorType);
     // Formattability only depends on the text, cursor moves bump the state revision but not the text version
     const isFormattable = React.useMemo(
@@ -296,7 +289,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
                         data-testid="script-execute"
                         aria-current={props.isFocused ? 'true' : undefined}
-                        disabled={!queryActive && (!props.canExecute || generating || sessionExecution.busy || props.connectionHealth !== ConnectionHealth.ONLINE)}
+                        disabled={!queryActive && (!props.canExecute || sessionExecution.busy || props.connectionHealth !== ConnectionHealth.ONLINE)}
                         onClick={() => {
                             if (queryActive && props.scriptData?.latestQueryId != null) {
                                 if (sessionExecution.busy) sessionExecution.stop();
@@ -315,7 +308,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             sessionId={props.sessionId}
                             scriptName={displayName}
                             connection={props.connection}
-                            disabled={props.scriptData == null || queryActive || generating || sessionExecution.busy}
+                            disabled={props.scriptData == null || queryActive || sessionExecution.busy}
                             onPick={connectionId => props.onPickConnection(props.scriptFileName, connectionId)}
                             onAttach={connector => props.onAttachConnection(props.scriptFileName, connector)}
                         />
@@ -335,7 +328,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     <SnippetsOverlay
                         scriptName={displayName}
                         connectorType={props.connectorType}
-                        disabled={props.scriptData == null || hasPendingDiff || generating}
+                        disabled={props.scriptData == null || hasPendingDiff}
                         onApply={applySnippet}
                     />
                     <IconButton
@@ -498,8 +491,6 @@ export interface ScriptFeedRowProps {
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     collapsedResults: ReadonlyMap<number, number | null>;
-    /// The questions that the agent answers by script key
-    generations: ReadonlyMap<number, ScriptGeneration>;
     onToggleResultExpanded: (scriptKey: number) => void;
     onAutoCollapseResult: (scriptKey: number, queryId: number) => void;
     onResetAutoCollapsedResult: (scriptKey: number, queryId: number | null) => void;
@@ -657,7 +648,6 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onAcceptDiff={props.onAcceptDiff}
                     onRejectDiff={props.onRejectDiff}
                     resultExpanded={scriptData == null || !props.collapsedResults.has(scriptData.scriptKey)}
-                    generation={scriptData != null ? props.generations.get(scriptData.scriptKey) ?? null : null}
                     onToggleResultExpanded={props.onToggleResultExpanded}
                     onAutoCollapseResult={props.onAutoCollapseResult}
                     onResetAutoCollapsedResult={props.onResetAutoCollapsedResult}

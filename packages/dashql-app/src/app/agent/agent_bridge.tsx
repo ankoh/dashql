@@ -26,6 +26,8 @@ const LOG_CTX = 'agent_bridge';
 export interface AgentRunListener {
     /// The run is queued or running, with the latest status line
     status: (state: 'queued' | 'running', text: string) => void;
+    /// The agent wrote a script, every time it edits the script
+    edited: (scriptKey: number) => void;
     /// The run finished. `unrunEdits` are the scripts that the agent edited and did not run afterwards.
     done: (message: string, unrunEdits: number[]) => void;
     /// The run failed or was stopped
@@ -115,7 +117,12 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         executeQuery,
         logger,
         onScriptEdited: (sessionId, scriptKey) => {
-            for (const runId of runsBySession.current.get(sessionId) ?? []) runs.current.get(runId)?.edits.set(scriptKey, false);
+            for (const runId of runsBySession.current.get(sessionId) ?? []) {
+                const run = runs.current.get(runId);
+                if (run == null) continue;
+                run.edits.set(scriptKey, false);
+                run.listener.edited(scriptKey);
+            }
         },
         onScriptRun: (sessionId, scriptKey) => {
             for (const runId of runsBySession.current.get(sessionId) ?? []) {

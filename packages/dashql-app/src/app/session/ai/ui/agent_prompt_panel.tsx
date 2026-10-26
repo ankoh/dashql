@@ -9,22 +9,27 @@ import type { AgentSessionContext } from '../../../../platform/agent/agent_proto
 import { stringifyError } from '../../../../platform/logger/logger.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import type { AgentBridge } from '../../../agent/agent_bridge.js';
-import type { ScriptGeneration } from '../use_sql_generations.js';
-import { isGenerating } from './script_generation.js';
+import { isAgentAnswering, type AgentQuestion } from '../use_sql_generations.js';
 
 const LOG_CTX = 'agent_prompt_panel';
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 const CrossIcon = SymbolIcon('x_16');
 
-/// A question of the session that the agent answers or answered
-export interface ComposerAgentRun {
-    /// The script that holds the question
+/// A script that the agent wrote
+export interface ComposerAgentScript {
     scriptKey: number;
     /// The display name of the script
     scriptName: string;
-    /// The status, the final message or the error of the agent
-    generation: ScriptGeneration;
+}
+
+/// A question of the session that the agent answers or answered
+export interface ComposerAgentRun {
+    questionId: number;
+    /// The question with the status, the final message or the error of the agent
+    question: AgentQuestion;
+    /// The scripts of the session that the agent wrote
+    scripts: ComposerAgentScript[];
 }
 
 /// The agent of a session with agent access, as the composer shows it
@@ -37,17 +42,17 @@ export interface ComposerAgent {
     context: AgentSessionContext | null;
     /// The questions of the session, oldest first
     runs: ComposerAgentRun[];
-    /// Stop the agent working on a script
-    onStop: (scriptKey: number) => void;
-    /// Dismiss the final message or the error of a script
-    onDismiss: (scriptKey: number) => void;
-    /// Scroll to the script of a question
+    /// Stop the agent working on a question
+    onStop: (questionId: number) => void;
+    /// Dismiss the final message or the error of a question
+    onDismiss: (questionId: number) => void;
+    /// Scroll to a script that the agent wrote
     onShowScript: (scriptKey: number) => void;
 }
 
 /// Is the agent working on a question of the session?
 export function isAgentWorking(agent: ComposerAgent): boolean {
-    return agent.runs.some(run => isGenerating(run.generation));
+    return agent.runs.some(run => isAgentAnswering(run.question));
 }
 
 /// The name of a harness as users know it
@@ -82,9 +87,10 @@ export function useAgentSessionContext(bridge: AgentBridge | null, sessionId: st
 }
 
 const AgentRunItem: React.FC<{ run: ComposerAgentRun; agent: ComposerAgent }> = ({ run, agent }) => {
-    const { scriptKey, scriptName, generation } = run;
-    const working = isGenerating(generation);
-    const failed = !working && generation.error != null;
+    const { questionId, question } = run;
+    const working = isAgentAnswering(question);
+    const failed = !working && question.error != null;
+    const message = question.error ?? question.note;
     const indicator = working ? IndicatorStatus.Running : (failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
     return (
         <li className={styles.run} data-state={working ? 'working' : (failed ? 'failed' : 'done')} data-testid="composer-agent-run">
@@ -92,23 +98,26 @@ const AgentRunItem: React.FC<{ run: ComposerAgentRun; agent: ComposerAgent }> = 
                 <span className={styles.run_indicator}>
                     <StatusIndicator status={indicator} width="12px" height="12px" />
                 </span>
-                <span className={styles.run_question} title={generation.question}>{generation.question}</span>
-                <button
-                    type="button"
-                    className={styles.run_script}
-                    aria-label={`Show the script ${scriptName}`}
-                    data-testid="composer-agent-script"
-                    onClick={() => agent.onShowScript(scriptKey)}
-                >
-                    {scriptName}
-                </button>
+                <span className={styles.run_question} title={question.question}>{question.question}</span>
+                {run.scripts.map(script => (
+                    <button
+                        key={script.scriptKey}
+                        type="button"
+                        className={styles.run_script}
+                        aria-label={`Show the script ${script.scriptName}`}
+                        data-testid="composer-agent-script"
+                        onClick={() => agent.onShowScript(script.scriptKey)}
+                    >
+                        {script.scriptName}
+                    </button>
+                ))}
                 {working ? (
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
-                        aria-label={`Stop the agent working on ${scriptName}`}
+                        aria-label="Stop the agent"
                         data-testid="generation-stop"
-                        onClick={() => agent.onStop(scriptKey)}
+                        onClick={() => agent.onStop(questionId)}
                     >
                         <SquareFillIcon size={12} />
                     </IconButton>
@@ -118,21 +127,23 @@ const AgentRunItem: React.FC<{ run: ComposerAgentRun; agent: ComposerAgent }> = 
                         size={ButtonSize.Small}
                         aria-label={failed ? 'Dismiss the error' : 'Dismiss the answer'}
                         data-testid="generation-dismiss"
-                        onClick={() => agent.onDismiss(scriptKey)}
+                        onClick={() => agent.onDismiss(questionId)}
                     >
                         <CrossIcon size={14} />
                     </IconButton>
                 )}
             </div>
-            {working
-                ? <div className={styles.run_status} role="status">{generation.status}</div>
-                : <div className={failed ? styles.run_error : styles.run_note} role={failed ? 'alert' : 'note'}>{generation.error ?? generation.note}</div>}
+            {working && <div className={styles.run_status} role="status">{question.status}</div>}
+            {!working && message != null && (
+                <div className={failed ? styles.run_error : styles.run_note} role={failed ? 'alert' : 'note'}>{message}</div>
+            )}
         </li>
     );
 };
 
 /// The agent on top of the composer: the harness, the connection to the agent server and the questions of the
-/// session with their status lines, final messages and errors. The scripts only show the edits of the agent.
+/// session with their status lines, final messages, errors and the scripts the agent wrote.
+/// The scripts only show the edits of the agent.
 export const AgentPromptPanel: React.FC<{ agent: ComposerAgent }> = ({ agent }) => {
     const working = isAgentWorking(agent);
     let detail: string;
@@ -153,7 +164,7 @@ export const AgentPromptPanel: React.FC<{ agent: ComposerAgent }> = ({ agent }) 
             </div>
             {agent.runs.length > 0 && (
                 <ul className={styles.runs} aria-label="Questions">
-                    {agent.runs.map(run => <AgentRunItem key={run.scriptKey} run={run} agent={agent} />)}
+                    {agent.runs.map(run => <AgentRunItem key={run.questionId} run={run} agent={agent} />)}
                 </ul>
             )}
         </div>
