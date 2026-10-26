@@ -5,10 +5,20 @@ interface DashQLStartupResult {
     status: 'failed' | 'ready';
 }
 
+/// The size and modification time of a file, they change whenever the file is written
+interface DashQLFileStamp {
+    size: number;
+    mtimeMs: number;
+}
+
 interface DashQLElectronBridge {
     confirm(options: {message: string; title: string}): Promise<boolean>;
     fs: {
         exists(path: string): Promise<boolean>;
+        /// The stamp of a file, null if it does not exist
+        fileStamp(path: string): Promise<DashQLFileStamp | null>;
+        /// The files of a directory with their stamps, empty if the directory does not exist
+        listFiles(path: string): Promise<Array<DashQLFileStamp & {name: string}>>;
         mkdir(path: string, options?: {recursive?: boolean}): Promise<void>;
         readDir(path: string): Promise<Array<{name: string; isFile: boolean; isDirectory: boolean; isSymlink: boolean}>>;
         readFile(path: string): Promise<Uint8Array>;
@@ -17,7 +27,8 @@ interface DashQLElectronBridge {
         rename(from: string, to: string): Promise<void>;
         stat(path: string): Promise<{size: number; mtime: string | null; isFile: boolean; isDirectory: boolean; isSymlink: boolean}>;
         writeFile(path: string, data: Uint8Array): Promise<void>;
-        writeTextFile(path: string, data: string): Promise<void>;
+        /// Write a text file, resolves with its new stamp
+        writeTextFile(path: string, data: string): Promise<DashQLFileStamp>;
     };
     getInitialDeepLinks(): Promise<Array<{type: "event" | "session"; value: string}>>;
     getRuntimeCapabilities(): Promise<unknown>;
@@ -37,7 +48,6 @@ interface DashQLElectronBridge {
         install(): Promise<void>;
         onStatus(listener: (status: DashQLElectronUpdateStatus) => void): () => void;
     };
-    watchDirectory(path: string, listener: (paths: string[]) => void): Promise<() => Promise<void>>;
 }
 
 interface DashQLOAuthLoopbackResult {

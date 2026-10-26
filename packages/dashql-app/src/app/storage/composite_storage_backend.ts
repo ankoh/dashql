@@ -98,16 +98,21 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
 
     /// Resolve the backend that physically holds a session's files.
     private async backendFor(sessionId: string): Promise<StorageBackend> {
+        return this.nativeSessionFolder(sessionId) ?? this.opfs;
+    }
+
+    /// The backend of a session that lives in a native folder, null for other sessions
+    nativeSessionFolder(sessionId: string): NativeStorageBackend | null {
         const loc = this.locationOf(sessionId);
-        if (loc.type === StorageBackendType.Native && loc.nativePath) {
-            let native = this.nativeCache.get(sessionId);
-            if (!native) {
-                native = new NativeStorageBackend(loc.nativePath);
-                this.nativeCache.set(sessionId, native);
-            }
-            return native;
+        if (loc.type !== StorageBackendType.Native || !loc.nativePath) {
+            return null;
         }
-        return this.opfs;
+        let native = this.nativeCache.get(sessionId);
+        if (!native) {
+            native = new NativeStorageBackend(loc.nativePath);
+            this.nativeCache.set(sessionId, native);
+        }
+        return native;
     }
 
     // ---- Registry-level operations (always OPFS) ----------------------------------------------

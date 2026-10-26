@@ -90,8 +90,8 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
 | Single instance | `app.requestSingleInstanceLock()` |
 | Deep links | `dashql://` registered as protocol client and in `CFBundleURLTypes`; `open-url`, `second-instance` and cold-start argv go through `src/deep_link.ts`. It accepts `dashql://localhost`, `https://dashql.app` and `http://localhost:9002` links with exactly one `data` or `session` parameter (legacy `notebook`), up to 64 KiB. `DeepLinkQueue` buffers links until the renderer asks for them. |
 | Dialogs | `dashql:open-directory` and a two-button `dashql:confirm` |
-| Filesystem | `dashql:fs` (exists, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile) for absolute paths without NUL; app wrapper `platform/electron_fs.ts` |
-| File watching | Recursive `fs.watch` in main, cleaned up per renderer by `src/directory_watch_registry.ts`; see `native_file_sync.md` |
+| Filesystem | `dashql:fs` (exists, fileStamp, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile) for absolute paths without NUL; `fileStamp`, `listFiles` and `writeTextFile` return sizes and modification times; app wrapper `platform/electron_fs.ts` |
+| Session folder changes | No file watching; the renderer checks session folders on window focus and before script writes, see `native_file_sync.md` |
 | Open external | `shell.openExternal` for `https:` URLs only |
 | OAuth loopback | Node HTTP server in main (`src/oauth_loopback.ts`), used by Trino; Salesforce uses the deep-link relay (`oauth_salesforce.md`) |
 | Drag and drop | Renderer DOM drop events, as on the web |

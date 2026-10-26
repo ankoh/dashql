@@ -1,5 +1,4 @@
 import {access, mkdir, readFile, readdir, rename, rm, stat, writeFile} from "node:fs/promises";
-import {watch} from "node:fs";
 import {createServer} from "node:http";
 import path from "node:path";
 import {promisify} from "node:util";
@@ -10,7 +9,6 @@ import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProce
 
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
-import {DirectoryWatchRegistry} from "./directory_watch_registry.js";
 import {GrpcTestServer, GRPC_TEST_REQUEST, GRPC_TEST_STREAM_BODY, GRPC_TEST_UNARY_RESPONSE} from "./grpc_test_server.js";
 import {NativeProxyService, type NativeProxyRequest, validateNativeProxyRequest} from "./native_proxy.js";
 import {OAuthLoopbackServer} from "./oauth_loopback.js";
@@ -36,7 +34,6 @@ let deepLinkSender: WebContents | null = null;
 let nativeProxy: NativeProxyService | null = null;
 let mainWindow: BrowserWindow | null = null;
 let updater: ElectronUpdater | null = null;
-const directoryWatches = new DirectoryWatchRegistry();
 const oauthLoopbacks = new Map<number, OAuthLoopbackServer>();
 let nextOAuthLoopbackId = 1;
 
@@ -487,8 +484,21 @@ if (!hasSingleInstanceLock) {
             return value;
         };
         const target = requirePath(args[0]);
+        // A stamp changes whenever anybody writes the file, the renderer compares stamps instead of contents
+        const stampOf = async (file: string) => { const value = await stat(file); return {size: value.size, mtimeMs: value.mtimeMs}; };
+        const isMissing = (error: unknown) => (error as NodeJS.ErrnoException | null)?.code === "ENOENT";
         switch (operation) {
             case "exists": try { await access(target); return true; } catch { return false; }
+            case "fileStamp": try { return await stampOf(target); } catch (error) { if (isMissing(error)) return null; throw error; }
+            case "listFiles": {
+                let entries;
+                try { entries = await readdir(target, {withFileTypes: true}); } catch (error) { if (isMissing(error)) return []; throw error; }
+                const files = [];
+                for (const entry of entries.filter(entry => entry.isFile())) {
+                    try { files.push({name: entry.name, ...await stampOf(path.join(target, entry.name))}); } catch (error) { if (!isMissing(error)) throw error; }
+                }
+                return files;
+            }
             case "mkdir": return await mkdir(target, {recursive: (args[1] as {recursive?: boolean} | undefined)?.recursive ?? false});
             case "readDir": return (await readdir(target, {withFileTypes: true})).map(entry => ({name: entry.name, isFile: entry.isFile(), isDirectory: entry.isDirectory(), isSymlink: entry.isSymbolicLink()}));
             case "readFile": return new Uint8Array(await readFile(target));
@@ -497,23 +507,9 @@ if (!hasSingleInstanceLock) {
             case "rename": return await rename(target, requirePath(args[1]));
             case "stat": { const value = await stat(target); return {size: value.size, mtime: value.mtime.toISOString(), isFile: value.isFile(), isDirectory: value.isDirectory(), isSymlink: value.isSymbolicLink()}; }
             case "writeFile": return await writeFile(target, typeof args[1] === "string" ? args[1] : Buffer.from(args[1] as Uint8Array));
-            case "writeTextFile": if (typeof args[1] === "string") return await writeFile(target, args[1], "utf8"); break;
+            case "writeTextFile": if (typeof args[1] === "string") { await writeFile(target, args[1], "utf8"); return await stampOf(target); } break;
         }
         throw new Error("Rejected filesystem operation");
-    });
-
-    ipcMain.handle("dashql:watch-directory", (event, requestedPath: unknown) => {
-        if (!isTrustedRenderer(event.senderFrame?.url) || typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) throw new Error("Rejected watch request");
-        const sender = event.sender;
-        const watcher = watch(requestedPath, {recursive: true}, (_event, filename) => {
-            if (!sender.isDestroyed()) sender.send(`dashql:watch-directory:${watchId}`, [filename === null ? requestedPath : path.join(requestedPath, filename)]);
-        });
-        const watchId = directoryWatches.add(sender, watcher);
-        return watchId;
-    });
-    ipcMain.handle("dashql:unwatch-directory", (event, watchId: unknown) => {
-        if (!isTrustedRenderer(event.senderFrame?.url) || typeof watchId !== "number") throw new Error("Rejected unwatch request");
-        directoryWatches.close(watchId);
     });
 
     ipcMain.handle("dashql:runtime-capabilities", (event) => {

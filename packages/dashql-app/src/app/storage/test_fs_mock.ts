@@ -54,8 +54,15 @@ export function makeFsMock() {
         for (const d of dirs) if (d.startsWith(p + '/')) return true;
         return false;
     };
+    const stampOf = (p: string) => files.has(p) || binFiles.has(p)
+        ? { size: binFiles.get(p)?.byteLength ?? files.get(p)!.length, mtimeMs: mtimes.get(p) ?? 0 }
+        : null;
     return {
         exists: async (p: string) => files.has(p) || binFiles.has(p) || dirs.has(p) || isAncestorDir(p),
+        fileStamp: async (p: string) => stampOf(p),
+        listFiles: async (p: string) => [...files.keys(), ...binFiles.keys()]
+            .filter(f => parentOf(f) === p)
+            .map(f => ({ name: nameOf(f), ...stampOf(f)! })),
         mkdir: async (p: string) => {
             // Register the dir and all ancestors, preserving any leading slash (absolute paths)
             // the same way writeTextFile's parent walk does.
@@ -98,6 +105,7 @@ export function makeFsMock() {
                 dirs.add(parent);
                 parent = parentOf(parent);
             }
+            return stampOf(p)!;
         },
         readFile: async (p: string) => {
             if (!binFiles.has(p)) {

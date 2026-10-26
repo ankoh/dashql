@@ -24,6 +24,7 @@ import {
     WRITE_SESSION_SCRIPTS,
     storageWriteChainKey,
 } from './storage_writer.js';
+import { ExternalScriptChangeError } from './storage_backend.js';
 import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
 import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '../connections/connection_state.js';
 import { CONNECTOR_INFOS } from '../connections/connector_info.js';
@@ -347,5 +348,57 @@ describe('storage writer outcomes', () => {
             type: WRITE_CONNECTION_ENTRY, value: { id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'b' } } as any },
         });
         expect(backend.connections).toEqual([{ id: TEST_CONNECTION_ID, params: { trino: { endpoint: 'b' } }, createdAt: '2026-01-01T00:00:00.000Z' }]);
+    });
+});
+
+describe('storage writer external changes', () => {
+    /// A backend whose scripts changed outside the app until the change is resolved
+    class ExternallyChangedBackend extends SessionTestBackend {
+        changed = true;
+        async saveScript(sessionId: string, scriptName: string, sql: string): Promise<void> {
+            if (this.changed) throw new ExternalScriptChangeError(sessionId, scriptName);
+            await super.saveScript(sessionId, scriptName, sql);
+        }
+    }
+
+    it('holds a write that would overwrite an external change until the session resumes', async () => {
+        const backend = new ExternallyChangedBackend();
+        const writer = new StorageWriter(new NullLogger(), backend);
+        const changed: string[] = [];
+        writer.subscribeExternalChanges(sessionId => changed.push(sessionId));
+
+        let settled = false;
+        const key = groupScriptWrites(TEST_SESSION_ID, 'a.sql');
+        const pending = writer.write(key, { type: WRITE_SCRIPT, value: [TEST_SESSION_ID, 'a.sql', 'select 1'] })
+            .then(result => { settled = true; return result; });
+        await new Promise(resolve => setTimeout(resolve, 10));
+        await writer.settle();
+        expect(changed).toEqual([TEST_SESSION_ID]);
+        expect(settled).toBe(false);
+        expect(writer.getPendingKeysForSession(TEST_SESSION_ID)).toEqual([key]);
+
+        // Other sessions keep writing while the session is held
+        expect(await writer.writeDurable(groupSessionManifestWrites('other'), {
+            type: WRITE_SESSION_MANIFEST, value: ['other', TEST_CONNECTION_ID, [{ connectionId: TEST_CONNECTION_ID, params: {} as any }]],
+        })).toEqual({ status: 'written' });
+
+        backend.changed = false;
+        writer.resumeSession(TEST_SESSION_ID);
+        expect(await pending).toBe(true);
+        expect(await backend.loadScript(TEST_SESSION_ID, 'a.sql')).toEqual({ name: 'a.sql', sql: 'select 1' });
+    });
+
+    it('lets a newer write of the same script supersede a held one', async () => {
+        const backend = new ExternallyChangedBackend();
+        const writer = new StorageWriter(new NullLogger(), backend);
+        const key = groupScriptWrites(TEST_SESSION_ID, 'a.sql');
+        const held = writer.write(key, { type: WRITE_SCRIPT, value: [TEST_SESSION_ID, 'a.sql', 'select 1'] });
+        await new Promise(resolve => setTimeout(resolve, 10));
+        await writer.settle();
+        const newer = writer.write(key, { type: WRITE_SCRIPT, value: [TEST_SESSION_ID, 'a.sql', 'select 2'] });
+        expect(await held).toBe(false);
+        writer.cancelPendingWritesForSession(TEST_SESSION_ID);
+        expect(await newer).toBe(false);
+        expect(backend.calls.filter(call => call.startsWith('write:'))).toEqual([]);
     });
 });

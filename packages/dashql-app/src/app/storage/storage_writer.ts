@@ -3,7 +3,7 @@ import * as Immutable from 'immutable';
 import { Logger, stringifyError } from '../../platform/logger/logger.js';
 import { VariantKind } from '../../utils/variant.js';
 import type { StorageBackend, SessionData, SessionMetadata as StorageSessionMetadata, SessionSettings, SessionConnection, ConnectionEntry, ConnectionParams, SessionRegistryBackend, SessionScript } from './storage_backend.js';
-import { STORAGE_SCRIPTS_FOLDER, STORAGE_SESSION_FILE, STORAGE_CONNECTIONS_FOLDER, isSessionRegistryBackend } from './storage_backend.js';
+import { ExternalScriptChangeError, STORAGE_SCRIPTS_FOLDER, STORAGE_SESSION_FILE, STORAGE_CONNECTIONS_FOLDER, isSessionRegistryBackend } from './storage_backend.js';
 import { SESSION_FORMAT_VERSION } from '../../migration/versions.js';
 import { sessionAttachments, withDefaultConnection, withSessionScripts } from './session_files.js';
 
@@ -250,6 +250,9 @@ export class SessionUnavailableError extends Error {
     }
 }
 
+/// Subscriber for scripts that changed outside the app
+export type ExternalScriptChangeSubscriber = (sessionId: string) => void;
+
 /// Replace the copies of a connection's params in a session.
 /// References of the replaced connections (connections that were merged into this one) are rewritten
 /// to the connection id. Returns null when the session doesn't reference the connection or the copies
@@ -314,8 +317,8 @@ export class StorageWriter {
     inFlight: Set<Promise<void>>;
     /// Latest execution per chain key, so mutations and their index rebuilds cannot overlap.
     chainExecutions: Map<string, Promise<void>>;
-    /// Last content known to have been persisted by this writer, keyed by storage-relative path.
-    completedFileContents: Map<string, string | null>;
+    /// Subscribers for scripts that changed outside the app
+    externalChangeSubscribers: Set<ExternalScriptChangeSubscriber>;
     /// Monotonic scheduled-write generation per key, used to revalidate destructive prompts.
     writeKeyGenerations: Map<string, number>;
     nextWriteGeneration: number;
@@ -331,7 +334,7 @@ export class StorageWriter {
         this.deletedSessions = new Set();
         this.inFlight = new Set();
         this.chainExecutions = new Map();
-        this.completedFileContents = new Map();
+        this.externalChangeSubscribers = new Set();
         this.writeKeyGenerations = new Map();
         this.nextWriteGeneration = 1;
     }
@@ -440,11 +443,6 @@ export class StorageWriter {
             throw error;
         }
         this.logger.info("Deleted session", { sessionId }, LOG_CTX);
-        for (const path of this.completedFileContents.keys()) {
-            if (storageWriteKeyBelongsToSession(path, sessionId)) {
-                this.completedFileContents.set(path, null);
-            }
-        }
     }
 
     /// Wait for writes that have already started without flushing pending debounced work.
@@ -464,8 +462,10 @@ export class StorageWriter {
         return generation;
     }
 
-    public getCompletedFileContent(path: string): string | null | undefined {
-        return this.completedFileContents.get(path);
+    /// Subscribe to script writes that are held because the script changed outside the app
+    public subscribeExternalChanges(subscriber: ExternalScriptChangeSubscriber): () => void {
+        this.externalChangeSubscribers.add(subscriber);
+        return () => this.externalChangeSubscribers.delete(subscriber);
     }
 
     public subscribeStatisticsListener(listener: StorageWriteStatisticsSubscriber) {
@@ -563,6 +563,10 @@ export class StorageWriter {
                 await this.executeTask(key, task.latestTask);
                 task.resolveLatestTask({ status: 'written' });
             } catch (e: any) {
+                if (e instanceof ExternalScriptChangeError) {
+                    this.holdExternallyChangedWrite(key, task, e);
+                    return;
+                }
                 this.logger.error("executing write task failed", {
                     key: key,
                     error: stringifyError(e)
@@ -579,6 +583,22 @@ export class StorageWriter {
             if (this.chainExecutions.get(chainKey) === execution) {
                 this.chainExecutions.delete(chainKey);
             }
+        }
+    }
+
+    /// Keep a write that would overwrite an external change pending and pause its session.
+    /// The subscribers decide between the disk and the app, then resume the session.
+    protected holdExternallyChangedWrite(key: string, task: AsyncStorageWriteTask, error: ExternalScriptChangeError) {
+        this.logger.warn("script changed outside the app, holding the write", { key, sessionId: error.sessionId, file: error.fileName }, LOG_CTX);
+        this.pauseSession(error.sessionId);
+        if (this.pendingTasks.has(key)) {
+            // A newer task with the same key was scheduled while this one was executing
+            task.resolveLatestTask({ status: 'superseded' });
+        } else {
+            this.pendingTasks.set(key, task);
+        }
+        for (const subscriber of this.externalChangeSubscribers) {
+            subscriber(error.sessionId);
         }
     }
 
@@ -648,12 +668,11 @@ export class StorageWriter {
         await this.timedWrite(`${sessionId}/${STORAGE_SESSION_FILE}`, text, () => this.backend.saveSessionManifest(sessionId, session));
     }
 
-    /// Write a file and record the write with its duration and content
+    /// Write a file and record the write with its duration
     private async timedWrite(path: string, text: string, write: () => Promise<void>): Promise<void> {
         const timeBefore = new Date();
         await write();
         this.registerWrite(path, text.length, new Date().getTime() - timeBefore.getTime());
-        this.completedFileContents.set(path, text);
     }
 
     protected async executeTask(key: string, task: StorageWriteTaskVariant) {
@@ -853,7 +872,6 @@ export class StorageWriter {
                     scriptName,
                 }, LOG_CTX);
                 await this.backend.deleteScript(sessionId, scriptName);
-                this.completedFileContents.set(`${sessionId}/scripts/${scriptName}`, null);
                 break;
             }
             case RENAME_SCRIPT: {
@@ -865,13 +883,6 @@ export class StorageWriter {
                     newScriptName,
                 }, LOG_CTX);
                 await this.backend.renameScript(sessionId, oldScriptName, newScriptName);
-                const oldPath = `${sessionId}/scripts/${oldScriptName}`;
-                const newPath = `${sessionId}/scripts/${newScriptName}`;
-                const content = this.completedFileContents.get(oldPath);
-                this.completedFileContents.set(oldPath, null);
-                if (content !== undefined) {
-                    this.completedFileContents.set(newPath, content);
-                }
                 break;
             }
         }

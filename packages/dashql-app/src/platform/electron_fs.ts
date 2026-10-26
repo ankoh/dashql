@@ -3,7 +3,10 @@ function bridge(): DashQLElectronBridge['fs'] {
     return globalThis.dashqlElectron.fs;
 }
 
+export type FileStamp = DashQLFileStamp;
 export const exists = (path: string) => bridge().exists(path);
+export const fileStamp = (path: string) => bridge().fileStamp(path);
+export const listFiles = (path: string) => bridge().listFiles(path);
 export const mkdir = (path: string, options?: {recursive?: boolean}) => bridge().mkdir(path, options);
 export const readDir = (path: string) => bridge().readDir(path);
 export const readFile = (path: string) => bridge().readFile(path);

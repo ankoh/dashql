@@ -5,32 +5,35 @@ those directories through a debounced `StorageWriter`; users and external tools 
 same files. Native file synchronization detects those external changes and offers to reload them into
 the running application without reopening the session.
 
-This feature is intentionally narrow. Filesystem watching, conflict handling, and reload coordination
-are contained behind one native synchronization boundary. Storage backends remain request/response
-readers and writers, while connection and session state retain ownership of their domain-specific
-WASM and catalog lifecycles.
+The folders are not watched. Filesystem events are unreliable across platforms (coalesced, dropped,
+lost when a watched folder is replaced, silent while the machine sleeps) and every DashQL write
+would echo back as an event. Instead DashQL checks a folder at the two moments that matter: when the
+window gets the focus, which is when a user returns from an editor or a terminal, and right before it
+overwrites a script, which is the moment an external change would be lost.
 
 ## Goals
 
 - Detect externally changed native scripts and attachments.
 - Reload added, removed, renamed, and edited scripts.
 - Preserve active connection state, query history, focus, and script identity where possible.
-- Prevent delayed events from DashQL's own writes from appearing as external changes.
+- Never overwrite an external change of a script without asking.
 - Avoid silently discarding local debounced edits.
-- Keep native watcher concepts out of generic storage backends and session reducers.
-- Behave consistently across macOS, Linux, and Windows path formats.
+- Keep native concepts out of generic storage backends and session reducers.
 
 ## Non-Goals
 
 - Synchronizing OPFS sessions. Browser-private storage has no supported external editor workflow.
-- Watching or reloading `dashql-session.json`. Connection identity and parameters require a complete
-  connection lifecycle and are not safe to replace in place.
+- Showing an external change while the DashQL window keeps the focus. It is picked up on the next
+  focus, or when DashQL is about to write the changed script.
+- Detecting edits of `dashql-session.json` alone (script order, connections, name). The script list
+  is read again with the next detected script change; connection identity and parameters require a
+  complete connection lifecycle and are not replaced in place. Writes patch the session file and keep
+  fields they don't own.
 - Watching query cache files, `.gitignore`, or other generated and unrelated files.
 - Automatic text merging. A conflict is resolved by keeping the current application state or loading
   the complete external snapshot.
-- Treating filesystem events as a reliable change log. Events are only invalidation signals.
-- Coordinating simultaneous DashQL processes editing the same native directory as a distributed
-  transactional system.
+- Coordinating simultaneous DashQL processes editing the same native directory. The desktop app is a
+  single instance; two processes on one folder see each other's writes as external changes.
 
 ## Persisted Layout
 
@@ -58,52 +61,58 @@ or checked in may carry the catalogs of its connections in `connections/<id>/`. 
 connections that are new to the app when the folder is imported and are ignored afterwards.
 
 The native session directory is resolved through `StorageReader.getSessionLocation`. Only locations
-with `StorageBackendType.Native` and a `nativePath` receive a watcher.
+with `StorageBackendType.Native` and a `nativePath` are checked.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    FS[Native session directory] --> WS[NativeSessionSyncService]
-    WS -->|session invalidated| RC[NativeSessionSync React coordinator]
-    RC --> SW[StorageWriter coordination]
+    F[Window focus] --> RC[NativeSessionSync coordinator]
+    W[StorageWriter holds a script write] --> RC
+    RC --> NB[NativeStorageBackend stamps]
     RC --> SB[StorageBackend snapshot reads]
     RC --> NS[Session scripts reconciliation]
     NS --> UI[Live application state]
 ```
 
-### Watch Service
+### Stamps
 
-`NativeSessionSyncService` in
-`packages/dashql-app/src/app/session/persistence/native_session_sync.ts` is the platform adapter. It:
+A check never reads file contents to find out whether something changed. It compares stamps: the
+size and modification time of a file. The Electron bridge returns them without reading the file:
 
-- Creates recursive watchers through the Electron preload bridge.
-- Reconciles the desired session-to-directory set with currently active watchers.
-- Debounces native events by 200 ms.
-- Normalizes Windows separators before matching relative paths.
-- Ignores access-only events and paths outside the reloadable layout.
-- Emits only a session id to its consumer.
-- Uses a generation counter to close watchers created by an obsolete asynchronous reconciliation.
+- `listFiles(dir)` lists the files of a directory with their stamps in one round trip.
+- `fileStamp(path)` returns the stamp of one file, null if it does not exist.
+- `writeTextFile(path, text)` resolves with the stamp of the written file.
 
-No application state or storage reads occur in this service. A native event says only that a session
-may have changed; it is not trusted to describe which operation happened.
+`NativeStorageBackend` records, per script, the stamp of its own last write or of the last
+acknowledged check (`acknowledgeScripts`). A script without a stamp is known to be absent. DashQL's
+own writes therefore never look like external changes, and no event correlation is needed.
 
-### React Coordinator
+Once the scripts are acknowledged, `saveScript`, `deleteScript` and `renameScript` take the stamp of
+the target file before touching it: one `fileStamp` call. A rename checks its source and its
+destination, so it neither moves an external version nor replaces an external file. When the stamp
+differs the operation fails with `ExternalScriptChangeError` and the `StorageWriter`:
+
+- keeps the task pending (a newer task with the same key supersedes it),
+- pauses the session, so no further write of the session runs,
+- notifies the `subscribeExternalChanges` subscribers.
+
+The task is executed once the session resumes, after the coordinator decided between the disk and
+the app. Scripts that were never acknowledged are not checked; OPFS sessions never are.
+
+### Coordinator
 
 `NativeSessionSync` in
 `packages/dashql-app/src/app/session/persistence/native_session_sync_react.tsx` is mounted once inside the
-connection and session registry providers. It owns:
+connection and session registry providers. It queues a session check
 
-- Watcher setup and teardown as native sessions enter, leave, or change location.
-- Per-session event coalescing and serialized reload processing.
-- Writer pause, pending-write inspection, and conflict decisions.
-- Stable snapshot reads through the existing `StorageBackend` interface.
-- Self-write suppression and prompt revalidation.
-- Dispatch to the connection and session reconciliation functions.
+- once for every session that enters the session registry,
+- for every session when the window gets the focus,
+- for a session whose script write the writer holds.
 
-This is the only component that knows about watchers, storage coordination, native dialogs, and both
-state registries. That concentration is deliberate: the rest of the application continues to use the
-same storage and state APIs as before.
+Checks are serialized: repeated requests for a session collapse in a `Set` and only one native dialog
+is open at a time. The coordinator is the only component that knows about native dialogs, storage
+coordination, and both state registries.
 
 ### Domain Reconciliation
 
@@ -121,120 +130,128 @@ Session scripts reconciliation stays in
 - Any session change invalidates affected session analysis. Scripts are reanalyzed on
   demand when an editor, execution, or diagnostics flow needs current analysis.
 
-## Reload Protocol
+## Check Protocol
 
 ```mermaid
 flowchart TD
-    E[Relevant watcher event] --> P[Pause writes for this session]
+    E[Check requested] --> P[Pause writes for this session]
     P --> S[Await in-flight writes]
-    S --> R[Read session snapshot]
-    R --> Q{Matches live state?}
-    Q -->|yes| Z[Resume writes]
-    Q -->|no| W{Matches DashQL completed write?}
-    W -->|yes| Z
-    W -->|no| C[Inspect reloadable pending writes]
-    C --> D{User chooses Reload?}
-    D -->|no| Z
+    S --> T[List stamps of scripts and attachments]
+    T --> A{Attachment stamps changed?}
+    A -->|yes| M[Reload session file, mirror attachments, refresh list]
+    A -->|no| B
+    M --> B{First check?}
+    B -->|yes| K[Acknowledge stamps]
+    B -->|no| X{Script stamps differ?}
+    X -->|no| Z[Resume writes]
+    X -->|yes| R[Read scripts]
+    R --> Q{Disk matches live state?}
+    Q -->|yes| K
+    Q -->|no| D{User chooses Reload?}
+    D -->|no| KP[Acknowledge stamps, write app version]
     D -->|yes| G{Write generation unchanged?}
     G -->|no| E
-    G -->|yes| A[Cancel conflicting pending writes]
-    A --> U[Apply session snapshot]
+    G -->|yes| C[Cancel conflicting pending writes]
+    C --> U[Acknowledge stamps, apply snapshot]
+    K --> Z
+    KP --> Z
     U --> Z
 ```
 
 The coordinator follows these steps for one session at a time:
 
 1. Pause that session's debounced writes. Other sessions continue normally.
-2. Await writes that already started, then read the session file and the scripts through
-   `StorageBackend`.
-3. Compare the snapshot with current state. Identical state ends the reload without a prompt.
-4. Check whether every disk/memory divergence equals content that `StorageWriter` most recently
-   completed. If so, the event came from DashQL's own earlier write and is ignored.
-5. Inspect pending writes only in the reloadable path set. A pending manifest update is unrelated and
-   must not be canceled by a session reload.
-6. Ask the user whether to reload. When relevant local writes are pending, the dialog explicitly says
+2. Await writes that already started.
+3. List the stamps of `scripts/` and `attachments/`, two round trips without reading a file.
+4. When the attachment stamps changed since the previous check, load the session file, which mirrors
+   the attachments into the session's OPFS namespace for embedded HyperDB-WASM, and refresh the
+   attachment list of the session file.
+5. The first check of a session acknowledges the script stamps: the restoration read the scripts
+   moments before, they are what the app shows.
+6. Compare the script stamps with the recorded ones. No difference ends the check. Otherwise read
+   the scripts and compare them with the live state. If they match, e.g. because a tool only touched
+   a file, acknowledge the stamps and end the check.
+7. Ask the user whether to reload. When relevant local writes are pending, the dialog explicitly says
    that reloading discards them.
-7. Recheck the relevant write generation after the dialog. The editor remains interactive while a
-   native dialog is open; if another local edit was scheduled, the old decision is stale and the
-   session is requeued for a fresh snapshot and decision.
-8. Cancel only conflicting pending session writes when the user accepted that consequence.
-9. Reconcile the session and invalidate analysis that may depend on the changed session contents.
-   Reanalysis happens on demand.
-10. Resume the session writer in a `finally` block.
-
-Repeated events for a session collapse in a `Set`. The processing loop serializes sessions, avoiding
-overlapping dialogs and concurrent mutation of shared WASM state.
+8. **Keep current** acknowledges the stamps and writes the app version of every script that differs.
+   Scripts that exist only on disk are left alone.
+9. **Reload** rechecks the relevant write generation after the dialog. The editor remains
+   interactive while a native dialog is open; if another local edit was scheduled, the old decision
+   is stale and the session is requeued for a fresh snapshot and decision.
+10. Cancel only conflicting pending session writes when the user accepted that consequence,
+    acknowledge the stamps, and reconcile the session.
+11. Resume the session writer in a `finally` block. A held write runs now: after Keep current it
+    overwrites the acknowledged disk version, after Reload it was cancelled.
 
 ## Writer Coordination
 
-`StorageWriter` remains the authority for outbound writes. Native synchronization adds four narrowly
+`StorageWriter` remains the authority for outbound writes. Native synchronization adds these narrowly
 scoped capabilities:
 
 - **Session pause:** `pauseSession` and `resumeSession` hold timers only for one session.
 - **Scoped pending writes:** callers can inspect or cancel keys selected by a predicate.
 - **Write generations:** every scheduled key receives a monotonic generation used to invalidate a
   conflict decision made while a dialog was open.
-- **Completed content:** successful writes record their final per-path text, including rename/delete
-  effects, so a delayed native event can be correlated with DashQL's own write.
+- **Held writes:** a write that fails with `ExternalScriptChangeError` stays pending in a paused
+  session, see above.
 
 Global `flush()` remains a hard drain. It force-processes pending tasks even when a session is paused,
-which preserves shutdown and storage-migration semantics.
+which preserves shutdown and storage-migration semantics. A flushed write that would overwrite an
+external change is held like any other.
 
-Storage write keys are session-rooted logical paths. The coordinator uses the same path convention as
-the watcher filter, so conflict cancellation cannot affect `dashql-session.json` or another session.
+Storage write keys are session-rooted logical paths, so conflict cancellation cannot affect
+`dashql-session.json` or another session.
 
 ## Conflict Semantics
 
-There are three relevant versions:
+There are four relevant versions:
 
 | Version | Meaning |
 | --- | --- |
 | Live state | Current connection and session state visible in DashQL |
 | Pending writes | Newer local state scheduled but not yet persisted |
+| Recorded stamps | The stamps of what DashQL last wrote or acknowledged on disk |
 | Disk snapshot | Stable read taken after in-flight writes have settled |
 
 The policies are:
 
-- If disk and live state match, do nothing.
-- If disk differs from live state only because it is a known completed DashQL write and a newer local
-  version is pending, do nothing and allow the pending write to complete.
+- If the disk stamps match the recorded ones, do nothing. Pending writes run as usual.
+- If a stamp differs but the disk matches the live state, acknowledge the stamps silently.
 - If disk differs externally and there are no pending local writes, ask whether to reload.
 - If disk differs externally and local writes are pending, ask whether to reload and discard only
   those conflicting pending writes.
 - If local writes change while the dialog is open, discard the decision, reread disk, and decide from
   a fresh state.
-- Choosing **Keep current** resumes local writes. Those writes may subsequently overwrite the external
-  version; this is the explicit meaning of keeping the application version.
+- Choosing **Keep current** makes the application version win: the differing scripts are written
+  again and pending writes run.
 
 ## Failure Handling
 
-- Watch registration failure is logged as a warning and does not prevent the session from loading.
-- Snapshot read or reconciliation failure is logged as an error.
+- A failed check (e.g. a moved or deleted folder) is logged as a warning and leaves live state
+  unchanged. The next focus retries it.
 - Session writes are resumed in all success, rejection, and failure paths.
-- Watcher cleanup closes all native subscriptions when the coordinator unmounts.
-- Events for sessions no longer present in the registries are harmless; there is no state to replace.
+- Taking a stamp before a write treats only a missing file as absent; any other error fails the
+  write like before.
+- Checks for sessions no longer present in the registries are harmless; there is no state to replace.
 
-Filesystem saves are not transactional snapshots. Editors often implement save as a temporary-file
-write followed by rename, which the watcher debounce normally collapses. The storage read remains the
-source of truth. A transient unreadable snapshot fails safely and leaves live state unchanged; a later
-filesystem event can retry.
+Filesystem saves are not transactional snapshots. A check that reads an editor's half-written file
+compares unequal and prompts; the user can keep the current version and the next focus checks again.
 
 ## Security and Permissions
 
-Native watchers operate only on directories already registered as native DashQL sessions. The
-renderer can request watches only through the narrow preload API; the Electron main process rejects
-requests from untrusted renderer origins and non-absolute paths. Watchers are released when the
-renderer is destroyed or explicitly unsubscribes.
+The checks use the `dashql:fs` bridge (`listFiles` and `fileStamp` beside the existing operations) and
+only read directories already registered as native DashQL sessions. There is no watcher in the main
+process.
 
 ## Testing
 
 Focused tests cover:
 
-- Native-location selection and cross-platform path filtering.
-- Ignoring access, cache, manifest, and unrelated file events.
-- Session-scoped pause/resume and cancellation.
-- Global flush behavior while a session is paused.
-- Preserving unrelated manifest writes during session conflict cancellation.
+- Detection of external edits, deletions, additions and touches by stamps, against own writes,
+  renames and acknowledgements.
+- Refusing writes, deletes and renames that would lose an external change.
+- Unchecked writes for scripts that were never acknowledged.
+- Holding a refused write in a paused session until it resumes, and superseding it.
 - Detection of page-only structural changes.
 - Same-path script identity preservation and added/changed content reconciliation.
 
@@ -248,21 +265,22 @@ bazel build //packages/dashql-native:compile
 
 ## Known Limitations
 
-- `dashql-session.json` changes require reopening the session.
+- `dashql-session.json` changes to connections require reopening the session.
 - Reload is snapshot replacement, not a three-way merge or per-file conflict UI.
-- Watchers and completed-content metadata are process-local and reset when the app restarts.
-- A native filesystem watcher can coalesce or omit low-level events. The design therefore rescans the
-  complete reloadable session state after every accepted invalidation, but it cannot react to a change
-  for which the operating system emits no event at all.
+- Stamps are process-local. The first check after a restart acknowledges whatever the folder holds.
+- A stamp misses an external edit that keeps the size and lands within the modification time
+  resolution of the file system after DashQL's own write (coarse on FAT and some network shares).
+- An external change made while DashQL has the focus appears on the next focus or on the next write
+  of the changed script.
+- Every focus lists two directories of every open native session.
 
 ## Implementation References
 
-- Watch adapter: `packages/dashql-app/src/app/session/persistence/native_session_sync.ts`
-- Reload coordinator: `packages/dashql-app/src/app/session/persistence/native_session_sync_react.tsx`
-- Native storage reads: `packages/dashql-app/src/app/storage/native_storage_backend.ts`
-- Writer coordination: `packages/dashql-app/src/app/storage/storage_writer.ts`
+- Check coordinator: `packages/dashql-app/src/app/session/persistence/native_session_sync_react.tsx`
+- Stamps and refused script writes: `packages/dashql-app/src/app/storage/native_storage_backend.ts`
+- Held writes: `packages/dashql-app/src/app/storage/storage_writer.ts`
 - Session scripts reconciliation: `packages/dashql-app/src/app/session/scripts/session_scripts.ts`
-- Electron main/preload filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
-- Watcher tests: `packages/dashql-app/src/app/session/persistence/native_session_sync.test.ts`
+- Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
+- Stamp tests: `packages/dashql-app/src/app/storage/native_storage_backend.test.ts`
 - Writer tests: `packages/dashql-app/src/app/storage/storage_writer.test.ts`
 - Session scripts reconciliation tests: `packages/dashql-app/src/app/session/scripts/session_scripts.test.ts`

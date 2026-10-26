@@ -210,6 +210,22 @@ export function isSessionRegistryBackend(backend: StorageBackend): backend is Se
     return typeof (backend as Partial<SessionRegistryBackend>).updateConnections === 'function';
 }
 
+/// A script file changed outside the app since the storage last wrote or acknowledged it.
+/// Thrown instead of overwriting the external version.
+export class ExternalScriptChangeError extends Error {
+    /// The session id
+    readonly sessionId: string;
+    /// The script file name
+    readonly fileName: string;
+
+    constructor(sessionId: string, fileName: string) {
+        super(`script ${fileName} of session ${sessionId} changed outside the app`);
+        this.name = 'ExternalScriptChangeError';
+        this.sessionId = sessionId;
+        this.fileName = fileName;
+    }
+}
+
 // Script data represents a single SQL script
 export interface ScriptData {
     /// The script name, the file name in scripts/ (e.g. "extract.sql")

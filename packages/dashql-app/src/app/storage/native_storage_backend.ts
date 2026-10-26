@@ -1,13 +1,26 @@
 import { type StorageBackend, type SessionData, type ScriptData, type SessionEntry, type AppSettings, type CachedQueryResult, StorageBackendType, STORAGE_SESSION_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_CACHE_FOLDER, STORAGE_CACHE_EXTENSION, STORAGE_CACHE_ACCESS_SUFFIX } from './storage_backend.js';
 import { type CacheFileStat, type QueryResultCacheStore, evictToFit } from './query_result_cache_eviction.js';
-import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, validateDataFileName } from './storage_backend.js';
+import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, validateDataFileName } from './storage_backend.js';
 
-import { exists, join, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile } from '../../platform/electron_fs.js';
+import { exists, fileStamp, join, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile, type FileStamp } from '../../platform/electron_fs.js';
 
 /// The name of the session-level .gitignore that keeps generated files out of version control.
 const GITIGNORE_FILE = '.gitignore';
 /// The entries of the session-level .gitignore: the query result cache and Hyper database files.
 const GITIGNORE_ENTRIES = [`${STORAGE_CACHE_FOLDER}/`, '*.hyper'];
+
+/// A file of a session folder with its stamp
+export type NamedFileStamp = FileStamp & { name: string };
+
+/// The scripts and attachments of a session folder with their stamps
+export interface SessionFolderStamps {
+    scripts: NamedFileStamp[];
+    attachments: NamedFileStamp[];
+}
+
+function sameStamp(a: FileStamp | null, b: FileStamp | null): boolean {
+    return a == null || b == null ? a == b : a.size === b.size && a.mtimeMs === b.mtimeMs;
+}
 
 /// Native filesystem storage backend for a single Electron session.
 ///
@@ -25,6 +38,11 @@ export class NativeStorageBackend implements StorageBackend {
     private readonly dir: string;
     /// Whether the .gitignore was already checked by this backend
     private gitignoreChecked = false;
+    /// The stamps of the scripts as this backend last wrote or acknowledged them, null for a deleted script
+    private readonly scriptStamps = new Map<string, FileStamp | null>();
+    /// Were the scripts acknowledged? From then on a script without a stamp is known to be absent, and
+    /// script writes fail with an `ExternalScriptChangeError` when the stamp on disk differs.
+    private scriptsAcknowledged = false;
 
     constructor(dir: string) {
         this.dir = dir;
@@ -161,36 +179,83 @@ export class NativeStorageBackend implements StorageBackend {
     }
 
     async saveScript(
-        _sessionId: string,
+        sessionId: string,
         scriptName: string,
         sql: string
     ): Promise<void> {
         await this.ensureDir(STORAGE_SCRIPTS_FOLDER);
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
-        await writeTextFile(scriptFile, sql);
+        await this.checkScriptUnchanged(sessionId, scriptName, scriptFile);
+        this.scriptStamps.set(scriptName, await writeTextFile(scriptFile, sql));
     }
 
-    async deleteScript(_sessionId: string, scriptName: string): Promise<void> {
+    async deleteScript(sessionId: string, scriptName: string): Promise<void> {
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
+        await this.checkScriptUnchanged(sessionId, scriptName, scriptFile);
         if (await exists(scriptFile)) {
             await remove(scriptFile);
         }
+        this.scriptStamps.set(scriptName, null);
     }
 
-    async renameScript(_sessionId: string, oldScriptName: string, newScriptName: string): Promise<void> {
+    async renameScript(sessionId: string, oldScriptName: string, newScriptName: string): Promise<void> {
         if (oldScriptName === newScriptName) {
             return;
         }
         const oldFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${oldScriptName}`);
         const newFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${newScriptName}`);
+        // The rename must neither move an external version nor replace an external file
+        await this.checkScriptUnchanged(sessionId, oldScriptName, oldFile);
+        await this.checkScriptUnchanged(sessionId, newScriptName, newFile);
         // A missing source means the script hasn't been flushed yet; the pending write under the new
         // name will create it, so there is nothing to move here.
         if (!(await exists(oldFile))) {
             return;
         }
         // Atomic file rename. The new clean base is disambiguated unique within the folder, so the
-        // destination is free.
+        // destination is free. The file keeps its stamp.
         await rename(oldFile, newFile);
+        this.scriptStamps.set(newScriptName, this.scriptStamps.get(oldScriptName) ?? null);
+        this.scriptStamps.set(oldScriptName, null);
+    }
+
+    /// The stamps of the scripts and attachments, read from two directory listings without reading a file
+    async stampFolder(): Promise<SessionFolderStamps> {
+        const [scripts, attachments] = await Promise.all([
+            listFiles(await this.abs(STORAGE_SCRIPTS_FOLDER)),
+            listFiles(await this.abs(STORAGE_ATTACHMENTS_FOLDER)),
+        ]);
+        return { scripts: scripts.filter(file => file.name.toLowerCase().endsWith('.sql')), attachments };
+    }
+
+    /// Acknowledge the scripts as they are on disk, script writes check the disk from now on
+    acknowledgeScripts(scripts: NamedFileStamp[]): void {
+        this.scriptStamps.clear();
+        for (const script of scripts) {
+            this.scriptStamps.set(script.name, { size: script.size, mtimeMs: script.mtimeMs });
+        }
+        this.scriptsAcknowledged = true;
+    }
+
+    /// The scripts whose stamps differ from what this backend wrote or acknowledged, sorted by name.
+    /// Every script differs before the scripts were acknowledged.
+    findExternalScriptChanges(scripts: NamedFileStamp[]): string[] {
+        const disk = new Map(scripts.map(script => [script.name, script]));
+        const names = new Set(disk.keys());
+        for (const [name, stamp] of this.scriptStamps) {
+            if (stamp != null) names.add(name);
+        }
+        if (!this.scriptsAcknowledged) {
+            return [...names].sort();
+        }
+        return [...names].filter(name => !sameStamp(disk.get(name) ?? null, this.scriptStamps.get(name) ?? null)).sort();
+    }
+
+    /// Fail with an `ExternalScriptChangeError` when an acknowledged script changed on disk
+    private async checkScriptUnchanged(sessionId: string, scriptName: string, scriptFile: string): Promise<void> {
+        if (this.scriptsAcknowledged && !sameStamp(await fileStamp(scriptFile), this.scriptStamps.get(scriptName) ?? null)) {
+            throw new ExternalScriptChangeError(sessionId, scriptName);
+        }
     }
 
     async loadQueryResultCache(_sessionId: string, hash: string): Promise<CachedQueryResult | null> {

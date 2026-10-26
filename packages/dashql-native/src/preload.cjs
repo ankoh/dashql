@@ -4,6 +4,8 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
     confirm: async (options) => await ipcRenderer.invoke("dashql:confirm", options),
     fs: {
         exists: async (path) => await ipcRenderer.invoke("dashql:fs", "exists", path),
+        fileStamp: async (path) => await ipcRenderer.invoke("dashql:fs", "fileStamp", path),
+        listFiles: async (path) => await ipcRenderer.invoke("dashql:fs", "listFiles", path),
         mkdir: async (path, options) => await ipcRenderer.invoke("dashql:fs", "mkdir", path, options),
         readDir: async (path) => await ipcRenderer.invoke("dashql:fs", "readDir", path),
         readFile: async (path) => new Uint8Array(await ipcRenderer.invoke("dashql:fs", "readFile", path)),
@@ -53,14 +55,4 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
         return () => ipcRenderer.removeListener("dashql:deep-link", handler);
     },
     openDirectory: async (title) => await ipcRenderer.invoke("dashql:open-directory", title),
-    watchDirectory: async (path, listener) => {
-        const watchId = await ipcRenderer.invoke("dashql:watch-directory", path);
-        const channel = `dashql:watch-directory:${watchId}`;
-        const handler = (_event, paths) => listener(paths);
-        ipcRenderer.on(channel, handler);
-        return async () => {
-            ipcRenderer.removeListener(channel, handler);
-            await ipcRenderer.invoke("dashql:unwatch-directory", watchId);
-        };
-    },
 });

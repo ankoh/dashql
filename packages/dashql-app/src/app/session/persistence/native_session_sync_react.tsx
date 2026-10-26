@@ -8,30 +8,29 @@ import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { useStorage } from '../../storage/storage_provider.js';
 import { useAppFlavor } from '../../flavor/flavor_provider.js';
-import { NativeSessionSyncService, nativeSessionWatchForLocation } from './native_session_sync.js';
 import type { SessionScriptsStorageSnapshot, SessionScripts } from '../scripts/session_scripts.js';
-import { persistedConnectionId, sessionScriptList } from '../scripts/session_scripts.js';
+import type { NamedFileStamp } from '../../storage/native_storage_backend.js';
 import { connectionStateFromStorage, destroyUnregisteredConnection } from '../../connections/connection_restore.js';
 import { resolveSessionScripts, sessionScriptsResolutionChanged } from './session_script_connections.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import {
+    DEBOUNCE_DURATION_SCRIPT_WRITE,
     DEBOUNCE_DURATION_SESSION_WRITE,
     groupConnectionEntryWrites,
+    groupScriptWrites,
     groupSessionAttachmentListWrites,
     groupSessionScriptListWrites,
     REFRESH_SESSION_ATTACHMENTS,
     WRITE_CONNECTION_ENTRY,
+    WRITE_SCRIPT,
     WRITE_SESSION_SCRIPTS,
     type StorageWriter,
 } from '../../storage/storage_writer.js';
 import {
     STORAGE_SCRIPTS_FOLDER,
-    STORAGE_SESSION_FILE,
     type ScriptData,
     type SessionData,
-    type SessionScript,
 } from '../../storage/storage_backend.js';
-import { sessionScriptsEqual } from '../../storage/session_files.js';
 
 const LOG_CTX = 'native_session_sync';
 
@@ -99,57 +98,32 @@ function isReloadedStorageKey(sessionId: string, key: string): boolean {
         || key.startsWith(`${sessionId}/${STORAGE_SCRIPTS_FOLDER}/`);
 }
 
-function snapshotMatchesCompletedWrite(
-    sessionId: string,
-    snapshot: SessionScriptsStorageSnapshot,
-    sessionScripts: SessionScripts | undefined,
-    writer: StorageWriter,
-): boolean {
-    const diskFiles = new Map<string, string | null>();
-    const memoryFiles = new Map<string, string | null>();
-    if (sessionScripts) {
-        for (const ref of Object.values(sessionScripts.scriptRefs)) {
-            const script = sessionScripts.scripts[ref.scriptId];
-            if (script) {
-                memoryFiles.set(`${sessionId}/${STORAGE_SCRIPTS_FOLDER}/${ref.fileName}`, script.scriptSession.getText());
-            }
-        }
-    }
-    for (const script of snapshot.scripts) {
-        diskFiles.set(`${sessionId}/${STORAGE_SCRIPTS_FOLDER}/${script.name}`, script.sql);
-    }
-    let divergenceFound = false;
-    // The order and the connections of the scripts are part of the session file
-    const diskList = snapshot.scripts.map(script => ({ name: script.name, connectionId: persistedConnectionId(script) }));
-    if (sessionScripts && !sessionScriptsEqual(sessionScriptList(sessionScripts), diskList)) {
-        divergenceFound = true;
-        const completed = writer.getCompletedFileContent(`${sessionId}/${STORAGE_SESSION_FILE}`);
-        let completedList: SessionScript[] | null = null;
-        try {
-            completedList = completed == null ? null : (JSON.parse(completed) as SessionData).scripts ?? null;
-        } catch {
-            completedList = null;
-        }
-        if (completedList == null || !sessionScriptsEqual(completedList, diskList)) {
-            return false;
-        }
-    }
-    for (const path of new Set([...diskFiles.keys(), ...memoryFiles.keys()])) {
-        const disk = diskFiles.get(path) ?? null;
-        const memory = memoryFiles.get(path) ?? null;
-        if (disk === memory) {
-            continue;
-        }
-        divergenceFound = true;
-        if (writer.getCompletedFileContent(path) !== disk) {
-            return false;
-        }
-    }
-    return divergenceFound;
+/// The attachments of a session as a comparable value
+function attachmentListing(files: NamedFileStamp[]): string {
+    return JSON.stringify(files.map(file => [file.name, file.size, file.mtimeMs]).sort());
 }
 
-/// Native-only synchronization boundary. It owns watcher setup, conflict prompting and storage
-/// coordination, then delegates session reconciliation to the session domain.
+/// Keep the scripts of the app over the disk: the scripts that differ on disk are written again.
+/// Files that only exist on disk are left alone.
+function writeKeptSessionScripts(writer: StorageWriter, sessionScripts: SessionScripts, disk: ScriptData[]): void {
+    const sessionId = sessionScripts.sessionId;
+    const sqlByName = new Map(disk.map(script => [script.name, script.sql]));
+    for (const ref of Object.values(sessionScripts.scriptRefs)) {
+        const sql = sessionScripts.scripts[ref.scriptId]?.scriptSession.getText();
+        if (sql == null || sqlByName.get(ref.fileName) === sql) continue;
+        void writer.write(
+            groupScriptWrites(sessionId, ref.fileName),
+            { type: WRITE_SCRIPT, value: [sessionId, ref.fileName, sql] },
+            DEBOUNCE_DURATION_SCRIPT_WRITE,
+        );
+    }
+}
+
+/// Native-only synchronization boundary. Session folders are not watched, they are checked when the
+/// window gets the focus and when the storage writer holds a write because a script changed outside
+/// the app. A check compares the stamps of the files (size and modification time) with what the
+/// native backend wrote or acknowledged, reads the files only when a stamp differs, prompts when the
+/// content differs from the app and delegates the reload to the session domain.
 export const NativeSessionSync: React.FC = () => {
     const logger = useLogger();
     const appName = useAppFlavor().displayName;
@@ -163,36 +137,61 @@ export const NativeSessionSync: React.FC = () => {
     sessionScriptsRegistryRef.current = sessionScriptsRegistry;
     const queuedRef = React.useRef(new Set<string>());
     const processingRef = React.useRef(false);
-    const serviceRef = React.useRef<NativeSessionSyncService | null>(null);
+    /// The sessions that were checked once, the first check acknowledges the disk
+    const checkedRef = React.useRef(new Set<string>());
+    /// The sessions whose first check was requested, a failed one is retried on the next focus
+    const firstCheckRequestedRef = React.useRef(new Set<string>());
+    /// The attachment listing of a session at its last check
+    const attachmentsRef = React.useRef(new Map<string, string>());
 
-    const reloadSession = React.useEffectEvent(async (sessionId: string) => {
+    const checkSession = React.useEffectEvent(async (sessionId: string) => {
+        const folder = reader.sessionFolders?.nativeSessionFolder(sessionId) ?? null;
+        if (folder == null) {
+            return;
+        }
         writer.pauseSession(sessionId);
         let stored: StoredSessionScripts | null = null;
         let registered = false;
         try {
-            // A write that started before the watcher event must finish before the stable disk read.
+            // A write that started before the check must finish before the stable disk read
             await writer.settle();
-            // Composite storage mirrors native attachments into the session's OPFS namespace while
-            // loading. Do this before the SQL unchanged fast path so attachment-only edits
-            // refresh the files exposed to embedded HyperDB-WASM.
-            const sessionFile = await reader.backend.loadSession(sessionId);
-            // The session file lists the attachments, the write runs once the session resumes
-            void writer.write(groupSessionAttachmentListWrites(sessionId), { type: REFRESH_SESSION_ATTACHMENTS, value: sessionId });
+            const stamps = await folder.stampFolder();
+            // Loading the session file mirrors the attachments into OPFS for embedded HyperDB-WASM.
+            // The restoration loaded it already, later checks reload it when the attachments changed.
+            let sessionFile: SessionData | null = null;
+            const attachments = attachmentListing(stamps.attachments);
+            const previousAttachments = attachmentsRef.current.get(sessionId);
+            attachmentsRef.current.set(sessionId, attachments);
+            if (previousAttachments !== undefined && previousAttachments !== attachments) {
+                sessionFile = await reader.backend.loadSession(sessionId);
+                // The session file lists the attachments, the write runs once the session resumes
+                void writer.write(groupSessionAttachmentListWrites(sessionId), { type: REFRESH_SESSION_ATTACHMENTS, value: sessionId });
+            }
+            if (!checkedRef.current.has(sessionId)) {
+                // The restoration read the scripts moments ago, they are what the app shows
+                checkedRef.current.add(sessionId);
+                folder.acknowledgeScripts(stamps.scripts);
+                return;
+            }
+            if (folder.findExternalScriptChanges(stamps.scripts).length === 0) {
+                return;
+            }
+            // A stamp differs, read the scripts. A file that changes after its stamp was taken has a
+            // newer stamp than the acknowledged one and is checked again.
             const scripts = await reader.backend.loadScripts(sessionId);
+            sessionFile ??= await reader.backend.loadSession(sessionId);
             stored = readStoredSessionScripts(connectionRegistryRef.current, references, sessionId, sessionFile, scripts);
             if (stored == null) {
                 return;
             }
             const snapshot = stored.snapshot;
             const currentSessionScripts = sessionScriptsRegistryRef.current.sessionScriptsMap.get(sessionId);
-            if (currentSessionScripts != null && sessionScriptsMatchStorageSnapshot(currentSessionScripts, snapshot)) {
+            if (currentSessionScripts == null) {
                 return;
             }
-
-            // A delayed watcher event for our own completed write can arrive after a newer local edit
-            // is already pending. The completed snapshot identifies that event without suppressing a
-            // genuinely different external version.
-            if (snapshotMatchesCompletedWrite(sessionId, snapshot, currentSessionScripts, writer)) {
+            if (sessionScriptsMatchStorageSnapshot(currentSessionScripts, snapshot)) {
+                // Only the stamps changed, or the disk changed to what the app shows
+                folder.acknowledgeScripts(stamps.scripts);
                 return;
             }
 
@@ -200,17 +199,18 @@ export const NativeSessionSync: React.FC = () => {
             const promptGeneration = writer.getSessionWriteGeneration(sessionId, isReloadedKey);
             const pendingKeys = writer.getPendingKeysForSession(sessionId, isReloadedKey);
             let decision = await confirmExternalReload(appName, pendingKeys.length > 0);
-            if (!decision.reload) {
-                return;
-            }
             // The editor remains interactive while the native dialog is open. If a local edit was
             // queued during a clean-file prompt, require the explicit destructive confirmation too.
             const pendingAfterPrompt = writer.getPendingKeysForSession(sessionId, isReloadedKey);
-            if (pendingKeys.length === 0 && pendingAfterPrompt.length > 0) {
+            if (decision.reload && pendingKeys.length === 0 && pendingAfterPrompt.length > 0) {
                 decision = await confirmExternalReload(appName, true);
-                if (!decision.reload) {
-                    return;
-                }
+            }
+            if (!decision.reload) {
+                // The app version wins, it replaces the external version on disk
+                folder.acknowledgeScripts(stamps.scripts);
+                const latest = sessionScriptsRegistryRef.current.sessionScriptsMap.get(sessionId);
+                if (latest) writeKeptSessionScripts(writer, latest, scripts);
+                return;
             }
             if (writer.getSessionWriteGeneration(sessionId, isReloadedKey) !== promptGeneration) {
                 // The generation changed while the dialog was open. Requeue and take a fresh disk
@@ -221,6 +221,7 @@ export const NativeSessionSync: React.FC = () => {
             if (decision.discardPendingWrites) {
                 writer.cancelPendingWritesForSession(sessionId, isReloadedKey);
             }
+            folder.acknowledgeScripts(stamps.scripts);
             // Connections that the session file brought along join the app before the scripts use them
             const created = stored.created;
             if (created.length > 0) {
@@ -261,7 +262,7 @@ export const NativeSessionSync: React.FC = () => {
             }
             logger.info('reloaded externally changed session', { sessionId }, LOG_CTX);
         } catch (error) {
-            logger.error('failed to reload externally changed session', {
+            logger.warn('failed to check the session folder', {
                 sessionId,
                 error: stringifyError(error),
             }, LOG_CTX);
@@ -273,7 +274,7 @@ export const NativeSessionSync: React.FC = () => {
         }
     });
 
-    const enqueueReload = React.useEffectEvent((sessionId: string) => {
+    const enqueueCheck = React.useEffectEvent((sessionId: string) => {
         queuedRef.current.add(sessionId);
         if (processingRef.current) {
             return;
@@ -283,37 +284,44 @@ export const NativeSessionSync: React.FC = () => {
             while (queuedRef.current.size > 0) {
                 const next = queuedRef.current.values().next().value as string;
                 queuedRef.current.delete(next);
-                await reloadSession(next);
+                await checkSession(next);
             }
             processingRef.current = false;
         })();
     });
 
+    const enqueueAllChecks = React.useEffectEvent(() => {
+        for (const sessionId of sessionScriptsRegistryRef.current.sessionScriptsMap.keys()) {
+            enqueueCheck(sessionId);
+        }
+    });
+
+    // Effect events must not be dependencies, they change with every render
     React.useEffect(() => {
         if (!isDesktopHost()) {
             return;
         }
-        // enqueueReload is an effect event and must not be a dependency.
-        // It changes with every render and would tear down all directory watches on every registry update.
-        const service = new NativeSessionSyncService(logger, enqueueReload);
-        serviceRef.current = service;
+        const onFocus = () => enqueueAllChecks();
+        window.addEventListener('focus', onFocus);
+        const unsubscribe = writer.subscribeExternalChanges(sessionId => enqueueCheck(sessionId));
         return () => {
-            service.close();
-            if (serviceRef.current === service) {
-                serviceRef.current = null;
-            }
+            window.removeEventListener('focus', onFocus);
+            unsubscribe();
         };
-    }, [logger]);
+    }, [writer]);
 
+    // The first check of a session acknowledges its scripts, the writer checks the disk from then on
     React.useEffect(() => {
-        if (!isDesktopHost() || !serviceRef.current) {
+        if (!isDesktopHost()) {
             return;
         }
-        const sessions = [...sessionScriptsRegistry.sessionScriptsMap.keys()]
-            .map(sessionId => nativeSessionWatchForLocation(sessionId, reader.getSessionLocation(sessionId)))
-            .filter((watch): watch is NonNullable<typeof watch> => watch != null);
-        void serviceRef.current.reconcile(sessions);
-    }, [sessionScriptsRegistry, reader]);
+        for (const sessionId of sessionScriptsRegistry.sessionScriptsMap.keys()) {
+            if (!firstCheckRequestedRef.current.has(sessionId)) {
+                firstCheckRequestedRef.current.add(sessionId);
+                enqueueCheck(sessionId);
+            }
+        }
+    }, [sessionScriptsRegistry]);
 
     return null;
 };

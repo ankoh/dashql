@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fsStore, makeFsMock, resetFsStore } from './test_fs_mock.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { TEST_SESSION_ID, testSession } from './session_test_backend.js';
+import { ExternalScriptChangeError } from './storage_backend.js';
 
 const DIR = '/tmp/v2-session';
 
@@ -84,5 +85,67 @@ describe('NativeStorageBackend V2 flat storage', () => {
         await expect(backend.saveDataFile(TEST_SESSION_ID, '../escape', bytes)).rejects.toThrow('basename');
         fsStore.dirs.add(`${DIR}/attachments/nested`);
         await expect(backend.listDataFiles(TEST_SESSION_ID)).rejects.toThrow('nested data');
+    });
+});
+
+describe('NativeStorageBackend external script changes', () => {
+    let backend: NativeStorageBackend;
+    const scriptPath = (name: string) => `${DIR}/scripts/${name}`;
+    const editOutside = (name: string, sql: string) => {
+        fsStore.files.set(scriptPath(name), sql);
+        fsStore.mtimes.set(scriptPath(name), ++fsStore.clock);
+    };
+
+    beforeEach(async () => {
+        resetFsStore();
+        globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
+        backend = new NativeStorageBackend(DIR);
+        await backend.initialize();
+        await backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 1');
+        await backend.saveScript(TEST_SESSION_ID, 'b.sql', 'select 2');
+    });
+
+    afterEach(() => {
+        delete globalThis.dashqlElectron;
+    });
+
+    it('finds scripts changed outside the app by their stamps but not its own writes', async () => {
+        backend.acknowledgeScripts((await backend.stampFolder()).scripts);
+        await backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 10');
+        await backend.renameScript(TEST_SESSION_ID, 'b.sql', 'c.sql');
+        expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual([]);
+
+        // Edited, deleted and added outside the app, a touch without a content change counts too
+        editOutside('a.sql', 'select 11');
+        fsStore.files.delete(scriptPath('c.sql'));
+        editOutside('d.sql', 'select 4');
+        expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual(['a.sql', 'c.sql', 'd.sql']);
+        backend.acknowledgeScripts((await backend.stampFolder()).scripts);
+        expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual([]);
+    });
+
+    it('refuses writes, deletes and renames that would lose an external change', async () => {
+        backend.acknowledgeScripts((await backend.stampFolder()).scripts);
+        editOutside('a.sql', 'select 10');
+        editOutside('c.sql', 'select 3');
+        await expect(backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 11')).rejects.toBeInstanceOf(ExternalScriptChangeError);
+        await expect(backend.deleteScript(TEST_SESSION_ID, 'a.sql')).rejects.toBeInstanceOf(ExternalScriptChangeError);
+        await expect(backend.renameScript(TEST_SESSION_ID, 'b.sql', 'c.sql')).rejects.toBeInstanceOf(ExternalScriptChangeError);
+        await expect(backend.saveScript(TEST_SESSION_ID, 'c.sql', 'select 4')).rejects.toBeInstanceOf(ExternalScriptChangeError);
+        expect(fsStore.files.get(scriptPath('a.sql'))).toBe('select 10');
+        expect(fsStore.files.get(scriptPath('b.sql'))).toBe('select 2');
+        expect(fsStore.files.get(scriptPath('c.sql'))).toBe('select 3');
+
+        // Acknowledging the disk lets the app version win
+        backend.acknowledgeScripts((await backend.stampFolder()).scripts);
+        await backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 11');
+        expect(fsStore.files.get(scriptPath('a.sql'))).toBe('select 11');
+    });
+
+    it('does not check scripts before they are acknowledged', async () => {
+        editOutside('a.sql', 'select 10');
+        expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual(['a.sql', 'b.sql']);
+        await backend.saveScript(TEST_SESSION_ID, 'a.sql', 'select 11');
+        expect(fsStore.files.get(scriptPath('a.sql'))).toBe('select 11');
     });
 });
