@@ -18,6 +18,14 @@ import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { createShellOutputCommand, type ShellOutputMode } from '../../../shell/shell_result.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../ui/script_format.js';
+import { ConnectorType } from '../../connections/connector_info.js';
+import { isHyperWasmConnection } from '../../connections/ui/connection_label.js';
+import { useComputeDatabase } from '../../../compute/compute_connection_provider.js';
+import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../../shell/shell_files.js';
+import { useShellFiles } from '../../../shell/filesystem_dialog.js';
+import { createExamplesCommand } from '../../../shell/shell_examples.js';
+import { splitShellScript } from '../../../shell/shell_script.js';
+import { useSnippetsDialog } from './snippets_dialog.js';
 
 const LOG_CTX = 'session_shell_page';
 
@@ -58,6 +66,25 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
     const shellName = `${sessionName ?? connectorName} Shell`;
     const relationsSql = connection?.catalogRelationScript.toString() ?? '';
     const functionsSql = connection?.catalogFunctionScript.toString() ?? '';
+    const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog(
+        connection?.connectorInfo.connectorType ?? ConnectorType.HYPER,
+    );
+
+    // The shell mounts files into the embedded Hyper that a Hyper WASM connection queries.
+    // The mounts belong to the shell, they are removed when the shell closes or switches the connection.
+    const database = useComputeDatabase();
+    const mountsFiles = connection != null && isHyperWasmConnection(connection);
+    const fileRegistryRef = React.useRef<ShellFileRegistry | null>(null);
+    const { command: filesCommand, dialogs: fileDialogs } = useShellFiles(fileRegistryRef);
+    React.useEffect(() => {
+        if (!mountsFiles || database == null) return;
+        const registry = new ShellFileRegistry(logger, externalFileDatabase(database), externalDirectoryDatabase(database));
+        fileRegistryRef.current = registry;
+        return () => {
+            if (fileRegistryRef.current === registry) fileRegistryRef.current = null;
+            void registry.dispose();
+        };
+    }, [connection?.connectionId, database, logger, mountsFiles]);
 
     React.useEffect(() => {
         if (connection == null || containerRef.current == null) return;
@@ -75,9 +102,19 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         const outputCommand = createShellOutputCommand(getOutputMode, mode => {
             outputModeRef.current = mode;
         });
+        const examplesCommand = createExamplesCommand({
+            requestSnippet: snippetsDialog.request,
+            splitPrompts: text => {
+                const shell = shellRef.current;
+                if (shell == null) throw new Error('Shell is not ready');
+                return splitShellScript(shell.core, shell.catalog, text);
+            },
+            // The prompts are filled in once the command finished
+            queuePrompts: prompts => controllerRef.current?.queuePrompts(prompts),
+        });
         setStatus(shellRef.current == null ? 'Instantiating Shell' : 'Refreshing shell catalog');
         void createSessionShell({ relationsSql, functionsSql }, environment, {
-            commands: [outputCommand],
+            commands: mountsFiles ? [examplesCommand, outputCommand, filesCommand] : [examplesCommand, outputCommand],
             onProgress: progress => {
                 if (!cancelled && generation === generationRef.current) {
                     setStatus(`Instantiating Shell: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);
@@ -123,7 +160,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         return () => {
             cancelled = true;
         };
-    }, [connection?.connectionId, connectorName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode]);
+    }, [connection?.connectionId, connectorName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();
@@ -154,6 +191,8 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
             {resultQuery != null && (
                 <ShellQueryResultOverlay query={resultQuery} onClose={() => setResultQueryId(null)} />
             )}
+            {snippetsBrowserDialog}
+            {fileDialogs}
         </main>
     );
 };
