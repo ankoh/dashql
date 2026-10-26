@@ -45,11 +45,10 @@ autocompletion:
 The `USING <renderer>` clause selects the visualization renderer. `renderer` is a
 closed keyword set (like the mark/field/scale-type enums), so the parser
 validates it and offers it for autocompletion after `USING`; an unknown renderer
-is a parse error. The current renderers are `vegalite`, `umap`, `markdown`, and `table`:
+is a parse error. The current renderers are `vegalite`, `markdown`, and `table`:
 
 ```sql
 SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
-SELECT * FROM embeddings VISUALIZE USING umap (vector => embedding);
 SELECT product, revenue FROM product_summary VISUALIZE USING markdown (
     template => '## {{product}}: {{revenue}}'
 );
@@ -60,8 +59,8 @@ SELECT product, revenue FROM product_summary VISUALIZE USING table (
 
 The renderer is captured on the AST as the `VIS_VISUALISE_USING` attribute and
 surfaced on the analyzed `VisualizationSpec` as `renderer`. Renderer-specific
-analysis and output generation then process the spec. Vega-Lite and UMAP emit
-their renderer JSON. Markdown templates are parsed once in the core with
+analysis and output generation then process the spec. Vega-Lite emits
+its renderer JSON. Markdown templates are parsed once in the core with
 pulldown-cmark (CommonMark) and encoded as a safe typed FlatBuffer AST.
 `{{field}}` placeholders become `FIELD` leaves, raw HTML is discarded, and
 unsafe or dynamic link destinations are not emitted as links. The app renders the generated FlatBuffer object model

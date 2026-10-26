@@ -57,9 +57,6 @@ network access is only allowed in the fetch phase (repo rules requiring a pinned
    to read other source formats. A dataset may declare several outputs (parquet + csv,
    multiple tables, …). To write a literal `$`, use `$$` (Bazel genrule escaping).
 
-   > Vector columns for the embedding atlas must be `FLOAT[]` (Float32), not `DOUBLE[]`
-   > — `CAST(… AS FLOAT[])` in the SQL if the source ships doubles.
-
 2. Add the generated `http_file` repo to `use_repo(dashql_datasets, …)` in
    `MODULE.bazel`. The repo name is `dataset_<name>_<as>` with `-`/`.` replaced by `_`
    (e.g. `my-dataset` + `raw` → `dataset_my_dataset_raw`).

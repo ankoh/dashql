@@ -260,7 +260,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     queryTracker.dispatch({ type: QUERY_PROCESSING_RESULTS, value: [queryId] });
                     await measurePostprocessing(async () => {
                         await yieldToBrowser();
-                        await analyzeTable(queryId, table, computeDispatch, computeDb, traced, args.projection, connectionId);
+                        await analyzeTable(queryId, table, computeDispatch, computeDb, traced, connectionId);
                         initialState.cancellation.signal.throwIfAborted();
                     });
                     queryTracker.dispatch({ type: QUERY_PROCESSED_RESULTS, value: [queryId] });

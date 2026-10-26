@@ -4,19 +4,16 @@
 //! - `vegalite_parser`: a VISUALIZE statement from Vega-Lite JSON
 //! - `markdown`: the Markdown row template compiled into a document tree, parsed with
 //!   pulldown-cmark
-//! - `umap`: the UMAP spec
 //!
 //! The functions are pure, callers cache the results.
 
 mod markdown;
-mod umap;
 mod vegalite_generator;
 mod vegalite_parser;
 
 pub use markdown::{
     compile_markdown_spec, compile_markdown_template, pack_markdown_spec, MarkdownDocument, MarkdownNode,
 };
-pub use umap::{compile_umap_spec, pack_umap_spec, UmapDocument, UmapProjectionDocument};
 pub use vegalite_generator::generate_vegalite_spec;
 pub use vegalite_parser::parse_vegalite_to_visualize;
 
@@ -47,7 +44,7 @@ fn into_string(bytes: Vec<u8>) -> String {
     String::from_utf8(bytes).unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
 }
 
-/// The renderer-specific packing of a visualization (the vegalite, umap and markdown branches of
+/// The renderer-specific packing of a visualization (the vegalite and markdown branches of
 /// `AnalyzedScript::Pack`)
 #[allow(clippy::type_complexity)]
 pub fn pack_visualization(
@@ -55,20 +52,13 @@ pub fn pack_visualization(
     spec: &VisualizationSpec,
 ) -> (
     Option<String>,
-    Option<Box<dashql_buffers::visualization::UmapSpecT>>,
     Option<Box<dashql_buffers::visualization::MarkdownSpecT>>,
 ) {
-    use dashql_buffers::visualization::{MarkdownSpec, UmapSpec};
+    use dashql_buffers::visualization::MarkdownSpec;
     let renderer = spec.renderer.as_deref();
     let vegalite = (renderer == Some("vegalite"))
         .then(|| generate_vegalite_spec(spec, script))
         .filter(|json| !json.is_empty());
-    let umap = (renderer == Some("umap")).then(|| compile_umap_spec(spec, script)).flatten().map(|doc| {
-        let mut builder = flatbuffers::FlatBufferBuilder::new();
-        let packed = pack_umap_spec(&mut builder, &doc);
-        builder.finish(packed, None);
-        Box::new(flatbuffers::root::<UmapSpec>(builder.finished_data()).unwrap().unpack())
-    });
     let markdown =
         (renderer == Some("markdown")).then(|| compile_markdown_spec(spec)).flatten().map(|doc| {
             let mut builder = flatbuffers::FlatBufferBuilder::new();
@@ -76,7 +66,7 @@ pub fn pack_visualization(
             builder.finish(packed, None);
             Box::new(flatbuffers::root::<MarkdownSpec>(builder.finished_data()).unwrap().unpack())
         });
-    (vegalite, umap, markdown)
+    (vegalite, markdown)
 }
 
 #[cfg(test)]

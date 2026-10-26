@@ -238,7 +238,6 @@ describe('session execution with real core planning', () => {
             'create table items (id int)', 'select id from items', 'select 2 as value', 'delete from items',
         ]);
         expect(f.executeQuery.mock.calls.map(([, args]) => args.analyzeResults)).toEqual([false, false, true, false]);
-        expect(f.executeQuery.mock.calls.map(([, args]) => args.projection)).toEqual([undefined, undefined, undefined, undefined]);
         expect(f.script('1_visualize.sql')).toMatchObject({
             latestQueryId: 3, latestResultQueryId: 3,
             annotations: { visualizeQuery: { renderer: 'table', sql: 'select 2 as value',
@@ -251,20 +250,19 @@ describe('session execution with real core planning', () => {
         expect(f.lastState().phase).toBe('succeeded');
     });
 
-    it('uses captured UMAP projection and visualization despite live edits during execution', async () => {
-        const f = fixture([['1_umap.sql',
-            'create table embeddings (embedding int, other int, cluster_id int, label text); '
-            + 'select embedding, cluster_id, label from embeddings visualize using umap '
-            + '(vector => embedding, category => cluster_id, label => label, neighbors => 7, min_dist => 0.2, metric => euclidean);']]);
+    it('uses captured visualization despite live edits during execution', async () => {
+        const f = fixture([['1_visualize.sql',
+            'create table items (id int, other int); '
+            + 'select id from items visualize using table (dashboard => (row => 2, column => 4));']]);
         const executor = f.executeQuery.getMockImplementation()!;
         f.executeQuery.mockImplementation((connectionId, args) => {
             const execution = executor(connectionId, args);
             if (!args.analyzeResults) {
-                f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_umap.sql').scriptKey,
-                    text: 'select other from embeddings visualize using umap (vector => other);' } });
+                f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_visualize.sql').scriptKey,
+                    text: 'select other from items visualize using table ();' } });
             } else {
                 execution[1] = execution[1].then(table => {
-                    f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_umap.sql').scriptKey, text: 'select 9;' } });
+                    f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_visualize.sql').scriptKey, text: 'select 9;' } });
                     return table;
                 });
             }
@@ -273,18 +271,13 @@ describe('session execution with real core planning', () => {
         await f.run();
 
         expect(f.calls.map(call => call.sql)).toEqual([
-            'create table embeddings (embedding int, other int, cluster_id int, label text)',
-            'select embedding, cluster_id, label from embeddings',
+            'create table items (id int, other int)',
+            'select id from items',
         ]);
-        expect(f.executeQuery.mock.calls[0][1].projection).toBeUndefined();
-        expect(f.executeQuery.mock.calls[1][1].projection).toEqual({
-            vectorColumn: 'embedding', options: { metric: 'euclidean', nNeighbors: 7, minDist: 0.2 },
-        });
-        expect(f.script('1_umap.sql').scriptSession.getText()).toBe('select 9;');
-        expect(f.script('1_umap.sql').annotations.visualizeQuery).toMatchObject({
-            renderer: 'umap', sql: 'select embedding, cluster_id, label from embeddings',
-            umapSpec: { vectorColumn: 'embedding', categoryColumn: 'cluster_id', labelColumn: 'label',
-                projection: { metric: 'euclidean', neighbors: 7, minDist: 0.2 } },
+        expect(f.script('1_visualize.sql').scriptSession.getText()).toBe('select 9;');
+        expect(f.script('1_visualize.sql').annotations.visualizeQuery).toMatchObject({
+            renderer: 'table', sql: 'select id from items',
+            dashboardSpec: { row: 2, column: 4 },
         });
         expect(f.lastState().phase).toBe('succeeded');
     });

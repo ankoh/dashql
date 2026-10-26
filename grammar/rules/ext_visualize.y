@@ -27,9 +27,8 @@ vis_visualise_keyword:
 // The visualization renderer named after `USING` is a closed keyword set. Rather than
 // reduce it to a shared `vis_renderer` nonterminal (which would erase the lookahead the
 // parser needs to pick the renderer-specific spec body), each renderer keyword is inlined
-// as a terminal so `USING vegalite (...)`, `USING umap (...)`, and
-// `USING markdown (...)`, and `USING table (...)` branch to their
-// own spec grammar. Adding a future renderer is a new alternative here plus its spec rules.
+// as a terminal so `USING vegalite (...)`, `USING markdown (...)`, and
+// `USING table (...)` branch to their own spec grammar. Adding a future renderer is a new alternative here plus its spec rules.
 vis_visualise_stmt:
     sql_select_stmt vis_visualise_keyword USING VEGALITE LRB vis_spec_list RRB {
         if !ctx.is_vis_enabled() {
@@ -49,24 +48,6 @@ vis_visualise_stmt:
             false,
         )
     }
-  | sql_select_stmt vis_visualise_keyword USING UMAP LRB vis_umap_spec_list RRB {
-      if !ctx.is_vis_enabled() {
-          ctx.error(@2, "VISUALISE syntax is disabled in this ParseContext");
-          return Err(ReduceError::YyError);
-      }
-      ctx.mark_vis_spec_span(@6);
-      ctx.object_ex(
-          @$,
-          NodeType::OBJECT_VIS_VISUALISE,
-          &[
-              attr(Key::VIS_VISUALISE_SELECT, ctx.object(@1, NodeType::OBJECT_SQL_SELECT, $1)),
-              attr(Key::VIS_VISUALISE_USING, ctx.name_from_keyword(@4, $4)),
-              attr(Key::VIS_VISUALISE_SPEC, ctx.object_ex(@6, NodeType::OBJECT_VIS_UMAP_SPEC, $6, false, false)),
-          ],
-          false,
-          false,
-      )
-  }
   | sql_select_stmt vis_visualise_keyword USING MARKDOWN LRB vis_markdown_spec_list RRB {
       if !ctx.is_vis_enabled() {
           ctx.error(@2, "VISUALISE syntax is disabled in this ParseContext");
@@ -181,72 +162,6 @@ vis_table_spec_list:
 opt_vis_table_spec_field:
     vis_dashboard_field { $1 }
   | %empty { null() }
-    ;
-
-// ---------------------------------------------------------------------------
-// umap renderer spec
-//
-// Shape:
-//   SELECT * FROM t VISUALIZE USING umap (
-//       vector    => embedding,          -- required: column holding the high-dim vectors
-//       category  => cluster_id,          -- optional: column → category color index
-//       label     => customer_name,       -- optional: column shown in the tooltip
-//       neighbors => 15,                   -- optional: UMAP nNeighbors
-//       min_dist  => 0.1,                  -- optional: UMAP minDist
-//       metric    => cosine                -- optional: distance metric
-//   )
-//
-// The analyzer records only column names + projection params; the 2D UMAP projection
-// itself runs client-side at render time (see the umap vis renderer).
-
-vis_umap_spec_list:
-    vis_umap_spec_list COMMA opt_vis_umap_spec_field  {
-        ctx.push_back($1, $3);
-        $1
-    }
-  | opt_vis_umap_spec_field                           { ctx.list(&[$1]) }
-    ;
-
-opt_vis_umap_spec_field:
-    vis_dashboard_field { $1 }
-  | METRIC EQUALS_GREATER vis_umap_metric { attr(Key::VIS_UMAP_SPEC_METRIC, $3) }
-  | vis_umap_spec_num_key EQUALS_GREATER vis_umap_number { attr($1, $3) }
-  | vis_umap_spec_col_key EQUALS_GREATER vis_umap_column { attr($1, $3) }
-  | %empty { null() }
-    ;
-
-vis_umap_spec_col_key:
-    VECTOR    { Key::VIS_UMAP_SPEC_VECTOR }
-  | CATEGORY  { Key::VIS_UMAP_SPEC_CATEGORY }
-  | LABEL     { Key::VIS_UMAP_SPEC_LABEL }
-    ;
-
-vis_umap_spec_num_key:
-    NEIGHBORS  { Key::VIS_UMAP_SPEC_NEIGHBORS }
-  | MIN_DIST   { Key::VIS_UMAP_SPEC_MIN_DIST }
-    ;
-
-// A column reference in the umap spec (`embedding`, `t.embedding`) or a
-// function expression over one (e.g. a cast), mirroring vega-lite field defs.
-vis_umap_column:
-    sql_columnref  { $1 }
-  | sql_func_expr  { $1 }
-    ;
-
-// Closed keyword value-set: the parser validates the distance metric and offers it
-// for autocompletion. Yields a NAME node carrying the keyword text, which the
-// analyzer reads back (no dedicated enum type needed).
-vis_umap_metric:
-    COSINE     { ctx.name_from_keyword(@1, $1) }
-  | EUCLIDEAN  { ctx.name_from_keyword(@1, $1) }
-    ;
-
-// Numeric projection parameters. Deliberately omits the nested-object production of
-// `vis_value` so the umap grammar stays decoupled from the vega-lite body.
-vis_umap_number:
-    sql_a_expr_const                       { ctx.expression($1) }
-  | PLUS sql_a_expr_const %prec UMINUS     { ctx.expression($2) }
-  | MINUS sql_a_expr_const %prec UMINUS    { negate(ctx, @$, @1, ctx.expression($2)) }
     ;
 
 // ---------------------------------------------------------------------------

@@ -2,13 +2,11 @@ import * as arrow from 'apache-arrow';
 
 import { DataFrame, generateTableName } from './data_frame.js';
 import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK } from './computation_types.js';
-import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, CREATED_DATA_FRAME, UMAP_COMPUTATION_SUCCEEDED } from './computation_state.js';
-import { ColumnAggregationTask, TableAggregationTask, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, ListGridColumnGroup, SystemColumnComputationTask, ROWNUMBER_COLUMN, ComputationStateVersion } from './computation_types.js';
-import { Dispatch, VariantKind } from '../utils/variant.js';
-import { LoggerLike, stringifyError } from '../platform/logger/logger.js';
+import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, CREATED_DATA_FRAME } from './computation_state.js';
+import { ColumnAggregationTask, TableAggregationTask, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, SystemColumnComputationTask, ROWNUMBER_COLUMN, ComputationStateVersion } from './computation_types.js';
+import { Dispatch } from '../utils/variant.js';
+import { LoggerLike } from '../platform/logger/logger.js';
 import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
-import { UmapRequest, projectWithUMAP } from './umap/umap_projection.js';
-import { extractEmbeddingMatrix } from './umap/umap_extraction.js';
 import { scheduleTask } from './computation_tasks.js';
 import { createUniqueColumnName } from './arrow_columns.js';
 
@@ -58,7 +56,7 @@ export interface AnalyzeTableOptions {
 ///     The upside here is that the bin count is dictated by what we can show in the UI and is thus usually small.
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
-export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, database: EmbeddedComputeDatabase, logger: LoggerLike, projection?: UmapRequest, connectionId: string | null = null, options: AnalyzeTableOptions = {}): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, database: EmbeddedComputeDatabase, logger: LoggerLike, connectionId: string | null = null, options: AnalyzeTableOptions = {}): Promise<void> {
     // Statements such as DDL can legitimately produce an Arrow table without columns. There is
     // nothing to summarize, and embedded databases reject importing a zero-column table.
     if (table.numCols === 0) {
@@ -100,7 +98,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         rowNumberFieldName,
         tableAggregate
     };
-    let [newTable, newDataFrame, updatedColumnGroups] = await scheduleTask(SYSTEM_COLUMN_COMPUTATION_TASK, precomputationTask, dispatch);
+    const [newTable, newDataFrame, updatedColumnGroups] = await scheduleTask(SYSTEM_COLUMN_COMPUTATION_TASK, precomputationTask, dispatch);
     gridColumnGroups = updatedColumnGroups;
 
     // Compute the column aggregates
@@ -121,8 +119,8 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         // LIST columns (e.g. float32 embedding arrays) are not aggregated: their value
         // identifier / frequent-value / distinct-count computations are very expensive
         // (full-vector sort/hash) and buy nothing — no summary histogram is rendered for
-        // them. We keep the LIST_COLUMN group (UMAP still attaches its projection to it),
-        // but skip all of its embedded-database aggregation work.
+        // them. We keep the LIST_COLUMN group but skip all of its embedded-database
+        // aggregation work.
         const columnEntry = gridColumnGroups[columnId];
         if (columnEntry.type == SKIPPED_COLUMN || columnEntry.type == ROWNUMBER_COLUMN || columnEntry.type == LIST_COLUMN) {
             continue;
@@ -166,150 +164,6 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
             "slowestColumn": colAggregateSlowestColumn ?? "",
         }, LOG_CTX);
     }
-
-    // Compute the UMAP projection (only for a resolved `'umap'` visualize spec).
-    // Runs last: it appends `x`/`y` coordinate columns to both the arrow table and the
-    // embedded data frame, and records their field names on the embedding column's group.
-    // Blocking — the query stays in QUERY_PROCESSING_RESULTS until the projection finishes.
-    if (projection != null) {
-        [newTable, newDataFrame, gridColumnGroups] = await computeUmapProjection(
-            tableId, newTable, newDataFrame, gridColumnGroups, projection, computeAbortCtrl, dispatch, logger
-        );
-    }
-}
-
-/// Compute the UMAP projection as a post-processing step and fold the resulting
-/// `x`/`y` coordinates into BOTH representations of the analyzed table:
-///   - the main-thread arrow `dataTable` (row-aligned, for the scatter renderer), and
-///   - the embedded-database-backed `dataFrame` (so the coordinates are queryable — a plain
-///     `{rownum, x, y}` arrow table is inserted and joined on the row-number key).
-/// The generated coordinate field names are recorded on the embedding column's own
-/// LIST_COLUMN group (as `umapProjection`), like the value-identifier meta field. On
-/// extraction failure we log and return the inputs unchanged (the query still succeeds;
-/// the scatter shows its empty/error placeholder).
-async function computeUmapProjection(
-    tableId: number,
-    inputTable: arrow.Table,
-    inputDataFrame: DataFrame,
-    columnGroups: ColumnGroup[],
-    projection: UmapRequest,
-    abortCtrl: AbortController,
-    dispatch: Dispatch<ComputationAction>,
-    logger: LoggerLike,
-): Promise<[arrow.Table, DataFrame, ColumnGroup[]]> {
-    // The row-number column identifies rows across the arrow table and the embedded
-    // data frame; it was appended by the system-columns step.
-    let rowNumberFieldName: string | null = null;
-    for (const group of columnGroups) {
-        if (group.type == ROWNUMBER_COLUMN) {
-            rowNumberFieldName = group.value.rowNumberFieldName;
-            break;
-        }
-    }
-    if (rowNumberFieldName == null) {
-        logger.warn("Skipping UMAP projection: no row-number column", {}, LOG_CTX);
-        return [inputTable, inputDataFrame, columnGroups];
-    }
-
-    const extraction = extractEmbeddingMatrix(inputTable, projection.vectorColumn);
-    if (!extraction.ok) {
-        logger.warn("Skipping UMAP projection", { "error": extraction.error }, LOG_CTX);
-        return [inputTable, inputDataFrame, columnGroups];
-    }
-
-    // Run the projection in the worker, cancelled if the table's compute lifetime aborts.
-    logger.info("Computing UMAP projection", {
-        "points": extraction.matrix.count.toString(),
-        "dimension": extraction.matrix.dimension.toString(),
-    }, LOG_CTX);
-    const projectionStart = performance.now();
-    // Throttle the progress logging so we emit at most one info line every 500ms.
-    let lastProgressLog = 0;
-    const run = projectWithUMAP(extraction.matrix, projection.options, (progress, stage) => {
-        const now = performance.now();
-        if (now - lastProgressLog >= 500) {
-            lastProgressLog = now;
-            logger.info(`Computing UMAP projection: ${stage}`, { "progress": progress.toFixed(2) }, LOG_CTX);
-        }
-    });
-    const onAbort = () => run.cancel();
-    abortCtrl.signal.addEventListener("abort", onAbort);
-    let coords;
-    try {
-        coords = await run.promise;
-    } catch (error: any) {
-        abortCtrl.signal.removeEventListener("abort", onAbort);
-        logger.warn("UMAP projection failed", { "error": stringifyError(error) }, LOG_CTX);
-        return [inputTable, inputDataFrame, columnGroups];
-    }
-    abortCtrl.signal.removeEventListener("abort", onAbort);
-
-    // Allocate coordinate field names that don't collide with existing columns.
-    const fieldNames = new Set<string>(inputTable.schema.fields.map(f => f.name));
-    const xFieldName = createUniqueColumnName(`_umap_x`, fieldNames);
-    const yFieldName = createUniqueColumnName(`_umap_y`, fieldNames);
-
-    const xVector = arrow.makeVector(arrow.makeData({ type: new arrow.Float32(), data: coords.x }));
-    const yVector = arrow.makeVector(arrow.makeData({ type: new arrow.Float32(), data: coords.y }));
-
-    // Arrow side: the coordinates are row-aligned with `inputTable` (the matrix was
-    // extracted from it in row order), so a direct column assign is correct.
-    const outputTable = inputTable.assign(new arrow.Table({ [xFieldName]: xVector, [yFieldName]: yVector }));
-
-    // Embedded-database side: stream the coordinates back by inserting a small keyed
-    // `{rownum, x, y}` table and joining it onto the data frame on the row number.
-    const database = inputDataFrame.database;
-    const coordTable = new arrow.Table({
-        [rowNumberFieldName]: inputTable.getChild(rowNumberFieldName)!,
-        [xFieldName]: xVector,
-        [yFieldName]: yVector,
-    });
-    const coordFrame = await DataFrame.fromArrowTable(database, coordTable, generateTableName("__umap_coords"));
-    let outputDataFrame: DataFrame;
-    try {
-        const joinSQL =
-            `SELECT base.*, coords."${xFieldName}", coords."${yFieldName}" ` +
-            `FROM "${inputDataFrame.tableName}" base ` +
-            `JOIN "${coordFrame.tableName}" coords USING ("${rowNumberFieldName}")`;
-        outputDataFrame = await DataFrame.fromSQL(database, joinSQL, generateTableName("__umap"));
-    } finally {
-        await coordFrame.destroy();
-    }
-
-    // Attach the coordinate fields to the embedding column's own LIST_COLUMN group as
-    // generated meta fields, exactly like `valueIdFieldName`. This keeps the coordinates
-    // glued to their source column: the data-table grid renders them inline right after
-    // the value/id columns (debug mode) and the scatter renderer reads them off the group.
-    const inputGroupIndex = columnGroups.findIndex(group =>
-        group.type == LIST_COLUMN && group.value.inputFieldName == projection.vectorColumn);
-    if (inputGroupIndex < 0) {
-        logger.warn("Skipping UMAP projection: no list column group for the vector column", {
-            "column": projection.vectorColumn,
-        }, LOG_CTX);
-        return [inputTable, inputDataFrame, columnGroups];
-    }
-    const inputGroup = columnGroups[inputGroupIndex] as VariantKind<typeof LIST_COLUMN, ListGridColumnGroup>;
-    const updatedColumnGroups: ColumnGroup[] = [...columnGroups];
-    updatedColumnGroups[inputGroupIndex] = {
-        type: LIST_COLUMN,
-        value: {
-            ...inputGroup.value,
-            umapProjection: { xFieldName, yFieldName },
-        }
-    };
-
-    dispatch({
-        type: UMAP_COMPUTATION_SUCCEEDED,
-        value: [tableId, outputTable, outputDataFrame, updatedColumnGroups]
-    });
-
-    logger.info("Computed UMAP projection", {
-        "points": extraction.matrix.count.toString(),
-        "dimension": extraction.matrix.dimension.toString(),
-        "duration": Math.floor(performance.now() - projectionStart).toString(),
-    }, LOG_CTX);
-
-    return [outputTable, outputDataFrame, updatedColumnGroups];
 }
 
 /// A table with the positions of its rows as an appended row-number column, from 1, and the name of the column.
@@ -393,7 +247,6 @@ export function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
                         inputFieldNullable: field.nullable,
                         statsFields: null,
                         valueIdFieldName: null,
-                        umapProjection: null,
                     }
                 });
                 break;

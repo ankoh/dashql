@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { CLEAR_TABLE_ORDERING, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, DATA_SEARCH_SUCCEEDED, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UMAP_COMPUTATION_SUCCEEDED, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { CLEAR_TABLE_ORDERING, COLUMN_SEARCH_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, CREATED_DATA_FRAME, DATA_SEARCH_SUCCEEDED, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SET_RESULT_SEARCH_PATTERN, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_types.js';
@@ -276,70 +276,6 @@ describe('ComputationState', () => {
         expect(state.tableComputations[1].dataSearch.matchingRows).toEqual(new Map([[2, [1]], [3, [1]]]));
         expect(state.tableComputations[1].dataSearchTable?.dataFrame).toBe(searchFrame);
         expect(memory.getRegisteredDataFrames().get(searchFrame)).toBe(1);
-    });
-
-    it('umap computation appends coordinate columns and records them on the embedding group', () => {
-        const memory = new DataFrameRegistry(logger);
-        let state = createComputationState();
-        const tableLifetime = new AbortController();
-        // Seed a table state with an existing (system-column) data frame. The embedding
-        // column is a LIST_COLUMN whose group carries the projection meta fields.
-        const baseColumns: ColumnGroup[] = [
-            { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rowNumber' } },
-            {
-                type: LIST_COLUMN,
-                value: {
-                    inputFieldName: 'embedding',
-                    inputFieldType: new arrow.List(new arrow.Field('item', new arrow.Float32(), true)),
-                    inputFieldNullable: true,
-                    statsFields: null,
-                    valueIdFieldName: null,
-                    umapProjection: null,
-                },
-            },
-        ];
-        const baseFrame = createMockDataFrame('__base');
-        state.tableComputations[1] = createTableComputationState(1, inputTable, baseColumns, tableLifetime);
-        state.tableComputations[1] = { ...state.tableComputations[1], dataFrame: baseFrame };
-        memory.acquire(baseFrame);
-
-        // The projection result: the input table extended with x/y coordinate columns, a
-        // new data frame carrying the same columns, and the embedding group updated with
-        // the coordinate field names.
-        const projectedTable = inputTable.assign(arrow.tableFromArrays({
-            _umap_x: new Float32Array([0.1, 0.2, 0.3, 0.4]),
-            _umap_y: new Float32Array([1.1, 1.2, 1.3, 1.4]),
-        }));
-        const projectedFrame = createMockDataFrame('__umap');
-        const projectedColumns: ColumnGroup[] = [
-            baseColumns[0],
-            {
-                type: LIST_COLUMN,
-                value: {
-                    ...(baseColumns[1].value as any),
-                    umapProjection: { xFieldName: '_umap_x', yFieldName: '_umap_y' },
-                },
-            },
-        ];
-
-        state = reduceComputationState(state, {
-            type: UMAP_COMPUTATION_SUCCEEDED,
-            value: [1, projectedTable, projectedFrame, projectedColumns],
-        }, memory);
-
-        const ts = state.tableComputations[1];
-        // The coordinate columns are present on the swapped-in data table.
-        expect(ts.dataTable.getChild('_umap_x')).not.toBeNull();
-        expect(ts.dataTable.getChild('_umap_y')).not.toBeNull();
-        expect(ts.dataTableFieldsByName.has('_umap_x')).toBe(true);
-        expect(ts.dataTableFieldsByName.has('_umap_y')).toBe(true);
-        // The embedding group records the coordinate field names.
-        const umapGroup = ts.columnGroups.find(g => g.type === LIST_COLUMN && g.value.umapProjection != null);
-        expect(umapGroup).toBeDefined();
-        // The data frame is swapped: the new one is acquired, the previous released.
-        expect(ts.dataFrame).toBe(projectedFrame);
-        expect(memory.getRegisteredDataFrames().has(projectedFrame)).toBe(true);
-        expect(memory.getRegisteredDataFrames().has(baseFrame)).toBe(false);
     });
 
     it('delete computation', () => {

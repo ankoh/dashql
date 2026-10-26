@@ -3,7 +3,6 @@ import { QueryType } from '../../../query/query_execution_state.js';
 import { SessionScripts, ScriptData, REGISTER_QUERY, REGISTER_SCRIPT_RESULT } from '../scripts/session_scripts.js';
 import { compileSessionQuery, createScriptExecution } from '../scripts/script_compilation.js';
 import { ensureSessionScriptAnalyzed, ModifySessionScripts } from '../scripts/session_scripts_registry.js';
-import { projectionForVisualizeQuery } from '../scripts/script_types.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';
 import { isSessionExecutionRunning } from '../scripts/session_execution.js';
 
@@ -88,7 +87,6 @@ function executeSessionScript(
         // Sessions opt into reusing cached results, a script decides if its query result can be cached
         cacheable: sessionScripts.settings.cacheQueryResults && compiled.cacheable,
         cacheSignature: compiled.cacheSignature,
-        projection: projectionForVisualizeQuery(scriptData.annotations.visualizeQuery),
         metadata: {
             queryType: QueryType.USER_PROVIDED,
             title: 'Session Query',

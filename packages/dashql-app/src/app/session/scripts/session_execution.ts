@@ -5,7 +5,6 @@ import { QueryType } from '../../../query/query_execution_state.js';
 import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, type ScriptData, type SessionScripts } from './session_scripts.js';
 import { resolveCompiledVisualization } from './script_compilation.js';
 import type { ModifySessionScripts } from './session_scripts_registry.js';
-import { projectionForVisualizeQuery } from './script_types.js';
 import { yieldToBrowser } from '../../../utils/yield_to_browser.js';
 
 const activeSessions = new WeakMap<core.DashQL, Set<string>>();
@@ -276,7 +275,7 @@ export async function runSessionExecution(args: {
                 const [queryId, execution] = args.executeQuery(connectionId, {
                     query: String(node.sql ?? ''), catalogChanges: node.catalogChanges, cacheable: false, throwOnError: true, abortSignal: signal,
                     analyzeResults: output, publishResults: output, replaceComputationId: output ? previousQueryId : undefined,
-                    projection: output ? projectionForVisualizeQuery(visualization) : undefined, onResultsReady: release,
+                    onResultsReady: release,
                     metadata: { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, sessionId },
                 });
                 activeExecutions.set(queryId, { connectionId, execution });

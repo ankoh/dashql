@@ -1615,9 +1615,9 @@ completion-snapshots:
           location: "cat"
           location-qualified: "cat"
           objects: []
-        - score: 56
-          value: category
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+        - score: 51
+          value: current_catalog
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "cat"
           location-qualified: "cat"
           objects: []
@@ -2010,12 +2010,6 @@ completion-snapshots:
               qualified-idx: 0
               prefer-qualified: 0
         - score: 55
-          value: umap
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "u"
-          location-qualified: "u"
-          objects: []
-        - score: 55
           value: unbounded
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "u"
@@ -2023,6 +2017,12 @@ completion-snapshots:
           objects: []
         - score: 55
           value: uncommitted
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "u"
+          location-qualified: "u"
+          objects: []
+        - score: 55
+          value: unencrypted
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "u"
           location-qualified: "u"

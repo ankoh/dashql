@@ -10,8 +10,8 @@ bazel_dep(name = "rules_cc", version = "0.2.22")
 bazel_dep(name = "rules_rust", version = "0.69.0")
 
 # wasm-bindgen extension: provides rust_wasm_bindgen (Rust cdylib -> JS glue + .wasm) for
-# the vendored UMAP crates (//packages/dashql-umap). Its default toolchain bundles
-# wasm-bindgen-cli 0.2.105, which is why the vendored crates pin wasm-bindgen "=0.2.105"
+# the core and shell wasm modules. Its default toolchain bundles
+# wasm-bindgen-cli 0.2.105, which is why @core_crates pins wasm-bindgen "=0.2.105"
 # (the CLI and the crate must match exactly). The extension's own module extension +
 # default_wasm_bindgen_toolchain registration are pulled in transitively.
 bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.69.0")
@@ -159,8 +159,8 @@ rust.toolchain(
     # runner's host arch -- macos-15 runners are Apple Silicon (aarch64 host), so
     # building the x86_64 slice is a cross-compile that needs x86_64-apple-darwin
     # registered as a target toolchain.
-    # wasm32-unknown-unknown is the target for the vendored UMAP crates
-    # (//packages/dashql-umap), compiled to a cdylib and run through rust_wasm_bindgen.
+    # wasm32-unknown-unknown is the target for the core and shell wasm modules,
+    # compiled to a cdylib and run through rust_wasm_bindgen.
     extra_target_triples = [
         "aarch64-apple-darwin",
         "x86_64-apple-darwin",
@@ -181,8 +181,6 @@ use_repo(app_version, "dashql_app_version")
 include("//bazel/crates:native.MODULE.bazel")
 
 include("//bazel/crates:core.MODULE.bazel")
-
-include("//bazel/crates:umap.MODULE.bazel")
 
 # Execution platforms: host first (default for non-wasm actions), then the neutral
 # wasm_tool_exec platform used by wasm_tool exec groups in wasm_tools.bzl / rust_wasm.bzl.

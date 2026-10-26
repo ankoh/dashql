@@ -5,10 +5,6 @@ CSV/Parquet is committed anywhere.
 
 `data.dashql.app` hosts real test datasets (à la
 [vega-datasets](https://github.com/vega/vega-datasets)) that sessions can query over HTTP.
-The immediate consumer is the umap renderer
-(`SELECT * FROM '<dataset-url>' VISUALIZE USING umap (...)`),
-which needs a query result with a `FLOAT[]` vector column — data that is impractical to
-synthesize convincingly.
 
 ## Design constraints
 
@@ -106,10 +102,6 @@ The SQL is fed to the CLI via a quoted heredoc, so arbitrary author SQL — sing
 quotes — passes through verbatim. A literal `$` must be written `$$` (standard Bazel genrule
 escaping). The output `.ext` is cosmetic: it becomes the R2 key and drives the upload
 `Content-Type`, but does not drive conversion (DuckDB reads sources by content, not extension).
-
-> **Embedding vectors** must be `FLOAT[]` (Float32), not `DOUBLE[]` — the renderer rejects
-> Float64 (`packages/dashql-app/src/compute/umap/umap_extraction.ts`). `CAST(… AS FLOAT[])` in the output SQL if the source ships
-> doubles.
 
 ### The vendored DuckDB CLI
 

@@ -1,13 +1,9 @@
 //! The visualize snapshots (snapshots/visualize/*.yaml).
 //!
-//! Renderers other than `umap` and `markdown`, including `table`, compare the Vega-Lite JSON and its round trip.
+//! Renderers other than `markdown`, including `table`, compare the Vega-Lite JSON and its round trip.
 
-use dashql_core_session::visualize::{
-    compile_markdown_spec, compile_umap_spec, generate_vegalite_spec, parse_vegalite_to_visualize,
-};
-use dashql_snapshots::encode::visualize::{
-    analyze_scripts, encode_dashboard_spec, encode_markdown_spec, encode_umap_spec,
-};
+use dashql_core_session::visualize::{compile_markdown_spec, generate_vegalite_spec, parse_vegalite_to_visualize};
+use dashql_snapshots::encode::visualize::{analyze_scripts, encode_dashboard_spec, encode_markdown_spec};
 use dashql_snapshots::{compare, load_category, run, Arguments, Failed, Trial, Yaml};
 
 /// Trim spaces and line breaks at both ends
@@ -40,13 +36,6 @@ fn run_case(node: &Yaml, name: &str) -> Result<(), String> {
         }
     }
 
-    if renderer == Some("umap") {
-        let umap = compile_umap_spec(spec, &analyzed).ok_or("no umap spec")?;
-        if !matches!(node["umap"], Yaml::BadValue) {
-            compare(&node["umap"], &encode_umap_spec(&umap).to_yaml()).map_err(|e| format!("umap: {e}"))?;
-        }
-        return Ok(());
-    }
     if renderer == Some("markdown") {
         let markdown = compile_markdown_spec(spec).ok_or("no markdown spec")?;
         if !matches!(node["markdown"], Yaml::BadValue) {

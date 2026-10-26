@@ -144,7 +144,7 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
             let renderer = lexer.lex(out);
             lookahead.push_back(renderer);
             match renderer.kind {
-                S_VEGALITE | S_UMAP | S_MARKDOWN | S_TABLE => Symbol {
+                S_VEGALITE | S_MARKDOWN | S_TABLE => Symbol {
                     kind: S_VISUALIZE_LA,
                     location: current.location,
                     value: SymbolValue::Text(if current.kind == S_VISUALISE { "visualise" } else { "visualize" }),

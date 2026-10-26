@@ -1,7 +1,7 @@
 /// Computes the content hash that keys a query result in the file-based query result cache.
 ///
 /// A result is cached as a pure function of `(connection params signature, script AST signature)`.
-/// Post-processing (analyze/UMAP projection) runs after the cache load, so it deliberately does NOT
+/// Post-processing (analyze) runs after the cache load, so it deliberately does NOT
 /// participate in the key.
 
 /// Deterministically serialize a value to JSON with object keys sorted at every level.

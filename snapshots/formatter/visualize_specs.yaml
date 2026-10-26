@@ -1221,60 +1221,6 @@ formatter-snapshots:
                 )
               );
 
-  - name: vis_umap_euclidean
-    input: |-
-      select * from t visualize using umap (vector => v, min_dist => -0.5, neighbors => +5, metric => euclidean, dashboard => (width => 4))
-    dialects:
-      hyper:
-        formatted:
-          - mode: inline
-            expected: |-
-              select * from t visualize using umap (vector => v, min_dist => -0.5, neighbors => 5, metric => euclidean, dashboard => (width => 4));
-          - mode: compact
-            expected: |-
-              select * from t
-              visualize using umap (
-                vector => v, min_dist => -0.5, neighbors => 5, metric => euclidean, dashboard => (width => 4)
-              );
-          - mode: pretty
-            expected: |-
-              select *
-              from t
-              visualize using umap (
-                vector => v,
-                min_dist => -0.5,
-                neighbors => 5,
-                metric => euclidean,
-                dashboard => (
-                  width => 4
-                )
-              );
-
-  - name: vis_umap_function_column
-    input: |-
-      select * from t visualize using umap (vector => cast(v as float), category => t.c, label => lower(n))
-    dialects:
-      hyper:
-        formatted:
-          - mode: inline
-            expected: |-
-              select * from t visualize using umap (vector => cast(v as real), category => t.c, label => lower(n));
-          - mode: compact
-            expected: |-
-              select * from t
-              visualize using umap (
-                vector => cast(v as real), category => t.c, label => lower(n)
-              );
-          - mode: pretty
-            expected: |-
-              select *
-              from t
-              visualize using umap (
-                vector => cast(v as real),
-                category => t.c,
-                label => lower(n)
-              );
-
   - name: vis_markdown_dashboard
     input: |-
       select a from t visualize using markdown (template => '**{{a}}**', dashboard => (row => 0, column => 0, width => 12, height => 2))
@@ -1325,22 +1271,22 @@ formatter-snapshots:
 
   - name: vis_empty_renderer_specs
     input: |-
-      select * from t visualize using umap ()
+      select * from t visualize using table ()
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              select * from t visualize using umap ();
+              select * from t visualize using table ();
           - mode: compact
             expected: |-
               select * from t
-              visualize using umap ();
+              visualize using table ();
           - mode: pretty
             expected: |-
               select *
               from t
-              visualize using umap ();
+              visualize using table ();
 
   - name: vis_empty_nested
     input: |-

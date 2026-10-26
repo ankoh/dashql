@@ -144,7 +144,7 @@ export function VegaLiteView(props: Props): React.ReactElement {
 
     // Prefer the analyzed data table (it carries the cross-filter row-id indirection); fall back
     // to the raw result table when there is no computation registered. The analyzed table is a
-    // superset of the result columns (system / umap columns are ignored by the spec).
+    // superset of the result columns (system columns are ignored by the spec).
     const tableComputation = queryId != null ? computationState.tableComputations[queryId] ?? null : null;
     const dataTable = tableComputation?.dataTable ?? (succeeded ? props.query?.resultTable ?? null : null);
     const rowNumberColumnName = tableComputation?.rowNumberColumnName ?? null;

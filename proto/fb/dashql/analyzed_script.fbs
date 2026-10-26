@@ -2,7 +2,6 @@ include "dashql/parsed_script.fbs";
 include "dashql/parsed_script_enums.fbs";
 include "dashql/algebra_expressions.fbs";
 include "dashql/markdown.fbs";
-include "dashql/umap.fbs";
 include "dashql/visualization.fbs";
 
 namespace dashql.buffers.analyzer;
@@ -311,15 +310,11 @@ table VisualizationSpec {
     source_ast_node_id: uint32;
     /// The AST node id of the input query for INLINE_SELECT
     source_inline_select_ast_node_id: uint32;
-    /// The visualization renderer named after `USING` (e.g. `vegalite`, `umap`)
+    /// The visualization renderer named after `USING` (e.g. `vegalite`, `markdown`)
     renderer: string;
     /// The pretty-printed Vega-Lite JSON specification (without the `data` field).
     /// Only populated when `renderer` is `vegalite`.
     vegalite_spec: string;
-    /// The compiled UMAP projection spec.
-    /// Only populated when `renderer` is `umap`. The 2D projection itself runs
-    /// client-side at render time; the analyzer records only column names + projection params.
-    umap_spec: visualization.UmapSpec;
     /// The compiled Markdown row-template AST. Only populated when `renderer`
     /// is `markdown`.
     markdown_spec: visualization.MarkdownSpec;

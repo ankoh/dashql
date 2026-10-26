@@ -159,8 +159,6 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                     <dependencies.VisualizationDispatch
                         query={query}
                         visualizeQuery={visualizeQuery}
-                        interactive
-                        wheelZoom
                         hideLegend={props.placement.width < 5}
                     />
                 )}

@@ -449,14 +449,13 @@ planner-snapshots:
 
   - name: VisualizationRenderers
     catalog: |
-      create table sales (category text, revenue int, embedding float[]);
+      create table sales (category text, revenue int);
     scripts:
       - name: queries
         input: |
           select category, revenue from sales visualize using vegalite (mark => bar, encoding => (x => category, y => revenue));
           select category, revenue from sales visualize using table (dashboard => (row => 0, column => 0, width => 6, height => 2));
           select category from sales visualize using markdown (template => '{{category}}');
-          select embedding from sales visualize using umap (vector => embedding);
     expected:
       valid: true
       scripts:
@@ -495,16 +494,6 @@ planner-snapshots:
           statement-id: 2
           type: VIS_VISUALISE
           sql: "select category from sales"
-          produces-output: true
-          barrier: false
-          accesses:
-            - entity: '256.65536.4294967296'
-              mode: READ
-        - id: 3
-          script: queries
-          statement-id: 3
-          type: VIS_VISUALISE
-          sql: "select embedding from sales"
           produces-output: true
           barrier: false
           accesses:

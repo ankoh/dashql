@@ -234,15 +234,6 @@ analyzer-snapshots:
         SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, encoding => (x => category));
         SELECT * FROM sales VISUALIZE USING vegalite (mark => line, encoding => (x => date, y => revenue));
 
-  # A umap spec without vector
-  - name: vis_umap_missing_vector
-    catalog:
-      script:
-        input: |-
-          create table sales (category text, revenue int, date timestamp);
-    script:
-      input: SELECT * FROM sales VISUALIZE USING umap (category => category);
-
   # A markdown spec without a template
   - name: vis_markdown_without_template
     catalog:

@@ -159,31 +159,6 @@ parser-snapshots:
   - name: vis_statement_keyword_collision_vis_keywords_as_columns
     input: |
       SELECT mark, encoding, field, axis, legend FROM t;
-  - name: vis_statement_umap_minimal
-    input: |
-      SELECT * FROM embeddings VISUALIZE USING umap (vector => embedding);
-  - name: vis_statement_umap_category_label
-    input: |
-      SELECT * FROM embeddings VISUALIZE USING umap (
-        vector => embedding,
-        category => cluster_id,
-        label => name
-      );
-  - name: vis_statement_umap_projection
-    input: |
-      SELECT * FROM embeddings VISUALIZE USING umap (
-        vector => embedding,
-        category => cluster_id,
-        neighbors => 15,
-        min_dist => 0.1,
-        metric => cosine
-      );
-  - name: vis_statement_umap_select_source
-    input: |
-      SELECT embedding FROM embeddings VISUALIZE USING umap (vector => embedding);
-  - name: vis_statement_umap_keywords_as_columns
-    input: |
-      SELECT vector, category, neighbors, min_dist, metric, umap FROM t;
   - name: vis_statement_markdown
     input: |
       SELECT product, revenue FROM product_summary VISUALIZE USING markdown (

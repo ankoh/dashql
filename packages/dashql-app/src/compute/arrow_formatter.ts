@@ -306,8 +306,8 @@ export interface ArrowValueFormatter {
 
 /// Build a value formatter for an Arrow field. This is the single source of truth for how each
 /// Arrow type renders as text — `ArrowTextColumnFormatter` uses it per column, and callers that
-/// need to format an individual cell (e.g. the UMAP selected-point attributes) reuse it directly
-/// instead of hand-rolling per-type stringification.
+/// need to format an individual cell reuse it directly instead of hand-rolling per-type
+/// stringification.
 export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike): ArrowValueFormatter {
     // The default: an unknown/unsupported type renders as empty text.
     let valueClassName = styles.data_value_text;

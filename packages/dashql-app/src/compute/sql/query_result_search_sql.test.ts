@@ -48,7 +48,6 @@ describe('query result search SQL', () => {
                 inputFieldNullable: true,
                 statsFields: null,
                 valueIdFieldName: null,
-                umapProjection: null,
             },
         },
         {

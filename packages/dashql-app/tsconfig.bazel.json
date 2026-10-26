@@ -18,7 +18,7 @@
             "@ankoh/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"],
             "@dashql/browser-test-act": ["./src/tests/react_act.ts"]
         },
-        "types": ["node", "vitest/globals", "vite/client", "@webgpu/types"],
+        "types": ["node", "vitest/globals", "vite/client"],
         "lib": ["es6", "es2020", "dom"],
         "allowJs": true,
         "noEmit": true,

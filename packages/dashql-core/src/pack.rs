@@ -511,13 +511,12 @@ fn pack_expression(script: &AnalyzedScript, expr: &Expression) -> ExpressionT {
     })
 }
 
-/// The renderer-specific packing of a visualization spec: (vegalite json, umap spec, markdown spec)
+/// The renderer-specific packing of a visualization spec: (vegalite json, markdown spec)
 pub type VisualizationPacker = dyn Fn(
     &AnalyzedScript,
     &VisualizationSpec,
 ) -> (
     Option<String>,
-    Option<Box<dashql_buffers::visualization::UmapSpecT>>,
     Option<Box<dashql_buffers::visualization::MarkdownSpecT>>,
 );
 
@@ -662,7 +661,7 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
         .visualization_specs
         .iter()
         .map(|spec| {
-            let (vegalite_spec, umap_spec, markdown_spec) = visualize(script, spec);
+            let (vegalite_spec, markdown_spec) = visualize(script, spec);
             build!(VisualizationSpecT {
                 ast_node_id: spec.ast_node_id,
                 ast_statement_id: spec.ast_statement_id.unwrap_or(PROTO_NULL_U32),
@@ -674,7 +673,6 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
                     .unwrap_or(PROTO_NULL_U32),
                 renderer: spec.renderer.clone(),
                 vegalite_spec,
-                umap_spec,
                 markdown_spec,
                 dashboard: Some(Box::new(build!(DashboardSpecT {
                     row: spec.dashboard.row,

@@ -4,7 +4,7 @@ use super::{plain, Map};
 use crate::ryml::Node;
 use dashql_buffers::visualization::MarkdownNodeType;
 use dashql_core::analyzer::{AnalyzedScript, DashboardSpec};
-use dashql_core_session::visualize::{MarkdownDocument, MarkdownNode, UmapDocument};
+use dashql_core_session::visualize::{MarkdownDocument, MarkdownNode};
 
 /// Analyze a script of a visualize snapshot case: the catalog script (if any) is analyzed and loaded
 /// into the connection layer, then the main script is analyzed
@@ -100,33 +100,6 @@ pub fn encode_markdown_spec(spec: &MarkdownDocument) -> Node {
     }
     map.insert("fields", Node::seq(spec.fields.iter().map(|f| plain(f)).collect()));
     map.insert("document", encode_markdown_node(&spec.document));
-    map.into_node()
-}
-
-/// Encode a UMAP spec
-pub fn encode_umap_spec(spec: &UmapDocument) -> Node {
-    let mut map = Map::new();
-    map.plain("vector-column", &spec.vector_column);
-    if !spec.category_column.is_empty() {
-        map.plain("category-column", &spec.category_column);
-    }
-    if !spec.label_column.is_empty() {
-        map.plain("label-column", &spec.label_column);
-    }
-    let mut projection = Map::new();
-    projection.plain("method", "umap");
-    if let Some(p) = &spec.projection {
-        if !p.metric.is_empty() {
-            projection.plain("metric", &p.metric);
-        }
-        if let Some(neighbors) = p.neighbors {
-            projection.plain("neighbors", &super::analyzer::format_double(neighbors));
-        }
-        if let Some(min_dist) = p.min_dist {
-            projection.plain("min-dist", &super::analyzer::format_double(min_dist));
-        }
-    }
-    map.insert("projection", projection.into_node());
     map.into_node()
 }
 

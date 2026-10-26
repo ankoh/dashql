@@ -18,8 +18,7 @@ const FEED_LIMIT_RESULT_ROWS = 6;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
 const FEED_LIMIT_LOG_ROWS = 6;
 /// Cap the Vega-Lite chart height in the feed footer so a single vis entry doesn't dominate the
-/// feed while scrolling. Only the vega-lite renderer honors this; the umap scatter fills its
-/// container as before.
+/// feed while scrolling. Only the vega-lite renderer honors this.
 const FEED_VISUALIZATION_HEIGHT = 180;
 
 const enum FooterTab {
@@ -191,8 +190,6 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                             query={props.queryState}
                             visualizeQuery={props.visualizeQuery}
                             height={FEED_VISUALIZATION_HEIGHT}
-                            transparent
-                            wheelZoom={false}
                         />
                     </div>
                 )}

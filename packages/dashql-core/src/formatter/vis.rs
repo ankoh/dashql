@@ -153,12 +153,6 @@ fn get_vis_attribute_key_text(key: AttributeKey) -> &'static str {
         K::VIS_MARK_TENSION => "tension",
         K::VIS_MARK_THICKNESS => "thickness",
         K::VIS_MARK_TOOLTIP => "tooltip",
-        K::VIS_UMAP_SPEC_VECTOR => "vector",
-        K::VIS_UMAP_SPEC_CATEGORY => "category",
-        K::VIS_UMAP_SPEC_LABEL => "label",
-        K::VIS_UMAP_SPEC_METRIC => "metric",
-        K::VIS_UMAP_SPEC_NEIGHBORS => "neighbors",
-        K::VIS_UMAP_SPEC_MIN_DIST => "min_dist",
         K::VIS_MARKDOWN_SPEC_TEMPLATE => "template",
         K::VIS_DASHBOARD_ROW => "row",
         K::VIS_DASHBOARD_COLUMN => "column",
@@ -285,7 +279,6 @@ impl<'a> Formatter<'a> {
         let is_top_level_spec = matches!(
             node.node_type(),
             NodeType::OBJECT_VIS_SPEC
-                | NodeType::OBJECT_VIS_UMAP_SPEC
                 | NodeType::OBJECT_VIS_MARKDOWN_SPEC
                 | NodeType::OBJECT_VIS_TABLE_SPEC
         );

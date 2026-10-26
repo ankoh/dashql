@@ -20,14 +20,12 @@ use dashql_core::formatter::{
 };
 use dashql_core::script_diff::ScriptDiff;
 use dashql_core_view::PlanViewModel;
-use dashql_core_session::visualize::{
-    compile_markdown_spec, compile_umap_spec, generate_vegalite_spec, parse_vegalite_to_visualize,
-};
+use dashql_core_session::visualize::{compile_markdown_spec, generate_vegalite_spec, parse_vegalite_to_visualize};
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::{scan, ScannedScript};
 use dashql_snapshots::encode::completion::encode_completion;
 use dashql_snapshots::encode::plan_view_model::{encode_plan_view_model, snapshot_config};
-use dashql_snapshots::encode::visualize::{encode_markdown_spec, encode_umap_spec};
+use dashql_snapshots::encode::visualize::encode_markdown_spec;
 use dashql_snapshots::encode::{analyzer, diff, encode_location_text, parser, planner, Map};
 use dashql_snapshots::ryml::{self, Node};
 use dashql_snapshots::trim_input;
@@ -315,14 +313,10 @@ fn generate_visualize_snapshots(dir: &Path) {
             let Some(spec) = analyzed.visualization_specs.first() else { continue };
             let renderer = spec.renderer.as_deref();
             // Stale keys of either renderer are cleared, so switching the renderer leaves no output behind
-            for key in ["vegalite", "roundtrip", "umap", "markdown"] {
+            for key in ["vegalite", "roundtrip", "markdown"] {
                 test.remove(key);
             }
             match renderer {
-                Some("umap") => {
-                    let Some(umap) = compile_umap_spec(spec, &analyzed) else { continue };
-                    test.push("umap", encode_umap_spec(&umap));
-                }
                 Some("markdown") => {
                     let Some(markdown) = compile_markdown_spec(spec) else { continue };
                     test.push("markdown", encode_markdown_spec(&markdown));

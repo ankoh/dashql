@@ -3,5 +3,4 @@
 exports_files([
     "core/Cargo.lock",
     "native/Cargo.lock",
-    "umap/Cargo.lock",
 ])

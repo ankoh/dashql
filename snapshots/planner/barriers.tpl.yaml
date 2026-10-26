@@ -86,14 +86,13 @@ planner-snapshots:
   # VISUALIZE statements of every renderer
   - name: VisualizationRenderers
     catalog: |
-      create table sales (category text, revenue int, embedding float[]);
+      create table sales (category text, revenue int);
     scripts:
       - name: queries
         input: |
           select category, revenue from sales visualize using vegalite (mark => bar, encoding => (x => category, y => revenue));
           select category, revenue from sales visualize using table (dashboard => (row => 0, column => 0, width => 6, height => 2));
           select category from sales visualize using markdown (template => '{{category}}');
-          select embedding from sales visualize using umap (vector => embedding);
 
   # EXPLAIN without a body
   - name: ExplainWithoutBody

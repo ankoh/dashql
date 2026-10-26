@@ -72,47 +72,6 @@ genrule(
     """,
     visibility = ["//visibility:private"],
 )
-genrule(
-    name = "dep_umap_wasm",
-    srcs = [
-        "//packages/dashql-umap:wasm",
-        "//packages/dashql-umap:js",
-    ],
-    outs = [
-        "dependencies/umap-wasm/index.js",
-        "dependencies/umap-wasm/index.d.ts",
-        "dependencies/umap-wasm/pkg/umap_wasm.js",
-        "dependencies/umap-wasm/pkg/umap_wasm.d.ts",
-        "dependencies/umap-wasm/pkg/umap_wasm_bg.wasm",
-    ],
-    cmd = """
-        # Stage the vendored UMAP wasm module for the app. The hand-written
-        # umap-wasm/index.js imports "./pkg/umap_wasm.js" (the wasm-bindgen glue),
-        # which in turn does new URL("umap_wasm_bg.wasm", import.meta.url). So the
-        # runtime layout must be:
-        #   dependencies/umap-wasm/index.js
-        #   dependencies/umap-wasm/pkg/umap_wasm.js
-        #   dependencies/umap-wasm/pkg/umap_wasm_bg.wasm  <- the OPTIMIZED module
-        #
-        # :wasm (the optimize_wasm output) and :js (index.{js,d.ts} + the whole
-        # umap_bindgen bundle, which also carries its own UNoptimized
-        # umap_bindgen/umap_wasm_bg.wasm) both flow in via $(SRCS); we take the glue
-        # + types from umap_bindgen/ but the .wasm from the optimized :wasm output.
-        OUT_DIR="$(RULEDIR)/dependencies/umap-wasm"
-        mkdir -p "$$OUT_DIR/pkg"
-        for src in $(SRCS); do
-            case "$$src" in
-                */umap_bindgen/umap_wasm.js)   cp "$$src" "$$OUT_DIR/pkg/umap_wasm.js" ;;
-                */umap_bindgen/umap_wasm.d.ts) cp "$$src" "$$OUT_DIR/pkg/umap_wasm.d.ts" ;;
-                */umap_bindgen/*)              : ;;  # skip umap_bindgen's UNoptimized .wasm + .wasm.d.ts
-                */umap-wasm/index.js)          cp "$$src" "$$OUT_DIR/index.js" ;;
-                */umap-wasm/index.d.ts)        cp "$$src" "$$OUT_DIR/index.d.ts" ;;
-                *umap_wasm_bg.wasm)            cp "$$src" "$$OUT_DIR/pkg/umap_wasm_bg.wasm" ;;  # the optimized :wasm output
-            esac
-        done
-    """,
-    visibility = ["//visibility:private"],
-)
 filegroup(
     name = "svg_logo_files",
     srcs = glob(["static/svg/logo/*.svg"]),
@@ -138,7 +97,6 @@ genrule(
         "//:package.json",
         ":dep_protobuf",
         ":dep_shell_wasm",
-        ":dep_umap_wasm",
         ":dep_svg_symbols",
     ],
     outs = ["vite.config.generated.ts"],
@@ -155,7 +113,6 @@ genrule(
             -e "s|__CORE_PATH__|../../node_modules/@ankoh/dashql-core/dist|g" \\
             -e "s|__SHELL_JS_PATH__|./dependencies/dashql-shell-wasm/dashql_shell.js|g" \\
             -e "s|__SHELL_WASM_PATH__|./dependencies/dashql-shell-wasm/dashql_shell.wasm|g" \\
-            -e "s|__UMAP_JS_PATH__|./dependencies/umap-wasm/index.js|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
@@ -189,7 +146,6 @@ genrule(
             -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema|g" \
             -e "s|__SHELL_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-shell-wasm/dashql_shell.js|g" \
             -e "s|__SHELL_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-shell-wasm/dashql_shell.wasm|g" \
-            -e "s|__UMAP_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/umap-wasm/index.js|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
             -e "s|__SNIPPETS_PATH__|../../examples/snippets|g" \
             $(location vite.config.tpl.ts) > $@
@@ -214,7 +170,6 @@ copy_to_bin(
         "src/**/*.ts",
         "src/**/*.tsx",
         "src/**/*.js",
-        "src/**/*.wgsl",
         "hyperdb-capability.html",
         "index.html",
         "oauth.html",
@@ -287,7 +242,6 @@ _vite_web_deps = [
     ":dep_protobuf",
     ":dep_jsonschema",
     ":dep_shell_wasm",
-    ":dep_umap_wasm",
     ":dep_svg_symbols",
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/@codemirror/commands",
@@ -310,7 +264,6 @@ _vite_web_deps = [
     "//:node_modules/@xterm/xterm",
     "//:node_modules/apache-arrow",
     "//:node_modules/d3",
-    "//:node_modules/d3-color",
     "//:node_modules/flatbuffers",
     "//:node_modules/hyperdb-wasm",
     "//:node_modules/immutable",
@@ -428,7 +381,6 @@ sh_binary(
         ":dep_protobuf",
         ":dep_jsonschema",
         ":dep_shell_wasm",
-        ":dep_umap_wasm",
         ":dep_svg_symbols",
     ],
     visibility = ["//visibility:public"],

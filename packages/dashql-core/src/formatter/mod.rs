@@ -2746,7 +2746,6 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_NARY_EXPRESSION => self.format_expression(node_id),
             NodeType::OBJECT_VIS_VISUALISE => self.format_visualize(node_id),
             NodeType::OBJECT_VIS_SPEC
-            | NodeType::OBJECT_VIS_UMAP_SPEC
             | NodeType::OBJECT_VIS_MARKDOWN_SPEC
             | NodeType::OBJECT_VIS_TABLE_SPEC
             | NodeType::OBJECT_VIS_DASHBOARD_SPEC

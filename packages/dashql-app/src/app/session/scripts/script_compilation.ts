@@ -112,12 +112,6 @@ export function resolveCompiledVisualization(
 ): ResolvedVisualizeQuery | null {
     const dashboardSpec = visualization.dashboard ?? null;
     switch (visualization.renderer) {
-        case 'umap': {
-            const umapSpec = visualization.umapSpec;
-            return umapSpec && typeof umapSpec.vectorColumn === 'string' && umapSpec.vectorColumn.length > 0
-                ? { renderer: 'umap', sql, umapSpec, dashboardSpec }
-                : null;
-        }
         case 'markdown': {
             const markdownSpec = visualization.markdownSpec;
             return markdownSpec?.document ? { renderer: 'markdown', sql, markdownSpec, dashboardSpec } : null;

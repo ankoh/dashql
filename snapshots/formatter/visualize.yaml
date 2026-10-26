@@ -347,57 +347,6 @@ formatter-snapshots:
                 )
               );
 
-  - name: vis_umap_minimal
-    input: |-
-      select * from embeddings visualize using umap (vector => embedding)
-    dialects:
-      hyper:
-        formatted:
-          - mode: inline
-            expected: |-
-              select * from embeddings visualize using umap (vector => embedding);
-          - mode: compact
-            expected: |-
-              select * from embeddings
-              visualize using umap (
-                vector => embedding
-              );
-          - mode: pretty
-            expected: |-
-              select *
-              from embeddings
-              visualize using umap (
-                vector => embedding
-              );
-
-  - name: vis_umap_full
-    input: |-
-      select * from embeddings visualize using umap (vector => embedding, category => cluster_id, label => name, neighbors => 15, min_dist => 0.1, metric => cosine)
-    dialects:
-      hyper:
-        formatted:
-          - mode: inline
-            expected: |-
-              select * from embeddings visualize using umap (vector => embedding, category => cluster_id, label => name, neighbors => 15, min_dist => 0.1, metric => cosine);
-          - mode: compact
-            expected: |-
-              select * from embeddings
-              visualize using umap (
-                vector => embedding, category => cluster_id, label => name, neighbors => 15, min_dist => 0.1, metric => cosine
-              );
-          - mode: pretty
-            expected: |-
-              select *
-              from embeddings
-              visualize using umap (
-                vector => embedding,
-                category => cluster_id,
-                label => name,
-                neighbors => 15,
-                min_dist => 0.1,
-                metric => cosine
-              );
-
   - name: vis_markdown
     input: |-
       select product, revenue from product_summary visualize using markdown (template => '## {{product}}: {{revenue}}')

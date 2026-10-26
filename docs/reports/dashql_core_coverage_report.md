@@ -22,7 +22,6 @@ Line coverage of the Rust core (`dashql-core`, `dashql-parser`) from the `bazel 
 | dashql-core/src/utils/rope.rs | 74/74 | 100.0% | 100.0% |
 | dashql-core/src/visualize/markdown/tests.rs | 96/96 | 100.0% | 100.0% |
 | dashql-core/src/visualize/tests.rs | 82/82 | 100.0% | 100.0% |
-| dashql-core/src/visualize/umap.rs | 32/32 | 100.0% | 100.0% |
 | dashql-core/src/view/tests.rs | 460/461 | 99.8% | 99.8% |
 | dashql-core/src/shell/prompt_buffer.rs | 311/312 | 99.7% | 93.9% |
 | dashql-core/src/script.rs | 313/315 | 99.4% | 94.9% |

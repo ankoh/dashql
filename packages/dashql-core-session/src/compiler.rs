@@ -12,7 +12,7 @@ use dashql_buffers::execution::{
 };
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_buffers::parser::{AttributeKey, NodeType, ParsedScriptFeature, StatementType, TextSpanT};
-use dashql_buffers::visualization::{DashboardSpecT, MarkdownSpec, TableSpecT, UmapSpec};
+use dashql_buffers::visualization::{DashboardSpecT, MarkdownSpec, TableSpecT};
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::{ParsedScript, Statement};
@@ -125,14 +125,6 @@ pub fn compile_visualization(spec: &VisualizationSpec, script: &AnalyzedScript) 
     out.dashboard = Some(Box::new(dashboard));
     match renderer.as_str() {
         "vegalite" => out.vegalite_spec = Some(visualize::generate_vegalite_spec(spec, script)),
-        "umap" => {
-            let doc = visualize::compile_umap_spec(spec, script).filter(|d| !d.vector_column.is_empty());
-            let doc = doc.ok_or("UMAP visualization requires a vector field")?;
-            let mut builder = flatbuffers::FlatBufferBuilder::new();
-            let packed = visualize::pack_umap_spec(&mut builder, &doc);
-            builder.finish(packed, None);
-            out.umap_spec = Some(Box::new(flatbuffers::root::<UmapSpec>(builder.finished_data()).unwrap().unpack()));
-        }
         "markdown" => {
             let doc = visualize::compile_markdown_spec(spec).ok_or("could not compile Markdown visualization spec")?;
             let mut builder = flatbuffers::FlatBufferBuilder::new();

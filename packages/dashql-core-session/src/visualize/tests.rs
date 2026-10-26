@@ -61,12 +61,11 @@ fn rejects_dashboard_in_nested_vega_layer() {
 fn accepts_dashboard_for_every_renderer_root() {
     for renderer_spec in [
         "vegalite (mark => bar, dashboard => (width => 7))",
-        "umap (vector => embedding, dashboard => (width => 7))",
         "markdown (template => '{{value}}', dashboard => (width => 7))",
         "table (dashboard => (width => 7))",
     ] {
         let catalog = Catalog::new();
-        let parsed = parse_text(&catalog, &format!("SELECT value, embedding VISUALIZE USING {renderer_spec}"));
+        let parsed = parse_text(&catalog, &format!("SELECT value VISUALIZE USING {renderer_spec}"));
         assert!(parsed.errors.is_empty(), "{renderer_spec}: {:?}", parsed.errors);
         let analyzed = analyze(parsed, &catalog).unwrap();
         assert!(!analyzed.visualization_specs.is_empty());
@@ -76,32 +75,11 @@ fn accepts_dashboard_for_every_renderer_root() {
 
 #[test]
 fn compiles_renderer_specs() {
-    let analyzed = analyze_text(
-        "SELECT embedding, cluster_id FROM t VISUALIZE USING umap (vector => embedding, category => cluster_id, \
-         neighbors => 15, min_dist => 0.1, metric => cosine)",
-    );
-    let spec = &analyzed.visualization_specs[0];
-    assert!(compile_markdown_spec(spec).is_none());
-    let umap = compile_umap_spec(spec, &analyzed).unwrap();
-    assert_eq!(umap.vector_column, "embedding");
-    assert_eq!(umap.category_column, "cluster_id");
-    assert_eq!(umap.label_column, "");
-    let projection = umap.projection.as_ref().unwrap();
-    assert_eq!(projection.metric, "cosine");
-    assert_eq!(projection.neighbors, Some(15.0));
-    assert_eq!(projection.min_dist, Some(0.1));
-
-    let mut builder = flatbuffers::FlatBufferBuilder::new();
-    let packed = pack_umap_spec(&mut builder, &umap);
-    builder.finish(packed, None);
-    let packed = flatbuffers::root::<dashql_buffers::visualization::UmapSpec>(builder.finished_data()).unwrap();
-    assert_eq!(packed.vector_column(), Some("embedding"));
-    assert_eq!(packed.label_column(), None);
-    assert_eq!(packed.projection().unwrap().neighbors(), Some(15.0));
+    let analyzed = analyze_text("SELECT 1 AS value VISUALIZE USING table ()");
+    assert!(compile_markdown_spec(&analyzed.visualization_specs[0]).is_none());
 
     let analyzed = analyze_text("SELECT 'item' AS product VISUALIZE USING markdown (template => '## {{product}}')");
     let spec = &analyzed.visualization_specs[0];
-    assert!(compile_umap_spec(spec, &analyzed).is_none());
     let markdown = compile_markdown_spec(spec).unwrap();
     assert_eq!(markdown.template, "## {{product}}");
     assert_eq!(markdown.fields, vec!["product"]);

@@ -64,7 +64,7 @@ function useQueryComputation(
             const id = allocateQueryId();
             try {
                 // The table has no connection, the client context attributes the queries of its computation
-                await analyzeTable(id, table, dispatch, database, logger, undefined, null, { clientContext, columnAggregates: false });
+                await analyzeTable(id, table, dispatch, database, logger, null, { clientContext, columnAggregates: false });
                 const previous = current.shown;
                 const ordering = previous == null ? [] : computations.current.tableComputations[previous]?.dataTableOrdering ?? [];
                 const fields = new Set(table.schema.fields.map(field => field.name));

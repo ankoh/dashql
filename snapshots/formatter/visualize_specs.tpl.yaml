@@ -202,24 +202,6 @@ formatter-snapshots:
     dialects:
       hyper:
 
-  # UMAP with euclidean metric and signed numbers
-  - name: vis_umap_euclidean
-    input: |-
-      select * from t visualize using umap (vector => v, min_dist => -0.5, neighbors => +5, metric => euclidean, dashboard => (width => 4))
-    dialects:
-      hyper:
-
-  # UMAP column expressions
-  - name: vis_umap_function_column
-    input: |-
-      select * from t visualize using umap (vector => cast(v as float), category => t.c, label => lower(n))
-    dialects:
-      hyper:
-
-
-
-
-
   # Markdown with dashboard placement
   - name: vis_markdown_dashboard
     input: |-
@@ -233,9 +215,9 @@ formatter-snapshots:
     dialects:
       hyper:
 
-  # Empty umap, table and markdown specs
+  # Empty table spec
   - name: vis_empty_renderer_specs
-    input: select * from t visualize using umap ()
+    input: select * from t visualize using table ()
     dialects:
       hyper:
 

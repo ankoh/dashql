@@ -1,4 +1,4 @@
-# The core wasm module shipped by @ankoh/dashql-core (same pipeline as //packages/dashql-umap).
+# The core wasm module shipped by @ankoh/dashql-core.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 

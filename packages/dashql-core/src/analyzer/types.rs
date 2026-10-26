@@ -934,32 +934,6 @@ impl Default for DashboardSpec {
     }
 }
 
-/// UMAP projection parameters
-#[derive(Clone, Debug, Default)]
-pub struct UmapProjection {
-    /// The distance metric (e.g. `cosine`, `euclidean`)
-    pub metric: Option<String>,
-    /// The number of neighbors (UMAP nNeighbors)
-    pub neighbors: Option<f64>,
-    /// The minimum distance (UMAP minDist)
-    pub min_dist: Option<f64>,
-}
-
-/// A UMAP spec
-#[derive(Clone, Debug, Default)]
-pub struct UmapSpec {
-    /// The AST node id of the UMAP spec object
-    pub ast_node_id: u32,
-    /// The expression id of the `vector` column
-    pub vector_expression_id: Option<u32>,
-    /// The expression id of the optional `category` column
-    pub category_expression_id: Option<u32>,
-    /// The expression id of the optional `label` column
-    pub label_expression_id: Option<u32>,
-    /// The projection parameters
-    pub projection: UmapProjection,
-}
-
 /// A Markdown spec
 #[derive(Clone, Debug, Default)]
 pub struct MarkdownSpec {
@@ -1015,8 +989,6 @@ pub struct VisualizationSpec {
     pub layers: Vec<VegaLiteSpec>,
     /// The Vega-Lite scale/axis/legend resolution settings
     pub resolve: Option<VisResolve>,
-    /// The UMAP spec, present if the spec is a UMAP spec
-    pub umap: Option<UmapSpec>,
     /// The Markdown spec, present if the spec is a Markdown spec
     pub markdown: Option<MarkdownSpec>,
 }

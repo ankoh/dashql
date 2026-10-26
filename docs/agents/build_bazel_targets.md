@@ -373,7 +373,6 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
 | `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-session`, `dashql-core-shell`, `dashql-core-view`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-shell-wasm` |
-| `@umap_crates` | `bazel/crates/umap.MODULE.bazel` | `dashql-umap` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

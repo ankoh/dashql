@@ -222,23 +222,6 @@ fn visualize_markdown() {
 }
 
 #[test]
-fn visualize_umap() {
-    let result = compile_text("create table e (v float[]); select v from e visualize using umap (vector => v)");
-    assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
-    let visualization = result.visualization.as_ref().unwrap();
-    assert_eq!(visualization.renderer.as_deref(), Some("umap"));
-    assert!(visualization.umap_spec.is_some());
-}
-
-#[test]
-fn visualize_umap_requires_a_vector() {
-    let result = compile_text("select 1 as v visualize using umap ()");
-    assert_eq!(error_codes(&result), vec![ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE]);
-    assert_eq!(result.sql.as_deref(), Some(""));
-    assert!(result.visualization.is_none());
-}
-
-#[test]
 fn executable_text_replaces_obfuscated_literals() {
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);

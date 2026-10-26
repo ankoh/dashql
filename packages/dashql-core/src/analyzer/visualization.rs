@@ -247,29 +247,6 @@ fn extract_vis_mark(state: &AnalysisState, node: &Node) -> VisMark {
     mark
 }
 
-fn read_column_expression_id(state: &AnalysisState, node: &Node) -> Option<u32> {
-    state.expression_of(state.node_id(node))
-}
-
-fn extract_umap_spec(state: &AnalysisState, node: &Node) -> UmapSpec {
-    let mut spec = UmapSpec {
-        ast_node_id: state.node_id(node),
-        ..Default::default()
-    };
-    for child in state.children(node) {
-        match child.attribute_key() {
-            K::VIS_UMAP_SPEC_VECTOR => spec.vector_expression_id = read_column_expression_id(state, child),
-            K::VIS_UMAP_SPEC_CATEGORY => spec.category_expression_id = read_column_expression_id(state, child),
-            K::VIS_UMAP_SPEC_LABEL => spec.label_expression_id = read_column_expression_id(state, child),
-            K::VIS_UMAP_SPEC_METRIC => spec.projection.metric = read_text_value(state, Some(child)),
-            K::VIS_UMAP_SPEC_NEIGHBORS => spec.projection.neighbors = read_numeric_value(state, Some(child)),
-            K::VIS_UMAP_SPEC_MIN_DIST => spec.projection.min_dist = read_numeric_value(state, Some(child)),
-            _ => {}
-        }
-    }
-    spec
-}
-
 fn extract_markdown_spec(state: &AnalysisState, node: &Node) -> MarkdownSpec {
     let [template] = attrs!(state.children(node), [K::VIS_MARKDOWN_SPEC_TEMPLATE]);
     MarkdownSpec {
@@ -676,7 +653,6 @@ impl AnalyzeVisualizationPass {
                 };
                 if let Some(spec_node) = spec_node {
                     match spec_node.node_type() {
-                        NodeType::OBJECT_VIS_UMAP_SPEC => spec.umap = Some(extract_umap_spec(state, spec_node)),
                         NodeType::OBJECT_VIS_MARKDOWN_SPEC => spec.markdown = Some(extract_markdown_spec(state, spec_node)),
                         _ => {}
                     }
