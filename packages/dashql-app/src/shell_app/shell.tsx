@@ -16,11 +16,15 @@ import { ShellComputeQueryExecutionProvider } from './computation_query_executio
 import { AppConfigProvider } from '../app/config/app_config.js';
 import { PlatformEventListenerProvider } from '../platform/events/event_listener_provider.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
+import { FlavorProvider } from '../app/flavor/flavor_provider.js';
+import { getRequestedFlavor } from '../app/flavor/flavor_resolution.js';
+import { DASHQL_FLAVOR } from '../app/flavor/flavors.js';
 import * as styles from './shell.module.css';
 
 import '../../static/fonts/fonts.css';
 import '../styles/colors.css';
 import '../styles/globals.css';
+import '../styles/flavors/sidb.css';
 
 export const Shell: React.FC = () => {
     const [engineVersion, setEngineVersion] = React.useState<string | null>(null);
@@ -67,5 +71,13 @@ export const Shell: React.FC = () => {
     );
 };
 
+// The shell is branded for Hyper, only a flavor other than the default one rebrands it
+const requested = getRequestedFlavor();
+const flavor = requested?.id === DASHQL_FLAVOR.id ? null : requested;
+
 const element = document.getElementById('root');
-createRoot(element!).render(<Shell />);
+createRoot(element!).render(flavor == null ? <Shell /> : (
+    <FlavorProvider requested={flavor}>
+        <Shell />
+    </FlavorProvider>
+));

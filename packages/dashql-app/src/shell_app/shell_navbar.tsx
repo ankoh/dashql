@@ -4,6 +4,8 @@ import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position
 import { DASHQL_VERSION, HYPERDB_WASM_VERSION } from '../globals.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { FlavorLogo, useRequestedAppFlavor } from '../app/flavor/flavor_provider.js';
+import { Tag, TagVariant } from '../ui/foundations/tag.js';
 import { ShellInternals } from './internals.js';
 
 import { XIcon } from '../ui/foundations/symbol_icon.js';
@@ -90,6 +92,35 @@ const VersionButton: React.FC<VersionButtonProps> = (props: VersionButtonProps) 
     );
 };
 
+/// The height of a wordmark in the navbar
+const WORDMARK_HEIGHT = 16;
+
+/// The brand of the shell.
+/// The shell is branded for Hyper, a flavor requested by the url replaces the Hyper banner with its logo and tagline.
+const ShellBrand: React.FC = () => {
+    const flavor = useRequestedAppFlavor();
+    if (flavor == null) {
+        return (
+            <svg className={styles.brand_logo} width="100%" height="100%" aria-hidden="true">
+                <use xlinkHref={`${symbols}#hyper_banner`} />
+            </svg>
+        );
+    }
+    return (
+        <span className={styles.brand_mark} data-testid="shell-flavor-brand">
+            {flavor.logo.wordmark
+                ? <FlavorLogo height={WORDMARK_HEIGHT} ariaHidden />
+                : <>
+                    <FlavorLogo height={24} ariaHidden />
+                    <span>{flavor.displayName}</span>
+                </>}
+            {flavor.tagline != null && (
+                <Tag variant={TagVariant.Outline} className={styles.brand_tagline}>{flavor.tagline}</Tag>
+            )}
+        </span>
+    );
+};
+
 interface ShellNavBarProps {
     engineVersion: string | null;
     onReset: () => void;
@@ -107,9 +138,7 @@ export const ShellNavBar: React.FC<ShellNavBarProps> = (props: ShellNavBarProps)
                 data-testid="shell-reset"
                 onClick={props.onReset}
             >
-                <svg className={styles.brand_logo} width="100%" height="100%" aria-hidden="true">
-                    <use xlinkHref={`${symbols}#hyper_banner`} />
-                </svg>
+                <ShellBrand />
             </button>
             <nav className={styles.actions} aria-label="Shell utilities">
                 <Internals />

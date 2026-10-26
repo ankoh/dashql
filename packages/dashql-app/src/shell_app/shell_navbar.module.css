@@ -26,6 +26,25 @@
     height: 100%;
 }
 
+.brand_mark {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    fill: currentColor;
+    font-family: var(--font_family_mono);
+    white-space: nowrap;
+}
+
+.brand_mark svg {
+    display: block;
+}
+
+/* A faint outlined tag on the dark navbar, so the tagline reads as a label and not as part of the name */
+.brand_tagline {
+    --tag_outline_border_color: rgba(255, 255, 255, 0.1);
+    --tag_outline_color: rgba(255, 255, 255, 0.45);
+}
+
 .brand:focus-visible {
     outline: 2px solid white;
     outline-offset: -2px;
@@ -131,6 +150,10 @@
 
 @media (max-width: 600px) {
     .action_label {
+        display: none;
+    }
+
+    .brand_tagline {
         display: none;
     }
 }
