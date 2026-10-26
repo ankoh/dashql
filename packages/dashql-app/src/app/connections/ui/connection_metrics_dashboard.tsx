@@ -266,15 +266,15 @@ const MetricCard: React.FC<MetricCardProps> = props => (
 
 /// The views of the queries of the activity
 enum ActivityView {
-    /// The queries grouped by their shape, most elapsed time first
-    Top = 'top',
     /// The queries, newest first
     Recent = 'recent',
+    /// The queries grouped by their shape, most elapsed time first
+    Top = 'top',
 }
 
 const ACTIVITY_VIEWS: readonly { view: ActivityView; label: string }[] = [
-    { view: ActivityView.Top, label: 'Top' },
     { view: ActivityView.Recent, label: 'Recent' },
+    { view: ActivityView.Top, label: 'Top' },
 ];
 
 /// The queries, the previous array while the queries are the same
@@ -330,7 +330,7 @@ interface QueryActivityProps {
 
 /// The finished queries of the window, grouped by their shape or newest first
 const QueryActivity: React.FC<QueryActivityProps> = props => {
-    const [view, setView] = React.useState(ActivityView.Top);
+    const [view, setView] = React.useState(ActivityView.Recent);
     const [refreshes, setRefreshes] = React.useState(0);
     const [refreshing, setRefreshing] = React.useState(false);
     const logger = useLogger();

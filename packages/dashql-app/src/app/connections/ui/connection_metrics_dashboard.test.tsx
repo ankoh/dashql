@@ -147,16 +147,16 @@ describe('ConnectionMetricsView', () => {
         expect(card('metric-peak-memory').querySelector('[aria-label="maximum"]')!.textContent).toBe('max');
         expect(card('metric-queries').querySelector('[aria-label="total"]')!.textContent).toBe('Σ');
         expect(card('metric-rows').querySelector('[aria-label="total"]')!.textContent).toBe('Σ');
-        // The shapes of the queries are listed first
-        expect(listed()).toBe(queryShapesSql(QUERY_ENDS, QueryScope.All, NOW - 5 * MINUTE));
-        showQueries('recent');
+        // The newest queries are listed first
         expect(listed()).toBe(recentQueriesSql(QUERY_ENDS, QueryScope.All, NOW - 5 * MINUTE));
+        showQueries('top');
+        expect(listed()).toBe(queryShapesSql(QUERY_ENDS, QueryScope.All, NOW - 5 * MINUTE));
 
         const window15m = container.querySelector<HTMLButtonElement>('[data-testid="connection-metrics-window"] [data-window="15m"]')!;
         act(() => window15m.click());
         expect(window15m.getAttribute('aria-current')).toBe('true');
         expect(rows('metric-latency')).toBe(2);
-        expect(listed()).toBe(recentQueriesSql(QUERY_ENDS, QueryScope.All, NOW - 15 * MINUTE));
+        expect(listed()).toBe(queryShapesSql(QUERY_ENDS, QueryScope.All, NOW - 15 * MINUTE));
     });
 
     it('polls the log and queries the table again on a refresh', async () => {
@@ -179,7 +179,7 @@ describe('ConnectionMetricsView', () => {
         expect(listed()).toBe(sql);
         // The oldest query left the window
         act(() => root.render(<View queries={queries} now={NOW + 4 * MINUTE} />));
-        expect(listed()).toBe(queryShapesSql(QUERY_ENDS, QueryScope.All, NOW - MINUTE));
+        expect(listed()).toBe(recentQueriesSql(QUERY_ENDS, QueryScope.All, NOW - MINUTE));
     });
 
     it('does not query the table again for every own query of the overview', () => {
@@ -195,11 +195,11 @@ describe('ConnectionMetricsView', () => {
         expect(listed()).toBe(sql);
         // A query of the user is listed right away
         act(() => root.render(<View queries={[...reads, query(start + 3_000)]} now={start + 4_000} />));
-        expect(listed()).toBe(queryShapesSql(QUERY_ENDS, QueryScope.All, start + 4_000 - 5 * MINUTE));
+        expect(listed()).toBe(recentQueriesSql(QUERY_ENDS, QueryScope.All, start + 4_000 - 5 * MINUTE));
         // The own queries are listed once their interval ends
         const later = [...reads, query(start + 3_000), own(start + 12_000, 'monitor')];
         act(() => root.render(<View queries={later} now={start + 13_000} />));
-        expect(listed()).toBe(queryShapesSql(QUERY_ENDS, QueryScope.All, start + 13_000 - 5 * MINUTE));
+        expect(listed()).toBe(recentQueriesSql(QUERY_ENDS, QueryScope.All, start + 13_000 - 5 * MINUTE));
     });
 
     it('draws the queries of the selected scope', () => {
@@ -215,7 +215,7 @@ describe('ConnectionMetricsView', () => {
         act(() => scope('user').click());
         expect(scope('user').getAttribute('aria-current')).toBe('true');
         expect(rows('metric-latency')).toBe(1);
-        expect(listed()).toBe(queryShapesSql(QUERY_ENDS, QueryScope.User, NOW - 5 * MINUTE));
+        expect(listed()).toBe(recentQueriesSql(QUERY_ENDS, QueryScope.User, NOW - 5 * MINUTE));
         act(() => scope('app').click());
         expect(rows('metric-latency')).toBe(2);
     });
