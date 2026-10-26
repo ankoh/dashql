@@ -75,6 +75,14 @@ fn parse_event(line: &str) -> Option<Value> {
     serde_json::from_str(line).ok().filter(Value::is_object)
 }
 
+/// The message of an error that a harness reports, Codex passes the JSON body of a failed API call as message
+fn error_message(message: &str) -> String {
+    let nested = parse_event(message).and_then(|body| {
+        ["/error/message", "/message"].iter().find_map(|p| body.pointer(p).and_then(Value::as_str).map(str::to_string))
+    });
+    nested.unwrap_or_else(|| message.to_string())
+}
+
 fn exit_error(exit_code: Option<i32>, stderr: &str) -> String {
     let detail = status_line(stderr);
     let status = match exit_code {
@@ -138,9 +146,9 @@ impl HarnessReader for CodexReader {
             }
             "turn.failed" => {
                 self.error =
-                    Some(event.pointer("/error/message").and_then(Value::as_str).unwrap_or("The turn failed").into());
+                    Some(error_message(event.pointer("/error/message").and_then(Value::as_str).unwrap_or("The turn failed")));
             }
-            "error" => self.error = Some(event["message"].as_str().unwrap_or("The harness failed").into()),
+            "error" => self.error = Some(error_message(event["message"].as_str().unwrap_or("The harness failed"))),
             _ => {}
         }
     }
@@ -155,15 +163,21 @@ impl HarnessReader for CodexReader {
 struct ClaudeReader {
     message: String,
     error: Option<String>,
+    /// The subtype of a failed result without a message, the error comes from stderr then
+    failed: Option<String>,
 }
 
 impl HarnessReader for ClaudeReader {
     fn line(&mut self, line: &str, emit: &mut dyn FnMut(HarnessEvent)) {
         let Some(event) = parse_event(line) else { return };
-        if let Some(id) = event["session_id"].as_str() {
-            emit(HarnessEvent::Session(id.into()));
-        }
         match event["type"].as_str().unwrap_or_default() {
+            // Hook events carry a session id before the conversation exists, a run that fails before init leaves
+            // no conversation to resume
+            "system" if event["subtype"] == "init" => {
+                if let Some(id) = event["session_id"].as_str() {
+                    emit(HarnessEvent::Session(id.into()));
+                }
+            }
             "assistant" => {
                 for block in event.pointer("/message/content").and_then(Value::as_array).into_iter().flatten() {
                     match block["type"].as_str().unwrap_or_default() {
@@ -188,10 +202,10 @@ impl HarnessReader for ClaudeReader {
                 }
                 let subtype = &event["subtype"];
                 if event["is_error"] == true || (!subtype.is_null() && subtype != "success") {
-                    self.error = Some(match result {
-                        Some(result) if !result.is_empty() => result.into(),
-                        _ => format!("The run ended with {}", subtype.as_str().unwrap_or("an error")),
-                    });
+                    match result {
+                        Some(result) if !result.is_empty() => self.error = Some(result.into()),
+                        _ => self.failed = Some(subtype.as_str().unwrap_or("an error").into()),
+                    }
                 }
             }
             _ => {}
@@ -199,15 +213,29 @@ impl HarnessReader for ClaudeReader {
     }
 
     fn finish(&self, exit_code: Option<i32>, stderr: &str) -> HarnessOutcome {
-        outcome(self.message.clone(), &self.error, exit_code, stderr)
+        // E.g. "No conversation found with session ID: ..." on stderr for error_during_execution
+        let error = self.error.clone().or_else(|| {
+            let detail = status_line(stderr);
+            self.failed.as_ref().map(|subtype| {
+                if detail.is_empty() {
+                    format!("The run ended with {subtype}")
+                } else {
+                    detail
+                }
+            })
+        });
+        outcome(self.message.clone(), &error, exit_code, stderr)
     }
 }
 
 /// Reads `opencode run --format json`: step_start, text, tool_use, step_finish, error.
-/// Every event carries the sessionID, the final message is the text after the last tool call.
+/// Every event carries the sessionID. The final message is the text of the last step without tool calls: a step
+/// may report its text after its tool calls.
 #[derive(Default)]
 struct OpencodeReader {
     texts: Vec<String>,
+    /// The current step called a tool
+    step_used_tools: bool,
     error: Option<String>,
 }
 
@@ -218,6 +246,16 @@ impl HarnessReader for OpencodeReader {
             emit(HarnessEvent::Session(id.into()));
         }
         match event["type"].as_str().unwrap_or_default() {
+            "step_start" => {
+                self.texts.clear();
+                self.step_used_tools = false;
+            }
+            "step_finish" => {
+                if self.step_used_tools || event.pointer("/part/reason").and_then(Value::as_str) == Some("tool-calls") {
+                    self.texts.clear();
+                }
+                self.step_used_tools = false;
+            }
             "text" => {
                 if let Some(text) = event.pointer("/part/text").and_then(Value::as_str).filter(|t| !t.trim().is_empty())
                 {
@@ -227,6 +265,7 @@ impl HarnessReader for OpencodeReader {
             }
             "tool_use" => {
                 self.texts.clear();
+                self.step_used_tools = true;
                 let command = event.pointer("/part/state/input/command").and_then(Value::as_str);
                 let text = command.or(event.pointer("/part/tool").and_then(Value::as_str)).unwrap_or_default();
                 emit(HarnessEvent::Status(status_line(text)));
@@ -495,7 +534,12 @@ mod tests {
     fn passes_the_prompt_as_one_argument() {
         assert_eq!(
             build_harness_args(&harness("codex"), "say \"hi\"; rm -rf /", None),
-            ["codex", "exec", "--json", "--skip-git-repo-check", "say \"hi\"; rm -rf /"]
+            ["codex", "exec", "--json", "--skip-git-repo-check", "--", "say \"hi\"; rm -rf /"]
+        );
+        // A prompt that looks like an option stays the prompt
+        assert_eq!(
+            build_harness_args(&harness("opencode"), "--help", None),
+            ["opencode", "run", "--format", "json", "--", "--help"]
         );
     }
 
@@ -503,7 +547,7 @@ mod tests {
     fn resumes_a_harness_session() {
         assert_eq!(
             build_harness_args(&harness("codex"), "next", Some("t-1")),
-            ["codex", "exec", "--json", "--skip-git-repo-check", "resume", "t-1", "next"]
+            ["codex", "exec", "--json", "--skip-git-repo-check", "resume", "t-1", "--", "next"]
         );
         assert_eq!(
             build_harness_args(&harness("claude"), "next", Some("c-1")),
@@ -519,12 +563,13 @@ mod tests {
                 "Bash(dashql agent serve:*)",
                 "--resume",
                 "c-1",
+                "--",
                 "next"
             ]
         );
         assert_eq!(
             build_harness_args(&harness("opencode"), "next", Some("ses_1")),
-            ["opencode", "run", "--format", "json", "--session", "ses_1", "next"]
+            ["opencode", "run", "--format", "json", "--session", "ses_1", "--", "next"]
         );
     }
 
@@ -553,6 +598,12 @@ mod tests {
     fn reads_failed_codex_turns() {
         let failed = json!({ "type": "turn.failed", "error": { "message": "rate limited" } });
         assert_eq!(read(HarnessAdapter::Codex, &[failed], Some(1), "").outcome.error.unwrap(), "rate limited");
+        // Codex passes the body of a failed API call as message
+        let api = r#"{"type":"error","status":400,"error":{"type":"invalid_request_error","message":"The model is not supported"}}"#;
+        let failed = json!({ "type": "turn.failed", "error": { "message": api } });
+        assert_eq!(read(HarnessAdapter::Codex, &[failed], Some(1), "").outcome.error.unwrap(), "The model is not supported");
+        let error = json!({ "type": "error", "message": api });
+        assert_eq!(read(HarnessAdapter::Codex, &[error], Some(1), "").outcome.error.unwrap(), "The model is not supported");
         assert_eq!(
             read(HarnessAdapter::Codex, &[], Some(2), "error: unknown flag\n").outcome.error.unwrap(),
             "The harness exited with code 2: error: unknown flag"
@@ -564,6 +615,8 @@ mod tests {
         let read = read(
             HarnessAdapter::Claude,
             &[
+                // Hooks run before the conversation exists
+                json!({ "type": "system", "subtype": "hook_started", "session_id": "c-0" }),
                 json!({ "type": "system", "subtype": "init", "session_id": "c-1" }),
                 json!({ "type": "assistant", "session_id": "c-1", "message": { "content": [
                     { "type": "text", "text": "Looking at the schema" },
@@ -574,7 +627,7 @@ mod tests {
             Some(0),
             "",
         );
-        assert!(read.sessions.contains(&"c-1".to_string()));
+        assert_eq!(read.sessions, ["c-1"]);
         assert_eq!(read.statuses, ["Looking at the schema", "dashql agent catalog"]);
         assert_eq!(read.outcome, ok("Done"));
     }
@@ -586,6 +639,12 @@ mod tests {
             read(HarnessAdapter::Claude, &[result], Some(1), "").outcome.error.unwrap(),
             "The run ended with error_max_turns"
         );
+        // A run that fails before init has no session, stderr says why
+        let hook = json!({ "type": "system", "subtype": "hook_response", "session_id": "c-0" });
+        let result = json!({ "type": "result", "subtype": "error_during_execution", "is_error": true, "session_id": "c-0" });
+        let read = read(HarnessAdapter::Claude, &[hook, result], Some(1), "No conversation found with session ID: c-0\n");
+        assert!(read.sessions.is_empty());
+        assert_eq!(read.outcome.error.unwrap(), "No conversation found with session ID: c-0");
     }
 
     #[test]
@@ -607,6 +666,28 @@ mod tests {
         assert_eq!(read.sessions[0], session);
         assert_eq!(read.statuses, ["Looking at the schema", "dashql agent catalog", "There are 42 orders."]);
         assert_eq!(read.outcome, ok("There are 42 orders."));
+    }
+
+    #[test]
+    fn reads_opencode_steps_that_report_text_after_tool_calls() {
+        let event = |kind: &str, part: Value| json!({ "type": kind, "sessionID": "ses_1", "part": part });
+        let text = |text: &str| event("text", json!({ "type": "text", "text": text }));
+        let tool = event("tool_use", json!({ "type": "tool", "tool": "bash", "state": { "input": { "command": "dashql agent run q1" } } }));
+        let read = read(
+            HarnessAdapter::Opencode,
+            &[
+                event("step_start", json!({ "type": "step-start" })),
+                tool,
+                text("Let me run the script."),
+                event("step_finish", json!({ "type": "step-finish", "reason": "tool-calls" })),
+                event("step_start", json!({ "type": "step-start" })),
+                text("There are 6 orders."),
+                event("step_finish", json!({ "type": "step-finish", "reason": "stop" })),
+            ],
+            Some(0),
+            "",
+        );
+        assert_eq!(read.outcome, ok("There are 6 orders."));
     }
 
     #[test]

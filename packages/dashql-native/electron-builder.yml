@@ -17,6 +17,11 @@ extraResources:
   # The dashql command line tool and agent server, signed with the app
   - from: bin/dashql
     to: bin/dashql
+  # The menu bar icon, see src/menu_bar.ts
+  - from: trayTemplate.png
+    to: trayTemplate.png
+  - from: trayTemplate@2x.png
+    to: trayTemplate@2x.png
 mac:
   artifactName: DashQL-${version}-${arch}.${ext}
   category: public.app-category.developer-tools

@@ -43,6 +43,16 @@ Work only through `dashql agent`; this folder holds no project files.
 3. Check the script with `dashql agent lint`, then run it with `dashql agent run` and fix errors.
 4. End with a short answer for the user: what you changed and what the result shows.
 
+Pass the new text of a script to `dashql agent edit` on stdin with a quoted heredoc, as a command of its own
+with nothing after `<<'EOF'` on its line. Never write temporary files.
+
+```sh
+dashql agent edit q1 <<'EOF'
+-- How many orders are there?
+select count(*) from orders;
+EOF
+```
+
 {UNTRUSTED_INPUT}
 "
     )

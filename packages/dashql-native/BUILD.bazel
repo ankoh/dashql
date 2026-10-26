@@ -14,6 +14,14 @@ filegroup(
 )
 
 filegroup(
+    name = "tray_icon",
+    srcs = [
+        "assets/trayTemplate.png",
+        "assets/trayTemplate@2x.png",
+    ],
+)
+
+filegroup(
     name = "preload",
     srcs = ["src/preload.cjs"],
 )
@@ -53,7 +61,10 @@ vitest_bin.vitest_test(
         "tsconfig.bazel.json",
         "vitest.config.ts",
         "//:node_modules/vitest",
+        "//packages/dashql-cli:dashql",
     ],
+    # agent_host.test.ts runs the agent server
+    env = {"DASHQL_CLI": "$(rootpath //packages/dashql-cli:dashql)"},
     visibility = ["//visibility:public"],
 )
 
@@ -65,9 +76,11 @@ sh_binary(
         ":compile",
         ":package.json",
         ":preload",
+        ":tray_icon",
         "@dashql_app_version//:version.env",
         "//:node_modules/electron",
         "//packages/dashql-app:electron_bundle",
+        "//packages/dashql-cli:dashql",
         "//packages/dashql-native-proxy:addon",
     ],
     visibility = ["//visibility:public"],
@@ -86,6 +99,7 @@ sh_binary(
         ":package.json",
         ":preload",
         "@dashql_app_version//:version.env",
+        ":tray_icon",
         "Entitlements.plist",
         "electron-builder.yml",
         "//:NOTICE",
@@ -114,6 +128,7 @@ sh_binary(
         ":package.json",
         ":preload",
         "@dashql_app_version//:version.env",
+        ":tray_icon",
         "Entitlements.plist",
         "electron-builder.yml",
         "//:NOTICE",

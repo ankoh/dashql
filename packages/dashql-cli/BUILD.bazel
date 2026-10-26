@@ -51,6 +51,69 @@ rust_test(
     crate = ":dashql",
 )
 
+BRIDGE_TEST_DEPS = [
+    "@core_crates//:futures-util",
+    "@core_crates//:serde_json",
+    "@core_crates//:tokio",
+    "@core_crates//:tokio-tungstenite",
+]
+
+# The agent bridge end to end: the dashql binary as server, command line tool and shim of harness runs,
+# a DashQL page on the WebSocket and a scripted harness
+rust_test(
+    name = "bridge_test",
+    size = "small",
+    srcs = [
+        "tests/bridge/bridge_test.rs",
+        "tests/bridge/support.rs",
+    ],
+    crate_root = "tests/bridge/bridge_test.rs",
+    data = [
+        "tests/bridge/fake_harness.sh",
+        ":dashql",
+    ],
+    edition = "2021",
+    env = {
+        "DASHQL_BINARY": "$(rootpath :dashql)",
+        "FAKE_HARNESS": "$(rootpath tests/bridge/fake_harness.sh)",
+    },
+    target_compatible_with = select({
+        "@platforms//os:windows": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    deps = BRIDGE_TEST_DEPS,
+)
+
+# The agent bridge with the installed claude and opencode, their logins and models. Manual: it costs model calls.
+# bazel test //packages/dashql-cli:bridge_harness_test [--test_env=DASHQL_TEST_HARNESSES=opencode]
+rust_test(
+    name = "bridge_harness_test",
+    size = "large",
+    srcs = [
+        "tests/bridge/bridge_harness_test.rs",
+        "tests/bridge/support.rs",
+    ],
+    crate_root = "tests/bridge/bridge_harness_test.rs",
+    data = [":dashql"],
+    edition = "2021",
+    env = {"DASHQL_BINARY": "$(rootpath :dashql)"},
+    env_inherit = [
+        "HOME",
+        "PATH",
+        "SHELL",
+        "USER",
+        "LOGNAME",
+        "TMPDIR",
+    ],
+    tags = [
+        "external",
+        "local",
+        "manual",
+        "no-cache",
+    ],
+    deps = BRIDGE_TEST_DEPS,
+)
+
 # The skill that teaches agents the dashql agent commands
 filegroup(
     name = "skill",

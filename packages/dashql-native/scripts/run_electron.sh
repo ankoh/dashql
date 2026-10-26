@@ -9,6 +9,10 @@ export DASHQL_ELECTRON_RENDERER="${WORKSPACE_ROOT}/packages/dashql-app/electron_
 export DASHQL_NATIVE_ADDON="${WORKSPACE_ROOT}/packages/dashql-native-proxy/dashql_native_napi.node"
 export DASHQL_NATIVE_UTILITY_WORKER="${WORKSPACE_ROOT}/packages/dashql-native/dist/native_utility_worker.js"
 export DASHQL_ELECTRON_PRELOAD="${WORKSPACE_ROOT}/packages/dashql-native/src/preload.cjs"
+export DASHQL_ELECTRON_TRAY_ICON="${WORKSPACE_ROOT}/packages/dashql-native/assets/trayTemplate.png"
+if [[ -x "${WORKSPACE_ROOT}/packages/dashql-cli/dashql" ]]; then
+    export DASHQL_AGENT_CLI="${WORKSPACE_ROOT}/packages/dashql-cli/dashql"
+fi
 
 if [[ "${1:-}" == "--renderer-dev-server" ]]; then
     export DASHQL_ELECTRON_RENDERER_URL="${DASHQL_ELECTRON_RENDERER_URL:-http://localhost:9002}"

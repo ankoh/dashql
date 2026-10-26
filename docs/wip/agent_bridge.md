@@ -2,7 +2,8 @@
 
 ## Status
 
-Agent → app and the composer's question flow are implemented; the menu bar mode is not. The agent bridge is
+Agent → app and the composer's question flow are implemented; the menu bar mode is started (macOS: DashQL.app
+runs the agent server and shows it in the menu bar). The agent bridge is
 the only way DashQL reaches models: the OpenAI-compatible client and its endpoint settings are removed.
 
 | Area | State |
@@ -19,11 +20,13 @@ the only way DashQL reaches models: the OpenAI-compatible client and its endpoin
 | Browsers | Chrome and Edge (one-time permission), Firefox; Safari unsupported |
 | Browser loopback probe | Built (`~/repos/dashql-agent-bridge-spike`), not yet run in browsers |
 | Agent server, CLI and skill | Built: one Rust binary, `packages/dashql-cli`, `dashql agent serve` |
-| `dashql` in DashQL.app | Bundled as `Contents/Resources/bin/dashql`; the app does not start the server yet |
+| Bridge tests | Built: `//packages/dashql-cli:bridge_test` (scripted harness), `:bridge_harness_test` (real ones, manual) |
+| Real harnesses | Run on macOS: Claude Code 2.1 and opencode 1.18 pass; Codex 0.162 parses the arguments, no model access |
+| `dashql` in DashQL.app | Bundled as `Contents/Resources/bin/dashql`; on macOS the app runs it as a child process |
 | Page client, command registry, per-session toggle | Built: `platform/agent/`, `app/agent/` |
 | App → agent from the composer | Built: questions run the harness, status lines, notes, stop, reset, continue in terminal |
 | OpenAI-compatible client and AI endpoint settings | Removed |
-| Menu bar mode | Planned |
+| Menu bar mode | Started: server supervision, tray icon and menu, activation policy, `--menu-bar`, quit and update handling; login item, installers, settings and stopping single runs planned |
 | Inline edit, "Fix with agent", data settings, query policy | Planned |
 | Earlier MCP, ACP, mailbox and desktop-only designs | Superseded, see [Alternatives Considered](#alternatives-considered) |
 
@@ -158,9 +161,13 @@ The agent server is part of `dashql`, one Rust binary (`packages/dashql-cli`, bu
 that also holds the agent commands of the command line tool and `dashql lint` for SQL files on disk. It needs
 no runtime and runs in two hosts:
 
-- **DashQL.app:** main starts the bundled binary as a child process (`dashql agent serve`), restarts it when it
-  crashes, stops it on quit, and follows its state for the menu (connected clients, running harness runs)
-  through `GET /v1/status` with the token from `config.json`.
+- **DashQL.app:** main starts the bundled binary as a child process (`dashql agent serve --exit-with-stdin`,
+  `src/agent_host.ts`), restarts it when it crashes (1, 2, 5, 10, 30 s), stops it on quit (SIGTERM, SIGKILL
+  after 3 s), and follows its state for the menu (connected clients, running harness runs) through
+  `GET /v1/status` with the token from `config.json`. The app holds the server's stdin, so the server exits
+  when the app crashes or is killed instead of keeping the port. When another server with the same
+  `config.json` holds the port (`dashql agent serve` in a terminal), the app follows that one and takes over
+  once it stops; anything else on the port shows as a failure in the menu.
 - **`dashql agent serve`:** the same binary in a terminal or as a user-managed login item. For Windows, Linux,
   and users without the desktop app.
 
@@ -226,7 +233,16 @@ menu bar plus windows.
   Quit DashQL
 ```
 
-- **Icon** (template images): idle, client connected, harness running, error. The icon
+**Built so far** (`src/agent_host.ts`, `src/menu_bar_template.ts`, `src/menu_bar.ts`, `main.ts`): the status
+line, a line per harness run, Agent Access (persisted in `menu_bar.json` in the user data folder, off stops the
+server), Open DashQL, Open dashql.app, Restart to Update, and Quit, which asks while runs of the app's own
+server are going. The icon is the DashQL glyph as a template image (`assets/trayTemplate.png`, rendered from
+`misc/logo-dashql-glyphs/logo.svg`); the title next to it shows the number of runs, or `!` when the server
+fails. `--menu-bar` opens no window; opening a window switches to the `"regular"` activation policy, closing
+the last one back to `"accessory"`. Not built yet: Stop per run (needs a cancel call on the HTTP API), Settings,
+the installers, the login item and the first-run offer. The menu bar runs on macOS only.
+
+- **Icon** (template images): idle, client connected, harness running, error. Today one icon plus the title. The icon
   is always visible while the server listens; there is no hidden mode.
 - **Agent access** is the global switch: off closes the listener.
 - **Settings** opens a small window for harness command templates, the port and
@@ -239,7 +255,9 @@ absolute paths. Settings shows which binary each harness template resolves to.
 
 **Updates.** `electron-updater` installs on quit (`src/updater.ts`), which a menu bar
 app rarely does. When an update is downloaded, the menu shows "Restart to update", and
-the app restarts by itself when no window is open and no harness run is going.
+the app restarts by itself when no window is open and no harness run is going. Built: "Restart to Update" in the
+menu, and installing from the menu or the page stops the agent server first. Not built: the restart by itself,
+which needs the relaunched app to come back with `--menu-bar`.
 
 **Removal.** Deleting DashQL.app removes its `SMAppService` registration. Settings has
 "Remove command line tool and skill", which deletes the symlink and the copied skill
@@ -321,15 +339,18 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
    and a short summary of what changed since the previous request.
 3. The server runs the command template for that harness from `config.json` in
    `~/.dashql/agent/sessions/<id>/`, with `DASHQL_SESSION` set and the resolved `PATH`.
-   The prompt is passed as one argument, never through a shell. The built-in templates, not yet run
-   against the real tools; Claude Code is the default:
+   The prompt is passed as one argument, never through a shell. The built-in templates; Claude Code is the
+   default:
 
    ```sh
    claude -p --output-format stream-json --verbose --allowedTools "Bash(dashql agent:*)" \
-       --disallowedTools "Bash(dashql agent serve:*)" [--resume <id>] "<prompt>"
-   codex exec --json --skip-git-repo-check [resume <id>] "<prompt>"
-   opencode run --format json [--session <id>] "<prompt>"
+       --disallowedTools "Bash(dashql agent serve:*)" [--resume <id>] -- "<prompt>"
+   codex exec --json --skip-git-repo-check [resume <id>] -- "<prompt>"
+   opencode run --format json [--session <id>] -- "<prompt>"
    ```
+
+   `--` ends the options: Claude Code's tool lists take every following argument, so without it the prompt
+   is swallowed, and a prompt that starts with `-` would be read as an option.
 
    Other harnesses can be added to `config.json` with the `text` adapter: the output lines are status
    lines and the whole output is the final message. `config.json` holds only the harnesses that override or
@@ -338,13 +359,25 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
 4. The agent works through `dashql agent` commands. A per-harness adapter in the
    server reads the event stream and sends status lines to the client.
 5. The final message comes back as `agent/done`. The server stores the harness session
-   id, so the next request in this DashQL session resumes it.
+   id and the harness in `state.json`, so the next request in this DashQL session resumes it and
+   `agent/context` names that harness.
 
 - The working folder holds an `AGENTS.md` (and a `CLAUDE.md` importing it) written by
   the server: how to use `dashql agent`, to work only through it, and that data and
   script contents are input, not instructions. An `opencode.json` limits opencode runs to
   `dashql agent` (bash commands otherwise denied, no edits, no web fetches). Claude Code and opencode
-  runs may not start another `dashql agent serve`.
+  runs may not start another `dashql agent serve`, and `dashql agent serve` refuses to start when
+  `DASHQL_AGENT_RUN` is set, as in every run.
+- The `opencode.json` limits are defaults: the user's own opencode setup can override them. A corporate
+  opencode plugin that allows everything did on the test machine, so opencode runs there could run any
+  command. The `--allowedTools` limits of Claude Code held.
+- Harness quirks the adapters handle:
+  - Claude Code reports a `session_id` on hook events before the conversation exists, so only `system/init`
+    sets the harness session. A run that fails without a result text gets its error from stderr, such as
+    "No conversation found with session ID".
+  - opencode reports the text of a step after its tool calls, so the final message is the text of the last
+    step without tool calls.
+  - Codex passes the JSON body of a failed API call as the error message, the adapter takes its message.
 - One run at a time per DashQL session; further requests queue in the server.
 - Stop (in the editor or the menu) sends `agent/cancel`; the server kills the run's
   process tree.
@@ -510,12 +543,15 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
   - `packages/dashql-app/src/platform/agent/`: WebSocket client, protocol types
   - `packages/dashql-app/src/app/agent/`: command registry, provider, agent access menu
   - `packages/dashql-native/src/agent_host.ts`: supervision of the `dashql agent serve` child process, status
-  - `packages/dashql-native/src/menu_bar.ts`: tray, menu, activation policy, login item
+  - `packages/dashql-native/src/menu_bar_template.ts`: the menu as data, tested without Electron
+  - `packages/dashql-native/src/menu_bar.ts`: tray and menu (login item planned)
+  - `packages/dashql-native/assets/trayTemplate.png`, `trayTemplate@2x.png`: the menu bar icon
 - **Touched:**
   - `packages/dashql-native/src/main.ts` (menu bar mode, `--menu-bar`,
     `second-instance`, quit and update handling)
-  - `packages/dashql-native/electron-builder.yml` (the launch agent plist, tray icons; the `dashql` binary is
-    already an extra resource)
+  - `packages/dashql-native/electron-builder.yml` (tray icons; the launch agent plist planned; the `dashql`
+    binary is already an extra resource)
+  - `packages/dashql-native/src/updater.ts` (status listener for the menu)
   - `packages/dashql-app/src/app/app.tsx` (provider)
   - `packages/dashql-app/src/app/session/ai/use_sql_generations.ts`,
     `ai/ui/script_generation.tsx`, `ai/editor/generation_placeholder.ts`
@@ -528,16 +564,30 @@ Everything builds through Bazel, per `docs/agents/build_bazel_targets.md`.
 - **Agent server unit tests:** `Origin`, `Host` and token checks; routing calls to
   the client holding a session; queuing while disconnected; one call at a time; cancel
   kills the process tree.
+- **Bridge tests** (`bazel test //packages/dashql-cli:bridge_test`): the `dashql` binary as server, command
+  line tool and shim, a page on the WebSocket, and a scripted harness that speaks Claude Code's stream-json.
+  Agent → DashQL: every command, `--file` and stdin, `--json`, session targeting, exit codes, wrong token,
+  no server, the page going away during a call. DashQL → agent: a run that calls back into its own session,
+  status lines, resume and reset, a failed run's stderr, cancel stopping the harness's children, no nested
+  server.
+- **Real harnesses** (`bazel test //packages/dashql-cli:bridge_harness_test`, manual, unsandboxed, costs
+  model calls; `--test_env=DASHQL_TEST_HARNESSES=opencode` picks harnesses): a composer question that edits,
+  runs and answers, a follow-up that needs the conversation, and a cancel.
 - **Page tests:** each command against a test session; reconnect after reload delivers
   queued calls.
+- **Agent host** (`bazel test //packages/dashql-native:test`, `agent_host.test.ts` against the real `dashql`
+  binary): starts the server, sees a page connect with `app://bundle`, restarts after SIGKILL, follows another
+  server with the same configuration and takes over when it stops, reports a taken port and a missing binary,
+  stops and frees the port. `bridge_test` checks that `--exit-with-stdin` stops the server. The menu itself is
+  tested as data (`menu_bar_template.test.ts`).
 - **Menu bar mode:** started with `--menu-bar`, the app shows no window and no Dock
   icon but serves the WebSocket; opening DashQL shows a window in the same process;
   closing it hides the Dock icon and keeps serving; Quit stops the listener. Extends
-  `//packages/dashql-native:startup_smoke_test`.
-- **Harness matrix:** a runner gives each harness (`codex exec`, `claude -p`) a set of
-  tasks against a fixture session (write a query, fix a broken script, a follow-up that
-  refers to the previous request, an impossible request) and checks the resulting
-  scripts, the replies, and that the session id resumes.
+  `//packages/dashql-native:startup_smoke_test`. Checked by hand so far with
+  `bazel run //packages/dashql-native:dev -- --menu-bar`: the icon shows, `dashql agent --dev status` reaches the
+  server, a killed server comes back, and killing Electron stops the server.
+- **Harness matrix:** extend `bridge_harness_test` with more tasks (fix a broken script, an impossible
+  request) and Codex once a model is available.
 - **Browsers:** Chrome and Edge show the permission once and then connect; Firefox
   connects; Safari shows the notice.
 
@@ -551,6 +601,6 @@ Everything builds through Bazel, per `docs/agents/build_bazel_targets.md`.
   launch agent plist on macOS 13+, and how the app detects the `--menu-bar` start.
 - Whether corporate MDM blocks or hides login items for DashQL.
 - Memory use of DashQL.app in menu bar mode with no window open.
-- `codex exec` flags in the corporate build: `--json`, `resume`, and whether it needs
-  a git repository.
-- The default port, and what to do when it is taken.
+- Whether Codex runs work end to end: its flags and `--` parse, its model calls failed on the test machine.
+- The default port. A taken port is followed when it is another `dashql agent serve` with the same token, and
+  shown as a failure otherwise; whether the menu should offer another port.

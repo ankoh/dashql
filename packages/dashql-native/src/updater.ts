@@ -24,7 +24,11 @@ function channelFor(version: string): "canary" | "stable" {
     return version.includes("-") ? "canary" : "stable";
 }
 
-export function createElectronUpdater(currentVersion: string, window: () => BrowserWindow | null): ElectronUpdater {
+export function createElectronUpdater(
+    currentVersion: string,
+    window: () => BrowserWindow | null,
+    onStatus: (status: UpdateStatus) => void = () => {},
+): ElectronUpdater {
     let status: UpdateStatus = {status: "disabled"};
     let available: UpdateInfo | null = null;
     let availableChannel: UpdateChannel | null = null;
@@ -35,6 +39,7 @@ export function createElectronUpdater(currentVersion: string, window: () => Brow
         status = next;
         const target = window();
         if (target !== null && !target.isDestroyed()) target.webContents.send("dashql:update-status", next);
+        onStatus(next);
         return next;
     };
 

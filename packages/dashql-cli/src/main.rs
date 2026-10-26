@@ -10,7 +10,7 @@ mod report;
 
 use agent::client::{self, CliEnvironment, EXIT_FAILED, EXIT_OK, EXIT_USAGE};
 use agent::config::{agent_home, load_config};
-use agent::server::{AgentServer, AgentServerOptions};
+use agent::server::{AgentServer, AgentServerOptions, AGENT_RUN_ENV};
 use std::io::Write;
 use std::process::ExitCode;
 
@@ -25,8 +25,14 @@ fn env_var(name: &str) -> Option<String> {
     std::env::var(name).ok()
 }
 
-/// Run the agent server in the foreground until it is interrupted
-fn serve(dev: bool) -> ExitCode {
+/// Run the agent server in the foreground until it is interrupted, or until stdin closes with exit_with_stdin.
+/// DashQL.app holds the other end of stdin, so the server stops with the app even when the app crashes.
+fn serve(dev: bool, exit_with_stdin: bool) -> ExitCode {
+    // An agent in a harness run may not start a server, whatever its harness allows
+    if env_var(AGENT_RUN_ENV).is_some() {
+        eprintln!("dashql agent serve cannot run inside an agent run");
+        return ExitCode::from(EXIT_USAGE);
+    }
     let home = agent_home(&env_var, dev);
     let config = match load_config(&home, &env_var, dev) {
         Ok(config) => config,
@@ -64,7 +70,21 @@ fn serve(dev: bool) -> ExitCode {
         if dev {
             eprintln!("[dashql] Dev mode: accepting the origins of the dev servers");
         }
-        shutdown_signal().await;
+        let stdin_closed = async {
+            if !exit_with_stdin {
+                return std::future::pending().await;
+            }
+            let (closed, on_closed) = tokio::sync::oneshot::channel::<()>();
+            std::thread::spawn(move || {
+                let _ = std::io::copy(&mut std::io::stdin(), &mut std::io::sink());
+                let _ = closed.send(());
+            });
+            let _ = on_closed.await;
+        };
+        tokio::select! {
+            _ = shutdown_signal() => {}
+            _ = stdin_closed => eprintln!("[dashql] Stopping: stdin closed"),
+        }
         server.close().await;
         ExitCode::from(EXIT_OK)
     })
@@ -99,7 +119,7 @@ fn agent(argv: &[String]) -> ExitCode {
         return ExitCode::SUCCESS;
     }
     if options.positionals == ["serve"] {
-        return serve(options.dev);
+        return serve(options.dev, options.exit_with_stdin);
     }
     let config = match load_config(&agent_home(&env_var, options.dev), &env_var, options.dev) {
         Ok(config) => config,

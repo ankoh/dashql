@@ -34,6 +34,8 @@ const CLOSE_POLICY_VIOLATION: u16 = 1008;
 
 pub const NOT_CONNECTED_MESSAGE: &str = "DashQL is not connected: open https://dashql.app and turn on agent access";
 const DISCONNECTED_MESSAGE: &str = "DashQL disconnected during the call";
+/// Set in the environment of harness runs
+pub const AGENT_RUN_ENV: &str = "DASHQL_AGENT_RUN";
 
 /// Start a harness process, replaceable in tests
 pub type SpawnHarness = Arc<dyn Fn(HarnessSpawnArgs) -> HarnessProcess + Send + Sync>;
@@ -140,6 +142,15 @@ struct Run {
     status: String,
     cancelled: bool,
     kill: Option<Kill>,
+}
+
+/// The state.json of a DashQL session
+#[derive(Default)]
+struct SessionState {
+    /// The harness of the last conversation
+    harness: Option<String>,
+    /// The harness session ids by harness name
+    harness_sessions: Map<String, Value>,
 }
 
 struct State {
@@ -480,7 +491,8 @@ impl Shared {
                 json!({})
             })),
             "agent/reset" => reply(session().and_then(|session| {
-                self.write_session_state(&session, &Map::new()).map_err(|e| RpcError::new(ErrorCode::Failed, e))?;
+                let state = SessionState::default();
+                self.write_session_state(&session, &state).map_err(|e| RpcError::new(ErrorCode::Failed, e))?;
                 Ok(json!({}))
             })),
             "agent/context" => reply(session().map(|session| self.session_context(&session))),
@@ -591,29 +603,34 @@ impl Shared {
         self.options.home.join("sessions").join(session_folder_name(session))
     }
 
-    /// The harness session ids of a DashQL session by harness name
-    fn read_session_state(&self, session: &str) -> Map<String, Value> {
+    fn read_session_state(&self, session: &str) -> SessionState {
         let text = std::fs::read_to_string(self.session_dir(session).join("state.json")).unwrap_or_default();
-        match serde_json::from_str::<Value>(&text) {
-            Ok(Value::Object(mut state)) => match state.remove("harnessSessions") {
+        let Ok(Value::Object(mut state)) = serde_json::from_str::<Value>(&text) else { return SessionState::default() };
+        SessionState {
+            harness: state.get("harness").and_then(Value::as_str).map(str::to_string),
+            harness_sessions: match state.remove("harnessSessions") {
                 Some(Value::Object(sessions)) => sessions,
                 _ => Map::new(),
             },
-            _ => Map::new(),
         }
     }
 
-    fn write_session_state(&self, session: &str, harness_sessions: &Map<String, Value>) -> Result<(), String> {
+    fn write_session_state(&self, session: &str, session_state: &SessionState) -> Result<(), String> {
         let dir = self.session_dir(session);
         create_private_dir(&dir)?;
-        let state = json!({ "harnessSessions": harness_sessions });
+        let state = json!({ "harness": session_state.harness, "harnessSessions": session_state.harness_sessions });
         write_private_file(&dir.join("state.json"), &(to_json_text(&state) + "\n"))
     }
 
     fn session_context(&self, session: &str) -> Value {
         let state = self.lock();
-        let harness = &state.config.default_harness;
-        let harness_session = self.read_session_state(session).get(harness).and_then(Value::as_str).map(str::to_string);
+        let session_state = self.read_session_state(session);
+        // The harness that holds the conversation of the session, the default harness before the first run
+        let harness = match session_state.harness.as_deref() {
+            Some(harness) if state.config.harness(harness).is_some() => harness,
+            _ => &state.config.default_harness,
+        };
+        let harness_session = session_state.harness_sessions.get(harness).and_then(Value::as_str).map(str::to_string);
         let template = state.config.harness(harness).and_then(|h| h.terminal_command.as_ref());
         let terminal_command = match (&harness_session, template) {
             (Some(id), Some(template)) => {
@@ -723,6 +740,8 @@ impl Shared {
         env.insert("DASHQL_SESSION".into(), session.clone().into());
         env.insert("DASHQL_AGENT_HOME".into(), self.options.home.clone().into());
         env.insert("DASHQL_AGENT_PORT".into(), self.port.to_string().into());
+        // `dashql agent serve` refuses to start inside a run
+        env.insert(AGENT_RUN_ENV.into(), "1".into());
 
         let harness_name = {
             let state = self.lock();
@@ -733,7 +752,7 @@ impl Shared {
         };
         self.log(&format!("Starting {harness_name} for session {session}"));
         let harness_session =
-            self.read_session_state(&session).get(&harness_name).and_then(Value::as_str).map(str::to_string);
+            self.read_session_state(&session).harness_sessions.get(&harness_name).and_then(Value::as_str).map(str::to_string);
         let (events, mut received) = mpsc::unbounded_channel();
         let process =
             (self.options.spawn_harness)(HarnessSpawnArgs { config, prompt, harness_session, cwd, env, events });
@@ -774,12 +793,15 @@ impl Shared {
                 notify_status(&state.clients, run);
             }
             HarnessEvent::Session(id) => {
-                let mut sessions = self.read_session_state(session);
-                if sessions.get(harness).and_then(Value::as_str) == Some(&id) {
+                let mut state = self.read_session_state(session);
+                if state.harness.as_deref() == Some(harness)
+                    && state.harness_sessions.get(harness).and_then(Value::as_str) == Some(&id)
+                {
                     return;
                 }
-                sessions.insert(harness.to_string(), id.into());
-                if let Err(e) = self.write_session_state(session, &sessions) {
+                state.harness = Some(harness.to_string());
+                state.harness_sessions.insert(harness.to_string(), id.into());
+                if let Err(e) = self.write_session_state(session, &state) {
                     self.log(&format!("Cannot store the harness session: {e}"));
                 }
             }
@@ -1337,6 +1359,7 @@ mod tests {
             assert_eq!(run.args.prompt, "count the orders");
             assert_eq!(run.args.harness_session, None);
             assert_eq!(run.args.env.get(&OsString::from("DASHQL_SESSION")), Some(&OsString::from("s1")));
+            assert_eq!(run.args.env.get(&OsString::from(AGENT_RUN_ENV)), Some(&OsString::from("1")));
             run.args.cwd.clone()
         });
         assert_eq!(cwd, fixture.home.join("sessions").join("s1"));
@@ -1375,6 +1398,31 @@ mod tests {
         client.next(|m| m["id"] == 6).await.unwrap();
         fixture.wait_for_runs(3).await;
         assert_eq!(fixture.run(2, |run| run.args.harness_session.clone()), None);
+    }
+
+    #[tokio::test]
+    async fn describes_the_conversation_of_the_last_harness() {
+        let fixture = Fixture::start(json!({}), false).await;
+        let mut client = fixture.connect("https://dashql.app").await;
+        client.announce(&["s1"], Some("s1")).await;
+        client.send(json!({ "id": 2, "method": "agent/context", "params": { "session": "s1" } })).await;
+        let context = client.next(|m| m["id"] == 2).await.unwrap();
+        assert_eq!(context["result"]["harness"], "codex");
+        assert_eq!(context["result"]["harnessSession"], Value::Null);
+
+        client
+            .send(json!({ "id": 3, "method": "agent/request", "params": { "session": "s1", "harness": "opencode", "prompt": "hi" } }))
+            .await;
+        client.next(|m| m["id"] == 3).await.unwrap();
+        fixture.wait_for_runs(1).await;
+        fixture.run(0, |run| run.args.events.send(HarnessEvent::Session("ses_1".into())).unwrap());
+        fixture.run(0, |run| run.finish("Hello", None));
+        client.next(|m| m["method"] == "agent/done").await.unwrap();
+        client.send(json!({ "id": 4, "method": "agent/context", "params": { "session": "s1" } })).await;
+        let context = client.next(|m| m["id"] == 4).await.unwrap();
+        assert_eq!(context["result"]["harness"], "opencode");
+        assert_eq!(context["result"]["harnessSession"], "ses_1");
+        assert_eq!(context["result"]["terminalCommand"], json!(["opencode", "--session", "ses_1"]));
     }
 
     #[tokio::test]

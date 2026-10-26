@@ -25,6 +25,7 @@ sed -e "s|\"version\": \"[^\"]*\"|\"version\": \"${VERSION}\"|" \
 cp "${WORKSPACE_ROOT}/packages/dashql-native/electron-builder.yml" "${STAGE}/electron-builder.yml"
 cp "${WORKSPACE_ROOT}/packages/dashql-native/Entitlements.plist" "${STAGE}/Entitlements.plist"
 cp "${WORKSPACE_ROOT}/misc/logo-dashql-glyphs/app_icons_mac.icns" "${STAGE}/icon.icns"
+cp "${WORKSPACE_ROOT}/packages/dashql-native/assets/trayTemplate.png" "${WORKSPACE_ROOT}/packages/dashql-native/assets/trayTemplate@2x.png" "${STAGE}/"
 cp -R "${WORKSPACE_ROOT}/packages/dashql-app/electron_deploy/." "${STAGE}/renderer/"
 cp "${ADDON_PATH}" "${STAGE}/dashql_native_napi.node"
 cp "${CLI_PATH}" "${STAGE}/bin/dashql"

@@ -7,9 +7,11 @@ import {brotliDecompress} from "node:zlib";
 
 import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProcess, type WebContents} from "electron";
 
+import {AgentHost} from "./agent_host.js";
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
 import {GrpcTestServer, GRPC_TEST_REQUEST, GRPC_TEST_STREAM_BODY, GRPC_TEST_UNARY_RESPONSE} from "./grpc_test_server.js";
+import {MenuBar} from "./menu_bar.js";
 import {NativeProxyService, type NativeProxyRequest, validateNativeProxyRequest} from "./native_proxy.js";
 import {OAuthLoopbackServer} from "./oauth_loopback.js";
 import {createElectronUpdater, type ElectronUpdater} from "./updater.js";
@@ -34,6 +36,8 @@ let deepLinkSender: WebContents | null = null;
 let nativeProxy: NativeProxyService | null = null;
 let mainWindow: BrowserWindow | null = null;
 let updater: ElectronUpdater | null = null;
+let agentHost: AgentHost | null = null;
+let menuBar: MenuBar | null = null;
 const oauthLoopbacks = new Map<number, OAuthLoopbackServer>();
 let nextOAuthLoopbackId = 1;
 
@@ -102,6 +106,7 @@ async function createWindow(testMode: RendererTestMode): Promise<BrowserWindow> 
         },
     });
     window.webContents.setWindowOpenHandler(() => ({action: "deny"}));
+    if (menuBar !== null) app.setActivationPolicy("regular");
     if (rendererDevOrigin !== null) {
         window.webContents.on("context-menu", (_event, params) => {
             Menu.buildFromTemplate([
@@ -139,6 +144,8 @@ async function createWindow(testMode: RendererTestMode): Promise<BrowserWindow> 
     window.on("closed", () => {
         if (mainWindow === window) mainWindow = null;
         deepLinks.detach();
+        // The menu bar keeps DashQL running without a Dock icon
+        if (menuBar !== null && BrowserWindow.getAllWindows().every((w) => w.isDestroyed())) app.setActivationPolicy("accessory");
     });
     mainWindow = window;
     return window;
@@ -418,6 +425,109 @@ function isTrustedRenderer(url: string | undefined): boolean {
     return isTrustedRendererUrl(url, rendererDevOrigin);
 }
 
+/// Show the window, or open one
+async function openWindow(): Promise<void> {
+    if (mainWindow === null) {
+        await createWindow(null);
+        return;
+    }
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+}
+
+const MENU_BAR_SETTINGS = "menu_bar.json";
+
+interface MenuBarSettings {
+    agentAccess: boolean;
+}
+
+async function readMenuBarSettings(): Promise<MenuBarSettings> {
+    try {
+        const stored = JSON.parse(await readFile(path.join(app.getPath("userData"), MENU_BAR_SETTINGS), "utf8")) as Partial<MenuBarSettings>;
+        return {agentAccess: stored.agentAccess !== false};
+    } catch {
+        return {agentAccess: true};
+    }
+}
+
+async function writeMenuBarSettings(settings: MenuBarSettings): Promise<void> {
+    await writeFile(path.join(app.getPath("userData"), MENU_BAR_SETTINGS), JSON.stringify(settings, null, 2));
+}
+
+/// Run the agent server and show it in the menu bar, on macOS
+async function startMenuBar(): Promise<void> {
+    if (process.platform !== "darwin") return;
+    const binary = process.env.DASHQL_AGENT_CLI ?? path.join(process.resourcesPath, "bin", "dashql");
+    const host = new AgentHost({
+        binary,
+        // The dev page connects to the dev port, see packages/dashql-app
+        dev: rendererDevOrigin !== null,
+        log: (line) => console.error(line),
+    });
+    let settings = await readMenuBarSettings();
+    agentHost = host;
+    menuBar = new MenuBar(host, {
+        icon: process.env.DASHQL_ELECTRON_TRAY_ICON ?? path.join(process.resourcesPath, "trayTemplate.png"),
+        agentAccess: settings.agentAccess,
+        actions: {
+            setAgentAccess: (enabled) => {
+                settings = {...settings, agentAccess: enabled};
+                if (menuBar !== null) menuBar.agentAccess = enabled;
+                if (enabled) host.start();
+                else void host.stop();
+                void writeMenuBarSettings(settings).catch((error) => console.error("Cannot store the menu bar settings", error));
+            },
+            openWindow: () => void openWindow(),
+            openWeb: () => void shell.openExternal("https://dashql.app"),
+            installUpdate: () => void installUpdate().catch((error) => console.error("Update install failed", error)),
+            quit: () => app.quit(),
+        },
+    });
+    if (settings.agentAccess) host.start();
+}
+
+let quitState: "running" | "confirming" | "confirmed" = "running";
+
+/// Ask before a quit stops harness runs
+async function confirmQuit(): Promise<boolean> {
+    const runs = agentHost?.snapshot.state === "running" ? agentHost.snapshot.status?.runs.length ?? 0 : 0;
+    if (runs === 0) return true;
+    const {response} = await dialog.showMessageBox({
+        type: "warning",
+        message: runs === 1 ? "An agent is working in DashQL" : `${runs} agents are working in DashQL`,
+        detail: "Quitting DashQL stops the agent server and its runs.",
+        buttons: ["Quit", "Cancel"],
+        defaultId: 1,
+        cancelId: 1,
+    });
+    return response === 0;
+}
+
+/// Stop the agent server and the native proxy, then quit or install the downloaded update
+async function quitDashQL(install: boolean): Promise<void> {
+    if (quitState !== "running") return;
+    quitState = "confirming";
+    if (!(await confirmQuit())) {
+        quitState = "running";
+        return;
+    }
+    quitState = "confirmed";
+    menuBar?.destroy();
+    menuBar = null;
+    nativeProxy?.close();
+    nativeProxy = null;
+    await agentHost?.stop();
+    if (install && updater !== null) updater.install();
+    else app.quit();
+}
+
+async function installUpdate(): Promise<void> {
+    if (updater === null) throw new Error("Updates are unavailable");
+    if (updater.getStatus().status !== "downloaded") throw new Error("No downloaded update is ready");
+    await quitDashQL(true);
+}
+
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) {
     app.quit();
@@ -437,10 +547,8 @@ if (!hasSingleInstanceLock) {
 
     app.on("second-instance", (_event, commandLine) => {
         for (const data of parseDeepLinksFromCommandLine(commandLine)) deepLinks.push(data);
-        if (mainWindow !== null) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
-            mainWindow.focus();
-        }
+        // The menu bar app may run without a window
+        if (app.isReady()) void openWindow();
     });
 
     ipcMain.handle("dashql:get-initial-deep-links", (event) => {
@@ -570,10 +678,9 @@ if (!hasSingleInstanceLock) {
         if (updater === null) throw new Error("Updates are unavailable");
         await updater.download(channel);
     });
-    ipcMain.handle("dashql:install-update", (event) => {
+    ipcMain.handle("dashql:install-update", async (event) => {
         if (!isTrustedRenderer(event.senderFrame?.url)) throw new Error("Rejected update request from an untrusted frame");
-        if (updater === null) throw new Error("Updates are unavailable");
-        updater.install();
+        await installUpdate();
     });
 
     ipcMain.handle("dashql:native-proxy-request", async (event, request: NativeProxyRequest) => {
@@ -596,10 +703,19 @@ if (!hasSingleInstanceLock) {
         }
         const testMode = rendererTestMode();
         if (app.isPackaged || process.env.DASHQL_ENABLE_DEV_UPDATES) {
-            updater = createElectronUpdater(app.getVersion(), () => mainWindow);
+            updater = createElectronUpdater(app.getVersion(), () => mainWindow, (status) => {
+                if (menuBar !== null) menuBar.updateVersion = status.status === "downloaded" ? status.version : null;
+            });
         }
         nativeProxy = startNativeProxy();
         await nativeProxy.ready();
+        if (testMode === null) await startMenuBar();
+        // Started at login: only the menu bar
+        if (testMode === null && menuBar !== null && process.argv.includes("--menu-bar")) {
+            app.setActivationPolicy("accessory");
+            void updater?.check().catch((error) => console.error("Update check failed", error));
+            return;
+        }
         const window = await createWindow(testMode);
         if (testMode === null) void updater?.check().catch((error) => console.error("Update check failed", error));
         if (testMode === "capability") {
@@ -618,9 +734,11 @@ if (!hasSingleInstanceLock) {
         }
     });
 
-    app.on("before-quit", () => {
-        nativeProxy?.close();
-        nativeProxy = null;
+    app.on("before-quit", (event) => {
+        if (quitState === "confirmed") return;
+        // Stop the agent server first, quitDashQL quits again
+        event.preventDefault();
+        void quitDashQL(false);
     });
 
     app.on("activate", async () => {

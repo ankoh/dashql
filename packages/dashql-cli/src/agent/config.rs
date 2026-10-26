@@ -88,28 +88,30 @@ impl AgentConfig {
 }
 
 /// The built-in harnesses. config.json can override them by name and add its own.
-/// To be confirmed against the harness versions in use.
+/// `--` ends the options before the prompt: Claude Code's tool lists take every following argument, and a prompt
+/// starting with `-` would be read as an option.
+/// Run against Claude Code 2.1, opencode 1.18 and Codex 0.162.
 fn default_harnesses() -> Value {
     json!({
         "claude": {
             "command": [
                 "claude", "-p", "--output-format", "stream-json", "--verbose",
                 "--allowedTools", "Bash(dashql agent:*)", "--disallowedTools", "Bash(dashql agent serve:*)",
-                "{resume}", "{prompt}",
+                "{resume}", "--", "{prompt}",
             ],
             "resumeArgs": ["--resume", "{harnessSession}"],
             "terminalCommand": ["claude", "--resume", "{harnessSession}"],
             "adapter": "claude",
         },
         "codex": {
-            "command": ["codex", "exec", "--json", "--skip-git-repo-check", "{resume}", "{prompt}"],
+            "command": ["codex", "exec", "--json", "--skip-git-repo-check", "{resume}", "--", "{prompt}"],
             "resumeArgs": ["resume", "{harnessSession}"],
             "terminalCommand": ["codex", "resume", "{harnessSession}"],
             "adapter": "codex",
         },
         // The permissions of opencode runs come from the opencode.json of the working folder
         "opencode": {
-            "command": ["opencode", "run", "--format", "json", "{resume}", "{prompt}"],
+            "command": ["opencode", "run", "--format", "json", "{resume}", "--", "{prompt}"],
             "resumeArgs": ["--session", "{harnessSession}"],
             "terminalCommand": ["opencode", "--session", "{harnessSession}"],
             "adapter": "opencode",

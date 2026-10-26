@@ -25,7 +25,8 @@ Commands for the DashQL session that is open in the browser or the desktop app:
   lint <script>                       Diagnostics of a script
   run <script> [--max-rows N]         Run a script: columns, first rows, row count or error
   result <script> [--page N]          More rows of the last result
-  serve [--dev]                       Run the agent server in the foreground
+  serve [--dev] [--exit-with-stdin]   Run the agent server in the foreground, --exit-with-stdin stops it when
+                                      stdin closes, for an app that runs it as a child process
 
 Options:
   --session <id>   Target session, default: $DASHQL_SESSION, then the focused session
@@ -71,6 +72,7 @@ pub struct Options {
     pub max_rows: Option<String>,
     pub page: Option<String>,
     pub dev: bool,
+    pub exit_with_stdin: bool,
     pub help: bool,
     pub positionals: Vec<String>,
 }
@@ -98,6 +100,7 @@ pub fn parse_args(argv: &[String]) -> Result<Options, String> {
         match name {
             "--json" if inline.is_none() => options.json = true,
             "--dev" if inline.is_none() => options.dev = true,
+            "--exit-with-stdin" if inline.is_none() => options.exit_with_stdin = true,
             "-h" | "--help" if inline.is_none() => options.help = true,
             "--" => options.positionals.extend(args.by_ref().cloned()),
             a if a.starts_with('-') && a != "-" => return Err(format!("unknown option {arg}")),
