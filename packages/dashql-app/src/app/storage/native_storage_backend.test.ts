@@ -36,6 +36,17 @@ describe('NativeStorageBackend V2 flat storage', () => {
         expect([...fsStore.files.keys()].some(path => path.includes('/scripts/page/'))).toBe(false);
     });
 
+    it('writes a .gitignore with the session file', async () => {
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('cache/\n*.hyper\n');
+    });
+
+    it('appends missing entries to an existing .gitignore', async () => {
+        fsStore.files.set(`${DIR}/.gitignore`, 'notes.txt\ncache/');
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
+        expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('notes.txt\ncache/\n*.hyper\n');
+    });
+
     it('persists rename and delete', async () => {
         await backend.saveScript(TEST_SESSION_ID, '01_old.sql', 'SELECT 1');
         await backend.renameScript(TEST_SESSION_ID, '01_old.sql', '01_new.sql');

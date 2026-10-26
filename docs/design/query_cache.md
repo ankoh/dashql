@@ -43,7 +43,7 @@ cache/
   <hash>.arrow.last_access
 ```
 
-`<hash>.arrow` is the authoritative Arrow IPC stream. Its modification time is the entry's cached-at time. `<hash>.arrow.last_access` is an empty companion file whose modification time records the most recent cache access. Native sessions create a top-level `.gitignore` containing `cache/` when the first entry is written, but only if the user has not already created that file.
+`<hash>.arrow` is the authoritative Arrow IPC stream. Its modification time is the entry's cached-at time. `<hash>.arrow.last_access` is an empty companion file whose modification time records the most recent cache access. Native sessions keep a top-level `.gitignore` with the entries `cache/` and `*.hyper`. It is written with the session file, and missing entries are appended to an existing `.gitignore`, so the user's own lines stay.
 
 The storage interface exposes load, save, touch, list, has, and delete operations. The executor reaches them through the `QueryResultCache` capability of `createSessionQueryResultCache` (`packages/dashql-app/src/app/storage/session_query_result_cache.ts`); queries without a session id are never cached. `CompositeStorageBackend` routes those methods by session UUID to the session's OPFS or native backend.
 

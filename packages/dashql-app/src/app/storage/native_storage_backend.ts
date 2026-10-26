@@ -4,8 +4,10 @@ import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, valida
 
 import { exists, join, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile } from '../../platform/electron_fs.js';
 
-/// The name of the session-level .gitignore that excludes the cache folder from version control.
+/// The name of the session-level .gitignore that keeps generated files out of version control.
 const GITIGNORE_FILE = '.gitignore';
+/// The entries of the session-level .gitignore: the query result cache and Hyper database files.
+const GITIGNORE_ENTRIES = [`${STORAGE_CACHE_FOLDER}/`, '*.hyper'];
 
 /// Native filesystem storage backend for a single Electron session.
 ///
@@ -21,6 +23,8 @@ const GITIGNORE_FILE = '.gitignore';
 export class NativeStorageBackend implements StorageBackend {
     /// The absolute directory on disk that holds this session's files
     private readonly dir: string;
+    /// Whether the .gitignore was already checked by this backend
+    private gitignoreChecked = false;
 
     constructor(dir: string) {
         this.dir = dir;
@@ -91,8 +95,25 @@ export class NativeStorageBackend implements StorageBackend {
         return JSON.parse(text) as SessionData;
     }
 
+    /// Ensure the session-level .gitignore holds our entries. Missing entries are appended, so a
+    /// user-authored .gitignore keeps its own lines and folders from older versions get new entries.
+    private async ensureGitignore(): Promise<void> {
+        if (this.gitignoreChecked) return;
+        const file = await this.abs(GITIGNORE_FILE);
+        const existing = (await exists(file)) ? await readTextFile(file) : '';
+        const lines = new Set(existing.split(/\r?\n/).map(line => line.trim()));
+        const missing = GITIGNORE_ENTRIES.filter(entry => !lines.has(entry));
+        if (missing.length > 0) {
+            const separator = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
+            await writeTextFile(file, `${existing}${separator}${missing.join('\n')}\n`);
+        }
+        this.gitignoreChecked = true;
+    }
+
     async saveSessionManifest(_sessionId: string, data: SessionData): Promise<void> {
         await this.ensureDir('');
+        // Keep generated files out of version control as soon as the session folder is written
+        await this.ensureGitignore();
         const metaFile = await this.abs(STORAGE_SESSION_FILE);
         await writeTextFile(metaFile, JSON.stringify(data, null, 2));
     }
@@ -231,12 +252,7 @@ export class NativeStorageBackend implements StorageBackend {
 
     async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
         await this.ensureDir(STORAGE_CACHE_FOLDER);
-        // Keep the cache out of version control. Write the ignore file lazily and only when absent so
-        // we never clobber a user-authored .gitignore in their session folder.
-        const gitignore = await this.abs(GITIGNORE_FILE);
-        if (!(await exists(gitignore))) {
-            await writeTextFile(gitignore, `${STORAGE_CACHE_FOLDER}/\n`);
-        }
+        await this.ensureGitignore();
 
         const cacheDir = await this.abs(STORAGE_CACHE_FOLDER);
         await evictToFit(this.cacheStoreForDir(cacheDir), sessionId, bytes.byteLength);
