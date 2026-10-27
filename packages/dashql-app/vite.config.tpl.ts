@@ -186,6 +186,7 @@ export default vite.defineConfig(({ mode, command }) => {
                 input: {
                     app: path.resolve(rootDir, "index.html"),
                     shell: path.resolve(rootDir, "shell.html"),
+                    demos: path.resolve(rootDir, "demos.html"),
                     oauth_redirect: path.resolve(rootDir, "oauth.html"),
                     ...(isElectronBuild
                         ? { hyperdb_capability: path.resolve(rootDir, "hyperdb-capability.html") }

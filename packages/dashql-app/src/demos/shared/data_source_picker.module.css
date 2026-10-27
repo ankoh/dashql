@@ -1,0 +1,20 @@
+.root {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.remote {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.endpoint {
+    width: 220px;
+}
+
+.token {
+    width: 140px;
+}

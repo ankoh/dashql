@@ -1,9 +1,9 @@
 import * as React from 'react';
-import * as arrow from 'apache-arrow';
 import type { TopLevelSpec } from 'vega-lite';
 
 import * as styles from './visualization.module.css';
 import { loadVega } from '../../../../../ui/vegalite/vegalite_loader.js';
+import { arrowTableToRows } from '../../../../../ui/vegalite/vegalite_rows.js';
 import { createEmbedOptions, createVegaLiteConfig, resolveChartColors } from '../../../../../ui/vegalite/vegalite_theme.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../../../../../query/query_execution_state.js';
 import { useComputationRegistry } from '../../../../../compute/computation_registry.js';
@@ -88,31 +88,6 @@ function stripLegends<T>(spec: T): T {
         }
     }
     return out as unknown as T;
-}
-
-/// Convert an arrow row object to a vega-compatible plain object.
-function arrowRowToObject(row: any, fields: readonly arrow.Field[]): Record<string, unknown> {
-    const obj: Record<string, unknown> = {};
-    for (const field of fields) {
-        const value = row[field.name];
-        // Convert BigInts to numbers for vega compatibility
-        if (typeof value === 'bigint') {
-            obj[field.name] = Number(value);
-        } else if (value instanceof Date) {
-            obj[field.name] = value.toISOString();
-        } else {
-            obj[field.name] = value;
-        }
-    }
-    return obj;
-}
-
-function arrowTableToRows(table: arrow.Table): Record<string, unknown>[] {
-    const rows: Record<string, unknown>[] = [];
-    for (const row of table) {
-        rows.push(arrowRowToObject(row, table.schema.fields));
-    }
-    return rows;
 }
 
 /// Structural signatures of specs, computed once per spec object

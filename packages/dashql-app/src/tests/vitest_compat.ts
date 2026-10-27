@@ -222,6 +222,8 @@ function unsupportedModuleMocking(): never {
 
 const vi = {
     advanceTimersByTime: (milliseconds: number) => clock?.tick(milliseconds),
+    // Runs the promise callbacks of every timer before the next one fires
+    advanceTimersByTimeAsync: async (milliseconds: number) => { await clock?.tickAsync(milliseconds); },
     clearAllMocks,
     fn,
     hoisted: <T>(factory: () => T): T => factory(),

@@ -1,6 +1,4 @@
 import * as React from 'react';
-import * as buf from "@bufbuild/protobuf";
-import * as pb from "../../../proto.js";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
@@ -16,7 +14,6 @@ import { Dispatch } from '../../../utils/variant.js';
 import {
     HyperDatabaseChannel,
     HyperDatabaseClient,
-    HyperDatabaseConnectionContext,
 } from './hyperdb_grpc_client.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../config/app_config.js';
@@ -27,7 +24,7 @@ import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedd
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
-import type { EmbeddedClientContext } from '../../../platform/database/embedded_database.js';
+import { hyperConnectionContext } from './hyper_connection_context.js';
 import { getHyperLinkTabState, hyperLinkChannelParams } from '../../hyper_link/hyper_link.js';
 
 const LOG_CTX = "hyper_setup";
@@ -39,25 +36,6 @@ function resolveClient(protocol: connection.HyperProtocol, grpcClient: HyperData
     }
     if (!grpcClient) throw new Error(`gRPC client is not available (required for protocol ${protocol})`);
     return grpcClient;
-}
-
-/// The context of the channels of a remote Hyper connection, whose queries have a client context.
-/// The direct gRPC Hyper connector never changes the headers it injects.
-function hyperConnectionContext(params: connection.HyperConnectionParams, clientContext: EmbeddedClientContext | null): HyperDatabaseConnectionContext {
-    return {
-        getAttachedDatabases(): pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabase[] {
-            return (params.attachedDatabases ?? []) as any;
-        },
-        async getRequestMetadata(): Promise<Record<string, string>> {
-            return params.metadata ?? {};
-        },
-        getQueryParameters(): Record<string, string> {
-            return params.queryParameters ?? {};
-        },
-        getClientContext(): EmbeddedClientContext | null {
-            return clientContext;
-        },
-    };
 }
 
 export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, setupEmbeddedDatabase: EmbeddedDatabaseSetupFn, abortSignal: AbortSignal, logMetrics: HyperLogMetrics | null = null, connectionId: string | null = null): Promise<HyperDatabaseChannel | null> {

@@ -1,0 +1,100 @@
+.board {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.board th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 6px 10px;
+    text-align: right;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--base_color_neutral_5);
+    background-color: white;
+    border-bottom: 1px solid var(--border_color_primary);
+    white-space: nowrap;
+}
+
+.board td {
+    padding: 4px 10px;
+    text-align: right;
+    font-family: var(--font_family_mono);
+    color: var(--base_color_neutral_9);
+    border-bottom: 1px solid var(--base_color_neutral_1);
+    white-space: nowrap;
+}
+
+.board tbody tr {
+    cursor: pointer;
+}
+
+.board tbody tr:hover {
+    background-color: var(--base_color_neutral_0);
+}
+
+/* The selection takes the color of the charts, it follows the flavor */
+.board tbody tr.selected {
+    background-color: color-mix(in srgb, var(--chart_color_primary) 10%, white);
+}
+
+.board th.symbol_col,
+.board td.symbol_col {
+    text-align: left;
+}
+
+.board td.symbol_col {
+    font-family: var(--font_family);
+    font-weight: 600;
+}
+
+.board td.up {
+    color: var(--base_color_green_6);
+}
+
+.board td.down {
+    color: var(--base_color_red_6);
+}
+
+.board td.age {
+    color: var(--base_color_neutral_5);
+}
+
+/* A price flashes in the direction of its change, then fades back */
+
+.flash_up,
+.flash_down {
+    padding: 1px 3px;
+    margin: -1px -3px;
+    border-radius: 3px;
+}
+
+.flash_up {
+    animation: flash_up 800ms ease-out;
+}
+
+.flash_down {
+    animation: flash_down 800ms ease-out;
+}
+
+@keyframes flash_up {
+    from { background-color: var(--base_color_green_1); }
+    to { background-color: transparent; }
+}
+
+@keyframes flash_down {
+    from { background-color: var(--base_color_red_1); }
+    to { background-color: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .flash_up,
+    .flash_down {
+        animation: none;
+    }
+}

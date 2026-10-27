@@ -170,6 +170,8 @@ copy_to_bin(
         "src/**/*.ts",
         "src/**/*.tsx",
         "src/**/*.js",
+        "src/**/*.sql",
+        "demos.html",
         "hyperdb-capability.html",
         "index.html",
         "oauth.html",
