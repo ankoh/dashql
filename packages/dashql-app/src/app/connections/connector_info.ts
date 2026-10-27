@@ -48,6 +48,8 @@ export interface ConnectorPlatforms {
 export interface ConnectorFeatures {
     /// Do new sessions cache query results?
     queryResultCaching: boolean;
+    /// Do connections only run queries, no DDL or DML?
+    readOnly: boolean;
 }
 
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
@@ -66,6 +68,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         features: {
             queryResultCaching: false,
+            readOnly: false,
         },
         platforms: {
             browser: true,
@@ -87,6 +90,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         features: {
             queryResultCaching: true,
+            readOnly: true,
         },
         platforms: {
             browser: true,
@@ -108,6 +112,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         features: {
             queryResultCaching: true,
+            readOnly: true,
         },
         platforms: {
             browser: true,

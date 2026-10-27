@@ -11,9 +11,12 @@ import type { QueryExecutor } from '../connections/query_executor.js';
 import {
     CREATE_SCRIPT,
     RENAME_SCRIPT,
+    SET_SCRIPT_CONNECTION,
     SET_SCRIPT_TEXT,
     getSelectedScriptRef,
+    scriptConnectionOf,
     sessionConnectionIds,
+    type ScriptConnection,
     type ScriptData,
     type SessionScripts,
     type SessionScriptsAction,
@@ -82,11 +85,45 @@ function requireScript(state: SessionScripts, name: string): ScriptData {
     return script;
 }
 
-function connectionLabel(env: AgentCommandEnvironment, connectionId: string): string {
+/// A connection of a session as the agent sees it
+interface AgentConnection {
+    id: string;
+    connector: string | null;
+    readOnly: boolean | null;
+    online: boolean;
+}
+
+function describeConnection(env: AgentCommandEnvironment, connectionId: string): AgentConnection {
     const conn = env.connections().connections.get(connectionId);
-    if (conn == null) return connectionId;
-    const health = conn.connectionHealth === ConnectionHealth.ONLINE ? 'online' : 'offline';
-    return `${connectionId} (${conn.connectorInfo.names.displayShort}, ${health})`;
+    if (conn == null) return { id: connectionId, connector: null, readOnly: null, online: false };
+    return {
+        id: connectionId,
+        connector: conn.connectorInfo.names.displayShort,
+        readOnly: conn.connectorInfo.features.readOnly,
+        online: conn.connectionHealth === ConnectionHealth.ONLINE,
+    };
+}
+
+/// A connection that the session uses
+function requireSessionConnection(state: SessionScripts, connectionId: string): void {
+    const ids = sessionConnectionIds(state);
+    if (!ids.includes(connectionId)) fail(`The session does not use the connection ${connectionId}. Connections: ${ids.join(', ')}`);
+}
+
+/// The connection that the agent picked for a script, null if it picked none
+function pickedScriptConnection(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): ScriptConnection | null {
+    const connectionId = args.connection;
+    if (connectionId == null) return null;
+    if (typeof connectionId !== 'string' || connectionId.length === 0) usage('invalid connection');
+    requireSessionConnection(state, connectionId);
+    const conn = env.connections().connections.get(connectionId);
+    if (conn == null) fail(`The connection ${connectionId} is not set up in DashQL, ask the user to connect it`);
+    return scriptConnectionOf(conn);
+}
+
+function connectionLabel(conn: AgentConnection): string {
+    if (conn.connector == null) return conn.id;
+    return `${conn.id} (${conn.connector}, ${conn.readOnly ? 'read-only' : 'read-write'}, ${conn.online ? 'online' : 'offline'})`;
 }
 
 /// The SHA-256 of a text as hex
@@ -154,18 +191,19 @@ async function listScripts(env: AgentCommandEnvironment, state: SessionScripts):
             focused: fileName === focused,
         };
     });
+    const connections = sessionConnectionIds(state).map(id => describeConnection(env, id));
     const lines = [
         `Session ${JSON.stringify(state.name ?? '')} (${state.sessionId})`,
-        `Default connection: ${connectionLabel(env, state.connectionId)}`,
+        `Default connection: ${connectionLabel(connections[0])}`,
     ];
-    const others = sessionConnectionIds(state).filter(id => id !== state.connectionId);
-    if (others.length > 0) lines.push(`Other connections: ${others.map(id => connectionLabel(env, id)).join(', ')}`);
+    const others = connections.slice(1);
+    if (others.length > 0) lines.push(`Other connections: ${others.map(connectionLabel).join(', ')}`);
     lines.push(scripts.length === 0 ? 'No scripts' : 'Scripts:');
     for (const script of scripts) {
         const connection = script.connectionId === state.connectionId ? '' : `  on ${script.connectionId}`;
         lines.push(`  ${script.name}  ${script.lines} line${script.lines === 1 ? '' : 's'}${connection}${script.focused ? '  (focused)' : ''}`);
     }
-    return { text: lines.join('\n'), data: { session: state.sessionId, name: state.name, defaultConnection: state.connectionId, scripts } };
+    return { text: lines.join('\n'), data: { session: state.sessionId, name: state.name, defaultConnection: state.connectionId, connections, scripts } };
 }
 
 async function editScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
@@ -175,13 +213,21 @@ async function editScript(env: AgentCommandEnvironment, sessionId: string, state
     const base = scriptDisplayName(name.trim());
     if (base.length === 0 || /[/\\\0]/.test(base)) usage(`invalid script name: ${name}`);
 
+    const connection = pickedScriptConnection(env, state, args);
     let script = findScript(state, name);
     let next: SessionScripts | null;
     let created = false;
     if (script != null) {
+        if (connection != null && connection.connectionId !== script.connection.connectionId) {
+            // The script moves first and keeps its key
+            const moved = await env.modifySessionScripts(sessionId, { type: SET_SCRIPT_CONNECTION, value: { fileName: script.fileName, connection } });
+            if (moved?.scripts[script.scriptKey]?.connection.connectionId !== connection.connectionId) {
+                fail(`Cannot move ${scriptDisplayName(script.fileName)} to the connection ${connection.connectionId}`);
+            }
+        }
         next = await env.modifySessionScripts(sessionId, { type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text } });
     } else {
-        next = await env.modifySessionScripts(sessionId, { type: CREATE_SCRIPT, value: { index: null, text } });
+        next = await env.modifySessionScripts(sessionId, { type: CREATE_SCRIPT, value: { index: null, text, connection: connection ?? undefined } });
         const createdRef = next == null ? undefined : getSelectedScriptRef(next);
         if (next == null || createdRef == null) fail('Cannot create the script');
         next = await env.modifySessionScripts(sessionId, { type: RENAME_SCRIPT, value: { fileName: createdRef.fileName, newFileName: base } });
@@ -209,9 +255,11 @@ async function reportEdit(
     const hash = await sha256(checked.scriptSession.getText());
     const errors = diagnostics.filter(d => d.severity === 'error').length;
     const fileName = scriptDisplayName(checked.fileName);
-    const lines = [`${verb} ${fileName}: sha256 ${hash}, ${errors} error${errors === 1 ? '' : 's'}, ${diagnostics.length - errors} warning${diagnostics.length - errors === 1 ? '' : 's'}`];
+    const connectionId = checked.connection.connectionId;
+    const on = connectionId === state.connectionId ? '' : ` on ${connectionId}`;
+    const lines = [`${verb} ${fileName}${on}: sha256 ${hash}, ${errors} error${errors === 1 ? '' : 's'}, ${diagnostics.length - errors} warning${diagnostics.length - errors === 1 ? '' : 's'}`];
     if (diagnostics.length > 0) lines.push(formatDiagnostics(fileName, diagnostics));
-    return { text: lines.join('\n'), data: { script: fileName, ...data, sha256: hash, diagnostics } };
+    return { text: lines.join('\n'), data: { script: fileName, ...data, connection: connectionId, sha256: hash, diagnostics } };
 }
 
 /// The logger that Vega-Lite reports problems to
@@ -292,9 +340,7 @@ async function visualizeScript(env: AgentCommandEnvironment, sessionId: string, 
 
 function describeCatalog(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): AgentCommandResult {
     const connectionId = typeof args.connection === 'string' ? args.connection : state.connectionId;
-    if (!sessionConnectionIds(state).includes(connectionId)) {
-        fail(`The session does not use the connection ${connectionId}. Connections: ${sessionConnectionIds(state).join(', ')}`);
-    }
+    requireSessionConnection(state, connectionId);
     const conn: ConnectionState | null = env.connections().connections.get(connectionId) ?? null;
     const schema = buildSchemaContext(conn, state, env.logger);
     const text = schema.length > 0 ? schema : '-- The catalog is empty';

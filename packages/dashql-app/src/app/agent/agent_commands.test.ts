@@ -8,7 +8,7 @@ import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
 import { ConnectionHealth } from '../connections/connection_state.js';
 import type { QueryExecutor } from '../connections/query_executor.js';
-import { CREATE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../session/scripts/session_scripts.js';
+import { CREATE_SCRIPT, RENAME_SCRIPT, SET_SCRIPT_CONNECTION, SET_SCRIPT_TEXT, type SessionScripts } from '../session/scripts/session_scripts.js';
 
 /// A script with a text and the diagnostics of its analysis
 function script(scriptKey: number, fileName: string, text: string, diagnostics: unknown[] = []) {
@@ -83,11 +83,37 @@ describe('agent commands', () => {
         const result = await run('scripts');
         expect(result.text).toBe([
             'Session "Revenue" (s1)',
-            'Default connection: db (Hyper, online)',
+            'Default connection: db (Hyper, read-write, online)',
             'Scripts:',
             '  orders  1 line  (focused)',
             '  Customers  2 lines',
         ].join('\n'));
+    });
+
+    /// A script on the Trino connection lake
+    const onLake = (s: any) => ({ ...s, connection: { connectionId: 'lake', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: {} } });
+    /// Add the Trino connection lake with a script on it to the session
+    const useLake = () => {
+        state = session([...Object.values(state.scripts), onLake(script(3, 'events.sql', 'select 3'))]);
+        connections.set('lake', {
+            connectionId: 'lake',
+            connectionHealth: ConnectionHealth.ONLINE,
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+            queriesActive: new Map(),
+            queriesFinished: new Map(),
+        });
+    };
+    const lakeConnection = { connectionId: 'lake', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], catalog: undefined, params: undefined };
+
+    it('marks read-only connections', async () => {
+        useLake();
+        const result = await run('scripts');
+        expect(result.text).toContain('Default connection: db (Hyper, read-write, online)\nOther connections: lake (Trino, read-only, online)');
+        expect(result.text).toContain('  events  1 line  on lake');
+        expect((result.data as any).connections).toEqual([
+            { id: 'db', connector: 'Hyper', readOnly: false, online: true },
+            { id: 'lake', connector: 'Trino', readOnly: true, online: true },
+        ]);
     });
 
     it('reads a script', async () => {
@@ -124,6 +150,42 @@ describe('agent commands', () => {
         ]);
         expect(result.text).toMatch(/^Created top: sha256 [0-9a-f]{64}, 0 errors, 0 warnings$/);
         expect(edited).toEqual([3]);
+    });
+
+    it('creates a script on another connection of the session', async () => {
+        useLake();
+        const created = session([...Object.values(state.scripts), onLake(script(4, 'brave-otter.sql', 'select 4'))]);
+        created.scriptFocus = { fileName: 'brave-otter.sql' };
+        const renamed = session([...Object.values(state.scripts), onLake(script(4, 'top.sql', 'select 4'))]);
+        modify.mockResolvedValueOnce(created).mockResolvedValueOnce(renamed);
+        const result = await run('edit', { script: 'top', text: 'select 4', connection: 'lake' });
+        expect(modify.mock.calls[0]).toEqual(['s1', { type: CREATE_SCRIPT, value: { index: null, text: 'select 4', connection: lakeConnection } }]);
+        expect(result.text).toMatch(/^Created top on lake: sha256 [0-9a-f]{64}, 0 errors, 0 warnings$/);
+        expect((result.data as any).connection).toBe('lake');
+    });
+
+    it('moves a script to another connection of the session before it edits it', async () => {
+        useLake();
+        const moved = session(Object.values(state.scripts).map(s => (s.scriptKey === 1 ? onLake(s) : s)));
+        const after = session(Object.values(moved.scripts).map(s => (s.scriptKey === 1 ? onLake(script(1, 'orders.sql', 'select 5')) : s)));
+        modify.mockResolvedValueOnce(moved).mockResolvedValueOnce(after);
+        const result = await run('edit', { script: 'orders', text: 'select 5', connection: 'lake' });
+        expect(modify.mock.calls).toEqual([
+            ['s1', { type: SET_SCRIPT_CONNECTION, value: { fileName: 'orders.sql', connection: lakeConnection } }],
+            ['s1', { type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: 'select 5' } }],
+        ]);
+        expect(result.text).toMatch(/^Updated orders on lake: /);
+    });
+
+    it('edits a script on its connection without moving it', async () => {
+        useLake();
+        await run('edit', { script: 'events', text: 'select 6', connection: 'lake' });
+        expect(modify).toHaveBeenCalledExactlyOnceWith('s1', { type: SET_SCRIPT_TEXT, value: { scriptKey: 3, text: 'select 6' } });
+    });
+
+    it('refuses connections that the session does not use', async () => {
+        await expect(run('edit', { script: 'top', text: 'select 1', connection: 'lake' })).rejects.toThrow('The session does not use the connection lake. Connections: db');
+        expect(modify).not.toHaveBeenCalled();
     });
 
     it('refuses invalid script names', async () => {

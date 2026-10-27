@@ -228,7 +228,7 @@ export type SessionScriptsAction =
     | VariantKind<typeof REGISTER_QUERY, [ScriptKey, number]>
     | VariantKind<typeof REGISTER_SCRIPT_RESULT, [ScriptKey, number]>
     | VariantKind<typeof SET_SCRIPT_EXECUTION_VISUALIZATION, [ScriptKey, ResolvedVisualizeQuery | null]>
-    | VariantKind<typeof CREATE_SCRIPT, { index: number | null, text?: string }>
+    | VariantKind<typeof CREATE_SCRIPT, { index: number | null, text?: string, connection?: ScriptConnection }>
     | VariantKind<typeof DELETE_SCRIPT, string>
     | VariantKind<typeof RENAME_SCRIPT, { fileName: string, newFileName: string }>
     | VariantKind<typeof REORDER_SCRIPTS, string[]>
@@ -667,11 +667,11 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
 
         case CREATE_SCRIPT: {
             // Null appends; an index inserts at that feed boundary. Text seeds the new script, e.g. from the composer.
-            const { index, text } = action.value;
+            const { index, text, connection } = action.value;
             const fileName = generateScriptFileName(state.scriptRefs);
 
-            // Create a new script on the default connection
-            let [scriptKey, scriptData] = createEmptyScriptData(state.instance, defaultScriptConnection(state), fileName);
+            // Create a new script on the given connection, otherwise on the default connection
+            let [scriptKey, scriptData] = createEmptyScriptData(state.instance, connection ?? defaultScriptConnection(state), fileName);
             const scripts: ScriptDataMap = { ...state.scripts };
             if (text) {
                 // Analyze right away so the script can be executed without waiting for an editor,

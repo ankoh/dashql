@@ -20,7 +20,9 @@ Commands for the DashQL session that is open in the browser or the desktop app:
   status                              Connected clients, sessions, the focused session
   scripts                             Scripts of the session with their connections
   read <script>                       Script text
-  edit <script> [--file f]            Replace or create a script with the text of the file or stdin
+  edit <script> [--file f]            Replace or create a script with the text of the file or stdin,
+       [--connection c]               on a connection of the session, default: the connection of the
+                                      script, then the default connection
   catalog [connection]                CREATE TABLE statements
   lint <script>                       Diagnostics of a script
   run <script> [--max-rows N]         Run a script: columns, first rows, row count or error
@@ -71,6 +73,7 @@ pub struct Options {
     pub session: Option<String>,
     pub json: bool,
     pub file: Option<String>,
+    pub connection: Option<String>,
     pub max_rows: Option<String>,
     pub page: Option<String>,
     pub dev: bool,
@@ -90,6 +93,7 @@ pub fn parse_args(argv: &[String]) -> Result<Options, String> {
         let target = match name {
             "--session" => Some(&mut options.session),
             "--file" => Some(&mut options.file),
+            "--connection" => Some(&mut options.connection),
             "--max-rows" => Some(&mut options.max_rows),
             "--page" => Some(&mut options.page),
             _ => None,
@@ -200,6 +204,9 @@ fn call_args(
                 None => (cli.read_stdin)().map_err(|e| format!("stdin: {e}"))?,
             };
             args.insert((if command == "edit" { "text" } else { "spec" }).into(), text.into());
+            if let (Some(connection), "edit") = (&options.connection, command) {
+                args.insert("connection".into(), connection.clone().into());
+            }
         }
         "catalog" => match rest {
             [] => {}
@@ -345,6 +352,13 @@ mod tests {
         let output = fake.run(&["edit", "q1", "--file", "missing.sql"], None, "");
         assert_eq!(output.exit_code, EXIT_USAGE);
         assert!(output.stderr.starts_with("missing.sql: not found"));
+    }
+
+    #[test]
+    fn passes_the_connection_of_an_edit() {
+        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "ok" } })));
+        fake.run(&["edit", "q1", "--connection", "lake"], None, "select 2");
+        assert_eq!(fake.body(0)["args"], json!({ "script": "q1", "text": "select 2", "connection": "lake" }));
     }
 
     #[test]

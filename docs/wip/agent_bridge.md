@@ -285,7 +285,7 @@ folders. Nothing keeps listening once the app is quit or deleted.
 | `dashql agent status` | Connected clients, sessions, focused session and script, connections |
 | `dashql agent scripts` | Scripts of the session with their connections |
 | `dashql agent read <script>` | Script text |
-| `dashql agent edit <script> [--file f \| stdin]` | Replace or create a script; applied directly |
+| `dashql agent edit <script> [--file f \| stdin] [--connection c]` | Replace or create a script, on a connection of the session; applied directly |
 | `dashql agent catalog [connection]` | `CREATE TABLE` statements |
 | `dashql agent lint <script>` | Diagnostics from the page's analyzer |
 | `dashql agent run <script> [--max-rows N]` | Run it; columns, first rows, row count or error |

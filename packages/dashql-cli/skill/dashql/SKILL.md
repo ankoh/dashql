@@ -14,7 +14,7 @@ so it works only while DashQL is open and agent access is turned on for the sess
 | `dashql agent status` | Connected clients, sessions, the focused session |
 | `dashql agent scripts` | Scripts of the session with their connections |
 | `dashql agent read <script>` | Script text |
-| `dashql agent edit <script> [--file f]` | Replace or create a script with the text of the file or stdin |
+| `dashql agent edit <script> [--file f] [--connection c]` | Replace or create a script with the text of the file or stdin |
 | `dashql agent catalog [connection]` | `CREATE TABLE` statements of the tables you can query |
 | `dashql agent lint <script>` | Parser and analyzer diagnostics of a script |
 | `dashql agent run <script> [--max-rows N]` | Run a script: columns, first rows, row count or error |
@@ -25,6 +25,10 @@ so it works only while DashQL is open and agent access is turned on for the sess
 - `--json` prints structured output.
 - Exit codes: 0 ok, 1 the command failed, 2 DashQL is not connected or the call is malformed.
 - One call at a time per session; wait for a call to finish before starting the next one.
+- `scripts` lists the connections of the session with their connector, read-only or read-write, online or
+  offline. New scripts run on the default connection; `edit --connection <id>` creates a script on another
+  connection of the session, or moves an existing one there. `catalog <id>` shows the schema of a connection.
+- Scripts on a read-only connection may only query: no DDL or DML such as `CREATE`, `INSERT` or `UPDATE`.
 - `edit` applies the text directly, the user can undo it in the editor. It prints the hash of the new text
   and the number of diagnostics.
 - `visualize` checks the spec before it writes it: a JSON object that Vega-Lite compiles without warnings, whose
