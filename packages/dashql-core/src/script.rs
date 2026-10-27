@@ -363,6 +363,75 @@ impl Script {
         Ok(String::from_utf8_lossy(&source).into_owned())
     }
 
+    /// Visualize the terminal query with a Vega-Lite spec: replace its renderer tag (`@vis vegalite`,
+    /// `markdown` or `table`) by `@vis vegalite <spec>`. A query without a renderer gets a
+    /// `/* @vis vegalite ... */` comment in front of it.
+    ///
+    /// The spec must be a JSON object, it is written with its key order kept: pretty-printed in block
+    /// comments and on one line in line comments and in block comments with a ` * ` gutter. `/*` and
+    /// `*/` in its strings are escaped as `\/*` and `*\/`, they would nest or end a block comment. The
+    /// spans of the parsed script are applied to the current text, as in `rewrite_dashboard`.
+    ///
+    /// Returns the rewritten text and the span of the written tag or comment in it.
+    pub fn rewrite_vegalite(&mut self, spec: &str, parse_if_outdated: bool) -> Result<(String, TextSpan)> {
+        if parse_if_outdated {
+            self.parse_if_text_outdated();
+        }
+        let not_parsed = || Error::status(StatusCode::SCRIPT_NOT_PARSED);
+        let parsed = self.parsed.as_ref().ok_or_else(not_parsed)?;
+        if !parsed.errors.is_empty() || parsed.statements.is_empty() {
+            return Err(not_parsed());
+        }
+        let statement_id = parsed.statements.len() - 1;
+        if parsed.statements[statement_id].statement_type != StatementType::SELECT {
+            return Err(Error::invalid_argument("the last statement of the script is no query"));
+        }
+        let spec: serde_json::Value = serde_json::from_str(spec)
+            .map_err(|e| Error::invalid_argument(format!("the Vega-Lite spec is no valid JSON: {e}")))?;
+        if !spec.is_object() {
+            return Err(Error::invalid_argument("the Vega-Lite spec is no JSON object"));
+        }
+        let escape = |json: String| json.replace("/*", "\\/*").replace("*/", "*\\/");
+        let compact = escape(spec.to_string());
+        let pretty = escape(serde_json::to_string_pretty(&spec).expect("a JSON value always serializes"));
+
+        let text = parsed.scanned.text.as_str();
+        let (begin, end, replacement) = match crate::analyzer::vis_renderer_tag(parsed, statement_id) {
+            Some(block) => {
+                let lines = &parsed.comment_blocks.lines[block.lines_begin as usize..][..block.lines_count as usize];
+                let (first, last) = (lines[0], lines[lines.len() - 1]);
+                let at = block.tag_span.offset as usize - 1;
+                let line_start = text[..at].rfind('\n').map_or(0, |i| i + 1);
+                let comment = parsed.scanned.comments[block.comments_begin as usize];
+                let comment_text = &text[comment.offset as usize..comment.end() as usize];
+                let has_gutter = comment_text.lines().skip(1).any(|l| {
+                    let l = l.trim_start();
+                    l.starts_with('*') && !l.starts_with("*/")
+                });
+                let body = if comment_text.starts_with("--") || has_gutter {
+                    format!(" {compact}")
+                } else {
+                    // Align the JSON with the tag, `/* ` becomes spaces
+                    let indent: String =
+                        text[line_start..at].chars().map(|c| if c.is_whitespace() { c } else { ' ' }).collect();
+                    pretty.lines().map(|l| format!("\n{indent}{l}")).collect()
+                };
+                (first.offset as usize, last.end() as usize, format!("vegalite{body}"))
+            }
+            None => {
+                let at = parsed.associate_descriptions()[statement_id].statement_span.offset as usize;
+                let json: Vec<String> = pretty.lines().map(|l| format!("   {l}")).collect();
+                (at, at, format!("/* @vis vegalite\n{}\n*/\n", json.join("\n")))
+            }
+        };
+        let mut source = self.text.to_string().into_bytes();
+        if begin > source.len() {
+            return Err(Error::invalid_argument("the parsed script is outdated"));
+        }
+        source.splice(begin..end.min(source.len()), replacement.bytes());
+        Ok((String::from_utf8_lossy(&source).into_owned(), TextSpan::new(begin as u32, replacement.len() as u32)))
+    }
+
     /// Scan and parse if requested and outdated, then return the parsed script to format
     fn parsed_for_formatting(&mut self, parse_if_outdated: bool) -> Result<&Arc<ParsedScript>> {
         if parse_if_outdated {

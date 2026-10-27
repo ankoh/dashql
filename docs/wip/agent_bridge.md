@@ -289,6 +289,7 @@ folders. Nothing keeps listening once the app is quit or deleted.
 | `dashql agent lint <script>` | Diagnostics from the page's analyzer |
 | `dashql agent run <script> [--max-rows N]` | Run it; columns, first rows, row count or error |
 | `dashql agent result <script> [--page N]` | More rows of the last result |
+| `dashql agent visualize <script> [--file f \| stdin]` | Check a Vega-Lite spec and write it as the `@vis vegalite` tag of the last query |
 | `dashql agent serve` | Run the agent server in the foreground |
 | `dashql lint <file.sql\|dir\|->...` | Lint SQL files on disk with the native dashql-core, without DashQL |
 

@@ -4,6 +4,8 @@ export interface VegaModules {
     embed: typeof import('vega-embed').default;
     /// The Vega runtime, e.g. to build changesets
     vega: typeof import('vega-embed').vega;
+    /// The Vega-Lite compiler, e.g. to check specs
+    vegaLite: typeof import('vega-embed').vegaLite;
     /// The expression interpreter, it avoids the `Function()` eval of Vega that CSP forbids
     expressionInterpreter: typeof import('vega-interpreter').expressionInterpreter;
 }
@@ -16,6 +18,7 @@ export function loadVega(): Promise<VegaModules> {
         .then(([embed, interpreter]) => ({
             embed: embed.default,
             vega: embed.vega,
+            vegaLite: embed.vegaLite,
             expressionInterpreter: interpreter.expressionInterpreter,
         }))
         .catch(error => {

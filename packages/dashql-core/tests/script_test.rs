@@ -1,4 +1,4 @@
-//! Tests of `Script`: text edits and versions, parsing, analysis, statement text, dashboard rewrites,
+//! Tests of `Script`: text edits and versions, parsing, analysis, statement text, dashboard and Vega-Lite rewrites,
 //! formatting and statistics.
 
 use dashql_core::catalog::CatalogLayer;
@@ -289,6 +289,77 @@ fn rewrite_dashboard_applies_spans_to_the_current_text() {
     script.replace_text("x");
     let error = script.rewrite_dashboard(None, None, 6, 3, false);
     assert!(error.is_err(), "{error:?}");
+}
+
+#[test]
+fn rewrite_vegalite_inserts_a_comment() {
+    let mut script = parsed_script("/* @description Revenue. */\nselect 1 as a");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"mark":"bar","encoding":{"x":{"field":"a"}}}"#, false).unwrap().0,
+        "/* @description Revenue. */\n/* @vis vegalite\n   {\n     \"mark\": \"bar\",\n     \"encoding\": {\n       \"x\": {\n         \"field\": \"a\"\n       }\n     }\n   }\n*/\nselect 1 as a"
+    );
+}
+
+#[test]
+fn rewrite_vegalite_replaces_the_renderer() {
+    // The JSON is aligned with the tag, the card stays
+    let mut script = parsed_script("/* @vis vegalite {\"mark\": \"line\"}\n   @vis card width=6 */\nselect 1");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
+        "/* @vis vegalite\n   {\n     \"mark\": \"bar\"\n   }\n   @vis card width=6 */\nselect 1"
+    );
+    // A multi-line spec and other renderers are replaced
+    let mut script = parsed_script("/* @vis card width=6\n   @vis vegalite\n   {\n     \"mark\": \"line\"\n   }\n*/\nselect 1");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
+        "/* @vis card width=6\n   @vis vegalite\n   {\n     \"mark\": \"bar\"\n   }\n*/\nselect 1"
+    );
+    let mut script = parsed_script("/* @vis table */ select 1");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
+        "/* @vis vegalite\n   {\n     \"mark\": \"bar\"\n   } */ select 1"
+    );
+    // Line comments and gutters get the spec on one line
+    let mut script = parsed_script("-- @vis markdown\n-- **{{a}}**\n-- @vis card width=2\n-- @end\nselect 1");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
+        "-- @vis vegalite {\"mark\":\"bar\"}\n-- @vis card width=2\n-- @end\nselect 1"
+    );
+    let mut script = parsed_script("/*\n * @vis table\n * @vis card width=2\n */\nselect 1");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
+        "/*\n * @vis vegalite {\"mark\":\"bar\"}\n * @vis card width=2\n */\nselect 1"
+    );
+}
+
+#[test]
+fn rewrite_vegalite_returns_the_span_of_the_tag() {
+    let (text, span) = parsed_script("/* @vis table\n   @vis card width=6 */\nselect 1").rewrite_vegalite("{}", false).unwrap();
+    assert_eq!(&text[span.offset as usize..span.end() as usize], "vegalite\n   {}");
+    let (text, span) = parsed_script("select 1").rewrite_vegalite("{}", false).unwrap();
+    assert_eq!(&text[span.offset as usize..span.end() as usize], "/* @vis vegalite\n   {}\n*/\n");
+}
+
+#[test]
+fn rewrite_vegalite_escapes_comment_delimiters() {
+    let mut script = parsed_script("select 1");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"title": "a */ b /* c"}"#, false).unwrap().0,
+        "/* @vis vegalite\n   {\n     \"title\": \"a *\\/ b \\/* c\"\n   }\n*/\nselect 1"
+    );
+}
+
+#[test]
+fn rewrite_vegalite_needs_a_terminal_query_and_a_json_object() {
+    let not_parsed = Some(StatusCode::SCRIPT_NOT_PARSED);
+    assert_eq!(parsed_script("").rewrite_vegalite("{}", false).unwrap_err().status, not_parsed);
+    assert_eq!(parsed_script("select 1 +").rewrite_vegalite("{}", false).unwrap_err().status, not_parsed);
+    let error = parsed_script("select 1; create table t (a int)").rewrite_vegalite("{}", false).unwrap_err();
+    assert_eq!(error.message, "the last statement of the script is no query");
+    let error = parsed_script("select 1").rewrite_vegalite("[1]", false).unwrap_err();
+    assert_eq!(error.message, "the Vega-Lite spec is no JSON object");
+    let error = parsed_script("select 1").rewrite_vegalite("{\"mark\":", false).unwrap_err();
+    assert!(error.message.starts_with("the Vega-Lite spec is no valid JSON"), "{}", error.message);
 }
 
 #[test]

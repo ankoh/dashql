@@ -603,6 +603,13 @@ export class DashQLScript {
     public getStatementText(parseIfOutdated: boolean = true): string {
         return this.ptr.assertNotNull().getStatementText(parseIfOutdated);
     }
+    /// Visualize the terminal query with a Vega-Lite spec, a JSON object: replace its `@vis vegalite`,
+    /// `markdown` or `table` tag in the text, or insert a `@vis vegalite` comment. Returns the UTF-8 byte
+    /// range of the written tag in the new text.
+    public rewriteVegaLite(spec: string, parseIfOutdated: boolean = true): { offset: number; length: number } {
+        const [offset, length] = this.ptr.assertNotNull().rewriteVegaLite(spec, parseIfOutdated);
+        return { offset, length };
+    }
     /// Compile the script into an executable query.
     public compileQuery(
         config: buffers.formatting.FormattingConfigT,

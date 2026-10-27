@@ -409,6 +409,15 @@ impl Script {
         self.inner.statement_text(parse_if_outdated).map_err(js_error)
     }
 
+    /// Visualize the terminal query with a Vega-Lite spec in the text of the script, returns the UTF-8 offset
+    /// and length of the written tag
+    #[wasm_bindgen(js_name = rewriteVegaLite)]
+    pub fn rewrite_vegalite(&mut self, spec: &str, parse_if_outdated: bool) -> Result<Vec<u32>, JsError> {
+        let (text, tag) = self.inner.rewrite_vegalite(spec, parse_if_outdated).map_err(js_error)?;
+        self.inner.replace_text(&text);
+        Ok(vec![tag.offset, tag.length])
+    }
+
     /// The packed `ScriptStatistics`
     #[wasm_bindgen(js_name = getStatistics)]
     pub fn get_statistics(&self) -> Vec<u8> {

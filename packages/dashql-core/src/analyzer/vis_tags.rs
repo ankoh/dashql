@@ -395,6 +395,21 @@ pub fn vis_card_line(parsed: &dashql_parser::parser::ParsedScript, statement_id:
         })
 }
 
+/// The first renderer tag (`vegalite`, `markdown` or `table`) of a statement, the one that wins
+pub fn vis_renderer_tag(parsed: &dashql_parser::parser::ParsedScript, statement_id: usize) -> Option<CommentBlock> {
+    let script = parsed.scanned.text.as_str();
+    let descriptions = parsed.associate_descriptions();
+    statement_vis_tags(parsed, descriptions.get(statement_id)?)
+        .find(|block| {
+            let lines = &parsed.comment_blocks.lines[block.lines_begin as usize..][..block.lines_count as usize];
+            let Some(line) = lines.first() else { return false };
+            let text = &script[line.offset as usize..line.end() as usize];
+            let (begin, end, _) = split_word(text, 0);
+            matches!(&text[begin..end], "vegalite" | "markdown" | "table")
+        })
+        .copied()
+}
+
 /// Build the visualization specs of the statements with `@vis` tags
 pub(super) fn analyze(state: &mut AnalysisState) {
     let parsed = state.parsed;

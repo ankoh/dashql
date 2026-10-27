@@ -22,6 +22,7 @@ import { ensureSessionScriptAnalyzed, type ModifySessionScripts } from '../sessi
 import { scriptDisplayName } from '../session/scripts/script_types.js';
 import { runSessionScriptForResult } from '../session/ui/rerun_query.js';
 import { buildSchemaContext } from '../session/ai/sql_generation.js';
+import { loadVega } from '../../ui/vegalite/vegalite_loader.js';
 import { DEFAULT_RUN_ROWS, RESULT_PAGE_ROWS, formatResultSlice, sliceResult } from './agent_result_format.js';
 
 /// What the commands of the agent work with
@@ -190,15 +191,103 @@ async function editScript(env: AgentCommandEnvironment, sessionId: string, state
     if (next == null || script == null) fail('The session is gone');
     const edited = next.scripts[script.scriptKey];
     if (edited == null) fail('The script is gone');
+    return reportEdit(env, sessionId, next, edited, created ? 'Created' : 'Updated', { created });
+}
+
+/// Analyze an edited script and report its hash and diagnostics
+async function reportEdit(
+    env: AgentCommandEnvironment,
+    sessionId: string,
+    state: SessionScripts,
+    edited: ScriptData,
+    verb: string,
+    data: Record<string, unknown>,
+): Promise<AgentCommandResult> {
     env.onScriptEdited?.(sessionId, edited.scriptKey);
-    const checked = await analyzed(env, sessionId, next, edited);
+    const checked = await analyzed(env, sessionId, state, edited);
     const diagnostics = collectDiagnostics(checked);
     const hash = await sha256(checked.scriptSession.getText());
     const errors = diagnostics.filter(d => d.severity === 'error').length;
     const fileName = scriptDisplayName(checked.fileName);
-    const lines = [`${created ? 'Created' : 'Updated'} ${fileName}: sha256 ${hash}, ${errors} error${errors === 1 ? '' : 's'}, ${diagnostics.length - errors} warning${diagnostics.length - errors === 1 ? '' : 's'}`];
+    const lines = [`${verb} ${fileName}: sha256 ${hash}, ${errors} error${errors === 1 ? '' : 's'}, ${diagnostics.length - errors} warning${diagnostics.length - errors === 1 ? '' : 's'}`];
     if (diagnostics.length > 0) lines.push(formatDiagnostics(fileName, diagnostics));
-    return { text: lines.join('\n'), data: { script: fileName, created, sha256: hash, diagnostics } };
+    return { text: lines.join('\n'), data: { script: fileName, ...data, sha256: hash, diagnostics } };
+}
+
+/// The logger that Vega-Lite reports problems to
+type VegaLiteLogger = NonNullable<NonNullable<Parameters<typeof import('vega-lite').compile>[1]>['logger']>;
+
+/// The problems of a Vega-Lite spec: the errors and warnings of compiling it without data
+export async function checkVegaLiteSpec(spec: Record<string, unknown>): Promise<string[]> {
+    const { vegaLite } = await loadVega();
+    const problems: string[] = [];
+    const collect = (...message: unknown[]) => {
+        problems.push(message.map(m => (typeof m === 'string' ? m : stringifyError(m))).join(' '));
+        return logger;
+    };
+    const logger: VegaLiteLogger = { level: () => logger, error: collect, warn: collect, info: () => logger, debug: () => logger };
+    try {
+        vegaLite.compile({ ...spec, data: { values: [] } } as Parameters<typeof vegaLite.compile>[0], { logger });
+    } catch (e: unknown) {
+        problems.push(stringifyError(e));
+    }
+    return problems;
+}
+
+/// Rewrite the `@vis` tag of the terminal query in a scratch script and analyze the result. Returns the
+/// rewritten text and the analyzer warnings about the new tag, e.g. fields that are no output columns.
+function rewriteVisTag(state: SessionScripts, script: ScriptData, spec: string): [string, string[]] {
+    const scratch = state.instance.createScript(script.connection.catalog);
+    try {
+        scratch.replaceText(script.scriptSession.getText());
+        const tag = scratch.rewriteVegaLite(spec);
+        scratch.analyze();
+        const analyzedPtr = scratch.getAnalyzed();
+        const reader = analyzedPtr.read();
+        const problems: string[] = [];
+        for (let i = 0; i < reader.errorsLength(); ++i) {
+            const error = reader.errors(i)!;
+            const span = error.textSpan();
+            if (error.errorType() !== core.buffers.analyzer.AnalyzerErrorType.INVALID_VIS_TAG || span == null) continue;
+            if (span.offset() < tag.offset + tag.length && span.offset() + span.length() > tag.offset) problems.push(error.message() ?? '');
+        }
+        analyzedPtr.destroy();
+        return [scratch.toString(), problems];
+    } finally {
+        scratch.destroy();
+    }
+}
+
+/// Visualize the terminal query of a script with a Vega-Lite spec. The spec is checked first: it must be a
+/// JSON object that Vega-Lite compiles without warnings, and its fields must be output columns of the query.
+async function visualizeScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+    const script = requireScript(state, stringArg(args, 'script'));
+    const specText = stringArg(args, 'spec');
+    const name = scriptDisplayName(script.fileName);
+    let spec: unknown;
+    try {
+        spec = JSON.parse(specText);
+    } catch (e: unknown) {
+        fail(`The Vega-Lite spec is no valid JSON: ${stringifyError(e)}`);
+    }
+    if (spec == null || typeof spec !== 'object' || Array.isArray(spec)) fail('The Vega-Lite spec is no JSON object');
+    const invalid = (problems: string[]) => fail([`The Vega-Lite spec is invalid, ${name} is unchanged:`, ...problems.map(p => `  ${p}`)].join('\n'));
+
+    const compileProblems = await checkVegaLiteSpec(spec as Record<string, unknown>);
+    if (compileProblems.length > 0) invalid(compileProblems);
+    let after: string;
+    let tagProblems: string[];
+    try {
+        [after, tagProblems] = rewriteVisTag(state, script, specText);
+    } catch (e: unknown) {
+        fail(`Cannot visualize ${name}: ${stringifyError(e)}`);
+    }
+    if (tagProblems.length > 0) invalid(tagProblems);
+
+    const next = await env.modifySessionScripts(sessionId, { type: SET_SCRIPT_TEXT, value: { scriptKey: script.scriptKey, text: after } });
+    const edited = next?.scripts[script.scriptKey];
+    if (next == null || edited == null) fail('The script is gone');
+    return reportEdit(env, sessionId, next, edited, 'Visualized', {});
 }
 
 function describeCatalog(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): AgentCommandResult {
@@ -288,6 +377,8 @@ export async function runAgentCommand(env: AgentCommandEnvironment, params: Agen
             return runScript(env, params.session, state, args);
         case 'result':
             return readResult(env, state, args);
+        case 'visualize':
+            return visualizeScript(env, params.session, state, args);
         default:
             usage(`unknown command: ${params.command}`);
     }

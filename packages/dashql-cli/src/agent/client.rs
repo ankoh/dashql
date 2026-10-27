@@ -25,6 +25,8 @@ Commands for the DashQL session that is open in the browser or the desktop app:
   lint <script>                       Diagnostics of a script
   run <script> [--max-rows N]         Run a script: columns, first rows, row count or error
   result <script> [--page N]          More rows of the last result
+  visualize <script> [--file f]       Visualize the last query with the Vega-Lite spec of the file or stdin,
+                                      after checking it
   serve [--dev] [--exit-with-stdin]   Run the agent server in the foreground, --exit-with-stdin stops it when
                                       stdin closes, for an app that runs it as a child process
 
@@ -191,13 +193,13 @@ fn call_args(
         "read" | "lint" => {
             args.insert("script".into(), one("script")?);
         }
-        "edit" => {
+        "edit" | "visualize" => {
             args.insert("script".into(), one("script")?);
             let text = match &options.file {
                 Some(file) => (cli.read_file)(file)?,
                 None => (cli.read_stdin)().map_err(|e| format!("stdin: {e}"))?,
             };
-            args.insert("text".into(), text.into());
+            args.insert((if command == "edit" { "text" } else { "spec" }).into(), text.into());
         }
         "catalog" => match rest {
             [] => {}
@@ -343,6 +345,14 @@ mod tests {
         let output = fake.run(&["edit", "q1", "--file", "missing.sql"], None, "");
         assert_eq!(output.exit_code, EXIT_USAGE);
         assert!(output.stderr.starts_with("missing.sql: not found"));
+    }
+
+    #[test]
+    fn reads_the_spec_of_a_visualization_from_stdin() {
+        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "ok" } })));
+        fake.run(&["visualize", "q1"], None, "{\"mark\": \"bar\"}");
+        let args = json!({ "script": "q1", "spec": "{\"mark\": \"bar\"}" });
+        assert_eq!(fake.body(0), json!({ "command": "visualize", "args": args }));
     }
 
     #[test]

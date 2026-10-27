@@ -73,6 +73,28 @@ describe('DashQL scripts', () => {
         catalog.destroy();
     });
 
+    it('visualizes the terminal query with a Vega-Lite spec', () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, '/* @vis table */ select 1 as a');
+
+        expect(script.rewriteVegaLite('{"mark": "bar"}')).toEqual({ offset: 8, length: 37 });
+        expect(script.toString()).toBe('/* @vis vegalite\n   {\n     "mark": "bar"\n   } */ select 1 as a');
+        expect(() => script.rewriteVegaLite('[]')).toThrow('the Vega-Lite spec is no JSON object');
+
+        // The analyzer warns about fields that are no output columns
+        script.rewriteVegaLite('{"mark": "bar", "encoding": {"x": {"field": "b"}}}');
+        script.analyze();
+        const analyzed = script.getAnalyzed();
+        const error = analyzed.read().errors(0);
+        expect(error?.errorType()).toBe(dashql.buffers.analyzer.AnalyzerErrorType.INVALID_VIS_TAG);
+        expect(error?.message()).toBe('unknown field "b", the statement has the columns a');
+        analyzed.destroy();
+
+        script.destroy();
+        catalog.destroy();
+    });
+
     it('analyzes insert write targets through wasm', () => {
         const catalog = dql!.createCatalog();
         const schema = dql!.createScript(catalog);

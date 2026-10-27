@@ -13,7 +13,7 @@ use dashql_buffers::algebra::{
     FunctionCallExpressionT, LiteralT, ResolvedColumnT,
 };
 use dashql_buffers::analyzer::{
-    AnalyzedScriptT, ConstantExpressionT, FunctionDeclarationT, FunctionParamT, IndexedColumnReferenceT,
+    AnalyzedScriptT, AnalyzerErrorT, ConstantExpressionT, FunctionDeclarationT, FunctionParamT, IndexedColumnReferenceT,
     IndexedTableReferenceT, InferredColumnT, InferredTableSchemaT, InsertStatementT, InsertTargetColumnT, NameScopeT,
     QualifiedColumnNameT, QualifiedFunctionNameT, QualifiedTableNameT, ResolvedTableT, TableColumnT,
     TableReferenceRole, TableReferenceT, TableT, VisualizationSpecT,
@@ -689,8 +689,23 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
             })
         })
         .collect();
+    let errors = script
+        .errors
+        .iter()
+        .map(|e| {
+            build!(AnalyzerErrorT {
+                error_type: e.error_type,
+                severity: e.severity,
+                ast_node_id: e.ast_node_id.unwrap_or(PROTO_NULL_U32),
+                symbol_span: e.symbol_span.map(symbol_span),
+                text_span: e.text_span.map(text_span),
+                message: Some(e.message.clone()),
+            })
+        })
+        .collect();
     build!(AnalyzedScriptT {
         catalog_entry_id: entry.catalog_entry_id,
+        errors: non_empty(errors),
         tables: Some(tables),
         table_references: Some(table_references),
         insert_statements: Some(insert_statements),

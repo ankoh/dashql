@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 import * as core from '@ankoh/dashql-core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runAgentCommand, findScript, type AgentCommandEnvironment } from './agent_commands.js';
 import { AgentCommandError } from '../../platform/agent/agent_client.js';
@@ -170,5 +170,85 @@ describe('agent commands', () => {
         expect(second.text).toContain('(rows 51-60 of 60)');
         await expect(run('result', { script: 'orders', page: 3 })).rejects.toThrow('orders has 60 rows, page 3 is empty');
         await expect(run('result', { script: 'customers' })).rejects.toThrow('Customers has no result');
+    });
+});
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+describe('agent visualize command', () => {
+    let dql: core.DashQL;
+    let catalog: core.DashQLCatalog;
+    let modify: ReturnType<typeof vi.fn>;
+    let env: AgentCommandEnvironment;
+
+    beforeAll(async () => {
+        dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    });
+
+    /// A session with one script whose text the agent visualizes
+    const setup = (text: string) => {
+        catalog = dql.createCatalog();
+        const scriptOf = (t: string) => ({ ...script(1, 'orders.sql', t), connection: { connectionId: 'db', catalog } });
+        const state = { ...session([scriptOf(text)]), instance: dql };
+        modify = vi.fn(async (_session: string, action: any) => ({ ...state, scripts: { 1: scriptOf(action.value.text) } }));
+        env = {
+            sessionScripts: () => state,
+            modifySessionScripts: modify as any,
+            connections: () => ({ connections: new Map(), connectionsByType: [] }),
+            executeQuery: vi.fn() as any,
+            logger: new TestLogger(),
+        };
+    };
+
+    afterEach(() => catalog.destroy());
+
+    const visualize = (spec: unknown) =>
+        runAgentCommand(env, { session: 's1', command: 'visualize', args: { script: 'orders', spec: typeof spec === 'string' ? spec : JSON.stringify(spec) } });
+
+    it('writes a valid spec as the @vis vegalite tag of the last query', async () => {
+        setup('/* @vis table */\nselect 1 as region, 2 as revenue');
+        const result = await visualize({ mark: 'bar', encoding: { x: { field: 'region', type: 'nominal' }, y: { field: 'revenue', type: 'quantitative' } } });
+        expect(modify).toHaveBeenCalledExactlyOnceWith('s1', { type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: expect.any(String) } });
+        expect(modify.mock.calls[0][1].value.text).toBe([
+            '/* @vis vegalite',
+            '   {',
+            '     "mark": "bar",',
+            '     "encoding": {',
+            '       "x": {',
+            '         "field": "region",',
+            '         "type": "nominal"',
+            '       },',
+            '       "y": {',
+            '         "field": "revenue",',
+            '         "type": "quantitative"',
+            '       }',
+            '     }',
+            '   } */',
+            'select 1 as region, 2 as revenue',
+        ].join('\n'));
+        expect(result.text).toMatch(/^Visualized orders: sha256 [0-9a-f]{64}, 0 errors, 0 warnings$/);
+    });
+
+    it('rejects fields that are no output columns of the query', async () => {
+        setup('select 1 as region');
+        await expect(visualize({ mark: 'bar', encoding: { x: { field: 'regoin' } } })).rejects.toThrow(
+            'The Vega-Lite spec is invalid, orders is unchanged:\n  unknown field "regoin", the statement has the columns region',
+        );
+        expect(modify).not.toHaveBeenCalled();
+    });
+
+    it('rejects specs that Vega-Lite warns about or cannot compile', async () => {
+        setup('select 1 as a');
+        await expect(visualize({ mark: 'bar', encoding: { x: { field: 'a', aggregate: 'avgg' } } })).rejects.toThrow('Invalid aggregation operator "avgg"');
+        await expect(visualize({ mark: 'bar', transform: [{ calculate: 'datum.a +', as: 'c' }] })).rejects.toThrow('is unchanged');
+        await expect(visualize({ mark: 'bar', data: { values: [] } })).rejects.toThrow('data is ignored, the statement is the data of the chart');
+        await expect(visualize('[1]')).rejects.toThrow('The Vega-Lite spec is no JSON object');
+        await expect(visualize('{"mark":')).rejects.toThrow('The Vega-Lite spec is no valid JSON');
+        expect(modify).not.toHaveBeenCalled();
+    });
+
+    it('needs a query as the last statement', async () => {
+        setup('create table t (a int)');
+        await expect(visualize({ mark: 'bar' })).rejects.toThrow('Cannot visualize orders: the last statement of the script is no query');
     });
 });

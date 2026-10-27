@@ -105,6 +105,14 @@ Completion works inside comments (`completion_vis.rs`), although the rest of the
   are the output columns of the query. Keys and values are inserted as JSON strings.
 - In a `markdown` template, `{{` completes the output columns.
 
+Agents write charts with `dashql agent visualize <script>`, which takes a Vega-Lite spec on stdin or from
+`--file`. The app checks the spec before it touches the script: it must be a JSON object that Vega-Lite
+compiles without errors or warnings (with empty data), and the analyzer must not warn about the new tag,
+e.g. about a `field` that is no output column or about `data`. `Script::rewrite_vegalite` then replaces
+the renderer tag of the terminal query (`vegalite`, `markdown` or `table`) or inserts a
+`/* @vis vegalite ... */` comment; the spec is pretty-printed in block comments and stays on one line in
+line comments and in block comments with a ` * ` gutter.
+
 The editor highlights `@vis` tags like code (`vis_highlight.rs`): the syntax spans of such a comment are
 split into the tag and kind (keywords), JSON keys and `card` keys (identifiers), JSON strings, numbers
 and booleans (literals) and `{{field}}` placeholders (identifiers). Other editors show the tags as plain
