@@ -49,7 +49,7 @@ jobs:
                   private_key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
                   app_id: ${{ secrets.RENOVATE_APP_ID }}
 
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
               with:
                   submodules: 'recursive'
                   fetch-depth: 0
