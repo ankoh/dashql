@@ -149,6 +149,12 @@
             "matchPackageNames": ["napi", "napi-derive"]
         },
         {
+            "description": "vega-lite and vega-embed declare peer dependencies on the vega major.",
+            "groupName": "vega",
+            "automerge": false,
+            "matchPackageNames": ["vega", "vega-embed", "vega-interpreter", "vega-lite"]
+        },
+        {
             "groupName": "flatbuffers",
             "automerge": false,
             "matchPackageNames": ["flatbuffers", "google/flatbuffers"]
