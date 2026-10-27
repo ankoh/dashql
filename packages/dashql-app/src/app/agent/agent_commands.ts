@@ -310,7 +310,7 @@ function rewriteVisTag(state: SessionScripts, script: ScriptData, spec: string):
 
 /// Visualize the terminal query of a script with a Vega-Lite spec. The spec is checked first: it must be a
 /// JSON object that Vega-Lite compiles without warnings, and its fields must be output columns of the query.
-async function visualizeScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+async function editVis(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
     const script = requireScript(state, stringArg(args, 'script'));
     const specText = stringArg(args, 'spec');
     const name = scriptDisplayName(script.fileName);
@@ -409,6 +409,22 @@ function readResult(env: AgentCommandEnvironment, state: SessionScripts, args: R
     return { text: formatResultSlice(slice, name), data: { script: name, page, ...slice } };
 }
 
+/// The chart of a script: its renderer and the Vega-Lite spec of its `@vis vegalite` tag, without the `$schema` and
+/// `data` that the compiler adds, so that the spec goes back into `vis edit` as it is
+async function getVis(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+    const script = await analyzed(env, sessionId, state, requireScript(state, stringArg(args, 'script')));
+    const name = scriptDisplayName(script.fileName);
+    const vis = script.annotations.visualizeQuery;
+    if (vis == null) fail(`${name} has no chart, add one with dashql agent vis edit ${name}`);
+    if (vis.renderer !== 'vegalite') {
+        return { text: `${name} shows a ${vis.renderer} @vis tag, no Vega-Lite spec`, data: { script: name, renderer: vis.renderer, spec: null } };
+    }
+    const spec: Record<string, unknown> = { ...vis.vegaLiteSpec };
+    delete spec.$schema;
+    delete spec.data;
+    return { text: JSON.stringify(spec, null, 2), data: { script: name, renderer: vis.renderer, spec } };
+}
+
 /// Bytes as base64
 function toBase64(bytes: Uint8Array): string {
     let binary = '';
@@ -423,7 +439,7 @@ const MAX_IMAGE_SIZE = 4000;
 const MAX_IMAGE_SCALE = 4;
 
 /// Render the chart of a script as PNG: the `@vis vegalite` tag of its last query with the last result as data
-async function imageScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+async function renderVis(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
     const script = await analyzed(env, sessionId, state, requireScript(state, stringArg(args, 'script')));
     const name = scriptDisplayName(script.fileName);
     const width = numberArg(args, 'width', CHART_IMAGE_WIDTH);
@@ -432,7 +448,7 @@ async function imageScript(env: AgentCommandEnvironment, sessionId: string, stat
     if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) usage(`width and height must be at most ${MAX_IMAGE_SIZE}`);
     if (scale > MAX_IMAGE_SCALE) usage(`scale must be at most ${MAX_IMAGE_SCALE}`);
     const vis = script.annotations.visualizeQuery;
-    if (vis?.renderer !== 'vegalite') fail(`${name} has no Vega-Lite chart, add one with dashql agent visualize ${name}`);
+    if (vis?.renderer !== 'vegalite') fail(`${name} has no Vega-Lite chart, add one with dashql agent vis edit ${name}`);
     const table = lastResult(env, script);
     let image: ChartImage;
     try {
@@ -470,10 +486,12 @@ export async function runAgentCommand(env: AgentCommandEnvironment, params: Agen
             return runScript(env, params.session, state, args);
         case 'result':
             return readResult(env, state, args);
-        case 'visualize':
-            return visualizeScript(env, params.session, state, args);
-        case 'image':
-            return imageScript(env, params.session, state, args);
+        case 'vis.get':
+            return getVis(env, params.session, state, args);
+        case 'vis.edit':
+            return editVis(env, params.session, state, args);
+        case 'vis.image':
+            return renderVis(env, params.session, state, args);
         default:
             usage(`unknown command: ${params.command}`);
     }

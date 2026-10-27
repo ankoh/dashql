@@ -234,14 +234,32 @@ describe('agent commands', () => {
         await expect(run('result', { script: 'customers' })).rejects.toThrow('Customers has no result');
     });
 
+    it('gets the Vega-Lite spec of a script as written, without the $schema and data of the compiler', async () => {
+        const vegaLiteSpec = { $schema: 'https://vega.github.io/schema/vega-lite/v5.json', data: { $sql: 'select 1' }, mark: 'bar', encoding: { x: { field: 'n' } } } as any;
+        state.scripts[1].annotations = { tableDefs: [], visualizeQuery: { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec } };
+        const result = await run('vis.get', { script: 'orders' });
+        const spec = { mark: 'bar', encoding: { x: { field: 'n' } } };
+        expect(result.text).toBe(JSON.stringify(spec, null, 2));
+        expect(result.data).toEqual({ script: 'orders', renderer: 'vegalite', spec });
+    });
+
+    it('gets the renderer of scripts without a Vega-Lite spec', async () => {
+        state.scripts[1].annotations = { tableDefs: [], visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 0 } };
+        const result = await run('vis.get', { script: 'orders' });
+        expect(result.text).toBe('orders shows a table @vis tag, no Vega-Lite spec');
+        expect(result.data).toEqual({ script: 'orders', renderer: 'table', spec: null });
+        state.scripts[1].annotations = { tableDefs: [], visualizeQuery: null };
+        await expect(run('vis.get', { script: 'orders' })).rejects.toThrow('orders has no chart, add one with dashql agent vis edit orders');
+    });
+
     it('renders the chart of a script with its last result as PNG', async () => {
         const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'n', type: 'ordinal' }, y: { field: 'n', type: 'quantitative' } } } as any;
         state.scripts[1].annotations = { tableDefs: [], visualizeQuery: { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec } };
-        await expect(run('image', { script: 'orders' })).rejects.toThrow('orders has no result');
+        await expect(run('vis.image', { script: 'orders' })).rejects.toThrow('orders has no result');
         state.scripts[1].latestQueryId = 7;
         connections.get('db').queriesFinished.set(7, { resultTable: arrow.tableFromArrays({ n: Int32Array.from([1, 2, 3]) }), error: null });
 
-        const result = await run('image', { script: 'orders', width: 200, height: 100, scale: 1 });
+        const result = await run('vis.image', { script: 'orders', width: 200, height: 100, scale: 1 });
         expect(result.text).toMatch(/^Rendered the chart of orders: 200x100 pixels, 3 rows, \d+ KiB$/);
         const data = result.data as { width: number; height: number; png: string };
         expect([data.width, data.height]).toEqual([200, 100]);
@@ -251,15 +269,15 @@ describe('agent commands', () => {
 
     it('refuses images of scripts without a Vega-Lite chart and too large images', async () => {
         state.scripts[1].annotations = { tableDefs: [], visualizeQuery: null };
-        await expect(run('image', { script: 'orders' })).rejects.toThrow('orders has no Vega-Lite chart, add one with dashql agent visualize orders');
-        await expect(run('image', { script: 'orders', width: 5000 })).rejects.toThrow('width and height must be at most 4000');
-        await expect(run('image', { script: 'orders', scale: 8 })).rejects.toThrow('scale must be at most 4');
+        await expect(run('vis.image', { script: 'orders' })).rejects.toThrow('orders has no Vega-Lite chart, add one with dashql agent vis edit orders');
+        await expect(run('vis.image', { script: 'orders', width: 5000 })).rejects.toThrow('width and height must be at most 4000');
+        await expect(run('vis.image', { script: 'orders', scale: 8 })).rejects.toThrow('scale must be at most 4');
     });
 });
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
-describe('agent visualize command', () => {
+describe('agent vis edit command', () => {
     let dql: core.DashQL;
     let catalog: core.DashQLCatalog;
     let modify: ReturnType<typeof vi.fn>;
@@ -287,7 +305,7 @@ describe('agent visualize command', () => {
     afterEach(() => catalog.destroy());
 
     const visualize = (spec: unknown) =>
-        runAgentCommand(env, { session: 's1', command: 'visualize', args: { script: 'orders', spec: typeof spec === 'string' ? spec : JSON.stringify(spec) } });
+        runAgentCommand(env, { session: 's1', command: 'vis.edit', args: { script: 'orders', spec: typeof spec === 'string' ? spec : JSON.stringify(spec) } });
 
     it('writes a valid spec as the @vis vegalite tag of the last query', async () => {
         setup('/* @vis table */\nselect 1 as region, 2 as revenue');

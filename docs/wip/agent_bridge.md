@@ -290,8 +290,9 @@ folders. Nothing keeps listening once the app is quit or deleted.
 | `dashql agent lint <script>` | Diagnostics from the page's analyzer |
 | `dashql agent run <script> [--max-rows N]` | Run it; columns, first rows, row count or error |
 | `dashql agent result <script> [--page N]` | More rows of the last result |
-| `dashql agent visualize <script> [--file f \| stdin]` | Check a Vega-Lite spec and write it as the `@vis vegalite` tag of the last query |
-| `dashql agent image <script> [--out f] [--width N] [--height N] [--scale N]` | Render the chart of a script with its last result as PNG, the page sends it as base64 and the tool writes the file |
+| `dashql agent vis get <script>` | The renderer and the Vega-Lite spec of the `@vis` tag of the last query, without the `$schema` and `data` of the compiler |
+| `dashql agent vis edit <script> [--file f \| stdin]` | Check a Vega-Lite spec and write it as the `@vis vegalite` tag of the last query |
+| `dashql agent vis image <script> [--out f] [--width N] [--height N] [--scale N]` | Render the chart of a script with its last result as PNG, the page sends it as base64 and the tool writes the file |
 | `dashql agent serve` | Run the agent server in the foreground |
 | `dashql lint <file.sql\|dir\|->...` | Lint SQL files on disk with the native dashql-core, without DashQL |
 

@@ -28,11 +28,12 @@ Commands for the DashQL session that is open in the browser or the desktop app:
   lint <script>                       Diagnostics of a script
   run <script> [--max-rows N]         Run a script: columns, first rows, row count or error
   result <script> [--page N]          More rows of the last result
-  visualize <script> [--file f]       Visualize the last query with the Vega-Lite spec of the file or stdin,
+  vis get <script>                    The chart of a script: its renderer and Vega-Lite spec
+  vis edit <script> [--file f]        Chart the last query with the Vega-Lite spec of the file or stdin,
                                       after checking it
-  image <script> [--out f]            Render the chart of a script with its last result as PNG, default:
-        [--width N] [--height N]      <script>.png, 800x500 at scale 2
-        [--scale N]
+  vis image <script> [--out f]        Render the chart of a script with its last result as PNG, default:
+            [--width N] [--height N]  <script>.png, 800x500 at scale 2
+            [--scale N]
   serve [--dev] [--exit-with-stdin]   Run the agent server in the foreground, --exit-with-stdin stops it when
                                       stdin closes, for an app that runs it as a child process
 
@@ -203,15 +204,15 @@ fn call_args(
     let mut args = Map::new();
     let one = |what: &str| match rest {
         [script] => Ok(Value::from(script.clone())),
-        _ => Err(format!("{command} takes one {what}")),
+        _ => Err(format!("{} takes one {what}", command.replace('.', " "))),
     };
     match command {
         "scripts" if rest.is_empty() => {}
         "scripts" => return Err("scripts takes no arguments".into()),
-        "read" | "lint" => {
+        "read" | "lint" | "vis.get" => {
             args.insert("script".into(), one("script")?);
         }
-        "edit" | "visualize" => {
+        "edit" | "vis.edit" => {
             args.insert("script".into(), one("script")?);
             let text = match &options.file {
                 Some(file) => (cli.read_file)(file)?,
@@ -241,7 +242,7 @@ fn call_args(
                 args.insert("page".into(), parse_positive(page, "--page")?.into());
             }
         }
-        "image" => {
+        "vis.image" => {
             args.insert("script".into(), one("script")?);
             for (name, value) in [("width", &options.width), ("height", &options.height), ("scale", &options.scale)] {
                 if let Some(value) = value {
@@ -259,6 +260,13 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
     let Some((command, rest)) = options.positionals.split_first() else {
         return CliOutput::usage("Missing command");
     };
+    // The vis commands are calls of their own: vis edit calls vis.edit
+    let (command, rest) = match (command.as_str(), rest) {
+        ("vis", [sub, rest @ ..]) if ["get", "edit", "image"].contains(&sub.as_str()) => (format!("vis.{sub}"), rest),
+        ("vis", [sub, ..]) => return CliOutput::usage(&format!("Unknown vis command: {sub}")),
+        ("vis", []) => return CliOutput::usage("vis needs a command: get, edit or image"),
+        _ => (command.clone(), rest),
+    };
     if command == "status" {
         let Some(body) = (cli.request)("GET", "/v1/status", None) else {
             return CliOutput::error(NOT_RUNNING_MESSAGE, EXIT_USAGE);
@@ -269,7 +277,7 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
         let status = &body["status"];
         return CliOutput::ok(if options.json { pretty(status) } else { format_status(status) });
     }
-    let args = match call_args(command, rest, options, cli) {
+    let args = match call_args(&command, rest, options, cli) {
         Ok(args) => args,
         Err(e) => return CliOutput::usage(&e),
     };
@@ -285,7 +293,7 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
         return failure(&body);
     }
     let result = &body["result"];
-    if command == "image" {
+    if command == "vis.image" {
         return write_image(result, rest, options, cli);
     }
     if options.json {
@@ -295,7 +303,7 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
     CliOutput::ok(result["text"].as_str().unwrap_or_default().to_string())
 }
 
-/// Write the PNG of an image call to --out, default: <script>.png
+/// Write the PNG of a vis image call to --out, default: <script>.png
 fn write_image(result: &Value, rest: &[String], options: &Options, cli: &CliEnvironment) -> CliOutput {
     let png = result["data"]["png"].as_str().and_then(|png| base64::engine::general_purpose::STANDARD.decode(png).ok());
     let Some(png) = png else {
@@ -410,30 +418,34 @@ mod tests {
     }
 
     #[test]
-    fn reads_the_spec_of_a_visualization_from_stdin() {
+    fn sends_the_vis_commands_as_calls_of_their_own() {
         let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "ok" } })));
-        fake.run(&["visualize", "q1"], None, "{\"mark\": \"bar\"}");
+        fake.run(&["vis", "edit", "q1"], None, "{\"mark\": \"bar\"}");
         let args = json!({ "script": "q1", "spec": "{\"mark\": \"bar\"}" });
-        assert_eq!(fake.body(0), json!({ "command": "visualize", "args": args }));
+        assert_eq!(fake.body(0), json!({ "command": "vis.edit", "args": args }));
+        fake.run(&["vis", "get", "q1"], None, "");
+        assert_eq!(fake.body(1), json!({ "command": "vis.get", "args": { "script": "q1" } }));
     }
 
     #[test]
     fn writes_the_png_of_an_image() {
         let data = json!({ "script": "q1", "width": 2, "height": 1, "png": "iVBORw==" });
-        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "Rendered", "data": data } })));
-        let output = fake.run(&["image", "q1.sql", "--width", "400", "--scale=1"], None, "");
-        assert_eq!(output, CliOutput { stdout: "Rendered\nWrote q1.png\n".into(), stderr: String::new(), exit_code: EXIT_OK });
+        let fake =
+            Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "Rendered", "data": data } })));
+        let output = fake.run(&["vis", "image", "q1.sql", "--width", "400", "--scale=1"], None, "");
+        let stdout = "Rendered\nWrote q1.png\n".to_string();
+        assert_eq!(output, CliOutput { stdout, stderr: String::new(), exit_code: EXIT_OK });
         assert_eq!(fake.body(0)["args"], json!({ "script": "q1.sql", "width": 400, "scale": 1 }));
         assert_eq!(fake.written.borrow()[0], ("q1.png".to_string(), b"\x89PNG".to_vec()));
 
-        let output = fake.run(&["image", "q1", "--out", "chart.png", "--json"], None, "");
+        let output = fake.run(&["vis", "image", "q1", "--out", "chart.png", "--json"], None, "");
         let printed: Value = serde_json::from_str(&output.stdout).unwrap();
         assert_eq!(printed, json!({ "script": "q1", "width": 2, "height": 1, "png": "chart.png" }));
         assert_eq!(fake.written.borrow()[1].0, "chart.png");
 
         let no_png = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "Rendered" } })));
-        assert_eq!(no_png.run(&["image", "q1"], None, "").exit_code, EXIT_FAILED);
-        assert_eq!(fake.run(&["image", "q1", "--height", "0"], None, "").exit_code, EXIT_USAGE);
+        assert_eq!(no_png.run(&["vis", "image", "q1"], None, "").exit_code, EXIT_FAILED);
+        assert_eq!(fake.run(&["vis", "image", "q1", "--height", "0"], None, "").exit_code, EXIT_USAGE);
     }
 
     #[test]
@@ -469,6 +481,10 @@ mod tests {
             &["run", "q1", "--max-rows", "-1"],
             &["run", "q1", "--bogus"],
             &["read", "--session"],
+            &["vis"],
+            &["vis", "show", "q1"],
+            &["vis", "get"],
+            &["visualize", "q1"],
         ] {
             assert_eq!(fake.run(argv, None, "").exit_code, EXIT_USAGE, "{argv:?}");
         }

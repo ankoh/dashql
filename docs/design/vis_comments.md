@@ -128,7 +128,7 @@ Completion works inside comments (`completion_vis.rs`), although the rest of the
   are the output columns of the query. Keys and values are inserted as JSON strings.
 - In a `markdown` template, `{{` completes the output columns.
 
-Agents write charts with `dashql agent visualize <script>`, which takes a Vega-Lite spec on stdin or from
+Agents write charts with `dashql agent vis edit <script>`, which takes a Vega-Lite spec on stdin or from
 `--file`. The app checks the spec before it touches the script: it must be a JSON object that Vega-Lite
 compiles without errors or warnings (with empty data), and the analyzer must not warn about the new tag,
 e.g. about a `field` that is no output column or about `data`. `Script::rewrite_vegalite` then replaces
