@@ -31,8 +31,8 @@ describe("buildMenuBarTemplate", () => {
             "Claude Code · queued in \"Scratch\"",
             "---",
             "Agent Access",
-            "Open DashQL",
-            "Open dashql.app",
+            "Open DashQL App",
+            "Open DashQL Website",
             "---",
             "Quit DashQL",
         ]);
@@ -66,8 +66,8 @@ describe("buildMenuBarTemplate", () => {
         const click = (label: string) => (template.find((item) => item.label === label)!.click as () => void)();
         expect(template.find((item) => item.label === "Agent Access")).toMatchObject({type: "checkbox", checked: true});
         click("Agent Access");
-        click("Open DashQL");
-        click("Open dashql.app");
+        click("Open DashQL App");
+        click("Open DashQL Website");
         click("Restart to Update to 2.0.0");
         click("Quit DashQL");
         expect(called.setAgentAccess).toHaveBeenCalledWith(false);

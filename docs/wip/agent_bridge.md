@@ -221,8 +221,8 @@ menu bar plus windows.
   Codex · running in "Revenue analysis"        ▸ Stop
 ──────────────────────────────
 ✓ Agent access
-  Open DashQL
-  Open dashql.app
+  Open DashQL App
+  Open DashQL Website
 ──────────────────────────────
   Settings…                  (harnesses, port, data defaults)
   Install command line tool…
@@ -234,7 +234,7 @@ menu bar plus windows.
 
 **Built so far** (`src/agent_host.ts`, `src/menu_bar_template.ts`, `src/menu_bar.ts`, `main.ts`): the status
 line, a line per harness run, Agent Access (persisted in `menu_bar.json` in the user data folder, off stops the
-server), Open DashQL, Open dashql.app, Restart to Update, and Quit, which asks while runs of the app's own
+server), Open DashQL App, Open DashQL Website, Restart to Update, and Quit, which asks while runs of the app's own
 server are going. The icon is the DashQL glyph as a template image (`assets/trayTemplate.png`, rendered from
 `misc/logo-dashql-glyphs/logo.svg`); the title next to it shows the number of runs, or `!` when the server
 fails. `--menu-bar` opens no window; opening a window switches to the `"regular"` activation policy, closing
@@ -438,7 +438,7 @@ else the agent says is shown by the composer (`ai/ui/agent_prompt_panel.tsx`).
 - **Control Session** in the header of a session: its menu offers "Disconnect the Session", "Reset the
   Session" (forget the stored harness session id) and "Continue in terminal" (the harness's resume command).
 - **Not connected:** the chip shows the `dashql agent serve` command. Once the menu bar mode exists it offers
-  "Open DashQL" (starts the menu bar app through the existing `dashql://` link).
+  "Open DashQL App" (starts the menu bar app through the existing `dashql://` link).
 
 ### Data and security
 

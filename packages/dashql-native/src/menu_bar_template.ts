@@ -108,8 +108,8 @@ export function buildMenuBarTemplate(snapshot: AgentHostSnapshot, options: MenuB
             checked: options.agentAccess,
             click: () => actions.setAgentAccess(!options.agentAccess),
         },
-        {label: "Open DashQL", click: () => actions.openWindow()},
-        {label: "Open dashql.app", click: () => actions.openWeb()},
+        {label: "Open DashQL App", click: () => actions.openWindow()},
+        {label: "Open DashQL Website", click: () => actions.openWeb()},
         {type: "separator"},
     );
     if (options.updateVersion !== null) {
