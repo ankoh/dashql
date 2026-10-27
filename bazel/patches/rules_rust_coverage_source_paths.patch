@@ -1,7 +1,7 @@
 --- a/util/collect_coverage/collect_coverage.rs
 +++ b/util/collect_coverage/collect_coverage.rs
-@@ -85,6 +85,30 @@
-     }
+@@ -106,6 +106,30 @@
+         .join("bin")
  }
  
 +// rules_rust copies all sources of a crate with generated sources into
@@ -31,7 +31,7 @@
  fn main() {
      let coverage_dir = PathBuf::from(env::var("COVERAGE_DIR").unwrap());
      let execroot = PathBuf::from(env::var("ROOT").unwrap());
-@@ -185,13 +209,10 @@
+@@ -220,13 +244,10 @@
      let report_str = std::str::from_utf8(&output.stdout).expect("Failed to parse llvm-cov output");
  
      debug_log!("Writing output to {}", coverage_output_file.display());
