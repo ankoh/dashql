@@ -34,7 +34,7 @@ describe('SQL generation', () => {
         expect(prompt.endsWith('\n\nQuestion:\ntop customers')).toBe(true);
     });
 
-    it('describes the user relations of the connection and the session tables', () => {
+    it('describes the user relations of the connection, its catalog changes and the session tables', () => {
         const catalog = dql.createCatalog();
         try {
             const scriptSession = dql.createScriptSession(catalog);
@@ -49,12 +49,19 @@ describe('SQL generation', () => {
                 'CREATE TABLE "db"."pg_toast"."pg_toast_123" ("chunk_id" INTEGER);',
                 'CREATE TABLE "db"."sales"."customers" ("id" INTEGER);',
             ].join('\n');
-            const conn = { catalogRelationScript: { toString: () => relations } };
+            const catalogChangesSql = dql.appendCatalogChangesSql('', [
+                new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.DROP_RELATION, 'db', 'public', 'orders'),
+                new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'db', 'public', 'staged', ['id', 'note']),
+            ]);
+            const conn = { catalogRelationScript: { toString: () => relations }, catalogChangesSql };
             const sessionScripts = { instance: dql, connectionCatalog: catalog, scripts: { 1: { scriptSession, connection: { catalog } } } } as any;
             const logger = new TestLogger();
             expect(buildSchemaContext(conn as any, sessionScripts, logger)).toBe([
                 'CREATE TABLE "db"."public"."orders" ("id" INTEGER, "amount" FLOAT);',
                 'CREATE TABLE "db"."sales"."customers" ("id" INTEGER);',
+                '-- Changes of executed statements since the last catalog refresh, column types are unknown',
+                'DROP TABLE "db"."public"."orders";',
+                'CREATE TABLE "db"."public"."staged" (\n    "id" VARCHAR,\n    "note" VARCHAR\n);',
                 '-- Tables defined by the session, column types are unknown',
                 'CREATE TABLE "summary" ("total", "count");',
             ].join('\n'));
