@@ -33,7 +33,7 @@ crate_core.spec(package = "libtest-mimic", version = "=0.8.2")
 crate_core.spec(package = "logos", version = "=0.16.1")
 
 # CommonMark parser for the Markdown renderer spec (dashql_core_session::visualize::markdown)
-crate_core.spec(package = "pulldown-cmark", default_features = False, version = "=0.13.4")
+crate_core.spec(package = "pulldown-cmark", default_features = False, version = "=0.13.5")
 crate_core.spec(package = "ropey", version = "=1.6.1")
 crate_core.spec(package = "serde_json", features = ["preserve_order"], version = "=1.0.154")
 
