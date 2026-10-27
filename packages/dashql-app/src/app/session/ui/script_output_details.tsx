@@ -119,6 +119,13 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
         }
     }, [props.query?.status, props.visualizeQuery]);
 
+    // A chart for the shown result, e.g. written by the agent after it ran the query
+    const previousHasVisualization = React.useRef(hasVisualization);
+    React.useEffect(() => {
+        if (hasVisualization && !previousHasVisualization.current) selectTab(ScriptDetailsTab.Visualization);
+        previousHasVisualization.current = hasVisualization;
+    }, [hasVisualization]);
+
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [{
         key: 'j',
         ctrlKey: true,

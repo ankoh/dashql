@@ -135,4 +135,17 @@ describe('FeedEntryFooter', () => {
         expect(renderPng).toHaveBeenCalledWith(vegaLiteSpec, [{ value: 10 }, { value: 20 }, { value: 30 }]);
         expect(download).toHaveBeenCalledWith(png, 'chart-42.png');
     });
+
+    it('shows a chart that the result gets after it is shown as table', async () => {
+        const resultTable = arrow.tableFromArrays({ value: [10, 20, 30] });
+        renderFooter(resultTable);
+        expect(container.querySelector('[data-testid="download-query-result"]')).not.toBeNull();
+
+        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as any;
+        renderFooter(resultTable, { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
+
+        // The tab switches in an effect
+        await vi.waitFor(() => expect(container.querySelector('[data-testid="download-chart-png"]')).not.toBeNull());
+        expect(container.querySelector('[data-testid="download-query-result"]')).toBeNull();
+    });
 });

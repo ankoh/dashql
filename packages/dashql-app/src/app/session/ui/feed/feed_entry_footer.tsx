@@ -72,13 +72,18 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
     );
 
     const prevHasResult = React.useRef(hasResult);
+    const prevHasVisualization = React.useRef(hasVisualization);
     React.useEffect(() => {
         if (hasResult && !prevHasResult.current) {
             setSelectedTab(hasVisualization ? FooterTab.Visualization : FooterTab.Table);
         } else if (!hasResult && prevHasResult.current) {
             setSelectedTab(FooterTab.ExecutionLog);
+        } else if (hasVisualization && !prevHasVisualization.current) {
+            // A chart for the shown result, e.g. written by the agent after it ran the query
+            setSelectedTab(FooterTab.Visualization);
         }
         prevHasResult.current = hasResult;
+        prevHasVisualization.current = hasVisualization;
     }, [hasResult, hasVisualization, queryTraceId]);
 
     const tabProps = React.useMemo<Record<FooterTab, VerticalTabProps>>(() => ({
