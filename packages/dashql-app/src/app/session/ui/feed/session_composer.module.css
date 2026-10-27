@@ -16,18 +16,12 @@
     --prompt_editor_max_height: 40vh;
 }
 
-/* With agent access the composer talks to the agent: a frame in the gradient of the agent with a soft glow */
+/* With agent access the composer talks to the agent, lifted off the feed a little */
 .composer[data-agent] {
-    border-color: transparent;
-    background:
-        linear-gradient(white, white) padding-box,
-        linear-gradient(135deg, var(--agent_gradient_1), var(--agent_gradient_2) 50%, var(--agent_gradient_3)) border-box;
-    box-shadow:
-        0 0 0 3px color-mix(in srgb, var(--agent_accent) 8%, transparent),
-        0 8px 24px -12px color-mix(in srgb, var(--agent_accent_text) 35%, transparent);
+    box-shadow: var(--shadow_medium);
 }
 
-/* The frame turns while the agent works */
+/* The frame turns in the gradient of the agent while it works */
 @property --composer_agent_angle {
     syntax: '<angle>';
     initial-value: 0deg;
@@ -35,6 +29,7 @@
 }
 
 .composer[data-agent="working"] {
+    border-color: transparent;
     background:
         linear-gradient(white, white) padding-box,
         conic-gradient(

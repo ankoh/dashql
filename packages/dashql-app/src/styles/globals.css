@@ -60,7 +60,7 @@
     --focus_border_color: var(--focus_outline_color);
 
     /* The colors of the agent: the three stops of the gradient of its frame, the accent of its icons and the
-       accent of its text. The tints of its surfaces are mixed from them. Flavors derive them from their accent. */
+       accent of its text. Flavors derive them from their accent. */
     --agent_gradient_1: var(--base_color_blue_3);
     --agent_gradient_2: #3cc4d9;
     --agent_gradient_3: var(--base_color_blue_4);

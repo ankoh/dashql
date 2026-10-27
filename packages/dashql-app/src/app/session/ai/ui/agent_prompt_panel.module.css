@@ -1,18 +1,14 @@
-/* The agent on top of the composer, tinted like the frame of the composer.
+/* The agent on top of the composer, a header bar like the action bars of the cards in the feed.
    The composer sets its radius and the padding that lines the panel up with its editor. */
 .panel {
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding: var(--composer_agent_padding, 8px 12px);
-    border-bottom: 1px solid color-mix(in srgb, var(--agent_accent) 16%, white);
+    border-bottom: 1px solid var(--log_border_color);
     border-radius: calc(var(--composer_radius, var(--border_radius)) - 1px) calc(var(--composer_radius, var(--border_radius)) - 1px) 0 0;
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--agent_gradient_1) 10%, white) 0%,
-        color-mix(in srgb, var(--agent_gradient_2) 7%, white) 50%,
-        color-mix(in srgb, var(--agent_gradient_3) 5%, white) 100%
-    );
+    background-color: var(--session_feed_entry_headerbar_background);
+    color: var(--card_control_color);
     font-size: var(--font_size_small);
 }
 
@@ -21,21 +17,22 @@
     align-items: center;
     gap: 6px;
     min-width: 0;
-    color: var(--agent_accent_text);
 }
 
 .header_icon {
     flex: none;
-    color: var(--agent_accent);
+    color: var(--background_color_100);
 }
 
 .header_title {
     flex: none;
-    font-weight: 600;
+    font-weight: 500;
 }
 
+/* The connection and its detail are right-aligned like the counts in the headers of the cards */
 .header_dot {
     flex: none;
+    margin-left: auto;
     width: 6px;
     height: 6px;
     border-radius: 50%;
@@ -51,7 +48,7 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: var(--base_color_neutral_5);
+    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 44%);
 }
 
 /* The questions, a long answer scrolls instead of pushing the composer off the page */
@@ -93,7 +90,7 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: var(--base_color_neutral_8);
+    color: var(--base_color);
     font-size: var(--font_size_body);
 }
 
@@ -105,17 +102,18 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     padding: 1px 6px;
-    border: 1px solid color-mix(in srgb, var(--agent_accent) 20%, white);
+    border: 1px solid var(--log_border_color);
     border-radius: 4px;
     background: white;
-    color: var(--agent_accent_text);
+    color: var(--card_control_color);
     font-family: var(--font_family_mono);
     font-size: 11px;
     cursor: pointer;
 }
 
 .run_script:hover {
-    border-color: color-mix(in srgb, var(--agent_accent) 50%, white);
+    border-color: var(--agent_accent);
+    color: var(--agent_accent_text);
 }
 
 .run_script:focus-visible {
@@ -135,7 +133,7 @@
     background: linear-gradient(
         90deg,
         var(--base_color_neutral_5) 0%,
-        var(--agent_gradient_2) 50%,
+        var(--agent_accent) 50%,
         var(--base_color_neutral_5) 100%
     );
     background-size: 200% 100%;
