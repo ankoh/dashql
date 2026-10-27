@@ -21,7 +21,7 @@ const script = {
     fileName: '1_sales.sql',
     latestQueryId: 7,
     annotations: {
-        visualizeQuery: { renderer: 'vegalite', sql: 'select 1', vegaLiteSpec: {} },
+        visualizeQuery: { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec: {} },
     },
 } as ScriptData;
 
@@ -69,7 +69,7 @@ describe('DashboardCard', () => {
     it('uses the query result view for table content', () => {
         const tableScript = {
             ...script,
-            annotations: { visualizeQuery: { renderer: 'table', sql: 'select 1' } },
+            annotations: { visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 0 } },
         } as ScriptData;
         act(() => root.render(
             <DndContext>

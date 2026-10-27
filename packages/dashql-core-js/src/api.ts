@@ -485,14 +485,27 @@ export class DashQLScriptSession {
         return new DashQLScript(new Ptr(SCRIPT_TYPE, this.ptr.api, native));
     }
 
-    public rewriteDashboard(
+    /// Set the dashboard placement of a query, its `@vis card` tag. Returns the new text, the script is not changed.
+    public rewriteVisCard(
+        statementId: number,
         row: number | null,
         column: number | null,
         width: number,
         height: number,
         parseIfOutdated: boolean = true,
     ): string {
-        return this.ptr.assertNotNull().rewriteDashboard(row ?? -1, column ?? -1, width, height, parseIfOutdated);
+        return this.ptr.assertNotNull().rewriteVisCard(statementId, row ?? -1, column ?? -1, width, height, parseIfOutdated);
+    }
+
+    /// Set the renderer of a query, its `@vis vegalite` (a JSON object), `markdown` (a row template) or `table` tag.
+    /// A null kind removes it. Returns the new text, the script is not changed.
+    public rewriteVisRenderer(
+        statementId: number,
+        kind: 'vegalite' | 'markdown' | 'table' | null,
+        body: string = '',
+        parseIfOutdated: boolean = true,
+    ): string {
+        return this.ptr.assertNotNull().rewriteVisRenderer(statementId, kind ?? '', body, parseIfOutdated);
     }
 
     public isFullyFormattable(

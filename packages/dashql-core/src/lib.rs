@@ -16,3 +16,4 @@ pub mod script_diff;
 pub mod signature;
 pub mod utils;
 pub mod vis_highlight;
+pub mod vis_rewrite;

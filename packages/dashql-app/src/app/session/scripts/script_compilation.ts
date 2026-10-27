@@ -100,7 +100,7 @@ export function compileVisualizeQuery(scriptSession: core.DashQLScriptSession, c
         const visualization = reader.visualization();
         if (!sql || !visualization) return null;
         logger?.debug('Compiled visualization for execution', { sql }, LOG_CTX);
-        return resolveCompiledVisualization(sql, visualization.unpack());
+        return resolveCompiledVisualization(sql, visualization.unpack(), reader.terminalStatementId());
     } finally {
         compiled.destroy();
     }
@@ -109,24 +109,25 @@ export function compileVisualizeQuery(scriptSession: core.DashQLScriptSession, c
 export function resolveCompiledVisualization(
     sql: string,
     visualization: core.buffers.execution.CompiledVisualizationT,
+    statementId: number,
 ): ResolvedVisualizeQuery | null {
     const dashboardSpec = visualization.dashboard ?? null;
     switch (visualization.renderer) {
         case 'markdown': {
             const markdownSpec = visualization.markdownSpec;
-            return markdownSpec?.document ? { renderer: 'markdown', sql, markdownSpec, dashboardSpec } : null;
+            return markdownSpec?.document ? { renderer: 'markdown', sql, statementId, markdownSpec, dashboardSpec } : null;
         }
         case 'vegalite': {
             const raw = visualization.vegaliteSpec;
             if (!raw) return null;
             try {
-                return { renderer: 'vegalite', sql, vegaLiteSpec: JSON.parse(String(raw)), dashboardSpec };
+                return { renderer: 'vegalite', sql, statementId, vegaLiteSpec: JSON.parse(String(raw)), dashboardSpec };
             } catch {
                 return null;
             }
         }
         case 'table':
-            return { renderer: 'table', sql, dashboardSpec };
+            return { renderer: 'table', sql, statementId, dashboardSpec };
         default:
             return null;
     }

@@ -60,9 +60,32 @@ SELECT * FROM orders;
 The dashboard is a 12-column grid with zero-based coordinates. `row` and `column` are optional starting
 hints, `width` defaults to 6 columns and `height` to 3 rows. Invalid values are warnings and normalized:
 coordinates must be non-negative, the width is clamped to 1 through 12, the height is at least 1, and a
-card is moved left to fit the grid. The dashboard writes a moved or resized card back with
-`Script::rewrite_dashboard`, which replaces the args of the `card` tag or inserts
-`/* @vis card ... */` before the query.
+card is moved left to fit the grid. The dashboard writes a moved or resized card back into the `card`
+tag of the statement it shows (see Rewriting tags).
+
+## Rewriting tags
+
+`vis_rewrite.rs` sets, replaces or removes the tags of a statement, addressed by its statement id:
+`Script::rewrite_vis_renderer` the renderer (`VisRenderer`: a Vega-Lite object, a Markdown template or
+the table) and `Script::rewrite_vis_card` the card (`VisCard`). They return the new text, the app writes
+it as an edit of the script (`rewriteVisRenderer` and `rewriteVisCard` of the script session). The
+visualization of a script in the app carries the statement id, from the compiler for the terminal query
+and from the planner for any visualized query, so a card moves also when a statement follows the query.
+
+An edit touches only its tag. Other tags, prose and hand-written layout stay as written:
+
+- A replaced tag keeps its place. Its continuation lines take the prefix of the tag line (`-- `, ` * ` or
+  the indentation after `/* `), and a block comment that now ends after a tag of several lines closes
+  with `*/` on a line of its own.
+- A new renderer goes before the other `@vis` tags of the statement, a new card after its renderer, in the
+  same comment. A statement without tags gets a new block comment in front of it. A card needs a renderer.
+- Removing the only tag of a comment removes the comment. In a run of line comments, the `-- @end` line
+  stays for the region before.
+
+Tags are printed like the formatter prints them. `/*` would nest and `*/` would end a block comment:
+in Vega-Lite JSON they can only be part of strings and are escaped as `/\u002a` and `*\/`, which keeps
+the value. A Markdown template with `/*` or `*/` cannot go into a block comment and is an error there,
+line comments take it as written.
 
 ## Analysis
 

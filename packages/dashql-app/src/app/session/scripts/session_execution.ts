@@ -179,7 +179,7 @@ export async function runSessionExecution(args: {
             for (const [index, node] of graph.nodes.entries()) {
                 if (!node.producesOutput) continue;
                 const visualization = node.visualization
-                    ? resolveCompiledVisualization(String(node.sql ?? ''), node.visualization) : null;
+                    ? resolveCompiledVisualization(String(node.sql ?? ''), node.visualization, node.statementId) : null;
                 if (node.visualization && !visualization) {
                     throw new Error('Invalid captured visualization metadata');
                 }

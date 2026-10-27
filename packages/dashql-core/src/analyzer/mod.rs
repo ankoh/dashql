@@ -15,7 +15,7 @@ pub mod types;
 mod vis_tags;
 
 pub use types::*;
-pub use vis_tags::{has_vis_tags, statement_output_columns, vis_card_line, vis_renderer_tag};
+pub use vis_tags::{has_vis_tags, statement_output_columns, vis_renderer_tag};
 
 use crate::catalog::*;
 use crate::error::Result;

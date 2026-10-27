@@ -24,6 +24,7 @@ use crate::compiler::{compile, CompilationOptions};
 use dashql_core::completion::is_symbol_kind_completable;
 use dashql_core::cursor::CursorContext;
 use dashql_core::error::{Error, Result};
+use dashql_core::vis_rewrite::{VisCard, VisRenderer};
 use dashql_core::pack::{pack_completion, pack_tokens};
 use dashql_core::script::{Script, TextVersion};
 use dashql_core::script_diff::ScriptDiff;
@@ -1044,16 +1045,19 @@ impl ScriptSession {
         Ok(result)
     }
 
-    /// Rewrite the dashboard clause of the terminal VISUALIZE statement
-    pub fn rewrite_dashboard(
+    /// Set or remove the renderer of a query, its `@vis` renderer tag, returns the new text
+    pub fn rewrite_vis_renderer(
         &mut self,
-        row: Option<i32>,
-        column: Option<i32>,
-        width: i32,
-        height: i32,
+        statement_id: usize,
+        renderer: Option<&VisRenderer>,
         parse_if_outdated: bool,
     ) -> Result<String> {
-        self.script.rewrite_dashboard(row, column, width, height, parse_if_outdated)
+        self.script.rewrite_vis_renderer(statement_id, renderer, parse_if_outdated)
+    }
+
+    /// Set or remove the dashboard placement of a query, its `@vis card` tag, returns the new text
+    pub fn rewrite_vis_card(&mut self, statement_id: usize, card: Option<&VisCard>, parse_if_outdated: bool) -> Result<String> {
+        self.script.rewrite_vis_card(statement_id, card, parse_if_outdated)
     }
 
     /// Can formatting represent every node?

@@ -14,6 +14,7 @@ use crate::completion::Completion;
 use crate::cursor::{ScriptCursor, ScriptView};
 use crate::error::{Error, Result};
 use crate::formatter::Formatter;
+use crate::vis_rewrite::{VisCard, VisRenderer};
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_buffers::parser::{Node, StatementType};
 use dashql_buffers::statistics::{ScriptMemoryStatisticsT, ScriptProcessingTimingsT, ScriptStatisticsT};
@@ -217,7 +218,7 @@ impl Script {
     }
 
     /// Parse if the parsed script is missing or was parsed from another text version (the check of
-    /// `statement_text`, `rewrite_dashboard` and `compute_signature`)
+    /// `statement_text`, `rewrite_vis_card` and `compute_signature`)
     fn parse_if_text_outdated(&mut self) {
         if self.parsed.as_ref().is_none_or(|p| p.scanned.text_version != self.text_version) {
             self.parse();
@@ -301,66 +302,34 @@ impl Script {
         Ok(self.to_text_span(span))
     }
 
-    /// Rewrite the dashboard placement of the terminal query, the args of its `@vis card` tag. A query
-    /// without a card gets one in front of it.
-    ///
-    /// The spans of the parsed script are applied to the current text, which differs from the parsed
-    /// text if the script was edited and `parse_if_outdated` is false (see docs/design/core_quirks.md).
-    /// Bytes are spliced, so a span that cuts a character leaves replacement characters.
-    pub fn rewrite_dashboard(
-        &mut self,
-        mut row: Option<i32>,
-        mut column: Option<i32>,
-        width: i32,
-        height: i32,
-        parse_if_outdated: bool,
-    ) -> Result<String> {
+    /// The parsed script whose spans apply to the current text, parsed first if requested and outdated
+    fn parsed_for_rewrite(&mut self, parse_if_outdated: bool) -> Result<Arc<ParsedScript>> {
         if parse_if_outdated {
             self.parse_if_text_outdated();
         }
-        let not_parsed = || Error::status(StatusCode::SCRIPT_NOT_PARSED);
-        let parsed = self.parsed.as_ref().ok_or_else(not_parsed)?;
-        if !parsed.errors.is_empty() || parsed.statements.is_empty() {
-            return Err(not_parsed());
-        }
-        let statement_id = parsed.statements.len() - 1;
-        if parsed.statements[statement_id].statement_type != StatementType::SELECT
-            || !crate::analyzer::has_vis_tags(parsed, statement_id)
-        {
-            return Err(not_parsed());
-        }
+        self.parsed.clone().ok_or_else(|| Error::status(StatusCode::SCRIPT_NOT_PARSED))
+    }
 
-        let width = width.clamp(1, 12);
-        let height = height.max(1);
-        if row.is_some_and(|r| r < 0) {
-            row = None;
-        }
-        if let Some(c) = column.as_mut() {
-            *c = (*c).clamp(0, 12 - width);
-        }
-        let mut card = String::from("card");
-        if let Some(row) = row {
-            card.push_str(&format!(" row={row}"));
-        }
-        if let Some(column) = column {
-            card.push_str(&format!(" column={column}"));
-        }
-        card.push_str(&format!(" width={width} height={height}"));
+    /// Set or remove the renderer of a query, its `@vis vegalite`, `markdown` or `table` tag (see
+    /// `vis_rewrite`). Returns the new text, the script is not changed.
+    ///
+    /// The spans of the parsed script are applied to the current text, which differs from the parsed
+    /// text if the script was edited and `parse_if_outdated` is false (see docs/design/core_quirks.md).
+    pub fn rewrite_vis_renderer(
+        &mut self,
+        statement_id: usize,
+        renderer: Option<&VisRenderer>,
+        parse_if_outdated: bool,
+    ) -> Result<String> {
+        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        crate::vis_rewrite::rewrite_vis_renderer(&self.text.to_string(), &parsed, statement_id, renderer)
+    }
 
-        let mut source = self.text.to_string().into_bytes();
-        let (begin, end, replacement) = match crate::analyzer::vis_card_line(parsed, statement_id) {
-            Some(line) => (line.offset as usize, line.end() as usize, card),
-            None => {
-                let at = parsed.associate_descriptions()[statement_id].statement_span.offset as usize;
-                (at, at, format!("/* @vis {card} */\n"))
-            }
-        };
-        if begin > source.len() {
-            // std::string::replace throws std::out_of_range
-            return Err(Error::invalid_argument("basic_string::replace: position out of range"));
-        }
-        source.splice(begin..end.min(source.len()), replacement.bytes());
-        Ok(String::from_utf8_lossy(&source).into_owned())
+    /// Set or remove the dashboard placement of a query, its `@vis card` tag. Returns the new text like
+    /// `rewrite_vis_renderer`.
+    pub fn rewrite_vis_card(&mut self, statement_id: usize, card: Option<&VisCard>, parse_if_outdated: bool) -> Result<String> {
+        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        crate::vis_rewrite::rewrite_vis_card(&self.text.to_string(), &parsed, statement_id, card)
     }
 
     /// Visualize the terminal query with a Vega-Lite spec: replace its renderer tag (`@vis vegalite`,
@@ -370,7 +339,7 @@ impl Script {
     /// The spec must be a JSON object, it is written with its key order kept: pretty-printed in block
     /// comments and on one line in line comments and in block comments with a ` * ` gutter. `/*` and
     /// `*/` in its strings are escaped as `\/*` and `*\/`, they would nest or end a block comment. The
-    /// spans of the parsed script are applied to the current text, as in `rewrite_dashboard`.
+    /// spans of the parsed script are applied to the current text, as in `rewrite_vis_card`.
     ///
     /// Returns the rewritten text and the span of the written tag or comment in it.
     pub fn rewrite_vegalite(&mut self, spec: &str, parse_if_outdated: bool) -> Result<(String, TextSpan)> {

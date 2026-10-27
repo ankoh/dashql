@@ -50,6 +50,26 @@ describe('DashQL setup', () => {
 
 });
 
+describe('DashQL @vis tags', () => {
+    it('rewrites the renderer and the card of a query', () => {
+        const catalog = dql!.createCatalog();
+        const session = dql!.createScriptSession(catalog);
+        session.replaceText(0n, 'select 1 as a;\n/* @vis table */\nselect 2 as b');
+
+        expect(session.rewriteVisCard(1, null, 3, 6, 4)).toBe(
+            'select 1 as a;\n/* @vis table\n   @vis card column=3 width=6 height=4 */\nselect 2 as b');
+        expect(session.rewriteVisRenderer(1, 'markdown', '**{{b}}**')).toBe(
+            'select 1 as a;\n/* @vis markdown\n   **{{b}}**\n*/\nselect 2 as b');
+        expect(session.rewriteVisRenderer(0, 'vegalite', '{"mark": "bar"}')).toBe(
+            '/* @vis vegalite\n   {\n     "mark": "bar"\n   }\n*/\nselect 1 as a;\n/* @vis table */\nselect 2 as b');
+        expect(session.rewriteVisRenderer(1, null)).toBe('select 1 as a;\nselect 2 as b');
+        expect(() => session.rewriteVisRenderer(1, 'vegalite', '[1]')).toThrow('JSON object');
+        expect(() => session.rewriteVisCard(0, null, null, 6, 3)).toThrow('no @vis renderer');
+        session.destroy();
+        catalog.destroy();
+    });
+});
+
 describe('DashQL planner', () => {
     const execution = dashql.buffers.execution;
     const absent = 0xffffffff;

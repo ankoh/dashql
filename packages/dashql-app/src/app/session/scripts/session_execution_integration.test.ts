@@ -240,9 +240,14 @@ describe('session execution with real core planning', () => {
         expect(f.executeQuery.mock.calls.map(([, args]) => args.analyzeResults)).toEqual([false, false, true, false]);
         expect(f.script('1_visualize.sql')).toMatchObject({
             latestQueryId: 3, latestResultQueryId: 3,
-            annotations: { visualizeQuery: { renderer: 'table', sql: 'select 2 as value',
+            annotations: { visualizeQuery: { renderer: 'table', sql: 'select 2 as value', statementId: 2,
                 dashboardSpec: { row: 2, column: 4, width: 8, height: 5 } } },
         });
+        // The card of the captured statement can be moved although a DELETE follows it
+        expect(f.script('1_visualize.sql').scriptSession.rewriteVisCard(2, 0, 0, 6, 3)).toBe(
+            'create table items (id int);\n/* @vis table */\nselect id from items;\n'
+            + '/* @vis table\n   @vis card row=0 column=0 width=6 height=3 */\nselect 2 as value;\n'
+            + 'delete from items;');
         const actions = f.modifySessionScripts.mock.calls.map(([action]) => action);
         const captured = actions.findIndex(action => action.type === SET_SCRIPT_EXECUTION_VISUALIZATION);
         expect(actions[captured - 1]).toEqual({ type: REGISTER_QUERY, value: [f.script('1_visualize.sql').scriptKey, 3] });
@@ -305,7 +310,7 @@ describe('session execution with real core planning', () => {
         const previous = f.script('1_query.sql');
         const analyze = vi.spyOn(previous.scriptSession, 'analyze');
         const publish = vi.spyOn(previous.scriptSession, 'loadIntoCatalog');
-        const visualization = { renderer: 'table' as const, sql: 'select 1' };
+        const visualization = { renderer: 'table' as const, sql: 'select 1', statementId: 0 };
         f.apply({ type: SET_SCRIPT_EXECUTION_VISUALIZATION, value: [previous.scriptKey, visualization] });
 
         const next = f.script('1_query.sql');

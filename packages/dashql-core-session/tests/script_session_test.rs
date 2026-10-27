@@ -13,6 +13,7 @@ use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, Formattin
 use dashql_buffers::parser::{ScannerTokenType, StatementType};
 use dashql_core::catalog::Catalog;
 use dashql_core::pack::pack_completion;
+use dashql_core::vis_rewrite::VisCard;
 use dashql_core_session::planner::{plan, PlannerInput};
 use dashql_core::script::Script;
 use dashql_core_session::script_session::ScriptSession;
@@ -913,30 +914,30 @@ fn compatibility_query_formatting_and_diff_apis() {
 }
 
 #[test]
-fn rewrites_dashboard_through_parsed_ast() {
+fn rewrites_the_card_through_the_parsed_comments() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF16);
     let source = "/* \u{1F4CA} @vis card is text here\n   @vis table\n   @vis card row=1 width=4 */\nselect '\u{1F4CA}' as label";
     assert_eq!(session.replace_text(0, source).status, EditorUpdateStatus::OK);
 
     assert_eq!(
-        session.rewrite_dashboard(Some(2), Some(5), 6, 4, true).unwrap(),
+        session.rewrite_vis_card(0, Some(&VisCard { row: Some(2), column: Some(5), width: 6, height: 4 }), true).unwrap(),
         "/* \u{1F4CA} @vis card is text here\n   @vis table\n   @vis card row=2 column=5 width=6 height=4 */\nselect '\u{1F4CA}' as label"
     );
     assert_eq!(
-        session.rewrite_dashboard(None, None, 6, 3, true).unwrap(),
+        session.rewrite_vis_card(0, Some(&VisCard { row: None, column: None, width: 6, height: 3 }), true).unwrap(),
         "/* \u{1F4CA} @vis card is text here\n   @vis table\n   @vis card width=6 height=3 */\nselect '\u{1F4CA}' as label"
     );
 }
 
 #[test]
-fn inserts_dashboard_into_terminal_visualization() {
+fn inserts_a_card_into_a_visualization() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
     assert_eq!(session.replace_text(0, "/* @vis table */\nselect 1").status, EditorUpdateStatus::OK);
     assert_eq!(
-        session.rewrite_dashboard(Some(0), Some(0), 6, 3, true).unwrap(),
-        "/* @vis table */\n/* @vis card row=0 column=0 width=6 height=3 */\nselect 1"
+        session.rewrite_vis_card(0, Some(&VisCard { row: Some(0), column: Some(0), width: 6, height: 3 }), true).unwrap(),
+        "/* @vis table\n   @vis card row=0 column=0 width=6 height=3 */\nselect 1"
     );
 }
 
@@ -1033,15 +1034,16 @@ fn reports_memory_statistics_of_the_latest_analysis() {
 }
 
 #[test]
-fn rejects_dashboard_rewrites_without_terminal_visualization() {
+fn rejects_cards_without_a_renderer() {
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);
     script.replace_text("select 1");
-    assert!(script.rewrite_dashboard(None, None, 4, 4, true).is_err());
+    let card = VisCard { row: Some(-1), column: Some(20), width: 20, height: 0 };
+    assert!(script.rewrite_vis_card(0, Some(&card), true).is_err());
     script.replace_text("/* @vis vegalite {\"mark\": \"bar\"} */\nselect 1");
     assert_eq!(
-        script.rewrite_dashboard(Some(-1), Some(20), 20, 0, true).unwrap(),
-        "/* @vis vegalite {\"mark\": \"bar\"} */\n/* @vis card column=0 width=12 height=1 */\nselect 1"
+        script.rewrite_vis_card(0, Some(&card), true).unwrap(),
+        "/* @vis vegalite {\"mark\": \"bar\"}\n   @vis card column=0 width=12 height=1 */\nselect 1"
     );
 }
 

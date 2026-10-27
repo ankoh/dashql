@@ -13,6 +13,7 @@ use dashql_core::catalog::changes::CatalogChange;
 use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer, EntryIdSource};
 use dashql_core::completion::Completion;
 use dashql_core::error::Error;
+use dashql_core::vis_rewrite::{VisCard, VisRenderer};
 use dashql_core::script::Script as CoreScript;
 use dashql_core_session::script_execution::ScriptExecution as CoreScriptExecution;
 use dashql_core_session::script_session::ScriptSession as CoreScriptSession;
@@ -640,13 +641,27 @@ impl ScriptSession {
         self.format_with(catalog.inner.clone(), config, parse_if_outdated)
     }
 
-    /// Rewrite the `@vis card` tag of the terminal query, negative rows and columns are absent
-    #[wasm_bindgen(js_name = rewriteDashboard)]
-    pub fn rewrite_dashboard(&self, row: i32, column: i32, width: i32, height: i32, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.inner
-            .borrow_mut()
-            .rewrite_dashboard((row >= 0).then_some(row), (column >= 0).then_some(column), width, height, parse_if_outdated)
-            .map_err(js_error)
+    /// Set the `@vis card` tag of a query, negative rows and columns are absent. Returns the new text.
+    #[wasm_bindgen(js_name = rewriteVisCard)]
+    pub fn rewrite_vis_card(
+        &self,
+        statement_id: u32,
+        row: i32,
+        column: i32,
+        width: i32,
+        height: i32,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
+        let card = VisCard { row: (row >= 0).then_some(row), column: (column >= 0).then_some(column), width, height };
+        self.inner.borrow_mut().rewrite_vis_card(statement_id as usize, Some(&card), parse_if_outdated).map_err(js_error)
+    }
+
+    /// Set the renderer tag of a query (`vegalite` with a JSON object, `markdown` with a template or
+    /// `table`), an empty kind removes it. Returns the new text.
+    #[wasm_bindgen(js_name = rewriteVisRenderer)]
+    pub fn rewrite_vis_renderer(&self, statement_id: u32, kind: &str, body: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+        let renderer = (!kind.is_empty()).then(|| VisRenderer::from_parts(kind, body)).transpose().map_err(js_error)?;
+        self.inner.borrow_mut().rewrite_vis_renderer(statement_id as usize, renderer.as_ref(), parse_if_outdated).map_err(js_error)
     }
 
     /// Can formatting represent every node?
