@@ -642,6 +642,7 @@ impl<'a> Formatter<'a> {
             | K::SQL_TYPETEST_TYPES
             | K::SQL_FUNCTION_TABLE_ROWS_FROM
             | K::SQL_COLUMN_DEF_OPTIONS
+            | K::SQL_CTE_OPTIONS
             | K::SQL_CONST_CAST_FUNC_ARGS_LIST
             | K::SQL_ROWSFROM_ITEM_COLUMNS
             | K::SQL_TABLE_CONSTRAINT_DEFINITION

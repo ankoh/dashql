@@ -7,6 +7,7 @@
 %type<NodeList> sql_character_with_length;
 %type<NodeList> sql_character_without_length;
 %type<NodeList> sql_cte_list;
+%type<Node> sql_cte_options;
 %type<NodeList> sql_expr_list;
 %type<NodeList> sql_extract_list;
 %type<NodeList> sql_for_locking_clause;

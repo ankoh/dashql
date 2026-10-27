@@ -117,6 +117,13 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  # Options of secure common table expressions
+  - name: pgq_secure_cte_options
+    input: |-
+      WITH s AS SECURE (SELECT 1 AS a) OPTIONS (privacy_policy '{}'), t (b) AS SECURE (SELECT * FROM S) OPTIONS (identifier_resolution 'case_insensitive') SELECT * FROM s, t
+    dialects:
+      hyper:
+
   # Parentheses of label expressions
   - name: graph_label_expression_parentheses
     input: select * from graph_table(g match (a is (A | B) & !C) columns (a.x)), graph_table(g match (a is A | B & C) columns (a.x)), graph_table(g match (a is !(A | B)) columns (a.x)), graph_table(g match (a is A & (B | C)) columns (a.x))

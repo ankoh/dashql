@@ -60,6 +60,11 @@ formatter-snapshots:
             create table delete_target(id int);
             create table delete_source(id int);
 
+  - name: coverage_delete_with_options
+    input: WITH ids AS(SELECT id FROM delete_source) OPTIONS(identifier_resolution 'case_insensitive') DELETE FROM delete_target t USING IDS WHERE t.id=ids.id
+    dialects:
+      hyper: {}
+
   - name: coverage_delete_with_recursive
     input: WITH RECURSIVE ids AS(SELECT 1 AS id UNION ALL SELECT id+1 FROM ids WHERE id<3) DELETE FROM delete_target WHERE id IN(SELECT id FROM ids)
     dialects:

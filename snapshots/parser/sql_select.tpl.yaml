@@ -188,6 +188,17 @@ parser-snapshots:
   - name: with_recursive_2ctes_select3
     input: |
       WITH RECURSIVE a AS (SELECT 1), b AS (SELECT 2) SELECT 3
+  # Parse WITH and options of a CTE
+  - name: with_2ctes_options
+    input: |
+      WITH
+       a AS (SELECT 1),
+       b AS (SELECT * FROM A) OPTIONS (identifier_resolution 'case_insensitive', identifier_normalization 'verbatim')
+      SELECT * FROM b
+  # Parse WITH RECURSIVE and options of CTEs with and without columns
+  - name: with_recursive_options
+    input: |
+      WITH RECURSIVE a (n) AS (SELECT 1) OPTIONS (identifier_resolution 'case_insensitive'), b AS (SELECT 2) OPTIONS (identifier_normalization 'verbatim') SELECT * FROM a, b
   # Parse ORDER BY single column
   - name: select_a_orderby_b
     input: |

@@ -2,7 +2,7 @@
 
 sql_common_element_expr:
     sql_common_table_expr { $1 }
-  | sql_name AS SECURE LRB sql_select_stmt RRB {
+  | sql_name AS SECURE LRB sql_select_stmt RRB sql_cte_options {
       let select = ctx.object(@5, NodeType::OBJECT_SQL_SELECT, $5);
       ctx.object(
           @$,
@@ -10,11 +10,12 @@ sql_common_element_expr:
           &[
               attr(Key::SQL_CTE_NAME, $1),
               attr(Key::SQL_CTE_STATEMENT, select),
+              attr(Key::SQL_CTE_OPTIONS, $7),
               attr(Key::SQL_CTE_SECURE, bool_node(@3, true)),
           ],
       )
   }
-  | sql_name LRB sql_name_list RRB AS SECURE LRB sql_select_stmt RRB {
+  | sql_name LRB sql_name_list RRB AS SECURE LRB sql_select_stmt RRB sql_cte_options {
       let select = ctx.object(@8, NodeType::OBJECT_SQL_SELECT, $8);
       ctx.object(
           @$,
@@ -23,6 +24,7 @@ sql_common_element_expr:
               attr(Key::SQL_CTE_NAME, $1),
               attr(Key::SQL_CTE_COLUMNS, ctx.array(@3, $3)),
               attr(Key::SQL_CTE_STATEMENT, select),
+              attr(Key::SQL_CTE_OPTIONS, $10),
               attr(Key::SQL_CTE_SECURE, bool_node(@6, true)),
           ],
       )

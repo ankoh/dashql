@@ -208,10 +208,14 @@ sql_cte_list:
     ;
 
 sql_common_table_expr:
-    sql_name AS LRB sql_preparable_stmt RRB {
-        ctx.object(@$, NodeType::OBJECT_SQL_CTE, &[attr(Key::SQL_CTE_NAME, $1), attr(Key::SQL_CTE_STATEMENT, $4)])
+    sql_name AS LRB sql_preparable_stmt RRB sql_cte_options {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_CTE,
+            &[attr(Key::SQL_CTE_NAME, $1), attr(Key::SQL_CTE_STATEMENT, $4), attr(Key::SQL_CTE_OPTIONS, $6)],
+        )
     }
-  | sql_name LRB sql_name_list RRB AS LRB sql_preparable_stmt RRB {
+  | sql_name LRB sql_name_list RRB AS LRB sql_preparable_stmt RRB sql_cte_options {
       ctx.object(
           @$,
           NodeType::OBJECT_SQL_CTE,
@@ -219,9 +223,19 @@ sql_common_table_expr:
               attr(Key::SQL_CTE_NAME, $1),
               attr(Key::SQL_CTE_COLUMNS, ctx.array(@3, $3)),
               attr(Key::SQL_CTE_STATEMENT, $7),
+              attr(Key::SQL_CTE_OPTIONS, $9),
           ],
       )
   }
+    ;
+
+// The options of a common table expression, e.g. OPTIONS (identifier_resolution 'case_insensitive').
+// An error right after the CTE still reduces the CTE, so that the analyzer sees its SELECT in incomplete
+// scripts, like it did when the state after the closing parenthesis did not need a lookahead.
+sql_cte_options:
+    OPTIONS LRB sql_generic_option_list RRB     { ctx.array(@$, $3) }
+  | %empty                                      { null() }
+  | error                                       { null() }
     ;
 
 sql_into_clause:

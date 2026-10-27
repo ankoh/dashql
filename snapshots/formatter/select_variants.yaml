@@ -420,3 +420,59 @@ formatter-snapshots:
         validation:
           setup: |-
             create table t(a int, b int);
+
+  - name: with_options
+    input: |-
+      WITH
+       a AS (SELECT 1),
+       b AS (SELECT * FROM A) OPTIONS (identifier_resolution 'case_insensitive', identifier_normalization 'verbatim')
+      SELECT * FROM b
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with a as (select 1), b as (select * from A) options (identifier_resolution 'case_insensitive', identifier_normalization 'verbatim') select * from b;
+          - mode: compact
+            expected: |-
+              with a as (select 1), b as (select * from A) options (
+                identifier_resolution 'case_insensitive', identifier_normalization 'verbatim'
+              )
+              select * from b;
+          - mode: pretty
+            expected: |-
+              with a as (
+                select 1
+              ), b as (
+                select *
+                from A
+              ) options (identifier_resolution 'case_insensitive', identifier_normalization 'verbatim')
+              select *
+              from b;
+
+  - name: with_recursive_options
+    input: |-
+      with recursive a(n) as (select 1 union all select n + 1 from a where n < 3) options (identifier_resolution 'case_insensitive') select * from a
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with recursive a (n) as (select 1 union all select n + 1 from a where n < 3) options (identifier_resolution 'case_insensitive') select * from a;
+          - mode: compact
+            expected: |-
+              with recursive a (n) as (select 1 union all select n + 1 from a where n < 3) options (
+                identifier_resolution 'case_insensitive'
+              )
+              select * from a;
+          - mode: pretty
+            expected: |-
+              with recursive a (n) as (
+                select 1
+                union all
+                select n + 1
+                from a
+                where n < 3
+              ) options (identifier_resolution 'case_insensitive')
+              select *
+              from a;

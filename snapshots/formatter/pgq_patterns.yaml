@@ -386,6 +386,32 @@ formatter-snapshots:
               select *
               from s, t;
 
+  - name: pgq_secure_cte_options
+    input: |-
+      WITH s AS SECURE (SELECT 1 AS a) OPTIONS (privacy_policy '{}'), t (b) AS SECURE (SELECT * FROM S) OPTIONS (identifier_resolution 'case_insensitive') SELECT * FROM s, t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with s as secure (select 1 as a) options (privacy_policy '{}'), t (b) as secure (select * from S) options (identifier_resolution 'case_insensitive') select * from s, t;
+          - mode: compact
+            expected: |-
+              with s as secure (select 1 as a) options (privacy_policy '{}'), t (b) as secure (select * from S) options (
+                identifier_resolution 'case_insensitive'
+              )
+              select * from s, t;
+          - mode: pretty
+            expected: |-
+              with s as secure (
+                select 1 as a
+              ) options (privacy_policy '{}'), t (b) as secure (
+                select *
+                from S
+              ) options (identifier_resolution 'case_insensitive')
+              select *
+              from s, t;
+
   - name: graph_label_expression_parentheses
     input: |-
       select * from graph_table(g match (a is (A | B) & !C) columns (a.x)), graph_table(g match (a is A | B & C) columns (a.x)), graph_table(g match (a is !(A | B)) columns (a.x)), graph_table(g match (a is A & (B | C)) columns (a.x))
