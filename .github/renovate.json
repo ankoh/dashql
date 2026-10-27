@@ -30,6 +30,12 @@
         ],
         "executionMode": "branch"
     },
+    "customDatasources": {
+        "tableauhyperapi_cxx": {
+            "defaultRegistryUrlTemplate": "https://tableau.github.io/hyper-db/docs/releases",
+            "format": "html"
+        }
+    },
     "customManagers": [
         {
             "customType": "regex",
@@ -88,6 +94,12 @@
         }
     ],
     "packageRules": [
+        {
+            "description": "Tableau publishes the Hyper API on PyPI more often than the C++ archives we download. Take the versions from the release notes, which only link the archives that exist. The page has no release dates, so minimumReleaseAge would hold every version back.",
+            "matchDatasources": ["custom.tableauhyperapi_cxx"],
+            "extractVersion": "/tableauhyperapi-cxx-linux-x86_64-release-main\\.(?<version>\\d+\\.\\d+\\.\\d+)\\.r[0-9a-f]+\\.zip$",
+            "minimumReleaseAge": null
+        },
         {
             "description": "Rust crates declared with crate.spec in bazel/crates/*.MODULE.bazel. bazel mod deps re-resolves their Cargo.lock files, which have to be committed along with MODULE.bazel.lock.",
             "matchManagers": ["bazel-module"],

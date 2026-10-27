@@ -1,25 +1,25 @@
 """Repository rules for the native Tableau Hyper API C++ distribution."""
 
-# renovate: datasource=pypi depName=tableauhyperapi
-TABLEAUHYPERAPI_VERSION = "0.0.26784"
+# renovate: datasource=custom.tableauhyperapi_cxx depName=tableauhyperapi
+TABLEAUHYPERAPI_VERSION = "0.0.26479"
 
 _CXX_ARCHIVES = {
     "linux_x86_64": {
-        "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26359.r07abb490.zip",
-        "sha256": "e3e9dca5c777259f96d9bfa8f4a57e520bd2b9ddc2a1ab4d5a37c56e38b2ebcd",
-        "strip_prefix": "tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26359.r07abb490",
+        "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26479.r96880f6a.zip",
+        "sha256": "b7492c21bbda4a226896e755874fb68ecd4454d82d72e2e81f48982126c106f3",
+        "strip_prefix": "tableauhyperapi-cxx-linux-x86_64-release-main.0.0.26479.r96880f6a",
         "shared_library": "lib/libtableauhyperapi.so",
     },
     "macos_x86_64": {
-        "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26359.r07abb490.zip",
-        "sha256": "4ca10d30fb7e8e97d396e4e34f85ae9a5ea946b4223a5e7f2f05f618e6083a39",
-        "strip_prefix": "tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26359.r07abb490",
+        "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26479.r96880f6a.zip",
+        "sha256": "9b557fe606e1544a17badbef3f398876b5acf4598113cd2b800660e5d02b0305",
+        "strip_prefix": "tableauhyperapi-cxx-macos-x86_64-release-main.0.0.26479.r96880f6a",
         "shared_library": "lib/libtableauhyperapi.dylib",
     },
     "macos_arm64": {
-        "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-arm64-release-main.0.0.26359.r07abb490.zip",
-        "sha256": "e874120cfd2d0cfd4c4aed772e46de458d4eacc1a46c6feb1b1a5a85ae0c208f",
-        "strip_prefix": "tableauhyperapi-cxx-macos-arm64-release-main.0.0.26359.r07abb490",
+        "url": "https://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-macos-arm64-release-main.0.0.26479.r96880f6a.zip",
+        "sha256": "00bf8169ad480c1772c0ad16a1f485cd30ad663dfc8f21c1c50db22e578ec030",
+        "strip_prefix": "tableauhyperapi-cxx-macos-arm64-release-main.0.0.26479.r96880f6a",
         "shared_library": "lib/libtableauhyperapi.dylib",
     },
 }
