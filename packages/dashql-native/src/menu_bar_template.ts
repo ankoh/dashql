@@ -1,6 +1,6 @@
 import type {MenuItemConstructorOptions} from "electron";
 
-import type {AgentClientStatus, AgentHostSnapshot, AgentRunStatus} from "./agent_host.js";
+import type {AgentClientStatus, AgentHostSnapshot, AgentTurnStatus} from "./agent_host.js";
 
 export interface MenuBarActions {
     setAgentAccess(enabled: boolean): void;
@@ -63,26 +63,26 @@ export function statusLine(snapshot: AgentHostSnapshot, agentAccess: boolean): s
     }
 }
 
-/// A line per harness run
-export function runLine(run: AgentRunStatus, clients: AgentClientStatus[]): string {
-    const session = clients.flatMap((client) => client.sessions).find((s) => s.id === run.session);
-    const where = `"${session?.name ?? run.session}"`;
-    const what = run.state === "queued" ? "queued" : run.status || "running";
-    return `${harnessName(run.harness)} · ${what} in ${where}`;
+/// A line per turn
+export function turnLine(turn: AgentTurnStatus, clients: AgentClientStatus[]): string {
+    const session = clients.flatMap((client) => client.sessions).find((s) => s.id === turn.session);
+    const where = `"${session?.name ?? turn.session}"`;
+    const what = turn.state === "queued" ? "queued" : turn.status || "running";
+    return `${harnessName(turn.harness)} · ${what} in ${where}`;
 }
 
 /// The tooltip of the icon
 export function tooltip(snapshot: AgentHostSnapshot, agentAccess: boolean): string {
-    const runs = snapshot.status?.runs.length ?? 0;
+    const turns = snapshot.status?.turns.length ?? 0;
     const line = statusLine(snapshot, agentAccess);
-    return runs > 0 ? `DashQL · ${plural(runs, "agent run")}\n${line}` : `DashQL\n${line}`;
+    return turns > 0 ? `DashQL · ${plural(turns, "agent turn")}\n${line}` : `DashQL\n${line}`;
 }
 
-/// The title next to the icon: the number of harness runs, or ! when the server fails
+/// The title next to the icon: the number of turns, or ! when the server fails
 export function title(snapshot: AgentHostSnapshot): string {
     if (snapshot.state === "failed") return "!";
-    const runs = snapshot.status?.runs.length ?? 0;
-    return runs > 0 ? String(runs) : "";
+    const turns = snapshot.status?.turns.length ?? 0;
+    return turns > 0 ? String(turns) : "";
 }
 
 const MAX_LABEL = 72;
@@ -97,8 +97,8 @@ export function buildMenuBarTemplate(snapshot: AgentHostSnapshot, options: MenuB
     if (snapshot.state === "external") {
         items.push({label: "Served by another dashql agent serve", enabled: false});
     }
-    for (const run of snapshot.status?.runs ?? []) {
-        items.push({label: shorten(runLine(run, clients)), enabled: false});
+    for (const turn of snapshot.status?.turns ?? []) {
+        items.push({label: shorten(turnLine(turn, clients)), enabled: false});
     }
     items.push(
         {type: "separator"},

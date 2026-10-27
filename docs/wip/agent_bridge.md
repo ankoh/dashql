@@ -26,7 +26,7 @@ the only way DashQL reaches models: the OpenAI-compatible client and its endpoin
 | Page client, command registry, per-session toggle | Built: `platform/agent/`, `app/agent/` |
 | App → agent from the composer | Built: questions run the harness, status lines, notes, stop, reset, continue in terminal |
 | OpenAI-compatible client and AI endpoint settings | Removed |
-| Menu bar mode | Started: server supervision, tray icon and menu, activation policy, `--menu-bar`, quit and update handling; login item, installers, settings and stopping single runs planned |
+| Menu bar mode | Started: server supervision, tray icon and menu, activation policy, `--menu-bar`, quit and update handling; login item, installers, settings and stopping single turns planned |
 | Inline edit, "Fix with agent", data settings, query policy | Planned |
 | Earlier MCP, ACP, mailbox and desktop-only designs | Superseded, see [Alternatives Considered](#alternatives-considered) |
 
@@ -68,9 +68,10 @@ agent shell         │ main: tray menu, login item, supervision       │
   them to the connected tab, which executes them against the live session.
 - **App → agent:** the tab sends a request to the agent server, which runs the
   configured harness headless with the request as the prompt. The agent then works
-  through the same commands; its final message is the reply.
+  through the same commands; its final message is the reply. One request and its reply
+  are a **turn** of the session, as Codex and ACP call it.
 - **The tab is the runtime.** Data, connections and the embedded database live in the
-  page. The agent server only relays and starts harness runs, so the agent can act
+  page. The agent server only relays and starts turns, so the agent can act
   only while dashql.app (or a desktop window) is open.
 - **No MCP, no ACP, no pairing flow, no files to sync.**
 
@@ -162,7 +163,7 @@ no runtime and runs in two hosts:
 
 - **DashQL.app:** main starts the bundled binary as a child process (`dashql agent serve --exit-with-stdin`,
   `src/agent_host.ts`), restarts it when it crashes (1, 2, 5, 10, 30 s), stops it on quit and before an update
-  (SIGTERM, SIGKILL after 6 s), and follows its state for the menu (connected clients, running harness runs) through
+  (SIGTERM, SIGKILL after 6 s), and follows its state for the menu (connected clients, turns) through
   `GET /v1/status` with the token from `config.json`. The app holds the server's stdin, so the server exits
   when the app crashes or is killed instead of keeping the port. When another server with the same
   `config.json` holds the port (`dashql agent serve` in a terminal), the app follows that one and takes over
@@ -180,8 +181,8 @@ What it does:
 - Queues CLI calls while no client holds the target session (default wait 30 s), then
   fails with "DashQL is not connected: open https://dashql.app and turn on agent
   access".
-- Starts harness runs for requests from clients (see [App → agent](#app--agent)).
-- On SIGTERM fails every run with "The agent server stopped", kills the harness process groups (SIGKILL
+- Starts turns for requests from clients (see [App → agent](#app--agent)).
+- On SIGTERM fails every turn with "The agent server stopped", kills the harness process groups (SIGKILL
   after 3 s) and waits until they exited, so no harness outlives the server.
 
 Configuration and state live in `~/.dashql/agent/` (readable by the user only):
@@ -213,8 +214,8 @@ menu bar plus windows.
 - **First run:** the app offers "Keep DashQL in the menu bar so agents can reach
   dashql.app", which turns on menu bar mode and starting at login. Both stay
   switchable in the menu and in settings.
-- **Quit** stops the agent server. If a harness run is going, it asks first, then
-  kills the run.
+- **Quit** stops the agent server. If a turn is going, it asks first, then
+  kills its harness.
 
 **Menu**
 
@@ -235,12 +236,12 @@ menu bar plus windows.
 ```
 
 **Built so far** (`src/agent_host.ts`, `src/menu_bar_template.ts`, `src/menu_bar.ts`, `main.ts`): the status
-line, a line per harness run, Agent Access (persisted in `menu_bar.json` in the user data folder, off stops the
-server), Open DashQL App, Open DashQL Website, Restart to Update, and Quit, which asks while runs of the app's own
+line, a line per turn, Agent Access (persisted in `menu_bar.json` in the user data folder, off stops the
+server), Open DashQL App, Open DashQL Website, Restart to Update, and Quit, which asks while turns of the app's own
 server are going. The icon is the DashQL glyph as a template image (`assets/trayTemplate.png`, rendered from
-`misc/logo-dashql-glyphs/logo.svg`); the title next to it shows the number of runs, or `!` when the server
+`misc/logo-dashql-glyphs/logo.svg`); the title next to it shows the number of turns, or `!` when the server
 fails. `--menu-bar` opens no window; opening a window switches to the `"regular"` activation policy, closing
-the last one back to `"accessory"`. Not built yet: Stop per run (needs a cancel call on the HTTP API), Settings,
+the last one back to `"accessory"`. Not built yet: Stop per turn (needs a cancel call on the HTTP API), Settings,
 the installers, the login item and the first-run offer. The menu bar runs on macOS only.
 
 - **Icon** (template images): idle, client connected, harness running, error. Today one icon plus the title. The icon
@@ -256,7 +257,7 @@ absolute paths. Settings shows which binary each harness template resolves to.
 
 **Updates.** `electron-updater` installs on quit (`src/updater.ts`), which a menu bar
 app rarely does. When an update is downloaded, the menu shows "Restart to update", and
-the app restarts by itself when no window is open and no harness run is going. Built: "Restart to Update" in the
+the app restarts by itself when no window is open and no turn is going. Built: "Restart to Update" in the
 menu, and installing from the menu or the page stops the agent server first. Not built: the restart by itself,
 which needs the relaunched app to come back with `--menu-bar`.
 
@@ -312,13 +313,13 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
   While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws` and reconnects with backoff. After
   a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call that is
   in flight when the page goes away fails. The page counts as connected once the server answered its
-  announcement. When the connection drops, the page fails the runs it follows, a new server does not know them.
+  announcement. When the connection drops, the page fails the turns it follows, a new server does not know them.
   A server with another protocol version closes with 1008: the page shows that the versions differ (update
   DashQL or reload the page) and retries every 30 s.
 - **Command registry:** one handler per command, wrapping the existing reducers,
   executor and catalog code.
 - **Protocol:** JSON-RPC-style messages (`{id, method, params}` → `{id, result |
-  error}`), plus notifications for harness runs (`agent/status`, `agent/done`,
+  error}`), plus notifications for turns (`agent/status`, `agent/done`,
   `agent/failed`). A client announces the sessions it holds when it connects and when
   they change.
 - **Desktop windows** use the same client over the same WebSocket. They need no
@@ -384,9 +385,9 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
   - opencode reports the text of a step after its tool calls, so the final message is the text of the last
     step without tool calls.
   - Codex passes the JSON body of a failed API call as the error message, the adapter takes its message.
-- One run at a time per DashQL session; further requests queue in the server.
-- Stop (in the composer or the menu) sends `agent/cancel`; the server kills the run's
-  process tree.
+- One turn at a time per DashQL session; further requests queue in the server.
+- Stop (in the composer or the menu) sends `agent/cancel`; the server kills the process tree
+  of the turn's harness.
 - **Security rule:** clients never send commands, only a harness name and a prompt.
   Command templates exist only in the local `config.json`. The app may pick the default harness
   among them (`agent/configure`) but never change a template. Otherwise a bug in dashql.app (XSS,
@@ -403,14 +404,14 @@ context, Continue in terminal copies the command that continues the harness sess
 - **Harness:** picks the default among the configured harnesses (`agent/info`); a harness whose binary is not
   on the `PATH` of harness runs is disabled. Templates are edited in `config.json`.
 - **Sessions** with agent access, each with "Disconnect".
-- **Runs** of the server, each with "Stop", and the **clients** of the server.
+- **Turns** of the server, each with "Stop", and the **clients** of the server.
 
 ### Agent edits
 
 - `edit` applies directly through `SET_SCRIPT_TEXT`, as one undoable editor step.
 - If the user is typing in the same script, the edit still applies; the undo step is
   the way back.
-- After a harness run, the scripts it edited run under the per-connection policy, as
+- After a turn, the scripts it edited run under the per-connection policy, as
   today's question → SQL flow runs generated SQL.
 
 ### Editor UI
@@ -422,12 +423,12 @@ else the agent says is shown by the composer (`ai/ui/agent_prompt_panel.tsx`).
   `globals.css`, green in sidb) and shows the agent on top of the prompt: the harness, whether the agent server is
   connected, whether the next question continues the harness conversation, and the questions of the session. On the
   landing view of an empty session it takes the place of "What do you want to know about your data today?". While a
-  run is going, the frame of the composer turns.
+  turn is going, the frame of the composer turns.
 - **A question** is a line in that panel. Asking creates no script: the agent writes a new script or edits an
   existing one through `dashql agent edit`, and every script it writes shows up as a chip on the question that
   scrolls the feed to the script.
 
-| Run state | Composer | Script |
+| Turn state | Composer | Script |
 |---|---|---|
 | Queued | "waiting for agent...", Stop | |
 | Running | The latest status line, Stop | |
@@ -440,7 +441,7 @@ else the agent says is shown by the composer (`ai/ui/agent_prompt_panel.tsx`).
   the dialect and the catalog objects it mentions; later inline edit on a selection, "Fix with agent" on diagnostics and failed queries.
 - **The final message** should be one sentence: the prompt tells the agent that the user watched the scripts change
   and run and not to recap them. Harnesses still write recaps, so the panel drops markdown markers and clamps it.
-- **After a run** the page runs the first script that the agent edited and did not run itself.
+- **After a turn** the page runs the first script that the agent edited and did not run itself.
 - **Control Session** in the header of a session: its menu offers "Disconnect the Session", "Reset the
   Session" (forget the stored harness session id) and "Continue in terminal" (the harness's resume command).
 - **Not connected:** the chip shows the `dashql agent serve` command. Once the menu bar mode exists it offers

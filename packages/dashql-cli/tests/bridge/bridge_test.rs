@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 use std::time::Duration;
 use support::{cli_async, test_file, Environment, Page, Server};
 
-const RUN_TIMEOUT: Duration = Duration::from_secs(30);
+const TURN_TIMEOUT: Duration = Duration::from_secs(30);
 
 fn fake_harness_config() -> Value {
     let script = test_file("FAKE_HARNESS").display().to_string();
@@ -163,15 +163,15 @@ async fn the_server_refuses_foreign_pages() {
 async fn a_request_runs_an_agent_that_works_on_the_session() {
     let server = start();
     let mut page = server.connect().await;
-    // The run works on its own session, not on the focused one
+    // The turn works on its own session, not on the focused one
     page.announce(&["s1", "s2"], Some("s2")).await;
-    let run = page.request("s1", "fake", "count").await;
-    assert_eq!(page.finished(&run, RUN_TIMEOUT).await, Ok("There are 6 orders.".to_string()));
+    let turn = page.request("s1", "fake", "count").await;
+    assert_eq!(page.finished(&turn, TURN_TIMEOUT).await, Ok("There are 6 orders.".to_string()));
     assert_eq!(page.script("s1", "q1").unwrap(), "-- How many orders are there?\nselect count(*) from orders;\n");
     assert_eq!(page.script("s2", "q1").unwrap(), "-- How many orders are there?\n");
     let commands: Vec<_> = page.commands().into_iter().map(|(s, c, _)| format!("{s} {c}")).collect();
     assert_eq!(commands, ["s1 scripts", "s1 catalog", "s1 edit", "s1 lint", "s1 run"]);
-    let statuses = page.statuses(&run);
+    let statuses = page.statuses(&turn);
     assert_eq!(statuses, ["starting the agent...", "dashql agent scripts", "dashql agent catalog", "Writing q1"]);
 
     // The conversation continues
@@ -181,13 +181,13 @@ async fn a_request_runs_an_agent_that_works_on_the_session() {
     assert_eq!(context["harness"], "fake");
     assert_eq!(context["folder"], server.session_dir("s1").display().to_string());
     assert_eq!(context["terminalCommand"], json!(["fake", "--resume", harness_session]));
-    let run = page.request("s1", "fake", "again").await;
-    assert_eq!(page.finished(&run, RUN_TIMEOUT).await, Ok(format!("resumed {harness_session}")));
+    let turn = page.request("s1", "fake", "again").await;
+    assert_eq!(page.finished(&turn, TURN_TIMEOUT).await, Ok(format!("resumed {harness_session}")));
 
     // A reset starts a new conversation
     page.call("agent/reset", json!({ "session": "s1" })).await.unwrap();
-    let run = page.request("s1", "fake", "again").await;
-    assert_eq!(page.finished(&run, RUN_TIMEOUT).await, Ok("resumed ".to_string()));
+    let turn = page.request("s1", "fake", "again").await;
+    assert_eq!(page.finished(&turn, TURN_TIMEOUT).await, Ok("resumed ".to_string()));
     assert_ne!(page.context("s1").await["harnessSession"], harness_session.as_str());
 }
 
@@ -196,18 +196,18 @@ async fn the_agent_sees_failed_commands() {
     let server = start();
     let mut page = server.connect().await;
     page.announce(&["s1"], Some("s1")).await;
-    let run = page.request("s1", "fake", "error").await;
-    let message = page.finished(&run, RUN_TIMEOUT).await.unwrap();
+    let turn = page.request("s1", "fake", "error").await;
+    let message = page.finished(&turn, TURN_TIMEOUT).await.unwrap();
     assert_eq!(message, "read exited with 1: No script named nope. Scripts: notes, q1");
 }
 
 #[tokio::test]
-async fn a_failed_run_reports_stderr_and_keeps_no_conversation() {
+async fn a_failed_turn_reports_stderr_and_keeps_no_conversation() {
     let server = start();
     let mut page = server.connect().await;
     page.announce(&["s1"], Some("s1")).await;
-    let run = page.request("s1", "fake", "fail").await;
-    let failed = page.finished(&run, RUN_TIMEOUT).await.unwrap_err();
+    let turn = page.request("s1", "fake", "fail").await;
+    let failed = page.finished(&turn, TURN_TIMEOUT).await.unwrap_err();
     assert_eq!(failed["error"], "The harness exited with code 3: the model is overloaded");
     assert_eq!(failed["cancelled"], false);
     assert_eq!(page.context("s1").await["harnessSession"], Value::Null);
@@ -219,8 +219,8 @@ async fn a_cancel_stops_the_agent_and_its_children() {
     let server = start();
     let mut page = server.connect().await;
     page.announce(&["s1"], Some("s1")).await;
-    let run = page.request("s1", "fake", "wait").await;
-    page.next(|m| m["method"] == "agent/status" && m["params"]["text"] == "Waiting", RUN_TIMEOUT).await;
+    let turn = page.request("s1", "fake", "wait").await;
+    page.next(|m| m["method"] == "agent/status" && m["params"]["text"] == "Waiting", TURN_TIMEOUT).await;
     let pid_file = server.session_dir("s1").join("sleep.pid");
     let mut pid = String::new();
     for _ in 0..100 {
@@ -234,7 +234,7 @@ async fn a_cancel_stops_the_agent_and_its_children() {
 
     let started = std::time::Instant::now();
     page.call("agent/cancel", json!({ "session": "s1" })).await.unwrap();
-    let failed = page.finished(&run, RUN_TIMEOUT).await.unwrap_err();
+    let failed = page.finished(&turn, TURN_TIMEOUT).await.unwrap_err();
     assert_eq!((failed["error"].as_str(), failed["cancelled"].as_bool()), (Some("Stopped"), Some(true)));
     assert!(started.elapsed() < Duration::from_secs(5));
     for _ in 0..100 {
@@ -246,8 +246,8 @@ async fn a_cancel_stops_the_agent_and_its_children() {
     assert!(!alive(&pid), "the child of the harness was stopped");
 
     // The session takes the next request
-    let run = page.request("s1", "fake", "again").await;
-    assert!(page.finished(&run, RUN_TIMEOUT).await.is_ok());
+    let turn = page.request("s1", "fake", "again").await;
+    assert!(page.finished(&turn, TURN_TIMEOUT).await.is_ok());
 }
 
 fn alive(pid: &str) -> bool {
@@ -259,8 +259,8 @@ async fn an_agent_cannot_start_another_server() {
     let server = start();
     let mut page = server.connect().await;
     page.announce(&["s1"], Some("s1")).await;
-    let run = page.request("s1", "fake", "serve").await;
-    assert_eq!(page.finished(&run, RUN_TIMEOUT).await, Ok("serve exited with 2".to_string()));
+    let turn = page.request("s1", "fake", "serve").await;
+    assert_eq!(page.finished(&turn, TURN_TIMEOUT).await, Ok("serve exited with 2".to_string()));
 }
 
 #[tokio::test]

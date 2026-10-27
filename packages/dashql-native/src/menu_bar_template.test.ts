@@ -13,9 +13,9 @@ const busy: AgentServerStatus = {
         {id: 1, kind: "web", origin: "https://dashql.app", sessions: [{id: "s1", name: "Revenue analysis"}, {id: "s2", name: "Orders"}], focused: "s1"},
         {id: 2, kind: "native", origin: "app://bundle", sessions: [{id: "s3", name: "Scratch"}], focused: null},
     ],
-    runs: [
-        {runId: "r1", session: "s1", harness: "codex", state: "running", status: "Writing q1"},
-        {runId: "r2", session: "s3", harness: "claude", state: "queued", status: ""},
+    turns: [
+        {turnId: "t1", session: "s1", harness: "codex", state: "running", status: "Writing q1"},
+        {turnId: "t2", session: "s3", harness: "claude", state: "queued", status: ""},
     ],
 };
 
@@ -24,7 +24,7 @@ function labels(snapshot: AgentHostSnapshot, updateVersion: string | null = null
 }
 
 describe("buildMenuBarTemplate", () => {
-    it("lists the clients and the runs", () => {
+    it("lists the clients and the turns", () => {
         expect(labels({state: "running", status: busy, error: null})).toEqual([
             "Connected: dashql.app, DashQL window · 3 sessions",
             "Codex · Writing q1 in \"Revenue analysis\"",
@@ -39,7 +39,7 @@ describe("buildMenuBarTemplate", () => {
     });
 
     it("describes a server without clients, one of another process and a dev page", () => {
-        const idle = {port: 47101, clients: [], runs: []};
+        const idle = {port: 47101, clients: [], turns: []};
         expect(labels({state: "running", status: idle, error: null})[0]).toBe("Waiting for DashQL on port 47101");
         const dev = {...idle, clients: [{id: 1, kind: "web", origin: "http://localhost:9002", sessions: [{id: "s1", name: "a"}], focused: "s1"}]};
         expect(labels({state: "external", status: dev, error: null}).slice(0, 2)).toEqual([
@@ -79,10 +79,10 @@ describe("buildMenuBarTemplate", () => {
 });
 
 describe("the icon", () => {
-    it("shows the runs and failures", () => {
+    it("shows the turns and failures", () => {
         expect(title({state: "running", status: busy, error: null})).toBe("2");
-        expect(title({state: "running", status: {...busy, runs: []}, error: null})).toBe("");
+        expect(title({state: "running", status: {...busy, turns: []}, error: null})).toBe("");
         expect(title({state: "failed", status: null, error: "x"})).toBe("!");
-        expect(tooltip({state: "running", status: busy, error: null}, true)).toBe("DashQL · 2 agent runs\nConnected: dashql.app, DashQL window · 3 sessions");
+        expect(tooltip({state: "running", status: busy, error: null}, true)).toBe("DashQL · 2 agent turns\nConnected: dashql.app, DashQL window · 3 sessions");
     });
 });

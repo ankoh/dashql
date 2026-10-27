@@ -10,7 +10,7 @@ use serde_json::json;
 use std::time::Duration;
 use support::{Environment, Server};
 
-const RUN_TIMEOUT: Duration = Duration::from_secs(300);
+const TURN_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// The question of a script, as the composer of DashQL asks it
 fn composer_prompt(script: &str, question: &str) -> String {
@@ -58,8 +58,8 @@ async fn check_harness(harness: &str) {
     page.announce(&["s1", "s2"], Some("s2")).await;
 
     // A question about the data: the agent writes the script, checks it and runs it
-    let run = page.request("s1", harness, &composer_prompt("q1", "How many orders are there?")).await;
-    let message = page.finished(&run, RUN_TIMEOUT).await;
+    let turn = page.request("s1", harness, &composer_prompt("q1", "How many orders are there?")).await;
+    let message = page.finished(&turn, TURN_TIMEOUT).await;
     let message = message.unwrap_or_else(|failed| panic!("{harness} failed: {failed}\n{}", server.log()));
     eprintln!("{harness}: {message}");
     assert!(message.contains('6'), "{harness} answered: {message}");
@@ -70,7 +70,7 @@ async fn check_harness(harness: &str) {
     assert!(commands.iter().all(|(session, _, _)| session == "s1"), "{harness} left its session: {commands:?}");
     assert!(commands.iter().any(|(_, c, s)| c == "edit" && s == "q1"), "{harness} did not edit q1: {commands:?}");
     assert!(commands.iter().any(|(_, c, s)| c == "run" && s == "q1"), "{harness} did not run q1: {commands:?}");
-    assert!(page.statuses(&run).len() > 1, "{harness} reported no progress");
+    assert!(page.statuses(&turn).len() > 1, "{harness} reported no progress");
 
     // A follow-up continues the conversation
     let context = page.context("s1").await;
@@ -78,20 +78,20 @@ async fn check_harness(harness: &str) {
     let harness_session = context["harnessSession"].clone();
     assert!(harness_session.is_string(), "{harness} has no conversation: {context}");
     let prompt = "-- Which number did you report in your previous answer? Reply with the number only, no tools.";
-    let run = page.request("s1", harness, prompt).await;
-    let message = page.finished(&run, RUN_TIMEOUT).await;
+    let turn = page.request("s1", harness, prompt).await;
+    let message = page.finished(&turn, TURN_TIMEOUT).await;
     let message = message.unwrap_or_else(|failed| panic!("{harness} failed the follow-up: {failed}"));
     assert!(message.contains('6'), "{harness} forgot the conversation: {message}");
     assert_eq!(page.context("s1").await["harnessSession"], harness_session);
 
-    // A cancel stops the run
+    // A cancel stops the turn
     let prompt = composer_prompt("q3", "What is the total amount of the orders per country?");
-    let run = page.request("s1", harness, &prompt).await;
-    page.next(|m| m["method"] == "agent/status" && m["params"]["runId"] == run && m["params"]["text"] != "starting the agent...", RUN_TIMEOUT)
+    let turn = page.request("s1", harness, &prompt).await;
+    page.next(|m| m["method"] == "agent/status" && m["params"]["turnId"] == turn && m["params"]["text"] != "starting the agent...", TURN_TIMEOUT)
         .await;
     let started = std::time::Instant::now();
     page.call("agent/cancel", json!({ "session": "s1" })).await.unwrap();
-    let failed = page.finished(&run, Duration::from_secs(10)).await.unwrap_err();
+    let failed = page.finished(&turn, Duration::from_secs(10)).await.unwrap_err();
     assert_eq!(failed["cancelled"], true);
     assert!(started.elapsed() < Duration::from_secs(5), "{harness} took {:?} to stop", started.elapsed());
 }

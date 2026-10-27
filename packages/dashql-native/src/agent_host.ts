@@ -16,9 +16,9 @@ export interface AgentClientStatus {
     focused: string | null;
 }
 
-/// A harness run, as GET /v1/status reports it
-export interface AgentRunStatus {
-    runId: string;
+/// A turn, as GET /v1/status reports it
+export interface AgentTurnStatus {
+    turnId: string;
     session: string;
     harness: string;
     state: "queued" | "running";
@@ -28,7 +28,7 @@ export interface AgentRunStatus {
 export interface AgentServerStatus {
     port: number;
     clients: AgentClientStatus[];
-    runs: AgentRunStatus[];
+    turns: AgentTurnStatus[];
 }
 
 /// What the host knows about the agent server
@@ -70,7 +70,7 @@ export interface AgentHostOptions {
 }
 
 const DEFAULT_RESTART_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
-/// The server gives a killed harness run 3 s before it kills it for good, see KILL_GRACE in harness.rs
+/// The server gives a killed harness 3 s before it kills it for good, see KILL_GRACE in harness.rs
 const STOP_GRACE_MS = 6000;
 const STATUS_TIMEOUT_MS = 2000;
 
@@ -166,7 +166,7 @@ export class AgentHost {
         this.#schedulePoll(0);
     }
 
-    /// Stop the server: SIGTERM stops its harness runs and closes its listener, SIGKILL after a grace period.
+    /// Stop the server: SIGTERM stops its turns and closes its listener, SIGKILL after a grace period.
     /// The signal is sent before the first await, so callers on quit need not wait.
     async stop(): Promise<void> {
         this.#wanted = false;

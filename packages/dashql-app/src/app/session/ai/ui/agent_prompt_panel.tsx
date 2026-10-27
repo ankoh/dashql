@@ -24,7 +24,7 @@ export interface ComposerAgentScript {
 }
 
 /// A question of the session that the agent answers or answered
-export interface ComposerAgentRun {
+export interface ComposerAgentTurn {
     questionId: number;
     /// The question with the status, the final message or the error of the agent
     question: AgentQuestion;
@@ -41,7 +41,7 @@ export interface ComposerAgent {
     /// The harness context of the session, null while unknown
     context: AgentSessionContext | null;
     /// The questions of the session, oldest first
-    runs: ComposerAgentRun[];
+    turns: ComposerAgentTurn[];
     /// Stop the agent working on a question
     onStop: (questionId: number) => void;
     /// Dismiss the final message or the error of a question
@@ -52,7 +52,7 @@ export interface ComposerAgent {
 
 /// Is the agent working on a question of the session?
 export function isAgentWorking(agent: ComposerAgent): boolean {
-    return agent.runs.some(run => isAgentAnswering(run.question));
+    return agent.turns.some(turn => isAgentAnswering(turn.question));
 }
 
 /// The name of a harness as users know it
@@ -65,7 +65,7 @@ export function harnessLabel(harness: string): string {
 }
 
 /// Follow the harness context of a session while the agent server is connected.
-/// Fetched again when the refresh key changes, e.g. once a run finished and the harness session is known.
+/// Fetched again when the refresh key changes, e.g. once a turn finished and the harness session is known.
 export function useAgentSessionContext(bridge: AgentBridge | null, sessionId: string, refreshKey: number): AgentSessionContext | null {
     const logger = useLogger();
     const [context, setContext] = React.useState<AgentSessionContext | null>(null);
@@ -99,7 +99,7 @@ export function plainAgentNote(note: string): string {
 
 /// The final message of the agent, clamped to two lines until it is expanded.
 /// The user watched the scripts change and run, a recap of them is rarely worth more than a glance.
-const AgentRunNote: React.FC<{ note: string }> = ({ note }) => {
+const AgentTurnNote: React.FC<{ note: string }> = ({ note }) => {
     const text = React.useMemo(() => plainAgentNote(note), [note]);
     const ref = React.useRef<HTMLDivElement>(null);
     const [expanded, setExpanded] = React.useState(false);
@@ -131,19 +131,19 @@ const AgentRunNote: React.FC<{ note: string }> = ({ note }) => {
     );
 };
 
-const AgentRunItem: React.FC<{ run: ComposerAgentRun; agent: ComposerAgent }> = ({ run, agent }) => {
-    const { questionId, question } = run;
+const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent }> = ({ turn, agent }) => {
+    const { questionId, question } = turn;
     const working = isAgentAnswering(question);
     const failed = !working && question.error != null;
     const indicator = working ? IndicatorStatus.Running : (failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
     return (
-        <li className={styles.run} data-state={working ? 'working' : (failed ? 'failed' : 'done')} data-testid="composer-agent-run">
+        <li className={styles.turn} data-state={working ? 'working' : (failed ? 'failed' : 'done')} data-testid="composer-agent-turn">
             <div className={styles.run_header}>
                 <span className={styles.run_indicator}>
                     <StatusIndicator status={indicator} width="12px" height="12px" />
                 </span>
                 <span className={styles.run_question} title={question.question}>{question.question}</span>
-                {run.scripts.map(script => (
+                {turn.scripts.map(script => (
                     <button
                         key={script.scriptKey}
                         type="button"
@@ -179,7 +179,7 @@ const AgentRunItem: React.FC<{ run: ComposerAgentRun; agent: ComposerAgent }> = 
             </div>
             {working && <div className={styles.run_status} role="status">{question.status}</div>}
             {failed && <div className={styles.run_error} role="alert">{question.error}</div>}
-            {!working && !failed && question.note != null && <AgentRunNote note={question.note} />}
+            {!working && !failed && question.note != null && <AgentTurnNote note={question.note} />}
         </li>
     );
 };
@@ -205,9 +205,9 @@ export const AgentPromptPanel: React.FC<{ agent: ComposerAgent }> = ({ agent }) 
                 <span className={styles.header_dot} data-connected={agent.connected ? '' : undefined} aria-hidden="true" />
                 <span className={styles.header_detail} data-testid="composer-agent-detail">{detail}</span>
             </div>
-            {agent.runs.length > 0 && (
-                <ul className={styles.runs} aria-label="Questions">
-                    {agent.runs.map(run => <AgentRunItem key={run.questionId} run={run} agent={agent} />)}
+            {agent.turns.length > 0 && (
+                <ul className={styles.turns} aria-label="Questions">
+                    {agent.turns.map(turn => <AgentTurnItem key={turn.questionId} turn={turn} agent={agent} />)}
                 </ul>
             )}
         </div>

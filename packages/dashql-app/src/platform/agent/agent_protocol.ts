@@ -5,7 +5,7 @@
 // A message with a method but without an id is a notification.
 
 /// The version of the protocol, the server turns away other versions
-export const AGENT_PROTOCOL_VERSION = 1;
+export const AGENT_PROTOCOL_VERSION = 2;
 
 /// The default port of the agent server
 export const DEFAULT_AGENT_PORT = 47100;
@@ -53,7 +53,7 @@ export interface AgentRequestParams {
 
 /// server → page response to an agent request
 export interface AgentRequestResult {
-    runId: string;
+    turnId: string;
     harness: string;
 }
 
@@ -94,9 +94,9 @@ export interface AgentServerClient {
     focused: string | null;
 }
 
-/// A harness run of the agent server
-export interface AgentServerRun {
-    runId: string;
+/// A turn of the agent server: a prompt that a harness works on until it answers
+export interface AgentTurn {
+    turnId: string;
     session: string;
     harness: string;
     state: 'queued' | 'running';
@@ -114,30 +114,30 @@ export interface AgentServerInfo {
     defaultHarness: string;
     harnesses: AgentHarnessInfo[];
     clients: AgentServerClient[];
-    runs: AgentServerRun[];
+    turns: AgentTurn[];
 }
 
-/// server → page notification: the state of a harness run
+/// server → page notification: the state of a turn
 export interface AgentStatusParams {
     session: string;
-    runId: string;
+    turnId: string;
     state: 'queued' | 'running';
     /// The latest status line
     text: string;
 }
 
-/// server → page notification: a harness run finished
+/// server → page notification: a turn finished
 export interface AgentDoneParams {
     session: string;
-    runId: string;
+    turnId: string;
     /// The final message of the agent
     message: string;
 }
 
-/// server → page notification: a harness run failed or was stopped
+/// server → page notification: a turn failed or was stopped
 export interface AgentFailedParams {
     session: string;
-    runId: string;
+    turnId: string;
     error: string;
     cancelled: boolean;
 }

@@ -8,14 +8,14 @@
 //! |---|---|---|---|
 //! | `client/sessions` | client → server | `{protocol, client, sessions: [{id, name}], focused}` | `{}` |
 //! | `command` | server → client | `{session, command, args}` | `{text, data?}` |
-//! | `agent/request` | client → server | `{session, harness?, prompt}` | `{runId, harness}` |
+//! | `agent/request` | client → server | `{session, harness?, prompt}` | `{turnId, harness}` |
 //! | `agent/cancel`, `agent/reset` | client → server | `{session}` | `{}` |
 //! | `agent/context` | client → server | `{session}` | `{folder, harness, harnessSession, terminalCommand}` |
 //! | `agent/info` | client → server | `{}` | the status with `home, configPath, dev, defaultHarness, harnesses` |
 //! | `agent/configure` | client → server | `{defaultHarness?}` | `{}` |
-//! | `agent/status` | server → client | `{session, runId, state: "queued" \| "running", text}` | notification |
-//! | `agent/done` | server → client | `{session, runId, message}` | notification |
-//! | `agent/failed` | server → client | `{session, runId, error, cancelled}` | notification |
+//! | `agent/status` | server → client | `{session, turnId, state: "queued" \| "running", text}` | notification |
+//! | `agent/done` | server → client | `{session, turnId, message}` | notification |
+//! | `agent/failed` | server → client | `{session, turnId, error, cancelled}` | notification |
 //!
 //! The command line tool calls the server over HTTP: `GET /v1/status` returns `{ok, status}`, `POST /v1/call`
 //! takes `{session?, command, args?}` and returns `{ok: true, session, result: {text, data?}}` or
@@ -24,7 +24,7 @@
 use serde_json::{json, Value};
 
 /// The version of the protocol, a client with another version is turned away
-pub const PROTOCOL_VERSION: u64 = 1;
+pub const PROTOCOL_VERSION: u64 = 2;
 
 /// The path of the WebSocket endpoint
 pub const WEBSOCKET_PATH: &str = "/v1/ws";

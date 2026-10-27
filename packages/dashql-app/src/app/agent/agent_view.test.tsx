@@ -21,7 +21,7 @@ const INFO: AgentServerInfo = {
         { name: 'opencode', command: ['opencode', 'run', '{prompt}'], adapter: 'opencode', program: null },
     ],
     clients: [{ id: 'c', kind: 'web', origin: 'https://dashql.app', sessions: [{ id: 's1', name: 'Revenue' }], focused: 's1' }],
-    runs: [{ runId: 'r', session: 's1', harness: 'claude', state: 'running', status: 'dashql agent catalog' }],
+    turns: [{ turnId: 't', session: 's1', harness: 'claude', state: 'running', status: 'dashql agent catalog' }],
 };
 
 function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {

@@ -59,7 +59,7 @@ import { SessionComposer, SessionComposerVariant } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useAgentBridge } from '../../../agent/agent_bridge.js';
 import { isAgentAnswering, useSqlGenerations } from '../../ai/use_sql_generations.js';
-import { useAgentSessionContext, type ComposerAgent, type ComposerAgentRun, type ComposerAgentScript } from '../../ai/ui/agent_prompt_panel.js';
+import { useAgentSessionContext, type ComposerAgent, type ComposerAgentTurn, type ComposerAgentScript } from '../../ai/ui/agent_prompt_panel.js';
 import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';
 
@@ -560,7 +560,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const agentAccess = agent != null && agent.supported && agent.hasAccess(sessionId);
     const composerAgent = React.useMemo<ComposerAgent | null>(() => {
         if (agent == null || !agentAccess) return null;
-        const runs: ComposerAgentRun[] = [];
+        const turns: ComposerAgentTurn[] = [];
         for (const [questionId, question] of sqlGenerations.questions) {
             // Deleted scripts drop out
             const scripts: ComposerAgentScript[] = [];
@@ -568,13 +568,13 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 const scriptData = props.sessionScripts.scripts[scriptKey];
                 if (scriptData != null) scripts.push({ scriptKey, scriptName: scriptDisplayName(scriptData.fileName) });
             }
-            runs.push({ questionId, question, scripts });
+            turns.push({ questionId, question, scripts });
         }
         return {
             connected: agent.status === AgentConnectionStatus.Connected,
             port: agent.port,
             context: agentContext,
-            runs,
+            turns,
             onStop: sqlGenerations.stop,
             onDismiss: sqlGenerations.dismiss,
             onShowScript: handleShowAgentScript,

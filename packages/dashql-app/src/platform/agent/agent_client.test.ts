@@ -181,11 +181,11 @@ describe('AgentClient', () => {
         const request = client.request('agent/request', { session: 's1', prompt: 'hi' });
         const sent = sockets[0].sent[1];
         expect(sent).toEqual({ id: 2, method: 'agent/request', params: { session: 's1', prompt: 'hi' } });
-        sockets[0].receive({ id: 2, result: { runId: 'r1', harness: 'codex' } });
-        await expect(request).resolves.toEqual({ runId: 'r1', harness: 'codex' });
+        sockets[0].receive({ id: 2, result: { turnId: 't1', harness: 'codex' } });
+        await expect(request).resolves.toEqual({ turnId: 't1', harness: 'codex' });
 
-        sockets[0].receive({ method: 'agent/done', params: { session: 's1', runId: 'r1', message: 'done' } });
-        expect(notifications).toEqual([['agent/done', { session: 's1', runId: 'r1', message: 'done' }]]);
+        sockets[0].receive({ method: 'agent/done', params: { session: 's1', turnId: 't1', message: 'done' } });
+        expect(notifications).toEqual([['agent/done', { session: 's1', turnId: 't1', message: 'done' }]]);
 
         const failing = client.request('agent/request', { session: 'x', prompt: 'hi' });
         sockets[0].receive({ id: 3, error: { code: 'usage', message: 'the session has no agent access' } });

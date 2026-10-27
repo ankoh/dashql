@@ -15,7 +15,7 @@ import { SessionTestBackend } from '../../../storage/session_test_backend.js';
 import { SessionFeed, type SessionFeedDependencies } from './session_feed.js';
 import { SessionComposerVariant, type SessionComposerProps } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
-import type { AgentRunListener } from '../../../agent/agent_bridge.js';
+import type { AgentTurnListener } from '../../../agent/agent_bridge.js';
 import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
 import { CREATE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../../scripts/session_scripts.js';
 import { CONNECTOR_INFOS } from '../../../connections/connector_info.js';
@@ -292,7 +292,7 @@ describe('Session feed composer', () => {
         runSessionScript: vi.fn(),
         executeQuery: vi.fn(),
         agent: null as any,
-        agentListener: null as AgentRunListener | null,
+        agentListener: null as AgentTurnListener | null,
         submit: vi.fn(),
         view: null as any,
         rowProps: null as any,
@@ -428,7 +428,7 @@ describe('Session feed composer', () => {
     });
 
     /// An agent bridge whose session has agent access
-    function connectedAgent(request: (sessionId: string, prompt: string, listener: AgentRunListener) => Promise<string>) {
+    function connectedAgent(request: (sessionId: string, prompt: string, listener: AgentTurnListener) => Promise<string>) {
         return {
             status: AgentConnectionStatus.Connected,
             supported: true,
@@ -447,18 +447,18 @@ describe('Session feed composer', () => {
         expect(feedState.composerProps?.agent).toBeNull();
         expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
 
-        feedState.agent = { ...connectedAgent(() => Promise.resolve('run')), status: AgentConnectionStatus.Connecting };
+        feedState.agent = { ...connectedAgent(() => Promise.resolve('turn')), status: AgentConnectionStatus.Connecting };
         render(session(), vi.fn());
-        expect(feedState.composerProps?.agent).toMatchObject({ connected: false, port: 47100, context: null, runs: [] });
+        expect(feedState.composerProps?.agent).toMatchObject({ connected: false, port: 47100, context: null, turns: [] });
         expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
 
-        feedState.agent = connectedAgent(() => Promise.resolve('run'));
+        feedState.agent = connectedAgent(() => Promise.resolve('turn'));
         render(session(), vi.fn());
         expect(feedState.agent.context).toHaveBeenCalledWith('session');
         await vi.waitFor(() => expect(feedState.composerProps?.agent).toMatchObject({ connected: true, context: { harness: 'claude' } }));
         expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
 
-        feedState.agent = { ...connectedAgent(() => Promise.resolve('run')), hasAccess: () => false };
+        feedState.agent = { ...connectedAgent(() => Promise.resolve('turn')), hasAccess: () => false };
         render(session(), vi.fn());
         expect(feedState.composerProps?.agent).toBeNull();
         expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
@@ -467,10 +467,10 @@ describe('Session feed composer', () => {
     it('offers AI only with agent access and a connected agent server', () => {
         render(session(), vi.fn());
         expect(feedState.composerProps?.aiAvailable).toBe(false);
-        feedState.agent = { ...connectedAgent(() => Promise.resolve('run')), status: AgentConnectionStatus.Connecting };
+        feedState.agent = { ...connectedAgent(() => Promise.resolve('turn')), status: AgentConnectionStatus.Connecting };
         render(session(), vi.fn());
         expect(feedState.composerProps?.aiAvailable).toBe(false);
-        feedState.agent = connectedAgent(() => Promise.resolve('run'));
+        feedState.agent = connectedAgent(() => Promise.resolve('turn'));
         render(session(), vi.fn());
         expect(feedState.composerProps?.aiAvailable).toBe(true);
     });
@@ -489,7 +489,7 @@ describe('Session feed composer', () => {
     it('asks the agent without creating a script and runs the script the agent wrote', async () => {
         feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
             feedState.agentListener = listener;
-            return Promise.resolve('run-1');
+            return Promise.resolve('turn-1');
         });
         const modify = vi.fn();
         render({ ...session(), connectionCatalog: emptyCatalog as any }, modify);
@@ -503,49 +503,49 @@ describe('Session feed composer', () => {
         expect(prompt).toContain('The connection speaks Tableau Hyper (PostgreSQL-compatible).');
         expect(prompt.endsWith('Question:\nhow many rows')).toBe(true);
         const waiting = { question: 'how many rows', status: 'waiting for agent...', error: null, note: null, scripts: [] };
-        expect(feedState.composerProps?.agent?.runs).toEqual([{ questionId: 1, question: waiting, scripts: [] }]);
+        expect(feedState.composerProps?.agent?.turns).toEqual([{ questionId: 1, question: waiting, scripts: [] }]);
         await act(async () => feedState.agentListener!.status('running', 'dashql agent catalog'));
-        expect(feedState.composerProps?.agent?.runs[0].question.status).toBe('dashql agent catalog');
+        expect(feedState.composerProps?.agent?.turns[0].question.status).toBe('dashql agent catalog');
 
         // The agent creates a script through the dashql command
         const created = { ...session(['1_alpha.sql']), connectionCatalog: emptyCatalog as any };
         render(created, modify);
         await act(async () => feedState.agentListener!.edited(1));
         await act(async () => feedState.agentListener!.edited(1));
-        expect(feedState.composerProps?.agent?.runs[0].scripts).toEqual([{ scriptKey: 1, scriptName: '1_alpha' }]);
+        expect(feedState.composerProps?.agent?.turns[0].scripts).toEqual([{ scriptKey: 1, scriptName: '1_alpha' }]);
         await act(async () => feedState.agentListener!.done('There are 3 rows', [1]));
         const answered = { question: 'how many rows', status: null, error: null, note: 'There are 3 rows', scripts: [1] };
-        expect(feedState.composerProps?.agent?.runs).toEqual([{ questionId: 1, question: answered, scripts: [{ scriptKey: 1, scriptName: '1_alpha' }] }]);
+        expect(feedState.composerProps?.agent?.turns).toEqual([{ questionId: 1, question: answered, scripts: [{ scriptKey: 1, scriptName: '1_alpha' }] }]);
         expect(feedState.runSessionScript).toHaveBeenCalledExactlyOnceWith(created, created.scripts[1], feedState.executeQuery, modify, expect.anything());
         await act(async () => feedState.composerProps!.agent!.onDismiss(1));
-        expect(feedState.composerProps?.agent?.runs).toEqual([]);
+        expect(feedState.composerProps?.agent?.turns).toEqual([]);
     });
 
     it('does not rerun a script that the agent ran itself', async () => {
         feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
             feedState.agentListener = listener;
-            return Promise.resolve('run-1');
+            return Promise.resolve('turn-1');
         });
         render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         await act(async () => feedState.agentListener!.done('', []));
         // Without an answer and without scripts, the question is gone
-        expect(feedState.composerProps?.agent?.runs).toEqual([]);
+        expect(feedState.composerProps?.agent?.turns).toEqual([]);
         expect(feedState.runSessionScript).not.toHaveBeenCalled();
     });
 
     it('stops the agent', async () => {
         feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
             feedState.agentListener = listener;
-            return Promise.resolve('run-1');
+            return Promise.resolve('turn-1');
         });
         render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         await act(async () => feedState.composerProps!.agent!.onStop(1));
         expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session');
-        expect(feedState.composerProps?.agent?.runs).toEqual([]);
+        expect(feedState.composerProps?.agent?.turns).toEqual([]);
         await act(async () => feedState.agentListener!.failed('Stopped', true));
-        expect(feedState.composerProps?.agent?.runs).toEqual([]);
+        expect(feedState.composerProps?.agent?.turns).toEqual([]);
     });
 
     it('replaces the text of a script with a snippet, as a diff if the script has text', async () => {
@@ -565,7 +565,7 @@ describe('Session feed composer', () => {
         const modify = vi.fn();
         render({ ...session(), connectionCatalog: emptyCatalog as any }, modify);
         await act(async () => feedState.composerProps!.onSend('anything', ComposerInputMode.Ai));
-        await vi.waitFor(() => expect(feedState.composerProps?.agent?.runs[0].question.error).toBe('The agent server is not connected'));
+        await vi.waitFor(() => expect(feedState.composerProps?.agent?.turns[0].question.error).toBe('The agent server is not connected'));
         expect(modify).not.toHaveBeenCalled();
         expect(feedState.runSessionScript).not.toHaveBeenCalled();
     });

@@ -121,27 +121,27 @@ impl Client {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum RunState {
+enum TurnState {
     Queued,
     Running,
 }
 
-impl RunState {
+impl TurnState {
     fn name(self) -> &'static str {
         match self {
-            RunState::Queued => "queued",
-            RunState::Running => "running",
+            TurnState::Queued => "queued",
+            TurnState::Running => "running",
         }
     }
 }
 
-/// A harness run of a session
-struct Run {
-    run_id: String,
+/// A turn of a session: a prompt that a harness works on until it answers
+struct Turn {
+    turn_id: String,
     session: String,
     harness: String,
     prompt: String,
-    state: RunState,
+    state: TurnState,
     status: String,
     cancelled: bool,
     kill: Option<Kill>,
@@ -162,8 +162,8 @@ struct State {
     next_client: u64,
     /// The sessions with a running call
     busy: HashSet<String>,
-    /// The harness runs in the order of their requests, the first run of a session runs, the others wait
-    runs: Vec<Run>,
+    /// The turns in the order of their requests, the first turn of a session runs, the others wait
+    turns: Vec<Turn>,
     /// The harness processes that did not exit yet
     harnesses: usize,
     next_call_id: u64,
@@ -220,7 +220,7 @@ impl AgentServer {
                 clients: BTreeMap::new(),
                 next_client: 0,
                 busy: HashSet::new(),
-                runs: Vec::new(),
+                turns: Vec::new(),
                 harnesses: 0,
                 next_call_id: 1,
                 clock: 0,
@@ -260,16 +260,16 @@ impl AgentServer {
         self.shared.status(&self.shared.lock())
     }
 
-    /// Stop listening, fail and kill the harness runs, disconnect the clients.
+    /// Stop listening, fail the turns and kill their harnesses, disconnect the clients.
     /// Returns once the harness processes exited, the runtime would otherwise drop them while they run.
     pub async fn close(self) {
         self.accept.abort();
         {
             let mut state = self.shared.lock();
             let state = &mut *state;
-            for run in state.runs.drain(..) {
-                notify_failed(&state.clients, &run, SERVER_STOPPED_MESSAGE, false);
-                if let Some(kill) = &run.kill {
+            for turn in state.turns.drain(..) {
+                notify_failed(&state.clients, &turn, SERVER_STOPPED_MESSAGE, false);
+                if let Some(kill) = &turn.kill {
                     kill();
                 }
             }
@@ -317,12 +317,12 @@ impl Shared {
                 "sessions": client.sessions.iter().map(|s| json!({ "id": s.id, "name": s.name })).collect::<Vec<_>>(),
                 "focused": client.focused,
             })).collect::<Vec<_>>(),
-            "runs": state.runs.iter().map(|run| json!({
-                "runId": run.run_id,
-                "session": run.session,
-                "harness": run.harness,
-                "state": run.state.name(),
-                "status": run.status,
+            "turns": state.turns.iter().map(|turn| json!({
+                "turnId": turn.turn_id,
+                "session": turn.session,
+                "harness": turn.harness,
+                "state": turn.state.name(),
+                "status": turn.status,
             })).collect::<Vec<_>>(),
         })
     }
@@ -349,14 +349,14 @@ fn notify_session(clients: &BTreeMap<u64, Client>, session: &str, method: &str, 
     }
 }
 
-fn notify_status(clients: &BTreeMap<u64, Client>, run: &Run) {
-    let params = json!({ "session": run.session, "runId": run.run_id, "state": run.state.name(), "text": run.status });
-    notify_session(clients, &run.session, "agent/status", params);
+fn notify_status(clients: &BTreeMap<u64, Client>, turn: &Turn) {
+    let params = json!({ "session": turn.session, "turnId": turn.turn_id, "state": turn.state.name(), "text": turn.status });
+    notify_session(clients, &turn.session, "agent/status", params);
 }
 
-fn notify_failed(clients: &BTreeMap<u64, Client>, run: &Run, error: &str, cancelled: bool) {
-    let params = json!({ "session": run.session, "runId": run.run_id, "error": error, "cancelled": cancelled });
-    notify_session(clients, &run.session, "agent/failed", params);
+fn notify_failed(clients: &BTreeMap<u64, Client>, turn: &Turn, error: &str, cancelled: bool) {
+    let params = json!({ "session": turn.session, "turnId": turn.turn_id, "error": error, "cancelled": cancelled });
+    notify_session(clients, &turn.session, "agent/failed", params);
 }
 
 impl Shared {
@@ -505,16 +505,16 @@ impl Shared {
                     reply(Ok(json!({})));
                 }
             }
-            "agent/request" => match self.enqueue_run(client, params) {
-                Ok((result, run_id)) => {
+            "agent/request" => match self.enqueue_turn(client, params) {
+                Ok((result, turn_id)) => {
                     // The response goes out before the first notification
                     reply(Ok(result));
-                    tokio::spawn(start_or_queue(self.clone(), run_id));
+                    tokio::spawn(start_or_queue(self.clone(), turn_id));
                 }
                 Err(error) => reply(Err(error)),
             },
             "agent/cancel" => reply(session().map(|session| {
-                self.cancel_runs(&session);
+                self.cancel_turns(&session);
                 json!({})
             })),
             "agent/reset" => reply(session().and_then(|session| {
@@ -624,7 +624,7 @@ impl Shared {
     }
 
     // ------------------------------------------------------------------------------------------------
-    // Harness runs
+    // Turns
 
     fn session_dir(&self, session: &str) -> PathBuf {
         self.options.home.join("sessions").join(session_folder_name(session))
@@ -652,7 +652,7 @@ impl Shared {
     fn session_context(&self, session: &str) -> Value {
         let state = self.lock();
         let session_state = self.read_session_state(session);
-        // The harness that holds the conversation of the session, the default harness before the first run
+        // The harness that holds the conversation of the session, the default harness before the first turn
         let harness = match session_state.harness.as_deref() {
             Some(harness) if state.config.harness(harness).is_some() => harness,
             _ => &state.config.default_harness,
@@ -673,7 +673,7 @@ impl Shared {
         })
     }
 
-    fn enqueue_run(&self, client: u64, params: &Value) -> Result<(Value, String), RpcError> {
+    fn enqueue_turn(&self, client: u64, params: &Value) -> Result<(Value, String), RpcError> {
         let mut state = self.lock();
         let session = params["session"].as_str().unwrap_or_default();
         if !state.clients.get(&client).is_some_and(|c| c.holds(session)) {
@@ -687,34 +687,34 @@ impl Shared {
         if prompt.trim().is_empty() {
             return Err(RpcError::new(ErrorCode::Failed, "the prompt is empty"));
         }
-        let run_id = random_uuid();
-        state.runs.push(Run {
-            run_id: run_id.clone(),
+        let turn_id = random_uuid();
+        state.turns.push(Turn {
+            turn_id: turn_id.clone(),
             session: session.to_string(),
             harness: harness.clone(),
             prompt: prompt.to_string(),
-            state: RunState::Queued,
+            state: TurnState::Queued,
             status: "waiting for agent...".into(),
             cancelled: false,
             kill: None,
         });
-        Ok((json!({ "runId": run_id, "harness": harness }), run_id))
+        Ok((json!({ "turnId": turn_id, "harness": harness }), turn_id))
     }
 
-    /// Stop the harness runs of a session
-    fn cancel_runs(&self, session: &str) {
+    /// Stop the turns of a session
+    fn cancel_turns(&self, session: &str) {
         let mut state = self.lock();
         let state = &mut *state;
-        for run in state.runs.iter_mut().filter(|r| r.session == session) {
-            run.cancelled = true;
-            match (run.state, &run.kill) {
-                (RunState::Queued, _) => notify_failed(&state.clients, run, "Stopped", true),
-                (RunState::Running, Some(kill)) => kill(),
-                // The run checks whether it was cancelled before it starts the harness
-                (RunState::Running, None) => {}
+        for turn in state.turns.iter_mut().filter(|r| r.session == session) {
+            turn.cancelled = true;
+            match (turn.state, &turn.kill) {
+                (TurnState::Queued, _) => notify_failed(&state.clients, turn, "Stopped", true),
+                (TurnState::Running, Some(kill)) => kill(),
+                // The turn checks whether it was cancelled before it starts the harness
+                (TurnState::Running, None) => {}
             }
         }
-        state.runs.retain(|r| r.session != session || r.state == RunState::Running);
+        state.turns.retain(|r| r.session != session || r.state == TurnState::Running);
     }
 
     /// The bin folder of harness runs with a dashql shim, so the agent finds the command line tool
@@ -739,15 +739,15 @@ impl Shared {
     }
 
     /// Prepare the working folder and start the harness, the outcome once the harness exited
-    async fn run_harness(self: &Arc<Self>, run_id: &str) -> Result<HarnessOutcome, String> {
+    async fn run_harness(self: &Arc<Self>, turn_id: &str) -> Result<HarnessOutcome, String> {
         let (session, config, prompt) = {
             let state = self.lock();
-            let Some(run) = state.runs.iter().find(|r| r.run_id == run_id) else {
+            let Some(turn) = state.turns.iter().find(|r| r.turn_id == turn_id) else {
                 return Ok(HarnessOutcome::failed("Stopped"));
             };
             let config =
-                state.config.harness(&run.harness).cloned().ok_or(format!("unknown harness: {}", run.harness))?;
-            (run.session.clone(), config, run.prompt.clone())
+                state.config.harness(&turn.harness).cloned().ok_or(format!("unknown harness: {}", turn.harness))?;
+            (turn.session.clone(), config, turn.prompt.clone())
         };
         let cwd = self.session_dir(&session);
         create_private_dir(&cwd)?;
@@ -772,8 +772,8 @@ impl Shared {
 
         let harness_name = {
             let state = self.lock();
-            match state.runs.iter().find(|r| r.run_id == run_id) {
-                Some(run) if !run.cancelled => run.harness.clone(),
+            match state.turns.iter().find(|r| r.turn_id == turn_id) {
+                Some(turn) if !turn.cancelled => turn.harness.clone(),
                 _ => return Ok(HarnessOutcome::failed("Stopped")),
             }
         };
@@ -786,13 +786,13 @@ impl Shared {
         {
             let mut state = self.lock();
             state.harnesses += 1;
-            match state.runs.iter_mut().find(|r| r.run_id == run_id) {
-                Some(run) => {
+            match state.turns.iter_mut().find(|r| r.turn_id == turn_id) {
+                Some(turn) => {
                     // A cancel that came while the harness started
-                    if run.cancelled {
+                    if turn.cancelled {
                         (process.kill)();
                     }
-                    run.kill = Some(process.kill.clone());
+                    turn.kill = Some(process.kill.clone());
                 }
                 // The server stopped while the harness started
                 None => (process.kill)(),
@@ -801,11 +801,11 @@ impl Shared {
         let mut outcome = process.outcome;
         loop {
             tokio::select! {
-                Some(event) = received.recv() => self.handle_event(run_id, &session, &harness_name, event),
+                Some(event) = received.recv() => self.handle_event(turn_id, &session, &harness_name, event),
                 outcome = &mut outcome => {
                     self.lock().harnesses -= 1;
                     while let Ok(event) = received.try_recv() {
-                        self.handle_event(run_id, &session, &harness_name, event);
+                        self.handle_event(turn_id, &session, &harness_name, event);
                     }
                     return Ok(outcome);
                 }
@@ -813,17 +813,17 @@ impl Shared {
         }
     }
 
-    fn handle_event(&self, run_id: &str, session: &str, harness: &str, event: HarnessEvent) {
+    fn handle_event(&self, turn_id: &str, session: &str, harness: &str, event: HarnessEvent) {
         match event {
             HarnessEvent::Status(text) => {
                 let mut state = self.lock();
                 let state = &mut *state;
-                let Some(run) = state.runs.iter_mut().find(|r| r.run_id == run_id) else { return };
-                if text.is_empty() || run.cancelled {
+                let Some(turn) = state.turns.iter_mut().find(|r| r.turn_id == turn_id) else { return };
+                if text.is_empty() || turn.cancelled {
                     return;
                 }
-                run.status = text;
-                notify_status(&state.clients, run);
+                turn.status = text;
+                notify_status(&state.clients, turn);
             }
             HarnessEvent::Session(id) => {
                 let mut state = self.read_session_state(session);
@@ -841,56 +841,56 @@ impl Shared {
         }
     }
 
-    fn finish_run(self: &Arc<Self>, run_id: &str, outcome: HarnessOutcome) {
+    fn finish_turn(self: &Arc<Self>, turn_id: &str, outcome: HarnessOutcome) {
         let mut state = self.lock();
-        let Some(index) = state.runs.iter().position(|r| r.run_id == run_id) else { return };
-        let run = state.runs.remove(index);
-        if run.cancelled {
-            notify_failed(&state.clients, &run, "Stopped", true);
+        let Some(index) = state.turns.iter().position(|r| r.turn_id == turn_id) else { return };
+        let turn = state.turns.remove(index);
+        if turn.cancelled {
+            notify_failed(&state.clients, &turn, "Stopped", true);
         } else if let Some(error) = &outcome.error {
-            self.log(&format!("{} failed for session {}: {error}", run.harness, run.session));
-            notify_failed(&state.clients, &run, error, false);
+            self.log(&format!("{} failed for session {}: {error}", turn.harness, turn.session));
+            notify_failed(&state.clients, &turn, error, false);
         } else {
-            let params = json!({ "session": run.session, "runId": run.run_id, "message": outcome.message });
-            notify_session(&state.clients, &run.session, "agent/done", params);
+            let params = json!({ "session": turn.session, "turnId": turn.turn_id, "message": outcome.message });
+            notify_session(&state.clients, &turn.session, "agent/done", params);
         }
-        let next = state.runs.iter().find(|r| r.session == run.session);
-        if let Some(next) = next.filter(|r| r.state == RunState::Queued) {
-            tokio::spawn(start_run(self.clone(), next.run_id.clone()));
+        let next = state.turns.iter().find(|r| r.session == turn.session);
+        if let Some(next) = next.filter(|r| r.state == TurnState::Queued) {
+            tokio::spawn(start_turn(self.clone(), next.turn_id.clone()));
         }
     }
 }
 
-/// Start a new run if it is the first of its session, otherwise report that it waits
-async fn start_or_queue(shared: Arc<Shared>, run_id: String) {
+/// Start a new turn if it is the first of its session, otherwise report that it waits
+async fn start_or_queue(shared: Arc<Shared>, turn_id: String) {
     {
         let state = shared.lock();
-        let Some(run) = state.runs.iter().find(|r| r.run_id == run_id) else { return };
-        if run.cancelled {
+        let Some(turn) = state.turns.iter().find(|r| r.turn_id == turn_id) else { return };
+        if turn.cancelled {
             return;
         }
-        if state.runs.iter().find(|r| r.session == run.session).map(|r| &r.run_id) != Some(&run_id) {
-            notify_status(&state.clients, run);
+        if state.turns.iter().find(|r| r.session == turn.session).map(|r| &r.turn_id) != Some(&turn_id) {
+            notify_status(&state.clients, turn);
             return;
         }
     }
-    start_run(shared, run_id).await;
+    start_turn(shared, turn_id).await;
 }
 
-async fn start_run(shared: Arc<Shared>, run_id: String) {
+async fn start_turn(shared: Arc<Shared>, turn_id: String) {
     {
         let mut state = shared.lock();
         let state = &mut *state;
-        let Some(run) = state.runs.iter_mut().find(|r| r.run_id == run_id) else { return };
-        if run.state != RunState::Queued || run.cancelled {
+        let Some(turn) = state.turns.iter_mut().find(|r| r.turn_id == turn_id) else { return };
+        if turn.state != TurnState::Queued || turn.cancelled {
             return;
         }
-        run.state = RunState::Running;
-        run.status = "starting the agent...".into();
-        notify_status(&state.clients, run);
+        turn.state = TurnState::Running;
+        turn.status = "starting the agent...".into();
+        notify_status(&state.clients, turn);
     }
-    let outcome = shared.run_harness(&run_id).await.unwrap_or_else(HarnessOutcome::failed);
-    shared.finish_run(&run_id, outcome);
+    let outcome = shared.run_harness(&turn_id).await.unwrap_or_else(HarnessOutcome::failed);
+    shared.finish_turn(&turn_id, outcome);
 }
 
 fn write_if_changed(path: &Path, text: &str) -> std::io::Result<()> {
@@ -1397,7 +1397,7 @@ mod tests {
         client.send(json!({ "id": 2, "method": "agent/request", "params": { "session": "s1", "prompt": "count the orders" } })).await;
         let reply = client.next(|m| m["id"] == 2).await.unwrap();
         assert_eq!(reply["result"]["harness"], "codex");
-        let run_id = reply["result"]["runId"].clone();
+        let turn_id = reply["result"]["turnId"].clone();
         client.next(|m| m["method"] == "agent/status" && m["params"]["state"] == "running").await.unwrap();
         fixture.wait_for_runs(1).await;
         let cwd = fixture.run(0, |run| {
@@ -1415,12 +1415,12 @@ mod tests {
             .next(|m| m["method"] == "agent/status" && m["params"]["text"] == "dashql agent catalog")
             .await
             .unwrap();
-        assert_eq!(status["params"]["runId"], run_id);
+        assert_eq!(status["params"]["turnId"], turn_id);
         fixture.run(0, |run| run.args.events.send(HarnessEvent::Session("thread-1".into())).unwrap());
-        // The events of a run are handled before its outcome
+        // The events of a turn are handled before its outcome
         fixture.run(0, |run| run.finish("There are 42 orders", None));
         let done = client.next(|m| m["method"] == "agent/done").await.unwrap();
-        assert_eq!(done["params"], json!({ "session": "s1", "runId": run_id, "message": "There are 42 orders" }));
+        assert_eq!(done["params"], json!({ "session": "s1", "turnId": turn_id, "message": "There are 42 orders" }));
 
         // The next request resumes the harness session
         client.send(json!({ "id": 3, "method": "agent/request", "params": { "session": "s1", "prompt": "and yesterday?" } })).await;
@@ -1483,10 +1483,10 @@ mod tests {
             .await;
         client.next(|m| m["id"] == 2).await.unwrap();
         let second = client.next(|m| m["id"] == 3).await.unwrap();
-        let second_id = second["result"]["runId"].clone();
+        let second_id = second["result"]["turnId"].clone();
         client
             .next(|m| {
-                m["method"] == "agent/status" && m["params"]["runId"] == second_id && m["params"]["state"] == "queued"
+                m["method"] == "agent/status" && m["params"]["turnId"] == second_id && m["params"]["state"] == "queued"
             })
             .await
             .unwrap();
@@ -1499,12 +1499,12 @@ mod tests {
         }
         assert!(fixture.run(0, |run| run.killed.load(Ordering::SeqCst)));
         assert_eq!(fixture.runs.lock().unwrap().len(), 1);
-        assert_eq!(fixture.server.status()["runs"], json!([]));
+        assert_eq!(fixture.server.status()["turns"], json!([]));
     }
 
     #[cfg(unix)]
     #[tokio::test]
-    async fn fails_and_kills_the_runs_when_it_stops() {
+    async fn fails_and_kills_the_turns_when_it_stops() {
         let harness = json!({ "command": ["sh", "-c", "echo $$ > harness.pid; exec sleep 30"] });
         let fixture = Fixture::start_with_real_harness(json!({ "harnesses": { "codex": harness } })).await;
         let mut client = fixture.connect("https://dashql.app").await;
@@ -1550,7 +1550,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn reports_a_failed_run() {
+    async fn reports_a_failed_turn() {
         let fixture = Fixture::start(json!({}), false).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;

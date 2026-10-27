@@ -35,7 +35,7 @@ function parsePort(text: string): number | null {
     return Number.isInteger(port) && port > 0 && port < 65536 ? port : null;
 }
 
-/// The agent bridge: the agent server with its port and harness, the sessions with agent access, the runs and
+/// The agent bridge: the agent server with its port and harness, the sessions with agent access, the turns and
 /// the clients of the server.
 /// The harness commands live in the config.json of the agent server, a page only picks among them and must
 /// not be able to choose the programs that run on the machine.
@@ -171,20 +171,20 @@ export function AgentView(props: { onClose: () => void }) {
                 </section>
 
                 {info != null && (
-                    <section className={styles.section} aria-labelledby="agent-section-runs">
-                        <h3 id="agent-section-runs" className={styles.section_title}>Runs</h3>
-                        {info.runs.map(run => (
-                            <div key={run.runId} className={styles.row}>
+                    <section className={styles.section} aria-labelledby="agent-section-turns">
+                        <h3 id="agent-section-turns" className={styles.section_title}>Turns</h3>
+                        {info.turns.map(turn => (
+                            <div key={turn.turnId} className={styles.row}>
                                 <div className={styles.row_label}>
-                                    {run.harness} · {run.status}
-                                    <span className={styles.row_detail}>{run.state}</span>
+                                    {turn.harness} · {turn.status}
+                                    <span className={styles.row_detail}>{turn.state}</span>
                                 </div>
                                 <div className={styles.row_value}>
-                                    <Button size={ButtonSize.Small} onClick={() => { void bridge.cancel(run.session).then(refresh); }}>Stop</Button>
+                                    <Button size={ButtonSize.Small} onClick={() => { void bridge.cancel(turn.session).then(refresh); }}>Stop</Button>
                                 </div>
                             </div>
                         ))}
-                        {info.runs.length === 0 && <div className={styles.hint}>No harness runs.</div>}
+                        {info.turns.length === 0 && <div className={styles.hint}>No agent is working.</div>}
                     </section>
                 )}
 

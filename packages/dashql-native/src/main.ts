@@ -489,14 +489,14 @@ async function startMenuBar(): Promise<void> {
 
 let quitState: "running" | "confirming" | "confirmed" = "running";
 
-/// Ask before a quit stops harness runs
+/// Ask before a quit stops the turns of agents
 async function confirmQuit(): Promise<boolean> {
-    const runs = agentHost?.snapshot.state === "running" ? agentHost.snapshot.status?.runs.length ?? 0 : 0;
-    if (runs === 0) return true;
+    const turns = agentHost?.snapshot.state === "running" ? agentHost.snapshot.status?.turns.length ?? 0 : 0;
+    if (turns === 0) return true;
     const {response} = await dialog.showMessageBox({
         type: "warning",
-        message: runs === 1 ? "An agent is working in DashQL" : `${runs} agents are working in DashQL`,
-        detail: "Quitting DashQL stops the agent server and its runs.",
+        message: turns === 1 ? "An agent is working in DashQL" : `${turns} agents are working in DashQL`,
+        detail: "Quitting DashQL stops the agent server and its agents.",
         buttons: ["Quit", "Cancel"],
         defaultId: 1,
         cancelId: 1,

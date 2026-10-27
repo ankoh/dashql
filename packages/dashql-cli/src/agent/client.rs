@@ -168,9 +168,9 @@ pub fn format_status(status: &Value) -> String {
             lines.push(format!("  {}  {}{focused}", text(&session["id"]), Value::from(text(&session["name"]))));
         }
     }
-    for run in status["runs"].as_array().into_iter().flatten() {
-        let [harness, session, state, status] = ["harness", "session", "state", "status"].map(|k| text(&run[k]));
-        lines.push(format!("Run {harness} in {session}: {state}, {status}"));
+    for turn in status["turns"].as_array().into_iter().flatten() {
+        let [harness, session, state, status] = ["harness", "session", "state", "status"].map(|k| text(&turn[k]));
+        lines.push(format!("Turn of {harness} in {session}: {state}, {status}"));
     }
     lines.join("\n")
 }
@@ -399,14 +399,14 @@ mod tests {
         let status = json!({
             "port": 47100,
             "clients": [{ "id": "c", "kind": "web", "origin": "https://dashql.app", "sessions": [{ "id": "s1", "name": "Revenue" }], "focused": "s1" }],
-            "runs": [{ "runId": "r", "session": "s1", "harness": "codex", "state": "running", "status": "dashql agent catalog" }],
+            "turns": [{ "turnId": "t", "session": "s1", "harness": "codex", "state": "running", "status": "dashql agent catalog" }],
         });
         assert_eq!(
             format_status(&status),
-            "Agent server on 127.0.0.1:47100\nClient web (https://dashql.app), 1 session\n  s1  \"Revenue\" (focused)\nRun codex in s1: running, dashql agent catalog"
+            "Agent server on 127.0.0.1:47100\nClient web (https://dashql.app), 1 session\n  s1  \"Revenue\" (focused)\nTurn of codex in s1: running, dashql agent catalog"
         );
         assert_eq!(
-            format_status(&json!({ "port": 1, "clients": [], "runs": [] })),
+            format_status(&json!({ "port": 1, "clients": [], "turns": [] })),
             "Agent server on 127.0.0.1:1\nNo DashQL client is connected: open https://dashql.app and turn on agent access"
         );
     }

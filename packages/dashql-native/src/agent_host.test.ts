@@ -71,7 +71,7 @@ async function connectPage(port: number, origin: string): Promise<net.Socket> {
     const message = {
         id: "p1",
         method: "client/sessions",
-        params: {protocol: 1, client: "native", sessions: [{id: "s1", name: "Orders"}], focused: "s1"},
+        params: {protocol: 2, client: "native", sessions: [{id: "s1", name: "Orders"}], focused: "s1"},
     };
     socket.write(maskedTextFrame(JSON.stringify(message)));
     return socket;
@@ -111,7 +111,7 @@ describe("AgentHost", () => {
         agent.start();
         const running = await waitFor(agent, inState("running"));
         expect(running.status?.clients).toEqual([]);
-        expect(running.status?.runs).toEqual([]);
+        expect(running.status?.turns).toEqual([]);
 
         const page = await connectPage(running.status!.port, "app://bundle");
         const connected = await waitFor(agent, (s) => s.status?.clients.length === 1);

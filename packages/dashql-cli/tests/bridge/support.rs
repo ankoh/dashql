@@ -402,7 +402,7 @@ impl Page {
             }
         }
         let sessions: Vec<Value> = sessions.iter().map(|id| json!({ "id": id, "name": format!("Session {id}") })).collect();
-        self.call("client/sessions", json!({ "protocol": 1, "client": "web", "sessions": sessions, "focused": focused }))
+        self.call("client/sessions", json!({ "protocol": 2, "client": "web", "sessions": sessions, "focused": focused }))
             .await
             .unwrap();
     }
@@ -434,9 +434,9 @@ impl Page {
         }
     }
 
-    /// Wait for the end of a run: Ok with the message of agent/done, Err with the params of agent/failed
-    pub async fn finished(&mut self, run_id: &Value, timeout: Duration) -> Result<String, Value> {
-        let end = |m: &Value| (m["method"] == "agent/done" || m["method"] == "agent/failed") && m["params"]["runId"] == *run_id;
+    /// Wait for the end of a turn: Ok with the message of agent/done, Err with the params of agent/failed
+    pub async fn finished(&mut self, turn_id: &Value, timeout: Duration) -> Result<String, Value> {
+        let end = |m: &Value| (m["method"] == "agent/done" || m["method"] == "agent/failed") && m["params"]["turnId"] == *turn_id;
         let message = self.next(end, timeout).await;
         match message["method"] == "agent/done" {
             true => Ok(message["params"]["message"].as_str().unwrap_or_default().to_string()),
@@ -444,20 +444,20 @@ impl Page {
         }
     }
 
-    /// The agent/status texts of a run so far
-    pub fn statuses(&mut self, run_id: &Value) -> Vec<String> {
+    /// The agent/status texts of a turn so far
+    pub fn statuses(&mut self, turn_id: &Value) -> Vec<String> {
         while let Ok(message) = self.incoming.try_recv() {
             self.received.push(message);
         }
-        let statuses = self.received.iter().filter(|m| m["method"] == "agent/status" && m["params"]["runId"] == *run_id);
+        let statuses = self.received.iter().filter(|m| m["method"] == "agent/status" && m["params"]["turnId"] == *turn_id);
         statuses.map(|m| m["params"]["text"].as_str().unwrap_or_default().to_string()).collect()
     }
 
-    /// Request an agent run, the run id
+    /// Request an agent turn, the turn id
     pub async fn request(&mut self, session: &str, harness: &str, prompt: &str) -> Value {
         let params = json!({ "session": session, "harness": harness, "prompt": prompt });
         let result = self.call("agent/request", params).await.expect("the request is accepted");
-        result["runId"].clone()
+        result["turnId"].clone()
     }
 
     pub async fn context(&mut self, session: &str) -> Value {
