@@ -10,7 +10,7 @@ on:
 jobs:
     linux_coverage:
         name: Linux Coverage
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         continue-on-error: true
         steps:
             - uses: actions/checkout@v7

@@ -18,7 +18,7 @@ concurrency:
 jobs:
     desktop_release:
         name: Electron Release
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         permissions:
             contents: read
         steps:
@@ -88,7 +88,7 @@ jobs:
     pages_deploy:
         name: Cloudflare Pages
         if: inputs.publish_pages
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         permissions:
             contents: read
             deployments: write

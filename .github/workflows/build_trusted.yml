@@ -14,7 +14,7 @@ on:
 jobs:
     core_wasm_fastbuild:
         name: Core Wasm Fastbuild
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         steps:
             - uses: actions/checkout@v7
               with:
@@ -50,7 +50,7 @@ jobs:
 
     core_wasm_release:
         name: Core Wasm Release
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         steps:
             - uses: actions/checkout@v7
               with:
@@ -80,7 +80,7 @@ jobs:
 
     linux_fastbuild:
         name: Linux Fastbuild
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         needs: [core_wasm_fastbuild]
         steps:
             - uses: actions/checkout@v7
@@ -135,7 +135,7 @@ jobs:
 
     linux_release:
         name: Linux Release
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         needs: [core_wasm_release]
         steps:
             - uses: actions/checkout@v7
@@ -196,7 +196,7 @@ jobs:
 
     core_npm_release:
         name: Core NPM Bundle
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         needs: [core_wasm_release]
         steps:
             - uses: actions/checkout@v7
