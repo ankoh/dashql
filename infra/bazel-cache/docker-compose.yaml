@@ -2,7 +2,7 @@ name: bazel
 
 services:
   cache:
-    image: buchgr/bazel-remote-cache:v2.6.1
+    image: buchgr/bazel-remote-cache:v2.6.2
     restart: unless-stopped
     ports:
       - "9092:9092"
