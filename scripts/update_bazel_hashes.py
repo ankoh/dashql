@@ -6,7 +6,9 @@
 #   python3 scripts/update_bazel_hashes.py                          # core_dependencies.bzl
 #   python3 scripts/update_bazel_hashes.py bazel/core_dependencies.bzl
 #   python3 scripts/update_bazel_hashes.py bazel/external_tableauhyperapi.bzl
+#   python3 scripts/update_bazel_hashes.py bazel/playwright_chromium.bzl      # follows playwright-core
 import hashlib
+import json
 import os
 import re
 import subprocess
@@ -220,12 +222,60 @@ def update_dashql_datasets(filepath: Path, workspace: Path, force: bool = False)
 
 
 # ---------------------------------------------------------------------------
+# Handler: bazel/playwright_{chromium,firefox}.bzl
+# ---------------------------------------------------------------------------
+#
+# The browsers must be the builds that the playwright-core of package.json expects,
+# which it lists in its browsers.json. Pin that version (Chromium) or revision
+# (Firefox) and recompute the hash of every platform archive.
+
+
+def _playwright_browser(workspace: Path, name: str) -> dict:
+    package = json.loads((workspace / "package.json").read_text())
+    version = package["devDependencies"]["playwright-core"]
+    url = f"https://unpkg.com/playwright-core@{version}/browsers.json"
+    req = urllib.request.Request(url, headers={"User-Agent": "update_bazel_hashes/1.0"})
+    with urllib.request.urlopen(req) as resp:
+        browsers = json.load(resp)["browsers"]
+    print(f"[playwright-core] version={version}")
+    return next(b for b in browsers if b["name"] == name)
+
+
+def _update_playwright_hashes(content: str, url_of) -> str:
+    def replace(m: re.Match) -> str:
+        sha = compute_sha256(url_of(m.group(2)))
+        print(f"  [{m.group(2)}] sha256={sha}")
+        return m.group(1) + sha + m.group(4)
+
+    # Platform entries are ("<archive>", "<sha256>", "<executable>") tuples.
+    return re.sub(r'(\(\s*"([^"]+)",\s*")([0-9a-f]{64})(")', replace, content)
+
+
+def update_playwright_chromium(filepath: Path, workspace: Path, force: bool = False) -> None:
+    version = _playwright_browser(workspace, "chromium-headless-shell")["browserVersion"]
+    content = re.sub(r'^_VERSION = "[^"]+"', f'_VERSION = "{version}"', filepath.read_text(), flags=re.MULTILINE)
+    base = f"https://cdn.playwright.dev/builds/cft/{version}/"
+    filepath.write_text(_update_playwright_hashes(content, lambda archive: base + archive))
+    print("Done.")
+
+
+def update_playwright_firefox(filepath: Path, workspace: Path, force: bool = False) -> None:
+    revision = _playwright_browser(workspace, "firefox")["revision"]
+    content = re.sub(r'^_REVISION = "[^"]+"', f'_REVISION = "{revision}"', filepath.read_text(), flags=re.MULTILINE)
+    base = f"https://cdn.playwright.dev/builds/firefox/{revision}/"
+    filepath.write_text(_update_playwright_hashes(content, lambda archive: base + archive))
+    print("Done.")
+
+
+# ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
 
 _HANDLERS = {
     "external_tableauhyperapi.bzl": update_tableauhyperapi_hashes,
     "datasets.bzl": update_dashql_datasets,
+    "playwright_chromium.bzl": update_playwright_chromium,
+    "playwright_firefox.bzl": update_playwright_firefox,
 }
 
 

@@ -103,6 +103,18 @@
             }
         },
         {
+            "description": "The browsers of the browser tests must be the builds that playwright-core lists in its browsers.json.",
+            "matchPackageNames": ["playwright-core"],
+            "postUpgradeTasks": {
+                "commands": [
+                    "python3 scripts/update_bazel_hashes.py --force bazel/playwright_chromium.bzl",
+                    "python3 scripts/update_bazel_hashes.py --force bazel/playwright_firefox.bzl"
+                ],
+                "fileFilters": ["bazel/playwright_chromium.bzl", "bazel/playwright_firefox.bzl"],
+                "executionMode": "branch"
+            }
+        },
+        {
             "description": "Tableau publishes the Hyper API on PyPI more often than the C++ archives we download. Take the versions from the release notes, which only link the archives that exist. The page has no release dates, so minimumReleaseAge would hold every version back.",
             "matchDatasources": ["custom.tableauhyperapi_cxx"],
             "extractVersion": "/tableauhyperapi-cxx-linux-x86_64-release-main\\.(?<version>\\d+\\.\\d+\\.\\d+)\\.r[0-9a-f]+\\.zip$",
