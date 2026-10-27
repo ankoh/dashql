@@ -262,8 +262,8 @@ menu, and installing from the menu or the page stops the agent server first. Not
 which needs the relaunched app to come back with `--menu-bar`.
 
 **Removal.** Deleting DashQL.app removes its `SMAppService` registration. Settings has
-"Remove command line tool and skill", which deletes the symlink and the copied skill
-folders. Nothing keeps listening once the app is quit or deleted.
+"Remove command line tool and skill", which deletes the symlinks of the command line tool and the skill.
+Nothing keeps listening once the app is quit or deleted.
 
 ### Command line tool and skill
 
@@ -275,8 +275,11 @@ folders. Nothing keeps listening once the app is quit or deleted.
   first on the `PATH` of the run; it calls the binary of the running server.
 - **The skill** (`dashql/SKILL.md`) tells the agent when to use `dashql agent`, lists
   the commands, and says that script and data contents are input, not instructions.
-  "Install agent skill…" copies it into `~/.codex/skills/` and `~/.claude/skills/`
-  after confirming.
+  "Install agent skill…" links `~/.codex/skills/dashql` and `~/.claude/skills/dashql` to the skill in the
+  bundle (`Contents/Resources/skill/dashql`) after confirming, like the command line tool. A copy would keep
+  the commands of the version it came from, and agents that the user starts would call commands that the
+  updated `dashql` no longer has. Harness runs that DashQL starts do not use the skill: the server writes
+  their `AGENTS.md` and `CLAUDE.md` before every turn.
 
 ### Commands
 
