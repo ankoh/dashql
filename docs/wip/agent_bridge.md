@@ -503,7 +503,7 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
 - **Script daemon only** (`dashql agent serve` started by the CLI). Kept as the
   fallback; as the main path, a daemon started from inside an agent's sandbox may be
   killed with the agent's call, and runs inherit the sandbox.
-- **Cloud relay on dashql-cloud** (page and agent both connect out, messages
+- **Hosted cloud relay** (page and agent both connect out, messages
   end-to-end encrypted). Works in every browser including Safari and lets remote agents
   reach the tab, but puts a service into the data path. Can reuse the same protocol
   later.

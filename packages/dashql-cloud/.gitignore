@@ -1,4 +1,0 @@
-# Rust / workers-rs build artifacts
-/target
-/build
-/.wrangler

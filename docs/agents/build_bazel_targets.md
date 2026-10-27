@@ -395,8 +395,7 @@ bazel run //scripts:repin_crates -- tokio@1.53.0
 ```
 
 `wasm-bindgen` is pinned to the `wasm-bindgen-cli` bundled with `rules_rust_wasm_bindgen` and has to move
-together with that module. `packages/dashql-cloud` is the only Cargo-built crate; wrangler builds it outside
-Bazel.
+together with that module.
 
 ### Updating Node Dependencies
 

@@ -4,7 +4,5 @@ packages/dashql-cli/node_modules
 packages/dashql-core-js/node_modules
 packages/vite-example/node_modules
 node_modules
-# dashql-cloud is a standalone Cloudflare Worker (workers-rs) built via wrangler, not Bazel.
-packages/dashql-cloud
 # Claude Code worktrees of this repository
 .claude
