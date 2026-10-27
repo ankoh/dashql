@@ -75,24 +75,20 @@ planner-snapshots:
       - name: consumer
         input: select * from shared;
 
-  # A VISUALIZE statement with an unresolved source
-  - name: VisualizationUnresolvedSource
-    scripts:
-      - name: queries
-        input: |
-          select category, revenue from sales visualize using vegalite (mark => bar, encoding => (x => category, y => revenue));
-          select 1;
-
-  # VISUALIZE statements of every renderer
+  # Queries with @vis tags of every renderer
   - name: VisualizationRenderers
     catalog: |
       create table sales (category text, revenue int);
     scripts:
       - name: queries
         input: |
-          select category, revenue from sales visualize using vegalite (mark => bar, encoding => (x => category, y => revenue));
-          select category, revenue from sales visualize using table (dashboard => (row => 0, column => 0, width => 6, height => 2));
-          select category from sales visualize using markdown (template => '{{category}}');
+          /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "category"}, "y": {"field": "revenue"}}} */
+          select category, revenue from sales;
+          /* @vis table
+             @vis card row=0 column=0 width=6 height=2 */
+          select category, revenue from sales;
+          /* @vis markdown {{category}} */
+          select category from sales;
 
   # EXPLAIN without a body
   - name: ExplainWithoutBody

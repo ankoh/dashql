@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Show the distributed plan of a query as JSON.
--- @dashql:end
+-- @end
 
 explain (format json)
 with orders(customer, amount) as (

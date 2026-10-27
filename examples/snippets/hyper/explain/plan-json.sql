@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Show the optimized plan of a query as JSON, with the estimated rows of every operator.
--- @dashql:end
+-- @end
 
 explain (format json)
 with orders(customer, amount) as (

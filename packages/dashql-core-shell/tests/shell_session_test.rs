@@ -362,9 +362,6 @@ fn queries_reject_invalid_input() {
     let operation = shell.start_query(b"select \xff");
     assert_eq!(operation.status, ShellStatus::InternalError);
     assert_eq!(String::from_utf8_lossy(&operation.data), "rope input must contain valid UTF-8");
-    let operation = shell.start_query(b"select 1 visualize using table ()");
-    assert_eq!(operation.status, ShellStatus::InvalidArgument);
-    assert_eq!(String::from_utf8_lossy(&operation.data), "DashQL VISUALIZE syntax is not executable in the shell");
     // A rejected query leaves the shell free
     assert_eq!(shell.start_query(b"select 1").status, ShellStatus::Pending);
 }

@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Smooth a time series with the average over a sliding window of rows.
 -- The window holds the current row and the two before it.
--- @dashql:end
+-- @end
 
 with visits(day, visitors) as (
     values (date '2026-01-01', 120), (date '2026-01-02', 90), (date '2026-01-03', 150),

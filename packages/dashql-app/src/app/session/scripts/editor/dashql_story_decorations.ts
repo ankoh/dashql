@@ -51,8 +51,6 @@ function statementLabel(type: core.buffers.parser.StatementType): string {
             return 'select';
         case core.buffers.parser.StatementType.SET:
             return 'set';
-        case core.buffers.parser.StatementType.VIS_VISUALISE:
-            return 'visualize';
         case core.buffers.parser.StatementType.CREATE_FUNCTION:
             return 'create function';
         case core.buffers.parser.StatementType.EXPLAIN:

@@ -161,7 +161,7 @@ export function Dashboard(props: Props): React.ReactElement {
             {scripts.length === 0 ? (
                 <div className={styles.empty_state}>
                     <strong>No visualizations yet</strong>
-                    <span>Resolved VISUALIZE scripts appear here automatically.</span>
+                    <span>Queries with @vis comments appear here automatically.</span>
                 </div>
             ) : (
                 <DndContext sensors={sensors} onDragEnd={handleDragEnd}>

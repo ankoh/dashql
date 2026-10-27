@@ -916,16 +916,16 @@ fn compatibility_query_formatting_and_diff_apis() {
 fn rewrites_dashboard_through_parsed_ast() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF16);
-    let source = "select '\u{1F4CA} dashboard => (ignored)' as label visualize using table (dashboard => (row => 1, width => 4))";
+    let source = "/* \u{1F4CA} @vis card is text here\n   @vis table\n   @vis card row=1 width=4 */\nselect '\u{1F4CA}' as label";
     assert_eq!(session.replace_text(0, source).status, EditorUpdateStatus::OK);
 
     assert_eq!(
         session.rewrite_dashboard(Some(2), Some(5), 6, 4, true).unwrap(),
-        "select '\u{1F4CA} dashboard => (ignored)' as label visualize using table (dashboard => (row => 2, column => 5, width => 6, height => 4))"
+        "/* \u{1F4CA} @vis card is text here\n   @vis table\n   @vis card row=2 column=5 width=6 height=4 */\nselect '\u{1F4CA}' as label"
     );
     assert_eq!(
         session.rewrite_dashboard(None, None, 6, 3, true).unwrap(),
-        "select '\u{1F4CA} dashboard => (ignored)' as label visualize using table (dashboard => (width => 6, height => 3))"
+        "/* \u{1F4CA} @vis card is text here\n   @vis table\n   @vis card width=6 height=3 */\nselect '\u{1F4CA}' as label"
     );
 }
 
@@ -933,10 +933,10 @@ fn rewrites_dashboard_through_parsed_ast() {
 fn inserts_dashboard_into_terminal_visualization() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
-    assert_eq!(session.replace_text(0, "select 1 visualize using table ()").status, EditorUpdateStatus::OK);
+    assert_eq!(session.replace_text(0, "/* @vis table */\nselect 1").status, EditorUpdateStatus::OK);
     assert_eq!(
         session.rewrite_dashboard(Some(0), Some(0), 6, 3, true).unwrap(),
-        "select 1 visualize using table (dashboard => (row => 0, column => 0, width => 6, height => 3))"
+        "/* @vis table */\n/* @vis card row=0 column=0 width=6 height=3 */\nselect 1"
     );
 }
 
@@ -1038,10 +1038,10 @@ fn rejects_dashboard_rewrites_without_terminal_visualization() {
     let mut script = Script::new(&catalog);
     script.replace_text("select 1");
     assert!(script.rewrite_dashboard(None, None, 4, 4, true).is_err());
-    script.replace_text("select 1 visualize using vegalite (mark => bar)");
+    script.replace_text("/* @vis vegalite {\"mark\": \"bar\"} */\nselect 1");
     assert_eq!(
         script.rewrite_dashboard(Some(-1), Some(20), 20, 0, true).unwrap(),
-        "select 1 visualize using vegalite (mark => bar, dashboard => (column => 0, width => 12, height => 1))"
+        "/* @vis vegalite {\"mark\": \"bar\"} */\n/* @vis card column=0 width=12 height=1 */\nselect 1"
     );
 }
 

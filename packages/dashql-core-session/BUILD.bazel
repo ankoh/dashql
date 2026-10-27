@@ -1,5 +1,5 @@
 # The workflows on top of the DashQL core: editor sessions, compilation and statement-wise execution, the planner,
-# batch processing, the catalog changes of executed statements and the renderer specs of VISUALIZE statements.
+# batch processing, the catalog changes of executed statements and the renderer specs of `@vis` tags.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 

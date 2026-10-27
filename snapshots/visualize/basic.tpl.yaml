@@ -6,4 +6,5 @@ visualize-snapshots:
           create table sales (category text, revenue int, date timestamp);
     script:
       input: |
-        SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT * FROM sales;

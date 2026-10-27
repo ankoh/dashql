@@ -23,7 +23,8 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT * FROM sales;
     vegalite: |-
       {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -32,8 +33,3 @@ visualize-snapshots:
         },
         "mark": "bar"
       }
-    roundtrip: |-
-      SELECT * FROM sales
-      VISUALIZE USING vegalite (
-        mark => bar
-      );

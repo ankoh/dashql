@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Pick the parts of a delimited string by position.
--- @dashql:end
+-- @end
 
 with paths(path) as (
     values ('2026/01/report.csv'), ('2026/02/summary.parquet')

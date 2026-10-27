@@ -20,8 +20,8 @@ export interface DashboardSpec {
 export type SessionMetadata = app_session.SessionMetadata;
 export type SessionOriginType = NonNullable<app_session.SessionMetadata['originType']>;
 
-/// A visualize statement resolved against the session. Discriminated on the
-/// renderer named after `USING`: `vegalite` carries a parsed Vega-Lite spec,
+/// A query with `@vis` tags resolved against the session. Discriminated on the
+/// renderer named by the tag: `vegalite` carries a parsed Vega-Lite spec,
 /// `markdown` carries the compiled row template.
 /// All carry the SQL to execute against the backend.
 export type ResolvedVisualizeQuery =
@@ -52,7 +52,7 @@ export type ResolvedVisualizeQuery =
 export interface ScriptAnnotations {
     // The table definitions
     tableDefs: string[];
-    // The resolved VISUALIZE query for this script, if any.
+    // The resolved visualization of this script (its @vis tags), if any.
     visualizeQuery: ResolvedVisualizeQuery | null;
 }
 

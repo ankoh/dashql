@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Drop any TPC-H tables.
--- @dashql:end
+-- @end
 
 drop table if exists region;
 drop table if exists nation;

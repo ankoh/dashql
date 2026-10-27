@@ -39,12 +39,9 @@ core; C++ function names refer to the original implementation.
 
 ## FlatBuffers enums (`proto/fb/dashql/parsed_script.fbs`)
 
-- **`NodeType` ordinals are not cleanly ranged.**
-  - `ENUM_VIS_ENCODING_CHANNEL`, `ENUM_VIS_MARK_TYPE`, `ENUM_VIS_FIELD_TYPE` and `ENUM_VIS_SCALE_TYPE`
-    (114-117) sit above `OBJECT_KEYS_` (41), so the check "`> OBJECT_KEYS_` means object" is wrong
-    for them. `script_diff` special-cases them; other ordinal checks do not.
-  - Many `OBJECT_SQL_*` types come after `VIS_OBJECT_KEYS_` (118).
-  - Pinned by `//packages/dashql-core:dashql_buffers_test`.
+- **`NodeType` ordinals are ranged.** Enums sit between `ENUM_KEYS_` (10) and `OBJECT_KEYS_` (41),
+  objects above `OBJECT_KEYS_`. The signatures hash the raw values, so removing or reordering values
+  needs a bump of `SCRIPT_SIGNATURE_VERSION`. Pinned by `//packages/dashql-core:dashql_buffers_test`.
 
 ## Analyzer (`packages/dashql-core/src/analyzer/`)
 
@@ -91,18 +88,6 @@ core; C++ function names refer to the original implementation.
 
 ## Visualize (`packages/dashql-core-session/src/visualize/`)
 
-**Vega-Lite generator** (`vegalite_generator.rs`)
-- String array elements have their quotes stripped, `''` is not unescaped.
-- Integer literals in arrays are JSON integers if their double value is an integer in the int64 range,
-  doubles otherwise.
-- The top-level spec writes `resolve` before `layer`, nested layers `layer` before `resolve`.
-
-**Vega-Lite parser** (`vegalite_parser.rs`)
-- Doubles that are not integral or are at least 1e15 were printed with `%g` (6 significant digits). **Not reproduced:** Rust writes the shortest round-trip digits.
-- `ToSnakeCase("Field")` gives `field`, which then counts as an identifier key.
-- A mark object with only `type` collapses to `mark => type`, an empty bin object becomes `true`.
-- An empty `$sql` does not fall back to `$raw`.
-
 **Markdown** (C++: `markdown.cc` and md4c 0.5.2). **Not reproduced:** the Rust core parses templates
 with pulldown-cmark (CommonMark, no extensions) instead of a port of md4c. Adjacent text is one text
 node, list tightness is derived from the item paragraphs, the last line of a code block keeps no line
@@ -124,20 +109,6 @@ md4c behavior that is gone:
 - An autolink scheme only needs an ASCII first character.
 - An empty ordered list item interrupts a paragraph.
 
-**Not reproduced.** The Rust core reads and writes JSON with serde_json and parses numbers of the
-script with `str::parse::<f64>`. These C++ behaviors are gone; the visualize differential test skipped
-the inputs that hit them:
-- Text from the script (field names, `$sql`, array strings, stack and resolve values, bounds) was cut
-  at the first NUL (`c_str()`), and so were strings of parsed specs (`GetString()`).
-- Bounds and numeric options were numbers when glibc `strtod` consumed the whole text: empty text
-  became 0, hex floats and `nan(...)` were numbers. Rust takes the number syntax of `str::parse::<f64>`.
-- NaN and infinity made the rapidjson writer fail after the key (`"rangeMax": ,`). Rust writes `null`.
-- Axis and legend `zindex` values outside int32 became INT32_MIN (`static_cast<int32_t>` is
-  `cvttsd2si` on x86-64). Rust saturates.
-- The Vega-Lite parser read rapidjson's default dialect: no UTF-8 validation, lone low surrogates
-  decoded into invalid UTF-8, a NUL ended the input. Duplicate keys were looked up by their first
-  member and iterated all; serde_json keeps the last one.
-
 ## Formatter (`packages/dashql-core/src/formatter/`)
 
 - **Attribute lookup picks different duplicates** (`attrs!` in `dashql_parser::attributes`, C++
@@ -154,8 +125,7 @@ the inputs that hit them:
 - **An empty property graph** formats as `Text("")`, a non-empty document.
 - **Unformattable nodes** are recorded in visit order and can repeat.
 - **Unknown enum values** are unformattable. `GetOperatorPrecedence` has no default case (undefined
-  behavior); Rust returns precedence 0, non-associative. `ENUM_VIS_ENCODING_CHANNEL` is always
-  unformattable.
+  behavior); Rust returns precedence 0, non-associative.
 - **Text past the end of the input.** C++ read into the two padding NUL bytes after the text, Rust
   stops at the end. No differential input hit a difference.
 

@@ -8,7 +8,7 @@ The cache stores an Arrow IPC stream for a result table. It applies only when th
 
 Single-script session executions opt in when the session setting `cacheQueryResults` is on: explicit execution, execute-on-send, reruns, and refreshes, all through `runSessionScript` (`packages/dashql-app/src/app/session/ui/rerun_query.ts`). The setting defaults to the connector's `features.queryResultCaching` (off for Hyper, on for Salesforce and Trino) and can be toggled in the Query Cache tab. Planned execution of a whole session passes `cacheable: false`. Shell queries never opt in: the session shell sets `cacheable: false`, and the standalone shell executes directly against its embedded database connection. Internal catalog, setup, and health-check queries also do not set the flag and therefore never read or write the cache. Merely loading or viewing a session does not execute queries or read cached results; a user-triggered execution is required.
 
-The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and executable script AST. Only scripts whose terminal statement is `SELECT`, `EXPLAIN`, or `VISUALIZE` are cacheable. `CREATE TABLE`, `CREATE VIEW`, and other terminal commands always execute.
+The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and executable script AST. Only scripts whose terminal statement is `SELECT` or `EXPLAIN` are cacheable. `CREATE TABLE`, `CREATE VIEW`, and other terminal commands always execute.
 
 ## Cache Key
 
@@ -20,7 +20,7 @@ SHA-256("dashql-query-cache-v2" + framed(stableJson(connectionParamsSignature), 
 
 `createConnectionParamsSignature` produces the connector-specific signature and excludes transient connection state. Before hashing, `computeQueryResultCacheKey` recursively sorts object keys to make serialization independent of insertion order. DashQL core derives the script signature from the parser output: statement order, identifiers, literals, operators, and AST structure participate, while whitespace, comments, source offsets, and parser allocation IDs do not. All statements contribute, including commands preceding the terminal result statement. A cache hit skips the complete script.
 
-For a terminal `VISUALIZE`, the signature includes its underlying `SELECT` but excludes the renderer and visualization specification. Result analysis and visualization projection run after cache loading, so visualization-only edits can reuse the same raw Arrow result.
+For a terminal query with `@vis` tags, the signature excludes the tags, they are comments. Result analysis and visualization projection run after cache loading, so visualization-only edits can reuse the same raw Arrow result.
 
 Result analysis and visualization projection are not part of the key. The executor always runs post-processing after either a cache hit or a backend result, allowing the same raw Arrow table to support the relevant analysis flow.
 

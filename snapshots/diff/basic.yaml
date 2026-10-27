@@ -149,31 +149,6 @@ diff-snapshots:
           target-statement: 0
           target-span: "select a from t"
 
-  - name: update_vis_mark_type
-    source: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => line);
-    target: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
-    expected:
-      ops:
-        - code: UPDATE
-          source-statement: 0
-          target-statement: 0
-          target-changes:
-            - text: "bar"
-
-  - name: reorder_object_attributes
-    source: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, dashboard => (width => 8, height => 4));
-    target: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (dashboard => (height => 4, width => 8), mark => bar);
-    expected:
-      ops:
-        - code: KEEP
-          source-statement: 0
-          target-statement: 0
-          target-span: "SELECT * F..rk => bar)"
-
   - name: update_picks_closest
     source: |-
       select a, b, c from t;

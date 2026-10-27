@@ -635,9 +635,9 @@ parser-snapshots:
 
   - name: description_dashql_block
     input: |-
-      -- @dashql:description
+      -- @description
       -- Some text
-      -- @dashql:end
+      -- @end
       select 1;
     expected:
       statements:
@@ -666,16 +666,16 @@ parser-snapshots:
       scanner-errors: []
       parser-errors: []
       line-breaks:
-        - text: [22,23]
-        - text: [35,36]
-        - text: [50,51]
+        - text: [15,16]
+        - text: [28,29]
+        - text: [36,37]
       comments:
-        - text: "-- @dashql..escription"
+        - text: "-- @description"
         - text: "-- Some text"
-        - text: "-- @dashql:end"
+        - text: "-- @end"
       comment-blocks:
         - type: DASHQL_TAG
-          text: "-- @dashql..dashql:end"
+          text: "-- @descri..xt\n-- @end"
           tag: "description"
           comments: [0,3]
           lines:

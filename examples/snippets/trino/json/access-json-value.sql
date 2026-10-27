@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Read nested fields of a JSON document with JSON paths.
--- @dashql:end
+-- @end
 
 with events(payload) as (
     values

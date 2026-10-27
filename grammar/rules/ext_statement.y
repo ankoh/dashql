@@ -31,7 +31,6 @@ sql_query_statement:
   | sql_create_as_stmt    { $1 }
   | sql_view_stmt         { $1 }
   | set_statement         { $1 }
-  | vis_visualise_stmt    { $1 }
   | sql_create_function_stmt  { $1 }
   | explain_stmt              { $1 }
   | sql_drop_table_stmt       { $1 }

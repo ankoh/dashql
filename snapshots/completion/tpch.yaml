@@ -1224,7 +1224,7 @@ completion-snapshots:
               qualified-idx: 0
               prefer-qualified: 0
         - score: 55
-          value: padding
+          value: parallel
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "p"
           location-qualified: "p"

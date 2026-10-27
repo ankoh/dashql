@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Show the distributed plan of a query without running it.
--- @dashql:end
+-- @end
 
 explain
 with orders(customer, amount) as (

@@ -238,7 +238,7 @@ in morsels of 1024 nodes so that expression ids come out in a fixed order:
 | 1 | Name resolution (`name_resolution.rs`) | Scopes, table and column references, declarations, inferred schemas |
 | 2 | Function calls (`function_calls.rs`) | Function call expressions and their arguments |
 | 3 | Constant propagation (`constants.rs`) | Constant expression roots |
-| 4 | Visualizations (`visualization.rs`) | `VisualizationSpec`s of `VISUALIZE` statements |
+| 4 | Visualizations (`vis_tags.rs`, after the scan) | `VisualizationSpec`s of the `@vis` tags of queries |
 
 All passes share `AnalysisState` (`analyzer/state.rs`): the parsed script, the catalog, the name
 texts, the output `AnalyzedScript`, and `expression_index` (AST node → expression), through which
@@ -249,7 +249,7 @@ between them.
 ### Name resolution
 
 During the AST scan the pass collects table refs, column refs, result targets, CTEs and column
-definitions per node and merges them upward. At scope roots (`SELECT`, `VISUALIZE`, `CREATE`) it
+definitions per node and merges them upward. At scope roots (`SELECT`, `CREATE`) it
 creates a `NameScope` and links it to its parent. Declarations are registered as they are visited:
 `register_schema` reserves the database and schema ids and adds the references to the script's own
 `CatalogEntryData`.

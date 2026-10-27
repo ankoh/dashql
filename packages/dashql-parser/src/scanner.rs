@@ -5,10 +5,10 @@
 //! time, so that actions can switch the start condition and put text back with `yyless`. See
 //! docs/design/core_quirks.md for the quirks of the scanner.
 //!
-//! [`scan`] then applies a lookahead filter, which turns `NOT`, `NULLS`, `WITH`, `.` and `VISUALIZE`
-//! into their `*_LA` variants depending on the following tokens.
+//! [`scan`] then applies a lookahead filter, which turns `NOT`, `NULLS`, `WITH` and `.` into their
+//! `*_LA` variants depending on the following tokens.
 
-use crate::keywords::{Keyword, KeywordCategory};
+use crate::keywords::Keyword;
 use crate::names::{NameId, NameRegistry};
 use crate::span::TextSpan;
 use crate::{symbol_kind::*, SymbolKind};
@@ -21,7 +21,7 @@ pub enum SymbolValue {
     None,
     /// An identifier
     Name(NameId),
-    /// The text of a keyword (`VISUALIZE_LA` keeps the spelling `visualise` / `visualize`)
+    /// The text of a keyword
     Text(&'static str),
 }
 
@@ -130,7 +130,7 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
         None => lexer.lex(out),
     };
     match current.kind {
-        S_NOT | S_NULLS_P | S_WITH | S_DOT | S_VISUALISE | S_VISUALIZE => {}
+        S_NOT | S_NULLS_P | S_WITH | S_DOT => {}
         _ => return current,
     }
     let next = lexer.lex(out);
@@ -140,18 +140,6 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
         (S_NULLS_P, S_FIRST_P | S_LAST_P) => Symbol::new(S_NULLS_LA, current.location),
         (S_WITH, S_TIME | S_ORDINALITY) => Symbol::new(S_WITH_LA, current.location),
         (S_DOT, S_STAR) => Symbol::new(S_DOT_STAR_LA, current.location),
-        (S_VISUALISE | S_VISUALIZE, S_USING) => {
-            let renderer = lexer.lex(out);
-            lookahead.push_back(renderer);
-            match renderer.kind {
-                S_VEGALITE | S_MARKDOWN | S_TABLE => Symbol {
-                    kind: S_VISUALIZE_LA,
-                    location: current.location,
-                    value: SymbolValue::Text(if current.kind == S_VISUALISE { "visualise" } else { "visualize" }),
-                },
-                _ => current,
-            }
-        }
         _ => current,
     }
 }
@@ -672,9 +660,6 @@ impl<'a> Lexer<'a> {
         self.buffer.extend(text.iter().map(u8::to_ascii_lowercase));
         let lower = &self.buffer[..];
         if let Some(keyword) = Keyword::find(lower) {
-            if keyword.category == KeywordCategory::VisUnreserved {
-                out.names.register(keyword.name, loc);
-            }
             return Symbol {
                 kind: keyword.symbol,
                 location: loc,
@@ -818,9 +803,6 @@ mod tests {
         assert_eq!(kinds("not in"), vec![S_NOT_LA, S_IN_P, S_YYEOF]);
         assert_eq!(kinds("not foo"), vec![S_NOT, S_IDENT, S_YYEOF]);
         assert_eq!(kinds("a.*"), vec![S_IDENT, S_DOT_STAR_LA, S_STAR, S_YYEOF]);
-        let out = scan("visualise using vegalite", 0, 0);
-        assert_eq!(out.symbols[0].kind, S_VISUALIZE_LA);
-        assert_eq!(out.symbols[0].value, SymbolValue::Text("visualise"));
     }
 
     #[test]

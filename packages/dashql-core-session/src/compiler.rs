@@ -1,5 +1,5 @@
 //! The script compiler: turns a script into the SQL statements
-//! to execute and the compiled visualization of a terminal VISUALIZE statement.
+//! to execute and the compiled visualization of a terminal query with `@vis` tags.
 
 use dashql_core::analyzer::{AnalyzedScript, VisualizationSpec};
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
@@ -11,7 +11,7 @@ use dashql_buffers::execution::{
     ScriptCompilationErrorT, ScriptCompilationResultT, ScriptCompilationStatementKind as StatementKind,
 };
 use dashql_buffers::formatting::FormattingConfigT;
-use dashql_buffers::parser::{AttributeKey, NodeType, ParsedScriptFeature, StatementType, TextSpanT};
+use dashql_buffers::parser::{AttributeKey, NodeType, StatementType, TextSpanT};
 use dashql_buffers::visualization::{DashboardSpecT, MarkdownSpec, TableSpecT};
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
@@ -22,7 +22,7 @@ use dashql_parser::span::TextSpan;
 /// Options of the compilation
 #[derive(Clone, Copy, Debug)]
 pub struct CompilationOptions {
-    /// Allow the DashQL extensions (VISUALIZE)
+    /// Allow the DashQL extensions (the visualizations of `@vis` tags)
     pub allow_extensions: bool,
     /// Parse the script if the text changed
     pub parse_if_outdated: bool,
@@ -72,27 +72,6 @@ pub fn read_executable_text(scanned: &ScannedScript, span: TextSpan) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-/// The SQL node of the terminal statement
-fn read_terminal_sql_node(parsed: &ParsedScript, statement_id: usize, kind: &mut StatementKind) -> Option<u32> {
-    let statement = &parsed.statements[statement_id];
-    match statement.statement_type {
-        StatementType::NONE => None,
-        StatementType::VIS_VISUALISE => {
-            *kind = StatementKind::VISUALIZE;
-            let root = &parsed.nodes[statement.root as usize];
-            let begin = root.children_begin_or_value() as usize;
-            let children = &parsed.nodes[begin..begin + root.children_count() as usize];
-            let [source] = attrs!(children, [AttributeKey::VIS_VISUALISE_SELECT]);
-            let source = source?;
-            Some(((source as *const _ as usize - parsed.nodes.as_ptr() as usize) / std::mem::size_of::<dashql_buffers::parser::Node>()) as u32)
-        }
-        _ => {
-            *kind = StatementKind::QUERY;
-            Some(statement.root)
-        }
-    }
-}
-
 fn has_returning(parsed: &ParsedScript, statement: &Statement) -> bool {
     let root = &parsed.nodes[statement.root as usize];
     let begin = root.children_begin_or_value() as usize;
@@ -105,7 +84,7 @@ fn has_returning(parsed: &ParsedScript, statement: &Statement) -> bool {
 /// Does a statement produce output?
 fn produces_output(parsed: &ParsedScript, statement: &Statement) -> bool {
     match statement.statement_type {
-        StatementType::SELECT | StatementType::EXPLAIN | StatementType::SELECT_INTO | StatementType::VIS_VISUALISE => true,
+        StatementType::SELECT | StatementType::EXPLAIN | StatementType::SELECT_INTO => true,
         StatementType::INSERT | StatementType::DELETE => has_returning(parsed, statement),
         _ => false,
     }
@@ -192,21 +171,14 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         errors.push(error(ErrorCode::EMPTY_SCRIPT, "script has no executable statement", PROTO_NULL_U32, PROTO_NULL_U32, None));
         return finish(result, errors, statements);
     }
-    let execution_features = ParsedScriptFeature::VISUALIZE.0 as u32;
-    if !options.allow_extensions && parsed.feature_flags & execution_features != 0 {
-        errors.push(error(
-            ErrorCode::EXTENSIONS_DISABLED,
-            "DashQL VISUALIZE syntax is not executable in the shell",
-            PROTO_NULL_U32,
-            PROTO_NULL_U32,
-            None,
-        ));
-        return finish(result, errors, statements);
-    }
     let terminal_statement_id = parsed.statements.len() - 1;
     result.terminal_statement_id = terminal_statement_id as u32;
+    // A query with `@vis` tags is a visualization, the shell runs it as a plain query
+    let vis_tags = options.allow_extensions
+        && parsed.statements[terminal_statement_id].statement_type == StatementType::SELECT
+        && dashql_core::analyzer::has_vis_tags(&parsed, terminal_statement_id);
     let terminal_type = parsed.statements[terminal_statement_id].statement_type;
-    result.cacheable = matches!(terminal_type, StatementType::SELECT | StatementType::EXPLAIN | StatementType::VIS_VISUALISE);
+    result.cacheable = matches!(terminal_type, StatementType::SELECT | StatementType::EXPLAIN);
 
     let descriptions = parsed.associate_descriptions();
     for (statement_id, statement) in parsed.statements.iter().enumerate() {
@@ -215,7 +187,7 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         if output && statement_id != terminal_statement_id {
             errors.push(error(
                 ErrorCode::OUTPUT_STATEMENT_NOT_LAST,
-                "SELECT, EXPLAIN, SELECT INTO, INSERT RETURNING, DELETE RETURNING, or VISUALIZE must be the final statement",
+                "SELECT, EXPLAIN, SELECT INTO, INSERT RETURNING, or DELETE RETURNING must be the final statement",
                 statement_id as u32,
                 statement.root,
                 Some(span),
@@ -234,92 +206,68 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     }
     result.cache_signature = Some(dashql_core::signature::compute_signature(&parsed).unwrap_or_default());
 
-    if parsed.feature_flags & execution_features == 0 {
+    if !vis_tags {
         result.kind = StatementKind::QUERY;
         result.sql = statements.last().and_then(|s| s.sql.clone()).or(Some(String::new()));
         return finish(result, errors, statements);
     }
 
-    let mut kind = result.kind;
-    let terminal_node = read_terminal_sql_node(&parsed, terminal_statement_id, &mut kind);
-    result.kind = kind;
+    result.kind = StatementKind::VISUALIZE;
     let terminal_root = parsed.statements[terminal_statement_id].root;
-    let Some(terminal_node) = terminal_node else {
-        let span = resolve_text_span(&scanned.text, &scanned.symbols, *parsed.nodes[terminal_root as usize].symbol_span());
-        errors.push(error(
-            ErrorCode::LAST_STATEMENT_NOT_EXECUTABLE,
-            "the final statement must be a query or VISUALIZE statement",
-            terminal_statement_id as u32,
-            terminal_root,
-            Some(span),
-        ));
-        return finish(result, errors, statements);
-    };
-
-    if result.kind == StatementKind::VISUALIZE {
-        let current = script.analyzed.as_ref().is_some_and(|a| std::sync::Arc::ptr_eq(&a.parsed, &parsed));
-        if !current {
-            // A failed analysis leaves the visualization without metadata
-            if let Err(e) = script.analyze(catalog, false) {
-                errors.push(error(ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE, &e.message, terminal_statement_id as u32, terminal_root, None));
-                return finish(result, errors, statements);
-            }
+    let current = script.analyzed.as_ref().is_some_and(|a| std::sync::Arc::ptr_eq(&a.parsed, &parsed));
+    if !current {
+        // A failed analysis leaves the visualization without metadata
+        if let Err(e) = script.analyze(catalog, false) {
+            errors.push(error(ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE, &e.message, terminal_statement_id as u32, terminal_root, None));
+            return finish(result, errors, statements);
         }
     }
 
     let mut formatter = Formatter::new(&parsed);
     formatter.replace_obfuscated_literals();
-    let sql = formatter.format_node_at(terminal_node as usize, config);
+    let sql = formatter.format_node_at(terminal_root as usize, config);
     if sql.is_empty() {
         result.sql = Some(String::new());
         errors.push(error(
             ErrorCode::FORMAT_ERROR,
             "could not format the executable query",
             terminal_statement_id as u32,
-            terminal_node,
+            terminal_root,
             None,
         ));
         return finish(result, errors, statements);
     }
     result.sql = Some(sql.clone());
 
-    if result.kind == StatementKind::VISUALIZE {
-        let analyzed = script.analyzed.clone().unwrap();
-        let visualization = analyzed
-            .visualization_specs
-            .iter()
-            .find(|s| s.ast_statement_id == Some(terminal_statement_id as u32))
-            .filter(|s| s.renderer.is_some());
-        let Some(visualization) = visualization else {
+    let analyzed = script.analyzed.clone().unwrap();
+    let visualization = analyzed
+        .visualization_specs
+        .iter()
+        .find(|s| s.ast_statement_id == Some(terminal_statement_id as u32))
+        .filter(|s| s.renderer.is_some());
+    // Invalid `@vis` tags are analyzer warnings, the query still runs
+    let Some(visualization) = visualization else {
+        result.kind = StatementKind::QUERY;
+        return finish(result, errors, statements);
+    };
+    match compile_visualization(visualization, &analyzed) {
+        Ok(compiled) => {
+            let terminal = statements.last_mut().unwrap();
+            terminal.kind = CompiledKind::VISUALIZE;
+            terminal.sql = Some(sql);
+            terminal.visualization = Some(Box::new(compiled.clone()));
+            result.visualization = Some(Box::new(compiled));
+        }
+        Err(message) => {
             result.sql = Some(String::new());
             errors.push(error(
                 ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE,
-                "could not resolve visualization metadata",
+                &message,
                 terminal_statement_id as u32,
                 terminal_root,
                 None,
             ));
             return finish(result, errors, statements);
-        };
-        match compile_visualization(visualization, &analyzed) {
-            Ok(compiled) => {
-                let terminal = statements.last_mut().unwrap();
-                terminal.kind = CompiledKind::VISUALIZE;
-                terminal.sql = Some(sql);
-                terminal.visualization = Some(Box::new(compiled.clone()));
-                result.visualization = Some(Box::new(compiled));
-            }
-            Err(message) => {
-                result.sql = Some(String::new());
-                errors.push(error(
-                    ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE,
-                    &message,
-                    terminal_statement_id as u32,
-                    terminal_root,
-                    None,
-                ));
-                return finish(result, errors, statements);
-            }
         }
     }
     finish(result, errors, statements)

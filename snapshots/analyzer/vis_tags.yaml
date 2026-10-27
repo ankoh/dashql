@@ -1,0 +1,705 @@
+analyzer-snapshots:
+
+  - name: vis_tag_vegalite
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.1"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: sales
+            columns: [region,revenue,date]
+        errors: []
+    script:
+      input: |
+        /* @vis vegalite
+           {"mark": "bar", "encoding": {"x": {"field": "region"}, "y": {"field": "revenue", "aggregate": "sum"}}}
+        */
+        select region, revenue from sales;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "region"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: region
+              expression: 0
+            - name: revenue
+              expression: 1
+          text: "select reg..from sales"
+      visualizations:
+        - statement-id: 0
+          source: "select reg..from sales"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
+          vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"region\"},\"y\":{\"field\":\"revenue\",\"aggregate\":\"sum\"}}}"
+
+  - name: vis_tag_vegalite_inline_and_card
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.1"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: sales
+            columns: [region,revenue,date]
+        errors: []
+    script:
+      input: |
+        /* @vis vegalite {"mark": "line", "encoding": {"x": {"field": "date"}, "y": {"field": "total"}}}
+           @vis card row=1 column=2 width=4 height=2 */
+        select date, sum(revenue) as total from sales group by date;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 3
+          type: function
+          name: sum
+          statement-id: 0
+          text: "sum(revenue)"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: date
+              expression: 0
+            - name: total
+              expression: 3
+          text: "select dat..up by date"
+      visualizations:
+        - statement-id: 0
+          source: "select dat..up by date"
+          renderer: vegalite
+          dashboard:
+            row: 1
+            column: 2
+            width: 4
+            height: 2
+          vegalite: "{\"mark\":\"line\",\"encoding\":{\"x\":{\"field\":\"date\"},\"y\":{\"field\":\"total\"}}}"
+
+  - name: vis_tag_line_comments
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.1"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: sales
+            columns: [region,revenue,date]
+        errors: []
+    script:
+      input: |
+        -- @description Revenue per region.
+        -- @vis table
+        -- @end
+        select * from sales;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: date
+              table-column: "256.65536.4294967296.0"
+            - name: region
+              table-column: "256.65536.4294967296.1"
+            - name: revenue
+              table-column: "256.65536.4294967296.2"
+          text: "select * from sales"
+      visualizations:
+        - statement-id: 0
+          source: "select * from sales"
+          renderer: table
+          dashboard:
+            width: 6
+            height: 3
+
+  - name: vis_tag_markdown
+    script:
+      input: |
+        /* @vis markdown
+           ### {{metric}}
+           - {{value}}
+             - {{detail}}
+        */
+        select 'a' as metric, 1 as value, 'x' as detail;
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'a'"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 2
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'x'"
+      constants:
+        - expression: 0
+          text: "'a'"
+        - expression: 1
+          text: "1"
+        - expression: 2
+          text: "'x'"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: metric
+              expression: 0
+            - name: value
+              expression: 1
+            - name: detail
+              expression: 2
+          text: "select 'a'.. as detail"
+      visualizations:
+        - statement-id: 0
+          source: "select 'a'.. as detail"
+          renderer: markdown
+          dashboard:
+            width: 6
+            height: 3
+          markdown: "### {{metric}}\n- {{value}}\n  - {{detail}}"
+
+  - name: vis_tag_unknown_field
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.1"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        catalog-changes:
+          - statement-id: 0
+            type: create
+            name: sales
+            columns: [region,revenue,date]
+        errors: []
+    script:
+      input: |
+        /* @vis vegalite
+           {
+             "transform": [{"calculate": "datum.revenue * 2", "as": "double"}],
+             "mark": "bar",
+             "encoding": {
+               "x": {"field": "regoin"},
+               "y": {"field": "double"},
+               "color": {"field": "date.month"}
+             }
+           }
+        */
+        select region, revenue, date from sales;
+      catalog-id: 2
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown field "regoin", the statement has the columns date, region, revenue'
+          text: "\"regoin\""
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "region"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "date"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: region
+              expression: 0
+            - name: revenue
+              expression: 1
+            - name: date
+              expression: 2
+          text: "select reg..from sales"
+      visualizations:
+        - statement-id: 0
+          source: "select reg..from sales"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
+          vegalite: "{\"transform\":[{\"calculate\":\"datum.revenue * 2\",\"as\":\"double\"}],\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"regoin\"},\"y\":{\"field\":\"double\"},\"color\":{\"field\":\"date.month\"}}}"
+
+  - name: vis_tag_unknown_columns
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "anything"}}} */
+        select * from unknown_table;
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "unknown_table"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: unresolved
+              name: unknown_table
+              text: "unknown_table"
+          text: "select * f..nown_table"
+      visualizations:
+        - statement-id: 0
+          source: "select * f..nown_table"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
+          vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"anything\"}}}"
+
+  - name: vis_tag_malformed_json
+    script:
+      input: |
+        /* @vis vegalite
+           {"mark": "bar",
+            "encoding": }
+        */
+        select 1 as a;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'invalid Vega-Lite JSON: expected value at line 2 column 14'
+          text: "}"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+
+  - name: vis_tag_markdown_empty
+    script:
+      input: |
+        /* @vis markdown
+        */
+        select 'Ada' as author;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis markdown needs a row template'
+          text: "markdown"
+      expressions:
+        - expression-idx: 0
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'Ada'"
+      constants:
+        - expression: 0
+          text: "'Ada'"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: author
+              expression: 0
+          text: "select 'Ad.. as author"
+
+  - name: vis_tag_data_ignored
+    script:
+      input: |
+        /* @vis vegalite {"data": {"values": [1]}, "mark": "bar"} */
+        select 1 as a;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'data is ignored, the statement is the data of the chart'
+          text: "\"data\""
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
+          vegalite: "{\"mark\":\"bar\"}"
+
+  - name: vis_tag_invalid
+    script:
+      input: |
+        /* @vis chart
+           @vis
+           @vis table extra
+           @vis markdown {{a}}
+           @vis card width=x depth=2 row
+           @vis card width=3 */
+        select 1 as a;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown @vis kind "chart", expected vegalite, markdown, table or card'
+          text: "chart"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis needs a kind: vegalite, markdown, table or card'
+          text: "vis"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis table takes no args, they are ignored'
+          text: "extra"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'the statement is already visualized by @vis table, this tag is ignored'
+          text: "markdown"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis card width must be an integer'
+          text: "width=x"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown @vis card arg "depth", expected row, column, width or height'
+          text: "depth=2"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis card takes key=value args, not "row"'
+          text: "row"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'the statement already has a @vis card, this tag is ignored'
+          text: "card"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: table
+          dashboard:
+            width: 6
+            height: 3
+
+  - name: vis_tag_card_normalized
+    script:
+      input: |
+        /* @vis table
+           @vis card row=-1 column=9 width=6 height=0 */
+        select 1 as a;
+      catalog-id: 1
+      errors:
+        - type: INVALID_DASHBOARD_LAYOUT
+          severity: WARNING
+          message: dashboard row must be non-negative and was removed
+          text: "row=-1"
+        - type: INVALID_DASHBOARD_LAYOUT
+          severity: WARNING
+          message: dashboard height was clamped to 1
+          text: "height=0"
+        - type: INVALID_DASHBOARD_LAYOUT
+          severity: WARNING
+          message: dashboard column was moved so column + width does not exceed 12
+          text: "column=9"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: table
+          dashboard:
+            column: 6
+            width: 6
+            height: 1
+
+  - name: vis_tag_card_only
+    script:
+      input: |
+        /* @vis card width=6 */
+        select 1 as a;
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis card places a visualization, the statement needs @vis vegalite, markdown or table'
+          text: "card"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+
+  - name: vis_tag_not_a_query
+    script:
+      input: |
+        /* @vis table */
+        create table t (a int);
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.4294967296"
+          name: t
+          text: "create tab.. t (a int)"
+          columns:
+            - catalog-id: "256.65536.4294967296.0"
+              name: a
+              text: "a int"
+      catalog-changes:
+        - statement-id: 0
+          type: create
+          name: t
+          columns: [a]
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis visualizes a query, this statement returns no rows'
+          text: "vis"
+
+  - name: vis_tag_per_statement
+    script:
+      input: |
+        /* @vis table */
+        select 1 as a;
+        /* @vis markdown {{b}} */
+        select 2 as b;
+        select 3 as c;
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 1
+          text: "2"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 2
+          text: "3"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "2"
+        - expression: 2
+          text: "3"
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - name: a
+              expression: 0
+          text: "select 1 as a"
+        - scope-id: 1
+          columns:
+            - name: b
+              expression: 1
+          text: "select 2 as b"
+        - scope-id: 2
+          columns:
+            - name: c
+              expression: 2
+          text: "select 3 as c"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: table
+          dashboard:
+            width: 6
+            height: 3
+        - statement-id: 1
+          source: "select 2 as b"
+          renderer: markdown
+          dashboard:
+            width: 6
+            height: 3
+          markdown: "{{b}}"

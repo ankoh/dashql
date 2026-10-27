@@ -109,11 +109,6 @@ fn boolean(value: bool) -> Node {
     Node::boolean(value)
 }
 
-/// A double as a plain scalar, read back through YAML inference
-fn real(value: f64) -> Node {
-    super::plain(&format_double(value))
-}
-
 /// Format a double as a YAML scalar
 pub fn format_double(value: f64) -> String {
     if value.is_nan() {
@@ -497,9 +492,7 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
     if let Some(statement) = spec.ast_statement_id {
         m.int("statement-id", statement as i64);
     }
-    if let Some(source) = spec.source_node_id {
-        e.location(&mut m, source, "source");
-    }
+    e.location(&mut m, spec.ast_node_id, "source");
     if let Some(renderer) = &spec.renderer {
         m.plain("renderer", renderer);
     }
@@ -513,159 +506,15 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
     dashboard.int("width", spec.dashboard.width as i64);
     dashboard.int("height", spec.dashboard.height as i64);
     m.insert("dashboard", dashboard.into_node());
-    // The structured spec is renderer-specific, only vegalite is understood today
-    if spec.renderer.as_deref() != Some("vegalite") {
-        return m.into_node();
+    if let Some(vegalite) = &spec.vegalite {
+        m.insert("vegalite", Node::dquo(serde_json::Value::Object(vegalite.clone()).to_string()));
     }
-    let mut vl = Map::new();
-    if let Some(mark) = spec.mark_type {
-        vl.plain("mark", mark.variant_name().unwrap_or(""));
+    if let Some(markdown) = &spec.markdown {
+        m.insert("markdown", Node::dquo(markdown.row_template.clone()));
     }
-    if let Some(title) = &spec.title {
-        vl.plain("title", title);
-    }
-    if !spec.layers.is_empty() {
-        vl.int("layer-count", spec.layers.len() as i64);
-    }
-    if let Some(resolve) = &spec.resolve {
-        let mut r = Map::new();
-        let mut opt = |key: &str, v: Option<u32>| {
-            if let Some(v) = v {
-                r.int(key, v as i64);
-            }
-        };
-        opt("scale-node-id", resolve.scale_node_id);
-        opt("axis-node-id", resolve.axis_node_id);
-        opt("legend-node-id", resolve.legend_node_id);
-        vl.insert("resolve", r.into_node());
-    }
-    if !spec.encoding_channels.is_empty() {
-        let channels = spec.encoding_channels.iter().map(encode_channel).collect();
-        vl.insert("encodings", Node::seq(channels));
-    }
-    m.insert("vegalite", vl.into_node());
     m.into_node()
 }
 
-/// A map builder with helpers for optional values
-struct Opt(Map);
-
-impl Opt {
-    fn int(&mut self, key: &str, v: Option<impl Into<i64>>) {
-        if let Some(v) = v {
-            self.0.int(key, v.into());
-        }
-    }
-    fn bool(&mut self, key: &str, v: Option<bool>) {
-        if let Some(v) = v {
-            self.0.insert(key, boolean(v));
-        }
-    }
-    fn real(&mut self, key: &str, v: Option<f64>) {
-        if let Some(v) = v {
-            self.0.insert(key, real(v));
-        }
-    }
-    fn text(&mut self, key: &str, v: &Option<String>) {
-        if let Some(v) = v {
-            self.0.plain(key, v);
-        }
-    }
-}
-
-fn encode_channel(channel: &VisEncodingChannel) -> Node {
-    let mut m = Opt(Map::new());
-    m.0.plain("channel", channel.channel_key.variant_name().unwrap_or(""));
-    m.int("field-expr", channel.field_expression_id);
-    m.int("field-node-id", channel.field_node_id);
-    if let Some(t) = channel.field_type {
-        m.0.plain("field-type", t.variant_name().unwrap_or(""));
-    }
-    if let Some(b) = &channel.bin {
-        let mut bin = Opt(Map::new());
-        bin.bool("binned", b.binned);
-        bin.real("step", b.step);
-        bin.real("maxbins", b.maxbins);
-        bin.real("minstep", b.minstep);
-        bin.real("anchor", b.anchor);
-        bin.real("base", b.base);
-        bin.bool("nice", b.nice);
-        bin.int("extent-node-id", b.extent_node_id);
-        bin.int("divide-node-id", b.divide_node_id);
-        bin.int("steps-node-id", b.steps_node_id);
-        m.0.insert("bin", bin.0.into_node());
-    }
-    m.text("aggregate", &channel.aggregate);
-    m.text("time-unit", &channel.time_unit);
-    m.int("stack-node-id", channel.stack_node_id);
-    if let Some(s) = &channel.scale {
-        let mut scale = Opt(Map::new());
-        if let Some(t) = s.scale_type {
-            scale.0.plain("type", t.variant_name().unwrap_or(""));
-        }
-        scale.bool("zero", s.zero);
-        scale.bool("nice", s.nice);
-        scale.bool("clamp", s.clamp);
-        scale.bool("reverse", s.reverse);
-        scale.bool("round", s.round);
-        scale.text("scheme", &s.scheme);
-        scale.text("interpolate", &s.interpolate);
-        scale.real("exponent", s.exponent);
-        scale.real("base", s.base);
-        scale.real("constant", s.constant);
-        scale.real("align", s.align);
-        scale.real("padding", s.padding);
-        scale.real("padding-inner", s.padding_inner);
-        scale.real("padding-outer", s.padding_outer);
-        scale.int("domain-node-id", s.domain_node_id);
-        scale.int("domain-min-node-id", s.domain_min_node_id);
-        scale.int("domain-max-node-id", s.domain_max_node_id);
-        scale.int("domain-mid-node-id", s.domain_mid_node_id);
-        scale.int("range-node-id", s.range_node_id);
-        scale.int("range-min-node-id", s.range_min_node_id);
-        scale.int("range-max-node-id", s.range_max_node_id);
-        scale.int("bins-node-id", s.bins_node_id);
-        scale.text("name", &s.name);
-        m.0.insert("scale", scale.0.into_node());
-    }
-    if let Some(a) = &channel.axis {
-        let mut axis = Opt(Map::new());
-        axis.text("orient", &a.orient);
-        axis.text("title", &a.title);
-        axis.bool("grid", a.grid);
-        axis.bool("ticks", a.ticks);
-        axis.bool("domain", a.domain);
-        axis.real("label-angle", a.label_angle);
-        axis.real("label-font-size", a.label_font_size);
-        axis.real("tick-count", a.tick_count);
-        axis.real("tick-size", a.tick_size);
-        axis.real("offset", a.offset);
-        axis.text("format", &a.format);
-        axis.text("format-type", &a.format_type);
-        axis.text("direction", &a.direction);
-        axis.text("label-overlap", &a.label_overlap);
-        axis.int("zindex", a.zindex);
-        axis.int("values-node-id", a.values_node_id);
-        axis.text("name", &a.name);
-        m.0.insert("axis", axis.0.into_node());
-    }
-    if let Some(l) = &channel.legend {
-        let mut legend = Opt(Map::new());
-        legend.text("type", &l.legend_type);
-        legend.text("orient", &l.orient);
-        legend.text("title", &l.title);
-        legend.text("direction", &l.direction);
-        legend.text("format", &l.format);
-        legend.text("format-type", &l.format_type);
-        legend.real("padding", l.padding);
-        legend.real("offset", l.offset);
-        legend.int("zindex", l.zindex);
-        legend.int("values-node-id", l.values_node_id);
-        legend.text("name", &l.name);
-        m.0.insert("legend", legend.0.into_node());
-    }
-    m.0.into_node()
-}
 
 /// The keys the analyzer snapshot test compares
 pub const COMPARED_KEYS: [&str; 9] = [

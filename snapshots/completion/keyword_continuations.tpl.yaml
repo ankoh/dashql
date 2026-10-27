@@ -121,20 +121,6 @@ completion-snapshots:
     completions:
       limit: 5
 
-  # visualize mark =>
-  - name: vis_mark_arrow
-    catalog: {}
-    editor:
-      input: |
-        select 1 as x;
-        visualize $.0 using (mar
-    cursor:
-      search:
-        text: mar
-        index: 3
-    completions:
-      limit: 5
-
   # No continuation for ambiguous position (SELECT ident has many options)
   - name: no_continuation_select_expr
     catalog:

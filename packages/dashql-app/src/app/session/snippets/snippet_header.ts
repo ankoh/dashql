@@ -6,7 +6,7 @@ import { SNIPPET_ENGINE_CONNECTORS } from './snippet.js';
 /// The comment tag of the description of a snippet
 const SNIPPET_DESCRIPTION_TAG = 'description';
 
-/// One snippet file, `<engine>/<category>/<name>.sql`, a `@dashql:description` block describes the snippet.
+/// One snippet file, `<engine>/<category>/<name>.sql`, a `@description` block describes the snippet.
 /// The files of the engines with the same category and name are the variants of one snippet.
 export interface SnippetFile {
     /// The path of the file below the snippet folder
@@ -79,7 +79,7 @@ export function parseSnippetFile(core: dashql.DashQL, path: string, raw: string)
     }
     const otherTag = tags.find(tag => tag.name !== SNIPPET_DESCRIPTION_TAG);
     if (otherTag != null) {
-        throw new Error(`snippet ${path} has a @dashql:${otherTag.name} block, snippets only have a description`);
+        throw new Error(`snippet ${path} has a @${otherTag.name} block, snippets only have a description`);
     }
     // The tag blocks are for the snippet browser, the applied text is plain SQL
     let body = '';

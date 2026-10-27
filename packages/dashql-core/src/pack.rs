@@ -16,10 +16,10 @@ use dashql_buffers::analyzer::{
     AnalyzedScriptT, ConstantExpressionT, FunctionDeclarationT, FunctionParamT, IndexedColumnReferenceT,
     IndexedTableReferenceT, InferredColumnT, InferredTableSchemaT, InsertStatementT, InsertTargetColumnT, NameScopeT,
     QualifiedColumnNameT, QualifiedFunctionNameT, QualifiedTableNameT, ResolvedTableT, TableColumnT,
-    TableReferenceRole, TableReferenceT, TableT, VisSourceKind as PackedVisSourceKind, VisualizationSpecT,
+    TableReferenceRole, TableReferenceT, TableT, VisualizationSpecT,
 };
 use dashql_buffers::parser::{
-    AttachDatabaseStatementT, AttributeKey, CommentBlockT, ErrorT, Node, NodeT, NodeType, ParsedScriptFeature,
+    AttachDatabaseStatementT, AttributeKey, CommentBlockT, ErrorT, Node, NodeT, NodeType,
     ParsedScriptT, ScannedScriptT, ScannerTokenType, ScannerTokensT, StatementT, StatementTargetT, StatementTargetType,
     StatementType, SymbolSpan, SymbolSpanT, TextSpanT,
 };
@@ -106,7 +106,7 @@ pub fn pack_scanned_script(scanned: &ScannedScript) -> ScannedScriptT {
 /// The token type of a scanner symbol
 fn token_type(symbol: &Symbol, text: &str) -> ScannerTokenType {
     match symbol.kind {
-        S_NULLS_LA | S_NOT_LA | S_WITH_LA | S_VISUALIZE_LA => ScannerTokenType::KEYWORD,
+        S_NULLS_LA | S_NOT_LA | S_WITH_LA => ScannerTokenType::KEYWORD,
         kind if Keyword::name_of(kind).is_some() => ScannerTokenType::KEYWORD,
         S_SCONST => ScannerTokenType::LITERAL_STRING,
         S_ICONST => ScannerTokenType::LITERAL_INTEGER,
@@ -140,13 +140,6 @@ pub fn pack_tokens(parsed: &ParsedScript) -> ScannerTokensT {
             }
         }
     }
-    // Keywords in vis spec bodies are vis keywords
-    let mut vis_spec_overrides = vec![false; symbol_count];
-    for &(begin, end) in &parsed.vis_spec_spans {
-        for slot in vis_spec_overrides.iter_mut().take(end as usize).skip(begin as usize) {
-            *slot = true;
-        }
-    }
     let count = symbol_count.saturating_sub(1);
     let mut offsets = Vec::with_capacity(count);
     let mut lengths = Vec::with_capacity(count);
@@ -155,12 +148,8 @@ pub fn pack_tokens(parsed: &ParsedScript) -> ScannerTokensT {
         offsets.push(symbol.location.offset);
         lengths.push(symbol.location.length);
         let mut t = token_type(symbol, &scanned.text);
-        if t == ScannerTokenType::KEYWORD {
-            if name_overrides[id] {
-                t = ScannerTokenType::IDENTIFIER;
-            } else if vis_spec_overrides[id] {
-                t = ScannerTokenType::KEYWORD_VIS;
-            }
+        if t == ScannerTokenType::KEYWORD && name_overrides[id] {
+            t = ScannerTokenType::IDENTIFIER;
         }
         types.push(t);
     }
@@ -346,7 +335,6 @@ pub fn pack_parsed_script(parsed: &ParsedScript) -> ParsedScriptT {
         comments: non_empty(scanned.comments.iter().map(|&s| text_span(s)).collect()),
         comment_blocks: non_empty(blocks.blocks.iter().map(comment_block).collect()),
         comment_lines: non_empty(blocks.lines.iter().map(|&s| text_span(s)).collect()),
-        feature_flags: parsed.feature_flags,
     })
 }
 
@@ -665,12 +653,6 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
             build!(VisualizationSpecT {
                 ast_node_id: spec.ast_node_id,
                 ast_statement_id: spec.ast_statement_id.unwrap_or(PROTO_NULL_U32),
-                source_kind: PackedVisSourceKind(spec.resolved_source.kind as u8),
-                source_ast_node_id: spec.source_node_id.unwrap_or(PROTO_NULL_U32),
-                source_inline_select_ast_node_id: spec
-                    .resolved_source
-                    .inline_select_ast_node_id
-                    .unwrap_or(PROTO_NULL_U32),
                 renderer: spec.renderer.clone(),
                 vegalite_spec,
                 markdown_spec,
@@ -721,11 +703,6 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
         visualization_specs: Some(visualization_specs),
         inferred_table_schemas: Some(inferred_table_schemas),
     })
-}
-
-/// The feature flags of a parsed script
-pub fn has_visualize(parsed: &ParsedScript) -> bool {
-    parsed.feature_flags & ParsedScriptFeature::VISUALIZE.0 != 0
 }
 
 /// Pack a cursor

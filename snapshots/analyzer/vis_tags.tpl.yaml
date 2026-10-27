@@ -1,0 +1,146 @@
+analyzer-snapshots:
+  # A Vega-Lite spec in a block comment, the fields are columns of the statement
+  - name: vis_tag_vegalite
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+    script:
+      input: |
+        /* @vis vegalite
+           {"mark": "bar", "encoding": {"x": {"field": "region"}, "y": {"field": "revenue", "aggregate": "sum"}}}
+        */
+        select region, revenue from sales;
+
+  # The spec starts on the tag line, the card places it on the dashboard
+  - name: vis_tag_vegalite_inline_and_card
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+    script:
+      input: |
+        /* @vis vegalite {"mark": "line", "encoding": {"x": {"field": "date"}, "y": {"field": "total"}}}
+           @vis card row=1 column=2 width=4 height=2 */
+        select date, sum(revenue) as total from sales group by date;
+
+  # The line comment form
+  - name: vis_tag_line_comments
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+    script:
+      input: |
+        -- @description Revenue per region.
+        -- @vis table
+        -- @end
+        select * from sales;
+
+  # A Markdown row template keeps its indentation
+  - name: vis_tag_markdown
+    script:
+      input: |
+        /* @vis markdown
+           ### {{metric}}
+           - {{value}}
+             - {{detail}}
+        */
+        select 'a' as metric, 1 as value, 'x' as detail;
+
+  # Fields that are no columns are warnings, names defined by the spec and nested fields are fine
+  - name: vis_tag_unknown_field
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+    script:
+      input: |
+        /* @vis vegalite
+           {
+             "transform": [{"calculate": "datum.revenue * 2", "as": "double"}],
+             "mark": "bar",
+             "encoding": {
+               "x": {"field": "regoin"},
+               "y": {"field": "double"},
+               "color": {"field": "date.month"}
+             }
+           }
+        */
+        select region, revenue, date from sales;
+
+  # A star over a relation with an unknown schema does not check the fields
+  - name: vis_tag_unknown_columns
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "anything"}}} */
+        select * from unknown_table;
+
+  # Malformed JSON is a warning at its location, the statement is no visualization
+  - name: vis_tag_malformed_json
+    script:
+      input: |
+        /* @vis vegalite
+           {"mark": "bar",
+            "encoding": }
+        */
+        select 1 as a;
+
+  # A Markdown tag without a template is a warning, the statement is no visualization
+  - name: vis_tag_markdown_empty
+    script:
+      input: |
+        /* @vis markdown
+        */
+        select 'Ada' as author;
+
+  # The data of the chart is the statement
+  - name: vis_tag_data_ignored
+    script:
+      input: |
+        /* @vis vegalite {"data": {"values": [1]}, "mark": "bar"} */
+        select 1 as a;
+
+  # Unknown kinds and args, invalid values and duplicate tags are warnings
+  - name: vis_tag_invalid
+    script:
+      input: |
+        /* @vis chart
+           @vis
+           @vis table extra
+           @vis markdown {{a}}
+           @vis card width=x depth=2 row
+           @vis card width=3 */
+        select 1 as a;
+
+  # The card is normalized like the dashboard placement
+  - name: vis_tag_card_normalized
+    script:
+      input: |
+        /* @vis table
+           @vis card row=-1 column=9 width=6 height=0 */
+        select 1 as a;
+
+  # A card without a renderer
+  - name: vis_tag_card_only
+    script:
+      input: |
+        /* @vis card width=6 */
+        select 1 as a;
+
+  # A statement that returns no rows
+  - name: vis_tag_not_a_query
+    script:
+      input: |
+        /* @vis table */
+        create table t (a int);
+
+  # Each statement has its own tags
+  - name: vis_tag_per_statement
+    script:
+      input: |
+        /* @vis table */
+        select 1 as a;
+        /* @vis markdown {{b}} */
+        select 2 as b;
+        select 3 as c;

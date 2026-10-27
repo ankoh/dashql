@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Show the logical plan of a query before it is split into distributed fragments.
--- @dashql:end
+-- @end
 
 explain (type logical)
 with orders(customer, amount) as (

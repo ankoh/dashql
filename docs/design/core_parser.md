@@ -96,7 +96,7 @@ Each top-level statement is tracked in a `Statement` record:
 
 ```
 table Statement {
-    statement_type: StatementType;  // SELECT, CREATE_TABLE, VIS_VISUALISE, …
+    statement_type: StatementType;  // SELECT, CREATE_TABLE, EXPLAIN, …
     root_node: uint32;              // Index of root node
     nodes_begin: uint32;            // First node index belonging to this statement
     node_count: uint32;             // Total nodes in the statement
@@ -128,7 +128,6 @@ The final `.y` file is composed in this order:
 | `sql_create.y` | CREATE TABLE |
 | `sql_view.y` | CREATE VIEW |
 | `sql_function.y` | CREATE FUNCTION, function calls |
-| `ext_visualize.y` | VISUALISE extension |
 | `ext_set.y` | SET variable statements |
 | `ext_varargs.y` | Nested key/value field syntax |
 | `ext_explain.y` | EXPLAIN wrapper |
@@ -298,28 +297,35 @@ The scanner wraps the raw lexer with a lookahead filter (`next_symbol` in `scann
 ## Comment Tags
 
 The scanner collects comments as trivia. After parsing, `comment_blocks.rs` groups them into blocks:
-a block comment, or a run of line comments on consecutive lines. A run is split around tagged
-regions that open with `-- @dashql:<tag>` and close with `-- @dashql:end`. A block comment is tagged
-if its first text is `@dashql:<tag>`.
+a block comment, or a run of line comments on consecutive lines. Blocks are split at every line whose
+first text is a known tag, `@<tag>`. The known tags are `metadata`, `description`, `vis` and `end`
+(`COMMENT_TAGS`), any other `@word` (`@todo`, `@param`) is ordinary text. A tag runs to the next tag
+line. In a run of line comments, the last region closes with `-- @end`. In a block comment, the comment
+end closes it, and text before the first tag is an ordinary block.
 
 ```sql
--- @dashql:metadata
+-- @metadata
 -- {"owner": "finance"}
--- @dashql:end
--- @dashql:description
--- Revenue per segment.
--- @dashql:end
+-- @description Revenue per segment.
+-- @end
 select 1;
+
+/* Revenue dashboard.
+   @description Revenue per region.
+   @vis table
+*/
+select 2;
 ```
 
-The parser does not interpret tags. Every tagged region is a `DASHQL_TAG` block with its tag name
-(`tag_span`) and its content lines (`comment_lines`), whatever the name. Readers pick blocks by
-name and parse the content themselves: `readCommentTags` and `parseCommentTagObject` in
-`dashql-core-js/src/comment_tags.ts`, e.g. `readMetadata` reads the first `metadata` tag as a JSON
-object. A statement points to the blocks of its description comments
+The parser does not interpret the content. Every tag is a `DASHQL_TAG` block with its tag name
+(`tag_span`) and its content lines (`comment_lines`). Text after the tag on the same line is the first
+content line. The blocks of one block comment share the comment and cover it without gaps
+(`text_span`). Readers pick blocks by name and parse the content themselves: `readCommentTags` and
+`parseCommentTagObject` in `dashql-core-js/src/comment_tags.ts`, e.g. `readMetadata` reads the first
+`metadata` tag as a JSON object. A statement points to the blocks of its description comments
 (`description_blocks_begin` / `description_blocks_count`). Only structural problems are warnings
-(`MALFORMED_COMMENT_TAG`): a region without `-- @dashql:end` or an `@dashql:end` without an opening
-tag. The formatter keeps tagged regions verbatim.
+(`MALFORMED_COMMENT_TAG`): a last region of line comments without `-- @end`, or an `@end` without an
+opening tag. The formatter keeps tagged regions of line comments verbatim.
 
 ## Location Tracking
 

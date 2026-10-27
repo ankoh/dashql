@@ -96,7 +96,6 @@ describe('DashQL story decorations', () => {
             'create or replace view target as select 1;',
             'select 1;',
             "set variable = 'value';",
-            'select 1 visualize using vegalite (mark => bar);',
             'create function item_count() returns int;',
             'explain select 1;',
             'drop table target;',

@@ -21,8 +21,8 @@ interface Props {
     hideLegend?: boolean;
 }
 
-/// Renders the visualization for a resolved VISUALIZE query, dispatching on the
-/// renderer named after `USING`. Vega-Lite goes to the vega-embed VegaLiteView.
+/// Renders the visualization of a query with `@vis` tags, dispatching on the
+/// renderer named by the tag. Vega-Lite goes to the vega-embed VegaLiteView.
 export function VisualizationDispatch(props: Props): React.ReactElement | null {
     const vq = props.visualizeQuery;
     if (vq == null) {

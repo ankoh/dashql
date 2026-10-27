@@ -211,17 +211,14 @@ planner-snapshots:
       - name: queries
         input: |
           -- Description is not part of the source query.
-          select 1 as id visualize using table ();
-          with c as (select * from a) select * from c visualize using table ();
+          /* @vis table */
+          select 1 as id;
+          /* @vis table */
+          with c as (select * from a) select * from c;
           insert into a values (1) returning id;
-          select * from a visualize using table ();
+          /* @vis table */
+          select * from a;
           explain select * from a;
-
-  - name: UnsupportedVisualizationSelectInto
-    catalog: create table a (id int);
-    scripts:
-      - name: mutation
-        input: select * into destination from a visualize using table ();
 
   - name: DeleteHazardsAndReturning
     catalog: |

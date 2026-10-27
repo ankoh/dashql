@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Fill missing readings with the last known value.
 -- A running count of the known values groups every gap with the value before it.
--- @dashql:end
+-- @end
 
 with readings(measured_at, temperature) as (
     values

@@ -93,7 +93,7 @@ describe('SnippetsOverlay', () => {
         applySelected();
         expect(onApply).toHaveBeenCalledOnce();
         expect(onApply.mock.calls[0][0]).toContain('json_parse');
-        expect(onApply.mock.calls[0][0]).not.toContain('@dashql:');
+        expect(onApply.mock.calls[0][0]).not.toContain('@description');
         expect(query('[data-testid="snippets-overlay"]')).toBeNull();
     });
 

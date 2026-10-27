@@ -219,56 +219,60 @@ fn statement_text_is_the_first_statement_without_separator() {
 }
 
 #[test]
-fn rewrite_dashboard_replaces_or_appends_the_clause() {
-    let mut script = parsed_script("select 1 visualize using table ()");
+fn rewrite_dashboard_replaces_or_inserts_the_card() {
+    let mut script = parsed_script("/* @vis table */\nselect 1");
     assert_eq!(
         script.rewrite_dashboard(Some(2), Some(3), 4, 5, false).unwrap(),
-        "select 1 visualize using table (dashboard => (row => 2, column => 3, width => 4, height => 5))"
+        "/* @vis table */\n/* @vis card row=2 column=3 width=4 height=5 */\nselect 1"
     );
-    // Existing clauses are replaced, other fields stay
-    let mut script = parsed_script("select 1 visualize using vegalite (mark => bar, dashboard => (row => 9, width => 1))");
+    // The args of an existing card are replaced, other tags stay
+    let mut script = parsed_script("/* @vis vegalite {\"mark\": \"bar\"}\n   @vis card row=9 width=1 */\nselect 1");
     assert_eq!(
         script.rewrite_dashboard(None, None, 6, 3, false).unwrap(),
-        "select 1 visualize using vegalite (mark => bar, dashboard => (width => 6, height => 3))"
+        "/* @vis vegalite {\"mark\": \"bar\"}\n   @vis card width=6 height=3 */\nselect 1"
     );
-    // Fields are appended to a spec with other fields
-    let mut script = parsed_script("select 1 visualize using vegalite (mark => bar)");
+    // A card of line comments
+    let mut script = parsed_script("-- @vis table\n-- @vis card width=2\n-- @end\nselect 1");
     assert_eq!(
         script.rewrite_dashboard(Some(0), None, 12, 1, false).unwrap(),
-        "select 1 visualize using vegalite (mark => bar, dashboard => (row => 0, width => 12, height => 1))"
+        "-- @vis table\n-- @vis card row=0 width=12 height=1\n-- @end\nselect 1"
     );
 }
 
 #[test]
 fn rewrite_dashboard_clamps_the_grid() {
-    let mut script = parsed_script("select 1 visualize using table ()");
+    let mut script = parsed_script("/* @vis table */ select 1");
     // Negative rows are dropped, the width is limited to the 12 columns, the column to the free space
     assert_eq!(
         script.rewrite_dashboard(Some(-1), Some(20), 40, -3, false).unwrap(),
-        "select 1 visualize using table (dashboard => (column => 0, width => 12, height => 1))"
+        "/* @vis table */ /* @vis card column=0 width=12 height=1 */\nselect 1"
     );
     assert_eq!(
         script.rewrite_dashboard(None, Some(20), 4, 1, false).unwrap(),
-        "select 1 visualize using table (dashboard => (column => 8, width => 4, height => 1))"
+        "/* @vis table */ /* @vis card column=8 width=4 height=1 */\nselect 1"
     );
     assert_eq!(
         script.rewrite_dashboard(None, Some(-5), 0, 2, false).unwrap(),
-        "select 1 visualize using table (dashboard => (column => 0, width => 1, height => 2))"
+        "/* @vis table */ /* @vis card column=0 width=1 height=2 */\nselect 1"
     );
 }
 
 #[test]
-fn rewrite_dashboard_needs_a_terminal_visualize_statement() {
+fn rewrite_dashboard_needs_a_terminal_visualization() {
     let not_parsed = Some(StatusCode::SCRIPT_NOT_PARSED);
     assert_eq!(parsed_script("select 1").rewrite_dashboard(None, None, 6, 3, false).unwrap_err().status, not_parsed);
     assert_eq!(parsed_script("").rewrite_dashboard(None, None, 6, 3, false).unwrap_err().status, not_parsed);
     assert_eq!(
-        parsed_script("select 1 visualize using table (; ").rewrite_dashboard(None, None, 6, 3, false).unwrap_err().status,
+        parsed_script("/* @vis table */ select 1 +").rewrite_dashboard(None, None, 6, 3, false).unwrap_err().status,
+        not_parsed
+    );
+    assert_eq!(
+        parsed_script("/* @vis table */ select 1; select 2").rewrite_dashboard(None, None, 6, 3, false).unwrap_err().status,
         not_parsed
     );
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);
-    script.replace_text("select 1 visualize using table ()");
+    script.replace_text("/* @vis table */ select 1");
     assert_eq!(script.rewrite_dashboard(None, None, 6, 3, false).unwrap_err().status, not_parsed);
     assert!(script.rewrite_dashboard(None, None, 6, 3, true).is_ok());
 }
@@ -276,9 +280,12 @@ fn rewrite_dashboard_needs_a_terminal_visualize_statement() {
 #[test]
 fn rewrite_dashboard_applies_spans_to_the_current_text() {
     // The spans of the outdated parse are spliced into the new text
-    let mut script = parsed_script("select 1 visualize using table ()");
-    script.replace_text("select 1 visualize using table ()");
-    assert!(script.rewrite_dashboard(None, None, 6, 3, false).is_ok());
+    let mut script = parsed_script("/* @vis table */ select 1");
+    script.replace_text("/* @vis table */ select 2");
+    assert_eq!(
+        script.rewrite_dashboard(None, None, 6, 3, false).unwrap(),
+        "/* @vis table */ /* @vis card width=6 height=3 */\nselect 2"
+    );
     script.replace_text("x");
     let error = script.rewrite_dashboard(None, None, 6, 3, false);
     assert!(error.is_err(), "{error:?}");

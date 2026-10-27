@@ -329,15 +329,13 @@ fn compiles_plain_sql_before_execution() {
 }
 
 #[test]
-fn rejects_dashql_extensions() {
+fn runs_vis_tags_as_plain_queries() {
     let catalog = Catalog::new();
     let mut session = ShellSession::new(&catalog, 80, false);
-    let visualize = session.start_query(
-        b"SELECT 1 AS value VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => value)))",
-        &catalog,
-    );
-    assert_eq!(visualize.status, ShellStatus::InvalidArgument);
-    assert!(text(&visualize.data).contains("not executable in the shell"));
+    let query = b"/* @vis vegalite {\"mark\": \"bar\"} */\nSELECT 1 AS value";
+    let pending = session.start_query(query, &catalog);
+    assert_eq!(pending.status, ShellStatus::Pending);
+    assert_eq!(&pending.data[16..], query);
 }
 
 #[test]

@@ -62,7 +62,7 @@ parser-snapshots:
   # A dashql description block
   - name: description_dashql_block
     input: |-
-      -- @dashql:description
+      -- @description
       -- Some text
-      -- @dashql:end
+      -- @end
       select 1;

@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Find every destination that is reachable with at most two stopovers.
 -- The recursion stops after three flights.
--- @dashql:end
+-- @end
 
 with recursive
     flights(origin, destination) as (

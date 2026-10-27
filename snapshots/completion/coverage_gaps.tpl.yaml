@@ -271,54 +271,6 @@ completion-snapshots:
     completions:
       limit: 5
 
-  # Columns inside a VISUALIZE encoding
-  - name: cov_vis_column_in_field
-    catalog:
-      script:
-        input: |-
-          create table sales (category text, revenue int, date timestamp);
-    editor:
-      input: |-
-        SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => ca
-    cursor:
-      search:
-        text: 'ca'
-        index: 2
-    completions:
-      limit: 5
-
-  # Columns in a shorthand VISUALIZE encoding
-  - name: cov_vis_column_in_shorthand
-    catalog:
-      script:
-        input: |-
-          create table sales (category text, revenue int, date timestamp);
-    editor:
-      input: |-
-        SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, encoding => (x => re
-    cursor:
-      search:
-        text: 're'
-        index: 2
-    completions:
-      limit: 5
-
-  # The source of a VISUALIZE statement
-  - name: cov_vis_select_source
-    catalog:
-      script:
-        input: |-
-          create table sales (category text, revenue int, date timestamp);
-    editor:
-      input: |-
-        SELECT cat FROM sales VISUALIZE USING vegalite (mark => bar)
-    cursor:
-      search:
-        text: 'cat'
-        index: 3
-    completions:
-      limit: 5
-
   # Columns in a correlated subquery
   - name: cov_subquery_correlated
     catalog:

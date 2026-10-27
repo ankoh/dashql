@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Get the names and types of the result columns of a query without running it.
--- @dashql:end
+-- @end
 
 explain (format schema)
 with orders(customer, amount, ordered_at) as (

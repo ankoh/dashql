@@ -1,16 +1,16 @@
 import * as buffers from './buffers.js';
 
-/// The prefix of comment tags, e.g. `@dashql:description`
-export const COMMENT_TAG_PREFIX = '@dashql:';
+/// The prefix of comment tags, e.g. `@description`
+export const COMMENT_TAG_PREFIX = '@';
 /// The tag that closes a tagged region of line comments
 export const COMMENT_TAG_END = `${COMMENT_TAG_PREFIX}end`;
 /// The tag of the metadata of a script, a JSON object
 export const METADATA_TAG = 'metadata';
 
-/// User-provided metadata of a script, the JSON object of its first `@dashql:metadata` block
+/// User-provided metadata of a script, the JSON object of its first `@metadata` block
 export type ScriptMetadata = Record<string, unknown>;
 
-/// A `@dashql:<tag>` region of comments. The parser does not interpret tags, readers pick them by name.
+/// A `@<tag>` region of comments. The parser does not interpret the content, readers pick tags by name.
 export interface CommentTag {
     /// The index of the comment block in the parsed script
     blockId: number;
@@ -81,7 +81,7 @@ export function parseCommentTagObject(tag: CommentTag): Record<string, unknown> 
     }
 }
 
-/// Read the metadata of a parsed script, the first `@dashql:metadata` block.
+/// Read the metadata of a parsed script, the first `@metadata` block.
 /// Returns null if the script has no metadata block or if its content is not a JSON object.
 export function readMetadata(parsed: buffers.parser.ParsedScript, bytes: Uint8Array): ScriptMetadata | null {
     const tag = readCommentTags(parsed, bytes).find(tag => tag.name === METADATA_TAG);

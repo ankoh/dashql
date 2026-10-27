@@ -1309,26 +1309,6 @@ impl NameResolutionPass {
                 }
             }
 
-            NodeType::OBJECT_VIS_VISUALISE => {
-                self.merge_child_states(node_state, node);
-                let [select] = attrs!(state.children(node), [K::VIS_VISUALISE_SELECT]);
-                let scope = self.create_scope(state, node_state, node_id);
-                // The fields of the visualization refer to the columns of its SELECT
-                if let Some(select) = select {
-                    let select_id = state.node_id(select);
-                    if let Some(&child) = state.out.name_scopes_by_root_node.get(&select_id) {
-                        // The SELECT must not see itself as FROM item of the visualization
-                        state.out.name_scopes[child as usize].parent_visibility = SourceVisibility::None;
-                        state.out.name_scopes[scope as usize].sources.push(ScopeSource {
-                            ast_node_id: select_id,
-                            name: None,
-                            column_aliases: Vec::new(),
-                            table: ReferencedTable::Subquery(child),
-                        });
-                    }
-                }
-            }
-
             NodeType::OBJECT_SQL_CREATE => {
                 if Self::is_explain(state, state.find_statement_id(node_id)) {
                     self.merge_child_states(node_state, node);

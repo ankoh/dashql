@@ -1874,7 +1874,7 @@ parser-snapshots:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 15
+          ast-size: 16
           description:
             text: "WITH pg AS..AS y)\n) gt"
             description-begin: 0

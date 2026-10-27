@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Run a query and annotate its plan with the actual row counts and the time spent per operator.
--- @dashql:end
+-- @end
 
 explain (analyze)
 select i % 10 as bucket, count(*) as numbers

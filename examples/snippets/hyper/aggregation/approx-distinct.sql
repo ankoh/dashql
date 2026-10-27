@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Estimate the number of distinct values, much cheaper than an exact count on large tables.
--- @dashql:end
+-- @end
 
 select
     approx_count_distinct(visitor_id) as approx_visitors,

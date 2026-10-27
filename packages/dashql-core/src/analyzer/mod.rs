@@ -1,8 +1,8 @@
 //! The analyzer.
 //!
-//! The analysis runs four left-to-right passes over the post-order AST, interleaved per morsel of
-//! 1024 nodes: name resolution, function calls, constant propagation and visualizations. The
-//! interleaving determines the expression ids.
+//! The analysis runs three left-to-right passes over the post-order AST, interleaved per morsel of
+//! 1024 nodes: name resolution, function calls and constant propagation. The interleaving determines
+//! the expression ids. The visualizations of the `@vis` comment tags are built at the end.
 //!
 //! The scanned script is not modified. The analyzed script owns a copy of the names with the
 //! analyzer tags and the objects they resolve to.
@@ -12,9 +12,10 @@ mod function_calls;
 mod name_resolution;
 mod state;
 pub mod types;
-mod visualization;
+mod vis_tags;
 
 pub use types::*;
+pub use vis_tags::{has_vis_tags, statement_output_columns, vis_card_line};
 
 use crate::catalog::*;
 use crate::error::Result;
@@ -121,7 +122,6 @@ pub fn analyze(parsed: Arc<ParsedScript>, catalog: &Catalog) -> Result<AnalyzedS
     let mut state = state::AnalysisState::new(&parsed, catalog);
     let mut name_resolution = name_resolution::NameResolutionPass::new(&state);
     let mut constants = constants::ConstantPropagationPass::default();
-    let mut visualization = visualization::AnalyzeVisualizationPass::new(&state);
 
     // Scan all nodes in morsels, interleaving the passes
     const MORSEL_SIZE: usize = 1024;
@@ -132,12 +132,11 @@ pub fn analyze(parsed: Arc<ParsedScript>, catalog: &Catalog) -> Result<AnalyzedS
         name_resolution.visit(&mut state, begin..end);
         function_calls::visit(&mut state, begin..end)?;
         constants.visit(&mut state, begin..end);
-        visualization.visit(&mut state, begin..end);
         begin = end;
     }
     name_resolution.finish(&mut state);
     constants.finish(&mut state);
-    visualization.finish(&mut state);
+    vis_tags::analyze(&mut state);
 
     let mut out = state.into_script();
     // Malformed comment tags fall back to ordinary comments, warn so that they don't go unnoticed

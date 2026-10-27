@@ -64,12 +64,12 @@ parser-snapshots:
   # A description header block
   - name: description_line_form
     input: |
-      -- @dashql:description
+      -- @description
       -- Revenue of the open orders per market segment.
       --
       -- Example questions:
       -- - Which segment earns the most?
-      -- @dashql:end
+      -- @end
 
       -- TPC-H query 3
       select 1
@@ -77,29 +77,29 @@ parser-snapshots:
   - name: description_line_form_after_comment
     input: |
       -- my own note
-      -- @dashql:description
+      -- @description
       -- Revenue per segment.
-      -- @dashql:end
+      -- @end
       -- another note
       select 1
   # Text after the opening tag is content
   - name: description_line_form_inline_text
     input: |
-      -- @dashql:description Revenue per segment.
+      -- @description Revenue per segment.
       -- Second line.
-      -- @dashql:end
+      -- @end
       select 1
   # Tags may be indented within the comment
   - name: description_line_form_indented
     input: |
-      --   @dashql:description
+      --   @description
       -- Revenue per segment.
-      --   @dashql:end
+      --   @end
       select 1
   # A block comment is a description when its first text is the tag, the comment end closes it
   - name: description_block_form
     input: |
-      /* @dashql:description
+      /* @description
          Revenue per segment.
 
          Example questions:
@@ -110,94 +110,126 @@ parser-snapshots:
   - name: description_block_form_gutter
     input: |
       /**
-       * @dashql:description
+       * @description
        * Revenue per segment.
        */
       select 1
   # A single line description block comment
   - name: description_block_form_single_line
     input: |
-      /* @dashql:description Revenue per segment. */ select 1
+      /* @description Revenue per segment. */ select 1
   # Each statement gets its own description block
   - name: description_per_statement
     input: |
-      -- @dashql:description
+      -- @description
       -- First query.
-      -- @dashql:end
+      -- @end
       select 1;
 
-      -- @dashql:description
+      -- @description
       -- Second query.
-      -- @dashql:end
+      -- @end
       select 2;
       select 3
   # A description separated from the statement by SQL is not the statement's description
   - name: description_not_leading
     input: |
-      -- @dashql:description
+      -- @description
       -- First query.
-      -- @dashql:end
+      -- @end
       select 1; select 2
   # A blank line ends the region, an unterminated region stays an ordinary comment
   - name: description_unterminated
     input: |
-      -- @dashql:description
+      -- @description
       -- Revenue per segment.
 
-      -- @dashql:end
+      -- @end
       select 1
-  # Unknown tags are kept as tagged blocks with a warning
+  # Only known tags are tags, any other `@word` is ordinary text
   - name: unknown_tag
     input: |
-      -- @dashql:parameters
-      -- region = 'EUROPE'
-      -- @dashql:end
-      /* @dashql:chart bar */
+      -- @todo fix this
+      -- @param x
+      /* @param x */
       select 1
   # An end tag without an opening tag
   - name: end_tag_without_opening
     input: |
-      -- @dashql:end
-      /* @dashql:end */
+      -- @end
+      /* @end */
       select 1
   # Text that only resembles a tag stays an ordinary comment
   - name: not_a_tag
     input: |
-      -- see @dashql:description
-      -- @dashql:description: Revenue
-      -- @dashqldescription
-      -- @dashql:
-      -- @DASHQL:description
+      -- see @description
+      -- @description: Revenue
+      -- @descriptions
+      -- @
+      -- @DESCRIPTION
       select 1
   # A closing tag with trailing text does not close the region
   - name: end_tag_with_text
     input: |
-      -- @dashql:description
+      -- @description
       -- Revenue per segment.
-      -- @dashql:end of description
-      -- @dashql:end
+      -- @end of description
+      -- @end
+      select 1
+  # Every tag line of a block comment starts a block, text before the first tag is an ordinary block
+  - name: block_comment_several_tags
+    input: |
+      /* Revenue dashboard.
+         @description Revenue per region.
+         @vis card width=6 height=3
+         @vis vegalite
+         {"mark": "bar"}
+      */
+      select 1
+  # A javadoc-style block comment with several tags
+  - name: block_comment_several_tags_gutter
+    input: |
+      /**
+       * @description Revenue per region.
+       * @vis table
+       */
+      select 1
+  # The next tag line closes a region of line comments, only the last region needs the end line
+  - name: line_comments_several_tags
+    input: |
+      -- @description Revenue per region.
+      -- @vis card width=6 height=3
+      -- @vis vegalite
+      -- {"mark": "bar"}
+      -- @end
+      select 1
+  # Without the end line, the last region stays an ordinary comment
+  - name: line_comments_last_tag_unterminated
+    input: |
+      -- @description Revenue per region.
+      -- @vis table
       select 1
   # A metadata block holds a pretty-printed JSON object
   - name: metadata_line_form
     input: |
-      -- @dashql:metadata
+      -- @metadata
       -- {
       --   "owner": "finance",
       --   "avg_runtime_ms": 1834
       -- }
-      -- @dashql:end
+      -- @end
       select 1
   # Metadata in a block comment
   - name: metadata_block_form
     input: |
-      /* @dashql:metadata
+      /* @metadata
        * {"owner": "finance"}
        */
       select 1
   # Values can be any JSON, strings that look like tags stay inside the JSON
   - name: metadata_nested_values
     input: |
-      -- @dashql:metadata
+      -- @metadata
       -- {
       --   "tags": [
       --     "weekly",
@@ -207,47 +239,47 @@ parser-snapshots:
       --     "dashboard": "Revenue Weekly",
       --     "notes": "first line\nsecond line"
       --   },
-      --   "@dashql:end": "@dashql:end",
+      --   "@end": "@end",
       --   "public": true,
       --   "deleted_at": null
       -- }
-      -- @dashql:end
+      -- @end
       select 1
   # Invalid JSON keeps the block but yields no metadata
   - name: metadata_invalid_json
     input: |
-      -- @dashql:metadata
+      -- @metadata
       -- owner: finance
-      -- @dashql:end
+      -- @end
       select 1
   # The metadata must be an object
   - name: metadata_not_an_object
     input: |
-      -- @dashql:metadata
+      -- @metadata
       -- ["finance"]
-      -- @dashql:end
+      -- @end
       select 1
   # Only the first metadata block counts, even if it is invalid
   - name: metadata_twice
     input: |
-      -- @dashql:metadata
+      -- @metadata
       -- {
-      -- @dashql:end
+      -- @end
 
-      -- @dashql:metadata
+      -- @metadata
       -- {"owner": "finance"}
-      -- @dashql:end
+      -- @end
       select 1
   # Metadata and a description side by side, the description stays the statement description
   - name: metadata_and_description
     input: |
-      -- @dashql:metadata
+      -- @metadata
       -- {
       --   "owner": "finance"
       -- }
-      -- @dashql:end
+      -- @end
 
-      -- @dashql:description
+      -- @description
       -- Revenue per segment.
-      -- @dashql:end
+      -- @end
       select 1

@@ -92,7 +92,6 @@ analyzer-snapshots:
     script:
       input: select s.b from (select b as z from t) s
 
-
   # Column aliases rename the leading columns of a FROM item
   - name: table_column_aliases
     catalog:
@@ -128,7 +127,6 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: with c(p) as (select a from t) select x.q, x.p from c as x(q)
-
 
   # Correlation: expression subqueries see their parent, derived tables and CTEs do not
   - name: expression_subquery_outputs_invisible
@@ -215,7 +213,6 @@ analyzer-snapshots:
     script:
       input: select (with c as (select t.a as k) select c.k from c) from t
 
-
   # Stars forward the columns of the FROM items in FROM order
   - name: qualified_star_derived
     catalog:
@@ -258,7 +255,6 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: select q.a, q.n from (select *, a + b as n from t) q
-
 
   # USING and NATURAL make the joined columns one column
   - name: join_using
@@ -309,7 +305,6 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: select id from v join w on v.id = w.id
-
 
   # ORDER BY and GROUP BY names can refer to output columns
   - name: order_by_output
@@ -389,7 +384,6 @@ analyzer-snapshots:
     script:
       input: with recursive r(n) as (select 1 union all select n + 1 from r where n < 3) select n from r
 
-
   # Schema inference sees the same FROM items
   - name: inference_through_derived
     catalog:
@@ -412,11 +406,3 @@ analyzer-snapshots:
     script:
       input: select * from missing m, (select m.q as k) s
 
-
-  # Visualization fields refer to the columns of the SELECT
-  - name: vis_fields
-    catalog:
-      script:
-        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-    script:
-      input: select a, b as n from t visualize using vegalite (mark => bar, encoding => (x => (field => a), y => (field => n)))

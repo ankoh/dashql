@@ -191,7 +191,7 @@ describe('V2 flat session script mutations', () => {
         const scriptKey = current.scriptRefs['1_chart.sql'].scriptId;
         const scriptData = current.scripts[scriptKey];
         replaceScriptSessionText(scriptData.scriptSession,
-            'select cast(payload as array(json)) from events visualize using vegalite (mark => bar)');
+            '/* @vis vegalite {"mark": "bar"} */\nselect cast(payload as array(json)) from events');
         scriptData.scriptSession.analyze();
 
         const trino = compileSessionQuery(scriptData, ConnectorType.TRINO);

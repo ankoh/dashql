@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Find the rows of one table that have no matching row in another table (anti join).
--- @dashql:end
+-- @end
 
 with customers(customer_id, name) as (
     values (1, 'Ada'), (2, 'Alan'), (3, 'Grace')

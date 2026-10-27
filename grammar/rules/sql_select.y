@@ -3012,7 +3012,6 @@ sql_col_id:
     IDENT                       { name_from_identifier(@1, $1) }
   | sql_unreserved_keywords     { ctx.name_from_keyword(@1, $1) }
   | sql_column_name_keywords    { ctx.name_from_keyword(@1, $1) }
-  | vis_unreserved_keywords     { ctx.name_from_keyword(@1, $1) }
     ;
 
 sql_col_id_or_string:
@@ -3027,7 +3026,6 @@ sql_type_function_name:
   | sql_unreserved_keywords     { ctx.name_from_keyword(@1, $1) }
   | GROUPING                    { ctx.name_from_keyword(@1, "grouping") }
   | sql_type_func_keywords      { ctx.name_from_keyword(@1, $1) }
-  | vis_unreserved_keywords     { ctx.name_from_keyword(@1, $1) }
     ;
 
 sql_any_name:
@@ -3066,7 +3064,6 @@ sql_col_label:
   | sql_column_name_keywords    { ctx.name_from_keyword(@1, $1) }
   | sql_type_func_keywords      { ctx.name_from_keyword(@1, $1) }
   | sql_reserved_keywords       { ctx.name_from_keyword(@1, $1) }
-  | vis_unreserved_keywords     { ctx.name_from_keyword(@1, $1) }
     ;
 
 sql_col_label_or_string:

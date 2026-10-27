@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Show the optimized plan of a query as an operator tree without running it.
--- @dashql:end
+-- @end
 
 explain
 with orders(customer, amount) as (

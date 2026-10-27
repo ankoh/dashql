@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Store facts as subject-predicate-object triples and join them like a SPARQL query.
 -- Finds the authors of books in the genre science fiction and their birth year.
--- @dashql:end
+-- @end
 
 with triples(subject, predicate, object) as (
     values

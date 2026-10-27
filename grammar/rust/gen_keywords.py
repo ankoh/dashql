@@ -17,7 +17,6 @@ CATEGORIES = {
     "SQL_RESERVED": "SqlReserved",
     "SQL_TYPE_FUNC": "SqlTypeFunc",
     "SQL_UNRESERVED": "SqlUnreserved",
-    "VIS_UNRESERVED": "VisUnreserved",
 }
 
 

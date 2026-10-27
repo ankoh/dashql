@@ -122,7 +122,7 @@ formatter-snapshots:
 
   - name: comment_unterminated_region
     input: |-
-      -- @dashql:description
+      -- @description
       -- Text that is not closed and wraps because it is quite long.
       select 1
     dialects:
@@ -134,25 +134,24 @@ formatter-snapshots:
           - mode: compact
             width: 30
             expected: |-
-              -- @dashql:description Text
-              -- that is not closed and
-              -- wraps because it is quite
-              -- long.
+              -- @description Text that is
+              -- not closed and wraps
+              -- because it is quite long.
               select 1;
           - mode: pretty
             expected: |-
-              -- @dashql:description Text that is not closed and wraps because it is quite long.
+              -- @description Text that is not closed and wraps because it is quite long.
               select 1;
 
   - name: comment_region_after_comments
     input: |-
       -- Leading text that wraps because it is quite long.
-      -- @dashql:note extra
+      -- @description extra
       -- content inside the region
-      -- @dashql:end
-      -- @dashql:meta
+      -- @end
+      -- @metadata
       -- { "a": 1 }
-      -- @dashql:end
+      -- @end
       -- trailing text
       select 1
     dialects:
@@ -166,34 +165,34 @@ formatter-snapshots:
             expected: |-
               -- Leading text that wraps
               -- because it is quite long.
-              -- @dashql:note extra
+              -- @description extra
               -- content inside the region
-              -- @dashql:end
-              -- @dashql:meta
+              -- @end
+              -- @metadata
               -- { "a": 1 }
-              -- @dashql:end
+              -- @end
               -- trailing text
               select 1;
           - mode: pretty
             expected: |-
               -- Leading text that wraps because it is quite long.
-              -- @dashql:note extra
+              -- @description extra
               -- content inside the region
-              -- @dashql:end
-              -- @dashql:meta
+              -- @end
+              -- @metadata
               -- { "a": 1 }
-              -- @dashql:end
+              -- @end
               -- trailing text
               select 1;
 
   - name: comment_adjacent_regions
     input: |-
-      -- @dashql:a
+      -- @description
       -- one
-      -- @dashql:end
-      -- @dashql:b
+      -- @end
+      -- @metadata
       -- two
-      -- @dashql:end
+      -- @end
       select 1
     dialects:
       hyper:
@@ -203,26 +202,288 @@ formatter-snapshots:
               select 1;
           - mode: compact
             expected: |-
-              -- @dashql:a
+              -- @description
               -- one
-              -- @dashql:end
-              -- @dashql:b
+              -- @end
+              -- @metadata
               -- two
-              -- @dashql:end
+              -- @end
               select 1;
           - mode: pretty
             expected: |-
-              -- @dashql:a
+              -- @description
               -- one
-              -- @dashql:end
-              -- @dashql:b
+              -- @end
+              -- @metadata
               -- two
-              -- @dashql:end
+              -- @end
+              select 1;
+
+  - name: comment_regions_one_end_line
+    input: |-
+      -- @description Revenue per region, which is long enough to be wrapped.
+      -- @vis table
+      -- @end
+      select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              /* @description Revenue per region, which is long enough to be wrapped.
+                 @vis table
+              */
+              select 1;
+          - mode: pretty
+            expected: |-
+              /* @description Revenue per region, which is long enough to be wrapped.
+                 @vis table
+              */
+              select 1;
+
+  - name: vis_line_comments_to_block
+    input: |-
+      -- @vis vegalite
+      -- {"mark": "bar", "encoding": {"x": {"field": "region"}}}
+      -- @end
+      select region from sales
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select region from sales;
+          - mode: compact
+            expected: |-
+              /* @vis vegalite
+                 {
+                   "mark": "bar",
+                   "encoding": {
+                     "x": {
+                       "field": "region"
+                     }
+                   }
+                 }
+              */
+              select region from sales;
+          - mode: pretty
+            expected: |-
+              /* @vis vegalite
+                 {
+                   "mark": "bar",
+                   "encoding": {
+                     "x": {
+                       "field": "region"
+                     }
+                   }
+                 }
+              */
+              select region
+              from sales;
+
+  - name: vis_line_comments_several_tags
+    input: |-
+      -- Revenue dashboard.
+      -- @description Revenue per region.
+      -- @vis card width=6 height=3
+      -- @vis table
+      -- @end
+      select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              -- Revenue dashboard.
+              /* @description Revenue per region.
+                 @vis card width=6 height=3
+                 @vis table
+              */
+              select 1;
+          - mode: pretty
+            expected: |-
+              -- Revenue dashboard.
+              /* @description Revenue per region.
+                 @vis card width=6 height=3
+                 @vis table
+              */
+              select 1;
+
+  - name: vis_block_comment_several_tags
+    input: |-
+      /* Revenue dashboard.
+            @description Revenue per region.
+        @vis    card   width=6  height=3
+            @vis vegalite {"mark":"bar"}
+      */
+      select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              /* Revenue dashboard.
+                 @description Revenue per region.
+                 @vis card width=6 height=3
+                 @vis vegalite
+                 {
+                   "mark": "bar"
+                 }
+              */
+              select 1;
+          - mode: pretty
+            expected: |-
+              /* Revenue dashboard.
+                 @description Revenue per region.
+                 @vis card width=6 height=3
+                 @vis vegalite
+                 {
+                   "mark": "bar"
+                 }
+              */
+              select 1;
+
+  - name: vis_inline_json
+    input: |-
+      /* @vis vegalite {"mark": {"type": "line", "point": true}, "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}} */
+      /*@vis   card  width=12 */
+      select date, revenue from sales
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select date, revenue from sales;
+          - mode: compact
+            expected: |-
+              /* @vis vegalite
+                 {
+                   "mark": {
+                     "type": "line",
+                     "point": true
+                   },
+                   "encoding": {
+                     "x": {
+                       "field": "date",
+                       "type": "temporal"
+                     },
+                     "y": {
+                       "field": "revenue",
+                       "aggregate": "sum"
+                     }
+                   }
+                 }
+              */
+              /* @vis card width=12 */
+              select date, revenue from sales;
+          - mode: pretty
+            expected: |-
+              /* @vis vegalite
+                 {
+                   "mark": {
+                     "type": "line",
+                     "point": true
+                   },
+                   "encoding": {
+                     "x": {
+                       "field": "date",
+                       "type": "temporal"
+                     },
+                     "y": {
+                       "field": "revenue",
+                       "aggregate": "sum"
+                     }
+                   }
+                 }
+              */
+              /* @vis card width=12 */
+              select date, revenue
+              from sales;
+
+  - name: vis_malformed_json_and_markdown
+    input: |-
+      /* @vis vegalite
+         {"mark": "bar",
+      */
+      select 1;
+      /* @vis markdown
+         ### {{metric}}
+         - {{value}}
+           - {{detail}}
+      */
+      select 'a' as metric, 1 as value, 'x' as detail
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+
+              select 'a' as metric, 1 as value, 'x' as detail;
+          - mode: compact
+            expected: |-
+              /* @vis vegalite
+                 {"mark": "bar",
+              */
+              select 1;
+
+              /* @vis markdown
+                 ### {{metric}}
+                 - {{value}}
+                   - {{detail}}
+              */
+              select 'a' as metric, 1 as value, 'x' as detail;
+          - mode: pretty
+            expected: |-
+              /* @vis vegalite
+                 {"mark": "bar",
+              */
+              select 1;
+
+              /* @vis markdown
+                 ### {{metric}}
+                 - {{value}}
+                   - {{detail}}
+              */
+              select 'a' as metric, 1 as value, 'x' as detail;
+
+  - name: vis_line_comments_with_comment_end
+    input: |-
+      -- @vis markdown
+      -- see */ here
+      -- @end
+      select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              -- @vis markdown
+              -- see */ here
+              -- @end
+              select 1;
+          - mode: pretty
+            expected: |-
+              -- @vis markdown
+              -- see */ here
+              -- @end
               select 1;
 
   - name: comment_tag_without_name
     input: |-
-      -- @dashql:
+      -- @
       -- text
       select 1
     dialects:
@@ -233,11 +494,11 @@ formatter-snapshots:
               select 1;
           - mode: compact
             expected: |-
-              -- @dashql: text
+              -- @ text
               select 1;
           - mode: pretty
             expected: |-
-              -- @dashql: text
+              -- @ text
               select 1;
 
   - name: comment_crlf_block

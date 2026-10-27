@@ -631,8 +631,7 @@ impl ScriptSession {
         self.format_with(catalog.inner.clone(), config, parse_if_outdated)
     }
 
-    /// Rewrite the dashboard clause of the terminal VISUALIZE statement, negative rows and columns
-    /// are absent
+    /// Rewrite the `@vis card` tag of the terminal query, negative rows and columns are absent
     #[wasm_bindgen(js_name = rewriteDashboard)]
     pub fn rewrite_dashboard(&self, row: i32, column: i32, width: i32, height: i32, parse_if_outdated: bool) -> Result<String, JsError> {
         self.inner
@@ -782,12 +781,6 @@ pub fn append_to_catalog_changes_sql(changes_sql: &str, changes: &[u8]) -> Resul
 #[wasm_bindgen(js_name = processBatch)]
 pub fn process_batch(request: &[u8]) -> Result<Vec<u8>, JsError> {
     dashql_core_session::batch::process_batch(request).map_err(js_error)
-}
-
-/// Parse a Vega-Lite spec into a DashQL VISUALIZE spec
-#[wasm_bindgen(js_name = parseVegaLiteToVisualize)]
-pub fn parse_vegalite_to_visualize(json: &[u8]) -> Vec<u8> {
-    dashql_core_session::visualize::parse_vegalite_to_visualize(json).into_bytes()
 }
 
 /// A plan view model (`dashql_plan_view_model_*`)

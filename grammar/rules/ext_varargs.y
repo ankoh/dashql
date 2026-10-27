@@ -32,7 +32,6 @@ vararg_key:
   | sql_column_name_keywords    { ctx.name_from_keyword(@1, $1) }
   | sql_type_func_keywords      { ctx.name_from_keyword(@1, $1) }
   | sql_reserved_keywords       { ctx.name_from_keyword(@1, $1) }
-  | vis_unreserved_keywords     { ctx.name_from_keyword(@1, $1) }
     ;
 
 vararg_value:

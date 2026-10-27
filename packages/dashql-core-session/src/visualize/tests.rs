@@ -1,4 +1,4 @@
-//! Unit tests of the renderer specs of VISUALIZE statements.
+//! Unit tests of the renderer specs of `@vis` tags.
 
 use super::*;
 use dashql_core::analyzer::analyze;
@@ -19,21 +19,16 @@ fn analyze_text(text: &str) -> AnalyzedScript {
 
 #[test]
 fn select_source() {
-    let analyzed = analyze_text("\nSELECT * FROM sales WHERE revenue > 0\nVISUALIZE USING vegalite (mark => bar)\n");
+    let analyzed = analyze_text("\n/* @vis vegalite {\"mark\": \"bar\"} */\nSELECT * FROM sales WHERE revenue > 0\n");
     assert!(!analyzed.visualization_specs.is_empty());
     let json = generate_vegalite_spec(&analyzed.visualization_specs[0], &analyzed);
-    assert!(json.contains("SELECT * FROM sales WHERE revenue > 0"));
-    assert!(!json.contains("visualize"));
+    assert!(json.contains("\"$sql\": \"SELECT * FROM sales WHERE revenue > 0\""));
+    assert!(!json.contains("@vis"));
 }
 
 #[test]
 fn normalizes_dashboard_layout_with_warnings() {
-    let text = "\nSELECT 1 AS value VISUALIZE USING vegalite (\n    mark => bar,\n    \
-                dashboard => (row => -1, column => 15, width => 20, height => 0)\n)\n";
-    let catalog = Catalog::new();
-    let parsed = parse_text(&catalog, text);
-    assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
-    let analyzed = analyze(parsed, &catalog).unwrap();
+    let analyzed = analyze_text("/* @vis table\n   @vis card row=-1 column=15 width=20 height=0 */\nSELECT 1 AS value");
     assert!(!analyzed.visualization_specs.is_empty());
     let dashboard = &analyzed.visualization_specs[0].dashboard;
     assert_eq!(dashboard.row, None);
@@ -48,37 +43,20 @@ fn normalizes_dashboard_layout_with_warnings() {
 }
 
 #[test]
-fn rejects_dashboard_in_nested_vega_layer() {
-    let catalog = Catalog::new();
-    let parsed = parse_text(
-        &catalog,
-        "\nSELECT 1 AS value VISUALIZE USING vegalite (\n    layer => [(mark => bar, dashboard => (width => 6))]\n)\n",
-    );
-    assert!(!parsed.errors.is_empty());
-}
-
-#[test]
-fn accepts_dashboard_for_every_renderer_root() {
-    for renderer_spec in [
-        "vegalite (mark => bar, dashboard => (width => 7))",
-        "markdown (template => '{{value}}', dashboard => (width => 7))",
-        "table (dashboard => (width => 7))",
-    ] {
-        let catalog = Catalog::new();
-        let parsed = parse_text(&catalog, &format!("SELECT value VISUALIZE USING {renderer_spec}"));
-        assert!(parsed.errors.is_empty(), "{renderer_spec}: {:?}", parsed.errors);
-        let analyzed = analyze(parsed, &catalog).unwrap();
-        assert!(!analyzed.visualization_specs.is_empty());
-        assert_eq!(analyzed.visualization_specs[0].dashboard.width, 7);
+fn accepts_a_card_for_every_renderer() {
+    for renderer in ["vegalite {\"mark\": \"bar\"}", "markdown {{value}}", "table"] {
+        let analyzed = analyze_text(&format!("/* @vis {renderer}\n   @vis card width=7 */\nSELECT 1 AS value"));
+        assert!(!analyzed.visualization_specs.is_empty(), "{renderer}");
+        assert_eq!(analyzed.visualization_specs[0].dashboard.width, 7, "{renderer}");
     }
 }
 
 #[test]
 fn compiles_renderer_specs() {
-    let analyzed = analyze_text("SELECT 1 AS value VISUALIZE USING table ()");
+    let analyzed = analyze_text("/* @vis table */ SELECT 1 AS value");
     assert!(compile_markdown_spec(&analyzed.visualization_specs[0]).is_none());
 
-    let analyzed = analyze_text("SELECT 'item' AS product VISUALIZE USING markdown (template => '## {{product}}')");
+    let analyzed = analyze_text("/* @vis markdown ## {{product}} */ SELECT 'item' AS product");
     let spec = &analyzed.visualization_specs[0];
     let markdown = compile_markdown_spec(spec).unwrap();
     assert_eq!(markdown.template, "## {{product}}");

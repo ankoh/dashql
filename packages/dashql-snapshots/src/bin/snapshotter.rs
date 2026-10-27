@@ -20,7 +20,7 @@ use dashql_core::formatter::{
 };
 use dashql_core::script_diff::ScriptDiff;
 use dashql_core_view::PlanViewModel;
-use dashql_core_session::visualize::{compile_markdown_spec, generate_vegalite_spec, parse_vegalite_to_visualize};
+use dashql_core_session::visualize::{compile_markdown_spec, generate_vegalite_spec};
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::{scan, ScannedScript};
 use dashql_snapshots::encode::completion::encode_completion;
@@ -237,9 +237,12 @@ fn complete(
     }
     let completion = Completion::compute(&cursor, limit);
     let mut out = Map::new();
-    // Completions inside comments have no target symbol
+    // Completions inside comments have no target symbol, only those of comment tags have candidates
     let Some(loc) = completion.target_symbol.as_ref().map(|t| t.symbol.location) else {
         out.int("no-target", 1);
+        if !completion.top_candidates.is_empty() {
+            encode_completion(&mut out, &completion);
+        }
         append(completions, out.into_node());
         return;
     };
@@ -313,7 +316,7 @@ fn generate_visualize_snapshots(dir: &Path) {
             let Some(spec) = analyzed.visualization_specs.first() else { continue };
             let renderer = spec.renderer.as_deref();
             // Stale keys of either renderer are cleared, so switching the renderer leaves no output behind
-            for key in ["vegalite", "roundtrip", "markdown"] {
+            for key in ["vegalite", "markdown"] {
                 test.remove(key);
             }
             match renderer {
@@ -322,10 +325,7 @@ fn generate_visualize_snapshots(dir: &Path) {
                     test.push("markdown", encode_markdown_spec(&markdown));
                 }
                 _ => {
-                    let vegalite = generate_vegalite_spec(spec, &analyzed);
-                    let roundtrip = parse_vegalite_to_visualize(&vegalite);
-                    test.push("vegalite", Node::literal(vegalite));
-                    test.push("roundtrip", Node::literal(roundtrip));
+                    test.push("vegalite", Node::literal(generate_vegalite_spec(spec, &analyzed)));
                 }
             }
         }

@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Translate single expressions into the SQL dialect of Spark, with the columns they read.
--- @dashql:end
+-- @end
 
 explain (format sql_expressions, sql_dialect internal_spark_2025_12, columns descriptor(price numeric(10, 2), quantity int))
 expressions (

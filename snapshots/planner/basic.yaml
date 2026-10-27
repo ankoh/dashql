@@ -1619,10 +1619,13 @@ planner-snapshots:
       - name: queries
         input: |
           -- Description is not part of the source query.
-          select 1 as id visualize using table ();
-          with c as (select * from a) select * from c visualize using table ();
+          /* @vis table */
+          select 1 as id;
+          /* @vis table */
+          with c as (select * from a) select * from c;
           insert into a values (1) returning id;
-          select * from a visualize using table ();
+          /* @vis table */
+          select * from a;
           explain select * from a;
     expected:
       valid: true
@@ -1640,7 +1643,7 @@ planner-snapshots:
         - id: 0
           script: queries
           statement-id: 0
-          type: VIS_VISUALISE
+          type: SELECT
           sql: "select 1 as id"
           produces-output: true
           barrier: false
@@ -1648,7 +1651,7 @@ planner-snapshots:
         - id: 1
           script: queries
           statement-id: 1
-          type: VIS_VISUALISE
+          type: SELECT
           sql: "with c as (select * from a) select * from c"
           produces-output: true
           barrier: false
@@ -1668,7 +1671,7 @@ planner-snapshots:
         - id: 3
           script: queries
           statement-id: 3
-          type: VIS_VISUALISE
+          type: SELECT
           sql: "select * from a"
           produces-output: true
           barrier: false
@@ -1699,39 +1702,6 @@ planner-snapshots:
           reason: READ_AFTER_WRITE
           entity: '256.65536.4294967296'
       diagnostics: []
-
-  - name: UnsupportedVisualizationSelectInto
-    catalog: create table a (id int);
-    scripts:
-      - name: mutation
-        input: select * into destination from a visualize using table ();
-    expected:
-      valid: false
-      scripts:
-        - name: mutation
-          text-version: 1
-          analyzed-text-version: 1
-          analyzed-catalog-revision: 3
-      entities:
-        - catalog-id: '256.65536.4294967296'
-          type: TABLE
-          name: a
-      unresolved-references: []
-      nodes:
-        - id: 0
-          script: mutation
-          statement-id: 0
-          type: VIS_VISUALISE
-          sql: ""
-          produces-output: true
-          barrier: true
-          accesses:
-            - entity: '256.65536.4294967296'
-              mode: READ
-      edges: []
-      diagnostics:
-        - node: 0
-          message: VISUALIZE SELECT INTO has unsupported mutation and session effects
 
   - name: DeleteHazardsAndReturning
     catalog: |

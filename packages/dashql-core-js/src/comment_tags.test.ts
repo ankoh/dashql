@@ -36,22 +36,22 @@ function parseMetadata(text: string): dashql.ScriptMetadata | null {
 describe('Comment tags', () => {
     it('exposes every tag without interpreting it', () => {
         const text = [
-            '-- @dashql:description Sales',
+            '-- @description Sales',
             '-- per région',
-            '-- @dashql:end',
-            '/* @dashql:snippet {"title": "x"} */',
+            '-- @end',
+            '/* @metadata {"title": "x"} */',
             '-- plain comment',
             'select 1;',
         ].join('\n');
         const tags = withParsed(text, (parsed, bytes) => dashql.readCommentTags(parsed, bytes));
         expect(tags.map(tag => [tag.name, tag.text])).toEqual([
             ['description', 'Sales\nper région'],
-            ['snippet', '{"title": "x"}'],
+            ['metadata', '{"title": "x"}'],
         ]);
         // The spans are byte offsets of the whole block
         const bytes = encoder.encode(text);
         const first = new TextDecoder().decode(bytes.subarray(tags[0].offset, tags[0].offset + tags[0].length));
-        expect(first).toEqual('-- @dashql:description Sales\n-- per région\n-- @dashql:end');
+        expect(first).toEqual('-- @description Sales\n-- per région\n-- @end');
         expect(dashql.parseCommentTagObject(tags[1])).toEqual({ title: 'x' });
         expect(dashql.parseCommentTagObject(tags[0])).toBeNull();
     });
@@ -81,15 +81,15 @@ describe('Comment metadata', () => {
     it('renders pretty-printed JSON as line comments', () => {
         expect(dashql.renderMetadataBlock({ owner: 'finance', runtime_ms: 1834 })).toEqual(
             [
-                '-- @dashql:metadata',
+                '-- @metadata',
                 '-- {',
                 '--   "owner": "finance",',
                 '--   "runtime_ms": 1834',
                 '-- }',
-                '-- @dashql:end',
+                '-- @end',
             ].join('\n'),
         );
-        expect(dashql.renderMetadataBlock({}, '\r\n')).toEqual('-- @dashql:metadata\r\n-- {}\r\n-- @dashql:end');
+        expect(dashql.renderMetadataBlock({}, '\r\n')).toEqual('-- @metadata\r\n-- {}\r\n-- @end');
     });
 
     it('round-trips through the parser', () => {
@@ -97,8 +97,8 @@ describe('Comment metadata', () => {
             owner: 'finance',
             notes: 'first line\nsecond line\r\n\tindented',
             quotes: 'say "hi" */ -- not a comment',
-            tag: '@dashql:end',
-            '@dashql:end': -1,
+            tag: '@end',
+            '@end': -1,
             unicode: 'Grüße 👋  ',
             empty: '',
             padded: '  spaces  ',
@@ -113,23 +113,23 @@ describe('Comment metadata', () => {
     });
 
     it('reads hand-written block comments', () => {
-        const text = '/* @dashql:metadata\n * {"owner": "finance",\n *  "tags": ["weekly"]}\n */\nselect 1;\n';
+        const text = '/* @metadata\n * {"owner": "finance",\n *  "tags": ["weekly"]}\n */\nselect 1;\n';
         expect(parseMetadata(text)).toEqual({ owner: 'finance', tags: ['weekly'] });
     });
 
     it('ignores scripts without valid metadata', () => {
         expect(parseMetadata('select 1;')).toBeNull();
-        expect(parseMetadata('-- @dashql:metadata\n-- owner: finance\n-- @dashql:end\nselect 1;')).toBeNull();
-        expect(parseMetadata('-- @dashql:metadata\n-- [1, 2]\n-- @dashql:end\nselect 1;')).toBeNull();
+        expect(parseMetadata('-- @metadata\n-- owner: finance\n-- @end\nselect 1;')).toBeNull();
+        expect(parseMetadata('-- @metadata\n-- [1, 2]\n-- @end\nselect 1;')).toBeNull();
     });
 
     it('keeps metadata next to a description', () => {
         const text = [
             dashql.renderMetadataBlock({ owner: 'finance' }),
             '',
-            '-- @dashql:description',
+            '-- @description',
             '-- Revenue per segment.',
-            '-- @dashql:end',
+            '-- @end',
             'select 1;',
         ].join('\n');
         expect(parseMetadata(text)).toEqual({ owner: 'finance' });

@@ -1,3 +1,12 @@
+/* @vis markdown
+   ## {{customer}}
+
+   **Market:** {{nation}} · **Orders:** {{order_count}}
+
+   **Order value:** {{order_value}}
+
+   _Latest order: {{latest_order}}_
+*/
 WITH customer_summary AS (
   SELECT
     c.c_name AS customer,
@@ -13,13 +22,4 @@ WITH customer_summary AS (
   LIMIT 5
 )
 SELECT customer, nation, order_count, order_value, latest_order
-FROM customer_summary
-VISUALIZE USING markdown (
-  template => '## {{customer}}
-
-**Market:** {{nation}} · **Orders:** {{order_count}}
-
-**Order value:** {{order_value}}
-
-_Latest order: {{latest_order}}_'
-);
+FROM customer_summary;

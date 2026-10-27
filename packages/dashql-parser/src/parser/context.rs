@@ -123,8 +123,6 @@ pub(crate) struct State {
     pub(crate) statements: Vec<Statement>,
     /// The parser errors
     pub(crate) errors: Vec<ParseError>,
-    /// Symbol-index spans (begin, end) covering the bodies of vis specs
-    pub(crate) vis_spec_spans: Vec<(u32, u32)>,
     /// The names of the scanned script, extended by names the parser registers
     pub(crate) names: NameRegistry,
     /// The hint of the next error, produced while building a syntax error message
@@ -154,8 +152,6 @@ pub struct ParseContext<'a> {
     text: &'a str,
     /// The scanned symbols, located by byte spans
     symbols: &'a [Symbol],
-    /// Is the VISUALISE syntax enabled?
-    vis_enabled: bool,
     /// The mutable parser state
     pub(crate) state: StateCell<State>,
 }
@@ -194,22 +190,16 @@ pub fn null() -> Node {
 }
 
 impl<'a> ParseContext<'a> {
-    pub fn new(text: &'a str, symbols: &'a [Symbol], names: NameRegistry, vis_enabled: bool) -> Self {
+    pub fn new(text: &'a str, symbols: &'a [Symbol], names: NameRegistry) -> Self {
         Self {
             text,
             symbols,
-            vis_enabled,
             state: StateCell::new(State {
                 names,
                 nodes: Vec::with_capacity(symbols.len() * 3),
                 ..Default::default()
             }),
         }
-    }
-
-    /// Is the VISUALISE syntax enabled?
-    pub fn is_vis_enabled(&self) -> bool {
-        self.vis_enabled
     }
 
     /// The scanned symbols
@@ -327,8 +317,6 @@ impl<'a> ParseContext<'a> {
         let node_id = state.nodes.len() as u32;
         state.nodes.push(with_parent(&node, node_id));
         let node_type = node.node_type();
-        // ENUM_VIS_* nodes are numbered above OBJECT_KEYS_ too, but have no children (their value
-        // is not a child range).
         if (node_type == NodeType::ARRAY || node_type.0 > NodeType::OBJECT_KEYS_.0) && node.children_count() > 0 {
             let begin = node.children_begin_or_value() as usize;
             let end = begin + node.children_count() as usize;
@@ -575,7 +563,6 @@ impl<'a> ParseContext<'a> {
             NodeType::OBJECT_SQL_ATTACH_DATABASE => StatementType::ATTACH_DATABASE,
             NodeType::OBJECT_SQL_INSERT => StatementType::INSERT,
             NodeType::OBJECT_SQL_DELETE => StatementType::DELETE,
-            NodeType::OBJECT_VIS_VISUALISE => StatementType::VIS_VISUALISE,
             NodeType::OBJECT_EXT_EXPLAIN => StatementType::EXPLAIN,
             other => panic!("unexpected statement root {:?}", other.variant_name()),
         };
@@ -595,11 +582,6 @@ impl<'a> ParseContext<'a> {
     pub fn reset_statement(&self) {
         let mut state = self.state.borrow_mut();
         state.current_statement.nodes_begin = state.nodes.len() as u32;
-    }
-
-    /// Mark the body of a vis spec
-    pub fn mark_vis_spec_span(&self, loc: SymbolSpan) {
-        self.state.borrow_mut().vis_spec_spans.push((loc.offset(), loc.offset() + loc.length()));
     }
 
     /// Add an error without a hint

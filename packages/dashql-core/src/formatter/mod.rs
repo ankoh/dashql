@@ -16,7 +16,6 @@ mod insert;
 mod pgq;
 pub mod program;
 mod select;
-mod vis;
 
 pub use program::*;
 
@@ -2745,21 +2744,6 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_CONST_FUNCTION_CAST => self.format_const_function_cast(node),
             NodeType::ENUM_SQL_EXPRESSION_OPERATOR => self.format_expression_operator_type(node),
             NodeType::OBJECT_SQL_NARY_EXPRESSION => self.format_expression(node_id),
-            NodeType::OBJECT_VIS_VISUALISE => self.format_visualize(node_id),
-            NodeType::OBJECT_VIS_SPEC
-            | NodeType::OBJECT_VIS_MARKDOWN_SPEC
-            | NodeType::OBJECT_VIS_TABLE_SPEC
-            | NodeType::OBJECT_VIS_DASHBOARD_SPEC
-            | NodeType::OBJECT_VIS_MARK
-            | NodeType::OBJECT_VIS_ENCODING
-            | NodeType::OBJECT_VIS_FIELD_DEF
-            | NodeType::OBJECT_VIS_SCALE
-            | NodeType::OBJECT_VIS_AXIS
-            | NodeType::OBJECT_VIS_LEGEND => self.format_vis_property_list(node),
-            NodeType::ENUM_VIS_MARK_TYPE
-            | NodeType::ENUM_VIS_FIELD_TYPE
-            | NodeType::ENUM_VIS_SCALE_TYPE
-            | NodeType::ENUM_VIS_ENCODING_CHANNEL => self.format_vis_enum(node),
             NodeType::OBJECT_EXT_VARARG_ARRAY => self.format_vararg_array(node),
             NodeType::LITERAL_NULL
             | NodeType::LITERAL_INTEGER

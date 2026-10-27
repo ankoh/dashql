@@ -404,58 +404,19 @@ planner-snapshots:
         - node: 2
           message: view dependencies are not expanded; conservative access barrier
 
-  - name: VisualizationUnresolvedSource
-    scripts:
-      - name: queries
-        input: |
-          select category, revenue from sales visualize using vegalite (mark => bar, encoding => (x => category, y => revenue));
-          select 1;
-    expected:
-      valid: true
-      scripts:
-        - name: queries
-          text-version: 1
-          analyzed-text-version: 1
-          analyzed-catalog-revision: 1
-      entities: []
-      unresolved-references:
-        - name: sales
-      nodes:
-        - id: 0
-          script: queries
-          statement-id: 0
-          type: VIS_VISUALISE
-          sql: "select category, revenue from sales"
-          produces-output: true
-          barrier: true
-          accesses:
-            - unresolved-reference: 0
-              mode: READ
-        - id: 1
-          script: queries
-          statement-id: 1
-          type: SELECT
-          sql: "select 1"
-          produces-output: true
-          barrier: false
-          accesses: []
-      edges:
-        - from: 0
-          to: 1
-          reason: BARRIER
-      diagnostics:
-        - node: 0
-          message: 'unresolved relation: sales'
-
   - name: VisualizationRenderers
     catalog: |
       create table sales (category text, revenue int);
     scripts:
       - name: queries
         input: |
-          select category, revenue from sales visualize using vegalite (mark => bar, encoding => (x => category, y => revenue));
-          select category, revenue from sales visualize using table (dashboard => (row => 0, column => 0, width => 6, height => 2));
-          select category from sales visualize using markdown (template => '{{category}}');
+          /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "category"}, "y": {"field": "revenue"}}} */
+          select category, revenue from sales;
+          /* @vis table
+             @vis card row=0 column=0 width=6 height=2 */
+          select category, revenue from sales;
+          /* @vis markdown {{category}} */
+          select category from sales;
     expected:
       valid: true
       scripts:
@@ -472,7 +433,7 @@ planner-snapshots:
         - id: 0
           script: queries
           statement-id: 0
-          type: VIS_VISUALISE
+          type: SELECT
           sql: "select category, revenue from sales"
           produces-output: true
           barrier: false
@@ -482,7 +443,7 @@ planner-snapshots:
         - id: 1
           script: queries
           statement-id: 1
-          type: VIS_VISUALISE
+          type: SELECT
           sql: "select category, revenue from sales"
           produces-output: true
           barrier: false
@@ -492,7 +453,7 @@ planner-snapshots:
         - id: 2
           script: queries
           statement-id: 2
-          type: VIS_VISUALISE
+          type: SELECT
           sql: "select category from sales"
           produces-output: true
           barrier: false
@@ -595,10 +556,10 @@ planner-snapshots:
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
-          name: '"x"'
+          name: x
         - catalog-id: '256.65536.4294967297'
           type: TABLE
-          name: '"y"'
+          name: y
       unresolved-references: []
       nodes:
         - id: 0

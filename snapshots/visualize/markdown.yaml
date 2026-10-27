@@ -23,20 +23,21 @@ visualize-snapshots:
         errors: []
     script:
       input: |
-        SELECT product, revenue, growth FROM product_summary VISUALIZE USING markdown (
-          template => '## {{product}}
+        /* @vis markdown
+           ## {{product}}
 
-          **Revenue:** {{revenue}}
+           **Revenue:** {{revenue}}
 
-          **Growth:** {{growth}}'
-        );
+           **Growth:** {{growth}}
+        */
+        SELECT product, revenue, growth FROM product_summary;
     markdown:
       template: |-
         ## {{product}}
 
-          **Revenue:** {{revenue}}
+        **Revenue:** {{revenue}}
 
-          **Growth:** {{growth}}
+        **Growth:** {{growth}}
       fields:
         - product
         - revenue
@@ -73,9 +74,10 @@ visualize-snapshots:
   - name: vis_markdown_escaping
     script:
       input: |
-        SELECT 'Ada' AS author VISUALIZE USING markdown (
-          template => 'It''s by {{ author }}. Repeated: {{author}}. Literal: {value}.'
-        );
+        /* @vis markdown
+           It's by {{ author }}. Repeated: {{author}}. Literal: {value}.
+        */
+        SELECT 'Ada' AS author;
     markdown:
       template: 'It''s by {{ author }}. Repeated: {{author}}. Literal: {value}.'
       fields:
@@ -99,32 +101,33 @@ visualize-snapshots:
   - name: vis_markdown_safe_ast
     script:
       input: |
-        SELECT 'Ada' AS author VISUALIZE USING markdown (
-          template => '# Report
+        /* @vis markdown
+           # Report
 
-          > **Author:** {{author}}
+           > **Author:** {{author}}
 
-          1. [Safe](https://example.com "Details")
-          2. [Unsafe](javascript:alert(1))
-          3. [Dynamic]({{author}})
+           1. [Safe](https://example.com "Details")
+           2. [Unsafe](javascript:alert(1))
+           3. [Dynamic]({{author}})
 
-          `{{author}}`
+           `{{author}}`
 
-          <script>bad()</script>'
-        );
+           <script>bad()</script>
+        */
+        SELECT 'Ada' AS author;
     markdown:
       template: |-
         # Report
 
-          > **Author:** {{author}}
+        > **Author:** {{author}}
 
-          1. [Safe](https://example.com "Details")
-          2. [Unsafe](javascript:alert(1))
-          3. [Dynamic]({{author}})
+        1. [Safe](https://example.com "Details")
+        2. [Unsafe](javascript:alert(1))
+        3. [Dynamic]({{author}})
 
-          `{{author}}`
+        `{{author}}`
 
-          <script>bad()</script>
+        <script>bad()</script>
       fields:
         - author
       document:

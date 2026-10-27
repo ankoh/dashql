@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Compute the median and the 90th percentile of a measure per group.
--- @dashql:end
+-- @end
 
 with requests(endpoint, latency_ms) as (
     values ('/home', 12), ('/home', 18), ('/home', 25), ('/home', 140),

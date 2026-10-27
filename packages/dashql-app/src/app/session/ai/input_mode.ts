@@ -46,7 +46,6 @@ function tokenSqlWeight(tokenType: core.buffers.parser.ScannerTokenType): number
         case TokenType.IDENTIFIER:
             return 0;
         case TokenType.KEYWORD:
-        case TokenType.KEYWORD_VIS:
             return 0.5;
         default:
             return 1;
@@ -58,7 +57,6 @@ function isGrowingToken(tokenType: core.buffers.parser.ScannerTokenType): boolea
     switch (tokenType) {
         case TokenType.IDENTIFIER:
         case TokenType.KEYWORD:
-        case TokenType.KEYWORD_VIS:
         case TokenType.LITERAL_INTEGER:
         case TokenType.LITERAL_FLOAT:
             return true;
@@ -104,7 +102,7 @@ export function assessSql(update: core.buffers.editor.EditorUpdateT, cursor: num
     }
 
     const evidence: SqlEvidence = {
-        leadingKeyword: tokens.length > 0 && (tokens[0].type === TokenType.KEYWORD || tokens[0].type === TokenType.KEYWORD_VIS),
+        leadingKeyword: tokens.length > 0 && tokens[0].type === TokenType.KEYWORD,
         validTokens: 0,
         validSqlTokens: 0,
         tailTokens: 0,

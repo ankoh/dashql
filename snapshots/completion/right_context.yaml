@@ -133,19 +133,6 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 71
-          value: x
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,SUFFIX_DEPTH_MANY]
-          location: "x"
-          location-qualified: "x"
-          objects: []
-        - score: 70
-          value: x
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
-          location: "x"
-          location-qualified: "x"
-          objects: []
         - score: 59
           value: x
           candidate-tags: [IDENTITY]
@@ -153,13 +140,25 @@ completion-snapshots:
           location-qualified: "x"
           objects: []
         - score: 56
-          value: x2
+          value: xml
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "x"
           location-qualified: "x"
           objects: []
         - score: 56
-          value: x_offset
+          value: xmlattributes
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+        - score: 56
+          value: xmlconcat
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "x"
+          location-qualified: "x"
+          objects: []
+        - score: 56
+          value: xmlelement
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "x"
           location-qualified: "x"
@@ -748,13 +747,13 @@ completion-snapshots:
           location-qualified: "gro"
           objects: []
         - score: 55
-          value: grid
+          value: grouping
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "gro"
           location-qualified: "gro"
           objects: []
         - score: 55
-          value: grouping
+          value: groups
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "gro"
           location-qualified: "gro"
@@ -817,7 +816,7 @@ completion-snapshots:
           location-qualified: "gro"
           objects: []
         - score: 40
-          value: grid
+          value: grouping
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
           location: "gro"
           location-qualified: "gro"
@@ -892,12 +891,6 @@ completion-snapshots:
           location-qualified: "gro"
           objects: []
         - score: 56
-          value: grid
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
-          objects: []
-        - score: 56
           value: grouping
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "gro"
@@ -911,12 +904,6 @@ completion-snapshots:
           objects: []
         - score: 51
           value: aggregate
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
-          objects: []
-        - score: 51
-          value: background
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "gro"
           location-qualified: "gro"
@@ -948,6 +935,18 @@ completion-snapshots:
         - score: 3
           value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 1
+          value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - score: 1
+          value: absolute
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "gro"
           location-qualified: "gro"
           objects: []

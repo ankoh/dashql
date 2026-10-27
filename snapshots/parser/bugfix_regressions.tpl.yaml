@@ -89,9 +89,6 @@ parser-snapshots:
   - name: check_constraint_attributes
     input: |-
       create table t (a int, check (a > 0) not valid, check (a < 9) no inherit);
-  # Empty arrays of a visualize spec are kept
-  - name: vis_empty_vararg_arrays
-    input: select * from t visualize using vegalite (encoding => (detail => []))
   # A slice without bounds is kept
   - name: slice_without_bounds
     input: select a[:] from t

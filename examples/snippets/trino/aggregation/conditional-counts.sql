@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Count rows per condition in one pass, turning categories into columns.
--- @dashql:end
+-- @end
 
 with tickets(team, status) as (
     values ('core', 'open'), ('core', 'closed'), ('core', 'open'),

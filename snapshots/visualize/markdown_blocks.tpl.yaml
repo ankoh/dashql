@@ -2,70 +2,68 @@ visualize-snapshots:
   - name: vis_markdown_code_blocks
     script:
       input: |
-        SELECT 'Ada' AS author VISUALIZE USING markdown (
-          template => '```sql extra
-        select {{author}};
-        ```
+        /* @vis markdown
+           ```sql extra
+           select {{author}};
+           ```
 
-            indented code
+               indented code
 
-        ---
+           ---
 
-        done'
-        );
+           done
+        */
+        SELECT 'Ada' AS author;
 
   - name: vis_markdown_lists
     script:
       input: |
-        SELECT 'Ada' AS author, 3 AS n VISUALIZE USING markdown (
-          template => '- tight {{author}}
-        - items
-          - nested
+        /* @vis markdown
+           - tight {{author}}
+           - items
+             - nested
 
-        3. loose
+           3. loose
 
-        4. {{n}}
+           4. {{n}}
 
-        * star'
-        );
+           * star
+        */
+        SELECT 'Ada' AS author, 3 AS n;
 
   - name: vis_markdown_inline
     script:
       input: |
-        SELECT 'Ada' AS author VISUALIZE USING markdown (
-          template => 'Some *emphasis*, **strong**, _under_ and ![image](https://example.com/a.png "Title") by {{author}}.\
-        Hard break and <b>inline html</b> and <https://example.com> and <me@example.com>.
+        /* @vis markdown
+           Some *emphasis*, **strong**, _under_ and ![image](https://example.com/a.png "Title") by {{author}}.\
+           Hard break and <b>inline html</b> and <https://example.com> and <me@example.com>.
 
-        [relative](/docs) [mail](mailto:a@example.com) [field title](https://example.com "{{author}}")'
-        );
+           [relative](/docs) [mail](mailto:a@example.com) [field title](https://example.com "{{author}}")
+        */
+        SELECT 'Ada' AS author;
 
   - name: vis_markdown_headings_quotes
     script:
       input: |
-        SELECT 'Ada' AS author VISUALIZE USING markdown (
-          template => '# One
+        /* @vis markdown
+           # One
 
-        ## Two {{author}}
+           ## Two {{author}}
 
-        ###### Six
+           ###### Six
 
-        Setext
-        ======
+           Setext
+           ======
 
-        > quote
-        > > nested {{author}}'
-        );
-
-  - name: vis_markdown_empty_template
-    script:
-      input: |
-        SELECT 'Ada' AS author VISUALIZE USING markdown (
-          template => ''
-        );
+           > quote
+           > > nested {{author}}
+        */
+        SELECT 'Ada' AS author;
 
   - name: vis_markdown_only_fields
     script:
       input: |
-        SELECT 'Ada' AS author, 1 AS n VISUALIZE USING markdown (
-          template => '{{author}}{{n}}{{missing}}'
-        );
+        /* @vis markdown
+           {{author}}{{n}}{{missing}}
+        */
+        SELECT 'Ada' AS author, 1 AS n;

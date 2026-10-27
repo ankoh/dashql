@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Check that a query is valid without planning or running it.
--- @dashql:end
+-- @end
 
 explain (type validate)
 with orders(customer, amount) as (

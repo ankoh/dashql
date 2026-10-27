@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Show how every result column is computed from the columns of a pre-aggregation.
 -- The average becomes a sum and a count that are divided after the aggregation.
--- @dashql:end
+-- @end
 
 explain (format schema, postaggregation, sql_dialect internal_spark_2025_12)
 with orders(customer, amount) as (

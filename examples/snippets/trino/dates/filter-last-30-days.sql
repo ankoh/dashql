@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Keep the rows whose timestamp lies within the last 30 days.
 -- Compare against a moving bound, the result changes over time.
--- @dashql:end
+-- @end
 
 with events(occurred_at, name) as (
     values

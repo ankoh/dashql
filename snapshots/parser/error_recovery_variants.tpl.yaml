@@ -112,17 +112,6 @@ parser-snapshots:
       select 'abc;
       select 2;
 
-  # A broken VISUALIZE statement
-  - name: recovery_vis_statement
-    input: |-
-      select * from t visualize using vegalite (mark => , encoding => (x => (field => )));
-      select 1
-
-  # An unclosed VISUALIZE statement
-  - name: recovery_vis_statement_unclosed
-    input: |-
-      select * from t visualize using vegalite (mark => bar, encoding => (
-
   # A broken SET statement
   - name: recovery_set_statement
     input: |-

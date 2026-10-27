@@ -646,57 +646,6 @@ parser-snapshots:
       comment-blocks: []
       comment-warnings: []
 
-  - name: recovery_vis_statement
-    input: |-
-      select * from t visualize using vegalite (mark => , encoding => (x => (field => )));
-      select 1
-    expected:
-      statements:
-        - type: SELECT
-          ast-begin: 5
-          ast-size: 4
-          description:
-            text: "select 1"
-            description-begin: 0
-            description-count: 0
-          ast:
-            type: OBJECT_SQL_SELECT
-            text: "select 1"
-            children:
-              - key: SQL_SELECT_TARGETS
-                type: ARRAY
-                text: "1"
-                children:
-                  - type: OBJECT_SQL_RESULT_TARGET
-                    text: "1"
-                    children:
-                      - key: SQL_RESULT_TARGET_VALUE
-                        type: LITERAL_INTEGER
-                        text: "1"
-      scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected COMMA'
-          text: ","
-      line-breaks:
-        - text: [84,85]
-      comments: []
-      comment-blocks: []
-      comment-warnings: []
-
-  - name: recovery_vis_statement_unclosed
-    input: |-
-      select * from t visualize using vegalite (mark => bar, encoding => (
-    expected:
-      statements: []
-      scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected EOF'
-          text: ""
-      line-breaks: []
-      comments: []
-      comment-blocks: []
-      comment-warnings: []
-
   - name: recovery_set_statement
     input: |-
       set ;

@@ -303,6 +303,3 @@ X(SQL_UNRESERVED, "year", YEAR_P)
 X(SQL_UNRESERVED, "yes", YES_P)
 X(SQL_UNRESERVED, "zone", ZONE)
 
-// VISUALISE extension
-X(SQL_UNRESERVED, "visualise",    VISUALISE)
-X(SQL_UNRESERVED, "visualize",    VISUALIZE)

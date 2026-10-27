@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Deduplicate a change log by keeping only the newest version of every key.
--- @dashql:end
+-- @end
 
 with customer_versions(customer_id, email, updated_at) as (
     values

@@ -168,19 +168,6 @@ diff-snapshots:
           target-statement: 0
           target-span: "select a, .., c from t"
 
-  - name: update_vis_encoding
-    source: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => category, type => nominal), y => (field => revenue, type => quantitative)));
-    target: |-
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, encoding => (x => (field => category, type => ordinal), y => (field => revenue, type => quantitative)));
-    expected:
-      ops:
-        - code: UPDATE
-          source-statement: 0
-          target-statement: 0
-          target-changes:
-            - text: "ordinal"
-
   - name: update_create_table
     source: |-
       create table t (a int, b int, c int, d int);

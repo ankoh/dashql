@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Keep the two best-selling products of every category with a ranking window function.
--- @dashql:end
+-- @end
 
 with sales(category, product, revenue) as (
     values

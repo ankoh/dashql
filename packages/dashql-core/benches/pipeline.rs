@@ -612,7 +612,6 @@ fn main() {
             &scanned.text,
             &scanned.symbols,
             scanned.names.clone(),
-            true,
         );
         dashql_parser::parser::driver::parse(&mut ctx);
         black_box(&ctx);
@@ -678,31 +677,32 @@ fn bench_cursor() {
     });
 }
 
-/// Attribute lookups of a wide object (the 21 keys of a vis scale) with 5, 21 and 40 children
+/// Attribute lookups of a wide object (the 21 keys of a SELECT) with 5, 21 and 40 children
 fn bench_attribute_lookups() {
     use dashql_buffers::parser::{AttributeKey as K, Node, NodeType, SymbolSpan};
     use dashql_parser::attrs;
     const KEYS: [K; 21] = [
-        K::VIS_SCALE_TYPE, K::VIS_SCALE_DOMAIN, K::VIS_SCALE_DOMAIN_MIN, K::VIS_SCALE_DOMAIN_MAX,
-        K::VIS_SCALE_DOMAIN_MID, K::VIS_SCALE_RANGE, K::VIS_SCALE_RANGE_MIN, K::VIS_SCALE_RANGE_MAX,
-        K::VIS_SCALE_SCHEME, K::VIS_SCALE_INTERPOLATE, K::VIS_SCALE_NICE, K::VIS_SCALE_ZERO, K::VIS_SCALE_CLAMP,
-        K::VIS_SCALE_PADDING, K::VIS_SCALE_PADDING_INNER, K::VIS_SCALE_PADDING_OUTER, K::VIS_SCALE_REVERSE,
-        K::VIS_SCALE_ROUND, K::VIS_SCALE_EXPONENT, K::VIS_SCALE_BINS, K::VIS_SCALE_NAME,
+        K::SQL_SELECT_ALL, K::SQL_SELECT_DISTINCT, K::SQL_SELECT_EXPRESSION_INDIRECTION,
+        K::SQL_SELECT_EXPRESSION_STATEMENT, K::SQL_SELECT_FROM, K::SQL_SELECT_GROUPS, K::SQL_SELECT_HAVING,
+        K::SQL_SELECT_INTO, K::SQL_SELECT_LIMIT, K::SQL_SELECT_LIMIT_ALL, K::SQL_SELECT_OFFSET, K::SQL_SELECT_ORDER,
+        K::SQL_SELECT_ROW_LOCKING, K::SQL_SELECT_SAMPLE, K::SQL_SELECT_TABLE, K::SQL_SELECT_TARGETS,
+        K::SQL_SELECT_VALUES, K::SQL_SELECT_WHERE, K::SQL_SELECT_WINDOWS, K::SQL_SELECT_WITH_CTES,
+        K::SQL_SELECT_WITH_RECURSIVE,
     ];
     let node = |k: K| Node::new(&SymbolSpan::new(0, 0), NodeType::NONE, k, 0, 0, 0);
     let few: Vec<Node> =
-        [K::VIS_SCALE_TYPE, K::VIS_SCALE_DOMAIN, K::VIS_SCALE_NICE, K::VIS_SCALE_NAME, K::NONE].map(node).to_vec();
+        [K::SQL_SELECT_ALL, K::SQL_SELECT_FROM, K::SQL_SELECT_ORDER, K::SQL_SELECT_WITH_RECURSIVE, K::NONE].map(node).to_vec();
     let many: Vec<Node> = KEYS.iter().rev().map(|k| node(*k)).collect();
     let wide: Vec<Node> = (0..40u16).map(|i| node(K(KEYS[(i % 21) as usize].0 + (i / 21) * 300))).collect();
     for (label, children) in [("5", &few), ("21", &many), ("40", &wide)] {
         bench(&format!("attrs_21/{label}"), || {
             let found = attrs!(black_box(&children[..]), [
-                K::VIS_SCALE_TYPE, K::VIS_SCALE_DOMAIN, K::VIS_SCALE_DOMAIN_MIN, K::VIS_SCALE_DOMAIN_MAX,
-                K::VIS_SCALE_DOMAIN_MID, K::VIS_SCALE_RANGE, K::VIS_SCALE_RANGE_MIN, K::VIS_SCALE_RANGE_MAX,
-                K::VIS_SCALE_SCHEME, K::VIS_SCALE_INTERPOLATE, K::VIS_SCALE_NICE, K::VIS_SCALE_ZERO,
-                K::VIS_SCALE_CLAMP, K::VIS_SCALE_PADDING, K::VIS_SCALE_PADDING_INNER, K::VIS_SCALE_PADDING_OUTER,
-                K::VIS_SCALE_REVERSE, K::VIS_SCALE_ROUND, K::VIS_SCALE_EXPONENT, K::VIS_SCALE_BINS,
-                K::VIS_SCALE_NAME,
+                K::SQL_SELECT_ALL, K::SQL_SELECT_DISTINCT, K::SQL_SELECT_EXPRESSION_INDIRECTION,
+                K::SQL_SELECT_EXPRESSION_STATEMENT, K::SQL_SELECT_FROM, K::SQL_SELECT_GROUPS, K::SQL_SELECT_HAVING,
+                K::SQL_SELECT_INTO, K::SQL_SELECT_LIMIT, K::SQL_SELECT_LIMIT_ALL, K::SQL_SELECT_OFFSET,
+                K::SQL_SELECT_ORDER, K::SQL_SELECT_ROW_LOCKING, K::SQL_SELECT_SAMPLE, K::SQL_SELECT_TABLE,
+                K::SQL_SELECT_TARGETS, K::SQL_SELECT_VALUES, K::SQL_SELECT_WHERE, K::SQL_SELECT_WINDOWS,
+                K::SQL_SELECT_WITH_CTES, K::SQL_SELECT_WITH_RECURSIVE,
             ]);
             black_box(found);
         });

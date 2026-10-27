@@ -10,7 +10,7 @@ use dashql_buffers::parser::{
 };
 use dashql_core::analyzer::AnalyzedScript;
 use dashql_core::catalog::Catalog;
-use dashql_core::pack::{has_visualize, pack_analyzed_script, pack_completion, pack_cursor, pack_parsed_script, pack_parsed_statement, pack_scanned_script, pack_tokens};
+use dashql_core::pack::{pack_analyzed_script, pack_completion, pack_cursor, pack_parsed_script, pack_parsed_statement, pack_scanned_script, pack_tokens};
 use dashql_core_session::visualize::pack_visualization;
 use dashql_core::script::Script;
 use std::sync::Arc;
@@ -115,12 +115,11 @@ fn parsed_scripts_carry_statements_descriptions_and_errors() {
         pack_parsed_statement(script.parsed.as_ref().unwrap(), 0).statement_type,
         StatementType::SELECT
     );
-    assert!(!has_visualize(script.parsed.as_ref().unwrap()));
 }
 
 #[test]
 fn comment_blocks_are_packed() {
-    let (_, packed) = parsed("-- @dashql:metadata\n-- {\"a\": 1}\n-- @dashql:end\nselect 1");
+    let (_, packed) = parsed("-- @metadata\n-- {\"a\": 1}\n-- @end\nselect 1");
     let blocks = packed.comment_blocks.as_ref().unwrap();
     assert_eq!(blocks.len(), 1);
     assert_eq!(blocks[0].block_type, CommentBlockType::DASHQL_TAG);
@@ -167,11 +166,17 @@ fn tokens_are_typed() {
 }
 
 #[test]
-fn visualization_keywords_are_typed_inside_of_vis_specs() {
-    let (script, packed) = parsed("select 1 as a visualize using vegalite (mark => bar)");
-    assert!(has_visualize(script.parsed.as_ref().unwrap()));
-    let tokens = packed.tokens.unwrap();
-    assert!(tokens.token_types.unwrap().contains(&ScannerTokenType::KEYWORD_VIS));
+fn analyzed_scripts_pack_vis_tags() {
+    let catalog = Catalog::new();
+    let script = analyzed(&catalog, "/* @vis vegalite {\"mark\": \"bar\"}\n   @vis card width=4 */\nselect 1 as a");
+    let packed = pack_analyzed_script(&script, &pack_visualization);
+    let specs = packed.visualization_specs.unwrap();
+    assert_eq!(specs.len(), 1);
+    assert_eq!(specs[0].renderer.as_deref(), Some("vegalite"));
+    assert_eq!(specs[0].dashboard.as_ref().unwrap().width, 4);
+    let vegalite: serde_json::Value = serde_json::from_str(specs[0].vegalite_spec.as_deref().unwrap()).unwrap();
+    assert_eq!(vegalite["mark"], "bar");
+    assert_eq!(vegalite["data"]["$sql"], "select 1 as a");
 }
 
 #[test]

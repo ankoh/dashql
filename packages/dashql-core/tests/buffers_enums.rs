@@ -12,7 +12,6 @@ use dashql_buffers::parser::{AttributeKey, Node, NodeType, SymbolSpan};
 fn node_type_markers() {
     assert_eq!(NodeType::ENUM_KEYS_.0, 10);
     assert_eq!(NodeType::OBJECT_KEYS_.0, 41);
-    assert_eq!(NodeType::VIS_OBJECT_KEYS_.0, 118);
 }
 
 #[test]
@@ -26,21 +25,9 @@ fn node_type_ranges() {
         } else if v > NodeType::ENUM_KEYS_.0 && v < NodeType::OBJECT_KEYS_.0 {
             assert!(name.starts_with("ENUM_SQL_"), "{name}");
         } else if v > NodeType::OBJECT_KEYS_.0 {
-            // ENUM_VIS_* sit between the objects (see docs/design/core_quirks.md), everything else
-            // above OBJECT_KEYS_ is an object.
-            assert!(
-                name.starts_with("OBJECT_") || name.starts_with("ENUM_VIS_") || name == "VIS_OBJECT_KEYS_",
-                "{name}"
-            );
+            assert!(name.starts_with("OBJECT_"), "{name}");
         }
     }
-    let vis_enums: Vec<u16> = NodeType::ENUM_VALUES
-        .iter()
-        .filter(|t| t.variant_name().unwrap().starts_with("ENUM_VIS_"))
-        .map(|t| t.0)
-        .collect();
-    assert_eq!(vis_enums, vec![114, 115, 116, 117]);
-    assert_eq!(NodeType::ENUM_VIS_ENCODING_CHANNEL.0, 114);
 }
 
 #[test]

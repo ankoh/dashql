@@ -174,51 +174,62 @@ fn blank_text_with_errors_has_no_statement() {
 }
 
 #[test]
-fn extensions_can_be_disabled() {
-    let text = "select 1 visualize using table ()";
-    let result = compile_with(text, CompilationOptions { allow_extensions: false, parse_if_outdated: true });
-    assert_eq!(error_codes(&result), vec![ErrorCode::EXTENSIONS_DISABLED]);
-    assert!(result.statements.as_ref().unwrap().is_empty());
-    let result = compile_text(text);
-    assert!(result.errors.as_ref().unwrap().is_empty());
-}
-
-#[test]
-fn visualize_table() {
-    let result = compile_text("select 1 as a visualize using table (dashboard => (row => 2, column => 3, width => 4, height => 5))");
+fn vis_tag_table() {
+    let result = compile_text("/* @vis table\n   @vis card row=2 column=3 width=4 height=5 */\nselect 1 as a");
     assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
     assert_eq!(result.kind, StatementKind::VISUALIZE);
-    // The SQL excludes the VISUALIZE clause
     assert_eq!(result.sql.as_deref(), Some("select 1 as a"));
     assert!(result.cacheable);
     let visualization = result.visualization.as_ref().unwrap();
     assert_eq!(visualization.renderer.as_deref(), Some("table"));
-    assert!(visualization.table_spec.is_some());
     let dashboard = visualization.dashboard.as_ref().unwrap();
     assert_eq!((dashboard.row, dashboard.column, dashboard.width, dashboard.height), (Some(2), Some(3), 4, 5));
     let terminal = result.statements.as_ref().unwrap().last().unwrap();
     assert_eq!(terminal.kind, CompiledKind::VISUALIZE);
     assert_eq!(terminal.sql.as_deref(), Some("select 1 as a"));
-    assert!(terminal.visualization.is_some());
 }
 
 #[test]
-fn visualize_vegalite() {
-    let result = compile_text("select 1 as a, 2 as b visualize using vegalite (mark => bar)");
+fn vis_tag_vegalite() {
+    let text = "/* @vis vegalite {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}} */\nselect 1 as a, 2 as b";
+    let result = compile_text(text);
     assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
     let visualization = result.visualization.as_ref().unwrap();
     assert_eq!(visualization.renderer.as_deref(), Some("vegalite"));
     let spec: serde_json::Value = serde_json::from_str(visualization.vegalite_spec.as_deref().unwrap()).unwrap();
+    // The spec is passed through, the statement is its data
+    assert_eq!(spec["data"]["$sql"], "select 1 as a, 2 as b");
     assert_eq!(spec["mark"], "bar");
+    assert_eq!(spec["encoding"]["x"]["field"], "a");
 }
 
 #[test]
-fn visualize_markdown() {
-    let result = compile_text("select 'Ada' as author visualize using markdown (template => 'by {{author}}')");
+fn vis_tag_markdown() {
+    let result = compile_text("-- @vis markdown by {{author}}\n-- @end\nselect 'Ada' as author");
     assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
     let visualization = result.visualization.as_ref().unwrap();
     assert_eq!(visualization.renderer.as_deref(), Some("markdown"));
     assert!(visualization.markdown_spec.is_some());
+}
+
+#[test]
+fn invalid_vis_tags_run_the_query() {
+    for text in ["/* @vis vegalite {\"mark\": */ select 1", "/* @vis card width=6 */ select 1", "/* @vis chart */ select 1"] {
+        let result = compile_text(text);
+        assert!(result.errors.as_ref().unwrap().is_empty(), "{text}: {:?}", result.errors);
+        assert_eq!(result.kind, StatementKind::QUERY, "{text}");
+        assert_eq!(result.sql.as_deref(), Some("select 1"), "{text}");
+        assert!(result.visualization.is_none(), "{text}");
+    }
+}
+
+#[test]
+fn vis_tags_are_plain_comments_in_the_shell() {
+    let text = "/* @vis table */ select 1";
+    let result = compile_with(text, CompilationOptions { allow_extensions: false, parse_if_outdated: true });
+    assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
+    assert_eq!(result.kind, StatementKind::QUERY);
+    assert!(result.visualization.is_none());
 }
 
 #[test]

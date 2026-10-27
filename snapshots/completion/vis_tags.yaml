@@ -1,0 +1,563 @@
+completion-snapshots:
+
+  - name: vis_tag_name
+    catalog: {}
+    editor:
+      input: |
+        /* @v */
+        select 1
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: '@v'
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 2
+          value: vis
+          candidate-tags: [PREFIX_MATCH]
+          location: "v"
+          location-qualified: "v"
+          objects: []
+
+  - name: vis_tag_name_line_comment
+    catalog: {}
+    editor:
+      input: |
+        -- @e
+        select 1
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: '@e'
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 4
+          value: end
+          candidate-tags: [PREFIX_MATCH]
+          location: "e"
+          location-qualified: "e"
+          objects: []
+        - score: 3
+          value: metadata
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "e"
+          location-qualified: "e"
+          objects: []
+        - score: 2
+          value: description
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "e"
+          location-qualified: "e"
+          objects: []
+
+  - name: vis_kind
+    catalog: {}
+    editor:
+      input: |
+        /* @vis ve */
+        select 1
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown @vis kind "ve", expected vegalite, markdown, table or card'
+          text: "ve"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: 've'
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 2
+          value: vegalite
+          candidate-tags: [PREFIX_MATCH]
+          location: "ve"
+          location-qualified: "ve"
+          objects: []
+
+  - name: vis_card_arg
+    catalog: {}
+    editor:
+      input: |
+        /* @vis table
+           @vis card width=6 h */
+        select 1
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis card takes key=value args, not "h"'
+          text: "h"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1"
+          renderer: table
+          dashboard:
+            width: 6
+            height: 3
+    cursor:
+      search:
+        text: ' h '
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 2
+          value: height=
+          candidate-tags: [PREFIX_MATCH]
+          location: "h"
+          location-qualified: "h"
+          objects: []
+
+  - name: vis_vegalite_top_level_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"ma} */
+        select 1
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'invalid Vega-Lite JSON: EOF while parsing a string at line 1 column 5'
+          text: "}"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: '"ma'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 2
+          value: '"mark"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"ma"
+          location-qualified: "\"ma"
+          objects: []
+
+  - name: vis_vegalite_channel
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite
+           {"mark": "bar", "encoding": {"
+        */
+        select 1
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'invalid Vega-Lite JSON: EOF while parsing a string at line 1 column 30'
+          text: "\""
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: '"encoding": {"'
+        index: 14
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 72
+          value: '"x"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\""
+          location-qualified: "\""
+          objects: []
+        - score: 71
+          value: '"y"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\""
+          location-qualified: "\""
+          objects: []
+        - score: 70
+          value: '"color"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\""
+          location-qualified: "\""
+          objects: []
+
+  - name: vis_vegalite_mark_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"mark": "b"} */
+        select 1
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
+          vegalite: "{\"mark\":\"b\"}"
+    cursor:
+      search:
+        text: '"b'
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 8
+          value: '"bar"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"b\""
+          location-qualified: "\"b\""
+          objects: []
+        - score: 7
+          value: '"boxplot"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"b\""
+          location-qualified: "\"b\""
+          objects: []
+        - score: 2
+          value: '"errorband"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"b\""
+          location-qualified: "\"b\""
+          objects: []
+
+  - name: vis_vegalite_field
+    catalog:
+      script:
+        input: create table sales (region text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: date
+                text: "date timestamp"
+              - catalog-id: "256.65536.4294967296.1"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.2"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    editor:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "re"}}} */
+        select region, revenue as total_revenue, date from sales
+      catalog-id: 2
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown field "re", the statement has the columns date, region, total_revenue'
+          text: "\"re\""
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "region"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "date"
+      visualizations:
+        - statement-id: 0
+          source: "select reg..from sales"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
+          vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"re\"}}}"
+    cursor:
+      search:
+        text: '"re"'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 4
+          value: '"region"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"re\""
+          location-qualified: "\"re\""
+          objects: []
+        - score: 1
+          value: '"total_revenue"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "\"re\""
+          location-qualified: "\"re\""
+          objects: []
+
+  - name: vis_vegalite_half_written
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite
+           {"mark": "bar", "encoding": {"x": {"field": "a", ty
+        */
+        select 1 as a
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'invalid Vega-Lite JSON: key must be a string at line 1 column 50'
+          text: "ty"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: ' ty'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 4
+          value: '"type"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "ty"
+          location-qualified: "ty"
+          objects: []
+        - score: 1
+          value: '"formatType"'
+          candidate-tags: [SUBSTRING_MATCH]
+          location: "ty"
+          location-qualified: "ty"
+          objects: []
+
+  - name: vis_vegalite_field_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"y": {"field": "a", "type": "q"}}} */
+        select 1 as a
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 3
+          vegalite: "{\"encoding\":{\"y\":{\"field\":\"a\",\"type\":\"q\"}}}"
+    cursor:
+      search:
+        text: '"q'
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 2
+          value: '"quantitative"'
+          candidate-tags: [PREFIX_MATCH]
+          location: "\"q\""
+          location-qualified: "\"q\""
+          objects: []
+
+  - name: vis_markdown_placeholder
+    catalog:
+      script:
+        input: create table sales (region text, revenue int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..venue int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue int"
+        errors: []
+    editor:
+      input: |
+        /* @vis markdown ### {{re}} */
+        select region, revenue from sales
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "region"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "revenue"
+      visualizations:
+        - statement-id: 0
+          source: "select reg..from sales"
+          renderer: markdown
+          dashboard:
+            width: 6
+            height: 3
+          markdown: "### {{re}}"
+    cursor:
+      search:
+        text: '{{re'
+        index: 4
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - score: 4
+          value: region
+          candidate-tags: [PREFIX_MATCH]
+          location: "re"
+          location-qualified: "re"
+          objects: []
+        - score: 3
+          value: revenue
+          candidate-tags: [PREFIX_MATCH]
+          location: "re"
+          location-qualified: "re"
+          objects: []
+
+  - name: vis_ordinary_comment
+    catalog: {}
+    editor:
+      input: |
+        /* see re */
+        select 1
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+    cursor:
+      search:
+        text: 're */'
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1

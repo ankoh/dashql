@@ -5,6 +5,7 @@
 pub mod analyzer;
 pub mod catalog;
 pub mod completion;
+mod completion_vis;
 pub mod cursor;
 pub mod error;
 pub mod formatter;
@@ -14,3 +15,4 @@ pub mod script;
 pub mod script_diff;
 pub mod signature;
 pub mod utils;
+pub mod vis_highlight;

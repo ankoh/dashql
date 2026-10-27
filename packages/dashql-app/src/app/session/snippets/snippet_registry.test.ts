@@ -69,7 +69,7 @@ describe('Snippet registry', () => {
                 const text = snippetText(snippet, connector);
                 expect(parseErrors(text), `${snippet.id} ${ConnectorType[connector]}`).toEqual([]);
                 // The tag blocks are for the browser, the applied text is plain SQL
-                expect(text).not.toContain('@dashql:');
+                expect(text).not.toMatch(/^\s*--\s*@(description|end)\b/m);
             }
         }
     });
@@ -116,14 +116,14 @@ describe('Snippet registry', () => {
             'hyper/json/Bad Name.sql': file(),
             'json/no-engine.sql': file(),
             'oracle/json/unknown-engine.sql': file(),
-            'hyper/json/metadata.sql': `-- @dashql:metadata\n-- {"tags": []}\n-- @dashql:end\n${file()}`,
+            'hyper/json/metadata.sql': `-- @metadata\n-- {"tags": []}\n-- @end\n${file()}`,
             'hyper/json/no-body.sql': dashql.renderCommentTag('description', 'Nothing.'),
             'hyper/json/inline-comment.sql': file('select 1\n-- one\nwhere true;'),
             'hyper/json/no-description.sql': 'select 1;',
             'hyper/json/fine.sql': file(),
         });
         expect(registry.errors).toHaveLength(6);
-        expect(registry.errors).toContainEqual(expect.stringContaining('metadata.sql has a @dashql:metadata block'));
+        expect(registry.errors).toContainEqual(expect.stringContaining('metadata.sql has a @metadata block'));
         expect(registry.errors).toContainEqual(expect.stringContaining('inline-comment.sql has comments outside its comment tags'));
         expect(registry.snippets.map(snippet => snippet.id)).toEqual(['json/fine', 'json/no-description']);
         expect(registry.byId.get('json/no-description')!.description).toEqual('');

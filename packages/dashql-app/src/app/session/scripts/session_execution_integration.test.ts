@@ -228,8 +228,8 @@ describe('session execution with real core planning', () => {
 
     it('lowers multiple visualizations and retains the last output after trailing DELETE', async () => {
         const f = fixture([['1_visualize.sql',
-            'create table items (id int); select id from items visualize using table (); '
-            + 'select 2 as value visualize using table (dashboard => (row => 2, column => 4, width => 8, height => 5)); '
+            'create table items (id int);\n/* @vis table */\nselect id from items;\n'
+            + '/* @vis table\n   @vis card row=2 column=4 width=8 height=5 */\nselect 2 as value;\n'
             + 'delete from items;']]);
         await f.run();
 
@@ -252,14 +252,14 @@ describe('session execution with real core planning', () => {
 
     it('uses captured visualization despite live edits during execution', async () => {
         const f = fixture([['1_visualize.sql',
-            'create table items (id int, other int); '
-            + 'select id from items visualize using table (dashboard => (row => 2, column => 4));']]);
+            'create table items (id int, other int);\n'
+            + '/* @vis table\n   @vis card row=2 column=4 */\nselect id from items;']]);
         const executor = f.executeQuery.getMockImplementation()!;
         f.executeQuery.mockImplementation((connectionId, args) => {
             const execution = executor(connectionId, args);
             if (!args.analyzeResults) {
                 f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_visualize.sql').scriptKey,
-                    text: 'select other from items visualize using table ();' } });
+                    text: '/* @vis table */\nselect other from items;' } });
             } else {
                 execution[1] = execution[1].then(table => {
                     f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_visualize.sql').scriptKey, text: 'select 9;' } });
@@ -282,13 +282,13 @@ describe('session execution with real core planning', () => {
         expect(f.lastState().phase).toBe('succeeded');
     });
 
-    it('clears live visualization metadata when the captured output is not VISUALIZE', async () => {
+    it('clears live visualization metadata when the captured output is no visualization', async () => {
         const f = fixture([['1_query.sql', 'create table items (id int); select 1;']]);
         const executor = f.executeQuery.getMockImplementation()!;
         f.executeQuery.mockImplementation((connectionId, args) => {
             if (!args.analyzeResults) {
                 f.apply({ type: SET_SCRIPT_TEXT, value: { scriptKey: f.script('1_query.sql').scriptKey,
-                    text: 'select 2 visualize using table ();' } });
+                    text: '/* @vis table */\nselect 2;' } });
                 expect(f.script('1_query.sql').annotations.visualizeQuery?.renderer).toBe('table');
             }
             return executor(connectionId, args);
@@ -321,7 +321,7 @@ describe('session execution with real core planning', () => {
 
     it('rejects malformed captured metadata on an earlier output before any backend call', async () => {
         const f = fixture([['1_query.sql',
-            'create table items (id int); select 1 visualize using table (); select 2;']]);
+            'create table items (id int);\n/* @vis table */\nselect 1;\nselect 2;']]);
         const planner = f.plan.getMockImplementation()!;
         f.plan.mockImplementation(input => {
             const buffer = planner(input);

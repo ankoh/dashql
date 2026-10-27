@@ -2,14 +2,15 @@ visualize-snapshots:
   - name: table_default_dashboard
     script:
       input: |
-        SELECT product, revenue FROM product_summary VISUALIZE USING table ();
+        /* @vis table */
+        SELECT product, revenue FROM product_summary;
 
   - name: table_dashboard
     script:
       input: |
-        SELECT product, revenue FROM product_summary VISUALIZE USING table (
-          dashboard => (row => 2, column => 4, width => 6, height => 5)
-        );
+        /* @vis table
+           @vis card row=2 column=4 width=6 height=5 */
+        SELECT product, revenue FROM product_summary;
     dashboard:
       row: 2
       column: 4

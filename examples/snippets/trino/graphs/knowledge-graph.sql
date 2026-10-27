@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Query a small knowledge graph of people, companies and cities by joining its edges.
 -- Finds who knows someone working at a company in Berlin.
--- @dashql:end
+-- @end
 
 with
     people(id, name) as (

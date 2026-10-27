@@ -79,17 +79,3 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
-
-  - name: error_reporting_vis_unknown_renderer
-    input: |-
-      select * from sales visualize using foo (mark => bar)
-    expected:
-      statements: []
-      scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected identifier literal, expecting SAMPLE'
-          text: "foo"
-      line-breaks: []
-      comments: []
-      comment-blocks: []
-      comment-warnings: []

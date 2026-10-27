@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Expand a taxonomy into all ancestors of every class with a recursive query.
--- @dashql:end
+-- @end
 
 with recursive
     subclass_of(class, parent) as (

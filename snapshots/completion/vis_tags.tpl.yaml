@@ -1,0 +1,166 @@
+completion-snapshots:
+  # The name of a tag at the start of a block comment
+  - name: vis_tag_name
+    catalog: {}
+    editor:
+      input: |
+        /* @v */
+        select 1
+    cursor:
+      search:
+        text: '@v'
+        index: 2
+    completions:
+      limit: 3
+  # Line comments also complete the end tag
+  - name: vis_tag_name_line_comment
+    catalog: {}
+    editor:
+      input: |
+        -- @e
+        select 1
+    cursor:
+      search:
+        text: '@e'
+        index: 2
+    completions:
+      limit: 3
+  # The kind after @vis
+  - name: vis_kind
+    catalog: {}
+    editor:
+      input: |
+        /* @vis ve */
+        select 1
+    cursor:
+      search:
+        text: 've'
+        index: 2
+    completions:
+      limit: 3
+  # The args of a card that are not used yet
+  - name: vis_card_arg
+    catalog: {}
+    editor:
+      input: |
+        /* @vis table
+           @vis card width=6 h */
+        select 1
+    cursor:
+      search:
+        text: ' h '
+        index: 2
+    completions:
+      limit: 3
+  # A top-level key of the Vega-Lite spec
+  - name: vis_vegalite_top_level_key
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"ma} */
+        select 1
+    cursor:
+      search:
+        text: '"ma'
+        index: 3
+    completions:
+      limit: 3
+  # The encoding channels
+  - name: vis_vegalite_channel
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite
+           {"mark": "bar", "encoding": {"
+        */
+        select 1
+    cursor:
+      search:
+        text: '"encoding": {"'
+        index: 14
+    completions:
+      limit: 3
+  # The mark types
+  - name: vis_vegalite_mark_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"mark": "b"} */
+        select 1
+    cursor:
+      search:
+        text: '"b'
+        index: 2
+    completions:
+      limit: 3
+  # Fields are the output columns of the query
+  - name: vis_vegalite_field
+    catalog:
+      script:
+        input: create table sales (region text, revenue int, date timestamp);
+    editor:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "re"}}} */
+        select region, revenue as total_revenue, date from sales
+    cursor:
+      search:
+        text: '"re"'
+        index: 3
+    completions:
+      limit: 3
+  # Keys in JSON that is still typed
+  - name: vis_vegalite_half_written
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite
+           {"mark": "bar", "encoding": {"x": {"field": "a", ty
+        */
+        select 1 as a
+    cursor:
+      search:
+        text: ' ty'
+        index: 3
+    completions:
+      limit: 3
+  # The field types
+  - name: vis_vegalite_field_type
+    catalog: {}
+    editor:
+      input: |
+        /* @vis vegalite {"encoding": {"y": {"field": "a", "type": "q"}}} */
+        select 1 as a
+    cursor:
+      search:
+        text: '"q'
+        index: 2
+    completions:
+      limit: 3
+  # The columns in a Markdown placeholder
+  - name: vis_markdown_placeholder
+    catalog:
+      script:
+        input: create table sales (region text, revenue int);
+    editor:
+      input: |
+        /* @vis markdown ### {{re}} */
+        select region, revenue from sales
+    cursor:
+      search:
+        text: '{{re'
+        index: 4
+    completions:
+      limit: 3
+  # Ordinary comments complete nothing
+  - name: vis_ordinary_comment
+    catalog: {}
+    editor:
+      input: |
+        /* see re */
+        select 1
+    cursor:
+      search:
+        text: 're */'
+        index: 2
+    completions:
+      limit: 3

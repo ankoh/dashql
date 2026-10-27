@@ -79,22 +79,6 @@ diff-snapshots:
       -- a leading comment
       select a from t;
 
-  # A VISUALIZE pair differing only in the mark type (an ENUM_VIS_* value).
-  # Guards the node-type classifier wart (ENUM_VIS_* sits between OBJECT_KEYS_ and VIS_OBJECT_KEYS_).
-  - name: update_vis_mark_type
-    source: |
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => line);
-    target: |
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar);
-
-  # A VISUALIZE spec whose attributes appear in a different order but are otherwise identical.
-  # Guards the unsorted-object-attribute fix (scratch stable-sort by key before the merge-join).
-  - name: reorder_object_attributes
-    source: |
-      SELECT * FROM sales VISUALIZE USING vegalite (mark => bar, dashboard => (width => 8, height => 4));
-    target: |
-      SELECT * FROM sales VISUALIZE USING vegalite (dashboard => (height => 4, width => 8), mark => bar);
-
   # Two candidate targets for an updated source; the closer one must win the UPDATE.
   # Pins the max-score UPDATE-candidate selection (a deliberate divergence from legacy).
   - name: update_picks_closest

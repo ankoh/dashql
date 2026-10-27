@@ -71,17 +71,11 @@ fn statement_count_and_order_matter() {
 }
 
 #[test]
-fn trailing_visualize_is_signed_like_its_select() {
+fn vis_tags_are_ignored() {
     let plain = signature("select a from t");
-    assert_eq!(plain, signature("select a from t visualize using table ()"));
-    assert_eq!(plain, signature("select a from t visualize using vegalite (mark => bar)"));
-    // The source of the VISUALIZE statement still counts
-    assert_ne!(plain, signature("select b from t visualize using table ()"));
-    // Prefix statements stay part of the signature
-    assert_eq!(
-        signature("create table t (a int); select a from t"),
-        signature("create table t (a int); select a from t visualize using table ()")
-    );
+    assert_eq!(plain, signature("/* @vis table */ select a from t"));
+    assert_eq!(plain, signature("/* @vis vegalite {\"mark\": \"bar\"} */\nselect a from t"));
+    assert_ne!(plain, signature("/* @vis table */ select b from t"));
 }
 
 #[test]

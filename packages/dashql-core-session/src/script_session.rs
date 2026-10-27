@@ -759,8 +759,9 @@ impl ScriptSession {
         for ((&offset, &length), &token_type) in offsets.iter().zip(lengths).zip(types) {
             add_syntax(projector, token_type, TextSpan::new(offset, length));
         }
-        for &comment in &scanned.comments {
-            add_syntax(projector, ScannerTokenType::COMMENT, comment);
+        // Comments with `@vis` tags are split into the tokens of the tags
+        for (span, token_type) in dashql_core::vis_highlight::comment_syntax_spans(parsed) {
+            add_syntax(projector, token_type, span);
         }
         syntax_spans.sort_by_key(|s| s.text_span.offset);
         update.syntax_spans = non_empty(syntax_spans);

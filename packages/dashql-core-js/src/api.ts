@@ -18,7 +18,6 @@ export type DashQLBindings = Pick<
     | 'PlanViewModel'
     | 'plan'
     | 'processBatch'
-    | 'parseVegaLiteToVisualize'
     | 'appendCatalogChangesSql'
     | 'qualifyCatalogChanges'
 >;
@@ -196,9 +195,6 @@ export class DashQL {
         return new DashQLPlanViewModel(ptr, layoutConfig);
     }
 
-    /// Transcode a (constrained) Vega-Lite JSON spec into a VISUALIZE statement.
-    /// Returns an empty string if the JSON is malformed. The source clause is derived from the
-    /// spec's `data` member.
     /// Append catalog changes to catalog changes SQL, returns the compacted SQL
     public appendCatalogChangesSql(changesSql: string, changes: buffers.catalog.CatalogChangeT[]): string {
         return this.bindings.appendCatalogChangesSql(changesSql, packCatalogChanges(changes));
@@ -208,10 +204,6 @@ export class DashQL {
     public qualifyCatalogChanges(changes: buffers.catalog.CatalogChangeT[], defaults: CatalogNameDefaults): buffers.catalog.CatalogChangeT[] {
         const bytes = this.bindings.qualifyCatalogChanges(packCatalogChanges(changes), defaults.databaseName, defaults.schemaName);
         return buffers.catalog.CatalogChanges.getRootAsCatalogChanges(new flatbuffers.ByteBuffer(bytes)).unpack().changes;
-    }
-
-    public parseVegaLiteToVisualize(vegaLiteJson: string): string {
-        return this.decoder.decode(this.bindings.parseVegaLiteToVisualize(this.encoder.encode(vegaLiteJson)));
     }
 }
 

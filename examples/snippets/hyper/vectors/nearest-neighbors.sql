@@ -1,6 +1,6 @@
--- @dashql:description
+-- @description
 -- Rank documents by the cosine similarity of their embeddings to a query embedding.
--- @dashql:end
+-- @end
 
 with documents(title, embedding) as (
     values

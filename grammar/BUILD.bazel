@@ -30,7 +30,6 @@ filegroup(
         "lists/sql_reserved_keywords.list",
         "lists/sql_type_func_keywords.list",
         "lists/sql_unreserved_keywords.list",
-        "lists/vis_unreserved_keywords.list",
     ],
 )
 
@@ -49,7 +48,6 @@ filegroup(
         "rules/ext_statement.yh",
         "rules/ext_set.yh",
         "rules/ext_varargs.yh",
-        "rules/ext_visualize.yh",
     ],
 )
 
@@ -68,7 +66,6 @@ filegroup(
         "rules/ext_statement.y",
         "rules/ext_set.y",
         "rules/ext_varargs.y",
-        "rules/ext_visualize.y",
     ],
 )
 

@@ -13,7 +13,7 @@ use dashql_core::pack::pack_tokens;
 use dashql_core::script::Script;
 use dashql_core::utils::{ci_cmp, ci_find, ci_starts_with, quote_identifier};
 use dashql_buffers::completion::CandidateTag;
-use dashql_buffers::parser::{ParsedScriptFeature, ScannerTokenType};
+use dashql_buffers::parser::ScannerTokenType;
 use dashql_buffers::status::StatusCode;
 use dashql_parser::symbol_kind::S_SEMICOLON;
 use std::cmp::Ordering;
@@ -67,7 +67,6 @@ fn error_message(error: Error) -> String {
 fn token_style(token_type: ScannerTokenType) -> &'static str {
     match token_type {
         ScannerTokenType::KEYWORD => vt100::BOLD_FOREGROUND_PINK,
-        ScannerTokenType::KEYWORD_VIS => vt100::ITALIC_FOREGROUND_SILVER,
         ScannerTokenType::LITERAL_INTEGER
         | ScannerTokenType::LITERAL_FLOAT
         | ScannerTokenType::LITERAL_BINARY
@@ -1354,25 +1353,16 @@ impl ShellSession {
     }
 
     /// Start a query: returns the effect envelope of the query
-    pub fn start_query(&mut self, query: &[u8], catalog: &Catalog) -> ShellOperation {
+    pub fn start_query(&mut self, query: &[u8], _catalog: &Catalog) -> ShellOperation {
         if !self.pending_effects.is_empty() {
             return ShellOperation::new(ShellStatus::Busy, "the shell already has an active operation");
         }
         if query.is_empty() {
             return ShellOperation::new(ShellStatus::InvalidArgument, "query must not be empty");
         }
-        let mut script = Script::new(catalog);
-        let Ok(text) = std::str::from_utf8(query) else {
+        if std::str::from_utf8(query).is_err() {
             // Invalid UTF-8 is an internal error with the message of the rope
             return ShellOperation::new(ShellStatus::InternalError, "rope input must contain valid UTF-8");
-        };
-        script.insert_text_at(0, text);
-        script.parse();
-        if script.parsed.as_ref().is_some_and(|p| p.feature_flags & ParsedScriptFeature::VISUALIZE.0 != 0) {
-            return ShellOperation::new(
-                ShellStatus::InvalidArgument,
-                "DashQL VISUALIZE syntax is not executable in the shell",
-            );
         }
         self.suspend_effect(EffectType::ExecuteQuery, query.to_vec())
     }

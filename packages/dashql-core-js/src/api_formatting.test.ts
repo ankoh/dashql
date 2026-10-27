@@ -232,23 +232,25 @@ describe('DashQL formatting', () => {
         expect(script.isFullyFormattable(config)).toBe(false);
     });
 
-    it('reports trailing visualizations as fully formattable', async () => {
+    it('reports queries with @vis tags as fully formattable', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);
-        script.insertTextAt(0, `select date_trunc('day', event_timestamp) as ts, workload_name, count(*) as cnt
+        script.insertTextAt(0, `/* @vis vegalite
+   {
+     "mark": "bar",
+     "encoding": {
+       "x": {"field": "ts", "type": "temporal"},
+       "y": {"field": "cnt", "type": "quantitative", "aggregate": "sum", "stack": "normalize"},
+       "color": {"field": "workload_name"}
+     }
+   }
+*/
+select date_trunc('day', event_timestamp) as ts, workload_name, count(*) as cnt
 from logs
 where workload_name in ('foo', 'bar')
   and event_timestamp > current_timestamp - interval '360' day
 group by ts, workload_name
-order by ts asc, workload_name asc
-visualize using vegalite (
-  mark => bar,
-  encoding => (
-    x => (field => ts, type => temporal),
-    y => (field => cnt, type => quantitative, aggregate => 'sum', stack => 'normalize'),
-    color => (field => workload_name)
-  )
-)`);
+order by ts asc, workload_name asc`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
             dashql.buffers.formatting.FormattingDialect.TRINO,
             dashql.buffers.formatting.FormattingMode.COMPACT,

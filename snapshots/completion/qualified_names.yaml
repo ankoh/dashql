@@ -550,12 +550,6 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 70
-          value: bar
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
-          location: "bar"
-          location-qualified: "bar"
-          objects: []
         - score: 50
           value: bar
           candidate-tags: [IDENTITY]
@@ -565,6 +559,13 @@ completion-snapshots:
         - score: 4
           value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: "bar"
+          location-qualified: "bar"
+          objects: []
+        - score: 3
+          value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "bar"
           location-qualified: "bar"
           objects: []

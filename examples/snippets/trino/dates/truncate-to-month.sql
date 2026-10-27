@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Truncate timestamps to the first day of their month and aggregate per month.
 -- Use 'week', 'quarter' or 'year' for other granularities.
--- @dashql:end
+-- @end
 
 with orders(ordered_at, amount) as (
     values

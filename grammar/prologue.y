@@ -39,7 +39,6 @@ use crate::parser::actions::*;
 
 %token EOF 0
 
-%token<Str> VISUALIZE_LA
 
 /*
  * The grammar thinks these are keywords, but they are not in the kwlist.h

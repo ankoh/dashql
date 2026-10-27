@@ -11,7 +11,7 @@ use crate::comment_blocks::{group_comments, CommentBlocks};
 use crate::scanner::ScannedScript;
 use crate::span::TextSpan;
 pub use context::{ParseError, Statement};
-use dashql_buffers::parser::{AttributeKey, Node, NodeType, ParsedScriptFeature};
+use dashql_buffers::parser::{AttributeKey, Node, NodeType};
 use std::sync::Arc;
 
 /// A parsed script
@@ -25,10 +25,6 @@ pub struct ParsedScript {
     pub statements: Vec<Statement>,
     /// The parser errors
     pub errors: Vec<ParseError>,
-    /// Symbol-index spans (begin, end) covering the bodies of vis specs
-    pub vis_spec_spans: Vec<(u32, u32)>,
-    /// Bitwise OR of ParsedScriptFeature values detected by the parser
-    pub feature_flags: u32,
     /// The comments grouped into blocks
     pub comment_blocks: CommentBlocks,
 }
@@ -175,33 +171,22 @@ impl ParsedScript {
 /// obfuscated literals, so the returned parsed script owns an updated copy of the scanned script
 /// unless `scanned` is not shared.
 pub fn parse(scanned: Arc<ScannedScript>) -> ParsedScript {
-    parse_with_options(scanned, true)
-}
-
-/// Parse a scanned script, optionally rejecting the VISUALISE syntax.
-pub fn parse_with_options(scanned: Arc<ScannedScript>, enable_vis_syntax: bool) -> ParsedScript {
     let mut scanned = Arc::try_unwrap(scanned).unwrap_or_else(|shared| (*shared).clone());
     let names = std::mem::take(&mut scanned.names);
     let state = {
-        let mut ctx = context::ParseContext::new(&scanned.text, &scanned.symbols, names, enable_vis_syntax);
+        let mut ctx = context::ParseContext::new(&scanned.text, &scanned.symbols, names);
         driver::parse(&mut ctx);
         ctx.into_state()
     };
     scanned.names = state.names;
 
     let comment_blocks = group_comments(&scanned.text, &scanned.comments);
-    let mut feature_flags = 0;
-    if state.nodes.iter().any(|n| n.node_type() == NodeType::OBJECT_VIS_VISUALISE) {
-        feature_flags |= ParsedScriptFeature::VISUALIZE.0 as u32;
-    }
     replace_obfuscated_cast_literals(&mut scanned, &state.nodes);
     ParsedScript {
         scanned: Arc::new(scanned),
         nodes: state.nodes,
         statements: state.statements,
         errors: state.errors,
-        vis_spec_spans: state.vis_spec_spans,
-        feature_flags,
         comment_blocks,
     }
 }

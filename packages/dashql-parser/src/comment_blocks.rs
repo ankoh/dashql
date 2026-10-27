@@ -1,26 +1,37 @@
 //! Grouping comments into blocks.
 //!
 //! A block is either a single block comment or a run of line comments that start their own lines on
-//! consecutive lines. A trailing line comment (`select 1; -- note`) is a block of its own. A run of
-//! line comments is split around tagged regions that open with `-- @dashql:<tag>` and close with
-//! `-- @dashql:end`. A block comment is tagged if its first text is `@dashql:<tag>`, the comment end
-//! closes it. The content lines omit comment markers, block comment gutters (` * `), tag lines and
-//! leading or trailing empty lines. Text following the opening tag on the same line is content. The
-//! parser does not interpret tags or their content, readers pick blocks by tag name and parse the
-//! content themselves, e.g. as JSON.
+//! consecutive lines. A trailing line comment (`select 1; -- note`) is a block of its own.
+//!
+//! Comments are split into tagged blocks at every line whose first text is a known tag, `@<tag>`
+//! (see [`COMMENT_TAGS`]). Any other `@word` is ordinary text. A tag runs to the next tag line. In a
+//! run of line comments, the last region closes with `-- @end`, in a block comment the comment end
+//! closes it. Text before the first tag of a block comment is an ordinary block.
+//!
+//! The content lines omit comment markers, block comment gutters (` * `), tag lines and leading or
+//! trailing empty lines. Text following the opening tag on the same line is content. The parser does
+//! not interpret the content, readers pick blocks by tag name and parse the content themselves, e.g.
+//! as JSON.
 
 use crate::span::TextSpan;
 pub use dashql_buffers::parser::CommentBlockType;
 
-/// The prefix of DashQL comment tags, e.g. `-- @dashql:description`
-pub const COMMENT_TAG_PREFIX: &str = "@dashql:";
+/// The prefix of comment tags, e.g. `-- @description`
+pub const COMMENT_TAG_PREFIX: &str = "@";
 /// The tag that closes a tagged region of line comments
 pub const COMMENT_TAG_END: &str = "end";
+/// The known tags, any other `@word` is ordinary text
+pub const COMMENT_TAGS: &[&str] = &["metadata", "description", "vis", COMMENT_TAG_END];
+
+/// Is a tag name one of the known tags?
+pub fn is_comment_tag(name: &[u8]) -> bool {
+    COMMENT_TAGS.iter().any(|t| t.as_bytes() == name)
+}
 
 /// A block of comments
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CommentBlock {
-    /// The kind of block: an ordinary comment or a `@dashql:<tag>` region
+    /// The kind of block: an ordinary comment or a `@<tag>` region
     pub block_type: CommentBlockType,
     /// The whole block, including comment markers and tag lines
     pub text_span: TextSpan,
@@ -49,8 +60,13 @@ pub struct CommentBlocks {
 
 /// Group comments into blocks.
 pub fn group_comments(text: &str, comments: &[TextSpan]) -> CommentBlocks {
+    group_comment_bytes(text.as_bytes(), comments)
+}
+
+/// Group comments into blocks, for callers that hold the script text as bytes
+pub fn group_comment_bytes(text: &[u8], comments: &[TextSpan]) -> CommentBlocks {
     let mut grouper = Grouper {
-        text: text.as_bytes(),
+        text,
         comments,
         out: CommentBlocks::default(),
     };
@@ -140,6 +156,9 @@ impl<'a> Grouper<'a> {
         if name_end == name_begin || (name_end < line.end && !is_horizontal_space(self.text[name_end])) {
             return None;
         }
+        if !is_comment_tag(&self.text[name_begin..name_end]) {
+            return None;
+        }
         Some(Tag {
             name: Range::new(name_begin, name_end),
             rest: self.trim(Range::new(name_end, line.end)),
@@ -187,7 +206,10 @@ impl<'a> Grouper<'a> {
         Range::new(begin, end)
     }
 
-    /// The content lines of a block comment without delimiters and gutters
+    /// The content lines of a block comment without delimiters and gutters.
+    ///
+    /// A gutter (` * `) is stripped if every line after the first has one. The lines after the first lose
+    /// their common indentation, so relative indentation (e.g. of a Markdown list) is kept.
     fn block_comment_lines(&self, comment: TextSpan) -> Vec<Range> {
         let mut begin = comment.offset as usize;
         let mut end = comment.end() as usize;
@@ -209,13 +231,39 @@ impl<'a> Grouper<'a> {
             if i < end && self.text[i] != b'\n' {
                 continue;
             }
-            let mut line = self.trim(Range::new(line_begin, i));
-            // Strip a ` * ` gutter
-            if !line.is_empty() && self.text[line.begin] == b'*' {
-                line = self.trim(Range::new(line.begin + 1, line.end));
-            }
-            lines.push(line);
+            lines.push(Range::new(line_begin, i));
             line_begin = i + 1;
+        }
+        let first_text = |r: Range| {
+            let t = self.trim(r);
+            (!t.is_empty()).then_some(t.begin)
+        };
+        let has_gutter = lines.len() > 1
+            && lines[1..].iter().any(|&l| first_text(l).is_some())
+            && lines[1..].iter().all(|&l| first_text(l).is_none_or(|b| self.text[b] == b'*'));
+        if has_gutter {
+            for line in &mut lines[1..] {
+                if let Some(star) = first_text(*line) {
+                    line.begin = star + 1;
+                    if line.begin < line.end && self.text[line.begin] == b' ' {
+                        line.begin += 1;
+                    }
+                }
+            }
+        }
+        // Remove the common indentation of the lines after the first
+        let indent = |r: Range| self.text[r.begin..r.end].iter().take_while(|&&c| is_horizontal_space(c)).count();
+        let common = lines[1..].iter().filter(|&&l| first_text(l).is_some()).map(|&l| indent(l)).min().unwrap_or(0);
+        for (i, line) in lines.iter_mut().enumerate() {
+            let mut r = if i == 0 || first_text(*line).is_none() {
+                self.trim(*line)
+            } else {
+                Range::new(line.begin + common, line.end)
+            };
+            while r.end > r.begin && is_horizontal_space(self.text[r.end - 1]) {
+                r.end -= 1;
+            }
+            *line = r;
         }
         lines
     }
@@ -224,19 +272,33 @@ impl<'a> Grouper<'a> {
         self.out.warnings.push((span, message));
     }
 
-    /// Emit a block, leading and trailing empty lines are dropped
-    fn emit(&mut self, block_type: CommentBlockType, comments_begin: usize, comments_end: usize, tag: Range, mut lines: &[Range]) {
+    /// Emit a block that spans whole comments, leading and trailing empty lines are dropped
+    fn emit(&mut self, block_type: CommentBlockType, comments_begin: usize, comments_end: usize, tag: Range, lines: &[Range]) {
+        let first = self.comments[comments_begin];
+        let last = self.comments[comments_end - 1];
+        let text_span = TextSpan::new(first.offset, last.end() - first.offset);
+        self.emit_span(block_type, comments_begin, comments_end, text_span, tag, lines);
+    }
+
+    /// Emit a block with an explicit text span, e.g. a part of a block comment
+    fn emit_span(
+        &mut self,
+        block_type: CommentBlockType,
+        comments_begin: usize,
+        comments_end: usize,
+        text_span: TextSpan,
+        tag: Range,
+        mut lines: &[Range],
+    ) {
         while lines.first().is_some_and(Range::is_empty) {
             lines = &lines[1..];
         }
         while lines.last().is_some_and(Range::is_empty) {
             lines = &lines[..lines.len() - 1];
         }
-        let first = self.comments[comments_begin];
-        let last = self.comments[comments_end - 1];
         self.out.blocks.push(CommentBlock {
             block_type,
-            text_span: TextSpan::new(first.offset, last.end() - first.offset),
+            text_span,
             tag_span: tag.span(),
             comments_begin: comments_begin as u32,
             comments_count: (comments_end - comments_begin) as u32,
@@ -246,24 +308,49 @@ impl<'a> Grouper<'a> {
         self.out.lines.extend(lines.iter().map(Range::span));
     }
 
+    /// Is a tag the end tag?
+    fn is_end(&self, tag: &Tag) -> bool {
+        self.slice(tag.name) == COMMENT_TAG_END.as_bytes()
+    }
+
     fn group_block_comment(&mut self, comment_id: usize) {
         let comment = self.comments[comment_id];
         let mut lines = self.block_comment_lines(comment);
-        // A tag must be the first text of the comment
-        let first = lines.iter().position(|l| !l.is_empty()).unwrap_or(lines.len());
-        let tag = lines.get(first).and_then(|&line| self.read_tag(line));
-        let Some(tag) = tag else {
-            self.emit(CommentBlockType::COMMENT, comment_id, comment_id + 1, Range::default(), &lines);
-            return;
-        };
-        let name = self.slice(tag.name);
-        if name == COMMENT_TAG_END.as_bytes() {
-            self.warn(comment, "@dashql:end without an opening tag".to_string());
+        // Every tag line starts a tagged block, the end tag is never needed in a block comment
+        let mut tags: Vec<(usize, Tag)> = Vec::new();
+        for (i, &line) in lines.iter().enumerate() {
+            let Some(tag) = self.read_tag(self.trim(line)) else { continue };
+            if self.is_end(&tag) {
+                self.warn(TextSpan::new(line.begin as u32, (line.end - line.begin) as u32), "@end without an opening tag".to_string());
+                continue;
+            }
+            tags.push((i, tag));
+        }
+        if tags.is_empty() {
             self.emit(CommentBlockType::COMMENT, comment_id, comment_id + 1, Range::default(), &lines);
             return;
         }
-        lines[first] = tag.rest;
-        self.emit(CommentBlockType::DASHQL_TAG, comment_id, comment_id + 1, tag.name, &lines[first..]);
+        // Text before the first tag is an ordinary block
+        let first_tag = tags[0].0;
+        let mut span_begin = comment.offset as usize;
+        if lines[..first_tag].iter().any(|l| !l.is_empty()) {
+            let tag_begin = tags[0].1.name.begin - COMMENT_TAG_PREFIX.len();
+            let span = Range::new(span_begin, tag_begin).span();
+            self.emit_span(CommentBlockType::COMMENT, comment_id, comment_id + 1, span, Range::default(), &lines[..first_tag]);
+            span_begin = tag_begin;
+        }
+        for k in 0..tags.len() {
+            let (line, ref tag) = tags[k];
+            let (lines_end, span_end) = match tags.get(k + 1) {
+                Some((next, next_tag)) => (*next, next_tag.name.begin - COMMENT_TAG_PREFIX.len()),
+                None => (lines.len(), comment.end() as usize),
+            };
+            let name = tag.name;
+            lines[line] = tag.rest;
+            let span = Range::new(span_begin, span_end).span();
+            self.emit_span(CommentBlockType::DASHQL_TAG, comment_id, comment_id + 1, span, name, &lines[line..lines_end]);
+            span_begin = span_end;
+        }
     }
 
     fn group_line_comments(&mut self, run_begin: usize, run_end: usize) {
@@ -277,24 +364,29 @@ impl<'a> Grouper<'a> {
                 i += 1;
                 continue;
             };
-            let name = self.slice(tag.name);
-            if name == COMMENT_TAG_END.as_bytes() {
-                self.warn(self.comments[i], "@dashql:end without an opening tag".to_string());
+            if self.is_end(&tag) {
+                self.warn(self.comments[i], "@end without an opening tag".to_string());
                 i += 1;
                 continue;
             }
-            // Find the end of the region
+            // A region ends at the next tag line or at an end line
             let mut close = i + 1;
+            let mut closed_by_end = false;
             while close < run_end {
-                let end_tag = self.read_tag(self.trim(line(close)));
-                if end_tag.is_some_and(|t| t.rest.is_empty() && self.slice(t.name) == COMMENT_TAG_END.as_bytes()) {
-                    break;
+                if let Some(next) = self.read_tag(self.trim(line(close))) {
+                    if !self.is_end(&next) {
+                        break;
+                    }
+                    if next.rest.is_empty() {
+                        closed_by_end = true;
+                        break;
+                    }
                 }
                 close += 1;
             }
             if close == run_end {
                 // An unterminated region stays an ordinary comment
-                let message = format!("@dashql:{} is not closed by a -- @dashql:end line", self.string(tag.name));
+                let message = format!("@{} is not closed by a -- @end line", self.string(tag.name));
                 self.warn(self.comments[i], message);
                 i += 1;
                 continue;
@@ -305,9 +397,10 @@ impl<'a> Grouper<'a> {
             let mut content = Vec::with_capacity(close - i);
             content.push(tag.rest);
             content.extend((i + 1..close).map(line));
-            self.emit(CommentBlockType::DASHQL_TAG, i, close + 1, tag.name, &content);
-            pending = close + 1;
-            i = close + 1;
+            let region_end = if closed_by_end { close + 1 } else { close };
+            self.emit(CommentBlockType::DASHQL_TAG, i, region_end, tag.name, &content);
+            pending = region_end;
+            i = region_end;
         }
         if pending < run_end {
             self.emit(CommentBlockType::COMMENT, pending, run_end, Range::default(), &lines[pending - run_begin..]);
@@ -372,42 +465,114 @@ mod tests {
         assert_eq!(line_texts(text, &blocks, 2), vec!["c"]);
     }
 
-    #[test]
-    fn reads_tagged_regions() {
-        let text = "-- @dashql:description Sales\n-- per region\n-- @dashql:end\n/* @dashql:metadata {\"a\": 1} */\n/* @dashql:foo [1] */";
-        let blocks = group(text);
-        let tags: Vec<(CommentBlockType, &str)> = blocks
+    fn tags<'a>(text: &'a str, blocks: &CommentBlocks) -> Vec<(CommentBlockType, &'a str)> {
+        blocks
             .blocks
             .iter()
             .map(|b| (b.block_type, &text[b.tag_span.offset as usize..b.tag_span.end() as usize]))
-            .collect();
+            .collect()
+    }
+
+    fn block_texts<'a>(text: &'a str, blocks: &CommentBlocks) -> Vec<&'a str> {
+        blocks.blocks.iter().map(|b| &text[b.text_span.offset as usize..b.text_span.end() as usize]).collect()
+    }
+
+    #[test]
+    fn reads_tagged_regions() {
+        let text = "-- @description Sales\n-- per region\n-- @end\n/* @metadata {\"a\": 1} */\n/* @vis table */";
+        let blocks = group(text);
         assert_eq!(
-            tags,
+            tags(text, &blocks),
             vec![
                 (CommentBlockType::DASHQL_TAG, "description"),
                 (CommentBlockType::DASHQL_TAG, "metadata"),
-                (CommentBlockType::DASHQL_TAG, "foo"),
+                (CommentBlockType::DASHQL_TAG, "vis"),
             ]
         );
         assert_eq!(line_texts(text, &blocks, 0), vec!["Sales", "per region"]);
         // The content is not interpreted, readers check whether it is JSON
         assert_eq!(line_texts(text, &blocks, 1), vec!["{\"a\": 1}"]);
-        assert_eq!(line_texts(text, &blocks, 2), vec!["[1]"]);
+        assert_eq!(line_texts(text, &blocks, 2), vec!["table"]);
         assert!(blocks.warnings.is_empty());
     }
 
     #[test]
+    fn ignores_unknown_tags() {
+        let text = "-- @todo fix this\n-- @param x\n/* @param x */";
+        let blocks = group(text);
+        assert_eq!(tags(text, &blocks), vec![(CommentBlockType::COMMENT, ""), (CommentBlockType::COMMENT, "")]);
+        assert!(blocks.warnings.is_empty());
+    }
+
+    #[test]
+    fn splits_block_comments_at_tags() {
+        let text = "/* Sales.\n   @description Revenue.\n   @vis card width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
+        let blocks = group(text);
+        assert_eq!(
+            tags(text, &blocks),
+            vec![
+                (CommentBlockType::COMMENT, ""),
+                (CommentBlockType::DASHQL_TAG, "description"),
+                (CommentBlockType::DASHQL_TAG, "vis"),
+                (CommentBlockType::DASHQL_TAG, "vis"),
+            ]
+        );
+        assert_eq!(line_texts(text, &blocks, 0), vec!["Sales."]);
+        assert_eq!(line_texts(text, &blocks, 1), vec!["Revenue."]);
+        assert_eq!(line_texts(text, &blocks, 2), vec!["card width=6"]);
+        assert_eq!(line_texts(text, &blocks, 3), vec!["vegalite", "{\"mark\": \"bar\"}"]);
+        // The blocks cover the comment without gaps
+        assert_eq!(block_texts(text, &blocks).concat(), text);
+        assert!(blocks.blocks.iter().all(|b| (b.comments_begin, b.comments_count) == (0, 1)));
+    }
+
+    #[test]
+    fn splits_line_comments_at_tags() {
+        let text = "-- @description Revenue.\n-- @vis card width=6\n-- @vis table\n-- @end";
+        let blocks = group(text);
+        assert_eq!(
+            tags(text, &blocks),
+            vec![
+                (CommentBlockType::DASHQL_TAG, "description"),
+                (CommentBlockType::DASHQL_TAG, "vis"),
+                (CommentBlockType::DASHQL_TAG, "vis"),
+            ]
+        );
+        assert_eq!(line_texts(text, &blocks, 1), vec!["card width=6"]);
+        assert_eq!(block_texts(text, &blocks), vec!["-- @description Revenue.", "-- @vis card width=6", "-- @vis table\n-- @end"]);
+        assert!(blocks.warnings.is_empty());
+    }
+
+    #[test]
+    fn keeps_relative_indentation_in_block_comments() {
+        let text = "/* @vis markdown\n     - a\n       - b\n\n     * c\n*/";
+        let blocks = group(text);
+        assert_eq!(line_texts(text, &blocks, 0), vec!["markdown", "- a", "  - b", "", "* c"]);
+        let text = "/**\n * @description\n *   indented\n * plain\n */";
+        let blocks = group(text);
+        assert_eq!(line_texts(text, &blocks, 0), vec!["  indented", "plain"]);
+    }
+
+    #[test]
     fn warns_about_malformed_tags() {
-        let blocks = group("-- @dashql:description\n-- x\n\n-- @dashql:end\n/* @dashql:end */");
+        let blocks = group("-- @description\n-- x\n\n-- @end\n/* @end */");
         let warnings: Vec<&str> = blocks.warnings.iter().map(|w| w.1.as_str()).collect();
         assert_eq!(
             warnings,
             vec![
-                "@dashql:description is not closed by a -- @dashql:end line",
-                "@dashql:end without an opening tag",
-                "@dashql:end without an opening tag",
+                "@description is not closed by a -- @end line",
+                "@end without an opening tag",
+                "@end without an opening tag",
             ]
         );
         assert!(blocks.blocks.iter().all(|b| b.block_type == CommentBlockType::COMMENT));
+    }
+
+    #[test]
+    fn warns_about_an_unterminated_last_region() {
+        let text = "-- @description Revenue.\n-- @vis table";
+        let blocks = group(text);
+        assert_eq!(tags(text, &blocks), vec![(CommentBlockType::DASHQL_TAG, "description"), (CommentBlockType::COMMENT, "")]);
+        assert_eq!(blocks.warnings.len(), 1);
     }
 }

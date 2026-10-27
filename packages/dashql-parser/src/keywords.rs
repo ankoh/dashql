@@ -15,7 +15,6 @@ pub enum KeywordCategory {
     SqlReserved,
     SqlTypeFunc,
     SqlUnreserved,
-    VisUnreserved,
 }
 
 /// A keyword
@@ -68,9 +67,6 @@ impl Keyword {
 
     /// The keyword text of a terminal symbol, if the symbol is a keyword
     pub fn name_of(symbol: SymbolKind) -> Option<&'static str> {
-        if symbol == symbol_kind::S_VISUALIZE_LA {
-            return Some("visualize");
-        }
         keyword_names().get(symbol as usize).copied().flatten()
     }
 }
@@ -103,7 +99,7 @@ mod tests {
 
     #[test]
     fn finds_keywords() {
-        assert_eq!(KEYWORDS.len(), 579);
+        assert_eq!(KEYWORDS.len(), 458);
         let select = Keyword::find(b"select").unwrap();
         assert_eq!(select.symbol, symbol_kind::S_SELECT);
         assert_eq!(select.category, KeywordCategory::SqlReserved);
@@ -117,7 +113,6 @@ mod tests {
     #[test]
     fn names_symbols() {
         assert_eq!(Keyword::name_of(symbol_kind::S_SELECT), Some("select"));
-        assert_eq!(Keyword::name_of(symbol_kind::S_VISUALIZE_LA), Some("visualize"));
         assert_eq!(Keyword::name_of(symbol_kind::S_IDENT), None);
         assert_eq!(Keyword::name_of(symbol_kind::S_NOT_LA), None);
     }

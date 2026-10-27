@@ -5,7 +5,7 @@
 use crate::catalog::*;
 use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction, LiteralType};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
-use dashql_buffers::parser::{AttributeKey, IntervalType as IntervalTypeEnum, KnownFunction, SymbolSpan, VisFieldType, VisMarkType, VisScaleType};
+use dashql_buffers::parser::{IntervalType as IntervalTypeEnum, KnownFunction, SymbolSpan};
 use dashql_parser::span::TextSpan;
 use crate::hash::HashMap;
 use std::sync::Arc;
@@ -617,299 +617,6 @@ pub struct ConstantExpression {
     pub root: ExprId,
 }
 
-/// Binning parameters
-#[derive(Clone, Debug, Default)]
-pub struct VisBin {
-    /// The AST node id of the bin value
-    pub ast_node_id: u32,
-    /// Whether the input data is already binned
-    pub binned: Option<bool>,
-    /// An exact step size between bins
-    pub step: Option<f64>,
-    /// The maximum number of bins
-    pub maxbins: Option<f64>,
-    /// The minimum allowable step size
-    pub minstep: Option<f64>,
-    /// A value at which to anchor the bins
-    pub anchor: Option<f64>,
-    /// The number base for automatic bin determination
-    pub base: Option<f64>,
-    /// Whether to use nice bin boundaries
-    pub nice: Option<bool>,
-    /// The AST node id of the extent array
-    pub extent_node_id: Option<u32>,
-    /// The AST node id of the divide array
-    pub divide_node_id: Option<u32>,
-    /// The AST node id of the steps array
-    pub steps_node_id: Option<u32>,
-}
-
-/// A scale definition
-#[derive(Clone, Debug, Default)]
-pub struct VisScale {
-    /// The AST node id of the scale object
-    pub ast_node_id: u32,
-    /// The scale type (linear, log, pow, sqrt, ...)
-    pub scale_type: Option<VisScaleType>,
-    /// The AST node id of the domain value
-    pub domain_node_id: Option<u32>,
-    /// The AST node id of the explicit domain minimum
-    pub domain_min_node_id: Option<u32>,
-    /// The AST node id of the explicit domain maximum
-    pub domain_max_node_id: Option<u32>,
-    /// The AST node id of the domain midpoint of a diverging scale
-    pub domain_mid_node_id: Option<u32>,
-    /// The AST node id of the range value
-    pub range_node_id: Option<u32>,
-    /// The AST node id of the explicit range minimum
-    pub range_min_node_id: Option<u32>,
-    /// The AST node id of the explicit range maximum
-    pub range_max_node_id: Option<u32>,
-    /// The color scheme name
-    pub scheme: Option<String>,
-    /// The interpolation method of the scale range
-    pub interpolate: Option<String>,
-    /// Whether to extend the domain to nice round values
-    pub nice: Option<bool>,
-    /// Whether to include zero in the domain
-    pub zero: Option<bool>,
-    /// Whether to clamp the output to the range
-    pub clamp: Option<bool>,
-    /// The padding at both ends of the domain (band/point scales)
-    pub padding: Option<f64>,
-    /// The inner padding between bands (band scales)
-    pub padding_inner: Option<f64>,
-    /// The outer padding before the first and after the last band (band scales)
-    pub padding_outer: Option<f64>,
-    /// Whether to reverse the scale range
-    pub reverse: Option<bool>,
-    /// Whether to round the output values to integers
-    pub round: Option<bool>,
-    /// The exponent of a pow scale
-    pub exponent: Option<f64>,
-    /// The logarithm base of a log scale
-    pub base: Option<f64>,
-    /// The symlog constant that determines the slope around zero
-    pub constant: Option<f64>,
-    /// The alignment of steps within the range (band/point scales, 0-1)
-    pub align: Option<f64>,
-    /// The AST node id of the bins array (quantize scales)
-    pub bins_node_id: Option<u32>,
-    /// A named reference to the scale
-    pub name: Option<String>,
-}
-
-/// An axis definition
-#[derive(Clone, Debug, Default)]
-pub struct VisAxis {
-    /// The AST node id of the axis object
-    pub ast_node_id: u32,
-    /// The axis orientation (top, bottom, left, right)
-    pub orient: Option<String>,
-    /// The format string of the labels
-    pub format: Option<String>,
-    /// The format type (number, time, utc)
-    pub format_type: Option<String>,
-    /// Whether to draw grid lines
-    pub grid: Option<bool>,
-    /// Whether to draw tick marks
-    pub ticks: Option<bool>,
-    /// The desired number of ticks
-    pub tick_count: Option<f64>,
-    /// The size of the tick marks in pixels
-    pub tick_size: Option<f64>,
-    /// The rotation angle of the labels in degrees
-    pub label_angle: Option<f64>,
-    /// The font size of the labels in pixels
-    pub label_font_size: Option<f64>,
-    /// The strategy for overlapping labels (greedy, parity)
-    pub label_overlap: Option<String>,
-    /// The direction of the axis (horizontal, vertical)
-    pub direction: Option<String>,
-    /// The offset from the chart edge in pixels
-    pub offset: Option<f64>,
-    /// The AST node id of the explicit tick values
-    pub values_node_id: Option<u32>,
-    /// The z-index for layering
-    pub zindex: Option<i32>,
-    /// The axis title
-    pub title: Option<String>,
-    /// Whether to draw the domain line
-    pub domain: Option<bool>,
-    /// A named reference to the axis
-    pub name: Option<String>,
-}
-
-/// A legend definition
-#[derive(Clone, Debug, Default)]
-pub struct VisLegend {
-    /// The AST node id of the legend object
-    pub ast_node_id: u32,
-    /// The legend type (symbol, gradient)
-    pub legend_type: Option<String>,
-    /// The legend orientation (left, right, top, bottom, ...)
-    pub orient: Option<String>,
-    /// The format string of the labels
-    pub format: Option<String>,
-    /// The format type (number, time, utc)
-    pub format_type: Option<String>,
-    /// The layout direction of the entries (horizontal, vertical)
-    pub direction: Option<String>,
-    /// The legend title
-    pub title: Option<String>,
-    /// The AST node id of the explicit legend values
-    pub values_node_id: Option<u32>,
-    /// The padding around the legend in pixels
-    pub padding: Option<f64>,
-    /// The offset from the default position in pixels
-    pub offset: Option<f64>,
-    /// The z-index for layering
-    pub zindex: Option<i32>,
-    /// A named reference to the legend
-    pub name: Option<String>,
-}
-
-/// A mark definition
-#[derive(Clone, Debug, Default)]
-pub struct VisMark {
-    /// The AST node id of the mark object
-    pub ast_node_id: u32,
-    /// The mark type (bar, line, point, area, ...)
-    pub mark_type: Option<VisMarkType>,
-    /// Whether the mark is filled instead of stroke-only
-    pub filled: Option<bool>,
-    /// The fill color
-    pub fill: Option<String>,
-    /// The stroke color
-    pub stroke: Option<String>,
-    /// The default color, fill or stroke depending on the mark
-    pub color: Option<String>,
-    /// The overall opacity
-    pub opacity: Option<f64>,
-    /// The fill opacity
-    pub fill_opacity: Option<f64>,
-    /// The stroke opacity
-    pub stroke_opacity: Option<f64>,
-    /// The stroke width in pixels
-    pub stroke_width: Option<f64>,
-    /// The AST node id of the stroke dash array
-    pub stroke_dash_node_id: Option<u32>,
-    /// The mark size, the area in pixels for point marks
-    pub size: Option<f64>,
-    /// The shape of point marks (circle, square, cross, ...)
-    pub shape: Option<String>,
-    /// The rotation angle in degrees
-    pub angle: Option<f64>,
-    /// The polar radius of arc/text marks
-    pub radius: Option<f64>,
-    /// The corner radius of bar/rect marks
-    pub corner_radius: Option<f64>,
-    /// The orientation (horizontal, vertical)
-    pub orient: Option<String>,
-    /// The line interpolation method (linear, monotone, step, ...)
-    pub interpolate: Option<String>,
-    /// The line tension of spline interpolation (0-1)
-    pub tension: Option<f64>,
-    /// The tick/rule thickness in pixels
-    pub thickness: Option<f64>,
-    /// Whether to show tooltips
-    pub tooltip: Option<bool>,
-    /// The point overlay toggle, if given as a boolean
-    pub point_enabled: Option<bool>,
-    /// The point overlay, if given as a mark object
-    pub point: Option<Box<VisMark>>,
-    /// The line overlay toggle, if given as a boolean
-    pub line_enabled: Option<bool>,
-    /// The line overlay, if given as a mark object
-    pub line: Option<Box<VisMark>>,
-}
-
-impl VisMark {
-    /// Whether the mark carries any property beyond a bare type
-    pub fn has_properties(&self) -> bool {
-        self.filled.is_some()
-            || self.fill.is_some()
-            || self.stroke.is_some()
-            || self.color.is_some()
-            || self.opacity.is_some()
-            || self.fill_opacity.is_some()
-            || self.stroke_opacity.is_some()
-            || self.stroke_width.is_some()
-            || self.stroke_dash_node_id.is_some()
-            || self.size.is_some()
-            || self.shape.is_some()
-            || self.angle.is_some()
-            || self.radius.is_some()
-            || self.corner_radius.is_some()
-            || self.orient.is_some()
-            || self.interpolate.is_some()
-            || self.tension.is_some()
-            || self.thickness.is_some()
-            || self.tooltip.is_some()
-            || self.point_enabled.is_some()
-            || self.point.is_some()
-            || self.line_enabled.is_some()
-            || self.line.is_some()
-    }
-}
-
-/// An encoding channel
-#[derive(Clone, Debug, Default)]
-pub struct VisEncodingChannel {
-    /// The channel attribute key (VIS_ENCODING_X, VIS_ENCODING_Y, ...)
-    pub channel_key: AttributeKey,
-    /// The AST node id of the field def or shorthand column ref
-    pub ast_node_id: u32,
-    /// The expression id of the field column ref
-    pub field_expression_id: Option<u32>,
-    /// The AST node id of the field value of a nested spec, which has no expression
-    pub field_node_id: Option<u32>,
-    /// The field type (nominal, ordinal, quantitative, temporal, geojson)
-    pub field_type: Option<VisFieldType>,
-    /// The aggregate function name (sum, mean, count, ...)
-    pub aggregate: Option<String>,
-    /// The bin parameters, present if binning is enabled
-    pub bin: Option<VisBin>,
-    /// The time unit of a temporal field (year, month, day, ...)
-    pub time_unit: Option<String>,
-    /// The AST node id of the stack value
-    pub stack_node_id: Option<u32>,
-    /// The scale definition of the channel
-    pub scale: Option<VisScale>,
-    /// The axis definition of the channel
-    pub axis: Option<VisAxis>,
-    /// The legend definition of the channel
-    pub legend: Option<VisLegend>,
-}
-
-/// Composition resolution settings
-#[derive(Clone, Debug, Default)]
-pub struct VisResolve {
-    /// The AST node id of the scale resolution
-    pub scale_node_id: Option<u32>,
-    /// The AST node id of the axis resolution
-    pub axis_node_id: Option<u32>,
-    /// The AST node id of the legend resolution
-    pub legend_node_id: Option<u32>,
-}
-
-/// A nested Vega-Lite specification
-#[derive(Clone, Debug, Default)]
-pub struct VegaLiteSpec {
-    /// The mark type
-    pub mark_type: Option<VisMarkType>,
-    /// The structured mark definition, if the mark is an object
-    pub mark: Option<VisMark>,
-    /// The encoding channels
-    pub encoding_channels: Vec<VisEncodingChannel>,
-    /// The nested layer specifications
-    pub layers: Vec<VegaLiteSpec>,
-    /// The scale/axis/legend resolution settings
-    pub resolve: Option<VisResolve>,
-    /// The title
-    pub title: Option<String>,
-}
-
 /// Dashboard placement
 #[derive(Clone, Debug)]
 pub struct DashboardSpec {
@@ -937,58 +644,23 @@ impl Default for DashboardSpec {
 /// A Markdown spec
 #[derive(Clone, Debug, Default)]
 pub struct MarkdownSpec {
-    /// The AST node id of the Markdown spec object
-    pub ast_node_id: u32,
-    /// The row template, decoded from its SQL string literal
+    /// The row template of the `@vis markdown` tag
     pub row_template: String,
 }
 
-/// The kind of the source of a VISUALIZE statement
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum VisSourceKind {
-    #[default]
-    Unresolved = 0,
-    TableReference = 1,
-    ScriptReference = 2,
-    InlineSelect = 3,
-}
-
-/// The resolved source of a VISUALIZE statement
-#[derive(Clone, Copy, Debug, Default)]
-pub struct ResolvedVisSource {
-    /// The kind of the source
-    pub kind: VisSourceKind,
-    /// The AST node id of the input query of an inline select
-    pub inline_select_ast_node_id: Option<u32>,
-}
-
-/// A visualization specification
+/// A visualization specification, built from the `@vis` tags of a query
 #[derive(Clone, Debug, Default)]
 pub struct VisualizationSpec {
-    /// The AST node id of the VISUALIZE object
+    /// The AST node id of the visualized query
     pub ast_node_id: u32,
     /// The AST statement id
     pub ast_statement_id: Option<u32>,
-    /// The renderer named after `USING` (e.g. `vegalite`)
+    /// The renderer named by the `@vis` tag (`vegalite`, `markdown` or `table`)
     pub renderer: Option<String>,
-    /// The mark type
-    pub mark_type: Option<VisMarkType>,
-    /// The structured mark definition, if the mark is an object
-    pub mark: Option<VisMark>,
-    /// The AST node id of the input query
-    pub source_node_id: Option<u32>,
-    /// The resolved source, set during finish
-    pub resolved_source: ResolvedVisSource,
-    /// The encoding channels that map columns to visual properties
-    pub encoding_channels: Vec<VisEncodingChannel>,
-    /// The chart title
-    pub title: Option<String>,
     /// The dashboard grid placement
     pub dashboard: DashboardSpec,
-    /// The nested Vega-Lite layer specifications
-    pub layers: Vec<VegaLiteSpec>,
-    /// The Vega-Lite scale/axis/legend resolution settings
-    pub resolve: Option<VisResolve>,
-    /// The Markdown spec, present if the spec is a Markdown spec
+    /// The Markdown spec, present if the renderer is `markdown`
     pub markdown: Option<MarkdownSpec>,
+    /// The Vega-Lite spec of a `@vis vegalite` tag, a JSON object without `data`
+    pub vegalite: Option<serde_json::Map<String, serde_json::Value>>,
 }

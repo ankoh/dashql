@@ -193,8 +193,8 @@ fn analyzed_output() {
 
 #[test]
 fn analyzed_output_packs_functions_and_visualizations() {
-    let text = "create function f(x int) returns int; select f(1) as v, count(*) as n from (select 1) x \
-                visualize using table (dashboard => (row => 1))";
+    let text = "create function f(x int) returns int;\n/* @vis table\n   @vis card row=1 */\n\
+                select f(1) as v, count(*) as n from (select 1) x";
     let result = run_one(text, ANALYZED, vec![]);
     assert!(result.failure.is_none());
     let analyzed = flatbuffers::root::<AnalyzedScript>(result.analyzed.as_ref().unwrap()).unwrap().unpack();
@@ -221,13 +221,13 @@ fn analyzer_errors_are_diagnostics() {
 
 #[test]
 fn analyzer_warnings_are_diagnostics() {
-    let result = run_one("-- @dashql:bogus\nselect 1", ANALYZED, vec![]);
+    let result = run_one("-- @description\nselect 1", ANALYZED, vec![]);
     let diagnostics = diagnostics(&result);
     assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
     assert_eq!((diagnostics[0].0, diagnostics[0].1), (ProcessingStage::ANALYZE, DiagnosticSeverity::WARNING));
-    assert!(diagnostics[0].2.contains("bogus"));
+    assert!(diagnostics[0].2.contains("not closed"));
     // Warnings don't block the catalog descriptor
-    let result = run_one("-- @dashql:bogus\ncreate table t (a int)", ANALYZED | DESCRIPTOR, vec![]);
+    let result = run_one("-- @description\ncreate table t (a int)", ANALYZED | DESCRIPTOR, vec![]);
     assert!(result.catalog_descriptor.is_some());
 }
 

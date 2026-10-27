@@ -259,7 +259,7 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             let ty = statement.statement_type;
             let span = descriptions[statement_id].statement_span;
             let mut sql = text_at(span.offset, span.length);
-            node.produces_output = matches!(ty, Type::SELECT | Type::EXPLAIN | Type::VIS_VISUALISE);
+            node.produces_output = matches!(ty, Type::SELECT | Type::EXPLAIN);
             let root = &parsed.nodes[statement.root as usize];
             let mut explain_executes = false;
             let mut accesses: BTreeMap<(u32, u32), Mode> = BTreeMap::new();
@@ -286,7 +286,6 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                 | Type::INSERT
                 | Type::DELETE
                 | Type::EXPLAIN
-                | Type::VIS_VISUALISE
                 | Type::CREATE_TABLE
                 | Type::CREATE_TABLE_AS
                 | Type::CREATE_VIEW
@@ -298,30 +297,14 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                     sql.clear();
                 }
             }
-            if ty == Type::VIS_VISUALISE {
-                let [source] = attrs!(children(root), [Key::VIS_VISUALISE_SELECT]);
-                match source.filter(|s| s.node_type() == NodeType::OBJECT_SQL_SELECT) {
-                    None => {
-                        barrier!("VISUALIZE requires a SELECT source", true);
+            // A query with `@vis` tags carries its visualization
+            let visualization = analyzed.visualization_specs.iter().find(|s| s.ast_statement_id == Some(statement_id as u32));
+            if let Some(spec) = visualization.filter(|_| ty == Type::SELECT) {
+                match compile_visualization(spec, analyzed) {
+                    Ok(compiled) => node.visualization = Some(Box::new(compiled)),
+                    Err(e) => {
+                        barrier!(format!("visualization: {e}"), true);
                         sql.clear();
-                    }
-                    Some(source) => {
-                        let ts = resolve_text_span(&scanned.text, &scanned.symbols, *source.symbol_span());
-                        sql = text_at(ts.offset, ts.length);
-                        let visualization = analyzed.visualization_specs.iter().find(|s| s.ast_statement_id == Some(statement_id as u32));
-                        match visualization {
-                            None => {
-                                barrier!("could not resolve visualization metadata", true);
-                                sql.clear();
-                            }
-                            Some(spec) => match compile_visualization(spec, analyzed) {
-                                Ok(compiled) => node.visualization = Some(Box::new(compiled)),
-                                Err(e) => {
-                                    barrier!(format!("visualization: {e}"), true);
-                                    sql.clear();
-                                }
-                            },
-                        }
                     }
                 }
             }
@@ -393,10 +376,6 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                 ) || ast.attribute_key() == Key::SQL_SELECT_INTO;
                 if ty == Type::EXPLAIN && explain_executes && mutating {
                     barrier!("execution-enabled EXPLAIN with a mutating body cannot be safely classified", true);
-                    sql.clear();
-                }
-                if ty == Type::VIS_VISUALISE && ast.attribute_key() == Key::SQL_SELECT_INTO {
-                    barrier!("VISUALIZE SELECT INTO has unsupported mutation and session effects", true);
                     sql.clear();
                 }
                 if ast.node_type() == NodeType::ENUM_SQL_TEMP_TYPE && ast.children_begin_or_value() == TempType::NONE.0 as u32 {

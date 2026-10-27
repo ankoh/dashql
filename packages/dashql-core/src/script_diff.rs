@@ -74,18 +74,15 @@ struct Emitter {
     target_emitted: Vec<bool>,
 }
 
-/// Is the node type an enum? Enums live between ENUM_KEYS_ and OBJECT_KEYS_, except the four
-/// ENUM_VIS_* values that sit between OBJECT_KEYS_ and VIS_OBJECT_KEYS_.
+/// Is the node type an enum? Enums live between ENUM_KEYS_ and OBJECT_KEYS_.
 fn is_enum_type(t: NodeType) -> bool {
     let id = t.0;
-    (id > NodeType::ENUM_KEYS_.0 && id < NodeType::OBJECT_KEYS_.0)
-        || (id >= NodeType::ENUM_VIS_ENCODING_CHANNEL.0 && id <= NodeType::ENUM_VIS_SCALE_TYPE.0)
+    id > NodeType::ENUM_KEYS_.0 && id < NodeType::OBJECT_KEYS_.0
 }
 
-/// Is the node type an object? Objects live above OBJECT_KEYS_, except the ENUM_VIS_* block.
+/// Is the node type an object? Objects live above OBJECT_KEYS_.
 fn is_object_type(t: NodeType) -> bool {
-    let id = t.0;
-    (id > NodeType::OBJECT_KEYS_.0 && id < NodeType::ENUM_VIS_ENCODING_CHANNEL.0) || id > NodeType::VIS_OBJECT_KEYS_.0
+    t.0 > NodeType::OBJECT_KEYS_.0
 }
 
 /// Does the node type have child nodes (as opposed to an inline value)?

@@ -113,8 +113,8 @@ describe('DashQL batches', () => {
             { id: 'parse', text: 'select * from a x, b x', outputs: ['parsed'] },
             {
                 id: 'warning',
-                text: 'create table items(id int); select 1 as value visualize using vegalite ' +
-                    '(mark => bar, dashboard => (row => -1, column => 15, width => 20, height => 0))',
+                text: 'create table items(id int);\n/* @vis vegalite {"mark": "bar"}\n   ' +
+                    '@vis card row=-1 column=15 width=20 height=0 */\nselect 1 as value',
                 outputs: ['catalogDescriptor'],
             },
         ] });

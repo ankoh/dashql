@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Query a small knowledge graph with a property graph and a MATCH pattern.
 -- Finds who knows someone working at a company in Berlin.
--- @dashql:end
+-- @end
 
 with
     people(id, name) as (

@@ -214,6 +214,25 @@ impl<'a> Formatter<'a> {
         f.concat(&[self.reg(key), f.text(" = "), self.reg(value)])
     }
 
+    pub(super) fn format_vararg_array(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [values] = attrs!(self.children(node), [K::EXT_VARARG_ARRAY_VALUES]);
+        let Some(values) = values.filter(|v| v.node_type() == NodeType::ARRAY) else {
+            return self.format_unimplemented(node);
+        };
+        if values.children_count() == 0 {
+            return f.text("[]");
+        }
+        let items: Vec<FmtReg> = self.children(values).iter().map(|v| self.reg(v)).filter(|&r| r != 0).collect();
+        if items.is_empty() {
+            return f.text("[]");
+        }
+        let (inline_separator, break_separator) = self.comma_separators();
+        let list =
+            f.join(&items, inline_separator, break_separator, Some(FormattingJoinPolicy::BreakOnOverflow), false);
+        f.concat(&[f.text("["), list, f.text("]")])
+    }
+
     pub(super) fn format_set(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let [varargs] = attrs!(self.children(node), [K::EXT_SET_VARARGS]);

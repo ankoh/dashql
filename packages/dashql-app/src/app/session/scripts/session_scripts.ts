@@ -1330,7 +1330,7 @@ export function analyzeScriptData(scriptData: ScriptData, logger: Logger): Scrip
     if (update.analysisUpdated) {
         next.statistics = rotateScriptStatistics(next.statistics, update.processingStatistics);
     }
-    // Derive script annotations (incl. resolved VISUALIZE query)
+    // Derive script annotations (incl. the resolved visualization)
     next.annotations = deriveScriptAnnotations(
         update,
         next.scriptSession,

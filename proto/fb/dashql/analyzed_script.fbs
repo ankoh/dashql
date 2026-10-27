@@ -265,6 +265,7 @@ enum AnalyzerErrorType: uint8 {
     UNSUPPORTED_VIS_KEY,
     INVALID_DASHBOARD_LAYOUT,
     MALFORMED_COMMENT_TAG,
+    INVALID_VIS_TAG,
 }
 
 /// The severity of an analyzer error. WARNING-level diagnostics still carry a
@@ -291,28 +292,15 @@ table AnalyzerError {
 
 table AnalyzerWarning {}
 
-/// The kind of source resolved for a VISUALIZE statement
-enum VisSourceKind: uint8 {
-    UNRESOLVED = 0,
-    /// `<query> visualize ...` — complete input query
-    INLINE_SELECT = 3,
-}
-
-/// A visualization specification produced by the analyzer for a single VISUALIZE statement.
+/// A visualization specification produced by the analyzer from the `@vis` tags of a query.
 table VisualizationSpec {
-    /// The AST node id of the OBJECT_VIS_VISUALISE root
+    /// The AST node id of the visualized query
     ast_node_id: uint32;
     /// The id of the statement containing this visualization
     ast_statement_id: uint32;
-    /// The kind of resolved source
-    source_kind: VisSourceKind = UNRESOLVED;
-    /// The AST node id of the complete input query
-    source_ast_node_id: uint32;
-    /// The AST node id of the input query for INLINE_SELECT
-    source_inline_select_ast_node_id: uint32;
-    /// The visualization renderer named after `USING` (e.g. `vegalite`, `markdown`)
+    /// The visualization renderer named by the `@vis` tag (`vegalite`, `markdown` or `table`)
     renderer: string;
-    /// The pretty-printed Vega-Lite JSON specification (without the `data` field).
+    /// The pretty-printed Vega-Lite JSON specification with the query as `data`.
     /// Only populated when `renderer` is `vegalite`.
     vegalite_spec: string;
     /// The compiled Markdown row-template AST. Only populated when `renderer`

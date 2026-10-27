@@ -54,20 +54,20 @@ completion-snapshots:
               qualified-idx: 1
               prefer-qualified: 0
         - score: 55
-          value: background
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "ba"
-          location-qualified: "ba"
-          objects: []
-        - score: 55
           value: backward
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "ba"
           location-qualified: "ba"
           objects: []
-        - score: 55
-          value: band
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+        - score: 50
+          value: database
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 50
+          value: global
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "ba"
           location-qualified: "ba"
           objects: []
@@ -466,26 +466,26 @@ completion-snapshots:
           location-qualified: "ba"
           objects: []
         - score: 56
-          value: background
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "ba"
-          location-qualified: "ba"
-          objects: []
-        - score: 56
           value: backward
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "ba"
           location-qualified: "ba"
           objects: []
-        - score: 56
-          value: band
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+        - score: 51
+          value: database
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "ba"
           location-qualified: "ba"
           objects: []
-        - score: 56
-          value: band_position
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+        - score: 51
+          value: global
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "ba"
+          location-qualified: "ba"
+          objects: []
+        - score: 51
+          value: rollback
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "ba"
           location-qualified: "ba"
           objects: []
@@ -546,14 +546,14 @@ completion-snapshots:
           location-qualified: "fo"
           objects: []
         - score: 56
-          value: format
+          value: forward
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fo"
           location-qualified: "fo"
           objects: []
-        - score: 56
-          value: format_type
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+        - score: 51
+          value: before
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fo"
           location-qualified: "fo"
           objects: []

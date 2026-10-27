@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Return the top three rows and every row that ties with the third one.
 -- rank() gives equal values the same rank, row_number() would cut ties at random.
--- @dashql:end
+-- @end
 
 with scores(player, points) as (
     values ('ada', 98), ('alan', 95), ('grace', 91), ('edsger', 91), ('barbara', 87)

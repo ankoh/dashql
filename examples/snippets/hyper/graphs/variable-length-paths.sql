@@ -1,7 +1,7 @@
--- @dashql:description
+-- @description
 -- Find every destination that is reachable with at most two stopovers.
 -- The quantifier {1,3} matches paths of one to three flights.
--- @dashql:end
+-- @end
 
 with
     airports(code, city) as (

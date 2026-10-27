@@ -15,11 +15,9 @@ use crate::cursor::{ScriptCursor, ScriptView};
 use crate::error::{Error, Result};
 use crate::formatter::Formatter;
 use dashql_buffers::formatting::FormattingConfigT;
-use dashql_buffers::parser::{AttributeKey, Node, NodeType, StatementType};
+use dashql_buffers::parser::{Node, StatementType};
 use dashql_buffers::statistics::{ScriptMemoryStatisticsT, ScriptProcessingTimingsT, ScriptStatisticsT};
 use dashql_buffers::status::StatusCode;
-use dashql_parser::attrs;
-use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::{scan, ScannedScript};
 use dashql_parser::span::TextSpan;
@@ -303,7 +301,8 @@ impl Script {
         Ok(self.to_text_span(span))
     }
 
-    /// Rewrite the dashboard clause of the terminal VISUALIZE statement.
+    /// Rewrite the dashboard placement of the terminal query, the args of its `@vis card` tag. A query
+    /// without a card gets one in front of it.
     ///
     /// The spans of the parsed script are applied to the current text, which differs from the parsed
     /// text if the script was edited and `parse_if_outdated` is false (see docs/design/core_quirks.md).
@@ -321,20 +320,15 @@ impl Script {
         }
         let not_parsed = || Error::status(StatusCode::SCRIPT_NOT_PARSED);
         let parsed = self.parsed.as_ref().ok_or_else(not_parsed)?;
-        if !parsed.errors.is_empty() {
+        if !parsed.errors.is_empty() || parsed.statements.is_empty() {
             return Err(not_parsed());
         }
-        let statement = parsed.statements.last().ok_or_else(not_parsed)?;
-        if statement.statement_type != StatementType::VIS_VISUALISE {
+        let statement_id = parsed.statements.len() - 1;
+        if parsed.statements[statement_id].statement_type != StatementType::SELECT
+            || !crate::analyzer::has_vis_tags(parsed, statement_id)
+        {
             return Err(not_parsed());
         }
-        let children = |node: &Node| {
-            let begin = node.children_begin_or_value() as usize;
-            &parsed.nodes[begin..begin + node.children_count() as usize]
-        };
-        let root = &parsed.nodes[statement.root as usize];
-        let [spec] = attrs!(children(root), [AttributeKey::VIS_VISUALISE_SPEC]);
-        let spec = spec.ok_or_else(not_parsed)?;
 
         let width = width.clamp(1, 12);
         let height = height.max(1);
@@ -344,41 +338,28 @@ impl Script {
         if let Some(c) = column.as_mut() {
             *c = (*c).clamp(0, 12 - width);
         }
-        let mut fields = Vec::with_capacity(4);
+        let mut card = String::from("card");
         if let Some(row) = row {
-            fields.push(format!("row => {row}"));
+            card.push_str(&format!(" row={row}"));
         }
         if let Some(column) = column {
-            fields.push(format!("column => {column}"));
+            card.push_str(&format!(" column={column}"));
         }
-        fields.push(format!("width => {width}"));
-        fields.push(format!("height => {height}"));
-        let replacement = format!("dashboard => ({})", fields.join(", "));
+        card.push_str(&format!(" width={width} height={height}"));
 
-        let scanned = &parsed.scanned;
-        let resolve = |node: &Node| resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span());
         let mut source = self.text.to_string().into_bytes();
-        let spec_children = children(spec);
-        let [dashboard] = attrs!(spec_children, [AttributeKey::VIS_SPEC_DASHBOARD]);
-        if let Some(dashboard) = dashboard {
-            let span = resolve(dashboard);
-            let begin = span.offset as usize;
-            if begin > source.len() {
-                // std::string::replace throws std::out_of_range
-                return Err(Error::invalid_argument("basic_string::replace: position out of range"));
+        let (begin, end, replacement) = match crate::analyzer::vis_card_line(parsed, statement_id) {
+            Some(line) => (line.offset as usize, line.end() as usize, card),
+            None => {
+                let at = parsed.associate_descriptions()[statement_id].statement_span.offset as usize;
+                (at, at, format!("/* @vis {card} */\n"))
             }
-            let end = (begin + span.length as usize).min(source.len());
-            source.splice(begin..end, replacement.bytes());
-            return Ok(String::from_utf8_lossy(&source).into_owned());
+        };
+        if begin > source.len() {
+            // std::string::replace throws std::out_of_range
+            return Err(Error::invalid_argument("basic_string::replace: position out of range"));
         }
-        let insert_at = resolve(root).end() as usize;
-        if insert_at == 0 || source.get(insert_at - 1) != Some(&b')') {
-            return Err(not_parsed());
-        }
-        let insert_at = insert_at - 1;
-        let has_spec_fields = spec_children.iter().any(|child| child.node_type() != NodeType::NONE);
-        let insert = if has_spec_fields { format!(", {replacement}") } else { replacement };
-        source.splice(insert_at..insert_at, insert.bytes());
+        source.splice(begin..end.min(source.len()), replacement.bytes());
         Ok(String::from_utf8_lossy(&source).into_owned())
     }
 

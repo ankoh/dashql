@@ -492,6 +492,66 @@ describe('DashQL processor completion triggers', () => {
         expect(updated).toBe("select 'é😀', orders");
     });
 
+    it('completes the keys of a @vis vegalite spec inside the comment', () => {
+        const catalog = dql!.createCatalog();
+        const text = '/* 😀 chart\n   @vis vegalite {"ma */\nselect 1';
+        const cursor = text.indexOf('"ma') + 3;
+        const { scriptSession } = createScriptSession(catalog, text, cursor);
+        const completionBuffer = scriptSession.completeAtCursor(10);
+        const completion = completionBuffer.read();
+        expect(completion.candidatesLength()).toBeGreaterThan(0);
+        expect(completion.candidates(0)?.displayText()).toBe('"mark"');
+
+        const completionState = computePatches({
+            status: DashQLCompletionStatus.AVAILABLE,
+            passiveHint: false,
+            buffer: completionBuffer,
+            candidateId: 0,
+            candidatePatch: [],
+            catalogObjectId: 0,
+            catalogObjectPatch: [],
+            catalogObjectCursorOffset: null,
+        }, EditorState.create({ doc: text }).doc, cursor);
+        const updated = EditorState.create({ doc: text }).update({
+            changes: applyCompletion(completionState.candidatePatch),
+        }).newDoc.toString();
+
+        expect(updated).toBe('/* 😀 chart\n   @vis vegalite {"mark" */\nselect 1');
+    });
+
+    it('starts completion when typing a @vis kind', () => {
+        const catalog = dql!.createCatalog();
+        const before = '/* @vis v */\nselect 1';
+        const cursor = before.indexOf(' v') + 2;
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, before, cursor - 1);
+        const processorState: DashQLProcessorUpdateIn = {
+            scriptKey: 1,
+            scriptSession,
+            editorUpdate,
+            scriptBuffers: null,
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            derivedFocus: null,
+            onUpdate: () => {},
+        };
+        let editorState = EditorState.create({
+            doc: before.slice(0, cursor - 1) + before.slice(cursor),
+            selection: EditorSelection.cursor(cursor - 1),
+            extensions: [DashQLProcessorPlugin],
+        });
+        editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+        editorState = editorState.update({
+            changes: { from: cursor - 1, insert: 'v' },
+            selection: EditorSelection.cursor(cursor),
+            annotations: Transaction.userEvent.of('input.type'),
+        }).state;
+
+        expect(editorState.doc.toString()).toBe(before);
+        const completion = editorState.field(DashQLProcessorPlugin).scriptCompletion;
+        expect(completion).not.toBeNull();
+        expect(completion!.buffer.read().candidates(0)?.displayText()).toBe('vegalite');
+    });
+
     it('cycles catalog objects for the selected completion candidate', () => {
         const catalog = dql!.createCatalog();
         const schemaScript = dql!.createScript(catalog);
@@ -558,14 +618,8 @@ describe('DashQL processor completion triggers', () => {
         const catalog = dql!.createCatalog();
         const text = `-- Fetch and visualize vega cars data from a parquet file, rendering a point
 -- chart with year on the x-axis and weight on the y-axis.
-SELECT * FROM read_parquet('vega_cars.parquet') VISUALIZE USING vegalite (
-  mark => point,
-  encoding => (
-    x => (field => "Year", type => temporal),
-    y => (field => "Weight_in_lbs", type => quantitative)
-  )
-);`;
-        const cursorOffset = text.indexOf('VISUALIZE');
+SELECT * FROM read_parquet('vega_cars.parquet') WHERE "Year" > 1970;`;
+        const cursorOffset = text.indexOf('WHERE');
         const { scriptSession, editorUpdate } = createScriptSession(catalog, text, cursorOffset);
         expect(editorUpdate.primaryCursorState?.scannerRelativePosition).toBe(
             dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL,

@@ -15,8 +15,8 @@ export interface CompiledSessionQuery {
 
 /// Compile a script into executable SQL and cache metadata.
 ///
-/// Statement classification, executable SQL extraction, and VISUALIZE
-/// source extraction all happen in dashql-core.
+/// Statement classification, executable SQL extraction, and the visualization
+/// of `@vis` tags all happen in dashql-core.
 export function compileSessionQuery(
     scriptData: ScriptData,
     connectorType: ConnectorType,

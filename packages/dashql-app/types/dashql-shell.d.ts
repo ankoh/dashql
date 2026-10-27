@@ -79,7 +79,6 @@ declare module '@ankoh/dashql-shell-js' {
     export const PlanViewModel: DashQLBindings['PlanViewModel'];
     export const plan: DashQLBindings['plan'];
     export const processBatch: DashQLBindings['processBatch'];
-    export const parseVegaLiteToVisualize: DashQLBindings['parseVegaLiteToVisualize'];
     export const appendCatalogChangesSql: DashQLBindings['appendCatalogChangesSql'];
     export const qualifyCatalogChanges: DashQLBindings['qualifyCatalogChanges'];
 

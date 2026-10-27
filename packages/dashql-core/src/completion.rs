@@ -153,7 +153,7 @@ fn keyword_prevalence(keyword: SymbolKind) -> CandidateTag {
 
 /// Tokens after which no passive keyword hints are shown
 fn suppress_passive_hint(kind: SymbolKind) -> bool {
-    matches!(kind, S_SELECT | S_FROM | S_JOIN | S_WHERE | S_ON | S_AND | S_OR | S_BY | S_VISUALISE | S_VISUALIZE)
+    matches!(kind, S_SELECT | S_FROM | S_JOIN | S_WHERE | S_ON | S_AND | S_OR | S_BY)
 }
 
 /// The continuation score of a keyword
@@ -273,7 +273,7 @@ pub struct Candidate {
 }
 
 impl Candidate {
-    fn new(
+    pub(crate) fn new(
         completion_text: Arc<str>,
         name_tags: u8,
         tags: CandidateTags,
@@ -496,12 +496,12 @@ impl<'c, 'a> Completion<'c, 'a> {
     /// Compute the completion at a cursor
     pub fn compute(cursor: &'c ScriptCursor<'a>, k: usize) -> Self {
         let mut completion = Completion::new(cursor, k);
-        let Some(location) = cursor.scanner_location else { return completion };
-        let scanned = cursor.script.scanned.unwrap();
-        // Don't complete inside comments
-        if crate::cursor::is_inside_comment(scanned, cursor.text_offset) {
+        // Inside comments, only comment tags and the content of `@vis` tags are completed
+        if cursor.script.scanned.is_some_and(|scanned| crate::cursor::is_inside_comment(scanned, cursor.text_offset)) {
+            crate::completion_vis::complete_in_comment(&mut completion, k);
             return completion;
         }
+        let Some(location) = cursor.scanner_location else { return completion };
         completion.target_symbol = Some(location.current);
         let mut previous_symbol = location.previous;
 
@@ -655,7 +655,6 @@ impl<'c, 'a> Completion<'c, 'a> {
             {
                 completion.find_candidates_in_indexes();
                 completion.find_candidates_in_scope();
-                completion.find_candidates_in_inline_visualize_source();
                 completion.promote_tables_and_peers_for_unresolved_columns();
             }
         }
@@ -1001,48 +1000,6 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
     }
 
-    /// Add the output columns of the inline SELECT of a VISUALIZE statement
-    fn find_candidates_in_inline_visualize_source(&mut self) {
-        let (Some(target), Some(parsed), Some(analyzed)) =
-            (self.target_symbol, self.cursor.script.parsed, self.analyzed())
-        else {
-            return;
-        };
-        let nodes = &parsed.nodes;
-        let path = &self.cursor.ast_path_to_root;
-        if !path.iter().any(|&n| nodes[n as usize].attribute_key() == AttributeKey::VIS_VISUALISE_SPEC) {
-            return;
-        }
-        let mut source_scope = None;
-        for &node_id in path {
-            let node = &nodes[node_id as usize];
-            if node.node_type() != NodeType::OBJECT_VIS_VISUALISE {
-                continue;
-            }
-            for i in 0..node.children_count() {
-                let child_id = node.children_begin_or_value() + i;
-                if nodes[child_id as usize].attribute_key() != AttributeKey::VIS_VISUALISE_SELECT {
-                    continue;
-                }
-                source_scope = analyzed.name_scopes_by_root_node.get(&child_id).copied();
-                break;
-            }
-            break;
-        }
-        let Some(source_scope) = source_scope else { return };
-        let prefix = self.read_target_prefix();
-        let location = Self::symbol_location(&target.symbol);
-        let names: Vec<Arc<str>> = analyzed.name_scopes[source_scope as usize]
-            .output_columns
-            .iter()
-            .map(|o| o.column_name.text.clone())
-            .collect();
-        for name in names {
-            let tags = CandidateTag::NAME_INDEX.0 | CandidateTag::IN_NAME_SCOPE.0;
-            self.add_local_candidate(&name, NameTag::COLUMN_NAME.0, tags, prefix, location, location);
-        }
-    }
-
     /// The name scopes around the cursor with the FROM items that the column refs of the cursor can see in them.
     /// The innermost scope comes first, a correlation barrier hides all scopes above it.
     fn visible_scopes(analyzed: &AnalyzedScript, name_scopes: &[ScopeId]) -> Vec<(ScopeId, SourceVisibility)> {
@@ -1109,22 +1066,12 @@ impl<'c, 'a> Completion<'c, 'a> {
     /// Promote tables that resolve unresolved columns, and their columns
     fn promote_tables_and_peers_for_unresolved_columns(&mut self) {
         let cursor = self.cursor;
-        let (Some(_), Some(analyzed), Some(parsed)) = (cursor.statement_id, self.analyzed(), cursor.script.parsed)
-        else {
+        let (Some(_), Some(analyzed)) = (cursor.statement_id, self.analyzed()) else {
             return;
         };
-        let nodes = &parsed.nodes;
-        let in_visualize_source = self
-            .cursor
-            .ast_path_to_root
-            .iter()
-            .any(|&n| nodes[n as usize].attribute_key() == AttributeKey::VIS_VISUALISE_SELECT);
         let mut columns = Vec::new();
         for &scope_id in &cursor.name_scopes {
             let scope = &analyzed.name_scopes[scope_id as usize];
-            if in_visualize_source && nodes[scope.ast_node_id as usize].node_type() == NodeType::OBJECT_VIS_VISUALISE {
-                continue;
-            }
             for &expr in &scope.expressions {
                 let Some(column_ref) = analyzed.expressions[expr as usize].column_ref() else { continue };
                 if column_ref.resolved.is_resolved() {
