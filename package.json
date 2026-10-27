@@ -23,7 +23,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@eslint/js": "^10.0.1",
     "@lezer/highlight": "^1.2.5",
-    "@primer/behaviors": "^1.10.3",
+    "@primer/behaviors": "^1.11.0",
     "@react-hook/resize-observer": "^2.0.2",
     "@sinonjs/fake-timers": "^15.4.0",
     "@types/d3": "^7.4.3",
