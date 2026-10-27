@@ -521,6 +521,32 @@ describe('Session feed composer', () => {
         expect(feedState.composerProps?.agent?.turns).toEqual([]);
     });
 
+    it('follows the agent to the scripts it edits until the user takes over the feed', async () => {
+        feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
+            feedState.agentListener = listener;
+            return Promise.resolve('turn-1');
+        });
+        const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(() => { });
+        try {
+            render({ ...session(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), connectionCatalog: emptyCatalog as any }, vi.fn());
+            await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+            scrollTo.mockClear();
+
+            // The first edit of a script scrolls to it, later edits of the same script do not
+            await act(async () => feedState.agentListener!.edited(1));
+            expect(scrollTo).toHaveBeenCalledOnce();
+            await act(async () => feedState.agentListener!.edited(1));
+            expect(scrollTo).toHaveBeenCalledOnce();
+
+            // Once the user scrolls the feed, the agent's edits stay where they are
+            act(() => container.querySelector('[data-testid="feed-list"]')!.dispatchEvent(new WheelEvent('wheel', { bubbles: true })));
+            await act(async () => feedState.agentListener!.edited(3));
+            expect(scrollTo).toHaveBeenCalledOnce();
+        } finally {
+            scrollTo.mockRestore();
+        }
+    });
+
     it('does not rerun a script that the agent ran itself', async () => {
         feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
             feedState.agentListener = listener;

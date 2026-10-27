@@ -535,12 +535,34 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         dependencies.runSessionScript(next, scriptData, executeQuery, props.modifySessionScripts, logger);
     }, [connectionAttention, executeQuery, logger, props.modifySessionScripts]);
 
+    // The feed follows the agent to the scripts it edits in a question of the composer.
+    // It stops once the user scrolls, clicks or types in the feed, the user does not want to be yanked around.
+    const followAgentRef = React.useRef(false);
+    const stopFollowingAgent = React.useCallback(() => { followAgentRef.current = false; }, []);
+    const pendingRevealRef = React.useRef<number | null>(null);
+    const [revealRequest, setRevealRequest] = React.useState(0);
+    const followAgentEdit = React.useCallback((scriptKey: number) => {
+        if (!followAgentRef.current) return;
+        pendingRevealRef.current = scriptKey;
+        setRevealRequest(n => n + 1);
+    }, []);
+    React.useEffect(() => {
+        const scriptKey = pendingRevealRef.current;
+        if (scriptKey == null) return;
+        // A created script waits for its entry
+        const index = entries.findIndex(entry => entry.scriptId === scriptKey);
+        if (index < 0) return;
+        pendingRevealRef.current = null;
+        feedLayout.listRef.current?.scrollToRow({ index: index * 2 + 1, align: 'smart' });
+    }, [entries, revealRequest, feedLayout.listRef]);
+
     // The agent answers a question in the scripts of the session
     const agent = dependencies.useAgentBridge();
     const sqlGenerations = useSqlGenerations({
         agent,
         sessionScripts: props.sessionScripts,
         runScript: runAppendedScript,
+        followEdit: followAgentEdit,
     });
 
     // The composer shows the agent of a session with agent access: its harness, its status lines and its answers.
@@ -583,6 +605,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
 
     const handleComposerSend = React.useCallback((text: string, mode: ComposerInputMode) => {
         if (mode === ComposerInputMode.Ai) {
+            followAgentRef.current = true;
             void sqlGenerations.ask(text);
             return;
         }
@@ -690,7 +713,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 </div>
             )}
             {/* Hidden rather than unmounted on the landing view, the size observer binds to the element once */}
-            <div className={styles.feed_list_container} ref={feedLayout.listContainerRef} hidden={landing}>
+            <div className={styles.feed_list_container} ref={feedLayout.listContainerRef} hidden={landing} data-testid="feed-list"
+                onWheel={stopFollowingAgent} onTouchMove={stopFollowingAgent} onPointerDown={stopFollowingAgent} onKeyDown={stopFollowingAgent}>
                 <DndContext
                     sensors={dndSensors}
                     collisionDetection={closestCenter}

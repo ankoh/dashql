@@ -37,6 +37,8 @@ export interface SqlGenerationsArgs {
     sessionScripts: SessionScripts;
     /// Runs a script that the agent wrote
     runScript: (next: SessionScripts, scriptData: ScriptData) => void;
+    /// Follows the agent to a script, once per script and question when the agent first edits it
+    followEdit?: (scriptKey: number) => void;
 }
 
 /// The questions of a session that the agent answers
@@ -125,13 +127,18 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
         });
         logger.info('Asking the agent', { questionId: String(questionId), characters: String(question.length) }, LOG_CTX);
         const active = () => working.current.has(questionId);
+        const followed = new Set<number>();
         try {
             await agent.request(sessionId, prompt, {
                 status: (_state, text) => {
                     if (active()) updateQuestion(questionId, q => ({ ...q, status: text }));
                 },
                 edited: scriptKey => {
-                    if (active()) updateQuestion(questionId, q => (q.scripts.includes(scriptKey) ? q : { ...q, scripts: [...q.scripts, scriptKey] }));
+                    if (!active()) return;
+                    updateQuestion(questionId, q => (q.scripts.includes(scriptKey) ? q : { ...q, scripts: [...q.scripts, scriptKey] }));
+                    if (followed.has(scriptKey)) return;
+                    followed.add(scriptKey);
+                    latest.current.followEdit?.(scriptKey);
                 },
                 done: (message, unrunEdits) => {
                     if (!working.current.delete(questionId)) return;
