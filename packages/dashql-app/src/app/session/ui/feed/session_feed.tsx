@@ -58,7 +58,6 @@ import { SessionConnectionAttentionContext } from '../session_connection_attenti
 import { SessionComposer, SessionComposerVariant } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useAgentBridge } from '../../../agent/agent_bridge.js';
-import { AgentAccessMenu } from '../../../agent/agent_access_menu.js';
 import { isAgentAnswering, useSqlGenerations } from '../../ai/use_sql_generations.js';
 import { useAgentSessionContext, type ComposerAgent, type ComposerAgentRun, type ComposerAgentScript } from '../../ai/ui/agent_prompt_panel.js';
 import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
@@ -738,7 +737,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         variant={landing ? SessionComposerVariant.Hero : SessionComposerVariant.Docked}
                         keywordCase={keywordCase}
                         aiAvailable={sqlGenerations.available}
-                        agentControl={agent != null ? <AgentAccessMenu sessionId={props.sessionScripts.sessionId} /> : undefined}
                         agent={composerAgent}
                         onSend={handleComposerSend}
                         setView={setComposerView}

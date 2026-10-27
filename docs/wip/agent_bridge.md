@@ -303,7 +303,8 @@ folders. Nothing keeps listening once the app is quit or deleted.
 The WebSocket client and the protocol types live in `packages/dashql-app/src/platform/agent/`. The command
 registry and the provider wrap app state, so they live in `packages/dashql-app/src/app/agent/`.
 
-- **Agent access toggle** per session, off by default, in the composer next to the connection picker. The
+- **Agent access toggle** per session, off by default. Start Session in the header of a session turns it on
+  right away. The
   sessions with access are an app setting (`agentSessions`), so a shared session file never turns access on.
   While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws` and reconnects with backoff. After
   a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call that is
@@ -387,14 +388,16 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
 
 ### Settings
 
-The Agent tab of the internals overlay configures the bridge. It holds the connection open while it is
-shown, so it also works before any session has agent access.
+The Agent button in the top bar, left of Shell, configures the bridge. It holds the connection open while
+it is shown, so it also works before any session has agent access. Once a session has agent access, its
+header shows Control Session: Disconnect the Session turns the access off, Reset the Session forgets the agent
+context, Continue in terminal copies the command that continues the harness session.
 
 - **Port** of the agent server, an app setting (`agentPort`); the build's default otherwise.
-- **Harness:** picks the default among the configured harnesses and shows each command template and the
-  binary it resolves to on the `PATH` of harness runs (`agent/info`). Templates are edited in `config.json`.
-- **Sessions with agent access**, each with "Turn off".
-- **Clients and runs** of the server, with "Stop".
+- **Harness:** picks the default among the configured harnesses (`agent/info`); a harness whose binary is not
+  on the `PATH` of harness runs is disabled. Templates are edited in `config.json`.
+- **Sessions** with agent access, each with "Disconnect".
+- **Runs** of the server, each with "Stop", and the **clients** of the server.
 
 ### Agent edits
 
@@ -432,9 +435,8 @@ else the agent says is shown by the composer (`ai/ui/agent_prompt_panel.tsx`).
 - **The final message** should be one sentence: the prompt tells the agent that the user watched the scripts change
   and run and not to recap them. Harnesses still write recaps, so the panel drops markdown markers and clamps it.
 - **After a run** the page runs the first script that the agent edited and did not run itself.
-- **Session chip:** shows whether the agent server is connected and whether a run is
-  going. Its menu offers "Reset agent context" (forget the stored harness session id)
-  and "Continue in terminal" (the harness's resume command).
+- **Control Session** in the header of a session: its menu offers "Disconnect the Session", "Reset the
+  Session" (forget the stored harness session id) and "Continue in terminal" (the harness's resume command).
 - **Not connected:** the chip shows the `dashql agent serve` command. Once the menu bar mode exists it offers
   "Open DashQL" (starts the menu bar app through the existing `dashql://` link).
 
@@ -552,7 +554,7 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
   - `packages/dashql-cli/src/agent/`: the agent server and the commands of the `dashql` binary (Rust,
     tokio and tungstenite), `packages/dashql-cli/skill/`, tests (`bazel test //packages/dashql-cli:tests`)
   - `packages/dashql-app/src/platform/agent/`: WebSocket client, protocol types
-  - `packages/dashql-app/src/app/agent/`: command registry, provider, agent access menu
+  - `packages/dashql-app/src/app/agent/`: command registry, provider, agent view, agent session menu
   - `packages/dashql-native/src/agent_host.ts`: supervision of the `dashql agent serve` child process, status
   - `packages/dashql-native/src/menu_bar_template.ts`: the menu as data, tested without Electron
   - `packages/dashql-native/src/menu_bar.ts`: tray and menu (login item planned)

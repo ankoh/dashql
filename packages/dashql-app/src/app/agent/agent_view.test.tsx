@@ -3,11 +3,11 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AgentSettingsView } from './agent_settings_view.js';
-import { AgentBridgeContext, type AgentBridge } from '../../agent/agent_bridge.js';
-import { AgentConnectionStatus } from '../../../platform/agent/agent_client.js';
-import type { AgentServerInfo } from '../../../platform/agent/agent_protocol.js';
-import { LoggerProvider } from '../../../platform/logger/logger_provider.js';
+import { AgentView } from './agent_view.js';
+import { AgentBridgeContext, type AgentBridge } from './agent_bridge.js';
+import { AgentConnectionStatus } from '../../platform/agent/agent_client.js';
+import type { AgentServerInfo } from '../../platform/agent/agent_protocol.js';
+import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 
 const INFO: AgentServerInfo = {
     port: 47100,
@@ -17,6 +17,7 @@ const INFO: AgentServerInfo = {
     defaultHarness: 'claude',
     harnesses: [
         { name: 'claude', command: ['claude', '-p', '{prompt}'], adapter: 'claude', program: '/usr/local/bin/claude' },
+        { name: 'codex', command: ['codex', 'exec', '{prompt}'], adapter: 'codex', program: '/usr/local/bin/codex' },
         { name: 'opencode', command: ['opencode', 'run', '{prompt}'], adapter: 'opencode', program: null },
     ],
     clients: [{ id: 'c', kind: 'web', origin: 'https://dashql.app', sessions: [{ id: 's1', name: 'Revenue' }], focused: 's1' }],
@@ -43,7 +44,7 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
     };
 }
 
-describe('Agent settings', () => {
+describe('Agent view', () => {
     let container: HTMLDivElement;
     let root: Root;
     beforeEach(() => {
@@ -57,7 +58,7 @@ describe('Agent settings', () => {
         await act(async () => root.render(
             <LoggerProvider>
                 <AgentBridgeContext.Provider value={bridge}>
-                    <AgentSettingsView onClose={() => { }} />
+                    <AgentView onClose={() => { }} />
                 </AgentBridgeContext.Provider>
             </LoggerProvider>,
         ));
@@ -69,13 +70,13 @@ describe('Agent settings', () => {
         const bridge = fakeBridge();
         await render(bridge);
         expect(bridge.hold).toHaveBeenCalledOnce();
-        expect(container.textContent).toContain('/usr/local/bin/claude');
-        expect(container.textContent).toContain('opencode is not installed');
+        expect(container.textContent).not.toContain('/usr/local/bin/claude');
         expect(container.textContent).toContain('dashql agent catalog');
         const harnesses = container.querySelectorAll<HTMLButtonElement>('[data-testid="agent-settings-harness"]');
-        expect([...harnesses].map(b => b.dataset.harness)).toEqual(['claude', 'opencode']);
+        expect([...harnesses].map(b => [b.dataset.harness, b.disabled])).toEqual([['claude', false], ['codex', false], ['opencode', true]]);
+        expect(harnesses[2].title).toBe('opencode is not installed');
         await act(async () => harnesses[1].click());
-        expect(bridge.setDefaultHarness).toHaveBeenCalledExactlyOnceWith('opencode');
+        expect(bridge.setDefaultHarness).toHaveBeenCalledExactlyOnceWith('codex');
     });
 
     it('turns off agent access of a session', async () => {
@@ -85,6 +86,16 @@ describe('Agent settings', () => {
         expect(session.textContent).toContain('Revenue');
         await act(async () => session.querySelector('button')!.click());
         expect(bridge.setAccess).toHaveBeenCalledExactlyOnceWith('s1', false);
+    });
+
+    it('resets the port to the default', async () => {
+        const bridge = fakeBridge({ port: 47101 });
+        await render(bridge);
+        expect(container.querySelector<HTMLInputElement>('[data-testid="agent-settings-port"]')!.value).toBe('47101');
+        const reset = container.querySelector<HTMLButtonElement>('[aria-label="Reset to the default port"]')!;
+        expect(reset.disabled).toBe(false);
+        await act(async () => reset.click());
+        expect(bridge.setPort).toHaveBeenCalledExactlyOnceWith(null);
     });
 
     it('explains how to start the agent server while it is not connected', async () => {

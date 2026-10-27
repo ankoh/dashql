@@ -6,6 +6,8 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { Tag, TagVariant } from '../../ui/foundations/tag.js';
 import { HoverMode, NavBarButton, NavBarButtonWithRef } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
+import { AgentViewOverlay } from '../agent/agent_view.js';
+import { useAgentBridge } from '../agent/agent_bridge.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { DASHQL_VERSION } from '../../globals.js';
 import { VersionCheckIndicator } from '../../ui/version/version_viewer.js';
@@ -38,6 +40,38 @@ const InternalsButton = (props: { sessionId: string | null }) => {
                                 <use xlinkHref={`${symbols}#processor`} />
                             </svg>
                             <span className={styles.tab_button_text}>Internals</span>
+                        </>
+                    </NavBarButtonWithRef>
+                )}
+                side={AnchorSide.OutsideBottom}
+                align={AnchorAlignment.End}
+                anchorOffset={16}
+            />
+        </div>
+    );
+};
+
+const AgentButton = () => {
+    const bridge = useAgentBridge();
+    const [showAgentOverlay, setAgentOverlay] = React.useState<boolean>(false);
+    if (bridge == null) return null;
+
+    return (
+        <div className={styles.tab}>
+            <AgentViewOverlay
+                isOpen={showAgentOverlay}
+                onClose={() => setAgentOverlay(false)}
+                renderAnchor={(p: object) => (
+                    <NavBarButtonWithRef
+                        {...p}
+                        className={styles.tab_button} hover={HoverMode.Darken} onClick={() => setAgentOverlay(true)}
+                        data-testid="agent-settings"
+                    >
+                        <>
+                            <svg width="14px" height="14px" aria-hidden="true">
+                                <use xlinkHref={`${symbols}#sparkles_fill_16`} />
+                            </svg>
+                            <span className={styles.tab_button_text}>Agent</span>
                         </>
                     </NavBarButtonWithRef>
                 )}
@@ -189,6 +223,7 @@ export const NavBar = (): React.ReactElement => {
         >
             <BrandLogo />
             <div className={styles.navbar_actions}>
+                <AgentButton />
                 {sessionId != null && <SessionShellButton />}
                 <InternalsButton sessionId={sessionId} />
                 <VersionButton />

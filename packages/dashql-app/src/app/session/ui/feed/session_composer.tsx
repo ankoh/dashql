@@ -37,8 +37,6 @@ export interface SessionComposerProps {
     keywordCase: core.buffers.formatting.KeywordCase;
     /// Can the session ask the agent? Without agent access, the composer only takes SQL.
     aiAvailable: boolean;
-    /// The agent access of the session, next to the connection picker
-    agentControl?: React.ReactNode;
     /// The agent of a session with agent access, shown on top of the prompt
     agent?: ComposerAgent | null;
     /// Called with the draft and its input mode when the user sends it, the draft is cleared before
@@ -165,13 +163,12 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                         disabled={!props.aiAvailable}
                         data-testid="composer-mode"
                         data-mode="ai"
-                        title={props.aiAvailable ? undefined : 'Turn on agent access and connect the agent server to ask questions'}
+                        title={props.aiAvailable ? undefined : 'Start an agent session in the header and connect the agent server to ask questions'}
                     >
                         AI
                     </SegmentedControl.Button>
                 </SegmentedControl>
                 <div className={styles.composer_trailing_actions}>
-                    {props.agentControl}
                     {props.connectionPicker}
                     {hero && props.snippetConnector != null && (
                         <SnippetsOverlay

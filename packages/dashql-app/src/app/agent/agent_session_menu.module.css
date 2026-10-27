@@ -1,0 +1,11 @@
+.menu {
+    width: 240px;
+    max-width: 90vw;
+}
+
+.notice {
+    padding: 10px 12px 6px 12px;
+    font-size: var(--font_size_small);
+    color: var(--base_color_neutral_5);
+    overflow-wrap: anywhere;
+}

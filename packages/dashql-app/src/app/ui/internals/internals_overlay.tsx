@@ -4,7 +4,6 @@ import icons from '@ankoh/dashql-svg-symbols';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
 import { AppSettings } from './app_settings_view.js';
-import { AgentSettingsView } from './agent_settings_view.js';
 import { StorageWriterView } from '../../session/persistence/ui/storage_writer_view.js';
 import { LogViewer } from '../../../ui/logs/log_viewer.js';
 import { OverlaySize } from '../../../ui/foundations/overlay.js';
@@ -26,7 +25,6 @@ enum TabKey {
     StorageWriter = 3,
     QueryCache = 4,
     StorageBrowser = 6,
-    AgentSettings = 7,
 }
 
 /// The groups of the tabs, separated by bars in the tab bar
@@ -37,7 +35,7 @@ const TAB_GROUP_SETTINGS = 'Settings';
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.LogViewer);
-    const tabKeys = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.AgentSettings, TabKey.AppSettings];
+    const tabKeys = [TabKey.LogViewer, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.AppSettings];
 
     return (
         <VerticalTabs
@@ -90,15 +88,6 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     description: 'Inspect and evict cached query results',
                     disabled: false,
                 },
-                [TabKey.AgentSettings]: {
-                    tabId: TabKey.AgentSettings,
-                    group: TAB_GROUP_SETTINGS,
-                    icon: `${icons}#sparkles_fill_24`,
-                    labelShort: 'Agent',
-                    ariaLabel: 'Agent bridge settings',
-                    description: 'Configure the agent bridge',
-                    disabled: false,
-                },
                 [TabKey.AppSettings]: {
                     tabId: TabKey.AppSettings,
                     group: TAB_GROUP_SETTINGS,
@@ -125,9 +114,6 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 ),
                 [TabKey.QueryCache]: _props => (
                     <QueryCacheView sessionId={props.sessionId} onClose={props.onClose} />
-                ),
-                [TabKey.AgentSettings]: _props => (
-                    <AgentSettingsView onClose={props.onClose} />
                 ),
                 [TabKey.AppSettings]: _props => (
                     <AppSettings onClose={props.onClose} />

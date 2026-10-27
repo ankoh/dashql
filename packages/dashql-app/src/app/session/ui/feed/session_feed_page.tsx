@@ -27,6 +27,7 @@ import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored
 import { ExecuteConnectionGuard, SessionConnectionAttentionContext, useSessionConnectionAttention } from '../session_connection_attention.js';
 import { useAppFlavor } from '../../../flavor/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../../connections/ui/connection_overview_page.js';
+import { AgentSessionMenu } from '../../../agent/agent_session_menu.js';
 
 const FileZipIcon = SymbolIcon('file_zip_16');
 const CloseIcon = SymbolIcon('x_16');
@@ -204,6 +205,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         </div>
                     </div>
                     <div className={styles.header_actions}>
+                        <AgentSessionMenu sessionId={props.sessionScripts.sessionId} labelClassName={styles.action_label} />
                         <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
                             setExportOpen(false);
                             setShareOpen(value => !value);
