@@ -56,11 +56,6 @@ fn after(text: &str, needle: &str) -> usize {
     text.find(needle).unwrap() + needle.len()
 }
 
-/// The offset right after the last occurrence of `needle`
-fn after_last(text: &str, needle: &str) -> usize {
-    text.rfind(needle).unwrap() + needle.len()
-}
-
 #[test]
 fn operators_are_not_completable() {
     for symbol in [S_EQUALS, S_Op, S_EQUALS_GREATER, S_LESS_EQUALS, S_GREATER_EQUALS, S_NOT_EQUALS] {
