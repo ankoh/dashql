@@ -148,8 +148,8 @@ importers:
         specifier: ^7.18.4
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react-window:
-        specifier: ^2.2.7
-        version: 2.2.7(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        specifier: ^2.5.0
+        version: 2.5.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       style-mod:
         specifier: ^4.1.4
         version: 4.1.4
@@ -2509,8 +2509,8 @@ packages:
       react-dom:
         optional: true
 
-  react-window@2.2.7:
-    resolution: {integrity: sha512-SH5nvfUQwGHYyriDUAOt7wfPsfG9Qxd6OdzQxl5oQ4dsSsUicqQvjV7dR+NqZ4coY0fUn3w1jnC5PwzIUWEg5w==}
+  react-window@2.5.0:
+    resolution: {integrity: sha512-2oQiMo+lT5omOYaBJnloTK19yZDXqboDPMJP6li0gER0henua4iEz6BxzENJ1H5pNb6Kb2H4Lu0+YTuvqnw7QA==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
@@ -5698,7 +5698,7 @@ snapshots:
     optionalDependencies:
       react-dom: 19.3.1(react@19.3.1)
 
-  react-window@2.2.7(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  react-window@2.5.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
