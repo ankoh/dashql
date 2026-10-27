@@ -21,8 +21,8 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 DEPS = [
     ("com_google_flatbuffers",      "_FLATBUFFERS_VERSION", "https://github.com/google/flatbuffers/archive/refs/tags/v{VERSION}.zip"),
-    ("duckdb_cli_osx",              "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/duckdb_cli-osx-universal.zip"),
-    ("duckdb_cli_linux_amd64",      "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/duckdb_cli-linux-amd64.zip"),
+    ("duckdb_cli_osx",              "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/duckdb-cli-osx-universal.tar.gz"),
+    ("duckdb_cli_linux_amd64",      "_DUCKDB_VERSION",      "https://github.com/duckdb/duckdb/releases/download/v{VERSION}/duckdb-cli-linux-amd64.tar.gz"),
 ]
 
 

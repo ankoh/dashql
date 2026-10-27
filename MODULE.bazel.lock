@@ -319,7 +319,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "NXc6OOQ9IFJzjimDgVA+196XvOCep4/xaAPFwoNsrr0=",
+        "bzlTransitiveDigest": "vhNTwaOF/+Rj7U0OldQHP5pMwuQwi/eHtZQsoXiCp68=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -354,9 +354,9 @@
           "duckdb_cli_osx": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "sha256": "80a80c68736bd7dea53e8b02447e9759db0c8596ea156476ba396c44f54c5810",
+              "sha256": "8a8f67e7c7f7d1392fa63ba3971948391392fe2a25fca63e7008e33c50beb4c2",
               "urls": [
-                "https://github.com/duckdb/duckdb/releases/download/v1.5.6/duckdb_cli-osx-universal.zip"
+                "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-osx-universal.tar.gz"
               ],
               "build_file": "@@//bazel:external_duckdb_cli.BUILD"
             }
@@ -364,9 +364,9 @@
           "duckdb_cli_linux_amd64": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "sha256": "6e89deac1ebbc36eed0291caf8b567b030c7b86ac35998f71854e22b3c5d5e2f",
+              "sha256": "c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc",
               "urls": [
-                "https://github.com/duckdb/duckdb/releases/download/v1.5.6/duckdb_cli-linux-amd64.zip"
+                "https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-linux-amd64.tar.gz"
               ],
               "build_file": "@@//bazel:external_duckdb_cli.BUILD"
             }
@@ -425,7 +425,7 @@
     },
     "//packages/dashql-datasets:deps.bzl%dashql_datasets": {
       "general": {
-        "bzlTransitiveDigest": "xPadqdydLzMbAfM3Tr3Phl7cutujU1fZteG2tptVLHI=",
+        "bzlTransitiveDigest": "xPo5fX8mLSWyv8YenmMUY2N8FPOKKXFJ6uOstqxQ7d4=",
         "usagesDigest": "9CaQiSHsXruJokdO8YydY9q/SD/pqdC92pCiFtJCctc=",
         "recordedInputs": [
           "REPO_MAPPING:,aspect_bazel_lib aspect_bazel_lib+",
@@ -460,9 +460,9 @@
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
             "attributes": {
               "urls": [
-                "https://extensions.duckdb.org/v1.5.6/osx_arm64/tpch.duckdb_extension.gz"
+                "https://extensions.duckdb.org/v2.0.0/osx_arm64/tpch.duckdb_extension.gz"
               ],
-              "sha256": "1b37b59168a14e1e147702f315ec9ef7cfa029ee5d4ca9342f01635132665733",
+              "sha256": "04e8542d1cf00b1514725f483128bb2c9fb8eb3dffd7dc45798f0a6962cb4cef",
               "downloaded_file_path": "tpch.duckdb_extension.gz"
             }
           },
@@ -470,9 +470,9 @@
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
             "attributes": {
               "urls": [
-                "https://extensions.duckdb.org/v1.5.6/osx_amd64/tpch.duckdb_extension.gz"
+                "https://extensions.duckdb.org/v2.0.0/osx_amd64/tpch.duckdb_extension.gz"
               ],
-              "sha256": "bd4aed693742dc63e8f1ad23029ec4cb25161e4ee8a8b8d68958fdf85b9c1d13",
+              "sha256": "0f2a159946989b740215cfbe63ec2e3658110bc435bd6e6d75c458a285cc7224",
               "downloaded_file_path": "tpch.duckdb_extension.gz"
             }
           },
@@ -480,9 +480,9 @@
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
             "attributes": {
               "urls": [
-                "https://extensions.duckdb.org/v1.5.6/linux_amd64/tpch.duckdb_extension.gz"
+                "https://extensions.duckdb.org/v2.0.0/linux_amd64/tpch.duckdb_extension.gz"
               ],
-              "sha256": "51959cc795f6ea8c95cf8cc6cc4065358998ce959bf863e21ff1aa471c06bc41",
+              "sha256": "adea420d5e724874bcf861694155996322769df982b70cfe74791710f081138a",
               "downloaded_file_path": "tpch.duckdb_extension.gz"
             }
           },
@@ -490,9 +490,9 @@
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
             "attributes": {
               "urls": [
-                "https://extensions.duckdb.org/v1.5.6/linux_arm64/tpch.duckdb_extension.gz"
+                "https://extensions.duckdb.org/v2.0.0/linux_arm64/tpch.duckdb_extension.gz"
               ],
-              "sha256": "2eb6c90160fed1d207d866650c4a67fd7144f7f781df8735f1231df8571fd952",
+              "sha256": "08b1f79c9e70003e77c136c3acbfbaad234dd73386d663455dd2203be18ceacb",
               "downloaded_file_path": "tpch.duckdb_extension.gz"
             }
           }

@@ -19,7 +19,7 @@ load("//bazel:external_wabt.bzl", "wabt_prebuilt_repository")
 # renovate: datasource=github-releases depName=google/flatbuffers
 _FLATBUFFERS_VERSION = "25.12.19"
 # renovate: datasource=github-releases depName=duckdb/duckdb
-_DUCKDB_VERSION = "1.5.6"
+_DUCKDB_VERSION = "2.0.0"
 
 def _dashql_core_deps_impl(mctx):
     bison_prebuilt_repository(name = "bison_src")
@@ -39,15 +39,15 @@ def _dashql_core_deps_impl(mctx):
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_cli_osx",
-        sha256 = "80a80c68736bd7dea53e8b02447e9759db0c8596ea156476ba396c44f54c5810",
-        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/duckdb_cli-osx-universal.zip"],
+        sha256 = "8a8f67e7c7f7d1392fa63ba3971948391392fe2a25fca63e7008e33c50beb4c2",
+        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/duckdb-cli-osx-universal.tar.gz"],
         build_file = "//bazel:external_duckdb_cli.BUILD",
     )
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_cli_linux_amd64",
-        sha256 = "6e89deac1ebbc36eed0291caf8b567b030c7b86ac35998f71854e22b3c5d5e2f",
-        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/duckdb_cli-linux-amd64.zip"],
+        sha256 = "c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc",
+        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/duckdb-cli-linux-amd64.tar.gz"],
         build_file = "//bazel:external_duckdb_cli.BUILD",
     )
 
