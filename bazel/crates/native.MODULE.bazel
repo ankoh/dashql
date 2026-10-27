@@ -29,7 +29,7 @@ crate_native.spec(package = "napi", features = ["async", "napi8", "tokio_rt"], v
 crate_native.spec(package = "napi-derive", version = "3.6.13")
 crate_native.spec(package = "once_cell", version = "1.21.4")
 crate_native.spec(package = "prost", version = "0.14.4")
-crate_native.spec(package = "regex", version = "1.12.3")
+crate_native.spec(package = "regex", version = "1.13.1")
 crate_native.spec(package = "regex-automata", version = "0.4.18")
 crate_native.spec(package = "reqwest", default_features = False, features = ["charset", "http2", "json", "native-tls", "stream", "system-proxy"], version = "0.13.5")
 crate_native.spec(package = "semver", version = "1.0.28")
