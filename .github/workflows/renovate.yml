@@ -27,19 +27,20 @@ on:
     schedule:
         - cron: '0 1,5,9,13,17,21 * * *'
 
-concurrency:
-    group: renovate
-    cancel-in-progress: true
-
 jobs:
     renovate:
         name: 'Renovate'
         runs-on: ubuntu-latest
+        # Renovate edits the dashboard and its pull requests itself. Only react to edits of people, and
+        # keep the concurrency on the job, so that skipped runs do not cancel the one in progress.
         if: |
             github.event_name == 'schedule' ||
             github.event_name == 'workflow_dispatch' ||
-            (github.event_name == 'issues' && github.event.issue.title == 'Dependency Dashboard') ||
-            (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dashql-renovate[bot]')
+            (github.event_name == 'issues' && github.event.issue.title == 'Dependency Dashboard' && github.event.sender.type != 'Bot') ||
+            (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dashql-renovate[bot]' && github.event.sender.type != 'Bot')
+        concurrency:
+            group: renovate
+            cancel-in-progress: true
         steps:
             - name: Get token
               id: get_token
