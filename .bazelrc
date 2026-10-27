@@ -5,6 +5,9 @@ try-import %workspace%/.bazelrc.user
 common --experimental_isolated_extension_usages
 common --enable_platform_specific_config
 
+# Mirrors for flaky download hosts
+common --downloader_config=bazel/downloader.cfg
+
 # Keep host tools aligned with the default target compilation mode. Release
 # builds override this below so proc macros and their targets use opt together.
 build --host_compilation_mode=fastbuild
