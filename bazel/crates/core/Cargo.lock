@@ -36,27 +36,12 @@ dependencies = [
 
 [[package]]
 name = "anstream"
-version = "0.6.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43d5b281e737544384e969a5ccad3f1cdd24b48086a0fc1b2a5262a26b8f4f4a"
-dependencies = [
- "anstyle",
- "anstyle-parse 0.2.7",
- "anstyle-query",
- "anstyle-wincon",
- "colorchoice",
- "is_terminal_polyfill",
- "utf8parse",
-]
-
-[[package]]
-name = "anstream"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "824a212faf96e9acacdbd09febd34438f8f711fb84e09a8916013cd7815ca28d"
 dependencies = [
  "anstyle",
- "anstyle-parse 1.0.0",
+ "anstyle-parse",
  "anstyle-query",
  "anstyle-wincon",
  "colorchoice",
@@ -69,15 +54,6 @@ name = "anstyle"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000"
-
-[[package]]
-name = "anstyle-parse"
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e7644824f0aa2c7b9384579234ef10eb7efb6a0deb83f9630a49594dd9c15c2"
-dependencies = [
- "utf8parse",
-]
 
 [[package]]
 name = "anstyle-parse"
@@ -340,7 +316,7 @@ version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0797fb7aeb1406c84efac526901f7ec3ead2124f946b494e72879d4b54704d"
 dependencies = [
- "anstream 1.0.0",
+ "anstream",
  "anstyle",
  "clap_lex",
  "strsim",
@@ -773,11 +749,11 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "libtest-mimic"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5297962ef19edda4ce33aaa484386e0a5b3d7f2f4e037cbeee00503ef6b29d33"
+checksum = "14e6ba06f0ade6e504aff834d7c34298e5155c6baca353cc6a4aaff2f9fd7f33"
 dependencies = [
- "anstream 0.6.21",
+ "anstream",
  "anstyle",
  "clap",
  "escape8259",
