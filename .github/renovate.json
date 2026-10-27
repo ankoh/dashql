@@ -128,6 +128,18 @@
             "enabled": false
         },
         {
+            "description": "dashql-cloud verifies RS256 with rsa 0.9, which implements digest 0.10. sha2 0.11 and hmac 0.13 move to digest 0.11, so they wait for rsa 0.10.",
+            "matchManagers": ["cargo"],
+            "matchPackageNames": ["sha2", "hmac"],
+            "allowedVersions": "/^0\\.(10|12)\\./"
+        },
+        {
+            "description": "getrandom_02 only enables the js feature of the getrandom 0.2 that rsa 0.9 pulls in.",
+            "matchManagers": ["cargo"],
+            "matchDepNames": ["getrandom_02"],
+            "enabled": false
+        },
+        {
             "groupName": "tokio",
             "automerge": false,
             "matchPackageNames": ["/^tokio.*/"]
