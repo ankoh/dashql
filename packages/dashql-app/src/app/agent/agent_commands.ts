@@ -26,6 +26,8 @@ import { scriptDisplayName } from '../session/scripts/script_types.js';
 import { runSessionScriptForResult } from '../session/ui/rerun_query.js';
 import { buildSchemaContext } from '../session/ai/sql_generation.js';
 import { loadVega } from '../../ui/vegalite/vegalite_loader.js';
+import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
+import { CHART_IMAGE_HEIGHT, CHART_IMAGE_SCALE, CHART_IMAGE_WIDTH, renderVegaLitePng, type ChartImage } from '../../ui/vegalite/vegalite_image.js';
 import { DEFAULT_RUN_ROWS, RESULT_PAGE_ROWS, formatResultSlice, sliceResult } from './agent_result_format.js';
 
 /// What the commands of the agent work with
@@ -377,9 +379,8 @@ async function runScript(env: AgentCommandEnvironment, sessionId: string, state:
     return { text: formatResultSlice(slice, name), data: { script: name, ...slice } };
 }
 
-function readResult(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): AgentCommandResult {
-    const script = requireScript(state, stringArg(args, 'script'));
-    const page = numberArg(args, 'page', 1);
+/// The result of the last run of a script
+function lastResult(env: AgentCommandEnvironment, script: ScriptData): arrow.Table {
     const name = scriptDisplayName(script.fileName);
     const queryId = script.latestResultQueryId ?? script.latestQueryId;
     let table: arrow.Table | null = null;
@@ -394,10 +395,56 @@ function readResult(env: AgentCommandEnvironment, state: SessionScripts, args: R
         }
     }
     if (table == null) fail(`${name} has no result, run it with dashql agent run ${name}`);
+    return table;
+}
+
+function readResult(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): AgentCommandResult {
+    const script = requireScript(state, stringArg(args, 'script'));
+    const page = numberArg(args, 'page', 1);
+    const name = scriptDisplayName(script.fileName);
+    const table = lastResult(env, script);
     const offset = (page - 1) * RESULT_PAGE_ROWS;
     if (offset >= table.numRows && table.numRows > 0) fail(`${name} has ${table.numRows} rows, page ${page} is empty`);
     const slice = sliceResult(table, offset, RESULT_PAGE_ROWS);
     return { text: formatResultSlice(slice, name), data: { script: name, page, ...slice } };
+}
+
+/// Bytes as base64
+function toBase64(bytes: Uint8Array): string {
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(binary);
+}
+
+/// The limits of chart images, in CSS pixels and pixels per CSS pixel
+const MAX_IMAGE_SIZE = 4000;
+const MAX_IMAGE_SCALE = 4;
+
+/// Render the chart of a script as PNG: the `@vis vegalite` tag of its last query with the last result as data
+async function imageScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+    const script = await analyzed(env, sessionId, state, requireScript(state, stringArg(args, 'script')));
+    const name = scriptDisplayName(script.fileName);
+    const width = numberArg(args, 'width', CHART_IMAGE_WIDTH);
+    const height = numberArg(args, 'height', CHART_IMAGE_HEIGHT);
+    const scale = numberArg(args, 'scale', CHART_IMAGE_SCALE);
+    if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) usage(`width and height must be at most ${MAX_IMAGE_SIZE}`);
+    if (scale > MAX_IMAGE_SCALE) usage(`scale must be at most ${MAX_IMAGE_SCALE}`);
+    const vis = script.annotations.visualizeQuery;
+    if (vis?.renderer !== 'vegalite') fail(`${name} has no Vega-Lite chart, add one with dashql agent visualize ${name}`);
+    const table = lastResult(env, script);
+    let image: ChartImage;
+    try {
+        image = await renderVegaLitePng(vis.vegaLiteSpec, arrowTableToRows(table), { width, height, scale });
+    } catch (e: unknown) {
+        fail(`Cannot render the chart of ${name}: ${stringifyError(e)}`);
+    }
+    const kib = Math.max(1, Math.round(image.png.length / 1024));
+    return {
+        text: `Rendered the chart of ${name}: ${image.width}x${image.height} pixels, ${table.numRows} rows, ${kib} KiB`,
+        data: { script: name, width: image.width, height: image.height, rows: table.numRows, png: toBase64(image.png) },
+    };
 }
 
 /// Run a command of the command line tool against a session
@@ -425,6 +472,8 @@ export async function runAgentCommand(env: AgentCommandEnvironment, params: Agen
             return readResult(env, state, args);
         case 'visualize':
             return visualizeScript(env, params.session, state, args);
+        case 'image':
+            return imageScript(env, params.session, state, args);
         default:
             usage(`unknown command: ${params.command}`);
     }

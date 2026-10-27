@@ -132,12 +132,17 @@ fn agent(argv: &[String]) -> ExitCode {
         let path = inputs::working_directory().map_err(|e| format!("working directory: {e}"))?.join(file);
         std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))
     };
+    let write_file = |file: &str, bytes: &[u8]| {
+        let path = inputs::working_directory().map_err(|e| format!("working directory: {e}"))?.join(file);
+        std::fs::write(&path, bytes).map_err(|e| format!("{}: {e}", path.display()))
+    };
     let output = client::run_cli(
         &options,
         &CliEnvironment {
             session: env_var("DASHQL_SESSION"),
             read_stdin: &|| std::io::read_to_string(std::io::stdin()),
             read_file: &read_file,
+            write_file: &write_file,
             request: &|method, path, body| client::request(&config, method, path, body),
         },
     );

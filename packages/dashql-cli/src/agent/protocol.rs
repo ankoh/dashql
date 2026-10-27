@@ -30,7 +30,7 @@ pub const PROTOCOL_VERSION: u64 = 2;
 pub const WEBSOCKET_PATH: &str = "/v1/ws";
 
 /// The commands that clients run for the command line tool
-pub const CLIENT_COMMANDS: [&str; 8] = ["scripts", "read", "edit", "catalog", "lint", "run", "result", "visualize"];
+pub const CLIENT_COMMANDS: [&str; 9] = ["scripts", "read", "edit", "catalog", "lint", "run", "result", "visualize", "image"];
 
 /// The error codes of failed calls
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

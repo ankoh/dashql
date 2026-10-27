@@ -233,6 +233,28 @@ describe('agent commands', () => {
         await expect(run('result', { script: 'orders', page: 3 })).rejects.toThrow('orders has 60 rows, page 3 is empty');
         await expect(run('result', { script: 'customers' })).rejects.toThrow('Customers has no result');
     });
+
+    it('renders the chart of a script with its last result as PNG', async () => {
+        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'n', type: 'ordinal' }, y: { field: 'n', type: 'quantitative' } } } as any;
+        state.scripts[1].annotations = { tableDefs: [], visualizeQuery: { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec } };
+        await expect(run('image', { script: 'orders' })).rejects.toThrow('orders has no result');
+        state.scripts[1].latestQueryId = 7;
+        connections.get('db').queriesFinished.set(7, { resultTable: arrow.tableFromArrays({ n: Int32Array.from([1, 2, 3]) }), error: null });
+
+        const result = await run('image', { script: 'orders', width: 200, height: 100, scale: 1 });
+        expect(result.text).toMatch(/^Rendered the chart of orders: 200x100 pixels, 3 rows, \d+ KiB$/);
+        const data = result.data as { width: number; height: number; png: string };
+        expect([data.width, data.height]).toEqual([200, 100]);
+        const png = Uint8Array.from(atob(data.png), c => c.charCodeAt(0));
+        expect(Array.from(png.subarray(0, 4))).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    });
+
+    it('refuses images of scripts without a Vega-Lite chart and too large images', async () => {
+        state.scripts[1].annotations = { tableDefs: [], visualizeQuery: null };
+        await expect(run('image', { script: 'orders' })).rejects.toThrow('orders has no Vega-Lite chart, add one with dashql agent visualize orders');
+        await expect(run('image', { script: 'orders', width: 5000 })).rejects.toThrow('width and height must be at most 4000');
+        await expect(run('image', { script: 'orders', scale: 8 })).rejects.toThrow('scale must be at most 4');
+    });
 });
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

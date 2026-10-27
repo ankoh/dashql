@@ -3,6 +3,7 @@
 use crate::agent::config::AgentConfig;
 use crate::agent::http;
 use crate::agent::protocol::ErrorCode;
+use base64::Engine;
 use serde_json::{json, Map, Value};
 use std::io::{Read, Write};
 
@@ -29,6 +30,9 @@ Commands for the DashQL session that is open in the browser or the desktop app:
   result <script> [--page N]          More rows of the last result
   visualize <script> [--file f]       Visualize the last query with the Vega-Lite spec of the file or stdin,
                                       after checking it
+  image <script> [--out f]            Render the chart of a script with its last result as PNG, default:
+        [--width N] [--height N]      <script>.png, 800x500 at scale 2
+        [--scale N]
   serve [--dev] [--exit-with-stdin]   Run the agent server in the foreground, --exit-with-stdin stops it when
                                       stdin closes, for an app that runs it as a child process
 
@@ -76,6 +80,10 @@ pub struct Options {
     pub connection: Option<String>,
     pub max_rows: Option<String>,
     pub page: Option<String>,
+    pub out: Option<String>,
+    pub width: Option<String>,
+    pub height: Option<String>,
+    pub scale: Option<String>,
     pub dev: bool,
     pub exit_with_stdin: bool,
     pub help: bool,
@@ -96,6 +104,10 @@ pub fn parse_args(argv: &[String]) -> Result<Options, String> {
             "--connection" => Some(&mut options.connection),
             "--max-rows" => Some(&mut options.max_rows),
             "--page" => Some(&mut options.page),
+            "--out" => Some(&mut options.out),
+            "--width" => Some(&mut options.width),
+            "--height" => Some(&mut options.height),
+            "--scale" => Some(&mut options.scale),
             _ => None,
         };
         if let Some(target) = target {
@@ -128,6 +140,8 @@ pub struct CliEnvironment<'a> {
     pub read_stdin: &'a dyn Fn() -> std::io::Result<String>,
     /// Read a file, for edit --file
     pub read_file: &'a dyn Fn(&str) -> Result<String, String>,
+    /// Write a file, for image --out
+    pub write_file: &'a dyn Fn(&str, &[u8]) -> Result<(), String>,
     /// Send a request to the agent server, the JSON body of the response, None if the server does not run
     pub request: &'a dyn Fn(&str, &str, Option<&str>) -> Option<Value>,
 }
@@ -227,6 +241,14 @@ fn call_args(
                 args.insert("page".into(), parse_positive(page, "--page")?.into());
             }
         }
+        "image" => {
+            args.insert("script".into(), one("script")?);
+            for (name, value) in [("width", &options.width), ("height", &options.height), ("scale", &options.scale)] {
+                if let Some(value) = value {
+                    args.insert(name.into(), parse_positive(value, &format!("--{name}"))?.into());
+                }
+            }
+        }
         _ => return Err(format!("Unknown command: {command}")),
     }
     Ok(args)
@@ -263,11 +285,32 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
         return failure(&body);
     }
     let result = &body["result"];
+    if command == "image" {
+        return write_image(result, rest, options, cli);
+    }
     if options.json {
         let data = if result["data"].is_null() { json!({ "text": result["text"] }) } else { result["data"].clone() };
         return CliOutput::ok(pretty(&data));
     }
     CliOutput::ok(result["text"].as_str().unwrap_or_default().to_string())
+}
+
+/// Write the PNG of an image call to --out, default: <script>.png
+fn write_image(result: &Value, rest: &[String], options: &Options, cli: &CliEnvironment) -> CliOutput {
+    let png = result["data"]["png"].as_str().and_then(|png| base64::engine::general_purpose::STANDARD.decode(png).ok());
+    let Some(png) = png else {
+        return CliOutput::error("DashQL sent no PNG", EXIT_FAILED);
+    };
+    let file = options.out.clone().unwrap_or_else(|| format!("{}.png", rest[0].trim_end_matches(".sql")));
+    if let Err(e) = (cli.write_file)(&file, &png) {
+        return CliOutput::error(&e, EXIT_FAILED);
+    }
+    if options.json {
+        let mut data = result["data"].clone();
+        data["png"] = file.into();
+        return CliOutput::ok(pretty(&data));
+    }
+    CliOutput::ok(format!("{}\nWrote {file}", result["text"].as_str().unwrap_or_default()))
 }
 
 fn pretty(value: &Value) -> String {
@@ -290,11 +333,12 @@ mod tests {
     struct Fake {
         response: Option<Value>,
         requests: RefCell<Vec<(String, String, Option<Value>)>>,
+        written: RefCell<Vec<(String, Vec<u8>)>>,
     }
 
     impl Fake {
         fn new(response: Option<Value>) -> Self {
-            Fake { response, requests: RefCell::new(Vec::new()) }
+            Fake { response, requests: RefCell::new(Vec::new()), written: RefCell::new(Vec::new()) }
         }
 
         fn run(&self, argv: &[&str], session: Option<&str>, stdin: &str) -> CliOutput {
@@ -309,6 +353,10 @@ mod tests {
                 session: session.map(str::to_string),
                 read_stdin: &move || Ok(stdin.clone()),
                 read_file: &|file| Err(format!("{file}: not found")),
+                write_file: &|file, bytes| {
+                    self.written.borrow_mut().push((file.to_string(), bytes.to_vec()));
+                    Ok(())
+                },
                 request: &request,
             };
             match parse_args(&argv) {
@@ -367,6 +415,25 @@ mod tests {
         fake.run(&["visualize", "q1"], None, "{\"mark\": \"bar\"}");
         let args = json!({ "script": "q1", "spec": "{\"mark\": \"bar\"}" });
         assert_eq!(fake.body(0), json!({ "command": "visualize", "args": args }));
+    }
+
+    #[test]
+    fn writes_the_png_of_an_image() {
+        let data = json!({ "script": "q1", "width": 2, "height": 1, "png": "iVBORw==" });
+        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "Rendered", "data": data } })));
+        let output = fake.run(&["image", "q1.sql", "--width", "400", "--scale=1"], None, "");
+        assert_eq!(output, CliOutput { stdout: "Rendered\nWrote q1.png\n".into(), stderr: String::new(), exit_code: EXIT_OK });
+        assert_eq!(fake.body(0)["args"], json!({ "script": "q1.sql", "width": 400, "scale": 1 }));
+        assert_eq!(fake.written.borrow()[0], ("q1.png".to_string(), b"\x89PNG".to_vec()));
+
+        let output = fake.run(&["image", "q1", "--out", "chart.png", "--json"], None, "");
+        let printed: Value = serde_json::from_str(&output.stdout).unwrap();
+        assert_eq!(printed, json!({ "script": "q1", "width": 2, "height": 1, "png": "chart.png" }));
+        assert_eq!(fake.written.borrow()[1].0, "chart.png");
+
+        let no_png = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "Rendered" } })));
+        assert_eq!(no_png.run(&["image", "q1"], None, "").exit_code, EXIT_FAILED);
+        assert_eq!(fake.run(&["image", "q1", "--height", "0"], None, "").exit_code, EXIT_USAGE);
     }
 
     #[test]

@@ -16,6 +16,7 @@ rust_binary(
     deps = [
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-core-session:dashql_core_session",
+        "@core_crates//:base64",
         "@core_crates//:futures-util",
         "@core_crates//:getrandom",
         "@core_crates//:httparse",

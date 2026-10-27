@@ -19,6 +19,7 @@ crate_core.spec(package = "arrow-schema", default_features = False, version = "=
 crate_core.spec(package = "flatbuffers", version = "=25.12.19")
 
 # The agent server and its command line tool (//packages/dashql-cli)
+crate_core.spec(package = "base64", version = "=0.23.1")
 crate_core.spec(package = "futures-util", default_features = False, features = ["sink", "std"], version = "=0.3.34")
 crate_core.spec(package = "getrandom", version = "=0.4.3")
 crate_core.spec(package = "httparse", version = "=1.10.1")
