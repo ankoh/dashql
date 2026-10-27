@@ -147,6 +147,12 @@
             "allowedVersions": "<0.71.0"
         },
         {
+            "description": "TypeScript 7 is the native compiler without the JS compiler API that typescript-eslint (peer typescript <6.1) and typescript-plugin-css-modules build on.",
+            "matchManagers": ["npm"],
+            "matchPackageNames": ["typescript"],
+            "allowedVersions": "<7.0.0"
+        },
+        {
             "groupName": "tokio",
             "automerge": false,
             "matchPackageNames": ["/^tokio.*/"]
