@@ -684,12 +684,9 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 )}
                 {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
             </section>}
-            {/* With agent access, the agent on top of the composer takes the place of the greeting */}
             {landing && (
                 <div className={styles.feed_landing_header}>
-                    {composerAgent == null && (
-                        <h1 className={styles.feed_landing_title} data-testid="feed-landing-title">What do you want to know about your data today?</h1>
-                    )}
+                    <h1 className={styles.feed_landing_title} data-testid="feed-landing-title">What do you want to know about your data today?</h1>
                 </div>
             )}
             {/* Hidden rather than unmounted on the landing view, the size observer binds to the element once */}

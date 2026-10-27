@@ -442,7 +442,7 @@ describe('Session feed composer', () => {
         };
     }
 
-    it('shows the agent on top of the composer in place of the greeting', async () => {
+    it('shows the agent on top of the composer below the greeting', async () => {
         render(session(), vi.fn());
         expect(feedState.composerProps?.agent).toBeNull();
         expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
@@ -450,13 +450,13 @@ describe('Session feed composer', () => {
         feedState.agent = { ...connectedAgent(() => Promise.resolve('run')), status: AgentConnectionStatus.Connecting };
         render(session(), vi.fn());
         expect(feedState.composerProps?.agent).toMatchObject({ connected: false, port: 47100, context: null, runs: [] });
-        expect(container.querySelector('[data-testid="feed-landing-title"]')).toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
 
         feedState.agent = connectedAgent(() => Promise.resolve('run'));
         render(session(), vi.fn());
         expect(feedState.agent.context).toHaveBeenCalledWith('session');
         await vi.waitFor(() => expect(feedState.composerProps?.agent).toMatchObject({ connected: true, context: { harness: 'claude' } }));
-        expect(container.querySelector('[data-testid="feed-landing-title"]')).toBeNull();
+        expect(container.querySelector('[data-testid="feed-landing-title"]')).not.toBeNull();
 
         feedState.agent = { ...connectedAgent(() => Promise.resolve('run')), hasAccess: () => false };
         render(session(), vi.fn());
