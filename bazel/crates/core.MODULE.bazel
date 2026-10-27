@@ -43,7 +43,7 @@ crate_core.spec(package = "unicode-width", version = "=0.2.2")
 
 # Must match the wasm-bindgen-cli bundled with rules_rust_wasm_bindgen (MODULE.bazel).
 crate_core.spec(package = "wasm-bindgen", version = "=0.2.105")
-crate_core.spec(package = "yaml-rust2", version = "=0.11.0")
+crate_core.spec(package = "yaml-rust2", version = "=0.13.0")
 crate_core.from_specs(
     name = "core_crates",
     cargo_lockfile = "//bazel/crates:core/Cargo.lock",
