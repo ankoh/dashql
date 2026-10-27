@@ -1,27 +1,27 @@
 """Repository rule for Playwright's pinned Chromium headless shell."""
 
-_VERSION = "153.0.8010.12"
+_VERSION = "156.0.8078.4"
 _BASE_URL = "https://cdn.playwright.dev/builds/cft/{}/".format(_VERSION)
 
 _PLATFORMS = {
     ("darwin", "aarch64"): (
         "mac-arm64/chrome-headless-shell-mac-arm64.zip",
-        "89d80a6d26ccd0ccfd51e22d9e1297283862af2b0cd91dce07459b35ca0059f2",
+        "94e4337b70cbc5638f0935fbc46b9f242bc7416f657e3fbe924baf348404b53d",
         "chrome-headless-shell-mac-arm64/chrome-headless-shell",
     ),
     ("darwin", "x86_64"): (
         "mac-x64/chrome-headless-shell-mac-x64.zip",
-        "5c2eaa1aad62111bb5a70dd0889dd3093f3142277b8f78957a238257ee85f009",
+        "8a9e4a32ba5b1a796f8b16d01896e355cf6662544d9743296394fd999d782331",
         "chrome-headless-shell-mac-x64/chrome-headless-shell",
     ),
     ("linux", "aarch64"): (
         "linux-arm64/chrome-headless-shell-linux-arm64.zip",
-        "d433c45172c7836e38124fe545f767b02210bfb43a6262f08a297473a8e91c99",
+        "81ab9d4d3c301dc5fdfb6c541b9e6632b16fc819a6a854460f40a76fe2b2c476",
         "chrome-headless-shell-linux-arm64/chrome-headless-shell",
     ),
     ("linux", "x86_64"): (
         "linux64/chrome-headless-shell-linux64.zip",
-        "a9da028861a0cf789ff25c2fed45f5f1aaf969ed9247835b6a7821a4f7af9d1d",
+        "c3e50596aef52c58f8fda3c6b3411c33d34c88b177b3ed1c2243359fd3b8ba20",
         "chrome-headless-shell-linux64/chrome-headless-shell",
     ),
 }
