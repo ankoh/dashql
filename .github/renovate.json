@@ -143,6 +143,12 @@
             "matchPackageNames": ["/^@primer/.*/"]
         },
         {
+            "description": "napi-derive generates code against the napi release of the same day.",
+            "groupName": "napi",
+            "automerge": false,
+            "matchPackageNames": ["napi", "napi-derive"]
+        },
+        {
             "groupName": "flatbuffers",
             "automerge": false,
             "matchPackageNames": ["flatbuffers", "google/flatbuffers"]
