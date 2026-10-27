@@ -110,7 +110,9 @@ describe('AppOwnershipGate', () => {
         let restart: AppRestart | null = null;
         function RestartingApp() {
             useAppHandOver(async () => { events.push('stopped'); });
-            restart = useAppRestart();
+            const appRestart = useAppRestart();
+            // The gate may commit outside of act, publish the restart once the hand over hook is registered
+            React.useEffect(() => { restart = appRestart; }, [appRestart]);
             return <div>app</div>;
         }
         const container = document.createElement('div');
@@ -127,7 +129,7 @@ describe('AppOwnershipGate', () => {
             act(() => root.unmount());
             container.remove();
         });
-        await actUntil(() => container.textContent === 'app');
+        await actUntil(() => restart != null);
 
         await act(async () => { await restart!(); });
         expect(events).toEqual(['stopped', 'left']);
