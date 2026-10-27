@@ -1,5 +1,5 @@
 {
-  "lockFileVersion": 26,
+  "lockFileVersion": 28,
   "registryFileHashes": {
     "https://bcr.bazel.build/bazel_registry.json": "8a28e4aff06ee60aed2a8c281907fb8bcbf3b753c91fb5a5c57da3215d5b3497",
     "https://bcr.bazel.build/modules/abseil-cpp/20210324.2/MODULE.bazel": "7cd0312e064fde87c8d1cd79ba06c876bd23630c83466e9500321be55c96ace2",
@@ -26,6 +26,7 @@
     "https://bcr.bazel.build/modules/apple_support/1.24.1/MODULE.bazel": "f46e8ddad60aef170ee92b2f3d00ef66c147ceafea68b6877cb45bd91737f5f8",
     "https://bcr.bazel.build/modules/apple_support/1.24.2/MODULE.bazel": "0e62471818affb9f0b26f128831d5c40b074d32e6dda5a0d3852847215a41ca4",
     "https://bcr.bazel.build/modules/apple_support/2.3.0/MODULE.bazel": "d48f824ae8eeea5f837eb3038cef3615075d996d3e82eb9187192c2820605a81",
+    "https://bcr.bazel.build/modules/apple_support/2.5.2/MODULE.bazel": "bb1b7081e390a8d3885f642cb0073dfcf8e7a36525e079fa8f5835af7079c0fe",
     "https://bcr.bazel.build/modules/apple_support/2.8.0/MODULE.bazel": "c45f5176057092afba0be6c48a9ea02101666802f8be536947e099e94757f8ed",
     "https://bcr.bazel.build/modules/apple_support/2.9.1/MODULE.bazel": "fb209b83ed172af587419acb3340389cfe3260669e5f1c05e1ac3974aca614e0",
     "https://bcr.bazel.build/modules/apple_support/2.9.1/source.json": "247d9f86d94c546533fb01e6e18b018486f9a6dff5faccae8838ef12e659b2a7",
@@ -318,7 +319,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "EA9t9j0fdIOAGLkGlG7Z0bTdvHpRv+A/5l5/sN8u5Ik=",
+        "bzlTransitiveDigest": "NXc6OOQ9IFJzjimDgVA+196XvOCep4/xaAPFwoNsrr0=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -424,7 +425,7 @@
     },
     "//packages/dashql-datasets:deps.bzl%dashql_datasets": {
       "general": {
-        "bzlTransitiveDigest": "+8VMl/Hm4YRU03zhpqEOAHdXb0dOUf65zfLxrbzXjrE=",
+        "bzlTransitiveDigest": "xPadqdydLzMbAfM3Tr3Phl7cutujU1fZteG2tptVLHI=",
         "usagesDigest": "9CaQiSHsXruJokdO8YydY9q/SD/pqdC92pCiFtJCctc=",
         "recordedInputs": [
           "REPO_MAPPING:,aspect_bazel_lib aspect_bazel_lib+",
@@ -500,7 +501,7 @@
     },
     "@@aspect_rules_js+//npm:extensions.bzl%pnpm": {
       "general": {
-        "bzlTransitiveDigest": "NdcRg/TzUPBhM5d/UXJElW20p8jW/N//8sCZl7nEgv4=",
+        "bzlTransitiveDigest": "Mb2wy0c8KS8BISvQ/v4TstDr0Gs8Yiesng1ocwjWifw=",
         "usagesDigest": "bvewNId77p2eFFORUOhZe9lfiIsXWqBxKpr3+Q1XhvE=",
         "recordedInputs": [
           "REPO_MAPPING:aspect_bazel_lib+,bazel_lib bazel_lib+",
@@ -593,7 +594,7 @@
                 "aspect_rules_ts": "3.10.1",
                 "aspect_tools_telemetry": "0.5.1"
               },
-              "last_notice": 2
+              "last_notice": 0
             }
           }
         },
@@ -620,7 +621,7 @@
     },
     "@@rules_android+//bzlmod_extensions:apksig.bzl%apksig_extension": {
       "general": {
-        "bzlTransitiveDigest": "IiT2UgJGnHaKiyP2A1yh3U/QWN4W9g/Byolrm78hC/s=",
+        "bzlTransitiveDigest": "0A8O20aQTIZnt20CyMK1wzktVUyJO1Y3jI6cS1WftKQ=",
         "usagesDigest": "zr/niBQ/s2fHozWAsg4vI70wAxcuFjG+QtM15qGkq9o=",
         "recordedInputs": [
           "REPO_MAPPING:rules_android+,bazel_tools bazel_tools"
@@ -638,7 +639,7 @@
     },
     "@@rules_android+//bzlmod_extensions:com_android_dex.bzl%com_android_dex_extension": {
       "general": {
-        "bzlTransitiveDigest": "toD4gOZwGNfBEM+xec6eRi3BM2Z9EZ4oQrORZQH3sNY=",
+        "bzlTransitiveDigest": "stTLqB1DjqvC1RcosQO9gDBmAlvTegb/9MYDyiRNuFo=",
         "usagesDigest": "c1Y/KGGjUYCyd8zNIVTUh1bynVXRFz6xGKaSCBpQANM=",
         "recordedInputs": [
           "REPO_MAPPING:rules_android+,bazel_tools bazel_tools"
@@ -669,7 +670,7 @@
     },
     "@@rules_python+//python/uv:uv.bzl%uv": {
       "general": {
-        "bzlTransitiveDigest": "yG9F6L2IZXKRbD/aIUa6sU7uITLUTBKOMWPbIvl1VdM=",
+        "bzlTransitiveDigest": "/TRCIwkFYo7fpSOLJ54wXFHVpcYJ5edXrsPRRAmCrAg=",
         "usagesDigest": "VIL2XOdoqnDontUpqE3iS7RRyMo/631pKbNJiwj8lbY=",
         "recordedInputs": [
           "REPO_MAPPING:rules_python+,bazel_tools bazel_tools",
@@ -699,7 +700,7 @@
     },
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
-        "bzlTransitiveDigest": "0pD90cHn4UGXH+aQdTUhHzqNqDmuRFnJu7BxdNn6Oeo=",
+        "bzlTransitiveDigest": "ZvXn7BcJkanYca0uG0q5YyVfVsGdlVq77aRz7kPP9k0=",
         "usagesDigest": "3M03XhIi/1oRPtWHXCs5R9YQ+nQb9Yb2k0xdzczdmnk=",
         "recordedInputs": [
           "ENV:CARGO_BAZEL_DEBUG \\0",
@@ -975,7 +976,7 @@
     },
     "@@rules_rust+//crate_universe:extensions.bzl%crate%<root>+crate_core": {
       "general": {
-        "bzlTransitiveDigest": "FYXILVjReO4AJKn+M8r0JB8oTMMDl9CPMMJEIgFNABA=",
+        "bzlTransitiveDigest": "eLYQ8kwcRDf8bl9NeopX2pThRYuMfLBj3tPGPAjak5Y=",
         "usagesDigest": "xKOrKiD7GPW2BAH/wE+gnwR0zEVWl6q/W84sX6jZ5+0=",
         "recordedInputs": [
           "ENV:CARGO_BAZEL_DEBUG \\0",
@@ -3072,7 +3073,7 @@
     },
     "@@rules_rust+//crate_universe:extensions.bzl%crate%<root>+crate_native": {
       "general": {
-        "bzlTransitiveDigest": "FYXILVjReO4AJKn+M8r0JB8oTMMDl9CPMMJEIgFNABA=",
+        "bzlTransitiveDigest": "eLYQ8kwcRDf8bl9NeopX2pThRYuMfLBj3tPGPAjak5Y=",
         "usagesDigest": "AwyyR/lXOV/ajXFH2zEJVZjxu3SBJRIIPATolZELuNg=",
         "recordedInputs": [
           "ENV:CARGO_BAZEL_DEBUG \\0",
@@ -8107,7 +8108,7 @@
     },
     "@@rules_rust+//crate_universe/private:internal_extensions.bzl%cu_nr": {
       "general": {
-        "bzlTransitiveDigest": "BpVVIBAA4goltOL1B5nS/HRad78cYFhA02hqQUGB1FA=",
+        "bzlTransitiveDigest": "wVTzSn0svIK5xLxI3DwEXBwz0tBMGVndwy5Jm21UbJQ=",
         "usagesDigest": "tG3p3Nb5XxC7vWY/bcKdb//g0HoAxpxxH3F5/jBVlk4=",
         "recordedInputs": [
           "REPO_MAPPING:bazel_features+,bazel_features_globals bazel_features++version_extension+bazel_features_globals",
@@ -8658,5 +8659,6 @@
         ]
       }
     }
-  }
+  },
+  "factsVersions": {}
 }
