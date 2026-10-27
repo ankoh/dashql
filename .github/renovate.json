@@ -16,20 +16,6 @@
     "cargo": {
         "labels": ["dependencies", "rust"]
     },
-    "postUpgradeTasks": {
-        "commands": [
-            "python3 scripts/update_bazel_hashes.py --force bazel/core_dependencies.bzl",
-            "python3 scripts/update_bazel_hashes.py --force bazel/external_tableauhyperapi.bzl",
-            "python3 scripts/update_bazel_hashes.py --force packages/dashql-datasets/datasets.bzl"
-        ],
-        "fileFilters": [
-            "bazel/core_dependencies.bzl",
-            "bazel/external_tableauhyperapi.bzl",
-            "MODULE.bazel.lock",
-            "packages/dashql-datasets/datasets.bzl"
-        ],
-        "executionMode": "branch"
-    },
     "customDatasources": {
         "tableauhyperapi_cxx": {
             "defaultRegistryUrlTemplate": "https://tableau.github.io/hyper-db/docs/releases",
@@ -95,6 +81,28 @@
     ],
     "packageRules": [
         {
+            "description": "These Bazel extension files pin sha256 hashes next to their versions. Recompute them and refresh MODULE.bazel.lock, which records the repositories the extensions declare.",
+            "matchFileNames": [
+                "bazel/core_dependencies.bzl",
+                "bazel/external_tableauhyperapi.bzl",
+                "packages/dashql-datasets/datasets.bzl"
+            ],
+            "postUpgradeTasks": {
+                "commands": [
+                    "python3 scripts/update_bazel_hashes.py --force {{{packageFile}}}",
+                    "bazel mod deps --lockfile_mode=update"
+                ],
+                "installTools": { "bazelisk": {} },
+                "fileFilters": [
+                    "bazel/core_dependencies.bzl",
+                    "bazel/external_tableauhyperapi.bzl",
+                    "packages/dashql-datasets/datasets.bzl",
+                    "MODULE.bazel.lock"
+                ],
+                "executionMode": "update"
+            }
+        },
+        {
             "description": "Tableau publishes the Hyper API on PyPI more often than the C++ archives we download. Take the versions from the release notes, which only link the archives that exist. The page has no release dates, so minimumReleaseAge would hold every version back.",
             "matchDatasources": ["custom.tableauhyperapi_cxx"],
             "extractVersion": "/tableauhyperapi-cxx-linux-x86_64-release-main\\.(?<version>\\d+\\.\\d+\\.\\d+)\\.r[0-9a-f]+\\.zip$",
@@ -107,6 +115,7 @@
             "labels": ["dependencies", "rust"],
             "postUpgradeTasks": {
                 "commands": ["bash scripts/repin_crates.sh"],
+                "installTools": { "bazelisk": {} },
                 "fileFilters": ["bazel/crates/*/Cargo.lock", "MODULE.bazel.lock"],
                 "executionMode": "branch"
             }
