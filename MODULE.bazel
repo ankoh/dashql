@@ -96,6 +96,11 @@ npm.npm_translate_lock(
     patch_args = {
         "d3-brush@3.0.0": ["-p1"],
     },
+    # Electron 42 no longer downloads its binary in a postinstall script but on the first run of its bin.
+    # The Electron tests start dist/ directly from the read-only node_modules, so download it at install.
+    custom_postinstalls = {
+        "electron": "node install.js",
+    },
     verify_node_modules_ignored = "//:.bazelignore",
     # Hoist platform-specific native binaries so they can be found via Node.js module resolution
     # (traversing up to the root node_modules). In aspect_rules_js v3, optional platform packages
