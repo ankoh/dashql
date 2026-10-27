@@ -338,7 +338,7 @@ impl Script {
     ///
     /// The spec must be a JSON object, it is written with its key order kept: pretty-printed in block
     /// comments and on one line in line comments and in block comments with a ` * ` gutter. `/*` and
-    /// `*/` in its strings are escaped as `\/*` and `*\/`, they would nest or end a block comment. The
+    /// `*/` in its strings are escaped as `/\u002a` and `*\/`, they would nest or end a block comment. The
     /// spans of the parsed script are applied to the current text, as in `rewrite_vis_card`.
     ///
     /// Returns the rewritten text and the span of the written tag or comment in it.
@@ -360,7 +360,7 @@ impl Script {
         if !spec.is_object() {
             return Err(Error::invalid_argument("the Vega-Lite spec is no JSON object"));
         }
-        let escape = |json: String| json.replace("/*", "\\/*").replace("*/", "*\\/");
+        let escape = |json: String| json.replace("/*", "/\\u002a").replace("*/", "*\\/");
         let compact = escape(spec.to_string());
         let pretty = escape(serde_json::to_string_pretty(&spec).expect("a JSON value always serializes"));
 

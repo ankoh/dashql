@@ -451,10 +451,16 @@ fn rewrite_vegalite_returns_the_span_of_the_tag() {
 #[test]
 fn rewrite_vegalite_escapes_comment_delimiters() {
     let mut script = parsed_script("select 1");
-    assert_eq!(
-        script.rewrite_vegalite(r#"{"title": "a */ b /* c"}"#, false).unwrap().0,
-        "/* @vis vegalite\n   {\n     \"title\": \"a *\\/ b \\/* c\"\n   }\n*/\nselect 1"
-    );
+    let (text, _) = script.rewrite_vegalite(r#"{"title": "a */ b /* c"}"#, false).unwrap();
+    assert_eq!(text, "/* @vis vegalite\n   {\n     \"title\": \"a *\\/ b /\\u002a c\"\n   }\n*/\nselect 1");
+    // The comment neither nests nor ends early, the spec reads back unchanged
+    let catalog = Catalog::new();
+    let mut written = Script::new(&catalog);
+    written.replace_text(&text);
+    written.analyze(&catalog, true).unwrap();
+    let analyzed = written.analyzed.as_ref().unwrap();
+    assert!(analyzed.parsed.scanned.errors.is_empty() && analyzed.parsed.errors.is_empty() && analyzed.errors.is_empty());
+    assert_eq!(analyzed.visualization_specs[0].vegalite.as_ref().unwrap()["title"], "a */ b /* c");
 }
 
 #[test]
