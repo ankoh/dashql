@@ -11,6 +11,7 @@ import { DashQLDiffDecorationPlugin } from './dashql_diff_decorations.js';
 import { DashQLDiffHintPlugin } from './dashql_diff_hint.js';
 import { DashQLAutoclosePlugin } from './dashql_autoclose.js';
 import { DashQLQuoteTombstonePlugin } from './dashql_quote_tombstone.js';
+import { DashQLVisFoldingPlugin } from './dashql_vis_folding.js';
 
 /// Starts a completion when an empty editor gains focus
 export const DashQLFocusCompletionEffect = EditorView.focusChangeEffect.of((state, focusing) => {
@@ -31,6 +32,7 @@ export const DashQLExtensions = [
     DashQLDecorationPlugin,
     DashQLCursorDiagnosticsPlugin,
     DashQLGutterPlugin,
+    DashQLVisFoldingPlugin,
 ];
 
 export const DashQLReadonlyExtensions = [
@@ -38,4 +40,5 @@ export const DashQLReadonlyExtensions = [
     DashQLDecorationPlugin,
     DashQLCursorDiagnosticsPlugin,
     DashQLGutterPlugin,
+    DashQLVisFoldingPlugin,
 ];
