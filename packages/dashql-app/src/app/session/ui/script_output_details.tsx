@@ -8,6 +8,7 @@ import type { ResolvedVisualizeQuery } from '../scripts/script_types.js';
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
 import { QueryResultDetails } from '../compute/ui/query_result/query_result_details.js';
 import { VisualizationDispatch } from '../compute/ui/visualization/visualization_dispatch.js';
+import { ChartDownloadButton } from '../compute/ui/visualization/chart_download_button.js';
 import { ColumnAggregationBar } from '../compute/ui/visualization/column_aggregation_bar.js';
 import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '../../../ui/foundations/vertical_tabs.js';
 import { IndicatorStatus } from '../../../ui/foundations/status_indicator.js';
@@ -143,7 +144,13 @@ export const ScriptOutputDetails: React.FC<Props> = (props) => {
         ),
         [ScriptDetailsTab.Visualization]: () => (
             <div className={styles.visualization}>
-                <TabHeader title="Visualization" detail={formatRowCountDetail(totalRows)} />
+                <TabHeader
+                    title="Visualization"
+                    detail={formatRowCountDetail(totalRows)}
+                    actions={props.query != null && props.visualizeQuery?.renderer === 'vegalite' ? (
+                        <ChartDownloadButton query={props.query} spec={props.visualizeQuery.vegaLiteSpec} />
+                    ) : undefined}
+                />
                 <ColumnAggregationBar query={props.query} debugMode={props.tableDebugMode} />
                 <div className={styles.visualization_body}>
                     <VisualizationDispatch query={props.query!} visualizeQuery={props.visualizeQuery} />

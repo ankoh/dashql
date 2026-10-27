@@ -13,6 +13,7 @@ import { TraceLogPanel } from '../trace_log_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from '../../compute/ui/query_result/query_result_toolbar.js';
 import { QueryResultDownloadButton } from '../../compute/ui/query_result/query_result_download_button.js';
+import { ChartDownloadButton } from '../../compute/ui/visualization/chart_download_button.js';
 
 const FEED_LIMIT_RESULT_ROWS = 6;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
@@ -32,6 +33,7 @@ export interface FeedEntryFooterDependencies {
     useQueryResultRowCounts: typeof useQueryResultRowCounts;
     QueryResultToolbar: typeof QueryResultToolbar;
     QueryResultDownloadButton: typeof QueryResultDownloadButton;
+    ChartDownloadButton: typeof ChartDownloadButton;
     QueryResultView: typeof QueryResultView;
 }
 
@@ -40,6 +42,7 @@ const DEFAULT_DEPENDENCIES: FeedEntryFooterDependencies = {
     useQueryResultRowCounts,
     QueryResultToolbar,
     QueryResultDownloadButton,
+    ChartDownloadButton,
     QueryResultView,
 };
 
@@ -183,6 +186,9 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                     title="Visualization"
                     detail={pointCountDetail}
                     onClick={props.onShowVisualization}
+                    actions={props.queryState != null && props.visualizeQuery?.renderer === 'vegalite' ? (
+                        <dependencies.ChartDownloadButton query={props.queryState} spec={props.visualizeQuery.vegaLiteSpec} />
+                    ) : undefined}
                 />
                 {props.queryState != null && (
                     <div className={styles.visualization_body}>

@@ -5,7 +5,10 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryExecutionStatus } from '../../../../query/query_execution_state.js';
+import { ComputationRegistry } from '../../../../compute/computation_registry.js';
 import { QueryResultDownloadButton } from '../../compute/ui/query_result/query_result_download_button.js';
+import { ChartDownloadButton } from '../../compute/ui/visualization/chart_download_button.js';
+import type { ResolvedVisualizeQuery } from '../../scripts/script_types.js';
 import { FeedEntryFooter, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -14,6 +17,7 @@ const download = vi.fn();
 const exportParquet = vi.fn();
 const computeDatabase = { registerExternalDirectory: vi.fn(), removeExternalDirectory: vi.fn() };
 const onShowTable = vi.fn();
+const renderPng = vi.fn();
 const dependencies = {
     useResultRowCount: () => ({ hasResult: true, totalRows: 3 }),
     useQueryResultRowCounts: () => ({ totalRows: 3, currentRows: 3, matchingRows: null }),
@@ -24,6 +28,11 @@ const dependencies = {
         useLogger: () => ({ error: vi.fn() }),
         useComputeDatabase: () => computeDatabase as any,
         exportArrowTableAsParquet: exportParquet,
+    }} />,
+    ChartDownloadButton: props => <ChartDownloadButton {...props} dependencies={{
+        useFileDownloader: () => ({ downloadBufferAsFile: download }),
+        useLogger: () => ({ error: vi.fn() }),
+        renderVegaLitePng: renderPng,
     }} />,
 } as FeedEntryFooterDependencies;
 
@@ -38,6 +47,7 @@ describe('FeedEntryFooter', () => {
         download.mockReset().mockResolvedValue(undefined);
         exportParquet.mockReset();
         onShowTable.mockReset();
+        renderPng.mockReset();
     });
 
     afterEach(() => {
@@ -45,15 +55,18 @@ describe('FeedEntryFooter', () => {
         container.remove();
     });
 
-    function renderFooter(resultTable: arrow.Table) {
+    function renderFooter(resultTable: arrow.Table, visualizeQuery: ResolvedVisualizeQuery | null = null) {
+        // The chart of the visualization tab reads the computations of the results
         act(() => root.render(
-            <FeedEntryFooter
-                sessionId="session"
-                queryState={{ queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, resultTable } as any}
-                visualizeQuery={null}
-                onShowTable={onShowTable}
-                dependencies={dependencies}
-            />,
+            <ComputationRegistry>
+                <FeedEntryFooter
+                    sessionId="session"
+                    queryState={{ queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, resultTable } as any}
+                    visualizeQuery={visualizeQuery}
+                    onShowTable={onShowTable}
+                    dependencies={dependencies}
+                />
+            </ComputationRegistry>,
         ));
     }
 
@@ -106,5 +119,20 @@ describe('FeedEntryFooter', () => {
 
         expect(exportParquet).toHaveBeenCalledWith(computeDatabase, resultTable);
         expect(download).toHaveBeenCalledWith(parquet, 'query-result-42.parquet');
+    });
+
+    it('downloads the chart as PNG from the visualization header', async () => {
+        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as any;
+        const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+        renderPng.mockResolvedValue({ png, width: 1600, height: 1000 });
+        renderFooter(arrow.tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
+        expect(container.querySelector('[data-testid="download-query-result"]')).toBeNull();
+
+        const button = container.querySelector<HTMLButtonElement>('[data-testid="download-chart-png"]')!;
+        expect(button).not.toBeNull();
+        await act(async () => button.click());
+
+        expect(renderPng).toHaveBeenCalledWith(vegaLiteSpec, [{ value: 10 }, { value: 20 }, { value: 30 }]);
+        expect(download).toHaveBeenCalledWith(png, 'chart-42.png');
     });
 });
