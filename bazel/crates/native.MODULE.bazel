@@ -44,7 +44,7 @@ crate_native.spec(package = "tonic-prost", version = "0.14.7")
 crate_native.spec(package = "tonic-prost-build", version = "0.14.7")
 crate_native.spec(package = "tracing", version = "0.1.44")
 crate_native.spec(package = "url", version = "2.5.8")
-crate_native.spec(package = "uuid", features = ["v4", "v5"], version = "1.25.0")
+crate_native.spec(package = "uuid", features = ["v4", "v5"], version = "1.29.0")
 crate_native.spec(package = "walkdir", version = "2.5.0")
 crate_native.from_specs(
     name = "crates",
