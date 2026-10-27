@@ -24,6 +24,7 @@ function statusText(bridge: AgentBridge): [string, string] {
     switch (bridge.status) {
         case AgentConnectionStatus.Connected: return ['connected', 'Connected'];
         case AgentConnectionStatus.Connecting: return ['connecting', 'Looking for the server'];
+        case AgentConnectionStatus.Incompatible: return ['incompatible', 'Server version differs, update DashQL or reload'];
         default: return ['off', 'Not connected'];
     }
 }

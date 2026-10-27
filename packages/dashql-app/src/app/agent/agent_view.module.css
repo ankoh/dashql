@@ -129,6 +129,10 @@
     background: #9a6700;
 }
 
+.dot[data-status='incompatible'] {
+    background: #cf222e;
+}
+
 .row_value .port_input {
     width: 72px;
     min-height: 28px;

@@ -18,8 +18,10 @@ export enum AgentConnectionStatus {
     Off = 'off',
     /// Connecting, or waiting to reconnect
     Connecting = 'connecting',
-    /// Connected
+    /// Connected, the server took the sessions
     Connected = 'connected',
+    /// The server turned the client away, it speaks another protocol version. The client retries slowly.
+    Incompatible = 'incompatible',
 }
 
 /// The part of the WebSocket API that the client uses
@@ -34,6 +36,8 @@ export interface AgentSocket {
 }
 
 const SOCKET_OPEN = 1;
+/// The close code of a server that turns a client away, e.g. for another protocol version
+const CLOSE_POLICY_VIOLATION = 1008;
 
 /// An error that a command reports to the agent
 export class AgentCommandError extends Error {
@@ -54,6 +58,8 @@ export interface AgentClientOptions {
     onNotification: (method: string, params: unknown) => void;
     /// Follow the connection status
     onStatus: (status: AgentConnectionStatus) => void;
+    /// The connection is gone, the notifications of the runs that the server started for it are lost
+    onDisconnect?: (reason: string) => void;
     /// Create a socket, replaceable in tests
     createSocket?: (url: string) => AgentSocket;
     /// The first reconnect delay, doubled after every failure
@@ -118,7 +124,7 @@ export class AgentClient {
         if (this.#socket == null && this.#reconnectTimer == null) {
             this.#connect();
         } else {
-            this.#announce();
+            void this.#announce();
         }
     }
 
@@ -148,21 +154,24 @@ export class AgentClient {
         this.#options.onStatus(status);
     }
 
-    #announce(): void {
+    /// Announce the sessions, resolves once the server took them
+    async #announce(): Promise<boolean> {
         const socket = this.#socket;
-        if (socket == null || socket.readyState !== SOCKET_OPEN) return;
+        if (socket == null || socket.readyState !== SOCKET_OPEN) return false;
         const params: ClientSessionsParams = {
             protocol: AGENT_PROTOCOL_VERSION,
             client: this.#options.clientKind,
             sessions: this.#sessions,
             focused: this.#focused,
         };
-        socket.send(JSON.stringify({ method: 'client/sessions', params } satisfies AgentRpcMessage));
+        // A server that turns the client away closes the socket instead of answering
+        return this.request('client/sessions', params).then(() => true, () => false);
     }
 
     #connect(): void {
         this.#reconnectTimer = null;
-        this.#setStatus(AgentConnectionStatus.Connecting);
+        // An incompatible server stays incompatible until it takes the sessions
+        if (this.#status !== AgentConnectionStatus.Incompatible) this.#setStatus(AgentConnectionStatus.Connecting);
         let socket: AgentSocket;
         try {
             socket = (this.#options.createSocket ?? (url => new WebSocket(url) as unknown as AgentSocket))(this.#options.url);
@@ -173,19 +182,34 @@ export class AgentClient {
         }
         this.#socket = socket;
         socket.onopen = () => {
-            this.#options.logger.info('Connected to the agent server', { url: this.#options.url }, LOG_CTX);
-            this.#backoffMs = this.#options.initialBackoffMs ?? 1000;
-            this.#setStatus(AgentConnectionStatus.Connected);
-            this.#announce();
+            void this.#announce().then(accepted => {
+                if (!accepted || this.#socket !== socket) return;
+                this.#options.logger.info('Connected to the agent server', { url: this.#options.url }, LOG_CTX);
+                this.#backoffMs = this.#options.initialBackoffMs ?? 1000;
+                this.#setStatus(AgentConnectionStatus.Connected);
+            });
         };
         socket.onmessage = event => {
             if (typeof event.data === 'string') this.#receive(socket, event.data);
         };
         socket.onerror = () => { };
-        socket.onclose = () => {
+        socket.onclose = event => {
             if (this.#socket !== socket) return;
             this.#socket = null;
-            this.#rejectPending('The agent server disconnected');
+            const { code, reason } = (event ?? {}) as { code?: number; reason?: string };
+            if (code === CLOSE_POLICY_VIOLATION) {
+                this.#options.logger.warn('The agent server turned the client away', { reason: reason ?? '' }, LOG_CTX);
+                this.#lose(`The agent server turned DashQL away: ${reason || 'unknown reason'}`);
+                if (this.#wanted()) {
+                    // Reloading the page or updating the server fixes this, retry slowly until then
+                    this.#setStatus(AgentConnectionStatus.Incompatible);
+                    this.#backoffMs = this.#options.maxBackoffMs ?? 30_000;
+                    this.#scheduleReconnect();
+                    return;
+                }
+            } else {
+                this.#lose('The agent server disconnected');
+            }
             if (this.#wanted()) {
                 this.#scheduleReconnect();
             } else {
@@ -195,7 +219,7 @@ export class AgentClient {
     }
 
     #scheduleReconnect(): void {
-        this.#setStatus(AgentConnectionStatus.Connecting);
+        if (this.#status !== AgentConnectionStatus.Incompatible) this.#setStatus(AgentConnectionStatus.Connecting);
         const delay = this.#backoffMs;
         this.#backoffMs = Math.min(this.#backoffMs * 2, this.#options.maxBackoffMs ?? 30_000);
         this.#reconnectTimer = setTimeout(() => this.#connect(), delay);
@@ -212,14 +236,16 @@ export class AgentClient {
             socket.onclose = null;
             socket.close(1000, 'agent access turned off');
             this.#options.logger.info('Disconnected from the agent server', {}, LOG_CTX);
+            this.#lose('Agent access was turned off');
         }
-        this.#rejectPending('Agent access was turned off');
         this.#setStatus(AgentConnectionStatus.Off);
     }
 
-    #rejectPending(message: string): void {
-        for (const pending of this.#pending.values()) pending.reject(new Error(message));
+    /// The connection is gone: fail the pending requests and tell the owner
+    #lose(reason: string): void {
+        for (const pending of this.#pending.values()) pending.reject(new Error(reason));
         this.#pending.clear();
+        this.#options.onDisconnect?.(reason);
     }
 
     #receive(socket: AgentSocket, text: string): void {

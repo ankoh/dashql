@@ -178,6 +178,15 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                 }
             },
             onStatus: setStatus,
+            // A new connection hears nothing of the runs of the old one, the server may have stopped them
+            onDisconnect: reason => {
+                for (const [runId, run] of [...runs.current]) {
+                    logger.warn('Lost an agent run', { runId, reason }, LOG_CTX);
+                    run.listener.failed(reason, false);
+                }
+                runs.current.clear();
+                runsBySession.current.clear();
+            },
         });
     }, [supported, port, logger, forgetRun]);
     React.useEffect(() => () => client?.dispose(), [client]);

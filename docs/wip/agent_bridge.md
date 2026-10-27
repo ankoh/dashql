@@ -161,8 +161,8 @@ that also holds the agent commands of the command line tool and `dashql lint` fo
 no runtime and runs in two hosts:
 
 - **DashQL.app:** main starts the bundled binary as a child process (`dashql agent serve --exit-with-stdin`,
-  `src/agent_host.ts`), restarts it when it crashes (1, 2, 5, 10, 30 s), stops it on quit (SIGTERM, SIGKILL
-  after 3 s), and follows its state for the menu (connected clients, running harness runs) through
+  `src/agent_host.ts`), restarts it when it crashes (1, 2, 5, 10, 30 s), stops it on quit and before an update
+  (SIGTERM, SIGKILL after 6 s), and follows its state for the menu (connected clients, running harness runs) through
   `GET /v1/status` with the token from `config.json`. The app holds the server's stdin, so the server exits
   when the app crashes or is killed instead of keeping the port. When another server with the same
   `config.json` holds the port (`dashql agent serve` in a terminal), the app follows that one and takes over
@@ -181,6 +181,8 @@ What it does:
   fails with "DashQL is not connected: open https://dashql.app and turn on agent
   access".
 - Starts harness runs for requests from clients (see [App → agent](#app--agent)).
+- On SIGTERM fails every run with "The agent server stopped", kills the harness process groups (SIGKILL
+  after 3 s) and waits until they exited, so no harness outlives the server.
 
 Configuration and state live in `~/.dashql/agent/` (readable by the user only):
 `config.json` (port, CLI token, harness commands) and `sessions/<id>/` (working folder
@@ -308,7 +310,10 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
   sessions with access are an app setting (`agentSessions`), so a shared session file never turns access on.
   While on, the client keeps a WebSocket to `ws://127.0.0.1:47100/v1/ws` and reconnects with backoff. After
   a page reload it reconnects and the server delivers whatever is queued, so nothing is lost. A call that is
-  in flight when the page goes away fails.
+  in flight when the page goes away fails. The page counts as connected once the server answered its
+  announcement. When the connection drops, the page fails the runs it follows, a new server does not know them.
+  A server with another protocol version closes with 1008: the page shows that the versions differ (update
+  DashQL or reload the page) and retries every 30 s.
 - **Command registry:** one handler per command, wrapping the existing reducers,
   executor and catalog code.
 - **Protocol:** JSON-RPC-style messages (`{id, method, params}` → `{id, result |

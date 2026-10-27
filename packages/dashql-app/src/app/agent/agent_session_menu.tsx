@@ -124,6 +124,9 @@ export const AgentSessionMenu: React.FC<Props> = (props: Props) => {
             )}
         >
             <div className={styles.menu} role="dialog" aria-label="Control agent session">
+                {notice == null && bridge.status === AgentConnectionStatus.Incompatible && (
+                    <div className={styles.notice}>The agent server runs another version. Update DashQL or reload the page.</div>
+                )}
                 {notice != null && <div className={styles.notice}>{notice}</div>}
                 <ActionList.List aria-label="Agent actions">
                     <ActionList.ListItem

@@ -6,7 +6,7 @@ use crate::agent::config::{
 };
 use crate::agent::harness::{
     resolve_login_shell_path, resolve_program, spawn_harness, HarnessEvent, HarnessOutcome, HarnessProcess,
-    HarnessSpawnArgs, Kill,
+    HarnessSpawnArgs, Kill, KILL_GRACE,
 };
 use crate::agent::http::{self, Request};
 use crate::agent::instructions::{session_instructions, CLAUDE_INSTRUCTIONS, OPENCODE_CONFIG};
@@ -34,6 +34,9 @@ const CLOSE_POLICY_VIOLATION: u16 = 1008;
 
 pub const NOT_CONNECTED_MESSAGE: &str = "DashQL is not connected: open https://dashql.app and turn on agent access";
 const DISCONNECTED_MESSAGE: &str = "DashQL disconnected during the call";
+const SERVER_STOPPED_MESSAGE: &str = "The agent server stopped";
+/// How long a stopping server waits for its clients to take the close frame
+const CLOSE_GRACE: Duration = Duration::from_secs(1);
 /// Set in the environment of harness runs
 pub const AGENT_RUN_ENV: &str = "DASHQL_AGENT_RUN";
 
@@ -161,6 +164,8 @@ struct State {
     busy: HashSet<String>,
     /// The harness runs in the order of their requests, the first run of a session runs, the others wait
     runs: Vec<Run>,
+    /// The harness processes that did not exit yet
+    harnesses: usize,
     next_call_id: u64,
     /// Orders announcements and focus changes
     clock: u64,
@@ -216,6 +221,7 @@ impl AgentServer {
                 next_client: 0,
                 busy: HashSet::new(),
                 runs: Vec::new(),
+                harnesses: 0,
                 next_call_id: 1,
                 clock: 0,
             }),
@@ -254,17 +260,38 @@ impl AgentServer {
         self.shared.status(&self.shared.lock())
     }
 
-    /// Stop listening, disconnect the clients and kill the harness runs
+    /// Stop listening, fail and kill the harness runs, disconnect the clients.
+    /// Returns once the harness processes exited, the runtime would otherwise drop them while they run.
     pub async fn close(self) {
         self.accept.abort();
-        let mut state = self.shared.lock();
-        for run in state.runs.drain(..) {
-            if let Some(kill) = &run.kill {
-                kill();
+        {
+            let mut state = self.shared.lock();
+            let state = &mut *state;
+            for run in state.runs.drain(..) {
+                notify_failed(&state.clients, &run, SERVER_STOPPED_MESSAGE, false);
+                if let Some(kill) = &run.kill {
+                    kill();
+                }
+            }
+            for client in state.clients.values() {
+                let _ = client.tx.send(Outgoing::Close(1001, "server stops".into()));
             }
         }
-        for client in state.clients.values() {
-            let _ = client.tx.send(Outgoing::Close(1001, "server stops".into()));
+        // A killed harness exits within KILL_GRACE, then it is killed for good
+        let harnesses_deadline = tokio::time::Instant::now() + KILL_GRACE + CLOSE_GRACE;
+        let clients_deadline = tokio::time::Instant::now() + CLOSE_GRACE;
+        loop {
+            let now = tokio::time::Instant::now();
+            let (harnesses, clients) = {
+                let state = self.shared.lock();
+                (state.harnesses, state.clients.len())
+            };
+            let waits_for_harnesses = harnesses > 0 && now < harnesses_deadline;
+            let waits_for_clients = clients > 0 && now < clients_deadline;
+            if !waits_for_harnesses && !waits_for_clients {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
         }
     }
 }
@@ -758,12 +785,17 @@ impl Shared {
             (self.options.spawn_harness)(HarnessSpawnArgs { config, prompt, harness_session, cwd, env, events });
         {
             let mut state = self.lock();
-            if let Some(run) = state.runs.iter_mut().find(|r| r.run_id == run_id) {
-                // A cancel that came while the harness started
-                if run.cancelled {
-                    (process.kill)();
+            state.harnesses += 1;
+            match state.runs.iter_mut().find(|r| r.run_id == run_id) {
+                Some(run) => {
+                    // A cancel that came while the harness started
+                    if run.cancelled {
+                        (process.kill)();
+                    }
+                    run.kill = Some(process.kill.clone());
                 }
-                run.kill = Some(process.kill.clone());
+                // The server stopped while the harness started
+                None => (process.kill)(),
             }
         }
         let mut outcome = process.outcome;
@@ -771,6 +803,7 @@ impl Shared {
             tokio::select! {
                 Some(event) = received.recv() => self.handle_event(run_id, &session, &harness_name, event),
                 outcome = &mut outcome => {
+                    self.lock().harnesses -= 1;
                     while let Ok(event) = received.try_recv() {
                         self.handle_event(run_id, &session, &harness_name, event);
                     }
@@ -1054,6 +1087,15 @@ mod tests {
 
     impl Fixture {
         async fn start(config: Value, dev: bool) -> Fixture {
+            Fixture::start_with(config, dev, false).await
+        }
+
+        /// A server whose harness runs start real processes
+        async fn start_with_real_harness(config: Value) -> Fixture {
+            Fixture::start_with(config, false, true).await
+        }
+
+        async fn start_with(config: Value, dev: bool, real_harness: bool) -> Fixture {
             let home = temp_dir("dashql-agent");
             let mut stored = json!({ "token": TOKEN, "defaultHarness": "codex", "callWaitMs": 300 });
             stored.as_object_mut().unwrap().extend(config.as_object().unwrap().clone());
@@ -1091,6 +1133,9 @@ mod tests {
                     }
                 }
             });
+            if real_harness {
+                options.spawn_harness = Arc::new(spawn_harness);
+            }
             let server = AgentServer::listen(options).await.unwrap();
             Fixture { home, server, runs }
         }
@@ -1455,6 +1500,39 @@ mod tests {
         assert!(fixture.run(0, |run| run.killed.load(Ordering::SeqCst)));
         assert_eq!(fixture.runs.lock().unwrap().len(), 1);
         assert_eq!(fixture.server.status()["runs"], json!([]));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn fails_and_kills_the_runs_when_it_stops() {
+        let harness = json!({ "command": ["sh", "-c", "echo $$ > harness.pid; exec sleep 30"] });
+        let fixture = Fixture::start_with_real_harness(json!({ "harnesses": { "codex": harness } })).await;
+        let mut client = fixture.connect("https://dashql.app").await;
+        client.announce(&["s1"], Some("s1")).await;
+        for (id, prompt) in [(2, "first"), (3, "second")] {
+            let params = json!({ "session": "s1", "prompt": prompt });
+            client.send(json!({ "id": id, "method": "agent/request", "params": params })).await;
+            client.next(|m| m["id"] == id).await.unwrap();
+        }
+        let pid_file = fixture.home.join("sessions").join("s1").join("harness.pid");
+        let mut pid = None;
+        for _ in 0..200 {
+            pid = std::fs::read_to_string(&pid_file).ok().and_then(|text| text.trim().parse::<i32>().ok());
+            if pid.is_some() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        let pid = pid.expect("the harness did not start");
+
+        fixture.server.close().await;
+        // The harness exited and was reaped
+        assert_eq!(unsafe { libc::kill(pid, 0) }, -1);
+        for _ in 0..2 {
+            let failed = client.next(|m| m["method"] == "agent/failed").await.unwrap();
+            assert_eq!(failed["params"]["error"], "The agent server stopped");
+            assert_eq!(failed["params"]["cancelled"], false);
+        }
     }
 
     #[tokio::test]

@@ -70,7 +70,8 @@ export interface AgentHostOptions {
 }
 
 const DEFAULT_RESTART_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
-const STOP_GRACE_MS = 3000;
+/// The server gives a killed harness run 3 s before it kills it for good, see KILL_GRACE in harness.rs
+const STOP_GRACE_MS = 6000;
 const STATUS_TIMEOUT_MS = 2000;
 
 /// The folder of config.json, as `agent_home` in packages/dashql-cli/src/agent/config.rs

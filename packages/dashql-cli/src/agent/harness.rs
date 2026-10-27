@@ -340,7 +340,7 @@ pub struct HarnessSpawnArgs {
 /// The stderr of a harness is kept for error messages, up to this many bytes
 const STDERR_LIMIT: usize = 16 * 1024;
 /// How long a killed harness may take to exit before it is killed for good
-const KILL_GRACE: Duration = Duration::from_secs(3);
+pub const KILL_GRACE: Duration = Duration::from_secs(3);
 
 /// Start a harness run.
 /// The process gets its own process group, so killing the run kills the commands the agent started as well.
