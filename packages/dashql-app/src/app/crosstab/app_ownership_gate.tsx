@@ -4,7 +4,7 @@ import * as baseStyles from '../../ui/banner/banner_page.module.css';
 import * as styles from './app_ownership_gate.module.css';
 
 import { AppOwnership, AppOwnershipTimeoutError, getAppOwnershipEnvironment, type AppOwnershipEnvironment } from '../../platform/crosstab/app_ownership.js';
-import { APP_HAND_OVER_CTX, type AppHandOverHook } from '../../platform/crosstab/app_hand_over.js';
+import { APP_HAND_OVER_CTX, APP_RESTART_CTX, reloadTab, type AppHandOverHook } from '../../platform/crosstab/app_hand_over.js';
 import { Button, ButtonVariant } from '../../ui/foundations/button.js';
 import { ParticleFlowBackground } from '../../ui/particle_flow/particle_flow_background.js';
 import { CompactNavBar } from '../ui/navbar.js';
@@ -33,18 +33,12 @@ enum GateStatus {
     UNRESPONSIVE,
 }
 
-/// Leave the app after handing it over. The reload stops everything the tab still runs, and the
-/// browser releases the lock when the page unloads. The tab then boots into the "open elsewhere" page.
-function reloadTab(): Promise<void> {
-    window.location.reload();
-    return new Promise(() => { });
-}
-
 interface Props {
     children: React.ReactElement;
     /// The tabs of the app, defaults to the Web Locks and broadcast channels of the browser
     environment?: AppOwnershipEnvironment | null;
-    /// Leave the app after the writers stopped, defaults to a reload of the tab
+    /// Leave the app after the writers stopped, defaults to a reload of the tab.
+    /// A restart of the app leaves it the same way, the reloaded tab acquires the app again.
     leave?: () => Promise<void>;
 }
 
@@ -65,9 +59,8 @@ export const AppOwnershipGate: React.FC<Props> = (props: Props) => {
     const leave = props.leave ?? reloadTab;
     const leaveRef = React.useRef(leave);
     leaveRef.current = leave;
-    const handOver = React.useCallback(async () => {
-        logger.info("Handing over the app to another tab", {}, LOG_CTX);
-        setStatus(GateStatus.HANDING_OVER);
+    // Stop the writers, e.g. the storage and the embedded database, which cancels its running queries
+    const stopWriters = React.useCallback(async () => {
         let timer: ReturnType<typeof setTimeout> | undefined;
         const timeout = new Promise<'timeout'>(resolve => { timer = setTimeout(() => resolve('timeout'), HAND_OVER_TIMEOUT_MS); });
         const stopped = Promise.all([...hooks.current].map(hook => hook().catch(error => {
@@ -77,10 +70,20 @@ export const AppOwnershipGate: React.FC<Props> = (props: Props) => {
             logger.warn("Storage writers did not stop in time", {}, LOG_CTX);
         }
         clearTimeout(timer);
+    }, [logger]);
+    const handOver = React.useCallback(async () => {
+        logger.info("Handing over the app to another tab", {}, LOG_CTX);
+        setStatus(GateStatus.HANDING_OVER);
+        await stopWriters();
         ownership.current = null;
         await leaveRef.current();
         setStatus(GateStatus.ELSEWHERE);
-    }, [logger]);
+    }, [logger, stopWriters]);
+    const restart = React.useCallback(async () => {
+        logger.info("Restarting the app", {}, LOG_CTX);
+        await stopWriters();
+        await leaveRef.current();
+    }, [logger, stopWriters]);
 
     React.useEffect(() => {
         if (environment == null) {
@@ -126,7 +129,11 @@ export const AppOwnershipGate: React.FC<Props> = (props: Props) => {
         case GateStatus.ACQUIRING:
             return null;
         case GateStatus.OWNER:
-            return <APP_HAND_OVER_CTX.Provider value={register}>{props.children}</APP_HAND_OVER_CTX.Provider>;
+            return (
+                <APP_HAND_OVER_CTX.Provider value={register}>
+                    <APP_RESTART_CTX.Provider value={restart}>{props.children}</APP_RESTART_CTX.Provider>
+                </APP_HAND_OVER_CTX.Provider>
+            );
         case GateStatus.HANDING_OVER:
             // The app stays mounted until its writers stopped, the page blocks further edits
             return (

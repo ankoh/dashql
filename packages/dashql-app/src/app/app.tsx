@@ -2,10 +2,10 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Route, Routes, Navigate, BrowserRouter, HashRouter, useLocation } from 'react-router-dom';
 
-import { AppConfigProvider } from './config/app_config.js';
+import { AppConfigProvider, useAppConfig } from './config/app_config.js';
 import { AppLoader } from './loading/app_loader.js';
 import { AppOwnershipGate } from './crosstab/app_ownership_gate.js';
-import { AppSettingsSync } from './config/app_settings_sync.js';
+import { AppSettingsSync, useAppSettingsReady } from './config/app_settings_sync.js';
 import { SessionCatalogLoaderProvider } from './session/scripts/session_catalog_loader.js';
 import { ComputationRegistry } from '../compute/computation_registry.js';
 import { ComputationScheduler } from '../compute/computation_scheduler.js';
@@ -40,7 +40,7 @@ import { SessionPage } from './session/ui/session_page.js';
 import { SessionScriptsRegistryProvider } from './session/scripts/session_scripts_registry.js';
 import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '../platform/logger/logger.js';
-import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
+import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platform/database/embedded_database_provider.js';
 import { isDebugBuild } from '../globals.js';
 import { NativeSessionSync } from './session/persistence/native_session_sync_react.js';
 import { SessionComputeQueryExecutionProvider } from './connections/computation_query_execution.js';
@@ -99,6 +99,19 @@ const SessionProviders = (props: { children: React.ReactElement }) => (
     </SessionScriptsRegistryProvider>
 );
 
+/// The embedded database with the startup options of the app settings.
+/// It waits until the persisted settings are loaded, a change of the options applies with a restart of the app.
+const AppEmbeddedDatabaseProvider = (props: { children: React.ReactElement }) => {
+    const config = useAppConfig();
+    const settingsReady = useAppSettingsReady();
+    const experimentalWasmBackend = config?.settings?.experimental_wasm_backend === true;
+    const options = React.useMemo<EmbeddedDatabaseOptions | null>(
+        () => (settingsReady ? { experimentalWasmBackend } : null),
+        [settingsReady, experimentalWasmBackend],
+    );
+    return <EmbeddedDatabaseProvider options={options}>{props.children}</EmbeddedDatabaseProvider>;
+};
+
 const AppProviders = (props: { children: React.ReactElement }) => (
     <GitHubTheme>
         <LoggerProvider>
@@ -112,13 +125,13 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                     <AppSettingsSync>
                                         <HyperDatabaseClientProvider>
                                             <DashQLCoreProvider initialSetup={{ setupBatchWorker: true }}>
-                                                <EmbeddedDatabaseProvider>
+                                                <AppEmbeddedDatabaseProvider>
                                                     <ComputeConnectionProvider>
                                                         <SessionProviders>
                                                             {props.children}
                                                         </SessionProviders>
                                                     </ComputeConnectionProvider>
-                                                </EmbeddedDatabaseProvider>
+                                                </AppEmbeddedDatabaseProvider>
                                             </DashQLCoreProvider>
                                         </HyperDatabaseClientProvider>
                                     </AppSettingsSync>

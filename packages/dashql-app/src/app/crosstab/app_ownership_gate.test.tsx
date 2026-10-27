@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppOwnershipGate } from './app_ownership_gate.js';
-import { useAppHandOver } from '../../platform/crosstab/app_hand_over.js';
+import { useAppHandOver, useAppRestart, type AppRestart } from '../../platform/crosstab/app_hand_over.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import type { AppOwnershipEnvironment } from '../../platform/crosstab/app_ownership.js';
 
@@ -96,5 +96,40 @@ describe('AppOwnershipGate', () => {
         await actUntil(() => a.textContent === 'app a');
         expect(showsElsewhere(b)).toBe(true);
         expect(events).toEqual(['a stopped', 'b stopped']);
+    });
+
+    it('stops the writers before a restart leaves the app', async () => {
+        const id = crypto.randomUUID();
+        const environment: AppOwnershipEnvironment = {
+            lockName: `dashql-test-app-${id}`,
+            channelName: `dashql-test-app-${id}`,
+            locks: navigator.locks,
+            openChannel: name => new BroadcastChannel(name),
+        };
+        const events: string[] = [];
+        let restart: AppRestart | null = null;
+        function RestartingApp() {
+            useAppHandOver(async () => { events.push('stopped'); });
+            restart = useAppRestart();
+            return <div>app</div>;
+        }
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root: Root = createRoot(container);
+        act(() => root.render(
+            <LoggerProvider>
+                <AppOwnershipGate environment={environment} leave={async () => { events.push('left'); }}>
+                    <RestartingApp />
+                </AppOwnershipGate>
+            </LoggerProvider>,
+        ));
+        cleanups.push(() => {
+            act(() => root.unmount());
+            container.remove();
+        });
+        await actUntil(() => container.textContent === 'app');
+
+        await act(async () => { await restart!(); });
+        expect(events).toEqual(['stopped', 'left']);
     });
 });

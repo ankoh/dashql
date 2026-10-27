@@ -14,6 +14,9 @@ export interface AppSettings {
     enableTableColumnPlots?: boolean;
     experimental_dashboards?: boolean;
     experimental_file_attachments?: boolean;
+    /// Run the embedded HyperDB on its experimental wasm backend, applied by a restart of the app.
+    /// A hyperdb-wasm without the backend starts on the default backend.
+    experimental_wasm_backend?: boolean;
     narrowScreenLayout?: boolean;
     scriptDebugMode?: boolean;
     tableDebugMode?: boolean;

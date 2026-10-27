@@ -1,9 +1,13 @@
 import type { Logger } from '../logger/logger.js';
 import { stringifyError } from '../logger/logger.js';
-import type { SetupProgress } from '../database/embedded_database_provider.js';
+import type { EmbeddedDatabaseOptions, SetupProgress } from '../database/embedded_database_provider.js';
 
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBSettings } from './hyperdb_wasm.js';
-import { HYPERDB_WASM_ENGINE_SETTINGS } from './hyperdb_settings.js';
+import {
+    EXPERIMENTAL_WASM_BACKEND_SETTING,
+    HYPERDB_WASM_ENGINE_SETTINGS,
+    isUnknownHyperDBSettingError,
+} from './hyperdb_settings.js';
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from './hyperdb_opfs_instance.js';
 import { getHyperDBWebSupportError } from './hyperdb_web_support.js';
 
@@ -75,10 +79,37 @@ async function createWebHyperDBEngine(
     return engine;
 }
 
+/// Start a HyperDB engine in a browser worker, on the experimental wasm backend if requested.
+/// A build of hyperdb-wasm without the backend rejects its setting, the engine then starts on the default backend.
+async function createWebHyperDBEngineWithOptions(
+    context: string,
+    logger: Logger,
+    settings: HyperDBSettings,
+    options: EmbeddedDatabaseOptions,
+    onSetupProgress?: (progress: SetupProgress) => void,
+): Promise<HyperDBEngine> {
+    if (!options.experimentalWasmBackend) {
+        return await createWebHyperDBEngine(settings, onSetupProgress);
+    }
+    try {
+        const engine = await createWebHyperDBEngine({ ...settings, [EXPERIMENTAL_WASM_BACKEND_SETTING]: true }, onSetupProgress);
+        logger.info('Started HyperDB on the experimental wasm backend', { context }, 'hyperdb');
+        return engine;
+    } catch (error) {
+        if (!isUnknownHyperDBSettingError(error, EXPERIMENTAL_WASM_BACKEND_SETTING)) throw error;
+        logger.warn('HyperDB has no experimental wasm backend, starting the default backend', {
+            context,
+            error: stringifyError(error),
+        }, 'hyperdb');
+        return await createWebHyperDBEngine(settings, onSetupProgress);
+    }
+}
+
 export async function setupWebHyperDB(
     context: string,
     logger: Logger,
     onSetupProgress?: (progress: SetupProgress) => void,
+    options: EmbeddedDatabaseOptions = {},
 ): Promise<HyperDB> {
     if (globalThis.__DASHQL_TEST_HYPERDB_FACTORY__) {
         return await globalThis.__DASHQL_TEST_HYPERDB_FACTORY__(context, logger, onSetupProgress);
@@ -90,8 +121,11 @@ export async function setupWebHyperDB(
         const instance = await createHyperDBOPFSInstance();
         let engine: HyperDBEngine | null = null;
         try {
-            engine = await createWebHyperDBEngine(
+            engine = await createWebHyperDBEngineWithOptions(
+                context,
+                logger,
                 { ...HYPERDB_WASM_ENGINE_SETTINGS, log_file_path: instance.logDirectoryPath },
+                options,
                 onSetupProgress,
             );
             const database = await HyperDB.create(engine, {

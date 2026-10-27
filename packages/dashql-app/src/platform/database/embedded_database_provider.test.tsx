@@ -73,14 +73,14 @@ describe('EmbeddedDatabaseProvider', () => {
 
         expect(db).toBe(hyperDb);
         expect(setupWebHyperDB).toHaveBeenCalledTimes(1);
-        expect(setupWebHyperDB).toHaveBeenCalledWith('web-test', getGlobalLogger(), undefined);
+        expect(setupWebHyperDB).toHaveBeenCalledWith('web-test', getGlobalLogger(), undefined, {});
     });
 
     it('uses HyperDB on Electron', async () => {
         const db = await renderAndSetup('electron-test');
 
         expect(db).toBe(hyperDb);
-        expect(setupWebHyperDB).toHaveBeenCalledWith('electron-test', getGlobalLogger(), undefined);
+        expect(setupWebHyperDB).toHaveBeenCalledWith('electron-test', getGlobalLogger(), undefined, {});
     });
 
     it('forwards setup progress to HyperDB setup', async () => {
@@ -107,6 +107,7 @@ describe('EmbeddedDatabaseProvider', () => {
             'progress-test',
             getGlobalLogger(),
             onSetupProgress,
+            {},
         );
     });
 
@@ -130,6 +131,35 @@ describe('EmbeddedDatabaseProvider', () => {
         await expect(setup!('first-attempt')).rejects.toBe(failure);
         await expect(setup!('retry')).resolves.toBe(hyperDb);
         expect(setupWebHyperDB).toHaveBeenCalledTimes(2);
+    });
+
+    it('waits for the startup options', async () => {
+        let setup: ReturnType<typeof useEmbeddedDatabaseSetup> | null = null;
+        const render = async (options: { experimentalWasmBackend?: boolean } | null) => {
+            await act(async () => {
+                root.render(
+                    <LoggerProvider>
+                        <EmbeddedDatabaseProvider setupDatabase={setupWebHyperDB} options={options}>
+                            <SetupCapture onSetup={(value) => { setup = value; }} />
+                        </EmbeddedDatabaseProvider>
+                    </LoggerProvider>
+                );
+            });
+        };
+
+        await render(null);
+        const pending = setup!('options-test');
+        await act(async () => {});
+        expect(setupWebHyperDB).not.toHaveBeenCalled();
+
+        await render({ experimentalWasmBackend: true });
+        await expect(pending).resolves.toBe(hyperDb);
+        expect(setupWebHyperDB).toHaveBeenCalledWith(
+            'options-test',
+            getGlobalLogger(),
+            undefined,
+            { experimentalWasmBackend: true },
+        );
     });
 
 });

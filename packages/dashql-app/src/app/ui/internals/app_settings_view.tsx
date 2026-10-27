@@ -6,13 +6,14 @@ import { Button, ButtonVariant, IconButton } from '../../../ui/foundations/butto
 import { ToggleSwitch } from '../../../ui/foundations/toggle_switch.js';
 import { SegmentedControl } from '../../../ui/foundations/segmented_control.js';
 
-import { AppConfig, useAppConfig, useAppReconfigure } from '../../config/app_config.js';
+import { AppConfig, AppSettings as AppSettingsValue, useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../../router/router.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { LogLevel } from '../../../platform/logger/log_buffer.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { AppFlavor, FLAVORS } from '../../flavor/flavors.js';
 import { useAppFlavor, useRequestedAppFlavor } from '../../flavor/flavor_provider.js';
+import { useAppRestart } from '../../../platform/crosstab/app_hand_over.js';
 
 export function AppSettings(props: { onClose: () => void; }) {
     const config = useAppConfig();
@@ -21,8 +22,10 @@ export function AppSettings(props: { onClose: () => void; }) {
     const routerContext = useRouteContext();
     const logger = useLogger();
     const storageReader = useStorageReader();
+    const restartApp = useAppRestart();
 
     const [isClearing, setIsClearing] = React.useState(false);
+    const [isRestarting, setIsRestarting] = React.useState(false);
 
     const toggleNarrowScreenLayout = () => {
         reconfigure(value => value == null ? null : {
@@ -76,6 +79,30 @@ export function AppSettings(props: { onClose: () => void; }) {
             }
         }));
     }, [reconfigure]);
+    // The embedded database reads the backend when it starts, the app restarts to apply it.
+    // The restart stops the writers like a hand over to another tab: the database cancels its running queries,
+    // e.g. of the log monitors, and drops the computed tables.
+    const toggleExperimentalWasmBackend = React.useCallback(async () => {
+        if (config == null) return;
+        const enabled = !config.settings?.experimental_wasm_backend;
+        const confirmed = confirm(
+            `${enabled ? "Enabling" : "Disabling"} the experimental wasm backend restarts the app. Running queries are cancelled and computed results are lost.\n\nRestart now?`
+        );
+        if (!confirmed) return;
+        const settings: AppSettingsValue = { ...(config.settings ?? {}), experimental_wasm_backend: enabled };
+        setIsRestarting(true);
+        try {
+            // The restart reloads the tab before the settings sync would persist the settings
+            await storageReader.backend.saveAppSettings(settings);
+            reconfigure((value: AppConfig | null) => (value == null ? null : { ...value, settings }));
+            await restartApp();
+        } catch (error) {
+            logger.warn("Failed to restart the app", {
+                error: error instanceof Error ? error.message : String(error)
+            }, "app_settings");
+            setIsRestarting(false);
+        }
+    }, [config, reconfigure, restartApp, storageReader, logger]);
     const toggleForceReLogin = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
@@ -332,6 +359,22 @@ export function AppSettings(props: { onClose: () => void; }) {
                             onClick={toggleExperimentalFileAttachments}
                             disabled={config == null}
                             aria-labelledby="app-setting-experimental-file-attachments"
+                        />
+                    </div>
+                    <div
+                        id="app-setting-experimental-wasm-backend"
+                        className={styles.setting_name}
+                        title="Runs the embedded Hyper on its experimental wasm backend. Changing it restarts the app."
+                    >
+                        Experimental Wasm Backend
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={config?.settings?.experimental_wasm_backend ?? false}
+                            onClick={toggleExperimentalWasmBackend}
+                            disabled={config == null || isRestarting}
+                            aria-labelledby="app-setting-experimental-wasm-backend"
                         />
                     </div>
                     <div className={styles.setting_name}>

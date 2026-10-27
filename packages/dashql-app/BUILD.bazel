@@ -2,7 +2,7 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
@@ -384,4 +384,16 @@ sh_binary(
         ":dep_svg_symbols",
     ],
     visibility = ["//visibility:public"],
+)
+
+# Compares the experimental wasm backend of hyperdb-wasm with its default backend
+js_binary(
+    name = "bench_hyperdb_wasm_backend",
+    data = [
+        "//:node_modules/apache-arrow",
+        "//:node_modules/hyperdb-wasm",
+    ],
+    entry_point = "utils/bench_hyperdb_wasm_backend.mjs",
+    # The Node of the toolchain compiles the exception handling of hyperdb-wasm only with the flag
+    node_options = ["--experimental-wasm-exnref"],
 )

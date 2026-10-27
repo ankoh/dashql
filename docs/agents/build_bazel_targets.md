@@ -161,6 +161,7 @@ These targets regenerate `/snapshots/*.yaml` from `/snapshots/*.tpl.yaml` templa
 bazel run -c opt //packages/dashql-core:bench_pipeline
 bazel run -c opt //packages/dashql-core:bench_pipeline_ctes [-- <filter>]
 bazel run -c opt //packages/dashql-core-session:bench_session
+bazel run //packages/dashql-app:bench_hyperdb_wasm_backend [-- --rows=100000 --repeat=2 --filter=<case>]
 ```
 
 `bench_pipeline` scans, parses, formats, analyzes and completes TPC-DS q1 against the TPC-DS schema.
@@ -168,6 +169,9 @@ bazel run -c opt //packages/dashql-core-session:bench_session
 catches non-linear scaling.
 `bench_session` applies cursor moves and typed characters to an editor session and packs the updates like
 the wasm module.
+`bench_hyperdb_wasm_backend` runs the same queries on the experimental wasm backend of hyperdb-wasm
+(`experimental_wasm_backend`) and on its default backend, checks that the results are equal and prints the
+slowdown of every case. A hyperdb-wasm without the backend only reports that.
 
 ## Type Checking
 
