@@ -140,6 +140,13 @@
             "enabled": false
         },
         {
+            "description": "rules_rust 0.71 fails on crate_universe calls of non-root modules without a lockfile, and protobuf ships one only from 37 on. Lift this with protobuf 37, and move wasm-bindgen of the core crates to the CLI of rules_rust_wasm_bindgen along with it.",
+            "matchManagers": ["bazel-module"],
+            "matchPackageNames": ["rules_rust", "rules_rust_wasm_bindgen"],
+            "groupName": "rules_rust",
+            "allowedVersions": "<0.71.0"
+        },
+        {
             "groupName": "tokio",
             "automerge": false,
             "matchPackageNames": ["/^tokio.*/"]
