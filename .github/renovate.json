@@ -217,12 +217,13 @@
         {
             "groupName": "vite",
             "automerge": false,
-            "matchPackageNames": [
-                "vite",
-                "vitest",
-                "/^@vitejs\/.*/",
-                "/^@vitest\/.*/"
-            ]
+            "matchPackageNames": ["vite", "/^@vitejs\/.*/"]
+        },
+        {
+            "description": "vitest has its own majors, a group with vite titles them \"Update vite to v5\".",
+            "groupName": "vitest",
+            "automerge": false,
+            "matchPackageNames": ["vitest", "/^@vitest\/.*/"]
         }
     ]
 }
