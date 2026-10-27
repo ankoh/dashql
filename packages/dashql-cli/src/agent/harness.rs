@@ -559,6 +559,7 @@ mod tests {
                 "--verbose",
                 "--allowedTools",
                 "Bash(dashql agent:*)",
+                "Edit(./input/*)",
                 "--disallowedTools",
                 "Bash(dashql agent serve:*)",
                 "--resume",

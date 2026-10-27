@@ -91,12 +91,14 @@ impl AgentConfig {
 /// `--` ends the options before the prompt: Claude Code's tool lists take every following argument, and a prompt
 /// starting with `-` would be read as an option.
 /// Run against Claude Code 2.1, opencode 1.18 and Codex 0.162.
+/// Claude Code denies heredocs with JSON, so its runs may write the inputs of `--file` into the input folder.
 fn default_harnesses() -> Value {
     json!({
         "claude": {
             "command": [
                 "claude", "-p", "--output-format", "stream-json", "--verbose",
-                "--allowedTools", "Bash(dashql agent:*)", "--disallowedTools", "Bash(dashql agent serve:*)",
+                "--allowedTools", "Bash(dashql agent:*)", "Edit(./input/*)",
+                "--disallowedTools", "Bash(dashql agent serve:*)",
                 "{resume}", "--", "{prompt}",
             ],
             "resumeArgs": ["--resume", "{harnessSession}"],

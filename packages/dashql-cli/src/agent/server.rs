@@ -9,7 +9,7 @@ use crate::agent::harness::{
     HarnessSpawnArgs, Kill, KILL_GRACE,
 };
 use crate::agent::http::{self, Request};
-use crate::agent::instructions::{session_instructions, CLAUDE_INSTRUCTIONS, OPENCODE_CONFIG};
+use crate::agent::instructions::{claude_instructions, session_instructions, INPUT_FOLDER, OPENCODE_CONFIG};
 use crate::agent::protocol::{ErrorCode, RpcError, CLIENT_COMMANDS, PROTOCOL_VERSION, WEBSOCKET_PATH};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Map, Value};
@@ -753,11 +753,17 @@ impl Shared {
         create_private_dir(&cwd)?;
         for (name, text) in [
             ("AGENTS.md", session_instructions()),
-            ("CLAUDE.md", CLAUDE_INSTRUCTIONS.to_string()),
+            ("CLAUDE.md", claude_instructions()),
             ("opencode.json", OPENCODE_CONFIG.to_string()),
         ] {
             let path = cwd.join(name);
             write_if_changed(&path, &text).map_err(|e| format!("{}: {e}", path.display()))?;
+        }
+        // The files of an earlier turn may hold older script texts
+        let input = cwd.join(INPUT_FOLDER);
+        match std::fs::remove_dir_all(&input) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(format!("{}: {e}", input.display())),
+            _ => create_private_dir(&input)?,
         }
         let path = self.resolved_path().await;
         let bin = self.write_cli_shim()?;
@@ -1408,7 +1414,9 @@ mod tests {
             run.args.cwd.clone()
         });
         assert_eq!(cwd, fixture.home.join("sessions").join("s1"));
-        assert!(std::fs::read_to_string(cwd.join("AGENTS.md")).unwrap().contains("dashql agent catalog"));
+        assert!(std::fs::read_to_string(cwd.join("AGENTS.md")).unwrap().contains("<<'EOF'"));
+        assert!(std::fs::read_to_string(cwd.join("CLAUDE.md")).unwrap().contains("--file input/q1.json"));
+        assert!(std::fs::read_dir(cwd.join("input")).unwrap().next().is_none());
 
         fixture.run(0, |run| run.args.events.send(HarnessEvent::Status("dashql agent catalog".into())).unwrap());
         let status = client

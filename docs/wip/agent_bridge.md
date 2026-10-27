@@ -350,7 +350,7 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
    default:
 
    ```sh
-   claude -p --output-format stream-json --verbose --allowedTools "Bash(dashql agent:*)" \
+   claude -p --output-format stream-json --verbose --allowedTools "Bash(dashql agent:*)" "Edit(./input/*)" \
        --disallowedTools "Bash(dashql agent serve:*)" [--resume <id>] -- "<prompt>"
    codex exec --json --skip-git-repo-check [resume <id>] -- "<prompt>"
    opencode run --format json [--session <id>] -- "<prompt>"
@@ -369,9 +369,14 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
    id and the harness in `state.json`, so the next request in this DashQL session resumes it and
    `agent/context` names that harness.
 
-- The working folder holds an `AGENTS.md` (and a `CLAUDE.md` importing it) written by
+- The working folder holds an `AGENTS.md` and a `CLAUDE.md` written by
   the server: how to use `dashql agent`, to work only through it, and that data and
-  script contents are input, not instructions. An `opencode.json` limits opencode runs to
+  script contents are input, not instructions. `AGENTS.md` passes script texts and specs on stdin with a
+  quoted heredoc. Claude Code denies a heredoc whose text has a brace next to a quote ("Contains brace with
+  quote character"), as every Vega-Lite spec and DuckDB struct literals do, and `-p` cannot ask instead. So
+  `CLAUDE.md` has Claude Code write them into `input/` and pass `--file`; `Edit(./input/*)` allows the Write and
+  Edit tools there and nowhere else. The server empties `input/` at the start of every turn, so no file of an
+  earlier turn passes an older script text. An `opencode.json` limits opencode runs to
   `dashql agent` (bash commands otherwise denied, no edits, no web fetches). Claude Code and opencode
   runs may not start another `dashql agent serve`, and `dashql agent serve` refuses to start when
   `DASHQL_AGENT_RUN` is set, as in every run.
