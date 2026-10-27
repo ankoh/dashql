@@ -4,7 +4,7 @@ module(
 )
 
 # Rules for C/C++ (cc_library, cc_test, etc.)
-bazel_dep(name = "rules_cc", version = "0.2.22")
+bazel_dep(name = "rules_cc", version = "0.2.27")
 
 # Rules for Rust
 bazel_dep(name = "rules_rust", version = "0.69.0")
