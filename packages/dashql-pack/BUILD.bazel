@@ -12,7 +12,6 @@ _DEPS = [
     "@crates//:git2",
     "@crates//:lazy_static",
     "@crates//:log",
-    "@crates//:minisign",
     "@crates//:regex",
     "@crates//:semver",
     "@crates//:serde",
