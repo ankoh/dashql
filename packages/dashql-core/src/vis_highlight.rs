@@ -6,6 +6,7 @@
 //!
 //! The JSON objects of `vegalite` tags are found with the tokens, editors fold them.
 
+use crate::vis_text::{JsonScanner, JsonSlot, JsonTokenKind, TagText};
 use dashql_buffers::parser::{CommentBlockType, ScannerTokenType};
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::span::TextSpan;
@@ -13,81 +14,16 @@ use dashql_parser::span::TextSpan;
 /// The tag of visualizations
 const VIS_TAG: &[u8] = b"vis";
 
-/// The tokens of the content lines of a tag
+/// The tokens of the content lines of a `card` or `markdown` tag
 struct Lines<'a> {
     script: &'a [u8],
     out: &'a mut Vec<(TextSpan, ScannerTokenType)>,
-    /// The nesting depth of the JSON objects and the start of the outermost one
-    depth: usize,
-    object_begin: usize,
-    /// The spans of the outermost JSON objects
-    objects: &'a mut Vec<TextSpan>,
 }
 
 impl Lines<'_> {
     fn push(&mut self, begin: usize, end: usize, token: ScannerTokenType) {
         if end > begin {
             self.out.push((TextSpan::new(begin as u32, (end - begin) as u32), token));
-        }
-    }
-
-    /// The tokens of JSON text, `begin..end` lies on one line
-    fn json(&mut self, begin: usize, end: usize) {
-        let text = self.script;
-        let mut i = begin;
-        while i < end {
-            let c = text[i];
-            if c == b'"' {
-                let token_begin = i;
-                i += 1;
-                while i < end && text[i] != b'"' {
-                    i += if text[i] == b'\\' { 2 } else { 1 };
-                }
-                i = (i + 1).min(end);
-                // A string followed by a colon is a key
-                let mut next = i;
-                while next < end && text[next].is_ascii_whitespace() {
-                    next += 1;
-                }
-                let token = if text.get(next) == Some(&b':') {
-                    ScannerTokenType::IDENTIFIER
-                } else {
-                    ScannerTokenType::LITERAL_STRING
-                };
-                self.push(token_begin, i, token);
-            } else if c == b'-' || c.is_ascii_digit() {
-                let token_begin = i;
-                i += 1;
-                while i < end && (text[i].is_ascii_digit() || matches!(text[i], b'.' | b'e' | b'E' | b'+' | b'-')) {
-                    i += 1;
-                }
-                let float = text[token_begin..i].iter().any(|c| matches!(c, b'.' | b'e' | b'E'));
-                let token = if float { ScannerTokenType::LITERAL_FLOAT } else { ScannerTokenType::LITERAL_INTEGER };
-                self.push(token_begin, i, token);
-            } else if c.is_ascii_alphabetic() {
-                let token_begin = i;
-                while i < end && text[i].is_ascii_alphabetic() {
-                    i += 1;
-                }
-                match &text[token_begin..i] {
-                    b"true" | b"false" => self.push(token_begin, i, ScannerTokenType::LITERAL_BOOLEAN),
-                    b"null" => self.push(token_begin, i, ScannerTokenType::KEYWORD),
-                    _ => {}
-                }
-            } else {
-                if c == b'{' {
-                    if self.depth == 0 {
-                        self.object_begin = i;
-                    }
-                    self.depth += 1;
-                } else if c == b'}' && self.depth > 0 {
-                    self.depth -= 1;
-                    if self.depth == 0 {
-                        self.objects.push(TextSpan::new(self.object_begin as u32, (i + 1 - self.object_begin) as u32));
-                    }
-                }
-                i += 1;
-            }
         }
     }
 
@@ -131,6 +67,37 @@ impl Lines<'_> {
     }
 }
 
+/// The tokens of the JSON of a `vegalite` tag, from `body` in the tag text, and the spans of its outermost objects
+fn json_tokens(tag: &TagText, body: usize, out: &mut Vec<(TextSpan, ScannerTokenType)>, objects: &mut Vec<TextSpan>) {
+    let json = &tag.text.as_bytes()[body..];
+    let mut object_begin = None;
+    for token in JsonScanner::new(json) {
+        let (begin, end) = (body + token.begin, body + token.end);
+        let token_type = match token.kind {
+            JsonTokenKind::ObjectBegin if token.depth == 0 => {
+                object_begin = Some(begin);
+                continue;
+            }
+            JsonTokenKind::ObjectEnd if token.depth == 0 => {
+                if let Some(begin) = object_begin.take() {
+                    objects.push(tag.span(begin, end));
+                }
+                continue;
+            }
+            JsonTokenKind::String { .. } if token.slot == Some(JsonSlot::Key) => ScannerTokenType::IDENTIFIER,
+            JsonTokenKind::String { .. } => ScannerTokenType::LITERAL_STRING,
+            JsonTokenKind::Number if json[token.begin..token.end].iter().any(|c| matches!(c, b'.' | b'e' | b'E')) => {
+                ScannerTokenType::LITERAL_FLOAT
+            }
+            JsonTokenKind::Number => ScannerTokenType::LITERAL_INTEGER,
+            JsonTokenKind::Literal if &json[token.begin..token.end] == b"null" => ScannerTokenType::KEYWORD,
+            JsonTokenKind::Literal => ScannerTokenType::LITERAL_BOOLEAN,
+            _ => continue,
+        };
+        out.push((tag.span(begin, end), token_type));
+    }
+}
+
 /// The highlighted tokens of the `@vis` tags, sorted by offset, and the JSON objects of the `vegalite` tags
 fn vis_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<TextSpan>) {
     let script = parsed.scanned.text.as_bytes();
@@ -142,7 +109,7 @@ fn vis_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
         if block.block_type != CommentBlockType::DASHQL_TAG || &script[tag.offset as usize..tag.end() as usize] != VIS_TAG {
             continue;
         }
-        let mut lines = Lines { script, out: &mut out, depth: 0, object_begin: 0, objects: &mut objects };
+        let mut lines = Lines { script, out: &mut out };
         // The tag with its `@`
         lines.push(tag.offset as usize - 1, tag.end() as usize, ScannerTokenType::KEYWORD);
         let content = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
@@ -154,11 +121,15 @@ fn vis_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
         }
         lines.push(first_begin, kind_end, ScannerTokenType::KEYWORD);
         let kind = &script[first_begin..kind_end];
+        if kind == b"vegalite" {
+            let text = TagText::new(&parsed.scanned.text, content, block.text_span);
+            json_tokens(&text, kind_end - first_begin, &mut out, &mut objects);
+            continue;
+        }
         for (i, line) in content.iter().enumerate() {
             let begin = if i == 0 { kind_end } else { line.offset as usize };
             let end = line.end() as usize;
             match kind {
-                b"vegalite" => lines.json(begin, end),
                 b"card" if i == 0 => lines.args(begin, end),
                 b"markdown" => lines.placeholders(begin, end),
                 _ => {}

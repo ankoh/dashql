@@ -121,8 +121,8 @@ Completion works inside comments (`completion_vis.rs`), although the rest of the
 
 - `@` at the start of a comment line completes the tag names, `@vis ` the kinds, `@vis card ` the args
   that are not used yet.
-- In the JSON of `vegalite`, a tolerant scanner finds the key path at the cursor and whether a key or a
-  value follows, also in JSON that is still typed. Keys come from a table per path (spec, mark,
+- In the JSON of `vegalite`, a tolerant scanner (`vis_text.rs`) finds the key path at the cursor and whether
+  a key or a value follows, also in JSON that is still typed. Keys come from a table per path (spec, mark,
   encoding channels, field definition, scale, axis, legend; nested `layer` and `spec` specs are specs),
   values from the Vega-Lite enums (mark, field and scale types, aggregates, time units). `field` values
   are the output columns of the query. Keys and values are inserted as JSON strings.
@@ -140,6 +140,12 @@ The editor highlights `@vis` tags like code (`vis_highlight.rs`): the syntax spa
 split into the tag and kind (keywords), JSON keys and `card` keys (identifiers), JSON strings, numbers
 and booleans (literals) and `{{field}}` placeholders (identifiers). Other editors show the tags as plain
 comments.
+
+Highlighting, completion and the spans of analyzer warnings read the JSON of `vegalite` tags with the same
+scanner (`vis_text.rs`) over the content lines of the tag joined into one text. It never fails: unclosed
+strings end with their line, and unbalanced brackets and missing commas are scanned as they come. Every
+key, value and array element knows its slot and depth, so a warning points at the top-level `data` key or
+at the `field` value, not at the same text elsewhere. `serde_json` builds the values.
 
 ## Formatting
 

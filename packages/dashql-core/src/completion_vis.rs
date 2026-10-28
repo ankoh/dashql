@@ -11,6 +11,7 @@
 
 use crate::analyzer::statement_output_columns;
 use crate::completion::{Candidate, CandidateTags, Completion, Score};
+use crate::vis_text::{JsonScanner, JsonSlot, JsonTokenKind, PathItem, TagText};
 use dashql_buffers::completion::CandidateTag;
 use dashql_buffers::parser::{CommentBlockType, SymbolSpan};
 use dashql_parser::comment_blocks::{CommentBlock, COMMENT_TAGS, COMMENT_TAG_END};
@@ -207,90 +208,6 @@ fn complete_tag_name(text: &[u8], comments: &[TextSpan], offset: usize, k: usize
     Some(candidates.finish(k))
 }
 
-/// The content of a tag: its lines joined with line breaks, mapped back to the script text
-struct TagText {
-    /// The joined content lines
-    text: Vec<u8>,
-    /// The script offset and the joined offset of every content line
-    lines: Vec<(usize, usize)>,
-}
-
-impl TagText {
-    fn new(script: &[u8], lines: &[TextSpan]) -> Self {
-        let mut text = Vec::new();
-        let mut offsets = Vec::with_capacity(lines.len());
-        for (i, line) in lines.iter().enumerate() {
-            if i > 0 {
-                text.push(b'\n');
-            }
-            offsets.push((line.offset as usize, text.len()));
-            text.extend_from_slice(&script[line.offset as usize..line.end() as usize]);
-        }
-        Self { text, lines: offsets }
-    }
-
-    /// The joined offset of a script offset. An offset before the content of a line, e.g. in its
-    /// indentation, maps to the begin of the line.
-    fn to_joined(&self, offset: usize) -> usize {
-        let mut joined = 0;
-        for (i, &(script, at)) in self.lines.iter().enumerate() {
-            let len = self.line_len(i);
-            if offset < script {
-                return at;
-            }
-            if offset <= script + len {
-                return at + offset - script;
-            }
-            joined = at + len;
-        }
-        joined
-    }
-
-    /// The script offset of a joined offset
-    fn to_script(&self, joined: usize) -> usize {
-        let line = self.lines.partition_point(|&(_, at)| at <= joined).saturating_sub(1);
-        let (script, at) = self.lines[line];
-        script + joined - at
-    }
-
-    fn line_len(&self, i: usize) -> usize {
-        let end = self.lines.get(i + 1).map_or(self.text.len(), |&(_, at)| at - 1);
-        end - self.lines[i].1
-    }
-}
-
-/// An element of the path to the cursor in a JSON document
-#[derive(Debug, PartialEq, Eq)]
-enum PathItem {
-    Key(String),
-    Index,
-}
-
-/// What follows at the cursor in a JSON document
-#[derive(Debug, PartialEq, Eq)]
-enum JsonSlot {
-    /// A key of an object
-    Key,
-    /// The value of a key
-    Value(String),
-    /// An element of an array
-    Element,
-}
-
-/// The state of an open container
-enum Frame {
-    Object { key: Option<String>, state: ObjectState },
-    Array { expects_value: bool },
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum ObjectState {
-    ExpectKey,
-    ExpectColon,
-    ExpectValue,
-    AfterValue,
-}
-
 /// The JSON context at the end of a text
 #[derive(Debug, PartialEq, Eq)]
 struct JsonContext {
@@ -302,108 +219,27 @@ struct JsonContext {
 
 /// Scan JSON up to the cursor, which is the end of `json`. The JSON does not need to be complete.
 fn scan_json(json: &[u8]) -> Option<JsonContext> {
-    let mut stack: Vec<Frame> = Vec::new();
-    // A value ended, the container moves on
-    fn value_done(stack: &mut [Frame]) {
-        match stack.last_mut() {
-            Some(Frame::Object { state, .. }) => *state = ObjectState::AfterValue,
-            Some(Frame::Array { expects_value }) => *expects_value = false,
-            None => {}
+    let mut scanner = JsonScanner::new(json);
+    while let Some(token) = scanner.next() {
+        // A scalar that ends at the cursor is still typed, unless it is a closed string
+        let typed = matches!(
+            token.kind,
+            JsonTokenKind::String { closed: false } | JsonTokenKind::Number | JsonTokenKind::Literal | JsonTokenKind::Word
+        );
+        if typed && token.end == json.len() {
+            let string = matches!(token.kind, JsonTokenKind::String { .. });
+            return Some(JsonContext {
+                path: scanner.path(),
+                slot: token.slot?,
+                token: Some((token.begin, string)),
+            });
         }
     }
-    let context = |stack: &[Frame], token: Option<(usize, bool)>| -> Option<JsonContext> {
-        let (top, outer) = stack.split_last()?;
-        let path = outer
-            .iter()
-            .map(|frame| match frame {
-                Frame::Object { key, .. } => PathItem::Key(key.clone().unwrap_or_default()),
-                Frame::Array { .. } => PathItem::Index,
-            })
-            .collect();
-        let slot = match top {
-            Frame::Object { state: ObjectState::ExpectKey, .. } => JsonSlot::Key,
-            Frame::Object { state: ObjectState::ExpectValue, key } => JsonSlot::Value(key.clone().unwrap_or_default()),
-            Frame::Array { expects_value: true } => JsonSlot::Element,
-            _ => return None,
-        };
-        Some(JsonContext { path, slot, token })
-    };
-    let mut i = 0;
-    while i < json.len() {
-        let c = json[i];
-        match c {
-            b'{' => stack.push(Frame::Object {
-                key: None,
-                state: ObjectState::ExpectKey,
-            }),
-            b'[' => stack.push(Frame::Array { expects_value: true }),
-            b'}' | b']' => {
-                stack.pop();
-                value_done(&mut stack);
-            }
-            b',' => match stack.last_mut() {
-                Some(Frame::Object { key, state }) => {
-                    *key = None;
-                    *state = ObjectState::ExpectKey;
-                }
-                Some(Frame::Array { expects_value }) => *expects_value = true,
-                None => {}
-            },
-            b':' => {
-                if let Some(Frame::Object { state, .. }) = stack.last_mut() {
-                    *state = ObjectState::ExpectValue;
-                }
-            }
-            b'"' => {
-                let begin = i;
-                i += 1;
-                let mut closed = false;
-                while i < json.len() {
-                    match json[i] {
-                        b'\\' => i += 1,
-                        b'"' => {
-                            closed = true;
-                            break;
-                        }
-                        _ => {}
-                    }
-                    i += 1;
-                }
-                if !closed {
-                    return context(&stack, Some((begin, true)));
-                }
-                let string: String = serde_json::from_slice(&json[begin..=i]).unwrap_or_default();
-                match stack.last_mut() {
-                    Some(Frame::Object { key, state }) if *state == ObjectState::ExpectKey => {
-                        *key = Some(string);
-                        *state = ObjectState::ExpectColon;
-                    }
-                    _ => value_done(&mut stack),
-                }
-            }
-            c if c.is_ascii_whitespace() => {}
-            _ => {
-                // A number, a literal or a bare word that is still typed
-                let begin = i;
-                while i < json.len() && !b"{}[],:\" \t\r\n".contains(&json[i]) {
-                    i += 1;
-                }
-                if i == json.len() {
-                    return context(&stack, Some((begin, false)));
-                }
-                match stack.last_mut() {
-                    Some(Frame::Object { key, state }) if *state == ObjectState::ExpectKey => {
-                        *key = Some(String::from_utf8_lossy(&json[begin..i]).into_owned());
-                        *state = ObjectState::ExpectColon;
-                    }
-                    _ => value_done(&mut stack),
-                }
-                continue;
-            }
-        }
-        i += 1;
-    }
-    context(&stack, None)
+    Some(JsonContext {
+        path: scanner.path(),
+        slot: scanner.slot()?,
+        token: None,
+    })
 }
 
 /// The candidates of a JSON context in a Vega-Lite spec
@@ -481,18 +317,11 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
         let statement = statement_of_block(parsed, block_id)?;
         Some(statement_output_columns(completion.cursor.script.analyzed?, statement))
     };
-    let tag = TagText::new(script, lines);
+    let tag = TagText::new(&parsed.scanned.text, lines, block.text_span);
     // Without content, the cursor is right after the tag
     let at = if lines.is_empty() || offset < lines[0].offset as usize { 0 } else { tag.to_joined(offset) };
-    let text = &tag.text;
-    let span = |begin: usize, end: usize| {
-        if lines.is_empty() {
-            TextSpan::new(offset as u32, 0)
-        } else {
-            let b = tag.to_script(begin);
-            TextSpan::new(b as u32, (end - begin) as u32)
-        }
-    };
+    let text = tag.text.as_bytes();
+    let span = |begin: usize, end: usize| if tag.is_empty() { TextSpan::new(offset as u32, 0) } else { tag.span(begin, end) };
     let kind_end = text.iter().position(|c| c.is_ascii_whitespace()).unwrap_or(text.len());
     if at <= kind_end {
         let mut candidates = Candidates::new(span(0, kind_end), &text[..at]);

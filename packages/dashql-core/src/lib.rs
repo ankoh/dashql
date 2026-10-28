@@ -18,3 +18,4 @@ pub mod signature;
 pub mod utils;
 pub mod vis_highlight;
 pub mod vis_rewrite;
+mod vis_text;

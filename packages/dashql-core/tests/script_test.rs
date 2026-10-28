@@ -367,6 +367,18 @@ fn rewrite_vis_tags_escape_comment_delimiters() {
 }
 
 #[test]
+fn vis_tag_warnings_point_at_the_json() {
+    // The warnings point at the top-level `data` key and at the `field` value, not at the same text elsewhere
+    let text = "-- @vis vegalite {\"description\": \"data\", \"title\": \"b\",\n--   \"data\": {\"name\": \"t\"},\n--   \"encoding\": {\"x\": {\"field\": \"b\"}}}\n-- @end\nselect 1 as a";
+    let catalog = Catalog::new();
+    let mut script = Script::new(&catalog);
+    script.replace_text(text);
+    script.analyze(&catalog, true).unwrap();
+    let warnings: Vec<usize> = script.analyzed.as_ref().unwrap().errors.iter().map(|e| e.text_span.unwrap().offset as usize).collect();
+    assert_eq!(warnings, vec![text.find("\"data\": {").unwrap(), text.rfind("\"b\"").unwrap()]);
+}
+
+#[test]
 fn rewrite_vis_tags_check_the_statement() {
     let not_parsed = Some(StatusCode::SCRIPT_NOT_PARSED);
     let table = Some(&VisRenderer::Table);

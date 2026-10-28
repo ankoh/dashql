@@ -16,6 +16,7 @@
 use super::state::AnalysisState;
 use super::types::*;
 use super::AnalyzedScript;
+use crate::vis_text::{JsonScanner, JsonSlot, TagText};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::{CommentBlockType, StatementType};
 use dashql_parser::comment_blocks::CommentBlock;
@@ -29,44 +30,6 @@ const VIS_TAG: &str = "vis";
 const GRID_COLUMNS: i64 = 12;
 /// The output columns listed in the message of an unknown field
 const LISTED_COLUMNS: usize = 8;
-
-/// The content of a tag: its lines joined with line breaks, mapped back to the script text
-struct TagText {
-    /// The joined content lines
-    text: String,
-    /// The script offset of every content line and its offset in the joined text
-    lines: Vec<(usize, usize)>,
-    /// The whole tag block, the fallback location of warnings
-    block: TextSpan,
-}
-
-impl TagText {
-    fn new(script: &str, lines: &[TextSpan], block: TextSpan) -> Self {
-        let mut text = String::new();
-        let mut offsets = Vec::with_capacity(lines.len());
-        for (i, line) in lines.iter().enumerate() {
-            if i > 0 {
-                text.push('\n');
-            }
-            offsets.push((line.offset as usize, text.len()));
-            text.push_str(&script[line.offset as usize..line.end() as usize]);
-        }
-        Self {
-            text,
-            lines: offsets,
-            block,
-        }
-    }
-
-    /// The script span of a range of the joined text, which must not cross a line break
-    fn span(&self, begin: usize, end: usize) -> TextSpan {
-        let line = self.lines.partition_point(|&(_, joined)| joined <= begin);
-        match line.checked_sub(1).map(|l| self.lines[l]) {
-            Some((script, joined)) => TextSpan::new((script + begin - joined) as u32, (end - begin) as u32),
-            None => self.block,
-        }
-    }
-}
 
 /// Split at the first whitespace, the rest starts at the next non-whitespace byte
 fn split_word(text: &str, from: usize) -> (usize, usize, usize) {
@@ -149,22 +112,12 @@ fn collect_fields<'v>(value: &'v Value, fields: &mut Vec<&'v str>, defined: &mut
     }
 }
 
-/// The location of the string value of a `"field"` key in the JSON text
+/// The location of a `field` value in the JSON text
 fn find_field(json: &str, field: &str) -> Option<(usize, usize)> {
-    let quoted = serde_json::to_string(field).ok()?;
-    let mut from = 0;
-    while let Some(found) = json[from..].find("\"field\"") {
-        let mut i = from + found + "\"field\"".len();
-        let bytes = json.as_bytes();
-        while i < bytes.len() && (bytes[i].is_ascii_whitespace() || bytes[i] == b':') {
-            i += 1;
-        }
-        if json[i..].starts_with(&quoted) {
-            return Some((i, i + quoted.len()));
-        }
-        from = i;
-    }
-    None
+    let text = json.as_bytes();
+    JsonScanner::new(text)
+        .find(|t| matches!(&t.slot, Some(JsonSlot::Value(key)) if key == "field") && t.string(text).as_deref() == Some(field))
+        .map(|t| (t.begin, t.end))
 }
 
 /// The parsed `@vis` tags of a statement
@@ -280,10 +233,12 @@ impl StatementTags {
     }
 }
 
-/// The location of a key of the top-level JSON object (a best effort, used for warnings)
+/// The location of a key of the top-level JSON object
 fn find_key(json: &str, key: &str) -> Option<(usize, usize)> {
-    let quoted = format!("\"{key}\"");
-    json.find(&quoted).map(|b| (b, b + quoted.len()))
+    let text = json.as_bytes();
+    JsonScanner::new(text)
+        .find(|t| t.depth == 1 && t.slot == Some(JsonSlot::Key) && t.string(text).as_deref() == Some(key))
+        .map(|t| (t.begin, t.end))
 }
 
 /// Normalize the dashboard placement: coordinates are non-negative, the width is 1 to 12, the height at
