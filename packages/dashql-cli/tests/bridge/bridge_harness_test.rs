@@ -12,8 +12,9 @@ use support::{Environment, Server};
 
 const TURN_TIMEOUT: Duration = Duration::from_secs(300);
 
-/// The question of a script, as the composer of DashQL asks it
-fn composer_prompt(script: &str, question: &str) -> String {
+/// A question about a script. The composer of DashQL lets the agent pick the script, the test names it to check
+/// the edits of the script.
+fn script_prompt(script: &str, question: &str) -> String {
     format!(
         "Answer the question below with a SQL query in the DashQL script {script}.\n\
          The connection speaks SQLite.\n\
@@ -58,7 +59,7 @@ async fn check_harness(harness: &str) {
     page.announce(&["s1", "s2"], Some("s2")).await;
 
     // A question about the data: the agent writes the script, checks it and runs it
-    let turn = page.request("s1", harness, &composer_prompt("q1", "How many orders are there?")).await;
+    let turn = page.request("s1", harness, &script_prompt("q1", "How many orders are there?")).await;
     let message = page.finished(&turn, TURN_TIMEOUT).await;
     let message = message.unwrap_or_else(|failed| panic!("{harness} failed: {failed}\n{}", server.log()));
     eprintln!("{harness}: {message}");
@@ -85,7 +86,7 @@ async fn check_harness(harness: &str) {
     assert_eq!(page.context("s1").await["harnessSession"], harness_session);
 
     // A cancel stops the turn
-    let prompt = composer_prompt("q3", "What is the total amount of the orders per country?");
+    let prompt = script_prompt("q3", "What is the total amount of the orders per country?");
     let turn = page.request("s1", harness, &prompt).await;
     page.next(|m| m["method"] == "agent/status" && m["params"]["turnId"] == turn && m["params"]["text"] != "starting the agent...", TURN_TIMEOUT)
         .await;

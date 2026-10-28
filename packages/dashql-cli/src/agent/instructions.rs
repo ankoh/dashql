@@ -53,7 +53,7 @@ EOF
 /// literals do, so Claude Code writes them to files in the input folder.
 const FILE_INPUT: &str = "Write the new text of a script with the Write tool to `input/<script>.sql` and the Vega-Lite spec of
 `vis edit` to `input/<script>.json`, then pass the file with `--file`. You may write only into `input/`,
-it is emptied at the start of every request. Take the current text of a script from `dashql agent read`.
+it is emptied at the start of every turn. Take the current text of a script from `dashql agent read`.
 
 ```sh
 dashql agent edit q1 --file input/q1.sql
@@ -82,12 +82,13 @@ Work only through `dashql agent`; this folder holds no project files.
 ## How to work
 
 1. Start with `dashql agent scripts` and `dashql agent catalog` to learn the session and the schema.
-2. Write SQL into the script that the request names with `dashql agent edit`.
-   Keep the existing comment lines at the top of a script.
+2. Write SQL with `dashql agent edit`: into the script that the request is about, otherwise into a new script
+   with a short snake_case name. Keep the existing comment lines at the top of a script.
 3. Check the script with `dashql agent lint`, then run it with `dashql agent run` and fix errors.
 4. After charting a script with `dashql agent vis edit`, render it with `dashql agent vis image` and look at
    the PNG if you can read images. Fix what reads badly with another `vis edit`.
-5. End with a short answer for the user: what you changed and what the result shows.
+5. The user watches the scripts change and run. Do not recap your steps, the queries or the results: end with
+   one plain sentence that answers the request, or with nothing if the results already answer it.
 
 {input}
 
