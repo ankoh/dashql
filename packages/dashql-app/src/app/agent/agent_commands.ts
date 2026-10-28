@@ -411,7 +411,7 @@ function readResult(env: AgentCommandEnvironment, state: SessionScripts, args: R
 
 /// The chart of a script: its renderer and the Vega-Lite spec of its `@vis vegalite` tag, without the `$schema` and
 /// `data` that the compiler adds, so that the spec goes back into `vis edit` as it is
-async function getVis(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
+async function readVis(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
     const script = await analyzed(env, sessionId, state, requireScript(state, stringArg(args, 'script')));
     const name = scriptDisplayName(script.fileName);
     const vis = script.annotations.visualizeQuery;
@@ -486,8 +486,8 @@ export async function runAgentCommand(env: AgentCommandEnvironment, params: Agen
             return runScript(env, params.session, state, args);
         case 'result':
             return readResult(env, state, args);
-        case 'vis.get':
-            return getVis(env, params.session, state, args);
+        case 'vis.read':
+            return readVis(env, params.session, state, args);
         case 'vis.edit':
             return editVis(env, params.session, state, args);
         case 'vis.image':

@@ -44,7 +44,7 @@ pub const AGENT_COMMANDS: [AgentCommand; 11] = [
     },
     AgentCommand { name: "result", args: "<script> [--page N]", does: "More rows of the last result of a script" },
     AgentCommand {
-        name: "vis get",
+        name: "vis read",
         args: "<script>",
         does: "The chart of a script: its renderer and Vega-Lite spec",
     },
@@ -106,7 +106,7 @@ mod tests {
         assert!(is_session_command("catalog"));
         assert!(!is_session_command("status"));
         assert!(!is_session_command("vis edit"));
-        assert_eq!(vis_commands().collect::<Vec<_>>(), ["get", "edit", "image"]);
+        assert_eq!(vis_commands().collect::<Vec<_>>(), ["read", "edit", "image"]);
     }
 
     #[test]

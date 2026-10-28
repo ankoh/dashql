@@ -201,7 +201,7 @@ fn call_args(
     match command {
         "scripts" if rest.is_empty() => {}
         "scripts" => return Err("scripts takes no arguments".into()),
-        "read" | "lint" | "vis.get" => {
+        "read" | "lint" | "vis.read" => {
             args.insert("script".into(), one("script")?);
         }
         "edit" | "vis.edit" => {
@@ -435,8 +435,8 @@ mod tests {
         fake.run(&["vis", "edit", "q1"], None, "{\"mark\": \"bar\"}");
         let args = json!({ "script": "q1", "spec": "{\"mark\": \"bar\"}" });
         assert_eq!(fake.body(0), json!({ "command": "vis.edit", "args": args }));
-        fake.run(&["vis", "get", "q1"], None, "");
-        assert_eq!(fake.body(1), json!({ "command": "vis.get", "args": { "script": "q1" } }));
+        fake.run(&["vis", "read", "q1"], None, "");
+        assert_eq!(fake.body(1), json!({ "command": "vis.read", "args": { "script": "q1" } }));
     }
 
     #[test]
@@ -495,7 +495,8 @@ mod tests {
             &["read", "--session"],
             &["vis"],
             &["vis", "show", "q1"],
-            &["vis", "get"],
+            &["vis", "get", "q1"],
+            &["vis", "read"],
             &["visualize", "q1"],
         ] {
             assert_eq!(fake.run(argv, None, "").exit_code, EXIT_USAGE, "{argv:?}");

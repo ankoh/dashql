@@ -19,7 +19,7 @@ so it works only while DashQL is open and agent access is turned on for the sess
 | `dashql agent lint <script>` | Parser and analyzer diagnostics of a script |
 | `dashql agent run <script> [--max-rows N]` | Run a script: columns, first rows, row count or error |
 | `dashql agent result <script> [--page N]` | More rows of the last result of a script |
-| `dashql agent vis get <script>` | The chart of a script: its renderer and Vega-Lite spec |
+| `dashql agent vis read <script>` | The chart of a script: its renderer and Vega-Lite spec |
 | `dashql agent vis edit <script> [--file f]` | Chart the last query of a script with the Vega-Lite spec of the file or stdin |
 | `dashql agent vis image <script> [--out f] [--width N] [--height N] [--scale N]` | Render the chart of a script with its last result as PNG, default `<script>.png` |
 
@@ -33,7 +33,7 @@ so it works only while DashQL is open and agent access is turned on for the sess
 - Scripts on a read-only connection may only query: no DDL or DML such as `CREATE`, `INSERT` or `UPDATE`.
 - `edit` applies the text directly, the user can undo it in the editor. It prints the hash of the new text
   and the number of diagnostics.
-- `vis get` prints the Vega-Lite spec of the `@vis vegalite` tag of the last query as JSON, ready to change and
+- `vis read` prints the Vega-Lite spec of the `@vis vegalite` tag of the last query as JSON, ready to change and
   pass back to `vis edit`; for a `markdown` or `table` tag it names the renderer.
 - `vis edit` checks the spec before it writes it: a JSON object that Vega-Lite compiles without warnings, whose
   fields are output columns of the query. It then replaces the `@vis vegalite`, `markdown` or `table` tag of the
@@ -51,7 +51,7 @@ so it works only while DashQL is open and agent access is turned on for the sess
 2. `dashql agent scripts` and `dashql agent catalog` show the session and the schema.
 3. Write SQL with `dashql agent edit`, check it with `dashql agent lint`, run it with `dashql agent run`.
 4. Chart the last query of a script with `dashql agent vis edit`. A rejected spec leaves the script unchanged,
-   fix the problems it prints and try again. `dashql agent vis get` prints the current spec to start from.
+   fix the problems it prints and try again. `dashql agent vis read` prints the current spec to start from.
 5. Render the chart with `dashql agent vis image` and look at the PNG if you can read images. Fix what reads
    badly with another `vis edit`.
 

@@ -234,22 +234,22 @@ describe('agent commands', () => {
         await expect(run('result', { script: 'customers' })).rejects.toThrow('Customers has no result');
     });
 
-    it('gets the Vega-Lite spec of a script as written, without the $schema and data of the compiler', async () => {
+    it('reads the Vega-Lite spec of a script as written, without the $schema and data of the compiler', async () => {
         const vegaLiteSpec = { $schema: 'https://vega.github.io/schema/vega-lite/v5.json', data: { $sql: 'select 1' }, mark: 'bar', encoding: { x: { field: 'n' } } } as any;
         state.scripts[1].annotations = { tableDefs: [], visualizeQuery: { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec } };
-        const result = await run('vis.get', { script: 'orders' });
+        const result = await run('vis.read', { script: 'orders' });
         const spec = { mark: 'bar', encoding: { x: { field: 'n' } } };
         expect(result.text).toBe(JSON.stringify(spec, null, 2));
         expect(result.data).toEqual({ script: 'orders', renderer: 'vegalite', spec });
     });
 
-    it('gets the renderer of scripts without a Vega-Lite spec', async () => {
+    it('reads the renderer of scripts without a Vega-Lite spec', async () => {
         state.scripts[1].annotations = { tableDefs: [], visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 0 } };
-        const result = await run('vis.get', { script: 'orders' });
+        const result = await run('vis.read', { script: 'orders' });
         expect(result.text).toBe('orders shows a table @vis tag, no Vega-Lite spec');
         expect(result.data).toEqual({ script: 'orders', renderer: 'table', spec: null });
         state.scripts[1].annotations = { tableDefs: [], visualizeQuery: null };
-        await expect(run('vis.get', { script: 'orders' })).rejects.toThrow('orders has no chart, add one with dashql agent vis edit orders');
+        await expect(run('vis.read', { script: 'orders' })).rejects.toThrow('orders has no chart, add one with dashql agent vis edit orders');
     });
 
     it('renders the chart of a script with its last result as PNG', async () => {
