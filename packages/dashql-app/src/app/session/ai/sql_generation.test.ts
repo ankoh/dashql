@@ -54,9 +54,9 @@ describe('SQL generation', () => {
                 new core.buffers.catalog.CatalogChangeT(core.buffers.catalog.CatalogChangeType.CREATE_RELATION, 'db', 'public', 'staged', ['id', 'note']),
             ]);
             const conn = { catalogRelationScript: { toString: () => relations }, catalogChangesSql };
-            const sessionScripts = { instance: dql, connectionCatalog: catalog, scripts: { 1: { scriptSession, connection: { catalog } } } } as any;
+            const sessionScripts = { instance: dql, connectionCatalog: catalog, scripts: { 1: { scriptSession, connection: { connectionId: 'db', catalog } } } } as any;
             const logger = new TestLogger();
-            expect(buildSchemaContext(conn as any, sessionScripts, logger)).toBe([
+            expect(buildSchemaContext('db', conn as any, sessionScripts, logger)).toBe([
                 'CREATE TABLE "db"."public"."orders" ("id" INTEGER, "amount" FLOAT);',
                 'CREATE TABLE "db"."sales"."customers" ("id" INTEGER);',
                 '-- Changes of executed statements since the last catalog refresh, column types are unknown',
@@ -65,12 +65,50 @@ describe('SQL generation', () => {
                 '-- Tables defined by the session, column types are unknown',
                 'CREATE TABLE "summary" ("total", "count");',
             ].join('\n'));
-            expect(buildSchemaContext(null, sessionScripts, logger)).toBe([
+            expect(buildSchemaContext('db', null, sessionScripts, logger)).toBe([
                 '-- Tables defined by the session, column types are unknown',
                 'CREATE TABLE "summary" ("total", "count");',
             ].join('\n'));
             scriptSession.destroy();
         } finally {
+            catalog.destroy();
+        }
+    });
+
+    it('describes only the session tables of scripts on the connection', () => {
+        const catalog = dql.createCatalog();
+        const lakeCatalog = dql.createCatalog();
+        try {
+            const define = (target: core.DashQLCatalog, text: string) => {
+                const scriptSession = dql.createScriptSession(target);
+                scriptSession.replaceText(scriptSession.getTextVersion(), text);
+                scriptSession.analyze();
+                scriptSession.loadIntoCatalog();
+                return scriptSession;
+            };
+            const onDb = define(catalog, 'create table summary as select 1 as total');
+            const onLake = define(lakeCatalog, 'create table staged as select 1 as id');
+            const sessionScripts = {
+                instance: dql,
+                connectionCatalog: catalog,
+                scripts: {
+                    1: { scriptSession: onDb, connection: { connectionId: 'db', catalog } },
+                    2: { scriptSession: onLake, connection: { connectionId: 'lake', catalog: lakeCatalog } },
+                },
+            } as any;
+            const logger = new TestLogger();
+            expect(buildSchemaContext('lake', null, sessionScripts, logger)).toBe([
+                '-- Tables defined by the session, column types are unknown',
+                'CREATE TABLE "staged" ("id");',
+            ].join('\n'));
+            expect(buildSchemaContext('db', null, sessionScripts, logger)).toBe([
+                '-- Tables defined by the session, column types are unknown',
+                'CREATE TABLE "summary" ("total");',
+            ].join('\n'));
+            onDb.destroy();
+            onLake.destroy();
+        } finally {
+            lakeCatalog.destroy();
             catalog.destroy();
         }
     });
@@ -83,6 +121,7 @@ describe('SQL generation', () => {
             const logger = new TestLogger();
             const warn = vi.spyOn(logger, 'warn');
             const schema = buildSchemaContext(
+                'db',
                 { catalogRelationScript: { toString: () => relations } } as any,
                 { instance: dql, connectionCatalog: catalog, scripts: {} } as any,
                 logger,

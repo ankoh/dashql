@@ -65,15 +65,16 @@ function describeConnectionRelations(instance: core.DashQL, relationScript: stri
     return relations;
 }
 
-/// Render the tables that the session scripts define as CREATE TABLE statements without types.
-/// Generated SQL runs on the default connection, only the scripts on it are described.
-function describeSessionTables(sessionScripts: SessionScripts): string[] {
+/// Render the tables that the session scripts on a connection define as CREATE TABLE statements without types.
+/// Queries only see the tables of scripts on their own connection.
+function describeSessionTables(sessionScripts: SessionScripts, connectionId: string): string[] {
     const statements: string[] = [];
     for (const script of Object.values(sessionScripts.scripts)) {
-        if (script.connection.catalog !== sessionScripts.connectionCatalog) continue;
+        const catalog = script.connection.catalog;
+        if (script.connection.connectionId !== connectionId || catalog == null) continue;
         let entries: core.FlatBufferPtr<core.buffers.catalog.CatalogEntries>;
         try {
-            entries = sessionScripts.connectionCatalog.describeEntriesOf(script.scriptSession.getCatalogEntryId());
+            entries = catalog.describeEntriesOf(script.scriptSession.getCatalogEntryId());
         } catch {
             // The script is not loaded into the catalog
             continue;
@@ -101,16 +102,16 @@ function describeSessionTables(sessionScripts: SessionScripts): string[] {
     return statements;
 }
 
-/// Build the schema that the model may query: the user relations of the connection, the catalog changes of
-/// executed statements and the tables of the session.
+/// Build the schema that the model may query on a connection: the user relations of the connection, the catalog
+/// changes of executed statements and the tables of the session scripts on it.
 /// The schema is cut off at a statement boundary once it exceeds the budget.
-export function buildSchemaContext(conn: ConnectionState | null, sessionScripts: SessionScripts, logger: Logger): string {
+export function buildSchemaContext(connectionId: string, conn: ConnectionState | null, sessionScripts: SessionScripts, logger: Logger): string {
     const describe = (text: string): ConnectionRelations => text.trim().length > 0
         ? describeConnectionRelations(sessionScripts.instance, text)
         : { statements: [], systemRelations: 0 };
     const relations = describe(conn?.catalogRelationScript.toString() ?? '');
     const changes = describe(conn?.catalogChangesSql ?? '');
-    const sessionTables = describeSessionTables(sessionScripts);
+    const sessionTables = describeSessionTables(sessionScripts, connectionId);
 
     const statements = [...relations.statements];
     if (changes.statements.length > 0) {

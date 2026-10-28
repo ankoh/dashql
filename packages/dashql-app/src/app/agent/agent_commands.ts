@@ -344,7 +344,7 @@ function describeCatalog(env: AgentCommandEnvironment, state: SessionScripts, ar
     const connectionId = typeof args.connection === 'string' ? args.connection : state.connectionId;
     requireSessionConnection(state, connectionId);
     const conn: ConnectionState | null = env.connections().connections.get(connectionId) ?? null;
-    const schema = buildSchemaContext(conn, state, env.logger);
+    const schema = buildSchemaContext(connectionId, conn, state, env.logger);
     const text = schema.length > 0 ? schema : '-- The catalog is empty';
     return { text, data: { connection: connectionId, schema } };
 }
