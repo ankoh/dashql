@@ -245,8 +245,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
 
     // The session scripts change with every keystroke and the connection with every query event.
     // Callbacks read the latest values through a ref to stay stable for the memoized feed rows.
-    const latest = React.useRef({ sessionScripts: props.sessionScripts, conn: props.conn, scriptConnections });
-    latest.current = { sessionScripts: props.sessionScripts, conn: props.conn, scriptConnections };
+    const latest = React.useRef({ sessionScripts: props.sessionScripts, scriptConnections });
+    latest.current = { sessionScripts: props.sessionScripts, scriptConnections };
     const pickScriptConnection = dependencies.usePickScriptConnection(props.sessionScripts.sessionId, props.modifySessionScripts);
     const attachScriptConnection = dependencies.useAttachScriptConnection(props.sessionScripts.instance, props.modifySessionScripts);
     // New scripts, and the draft of the composer, use the default connection of the session
@@ -527,8 +527,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         return scriptData != null ? { next, scriptData } : null;
     }, [props.modifySessionScripts]);
     const runAppendedScript = React.useCallback((next: SessionScripts, scriptData: ScriptData) => {
-        const conn = latest.current.conn;
-        if (conn == null || conn.connectionHealth !== ConnectionHealth.ONLINE) {
+        // The agent may write the script on another connection than the default one
+        if (!isScriptOnline(scriptData)) {
             connectionAttention?.request(next.sessionId);
             return;
         }

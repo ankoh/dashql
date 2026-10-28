@@ -383,11 +383,11 @@ describe('Session feed composer', () => {
     });
     afterEach(() => { act(() => root.unmount()); container.remove(); });
 
-    function render(sessionScripts: SessionScripts, modifySessionScripts: any, conn: any = onlineConn) {
+    function render(sessionScripts: SessionScripts, modifySessionScripts: any, conn: any = onlineConn, scriptConnections?: Map<string, any>) {
         act(() => root.render(<LoggerProvider>
             <SessionConnectionAttentionContext.Provider value={attention as any}>
                 <SessionFeed sessionScripts={sessionScripts} modifySessionScripts={modifySessionScripts}
-                    showDetails={vi.fn()} conn={conn} active={true} dependencies={feedDependencies} />
+                    showDetails={vi.fn()} conn={conn} scriptConnections={scriptConnections} active={true} dependencies={feedDependencies} />
             </SessionConnectionAttentionContext.Provider>
         </LoggerProvider>));
     }
@@ -600,6 +600,32 @@ describe('Session feed composer', () => {
             scrollTo.mockRestore();
             clientHeight.mockRestore();
         }
+    });
+
+    it('runs a script that the agent did not run while the connection of the script is online', async () => {
+        feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
+            feedState.agentListener = listener;
+            return Promise.resolve('turn-1');
+        });
+        const onLake = session(['1_alpha.sql']);
+        onLake.scripts[1] = { ...onLake.scripts[1], connection: { ...onLake.scripts[1].connection, connectionId: 'lake' } };
+        const lake = { ...onlineConn, connectionId: 'lake' };
+        const offline = { ...onlineConn, connectionHealth: ConnectionHealth.FAILED };
+        const ask = async () => {
+            await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+            await act(async () => feedState.agentListener!.done('', [1]));
+        };
+
+        // The default connection is online, the connection of the script is not
+        render({ ...onLake, connectionCatalog: emptyCatalog as any }, vi.fn());
+        await ask();
+        expect(feedState.runSessionScript).not.toHaveBeenCalled();
+        expect(attention.request).toHaveBeenCalledWith('session');
+
+        // The connection of the script is online, the default connection is not
+        render({ ...onLake, connectionCatalog: emptyCatalog as any }, vi.fn(), offline, new Map([['database', offline], ['lake', lake]]));
+        await ask();
+        expect(feedState.runSessionScript).toHaveBeenCalledOnce();
     });
 
     it('does not rerun a script that the agent ran itself', async () => {
