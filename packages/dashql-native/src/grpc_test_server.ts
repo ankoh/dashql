@@ -24,9 +24,9 @@ export class GrpcTestServer {
         this.server.on("session", (session) => {
             this.sessions.add(session);
             session.on("close", () => this.sessions.delete(session));
-        });
-        this.server.on("stream", (stream, headers) => {
-            void this.handleStream(stream, headers);
+            session.on("stream", (stream, headers) => {
+                void this.handleStream(stream, headers);
+            });
         });
     }
 

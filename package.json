@@ -27,7 +27,7 @@
     "@react-hook/resize-observer": "^2.0.2",
     "@sinonjs/fake-timers": "^15.4.0",
     "@types/d3": "^7.4.3",
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
