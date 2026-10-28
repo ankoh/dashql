@@ -48,6 +48,15 @@ export class FeedRowHeightCache {
         return entry == null ? undefined : this.measuredHeights.get(entry.scriptId) ?? entry.estimatedHeight;
     }
 
+    /// The offset of a row from the top of the list, the sum of the rows above it
+    getRowOffset(index: number) {
+        let offset = 0;
+        for (let i = 0; i < index; ++i) {
+            offset += this.getRowHeight(i) ?? this.getAverageRowHeight();
+        }
+        return offset;
+    }
+
     setRowHeight = (index: number, height: number) => {
         const entry = index % 2 === 1 ? this.entries[Math.floor(index / 2)] : null;
         if (entry == null) return;
@@ -60,6 +69,20 @@ export class FeedRowHeightCache {
     observeRowElements() {
         return () => {};
     }
+}
+
+/// The space kept around a revealed script
+const REVEAL_MARGIN = 16;
+
+/// The scroll offset that brings a span of the list into view, null if it is in view already.
+/// `viewportHeight` is the part of the list that the docked composer leaves free.
+/// A span taller than the viewport shows its start, the agent's script reads from the top.
+export function revealScrollOffset(spanTop: number, spanBottom: number, scrollTop: number, viewportHeight: number): number | null {
+    const top = Math.max(0, spanTop - REVEAL_MARGIN);
+    const bottom = spanBottom + REVEAL_MARGIN;
+    if (top >= scrollTop && bottom <= scrollTop + viewportHeight) return null;
+    const target = bottom - top > viewportHeight || top < scrollTop ? top : bottom - viewportHeight;
+    return Math.abs(target - scrollTop) < 1 ? null : target;
 }
 
 export function useSessionFeedLayout(entries: FeedLayoutEntry[], firstSeparatorHeight = FIRST_SEPARATOR_HEIGHT, bottomInset = 0) {
@@ -80,6 +103,7 @@ export function useSessionFeedLayout(entries: FeedLayoutEntry[], firstSeparatorH
         setRowHeight: rowHeightCache.setRowHeight,
         observeRowElements: () => () => {},
     }), [rowHeightCache, heightsVersion, firstSeparatorHeight, bottomInset]);
+    const getRowOffset = React.useCallback((index: number) => rowHeightCache.getRowOffset(index), [rowHeightCache]);
     const listContainerSize = observeSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;
     const listHeight = listContainerSize?.height ?? 0;
@@ -90,6 +114,7 @@ export function useSessionFeedLayout(entries: FeedLayoutEntry[], firstSeparatorH
         listRef,
         rowHeights,
         rowHeightsVersion: heightsVersion,
+        getRowOffset,
         listWidth,
         listHeight,
         listScrollbarInset,

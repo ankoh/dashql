@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { FeedRowHeightCache } from './session_feed_layout.js';
+import { FeedRowHeightCache, revealScrollOffset } from './session_feed_layout.js';
 
 describe('FeedRowHeightCache', () => {
     it('uses exact separator and script estimates before rows mount', () => {
@@ -51,5 +51,36 @@ describe('FeedRowHeightCache', () => {
             48, 122, 40, 202, 130,
         ]);
         expect(heights.getAverageRowHeight()).toBe((48 + 122 + 40 + 202 + 130) / 5);
+    });
+
+    it('sums the rows above a row for its offset', () => {
+        const heights = new FeedRowHeightCache([
+            { scriptId: 1, estimatedHeight: 122 },
+            { scriptId: 2, estimatedHeight: 202 },
+        ]);
+        heights.setRowHeight(1, 137);
+
+        expect([0, 1, 2, 3, 4].map(index => heights.getRowOffset(index))).toEqual([
+            0, 48, 185, 225, 427,
+        ]);
+    });
+});
+
+describe('revealScrollOffset', () => {
+    it('keeps a span that is in view', () => {
+        expect(revealScrollOffset(100, 200, 50, 300)).toBeNull();
+    });
+
+    it('scrolls up to a span above the viewport', () => {
+        expect(revealScrollOffset(100, 200, 400, 300)).toBe(84);
+    });
+
+    it('scrolls a span below the viewport just above the composer', () => {
+        expect(revealScrollOffset(500, 600, 0, 300)).toBe(316);
+    });
+
+    it('shows the start of a span taller than the viewport', () => {
+        expect(revealScrollOffset(500, 1200, 0, 300)).toBe(484);
+        expect(revealScrollOffset(500, 1200, 484, 300)).toBeNull();
     });
 });

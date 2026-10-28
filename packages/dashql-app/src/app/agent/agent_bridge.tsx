@@ -28,6 +28,8 @@ export interface AgentTurnListener {
     status: (state: 'queued' | 'running', text: string) => void;
     /// The agent wrote a script, every time it edits the script
     edited: (scriptKey: number) => void;
+    /// The agent runs a script, every time it runs the script
+    ran: (scriptKey: number) => void;
     /// The turn finished. `unrunEdits` are the scripts that the agent edited and did not run afterwards.
     done: (message: string, unrunEdits: number[]) => void;
     /// The turn failed or was stopped
@@ -126,8 +128,10 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         },
         onScriptRun: (sessionId, scriptKey) => {
             for (const turnId of turnsBySession.current.get(sessionId) ?? []) {
-                const edits = turns.current.get(turnId)?.edits;
-                if (edits?.has(scriptKey)) edits.set(scriptKey, true);
+                const turn = turns.current.get(turnId);
+                if (turn == null) continue;
+                if (turn.edits.has(scriptKey)) turn.edits.set(scriptKey, true);
+                turn.listener.ran(scriptKey);
             }
         },
     };

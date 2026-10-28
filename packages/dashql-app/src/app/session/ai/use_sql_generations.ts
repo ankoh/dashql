@@ -37,9 +37,12 @@ export interface SqlGenerationsArgs {
     sessionScripts: SessionScripts;
     /// Runs a script that the agent wrote
     runScript: (next: SessionScripts, scriptData: ScriptData) => void;
-    /// Follows the agent to a script, once per script and question when the agent first edits it
-    followEdit?: (scriptKey: number) => void;
+    /// Follows the agent to a script, every time the agent edits or runs it
+    followScript?: (scriptKey: number, target: AgentFollowTarget) => void;
 }
+
+/// Where the feed follows the agent to: the text of a script it edits or the results of a script it runs
+export type AgentFollowTarget = 'script' | 'result';
 
 /// The questions of a session that the agent answers
 export interface SqlGenerations {
@@ -127,7 +130,6 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
         });
         logger.info('Asking the agent', { questionId: String(questionId), characters: String(question.length) }, LOG_CTX);
         const active = () => working.current.has(questionId);
-        const followed = new Set<number>();
         try {
             await agent.request(sessionId, prompt, {
                 status: (_state, text) => {
@@ -136,9 +138,10 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
                 edited: scriptKey => {
                     if (!active()) return;
                     updateQuestion(questionId, q => (q.scripts.includes(scriptKey) ? q : { ...q, scripts: [...q.scripts, scriptKey] }));
-                    if (followed.has(scriptKey)) return;
-                    followed.add(scriptKey);
-                    latest.current.followEdit?.(scriptKey);
+                    latest.current.followScript?.(scriptKey, 'script');
+                },
+                ran: scriptKey => {
+                    if (active()) latest.current.followScript?.(scriptKey, 'result');
                 },
                 done: (message, unrunEdits) => {
                     if (!working.current.delete(questionId)) return;
@@ -149,7 +152,9 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
                     // Run the first script that the agent wrote but did not run
                     const current = latest.current.sessionScripts;
                     const scriptData = unrunEdits.length > 0 ? current.scripts[unrunEdits[0]] : undefined;
-                    if (scriptData != null) latest.current.runScript(current, scriptData);
+                    if (scriptData == null) return;
+                    latest.current.followScript?.(scriptData.scriptKey, 'result');
+                    latest.current.runScript(current, scriptData);
                 },
                 failed: (error, cancelled) => {
                     if (!working.current.delete(questionId)) return;

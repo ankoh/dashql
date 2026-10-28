@@ -417,7 +417,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     </div>
                 </div>
                 {hasFooterContent && (
-                    <div className={styles.feed_entry_footer}>
+                    <div className={styles.feed_entry_footer} data-feed-result="">
                         <dependencies.EntryStatusBar
                             status={entryStatus}
                             onToggleExpanded={() => {
@@ -592,6 +592,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 ref={setRowRef}
                 className={styles.feed_list_item}
                 data-testid="script-feed-item"
+                data-script-key={entry?.scriptId}
                 style={{
                     // dnd-kit may scale the active item toward a differently sized target row.
                     // Feed cards have variable heights, so scaling visibly squashes or stretches them.

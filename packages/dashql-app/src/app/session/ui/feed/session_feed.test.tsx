@@ -296,6 +296,8 @@ describe('Session feed composer', () => {
         submit: vi.fn(),
         view: null as any,
         rowProps: null as any,
+        /// The heights of the text and the results of the scripts that the rows lay out
+        rowLayouts: new Map<number, { text: number; result: number }>(),
     };
     // Stable like the storage contexts, the feed lists the data files again whenever the backend changes
     const storageReader = { backend: { listDataFiles: () => Promise.resolve([]) } } as any;
@@ -319,7 +321,17 @@ describe('Session feed composer', () => {
         },
         ScriptFeedRow: (props: any) => {
             feedState.rowProps = props;
-            return <div />;
+            const entry = props.index % 2 === 1 ? props.entries[Math.floor(props.index / 2)] : undefined;
+            const layout = entry != null ? feedState.rowLayouts.get(entry.scriptId) : undefined;
+            if (layout == null) return <div />;
+            return (
+                <div style={props.style}>
+                    <div data-script-key={entry.scriptId}>
+                        <div style={{ height: layout.text }} />
+                        <div data-feed-result="" style={{ height: layout.result }} />
+                    </div>
+                </div>
+            );
         },
     };
     const onlineConn = {
@@ -362,6 +374,7 @@ describe('Session feed composer', () => {
         feedState.agent = null;
         feedState.agentListener = null;
         feedState.rowProps = null;
+        feedState.rowLayouts.clear();
         feedState.view = fakeView('');
         attention = { sessionId: 'session', active: false, request: vi.fn() };
         container = document.createElement('div');
@@ -521,29 +534,71 @@ describe('Session feed composer', () => {
         expect(feedState.composerProps?.agent?.turns).toEqual([]);
     });
 
-    it('follows the agent to the scripts it edits until the user takes over the feed', async () => {
+    it('follows the agent to the scripts it edits and runs until the user takes over the feed', async () => {
         feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
             feedState.agentListener = listener;
             return Promise.resolve('turn-1');
         });
-        const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(() => { });
+        // A short viewport that keeps the scripts apart, scrolling moves it
+        const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
+        const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(function (this: Element, options?: ScrollToOptions | number) {
+            const top = typeof options === 'object' ? options.top ?? 0 : 0;
+            Object.defineProperty(this, 'scrollTop', { value: top, configurable: true });
+        });
         try {
             render({ ...session(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), connectionCatalog: emptyCatalog as any }, vi.fn());
             await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
             scrollTo.mockClear();
 
-            // The first edit of a script scrolls to it, later edits of the same script do not
-            await act(async () => feedState.agentListener!.edited(1));
+            // An edit below the viewport scrolls to the script, a script in view stays where it is
+            await act(async () => feedState.agentListener!.edited(3));
             expect(scrollTo).toHaveBeenCalledOnce();
-            await act(async () => feedState.agentListener!.edited(1));
+            const scrolled = (scrollTo.mock.calls[0][0] as ScrollToOptions).top!;
+            expect(scrolled).toBeGreaterThan(0);
+            await act(async () => feedState.agentListener!.edited(3));
             expect(scrollTo).toHaveBeenCalledOnce();
+
+            // A run of another script while the agent still works scrolls back to it
+            await act(async () => feedState.agentListener!.ran(1));
+            expect(scrollTo).toHaveBeenCalledTimes(2);
+            expect((scrollTo.mock.calls[1][0] as ScrollToOptions).top!).toBeLessThan(scrolled);
 
             // Once the user scrolls the feed, the agent's edits stay where they are
             act(() => container.querySelector('[data-testid="feed-list"]')!.dispatchEvent(new WheelEvent('wheel', { bubbles: true })));
             await act(async () => feedState.agentListener!.edited(3));
-            expect(scrollTo).toHaveBeenCalledOnce();
+            expect(scrollTo).toHaveBeenCalledTimes(2);
         } finally {
             scrollTo.mockRestore();
+            clientHeight.mockRestore();
+        }
+    });
+
+    it('follows the agent to the results of a script it runs', async () => {
+        feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
+            feedState.agentListener = listener;
+            return Promise.resolve('turn-1');
+        });
+        feedState.rowLayouts.set(1, { text: 250, result: 150 });
+        const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
+        const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(function (this: Element, options?: ScrollToOptions | number) {
+            const top = typeof options === 'object' ? options.top ?? 0 : 0;
+            Object.defineProperty(this, 'scrollTop', { value: top, configurable: true });
+        });
+        const lastTop = () => (scrollTo.mock.lastCall?.[0] as ScrollToOptions | undefined)?.top;
+        try {
+            render({ ...session(['1_alpha.sql', '2_beta.sql']), connectionCatalog: emptyCatalog as any }, vi.fn());
+            await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+            act(() => feedState.rowProps.onRowHeightChange(1, 400));
+
+            // An edit shows the text of a script taller than the viewport, below the first separator
+            await act(async () => feedState.agentListener!.edited(1));
+            await vi.waitFor(() => expect(lastTop()).toBe(48 - 16));
+            // A run shows its results
+            await act(async () => feedState.agentListener!.ran(1));
+            await vi.waitFor(() => expect(lastTop()).toBe(48 + 250 - 16));
+        } finally {
+            scrollTo.mockRestore();
+            clientHeight.mockRestore();
         }
     });
 

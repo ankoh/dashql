@@ -34,7 +34,7 @@ import { groupSessionAttachmentListWrites, REFRESH_SESSION_ATTACHMENTS } from '.
 import { VerticalScrollShadows } from '../../../../ui/foundations/vertical_scroll_shadows.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import { observeSize } from '../../../../ui/foundations/size_observer.js';
-import { useSessionFeedLayout } from './session_feed_layout.js';
+import { revealScrollOffset, useSessionFeedLayout } from './session_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './session_feed_row.js';
 import { getKeywordCase } from '../script_format.js';
 import { reorderFeedEntries } from './session_feed_drag.js';
@@ -58,7 +58,7 @@ import { SessionConnectionAttentionContext } from '../session_connection_attenti
 import { SessionComposer, SessionComposerVariant } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useAgentBridge } from '../../../agent/agent_bridge.js';
-import { isAgentAnswering, useSqlGenerations } from '../../ai/use_sql_generations.js';
+import { isAgentAnswering, useSqlGenerations, type AgentFollowTarget } from '../../ai/use_sql_generations.js';
 import { useAgentSessionContext, type ComposerAgent, type ComposerAgentTurn, type ComposerAgentScript } from '../../ai/ui/agent_prompt_panel.js';
 import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';
@@ -535,26 +535,52 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         dependencies.runSessionScript(next, scriptData, executeQuery, props.modifySessionScripts, logger);
     }, [connectionAttention, executeQuery, logger, props.modifySessionScripts]);
 
-    // The feed follows the agent to the scripts it edits in a question of the composer.
-    // It stops once the user scrolls, clicks or types in the feed, the user does not want to be yanked around.
+    // Scroll a script into the part of the feed that the docked composer leaves free.
+    // A script with results that does not fit shows its results, once its row is mounted and the results are measured.
+    // A created script has no entry until the next render.
+    const revealScript = React.useCallback((scriptKey: number, target: AgentFollowTarget) => {
+        const index = entries.findIndex(entry => entry.scriptId === scriptKey);
+        const element = feedLayout.listRef.current?.element;
+        if (index < 0 || element == null) return;
+        let top = feedLayout.getRowOffset(index * 2 + 1);
+        const bottom = feedLayout.getRowOffset(index * 2 + 2);
+        const viewportHeight = element.clientHeight - bottomInset;
+        if (target === 'result' && bottom - top > viewportHeight) {
+            const item = element.querySelector(`[data-script-key="${scriptKey}"]`);
+            const result = item?.querySelector('[data-feed-result]');
+            if (item != null && result != null) {
+                top += result.getBoundingClientRect().top - item.getBoundingClientRect().top;
+            }
+        }
+        const offset = revealScrollOffset(top, bottom, element.scrollTop, viewportHeight);
+        if (offset != null) element.scrollTo({ top: offset });
+    }, [entries, feedLayout.listRef, feedLayout.getRowOffset, bottomInset]);
+
+    // The feed follows the agent to the scripts it edits and runs in a question of the composer, also while the
+    // agent still works. The followed script stays in view as it is measured and its results arrive.
+    // Following stops once the user scrolls, clicks or types in the feed, the user does not want to be yanked around.
     const followAgentRef = React.useRef(false);
-    const stopFollowingAgent = React.useCallback(() => { followAgentRef.current = false; }, []);
-    const pendingRevealRef = React.useRef<number | null>(null);
-    const [revealRequest, setRevealRequest] = React.useState(0);
-    const followAgentEdit = React.useCallback((scriptKey: number) => {
+    const followedRef = React.useRef<{ scriptKey: number; target: AgentFollowTarget } | null>(null);
+    const stopFollowingAgent = React.useCallback(() => {
+        followAgentRef.current = false;
+        followedRef.current = null;
+    }, []);
+    const [followRequest, setFollowRequest] = React.useState(0);
+    const followAgentScript = React.useCallback((scriptKey: number, target: AgentFollowTarget) => {
         if (!followAgentRef.current) return;
-        pendingRevealRef.current = scriptKey;
-        setRevealRequest(n => n + 1);
+        followedRef.current = { scriptKey, target };
+        setFollowRequest(n => n + 1);
     }, []);
     React.useEffect(() => {
-        const scriptKey = pendingRevealRef.current;
-        if (scriptKey == null) return;
-        // A created script waits for its entry
-        const index = entries.findIndex(entry => entry.scriptId === scriptKey);
-        if (index < 0) return;
-        pendingRevealRef.current = null;
-        feedLayout.listRef.current?.scrollToRow({ index: index * 2 + 1, align: 'smart' });
-    }, [entries, revealRequest, feedLayout.listRef]);
+        const followed = followedRef.current;
+        if (followed == null) return;
+        revealScript(followed.scriptKey, followed.target);
+        // A row that the scroll mounts can show its results in the next frame
+        const frame = requestAnimationFrame(() => {
+            if (followedRef.current === followed) revealScript(followed.scriptKey, followed.target);
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [revealScript, followRequest, feedLayout.rowHeightsVersion]);
 
     // The agent answers a question in the scripts of the session
     const agent = dependencies.useAgentBridge();
@@ -562,7 +588,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         agent,
         sessionScripts: props.sessionScripts,
         runScript: runAppendedScript,
-        followEdit: followAgentEdit,
+        followScript: followAgentScript,
     });
 
     // The composer shows the agent of a session with agent access: its harness, its status lines and its answers.
@@ -576,9 +602,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         const scriptData = latest.current.sessionScripts.scripts[scriptKey];
         if (scriptData == null) return;
         handleFocus(scriptData.fileName);
-        const index = entries.findIndex(entry => entry.scriptId === scriptKey);
-        if (index >= 0) feedLayout.listRef.current?.scrollToRow({ index: index * 2 + 1, align: 'smart' });
-    }, [entries, handleFocus, feedLayout.listRef]);
+        revealScript(scriptKey, 'script');
+    }, [handleFocus, revealScript]);
     const agentAccess = agent != null && agent.supported && agent.hasAccess(sessionId);
     const composerAgent = React.useMemo<ComposerAgent | null>(() => {
         if (agent == null || !agentAccess) return null;
@@ -609,11 +634,13 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             void sqlGenerations.ask(text);
             return;
         }
+        // The appended script takes over the feed
+        stopFollowingAgent();
         logger.debug('Running the composer draft as SQL', { characters: String(text.length) }, LOG_CTX);
         void appendScript(text).then(appended => {
             if (appended != null) runAppendedScript(appended.next, appended.scriptData);
         });
-    }, [sqlGenerations.ask, appendScript, runAppendedScript, logger]);
+    }, [sqlGenerations.ask, appendScript, runAppendedScript, stopFollowingAgent, logger]);
     React.useEffect(() => {
         if (!pendingScrollToEndRef.current || entries.length === 0) return;
         pendingScrollToEndRef.current = false;
