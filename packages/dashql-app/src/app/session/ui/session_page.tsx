@@ -11,7 +11,7 @@ import { useRouteContext } from '../../router/router.js';
 import { SessionFeedPage } from './feed/session_feed_page.js';
 import { SessionViewMode, useSessionViewMode } from './session_view_mode.js';
 
-const SessionShellPage = React.lazy(() => import('../shell/session_shell_page.js'));
+const SessionShellsPage = React.lazy(() => import('../shell/session_shells_page.js'));
 
 const LOG_CTX = 'session_page';
 
@@ -23,7 +23,7 @@ export interface SessionPageDependencies {
     useRouteContext: typeof useRouteContext;
     useSessionViewMode: typeof useSessionViewMode;
     SessionFeedPage: typeof SessionFeedPage;
-    SessionShellPage: typeof SessionShellPage;
+    SessionShellsPage: typeof SessionShellsPage;
 }
 
 const DEFAULT_DEPENDENCIES: SessionPageDependencies = {
@@ -34,7 +34,7 @@ const DEFAULT_DEPENDENCIES: SessionPageDependencies = {
     useRouteContext,
     useSessionViewMode,
     SessionFeedPage,
-    SessionShellPage,
+    SessionShellsPage,
 };
 
 interface Props {
@@ -56,6 +56,11 @@ export const SessionPage: React.FC<Props> = (props: Props) => {
     }
     const { mode: sessionMode } = dependencies.useSessionViewMode();
     const sessionPageVisible = sessionMode !== SessionViewMode.Shell;
+    // The connection of the visible shell, the default connection until another one is picked.
+    // Kept while the shell is closed, the shell reopens on the picked connection of the session.
+    const [shellPick, setShellPick] = React.useState<{ sessionId: string; connectionId: string } | null>(null);
+    const shellConnectionId = shellPick != null && shellPick.sessionId === route.sessionId ? shellPick.connectionId : null;
+    const shellConnection = (shellConnectionId == null ? null : connectionRegistry.connections.get(shellConnectionId)) ?? conn ?? null;
 
     React.useEffect(() => {
         if (route.sessionId === null) {
@@ -84,7 +89,13 @@ export const SessionPage: React.FC<Props> = (props: Props) => {
                             <strong>[ RUN ]</strong> Loading shell
                         </div>
                     )}>
-                        <dependencies.SessionShellPage sessionId={sessionScripts.sessionId} sessionName={sessionScripts.name} connection={conn ?? null} active />
+                        <dependencies.SessionShellsPage
+                            key={sessionScripts.sessionId}
+                            sessionId={sessionScripts.sessionId}
+                            sessionName={sessionScripts.name}
+                            connectionId={shellConnection?.connectionId ?? null}
+                            onPickConnection={connectionId => setShellPick({ sessionId: sessionScripts.sessionId, connectionId })}
+                        />
                     </React.Suspense>
                 </div>
             )}

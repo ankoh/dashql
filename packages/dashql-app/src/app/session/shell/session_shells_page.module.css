@@ -1,0 +1,102 @@
+/* The header and the shells share one dark card */
+.page {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--shell_background_color);
+}
+
+.header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    min-width: 0;
+    padding: 0 8px;
+    /* Darker than the shells below, the rounded card clips the top corners */
+    background: rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+}
+
+.trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    min-width: 0;
+    height: 28px;
+    padding: 0 8px 0 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #e6edf3;
+    font-family: var(--font_family);
+    font-size: var(--font_size_body);
+    cursor: pointer;
+}
+
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.trigger:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: -2px;
+}
+
+.trigger_icon {
+    flex-shrink: 0;
+    color: white;
+}
+
+.trigger_status {
+    display: flex;
+    flex-shrink: 0;
+    margin-left: 10px;
+}
+
+.trigger_label {
+    overflow: hidden;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.trigger_detail {
+    flex-shrink: 0;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(230, 237, 243, 0.7);
+    font-size: var(--font_size_small);
+    line-height: 18px;
+}
+
+/* The card paints the background, the shells inside of it stay transparent */
+.shells {
+    --shell_background_color: transparent;
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+.shell,
+.shell_hidden {
+    position: absolute;
+    inset: 0;
+}
+
+/* Hidden instead of removed, the terminal keeps its size */
+.shell_hidden {
+    visibility: hidden;
+    pointer-events: none;
+}

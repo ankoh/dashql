@@ -97,7 +97,7 @@ export function useAttachDefaultConnection(instance: core.DashQL, modifySessionS
 }
 
 /// A dot in the color of the connection health
-function HealthDot(props: { health: ConnectionHealth | null }) {
+export function HealthDot(props: { health: ConnectionHealth | null }) {
     return (
         <svg className={styles.health} width="16px" height="16px" viewBox="0 0 16 16" aria-hidden="true">
             <circle cx="8" cy="8" r="4" style={{ fill: CONNECTION_HEALTH_COLORS[props.health ?? ConnectionHealth.NOT_STARTED] }} />
@@ -173,9 +173,9 @@ export const ScriptConnectionPicker: React.FC<Props> = (props) => {
                     </Button>
                 )}
             >
-                <ScriptConnectionMenu
+                <ConnectionMenu
                     sessionId={props.sessionId}
-                    scriptName={props.scriptName}
+                    label={`${props.scriptName} script`}
                     connectionId={props.connection?.connectionId ?? null}
                     onPick={connectionId => {
                         setOpen(false);
@@ -199,11 +199,11 @@ export const ScriptConnectionPicker: React.FC<Props> = (props) => {
 };
 
 interface MenuProps {
-    /// The session of the script
+    /// The session whose connections come first
     sessionId: string;
-    /// The display name of the script
-    scriptName: string;
-    /// The connection the script runs on
+    /// What picks the connection, e.g. "Main script", named in the aria labels
+    label: string;
+    /// The picked connection
     connectionId: string | null;
     /// Pick a connection
     onPick: (connectionId: string) => void;
@@ -211,9 +211,9 @@ interface MenuProps {
     onAttach?: (connector: ConnectorType) => void;
 }
 
-/// The connections a script can run on, the connections of the session first.
+/// The connections a script or a shell can run on, the connections of the session first.
 /// Subscribes to the registries only while it is open.
-function ScriptConnectionMenu(props: MenuProps) {
+export function ConnectionMenu(props: MenuProps) {
     const [connections] = useConnectionRegistry();
     // Re-render when the sessions use other connections
     const [scripts] = useSessionScriptsRegistry();
@@ -248,8 +248,8 @@ function ScriptConnectionMenu(props: MenuProps) {
         </ActionList.ListItem>
     );
     return (
-        <div className={styles.menu} role="dialog" aria-label={`Connection of ${props.scriptName} script`}>
-            <ActionList.List aria-label={`Connections for ${props.scriptName} script`}>
+        <div className={styles.menu} role="dialog" aria-label={`Connection of ${props.label}`}>
+            <ActionList.List aria-label={`Connections for ${props.label}`}>
                 {/* The list takes elements only, the fragments wrap the optional groups */}
                 <>{sessionConnections.length > 0 && (
                     <>

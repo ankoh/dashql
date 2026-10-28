@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './session_shell_page.module.css';
 
-import type { ConnectionState } from '../../connections/connection_state.js';
+import { useConnectionById } from '../../connections/connection_registry.js';
 import { useCancelQuery, useQueryExecutor, useQueryState } from '../../connections/query_executor.js';
 import { SessionViewMode, useSessionViewMode } from '../ui/session_view_mode.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
@@ -19,7 +19,7 @@ import { createShellOutputCommand, type ShellOutputMode } from '../../../shell/s
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../ui/script_format.js';
 import { ConnectorType } from '../../connections/connector_info.js';
-import { isHyperWasmConnection } from '../../connections/ui/connection_label.js';
+import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '../../connections/ui/connection_label.js';
 import { useComputeDatabase } from '../../../compute/compute_connection_provider.js';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../../shell/shell_files.js';
 import { useShellFiles } from '../../../shell/filesystem_dialog.js';
@@ -38,11 +38,15 @@ function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): s
 interface Props {
     sessionId: string;
     sessionName?: string | null;
-    connection: ConnectionState | null;
+    /// The connection the shell runs on
+    connectionId: string;
+    /// The ordinal that tells the connection apart from others of its connector, see `connectionOrdinals`
+    ordinal?: number | null;
     active: boolean;
 }
 
-export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, connection, active }) => {
+export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, connectionId, ordinal = null, active }) => {
+    const [connection] = useConnectionById(connectionId);
     const keywordCase = getKeywordCase(useAppConfig()?.settings);
     const keywordCaseRef = React.useRef(keywordCase);
     keywordCaseRef.current = keywordCase;
@@ -63,7 +67,9 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
     const resultQuery = useQueryState(sessionId, resultQueryId);
     const connectorName = connection?.connectorInfo.names.displayShort ?? '';
-    const shellName = `${sessionName ?? connectorName} Shell`;
+    // The shell names its connection like the workbench does, e.g. "Hyper #2 Http Shell" with the prompt "hyper#2> "
+    const shellName = connection == null ? 'Shell' : `${connectionLabelText(connectionLabelParts(connection, ordinal))} Shell`;
+    const prompt = `${connectorName.toLowerCase()}${ordinal == null ? '' : `#${ordinal}`}> `;
     const relationsSql = connection?.catalogRelationScript.toString() ?? '';
     const functionsSql = connection?.catalogFunctionScript.toString() ?? '';
     const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog(
@@ -135,8 +141,8 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
                 controllerRef.current = await embedDashQLShell({
                     container: containerRef.current,
                     shell: nextShell,
-                    greeter: [shellName, 'Enter .help for usage hints.'],
-                    prompt: `${connectorName.toLowerCase()}> `,
+                    greeter: sessionName ? [shellName, sessionName, 'Enter .help for usage hints.'] : [shellName, 'Enter .help for usage hints.'],
+                    prompt,
                     onExit: () => setMode(SessionViewMode.Session),
                     onQueryResult: setResultQueryId,
                     onTerminalResize: columns => { terminalColumnsRef.current = columns; },
@@ -160,7 +166,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         return () => {
             cancelled = true;
         };
-    }, [connection?.connectionId, connectorName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand]);
+    }, [connection?.connectionId, prompt, sessionName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();

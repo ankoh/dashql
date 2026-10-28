@@ -9,17 +9,21 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const state = {
     mode: 0,
+    sessionId: 'session',
     feedMounts: 0,
     feedUnmounts: 0,
 };
 
+const DEFAULT_CONNECTION = { connectionId: 'database' };
+const OTHER_CONNECTION = { connectionId: 'other' };
+
 const dependencies = {
     useSessionViewMode: () => ({ mode: state.mode }),
-    useSessionScripts: () => [{ sessionId: 'session', name: 'Session', connectionId: 'database', scripts: {} }, vi.fn()],
-    useDefaultConnection: () => [null],
-    useConnectionRegistry: () => [{ connections: new Map() }] as any,
+    useSessionScripts: () => [{ sessionId: state.sessionId, name: 'Session', connectionId: 'database', scripts: {} }, vi.fn()],
+    useDefaultConnection: () => [DEFAULT_CONNECTION],
+    useConnectionRegistry: () => [{ connections: new Map([['database', DEFAULT_CONNECTION], ['other', OTHER_CONNECTION]]) }] as any,
     useLogger: () => ({ warn: vi.fn() }),
-    useRouteContext: () => ({ sessionId: 'session' }),
+    useRouteContext: () => ({ sessionId: state.sessionId }),
     SessionFeedPage: ({ active }: { active: boolean }) => {
         React.useEffect(() => {
             state.feedMounts += 1;
@@ -27,7 +31,11 @@ const dependencies = {
         }, []);
         return <div data-testid="feed" data-active={active} />;
     },
-    SessionShellPage: () => <div data-testid="shell" />,
+    SessionShellsPage: ({ connectionId, onPickConnection }: { connectionId: string | null; onPickConnection: (connectionId: string) => void }) => (
+        <div data-testid="shell" data-connection-id={connectionId ?? ''}>
+            <button type="button" data-testid="pick-other" onClick={() => onPickConnection('other')} />
+        </div>
+    ),
 } as unknown as SessionPageDependencies;
 
 describe('SessionPage view transitions', () => {
@@ -36,6 +44,7 @@ describe('SessionPage view transitions', () => {
 
     beforeEach(() => {
         state.mode = 0;
+        state.sessionId = 'session';
         state.feedMounts = 0;
         state.feedUnmounts = 0;
         container = document.createElement('div');
@@ -73,5 +82,26 @@ describe('SessionPage view transitions', () => {
         expect(container.querySelector('[data-testid="feed"]')?.getAttribute('data-active')).toBe('false');
         expect(state.feedMounts).toBe(1);
         expect(state.feedUnmounts).toBe(0);
+    });
+
+    it('reopens the shell on the picked connection until the session changes', async () => {
+        const shellConnection = () => container.querySelector('[data-testid="shell"]')?.getAttribute('data-connection-id');
+        state.mode = SessionViewMode.Shell;
+        await act(async () => root.render(<SessionPage dependencies={dependencies} />));
+        expect(shellConnection()).toBe('database');
+
+        await act(async () => (container.querySelector('[data-testid="pick-other"]') as HTMLButtonElement).click());
+        expect(shellConnection()).toBe('other');
+
+        state.mode = SessionViewMode.Session;
+        await act(async () => root.render(<SessionPage dependencies={dependencies} />));
+        expect(container.querySelector('[data-testid="shell"]')).toBeNull();
+        state.mode = SessionViewMode.Shell;
+        await act(async () => root.render(<SessionPage dependencies={dependencies} />));
+        expect(shellConnection()).toBe('other');
+
+        state.sessionId = 'next';
+        await act(async () => root.render(<SessionPage dependencies={dependencies} />));
+        expect(shellConnection()).toBe('database');
     });
 });
