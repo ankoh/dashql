@@ -305,17 +305,12 @@
 }
 
 .feed_cell_separator {
-    appearance: none;
     width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 8px calc(16px + var(--feed-scrollbar-inset, 0px)) 8px 16px;
-    border: 0;
     box-sizing: border-box;
-    color: inherit;
-    background: transparent;
-    cursor: pointer;
 }
 
 .feed_cell_separator_line {
@@ -339,17 +334,13 @@
     cursor: pointer;
 }
 
-.feed_cell_separator:hover .feed_cell_add {
+.feed_cell_add:hover {
     color: var(--base_color_neutral_9);
     border-color: var(--border_color_primary);
     background-color: hsla(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%, 0.32);
 }
 
-.feed_cell_separator:focus-visible {
-    outline: none;
-}
-
-.feed_cell_separator:focus-visible .feed_cell_add {
+.feed_cell_add:focus-visible {
     outline: 2px solid var(--focus_outline_color);
     outline-offset: 2px;
 }

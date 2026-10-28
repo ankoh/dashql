@@ -138,7 +138,7 @@ describe('V2 session feed rows', () => {
         act(() => root.render(<>{[0, 2, 4].map(index => <ScriptFeedRow key={index} {...({ ...props, index, style: {} } as any)} />)}</>));
         const separators = Array.from(container.querySelectorAll<HTMLButtonElement>('[data-testid="script-insert"]'));
         expect(separators).toHaveLength(3);
-        expect(separators[0].style.paddingTop).toBe('16px');
+        expect(container.querySelector<HTMLDivElement>('[data-testid="script-insert-row"]')!.style.paddingTop).toBe('16px');
         act(() => separators[0].click());
         expect(props.onCreate).toHaveBeenCalledWith(0);
         act(() => separators[1].click());

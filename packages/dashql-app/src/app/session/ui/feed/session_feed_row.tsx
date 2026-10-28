@@ -583,12 +583,9 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
     if (isSeparator) {
         return (
-            <button
-                type="button"
+            <div
                 className={styles.feed_cell_separator}
-                aria-label={`Add script at position ${entryIndex + 1}`}
-                data-testid="script-insert"
-                onClick={() => props.onCreate(entryIndex)}
+                data-testid="script-insert-row"
                 style={{
                     ...props.style,
                     paddingTop: props.index === 0 ? props.topPadding : undefined,
@@ -596,10 +593,16 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 }}
             >
                 <span className={styles.feed_cell_separator_line} aria-hidden="true" />
-                <span className={styles.feed_cell_add} aria-hidden="true">
+                <button
+                    type="button"
+                    className={styles.feed_cell_add}
+                    aria-label={`Add script at position ${entryIndex + 1}`}
+                    data-testid="script-insert"
+                    onClick={() => props.onCreate(entryIndex)}
+                >
                     <PlusIcon size={16} />
-                </span>
-            </button>
+                </button>
+            </div>
         );
     }
 
