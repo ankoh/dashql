@@ -346,11 +346,11 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                                 readOnly={freezeInput}
                             />
                             <KeyValueListBuilder
-                                title="Query Parameters"
+                                title="Query Settings"
                                 caption="Attached database settings that are added to every query"
                                 keyIcon={() => <div>Name</div>}
                                 valueIcon={() => <div>Value</div>}
-                                addButtonLabel="Add Parameter"
+                                addButtonLabel="Add Setting"
                                 elements={pageState.queryParameters}
                                 modifyElements={modifyQueryParameters}
                                 disabled={freezeInput}
