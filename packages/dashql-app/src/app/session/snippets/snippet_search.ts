@@ -8,6 +8,19 @@ import type { SnippetRegistry } from './snippet_registry.js';
 /// The table of the snippets in the snippet database, one row per snippet and connector
 export const SNIPPET_SEARCH_TABLE = 'snippets';
 
+/// A Utf8 vector of strings, assembled from its buffers.
+/// The Arrow builders compile their null check with `new Function`, which the Content-Security-Policy of the app
+/// forbids.
+function utf8Vector(values: string[]): arrow.Vector<arrow.Utf8> {
+    const encoder = new TextEncoder();
+    const encoded = values.map(value => encoder.encode(value));
+    const valueOffsets = new Int32Array(values.length + 1);
+    encoded.forEach((bytes, i) => (valueOffsets[i + 1] = valueOffsets[i] + bytes.length));
+    const data = new Uint8Array(valueOffsets[values.length]);
+    encoded.forEach((bytes, i) => data.set(bytes, valueOffsets[i]));
+    return arrow.makeVector(arrow.makeData({ type: new arrow.Utf8(), length: values.length, nullCount: 0, valueOffsets, data }));
+}
+
 /// The rows of the snippet table
 function snippetRows(registry: SnippetRegistry): arrow.Table {
     const rows = registry.snippets.flatMap(snippet => snippet.connectors.map(connector => ({
@@ -18,13 +31,13 @@ function snippetRows(registry: SnippetRegistry): arrow.Table {
         description: snippet.description,
         body: snippet.bodies.get(connector)!,
     })));
-    return arrow.tableFromArrays({
-        id: rows.map(row => row.id),
-        category: rows.map(row => row.category),
-        connector: rows.map(row => row.connector),
-        path: rows.map(row => row.path),
-        description: rows.map(row => row.description),
-        body: rows.map(row => row.body),
+    return new arrow.Table({
+        id: utf8Vector(rows.map(row => row.id)),
+        category: utf8Vector(rows.map(row => row.category)),
+        connector: utf8Vector(rows.map(row => row.connector)),
+        path: utf8Vector(rows.map(row => row.path)),
+        description: utf8Vector(rows.map(row => row.description)),
+        body: utf8Vector(rows.map(row => row.body)),
     });
 }
 

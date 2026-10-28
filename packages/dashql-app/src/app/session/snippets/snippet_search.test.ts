@@ -82,6 +82,20 @@ describe('Snippet search', () => {
         expect(await ids(ConnectorType.HYPER, 'json')).toEqual(['json/access']);
     });
 
+    it('fills the snippet table without evaluating code, the Content-Security-Policy of the app forbids it', async () => {
+        const evaluate = globalThis.Function;
+        globalThis.Function = new Proxy(evaluate, {
+            apply: () => { throw new EvalError('unsafe-eval'); },
+            construct: () => { throw new EvalError('unsafe-eval'); },
+        });
+        try {
+            const other = buildSnippetRegistry(core, { 'hyper/json/access.sql': file('Read a field of a JSON object.', "select '{}'::json;") });
+            expect(await ids(ConnectorType.HYPER, 'json', other)).toEqual(['json/access']);
+        } finally {
+            globalThis.Function = evaluate;
+        }
+    });
+
     it('runs concurrent searches one after the other', async () => {
         const results = await Promise.all(['json', 'month', 'split'].map(text => ids(ConnectorType.HYPER, text)));
         expect(results).toEqual([['json/access'], ['dates/month'], []]);
