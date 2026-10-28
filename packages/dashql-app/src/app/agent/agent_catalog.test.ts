@@ -1,10 +1,9 @@
 import * as core from '@ankoh/dashql-core';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { buildAgentPrompt, buildSchemaContext, describeSqlDialect } from './sql_generation.js';
-import { ConnectorType } from '../../connections/connector_info.js';
-import { isSystemSchema } from '../../connections/system_schemas.js';
-import { Logger } from '../../../platform/logger/logger.js';
+import { buildSchemaContext } from './agent_catalog.js';
+import { isSystemSchema } from '../connections/system_schemas.js';
+import { Logger } from '../../platform/logger/logger.js';
 
 class TestLogger extends Logger {
     public destroy(): void { }
@@ -19,21 +18,7 @@ beforeAll(async () => {
 });
 afterAll(() => dql.resetUnsafe());
 
-describe('SQL generation', () => {
-    it('names the dialect and the dashql commands in the agent prompt', () => {
-        const prompt = buildAgentPrompt({
-            question: 'top customers\0',
-            dialect: describeSqlDialect(ConnectorType.TRINO),
-            mentionedIdentifiers: ['customers (table)'],
-        });
-        expect(prompt).toContain('The connection speaks Trino.');
-        expect(prompt).toContain('`dashql agent scripts`');
-        expect(prompt).toContain('`dashql agent edit <script>`, into a new script');
-        expect(prompt).toContain('do not recap your steps');
-        expect(prompt).toContain('The question mentions these catalog objects: customers (table).');
-        expect(prompt.endsWith('\n\nQuestion:\ntop customers')).toBe(true);
-    });
-
+describe('Agent catalog', () => {
     it('describes the user relations of the connection, its catalog changes and the session tables', () => {
         const catalog = dql.createCatalog();
         try {

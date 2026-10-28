@@ -9,7 +9,7 @@ import type { AgentSessionContext } from '../../../../platform/agent/agent_proto
 import { stringifyError } from '../../../../platform/logger/logger.js';
 import { useLogger } from '../../../../platform/logger/logger_provider.js';
 import type { AgentBridge } from '../../../agent/agent_bridge.js';
-import { isAgentAnswering, type AgentQuestion } from '../use_sql_generations.js';
+import { isAgentAnswering, type AgentQuestion } from '../use_agent_questions.js';
 
 const LOG_CTX = 'agent_prompt_panel';
 
@@ -160,7 +160,7 @@ const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent }>
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label="Stop the agent"
-                        data-testid="generation-stop"
+                        data-testid="question-stop"
                         onClick={() => agent.onStop(questionId)}
                     >
                         <SquareFillIcon size={12} />
@@ -170,7 +170,7 @@ const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent }>
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         aria-label={failed ? 'Dismiss the error' : 'Dismiss the answer'}
-                        data-testid="generation-dismiss"
+                        data-testid="question-dismiss"
                         onClick={() => agent.onDismiss(questionId)}
                     >
                         <CrossIcon size={14} />

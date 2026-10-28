@@ -58,7 +58,7 @@ import { SessionConnectionAttentionContext } from '../session_connection_attenti
 import { SessionComposer, SessionComposerVariant } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useAgentBridge } from '../../../agent/agent_bridge.js';
-import { isAgentAnswering, useSqlGenerations, type AgentFollowTarget } from '../../ai/use_sql_generations.js';
+import { isAgentAnswering, useAgentQuestions, type AgentFollowTarget } from '../../ai/use_agent_questions.js';
 import { useAgentSessionContext, type ComposerAgent, type ComposerAgentTurn, type ComposerAgentScript } from '../../ai/ui/agent_prompt_panel.js';
 import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';
@@ -584,7 +584,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
 
     // The agent answers a question in the scripts of the session
     const agent = dependencies.useAgentBridge();
-    const sqlGenerations = useSqlGenerations({
+    const agentQuestions = useAgentQuestions({
         agent,
         sessionScripts: props.sessionScripts,
         runScript: runAppendedScript,
@@ -594,7 +594,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     // The composer shows the agent of a session with agent access: its harness, its status lines and its answers.
     // The scripts only show the edits of the agent.
     let workingCount = 0;
-    for (const question of sqlGenerations.questions.values()) {
+    for (const question of agentQuestions.questions.values()) {
         if (isAgentAnswering(question)) ++workingCount;
     }
     const agentContext = useAgentSessionContext(agent, sessionId, workingCount);
@@ -608,7 +608,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const composerAgent = React.useMemo<ComposerAgent | null>(() => {
         if (agent == null || !agentAccess) return null;
         const turns: ComposerAgentTurn[] = [];
-        for (const [questionId, question] of sqlGenerations.questions) {
+        for (const [questionId, question] of agentQuestions.questions) {
             // Deleted scripts drop out
             const scripts: ComposerAgentScript[] = [];
             for (const scriptKey of question.scripts) {
@@ -622,16 +622,16 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             port: agent.port,
             context: agentContext,
             turns,
-            onStop: sqlGenerations.stop,
-            onDismiss: sqlGenerations.dismiss,
+            onStop: agentQuestions.stop,
+            onDismiss: agentQuestions.dismiss,
             onShowScript: handleShowAgentScript,
         };
-    }, [agent, agentAccess, agentContext, sqlGenerations.questions, sqlGenerations.stop, sqlGenerations.dismiss, props.sessionScripts.scripts, handleShowAgentScript]);
+    }, [agent, agentAccess, agentContext, agentQuestions.questions, agentQuestions.stop, agentQuestions.dismiss, props.sessionScripts.scripts, handleShowAgentScript]);
 
     const handleComposerSend = React.useCallback((text: string, mode: ComposerInputMode) => {
         if (mode === ComposerInputMode.Ai) {
             followAgentRef.current = true;
-            void sqlGenerations.ask(text);
+            void agentQuestions.ask(text);
             return;
         }
         // The appended script takes over the feed
@@ -640,7 +640,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         void appendScript(text).then(appended => {
             if (appended != null) runAppendedScript(appended.next, appended.scriptData);
         });
-    }, [sqlGenerations.ask, appendScript, runAppendedScript, stopFollowingAgent, logger]);
+    }, [agentQuestions.ask, appendScript, runAppendedScript, stopFollowingAgent, logger]);
     React.useEffect(() => {
         if (!pendingScrollToEndRef.current || entries.length === 0) return;
         pendingScrollToEndRef.current = false;
@@ -784,7 +784,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         catalog={props.sessionScripts.connectionCatalog}
                         variant={landing ? SessionComposerVariant.Hero : SessionComposerVariant.Docked}
                         keywordCase={keywordCase}
-                        aiAvailable={sqlGenerations.available}
+                        aiAvailable={agentQuestions.available}
                         agent={composerAgent}
                         onSend={handleComposerSend}
                         setView={setComposerView}

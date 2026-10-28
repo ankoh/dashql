@@ -24,7 +24,7 @@ import {
 import { ensureSessionScriptAnalyzed, type ModifySessionScripts } from '../session/scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../session/scripts/script_types.js';
 import { runSessionScriptForResult } from '../session/ui/rerun_query.js';
-import { buildSchemaContext } from '../session/ai/sql_generation.js';
+import { buildSchemaContext } from './agent_catalog.js';
 import { loadVega } from '../../ui/vegalite/vegalite_loader.js';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
 import { CHART_IMAGE_HEIGHT, CHART_IMAGE_SCALE, CHART_IMAGE_WIDTH, renderVegaLitePng, type ChartImage } from '../../ui/vegalite/vegalite_image.js';

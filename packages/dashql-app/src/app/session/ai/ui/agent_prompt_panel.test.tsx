@@ -66,9 +66,9 @@ describe('Agent prompt panel', () => {
         expect(turn.getAttribute('data-state')).toBe('working');
         expect(turn.textContent).toContain('how many orders');
         expect(turn.querySelector('[role="status"]')?.textContent).toBe('dashql agent catalog');
-        expect(turn.querySelector('[data-testid="generation-dismiss"]')).toBeNull();
+        expect(turn.querySelector('[data-testid="question-dismiss"]')).toBeNull();
 
-        act(() => turn.querySelector<HTMLButtonElement>('[data-testid="generation-stop"]')!.click());
+        act(() => turn.querySelector<HTMLButtonElement>('[data-testid="question-stop"]')!.click());
         expect(agent.onStop).toHaveBeenCalledExactlyOnceWith(3);
         act(() => turn.querySelector<HTMLButtonElement>('[data-testid="composer-agent-script"]')!.click());
         expect(agent.onShowScript).toHaveBeenCalledExactlyOnceWith(7);
@@ -92,9 +92,9 @@ describe('Agent prompt panel', () => {
         // Without an answer, the scripts of the agent remain
         expect(turns[2].querySelector('[role="note"]')).toBeNull();
         expect(turns[2].querySelector('[data-testid="composer-agent-script"]')?.textContent).toBe('top_customers');
-        expect(container.querySelector('[data-testid="generation-stop"]')).toBeNull();
+        expect(container.querySelector('[data-testid="question-stop"]')).toBeNull();
 
-        act(() => turns[1].querySelector<HTMLButtonElement>('[data-testid="generation-dismiss"]')!.click());
+        act(() => turns[1].querySelector<HTMLButtonElement>('[data-testid="question-dismiss"]')!.click());
         expect(agent.onDismiss).toHaveBeenCalledExactlyOnceWith(2);
     });
 

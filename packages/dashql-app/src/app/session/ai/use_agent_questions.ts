@@ -4,11 +4,11 @@ import type { AgentBridge } from '../../agent/agent_bridge.js';
 import { AgentConnectionStatus } from '../../../platform/agent/agent_client.js';
 import type { SessionScripts, ScriptData } from '../scripts/session_scripts.js';
 import { buildCatalogNameIndex, collectMentionedIdentifiers } from './catalog_name_index.js';
-import { buildAgentPrompt, describeSqlDialect } from './sql_generation.js';
+import { buildAgentPrompt, describeSqlDialect } from './agent_prompt.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 
-const LOG_CTX = 'sql_generations';
+const LOG_CTX = 'agent_questions';
 
 /// A question that the agent answers or answered
 export interface AgentQuestion {
@@ -30,7 +30,7 @@ export function isAgentAnswering(question: AgentQuestion): boolean {
 }
 
 /// The session a question is answered in
-export interface SqlGenerationsArgs {
+export interface AgentQuestionsArgs {
     /// The agent bridge, null outside of the provider
     agent: AgentBridge | null;
     /// The scripts of the session
@@ -45,7 +45,7 @@ export interface SqlGenerationsArgs {
 export type AgentFollowTarget = 'script' | 'result';
 
 /// The questions of a session that the agent answers
-export interface SqlGenerations {
+export interface AgentQuestions {
     /// Can the session ask the agent?
     available: boolean;
     /// The running, failed and answered questions by question id, oldest first
@@ -66,7 +66,7 @@ const WAITING_STATUS = 'waiting for agent...';
 /// The agent writes its SQL into the scripts of the session through the dashql command, a new script or an existing
 /// one. The composer shows the question with its status lines. Once the agent finishes, a script it edited without
 /// running it runs.
-export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
+export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
     const logger = useLogger();
     const latest = React.useRef(args);
     latest.current = args;

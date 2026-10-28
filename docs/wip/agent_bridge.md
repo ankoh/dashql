@@ -145,10 +145,10 @@ from web apps, and Ollama's menu bar app with its localhost API.
     `CREATE_SCRIPT`, `SET_SCRIPT_TEXT`, `RENAME_SCRIPT`, `DELETE_SCRIPT`;
   - `useQueryExecutor` and `useCancelQuery` (`app/connections/query_executor.tsx`);
   - the catalog loader (`app/connections/catalog_loader.tsx`) and
-    `buildSchemaContext` / `findSqlProblems` (`app/session/ai/sql_generation.ts`);
+    `buildSchemaContext` (`app/agent/agent_catalog.ts`);
   - the command-shaped shell API (`packages/dashql-app/src/shell/api.ts`).
 - **Question → SQL UX:** `ComposerInputMode.Ai` (`app/session/ai/input_mode.ts`) and
-  `useSqlGenerations` (`app/session/ai/use_sql_generations.ts`), with the agent on top of the composer
+  `useAgentQuestions` (`app/session/ai/use_agent_questions.ts`), with the agent on top of the composer
   (`ai/ui/agent_prompt_panel.tsx`).
 - **An OpenAI-compatible LLM client** (`platform/ai/ai_client.ts`) with endpoint settings: removed. The agent
   bridge is the only path to models; without agent access the composer takes SQL only.
@@ -438,7 +438,7 @@ else the agent says is shown by the composer (`ai/ui/agent_prompt_panel.tsx`).
 | Failed | The reason until it is dismissed | |
 | Stopped | Removed | |
 
-- **Entry points:** the composer through `useSqlGenerations`, which sends the question to the agent with
+- **Entry points:** the composer through `useAgentQuestions`, which sends the question to the agent with
   the dialect and the catalog objects it mentions; later inline edit on a selection, "Fix with agent" on diagnostics and failed queries.
 - **The final message** should be one sentence: the prompt tells the agent that the user watched the scripts change
   and run and not to recap them. Harnesses still write recaps, so the panel drops markdown markers and clamps it.
@@ -574,7 +574,7 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
     binary is already an extra resource)
   - `packages/dashql-native/src/updater.ts` (status listener for the menu)
   - `packages/dashql-app/src/app/app.tsx` (provider)
-  - `packages/dashql-app/src/app/session/ai/use_sql_generations.ts`, `ai/ui/agent_prompt_panel.tsx`
+  - `packages/dashql-app/src/app/session/ai/use_agent_questions.ts`, `ai/ui/agent_prompt_panel.tsx`
   - settings UI for the toggle and data settings
 
 Everything builds through Bazel, per `docs/agents/build_bazel_targets.md`.
