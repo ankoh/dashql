@@ -17,6 +17,14 @@ export interface AppFlavorFeatures {
     sessionArchiveExport: boolean;
 }
 
+/// A page that a flavor will have, announced by a disabled button in the rail
+export interface AppFlavorUpcomingPage {
+    /// The label of the button
+    label: string;
+    /// The id of the icon in the svg sprite
+    icon: string;
+}
+
 /// A product flavor of the app: brand identity, theme tokens and settings defaults.
 /// The theme tokens live in `src/styles/flavors/<id>.css`, scoped to `:root[data-flavor="<id>"]`.
 export interface AppFlavor {
@@ -32,6 +40,9 @@ export interface AppFlavor {
     favicon: URL | null;
     /// The features
     features: AppFlavorFeatures;
+    /// The pages that are not there yet, shown as disabled buttons in the rail.
+    /// A separator goes in front of every group, the first follows the workspace and the shell.
+    upcomingPages: AppFlavorUpcomingPage[][];
     /// Settings layered over the settings of config.json, persisted user settings still win
     settings?: AppSettings;
 }
@@ -46,6 +57,7 @@ export const DASHQL_FLAVOR: AppFlavor = {
     features: {
         sessionArchiveExport: true,
     },
+    upcomingPages: [],
 };
 
 /// The sidp flavor
@@ -58,6 +70,20 @@ export const SIDP_FLAVOR: AppFlavor = {
     features: {
         sessionArchiveExport: false,
     },
+    upcomingPages: [
+        [
+            { label: 'Ingestion', icon: 'upload_24' },
+            { label: 'Transforms', icon: 'workflow_24' },
+            { label: 'Indexes', icon: 'ai_model_24' },
+            { label: 'Transactional', icon: 'postgresql_24' },
+        ],
+        [
+            { label: 'Catalog', icon: 'database_24' },
+            { label: 'Monitoring', icon: 'pulse_24' },
+            { label: 'Governance', icon: 'shield_lock_24' },
+            { label: 'Sharing', icon: 'share_android_24' },
+        ],
+    ],
 };
 
 /// All flavors by id

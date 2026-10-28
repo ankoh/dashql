@@ -58,6 +58,18 @@
     font-weight: 300;
 }
 
+/* A light line between groups of buttons, as wide as a button */
+.separator {
+    align-self: stretch;
+    height: 1px;
+    margin: 6px 8px;
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.rail_wide .separator {
+    margin: 6px 4px;
+}
+
 .icon_flipped {
     transform: scaleX(-1);
 }
@@ -67,6 +79,17 @@
 .button.active {
     background-color: rgba(255, 255, 255, 0.16);
     border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* A page that is not there yet, dimmed and without the tint of the hover */
+.button.button_upcoming {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.button.button_upcoming:hover {
+    background-color: transparent;
+    border-color: transparent;
 }
 
 .button:focus-visible {

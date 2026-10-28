@@ -22,8 +22,9 @@
     height: 100%;
 }
 
+/* The wide rail grows with the longest label of its buttons */
 .container_wide {
-    --nav_bar_width: 128px;
+    --nav_bar_width: minmax(168px, max-content);
 }
 
 /* The dark stripe above the rail and the page card with the brand on the left and the overlays on the right */

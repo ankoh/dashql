@@ -8,6 +8,7 @@ import { SESSION_PATH, SELECT_SESSION, useRouteContext, useRouterNavigate } from
 import { SessionViewMode, useSessionViewMode } from '../session/ui/session_view_mode.js';
 import { classNames } from '../../utils/classnames.js';
 import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
+import { useAppFlavor } from '../flavor/flavor_provider.js';
 
 /// Is the pathname a page of the workspace, the sessions and their connections?
 export function isWorkspacePath(pathname: string): boolean {
@@ -80,6 +81,29 @@ export const NavRailButton = ({ label, active, wide, className, children, ...pro
     return wide ? button : <Tooltip type="label" direction="e" text={label}>{button}</Tooltip>;
 };
 
+/// The pages that the flavor will have, disabled buttons that do nothing yet.
+/// A separator goes in front of every group, the first follows the workspace and the shell.
+export const NavRailUpcomingPages = (props: { wide: boolean }): React.ReactElement => {
+    const flavor = useAppFlavor();
+    return (
+        <>
+            {flavor.upcomingPages.map((group, i) => (
+                <React.Fragment key={i}>
+                    <div className={styles.separator} role="separator" />
+                    {group.map(page => (
+                        // Not disabled but aria-disabled, so that the tooltip still names the page
+                        <NavRailButton key={page.label} label={page.label} wide={props.wide} className={styles.button_upcoming} aria-disabled="true">
+                            <svg width="16px" height="16px" aria-hidden="true">
+                                <use xlinkHref={`${symbols}#${page.icon}`} />
+                            </svg>
+                        </NavRailButton>
+                    ))}
+                </React.Fragment>
+            ))}
+        </>
+    );
+};
+
 /// The rail left of the page card that switches between the pages of the app.
 /// The shell is a page of its own although it shows the current session.
 /// The button at the bottom widens the rail to show the labels of the buttons.
@@ -96,9 +120,9 @@ export const NavRail = (): React.ReactElement => {
         // Electron excludes the buttons via the global no-drag rules
         <nav className={classNames(styles.rail, { [styles.rail_wide]: wide })} aria-label="Areas" data-electron-drag-region>
             <div className={styles.group}>
-                <NavRailButton label="Workspace" wide={wide} active={workspaceActive} aria-current={workspaceActive ? 'page' : undefined} onClick={openWorkbench}>
+                <NavRailButton label="Explore" wide={wide} active={workspaceActive} aria-current={workspaceActive ? 'page' : undefined} onClick={openWorkbench}>
                     <svg width="16px" height="16px" aria-hidden="true">
-                        <use xlinkHref={`${symbols}#database`} />
+                        <use xlinkHref={`${symbols}#telescope_24`} />
                     </svg>
                 </NavRailButton>
                 {openShell != null && (
@@ -108,6 +132,7 @@ export const NavRail = (): React.ReactElement => {
                         </svg>
                     </NavRailButton>
                 )}
+                <NavRailUpcomingPages wide={wide} />
             </div>
             <div className={styles.group}>
                 {/* The octicons show the sidebar on the right, flipped it sits on the left like the rail */}
