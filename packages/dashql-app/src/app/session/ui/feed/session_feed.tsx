@@ -58,10 +58,8 @@ import { SessionConnectionAttentionContext } from '../session_connection_attenti
 import { SessionComposer, SessionComposerVariant } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useAgentBridge } from '../../../agent/agent_bridge.js';
-import { isAgentAnswering, useAgentQuestions, type AgentFollowTarget } from '../../ai/use_agent_questions.js';
-import { useAgentSessionContext, type ComposerAgent, type ComposerAgentTurn, type ComposerAgentScript } from '../../ai/ui/agent_prompt_panel.js';
-import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
-import { scriptDisplayName } from '../../scripts/script_types.js';
+import type { AgentFollowTarget } from '../../ai/use_agent_questions.js';
+import { useComposerAgent } from '../../ai/use_composer_agent.js';
 
 export interface SessionFeedProps {
     sessionScripts: SessionScripts;
@@ -584,54 +582,24 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
 
     // The agent answers a question in the scripts of the session
     const agent = dependencies.useAgentBridge();
-    const agentQuestions = useAgentQuestions({
-        agent,
-        sessionScripts: props.sessionScripts,
-        runScript: runAppendedScript,
-        followScript: followAgentScript,
-    });
-
-    // The composer shows the agent of a session with agent access: its harness, its status lines and its answers.
-    // The scripts only show the edits of the agent.
-    let workingCount = 0;
-    for (const question of agentQuestions.questions.values()) {
-        if (isAgentAnswering(question)) ++workingCount;
-    }
-    const agentContext = useAgentSessionContext(agent, sessionId, workingCount);
     const handleShowAgentScript = React.useCallback((scriptKey: number) => {
         const scriptData = latest.current.sessionScripts.scripts[scriptKey];
         if (scriptData == null) return;
         handleFocus(scriptData.fileName);
         revealScript(scriptKey, 'script');
     }, [handleFocus, revealScript]);
-    const agentAccess = agent != null && agent.supported && agent.hasAccess(sessionId);
-    const composerAgent = React.useMemo<ComposerAgent | null>(() => {
-        if (agent == null || !agentAccess) return null;
-        const turns: ComposerAgentTurn[] = [];
-        for (const [questionId, question] of agentQuestions.questions) {
-            // Deleted scripts drop out
-            const scripts: ComposerAgentScript[] = [];
-            for (const scriptKey of question.scripts) {
-                const scriptData = props.sessionScripts.scripts[scriptKey];
-                if (scriptData != null) scripts.push({ scriptKey, scriptName: scriptDisplayName(scriptData.fileName) });
-            }
-            turns.push({ questionId, question, scripts });
-        }
-        return {
-            connected: agent.status === AgentConnectionStatus.Connected,
-            port: agent.port,
-            context: agentContext,
-            turns,
-            onStop: agentQuestions.stop,
-            onDismiss: agentQuestions.dismiss,
-            onShowScript: handleShowAgentScript,
-        };
-    }, [agent, agentAccess, agentContext, agentQuestions.questions, agentQuestions.stop, agentQuestions.dismiss, props.sessionScripts.scripts, handleShowAgentScript]);
+    const composerAgent = useComposerAgent({
+        agent,
+        sessionScripts: props.sessionScripts,
+        runScript: runAppendedScript,
+        followScript: followAgentScript,
+        showScript: handleShowAgentScript,
+    });
 
     const handleComposerSend = React.useCallback((text: string, mode: ComposerInputMode) => {
         if (mode === ComposerInputMode.Ai) {
             followAgentRef.current = true;
-            void agentQuestions.ask(text);
+            void composerAgent.ask(text);
             return;
         }
         // The appended script takes over the feed
@@ -640,7 +608,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         void appendScript(text).then(appended => {
             if (appended != null) runAppendedScript(appended.next, appended.scriptData);
         });
-    }, [agentQuestions.ask, appendScript, runAppendedScript, stopFollowingAgent, logger]);
+    }, [composerAgent.ask, appendScript, runAppendedScript, stopFollowingAgent, logger]);
     React.useEffect(() => {
         if (!pendingScrollToEndRef.current || entries.length === 0) return;
         pendingScrollToEndRef.current = false;
@@ -784,8 +752,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         catalog={props.sessionScripts.connectionCatalog}
                         variant={landing ? SessionComposerVariant.Hero : SessionComposerVariant.Docked}
                         keywordCase={keywordCase}
-                        aiAvailable={agentQuestions.available}
-                        agent={composerAgent}
+                        aiAvailable={composerAgent.available}
+                        agent={composerAgent.agent}
                         onSend={handleComposerSend}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}
