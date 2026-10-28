@@ -54,7 +54,7 @@ const InternalsButton = (props: { sessionId: string | null }) => {
                 renderAnchor={(p: object) => (
                     <NavBarItem
                         anchor={p}
-                        label="Internals"
+                        label="System"
                         icon={(
                             <svg width="14px" height="14px" aria-hidden="true">
                                 <use xlinkHref={`${symbols}#processor`} />
