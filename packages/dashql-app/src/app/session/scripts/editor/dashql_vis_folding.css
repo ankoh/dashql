@@ -14,3 +14,11 @@
 .dashql-vis-fold-marker:hover {
     background: color-mix(in srgb, #aa0d91 10%, transparent);
 }
+
+.dashql-vis-fold-marker-error {
+    color: red;
+}
+
+.dashql-vis-fold-marker-error:hover {
+    background: color-mix(in srgb, red 10%, transparent);
+}

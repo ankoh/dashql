@@ -4,6 +4,7 @@ import { foldedRanges, unfoldEffect } from '@codemirror/language';
 import { EditorSelection, EditorState, Transaction } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
+import { DashQLGutterPlugin } from './dashql_gutters.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateIn, DashQLUpdateEffect } from './dashql_processor.js';
 import { DashQLVisFoldingPlugin, findVegaLiteSpecs } from './dashql_vis_folding.js';
 
@@ -59,7 +60,7 @@ function createState(text: string): EditorState {
     const state = EditorState.create({
         doc: '',
         selection: EditorSelection.cursor(0),
-        extensions: [DashQLProcessorPlugin, DashQLVisFoldingPlugin],
+        extensions: [DashQLProcessorPlugin, DashQLVisFoldingPlugin, DashQLGutterPlugin],
     });
     return replaceText(state, text);
 }

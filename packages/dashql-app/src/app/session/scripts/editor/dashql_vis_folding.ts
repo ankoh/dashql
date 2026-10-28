@@ -1,8 +1,8 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { codeFolding, foldEffect, foldedRanges, foldGutter, foldKeymap, foldService } from '@codemirror/language';
+import { codeFolding, foldEffect, foldedRanges, foldKeymap, foldService, unfoldEffect } from '@codemirror/language';
 import { EditorState, Extension, Transaction } from '@codemirror/state';
-import { keymap } from '@codemirror/view';
+import { EditorView, GutterMarker, keymap } from '@codemirror/view';
 
 import { DashQLProcessorPlugin, DashQLUpdateEffect } from './dashql_processor.js';
 
@@ -26,7 +26,7 @@ export function findVegaLiteSpecs(update: dashql.buffers.editor.EditorUpdateT | 
     return specs;
 }
 
-function isFolded(state: EditorState, spec: VegaLiteSpecRange): boolean {
+export function isFolded(state: EditorState, spec: VegaLiteSpecRange): boolean {
     let folded = false;
     foldedRanges(state).between(spec.from, spec.to, (from, to) => {
         if (from === spec.from && to === spec.to) folded = true;
@@ -65,28 +65,45 @@ const autoFoldVegaLiteSpecs = EditorState.transactionExtender.of(tr => {
     return effects.length > 0 ? { effects } : null;
 });
 
-/// Lets the Vega-Lite specs be folded from the line of their opening brace
-const vegaLiteSpecFolds = foldService.of((state, lineStart, lineEnd) => {
+/// The spec that is folded from the line of its opening brace
+function findVegaLiteSpecAtLine(state: EditorState, lineStart: number, lineEnd: number): VegaLiteSpecRange | null {
     const processor = state.field(DashQLProcessorPlugin, false);
     return findVegaLiteSpecs(processor?.editorUpdate).find(spec => spec.from >= lineStart && spec.from <= lineEnd) ?? null;
-});
+}
 
-/// Folds and unfolds a spec from the gutter next to the line of its opening brace
-const vegaLiteSpecGutter = foldGutter({
-    markerDOM: open => {
+/// Lets the Vega-Lite specs be folded from the line of their opening brace
+const vegaLiteSpecFolds = foldService.of(findVegaLiteSpecAtLine);
+
+/// Folds or unfolds the spec of a line, returns false if the line opens no spec
+export function toggleVegaLiteSpecAtLine(view: EditorView, lineStart: number, lineEnd: number): boolean {
+    const spec = findVegaLiteSpecAtLine(view.state, lineStart, lineEnd);
+    if (spec == null) return false;
+    view.dispatch({ effects: isFolded(view.state, spec) ? unfoldEffect.of(spec) : foldEffect.of(spec) });
+    return true;
+}
+
+/// Folds and unfolds a spec from the gutter next to the line of its opening brace.
+/// The marker shares the gutter of the error markers and turns red if the line has an error.
+export class VegaLiteFoldMarker extends GutterMarker {
+    constructor(readonly open: boolean, readonly error: boolean) {
+        super();
+    }
+    eq(other: GutterMarker): boolean {
+        return other instanceof VegaLiteFoldMarker && other.open === this.open && other.error === this.error;
+    }
+    toDOM(): Node {
         const marker = document.createElement('span');
-        marker.className = 'dashql-vis-fold-marker';
+        marker.className = this.error ? 'dashql-vis-fold-marker dashql-vis-fold-marker-error' : 'dashql-vis-fold-marker';
         marker.dataset.testid = 'vis-fold-marker';
-        marker.setAttribute('aria-expanded', String(open));
-        marker.title = open ? 'Fold the Vega-Lite spec' : 'Unfold the Vega-Lite spec';
-        marker.textContent = open ? '▾' : '▸';
+        marker.setAttribute('aria-expanded', String(this.open));
+        marker.title = this.open ? 'Fold the Vega-Lite spec' : 'Unfold the Vega-Lite spec';
+        marker.textContent = this.open ? '▾' : '▸';
         return marker;
-    },
-});
+    }
+}
 
 export const DashQLVisFoldingPlugin: Extension = [
     codeFolding(),
-    vegaLiteSpecGutter,
     vegaLiteSpecFolds,
     autoFoldVegaLiteSpecs,
     keymap.of(foldKeymap),
