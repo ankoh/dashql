@@ -44,6 +44,10 @@ export interface AgentBridge {
     port: number;
     /// Connect to the agent server on another port, null restores the build's default
     setPort: (port: number | null) => void;
+    /// The harness that runs requests, null for the default harness of the agent server
+    harness: string | null;
+    /// Pick the harness that runs requests among the configured harnesses, null restores the server's default
+    setHarness: (harness: string | null) => void;
     /// The sessions with agent access, the name is null while a session is not loaded
     accessSessions: { id: string; name: string | null }[];
     /// Does a session have agent access?
@@ -60,8 +64,6 @@ export interface AgentBridge {
     context: (sessionId: string) => Promise<AgentSessionContext>;
     /// The configuration and the state of the agent server
     info: () => Promise<AgentServerInfo>;
-    /// Pick the harness that runs requests, one of the configured harnesses
-    setDefaultHarness: (harness: string) => Promise<void>;
     /// Stay connected while no session has agent access, returns the release
     hold: () => () => void;
 }
@@ -97,6 +99,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
 
     const accessSessions = config?.settings?.agentSessions ?? NO_SESSIONS;
     const port = config?.settings?.agentPort ?? DASHQL_AGENT_PORT;
+    const harness = config?.settings?.agentHarness ?? null;
 
     // The listeners of the turns by turn id, and the turn ids of the requests of a session
     const turns = React.useRef(new Map<string, AgentTurnListener>());
@@ -207,6 +210,10 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         logger.info('Changed the port of the agent server', { port: String(next ?? DASHQL_AGENT_PORT) }, LOG_CTX);
         reconfigure(c => c == null ? c : { ...c, settings: { ...(c.settings ?? {}), agentPort: next ?? undefined } });
     }, [reconfigure, logger]);
+    const setHarness = React.useCallback((next: string | null) => {
+        logger.info('Changed the harness of the agent', { harness: next ?? 'default' }, LOG_CTX);
+        reconfigure(c => c == null ? c : { ...c, settings: { ...(c.settings ?? {}), agentHarness: next ?? undefined } });
+    }, [reconfigure, logger]);
 
     const accessSessionList = React.useMemo(
         () => accessSessions.map(id => ({ id, name: registry.sessionScriptsMap.get(id)?.name ?? null })),
@@ -231,14 +238,14 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
 
     const request = React.useCallback(async (sessionId: string, prompt: string, listener: AgentTurnListener) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        const result = await client.request('agent/request', { session: sessionId, prompt });
+        const result = await client.request('agent/request', { session: sessionId, prompt, ...(harness != null ? { harness } : {}) });
         turns.current.set(result.turnId, listener);
         const sessionTurns = turnsBySession.current.get(sessionId) ?? new Set();
         sessionTurns.add(result.turnId);
         turnsBySession.current.set(sessionId, sessionTurns);
         logger.info('Sent a request to the agent', { session: sessionId, turnId: result.turnId, harness: result.harness }, LOG_CTX);
         return result.turnId;
-    }, [client, logger]);
+    }, [client, harness, logger]);
     const cancel = React.useCallback(async (sessionId: string, turnId?: string) => {
         await client?.request('agent/cancel', turnId == null ? { session: sessionId } : { session: sessionId, turnId });
     }, [client]);
@@ -247,24 +254,21 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     }, [client]);
     const context = React.useCallback(async (sessionId: string) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        return client.request('agent/context', { session: sessionId });
-    }, [client]);
+        return client.request('agent/context', { session: sessionId, ...(harness != null ? { harness } : {}) });
+    }, [client, harness]);
 
     const info = React.useCallback(async () => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
         return client.request('agent/info', {});
     }, [client]);
-    const setDefaultHarness = React.useCallback(async (harness: string) => {
-        if (client == null) throw new Error('This browser cannot reach the agent server');
-        await client.request('agent/configure', { defaultHarness: harness });
-        logger.info('Changed the default harness', { harness }, LOG_CTX);
-    }, [client, logger]);
 
     const bridge = React.useMemo<AgentBridge>(() => ({
         status,
         supported,
         port,
         setPort,
+        harness,
+        setHarness,
         accessSessions: stableAccessSessions,
         hasAccess,
         setAccess,
@@ -273,9 +277,8 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         reset,
         context,
         info,
-        setDefaultHarness,
         hold,
-    }), [status, supported, port, setPort, stableAccessSessions, hasAccess, setAccess, request, cancel, reset, context, info, setDefaultHarness, hold]);
+    }), [status, supported, port, setPort, harness, setHarness, stableAccessSessions, hasAccess, setAccess, request, cancel, reset, context, info, hold]);
 
     return <AGENT_BRIDGE_CTX.Provider value={bridge}>{props.children}</AGENT_BRIDGE_CTX.Provider>;
 };

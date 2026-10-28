@@ -30,6 +30,8 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
         supported: true,
         port: 47100,
         setPort: vi.fn(),
+        harness: null,
+        setHarness: vi.fn(),
         accessSessions: [{ id: 's1', name: 'Revenue' }],
         hasAccess: () => true,
         setAccess: vi.fn(),
@@ -38,7 +40,6 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
         reset: vi.fn(),
         context: vi.fn(),
         info: vi.fn(() => Promise.resolve(INFO)),
-        setDefaultHarness: vi.fn(() => Promise.resolve()),
         hold: vi.fn(() => () => { }),
         ...overrides,
     };
@@ -66,7 +67,7 @@ describe('Agent view', () => {
         await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
     }
 
-    it('shows the harnesses and picks the default harness', async () => {
+    it('shows the harnesses and picks one', async () => {
         const bridge = fakeBridge();
         await render(bridge);
         expect(bridge.hold).toHaveBeenCalledOnce();
@@ -75,8 +76,18 @@ describe('Agent view', () => {
         const harnesses = container.querySelectorAll<HTMLButtonElement>('[data-testid="agent-settings-harness"]');
         expect([...harnesses].map(b => [b.dataset.harness, b.disabled])).toEqual([['claude', false], ['codex', false], ['opencode', true]]);
         expect(harnesses[2].title).toBe('opencode is not installed');
+        expect([...harnesses].map(b => b.getAttribute('aria-current'))).toEqual(['true', 'false', 'false']);
         await act(async () => harnesses[1].click());
-        expect(bridge.setDefaultHarness).toHaveBeenCalledExactlyOnceWith('codex');
+        expect(bridge.setHarness).toHaveBeenCalledExactlyOnceWith('codex');
+    });
+
+    it('shows the picked harness and restores the default of the server', async () => {
+        const bridge = fakeBridge({ harness: 'codex' });
+        await render(bridge);
+        const harnesses = container.querySelectorAll<HTMLButtonElement>('[data-testid="agent-settings-harness"]');
+        expect([...harnesses].map(b => b.getAttribute('aria-current'))).toEqual(['false', 'true', 'false']);
+        await act(async () => harnesses[0].click());
+        expect(bridge.setHarness).toHaveBeenCalledExactlyOnceWith(null);
     });
 
     it('turns off agent access of a session', async () => {

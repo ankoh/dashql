@@ -2,8 +2,7 @@
 
 use crate::agent::commands::is_session_command;
 use crate::agent::config::{
-    create_private_dir, random_bytes, to_json_text, update_stored_config, write_private_file, AgentConfig, DEV_ORIGINS,
-    RELEASE_ORIGINS,
+    create_private_dir, random_bytes, to_json_text, write_private_file, AgentConfig, DEV_ORIGINS, RELEASE_ORIGINS,
 };
 use crate::agent::harness::{
     resolve_login_shell_path, resolve_program, spawn_harness, HarnessEvent, HarnessOutcome, HarnessProcess,
@@ -152,8 +151,6 @@ struct Turn {
 /// The state.json of a DashQL session
 #[derive(Default)]
 struct SessionState {
-    /// The harness of the last conversation
-    harness: Option<String>,
     /// The harness session ids by harness name
     harness_sessions: Map<String, Value>,
 }
@@ -194,6 +191,17 @@ fn random_uuid() -> String {
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
     let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
     format!("{}-{}-{}-{}-{}", &hex[0..8], &hex[8..12], &hex[12..16], &hex[16..20], &hex[20..])
+}
+
+/// The harness of a request, the default harness if it names none.
+/// Clients may only pick among the configured harnesses: commands come from config.json alone, a page must never be
+/// able to run a program of its choice.
+fn pick_harness(config: &AgentConfig, params: &Value) -> Result<String, RpcError> {
+    let harness = params["harness"].as_str().unwrap_or(&config.default_harness);
+    match config.harness(harness) {
+        Some(_) => Ok(harness.to_string()),
+        None => Err(RpcError::new(ErrorCode::Failed, format!("unknown harness: {harness}"))),
+    }
 }
 
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
@@ -529,7 +537,7 @@ impl Shared {
                 self.write_session_state(&session, &state).map_err(|e| RpcError::new(ErrorCode::Failed, e))?;
                 Ok(json!({}))
             })),
-            "agent/context" => reply(session().map(|session| self.session_context(&session))),
+            "agent/context" => reply(session().and_then(|session| self.session_context(&session, params))),
             "agent/info" => {
                 let (shared, id) = (self.clone(), id.clone());
                 tokio::spawn(async move {
@@ -539,7 +547,6 @@ impl Shared {
                     }
                 });
             }
-            "agent/configure" => reply(self.configure(params).map(|_| json!({}))),
             _ => reply(Err(RpcError::new(ErrorCode::Usage, format!("unknown method: {method}")))),
         }
     }
@@ -611,25 +618,6 @@ impl Shared {
         info
     }
 
-    /// Change the configuration. Clients may only pick among the configured harnesses:
-    /// commands come from config.json alone, a page must never be able to run a program of its choice.
-    fn configure(&self, params: &Value) -> Result<(), RpcError> {
-        let harness = &params["defaultHarness"];
-        if harness.is_null() {
-            return Ok(());
-        }
-        let name = harness.as_str().map_or_else(|| harness.to_string(), str::to_string);
-        let mut state = self.lock();
-        if state.config.harness(&name).is_none() {
-            return Err(RpcError::new(ErrorCode::Failed, format!("unknown harness: {name}")));
-        }
-        state.config.default_harness = name.clone();
-        let patch = Map::from_iter([("defaultHarness".to_string(), Value::from(name.clone()))]);
-        update_stored_config(&self.options.home, patch).map_err(|e| RpcError::new(ErrorCode::Failed, e))?;
-        self.log(&format!("Default harness is now {name}"));
-        Ok(())
-    }
-
     // ------------------------------------------------------------------------------------------------
     // Turns
 
@@ -641,7 +629,6 @@ impl Shared {
         let text = std::fs::read_to_string(self.session_dir(session).join("state.json")).unwrap_or_default();
         let Ok(Value::Object(mut state)) = serde_json::from_str::<Value>(&text) else { return SessionState::default() };
         SessionState {
-            harness: state.get("harness").and_then(Value::as_str).map(str::to_string),
             harness_sessions: match state.remove("harnessSessions") {
                 Some(Value::Object(sessions)) => sessions,
                 _ => Map::new(),
@@ -652,32 +639,28 @@ impl Shared {
     fn write_session_state(&self, session: &str, session_state: &SessionState) -> Result<(), String> {
         let dir = self.session_dir(session);
         create_private_dir(&dir)?;
-        let state = json!({ "harness": session_state.harness, "harnessSessions": session_state.harness_sessions });
+        let state = json!({ "harnessSessions": session_state.harness_sessions });
         write_private_file(&dir.join("state.json"), &(to_json_text(&state) + "\n"))
     }
 
-    fn session_context(&self, session: &str) -> Value {
+    fn session_context(&self, session: &str, params: &Value) -> Result<Value, RpcError> {
         let state = self.lock();
+        let harness = pick_harness(&state.config, params)?;
         let session_state = self.read_session_state(session);
-        // The harness that holds the conversation of the session, the default harness before the first turn
-        let harness = match session_state.harness.as_deref() {
-            Some(harness) if state.config.harness(harness).is_some() => harness,
-            _ => &state.config.default_harness,
-        };
-        let harness_session = session_state.harness_sessions.get(harness).and_then(Value::as_str).map(str::to_string);
-        let template = state.config.harness(harness).and_then(|h| h.terminal_command.as_ref());
+        let harness_session = session_state.harness_sessions.get(&harness).and_then(Value::as_str).map(str::to_string);
+        let template = state.config.harness(&harness).and_then(|h| h.terminal_command.as_ref());
         let terminal_command = match (&harness_session, template) {
             (Some(id), Some(template)) => {
                 Some(template.iter().map(|arg| arg.replace("{harnessSession}", id)).collect::<Vec<_>>())
             }
             _ => None,
         };
-        json!({
+        Ok(json!({
             "folder": self.session_dir(session).display().to_string(),
             "harness": harness,
             "harnessSession": harness_session,
             "terminalCommand": terminal_command,
-        })
+        }))
     }
 
     fn enqueue_turn(&self, client: u64, params: &Value) -> Result<(Value, String), RpcError> {
@@ -686,10 +669,7 @@ impl Shared {
         if !state.clients.get(&client).is_some_and(|c| c.holds(session)) {
             return Err(RpcError::new(ErrorCode::Usage, "the session has no agent access"));
         }
-        let harness = params["harness"].as_str().unwrap_or(&state.config.default_harness).to_string();
-        if state.config.harness(&harness).is_none() {
-            return Err(RpcError::new(ErrorCode::Failed, format!("unknown harness: {harness}")));
-        }
+        let harness = pick_harness(&state.config, params)?;
         let prompt = params["prompt"].as_str().unwrap_or_default();
         if prompt.trim().is_empty() {
             return Err(RpcError::new(ErrorCode::Failed, "the prompt is empty"));
@@ -834,12 +814,9 @@ impl Shared {
             }
             HarnessEvent::Session(id) => {
                 let mut state = self.read_session_state(session);
-                if state.harness.as_deref() == Some(harness)
-                    && state.harness_sessions.get(harness).and_then(Value::as_str) == Some(&id)
-                {
+                if state.harness_sessions.get(harness).and_then(Value::as_str) == Some(&id) {
                     return;
                 }
-                state.harness = Some(harness.to_string());
                 state.harness_sessions.insert(harness.to_string(), id.into());
                 if let Err(e) = self.write_session_state(session, &state) {
                     self.log(&format!("Cannot store the harness session: {e}"));
@@ -1470,7 +1447,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn describes_the_conversation_of_the_last_harness() {
+    async fn describes_the_conversation_of_the_picked_harness() {
         let fixture = Fixture::start(json!({}), false).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;
@@ -1487,11 +1464,17 @@ mod tests {
         fixture.run(0, |run| run.args.events.send(HarnessEvent::Session("ses_1".into())).unwrap());
         fixture.run(0, |run| run.finish("Hello", None));
         client.next(|m| m["method"] == "agent/done").await.unwrap();
-        client.send(json!({ "id": 4, "method": "agent/context", "params": { "session": "s1" } })).await;
+        let params = json!({ "session": "s1", "harness": "opencode" });
+        client.send(json!({ "id": 4, "method": "agent/context", "params": params })).await;
         let context = client.next(|m| m["id"] == 4).await.unwrap();
         assert_eq!(context["result"]["harness"], "opencode");
         assert_eq!(context["result"]["harnessSession"], "ses_1");
         assert_eq!(context["result"]["terminalCommand"], json!(["opencode", "--session", "ses_1"]));
+        // The default harness has no conversation yet, a request without a harness starts a new one
+        client.send(json!({ "id": 5, "method": "agent/context", "params": { "session": "s1" } })).await;
+        let context = client.next(|m| m["id"] == 5).await.unwrap();
+        assert_eq!(context["result"]["harness"], "codex");
+        assert_eq!(context["result"]["harnessSession"], Value::Null);
     }
 
     #[tokio::test]
@@ -1621,7 +1604,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn describes_the_harnesses_and_picks_the_default_harness() {
+    async fn describes_the_harnesses_and_runs_the_picked_harness() {
         let fixture = Fixture::start(json!({}), false).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.send(json!({ "id": 1, "method": "agent/info", "params": {} })).await;
@@ -1632,27 +1615,25 @@ mod tests {
         assert_eq!(names, ["claude", "codex", "opencode"]);
         assert_eq!(info["harnesses"][0]["command"][0], "claude");
 
-        client.send(json!({ "id": 2, "method": "agent/configure", "params": { "defaultHarness": "opencode" } })).await;
-        client.next(|m| m["id"] == 2).await.unwrap();
-        let stored: Value =
-            serde_json::from_str(&std::fs::read_to_string(fixture.home.join("config.json")).unwrap()).unwrap();
-        assert_eq!(stored, json!({ "defaultHarness": "opencode" }));
         client.announce(&["s1"], Some("s1")).await;
-        client.send(json!({ "id": 3, "method": "agent/request", "params": { "session": "s1", "prompt": "hi" } })).await;
+        let params = json!({ "session": "s1", "harness": "opencode", "prompt": "hi" });
+        client.send(json!({ "id": 3, "method": "agent/request", "params": params })).await;
         assert_eq!(client.next(|m| m["id"] == 3).await.unwrap()["result"]["harness"], "opencode");
         fixture.wait_for_runs(1).await;
         let cwd = fixture.run(0, |run| run.args.cwd.clone());
         assert!(std::fs::read_to_string(cwd.join("opencode.json")).unwrap().contains("\"dashql agent *\": \"allow\""));
+        // The server never writes the configuration, the fixture removed it after loading
+        assert!(!fixture.home.join("config.json").exists());
     }
 
     #[tokio::test]
     async fn refuses_unknown_harnesses() {
         let fixture = Fixture::start(json!({}), false).await;
         let mut client = fixture.connect("https://dashql.app").await;
-        client
-            .send(json!({ "id": 1, "method": "agent/configure", "params": { "defaultHarness": "sh -c evil" } }))
-            .await;
-        assert_eq!(client.next(|m| m["id"] == 1).await.unwrap()["error"]["message"], "unknown harness: sh -c evil");
+        client.announce(&["s1"], Some("s1")).await;
+        let params = json!({ "session": "s1", "harness": "sh -c evil" });
+        client.send(json!({ "id": 2, "method": "agent/context", "params": params })).await;
+        assert_eq!(client.next(|m| m["id"] == 2).await.unwrap()["error"]["message"], "unknown harness: sh -c evil");
     }
 
     #[tokio::test]

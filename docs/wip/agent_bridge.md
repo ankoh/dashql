@@ -363,8 +363,8 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
 4. The agent works through `dashql agent` commands. A per-harness adapter in the
    server reads the event stream and sends status lines to the client.
 5. The final message comes back as `agent/done`. The server stores the harness session
-   id and the harness in `state.json`, so the next request in this DashQL session resumes it and
-   `agent/context` names that harness.
+   id per harness in `state.json`, so the next request of this DashQL session with the same harness resumes it.
+   `agent/context` describes the conversation of the harness that the page picked.
 
 - The working folder holds an `AGENTS.md` and a `CLAUDE.md` written by
   the server: how to use `dashql agent`, to work only through it, and that data and
@@ -391,9 +391,10 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
 - Stop (in the composer or the menu) sends `agent/cancel`; the server kills the process tree
   of the turn's harness.
 - **Security rule:** clients never send commands, only a harness name and a prompt.
-  Command templates exist only in the local `config.json`. The app may pick the default harness
-  among them (`agent/configure`) but never change a template. Otherwise a bug in dashql.app (XSS,
-  for example) could run arbitrary commands on the user's machine.
+  Command templates exist only in the local `config.json`. The app may pick a harness among them
+  (`harness` of `agent/request` and `agent/context`) but never change a template, and the server never writes
+  `config.json` after creating it. Otherwise a bug in dashql.app (XSS, for example) could run arbitrary commands
+  on the user's machine.
 
 ### Settings
 
@@ -403,8 +404,9 @@ header shows Control Session: Disconnect the Session turns the access off, Reset
 context, Continue in terminal copies the command that continues the harness session.
 
 - **Port** of the agent server, an app setting (`agentPort`); the build's default otherwise.
-- **Harness:** picks the default among the configured harnesses (`agent/info`); a harness whose binary is not
-  on the `PATH` of harness runs is disabled. Templates are edited in `config.json`.
+- **Harness:** picks among the configured harnesses (`agent/info`), an app setting (`agentHarness`); the
+  `defaultHarness` of `config.json` otherwise. A harness whose binary is not on the `PATH` of harness runs is
+  disabled. Templates are edited in `config.json`.
 - **Sessions** with agent access, each with "Disconnect".
 - **Turns** of the server, each with "Stop", and the **clients** of the server.
 

@@ -33,7 +33,7 @@
         },
         "agent/context": {
           "type": "object",
-          "properties": { "params": { "$ref": "#/definitions/AgentSessionParams" }, "result": { "$ref": "#/definitions/AgentSessionContext" } },
+          "properties": { "params": { "$ref": "#/definitions/AgentContextParams" }, "result": { "$ref": "#/definitions/AgentSessionContext" } },
           "required": ["params", "result"],
           "additionalProperties": false
         },
@@ -42,15 +42,9 @@
           "properties": { "params": { "$ref": "#/definitions/AgentEmptyMessage" }, "result": { "$ref": "#/definitions/AgentServerInfo" } },
           "required": ["params", "result"],
           "additionalProperties": false
-        },
-        "agent/configure": {
-          "type": "object",
-          "properties": { "params": { "$ref": "#/definitions/AgentConfigureParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
-          "required": ["params", "result"],
-          "additionalProperties": false
         }
       },
-      "required": ["client/sessions", "agent/request", "agent/cancel", "agent/reset", "agent/context", "agent/info", "agent/configure"],
+      "required": ["client/sessions", "agent/request", "agent/cancel", "agent/reset", "agent/context", "agent/info"],
       "additionalProperties": false
     },
     "AgentClientMethods": {
@@ -191,9 +185,19 @@
     },
     "AgentSessionParams": {
       "type": "object",
-      "description": "agent/reset and agent/context, client → server: the session to forget or describe",
+      "description": "agent/reset, client → server: the session to forget",
       "properties": {
         "session": { "type": "string" }
+      },
+      "required": ["session"],
+      "additionalProperties": false
+    },
+    "AgentContextParams": {
+      "type": "object",
+      "description": "agent/context, client → server: the session to describe",
+      "properties": {
+        "session": { "type": "string" },
+        "harness": { "type": "string", "description": "The harness of the next request, the server's default if omitted" }
       },
       "required": ["session"],
       "additionalProperties": false
@@ -203,7 +207,7 @@
       "description": "The result of agent/context",
       "properties": {
         "folder": { "type": "string", "description": "The working folder of harness runs of the session" },
-        "harness": { "type": "string", "description": "The harness that holds the conversation of the session, the default harness before the first turn" },
+        "harness": { "type": "string", "description": "The harness of the next request" },
         "harnessSession": {
           "type": ["string", "null"],
           "description": "The harness session that the next request resumes"
@@ -215,14 +219,6 @@
         }
       },
       "required": ["folder", "harness", "harnessSession", "terminalCommand"],
-      "additionalProperties": false
-    },
-    "AgentConfigureParams": {
-      "type": "object",
-      "description": "agent/configure, client → server: change the configuration of the server",
-      "properties": {
-        "defaultHarness": { "type": "string", "description": "The harness that runs requests, one of the configured harnesses" }
-      },
       "additionalProperties": false
     },
     "AgentEmptyMessage": {
@@ -301,7 +297,7 @@
         "home": { "type": "string", "description": "The folder of the configuration and the state" },
         "configPath": { "type": "string" },
         "dev": { "type": "boolean", "description": "Does the server accept the dev origins?" },
-        "defaultHarness": { "type": "string" },
+        "defaultHarness": { "type": "string", "description": "The harness of requests that name none, from config.json" },
         "harnesses": { "type": "array", "items": { "$ref": "#/definitions/AgentHarnessInfo" } }
       },
       "required": ["port", "clients", "turns", "home", "configPath", "dev", "defaultHarness", "harnesses"],

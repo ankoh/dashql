@@ -14,6 +14,8 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
         supported: true,
         port: 47100,
         setPort: vi.fn(),
+        harness: null,
+        setHarness: vi.fn(),
         accessSessions: [],
         hasAccess: () => false,
         setAccess: vi.fn(),
@@ -22,7 +24,6 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
         reset: vi.fn(() => Promise.resolve()),
         context: vi.fn(),
         info: vi.fn(),
-        setDefaultHarness: vi.fn(() => Promise.resolve()),
         hold: vi.fn(() => () => { }),
         ...overrides,
     };

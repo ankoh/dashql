@@ -38,7 +38,7 @@ function parsePort(text: string): number | null {
 /// The agent bridge: the agent server with its port and harness, the sessions with agent access, the turns and
 /// the clients of the server.
 /// The harness commands live in the config.json of the agent server, a page only picks among them and must
-/// not be able to choose the programs that run on the machine.
+/// not be able to choose the programs that run on the machine. The pick is a setting of the app.
 export function AgentView(props: { onClose: () => void }) {
     const bridge = useAgentBridge();
     const [info, setInfo] = React.useState<AgentServerInfo | null>(null);
@@ -65,9 +65,7 @@ export function AgentView(props: { onClose: () => void }) {
     if (bridge == null) return null;
     const [status, text] = statusText(bridge);
     const portValue = parsePort(portDraft);
-    const setDefaultHarness = (harness: string) => {
-        bridge.setDefaultHarness(harness).then(refresh, e => setError(stringifyError(e)));
-    };
+    const pickedHarness = bridge.harness ?? info?.defaultHarness;
 
     return (
         <div className={styles.settings_root}>
@@ -96,12 +94,15 @@ export function AgentView(props: { onClose: () => void }) {
                                 <SegmentedControl
                                     aria-label="Harness"
                                     size={SegmentedControlSize.Small}
-                                    onChange={index => setDefaultHarness(info.harnesses[index].name)}
+                                    onChange={index => {
+                                        const name = info.harnesses[index].name;
+                                        bridge.setHarness(name === info.defaultHarness ? null : name);
+                                    }}
                                 >
                                     {info.harnesses.map(harness => (
                                         <SegmentedControl.Button
                                             key={harness.name}
-                                            selected={harness.name === info.defaultHarness}
+                                            selected={harness.name === pickedHarness}
                                             disabled={harness.program == null}
                                             title={harness.program == null ? `${harness.command[0]} is not installed` : undefined}
                                             data-testid="agent-settings-harness"

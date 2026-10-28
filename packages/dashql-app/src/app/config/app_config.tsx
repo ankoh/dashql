@@ -32,6 +32,8 @@ export interface AppSettings {
     agentSessions?: string[];
     /// The port of the local agent server, the build's default if unset
     agentPort?: number;
+    /// The harness that runs the requests of the agent, the default harness of the agent server if unset
+    agentHarness?: string;
 }
 
 export interface AppConfig {

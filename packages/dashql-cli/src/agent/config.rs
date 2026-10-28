@@ -238,13 +238,6 @@ fn read_stored_config(home: &Path) -> Result<Map<String, Value>, String> {
     }
 }
 
-/// Change the stored configuration. Overrides from the environment are never persisted.
-pub fn update_stored_config(home: &Path, patch: Map<String, Value>) -> Result<(), String> {
-    let mut stored = read_stored_config(home)?;
-    stored.extend(patch);
-    save_config(home, &stored)
-}
-
 fn save_config(home: &Path, config: &Map<String, Value>) -> Result<(), String> {
     write_private_file(&home.join("config.json"), &(to_json_text(&Value::Object(config.clone())) + "\n"))
 }
@@ -338,10 +331,8 @@ mod tests {
         load_config(&home, &no_env, false).unwrap();
         let env = |name: &str| (name == "DASHQL_AGENT_PORT").then(|| "4000".to_string());
         assert_eq!(load_config(&home, &env, false).unwrap().port, 4000);
-        update_stored_config(&home, Map::from_iter([("defaultHarness".to_string(), "codex".into())])).unwrap();
         let stored: Value = serde_json::from_str(&std::fs::read_to_string(home.join("config.json")).unwrap()).unwrap();
         assert_eq!(stored["port"], DEFAULT_PORT);
-        assert_eq!(stored["defaultHarness"], "codex");
         let bad = |name: &str| (name == "DASHQL_AGENT_PORT").then(|| "70000".to_string());
         assert!(load_config(&home, &bad, false).is_err());
     }
