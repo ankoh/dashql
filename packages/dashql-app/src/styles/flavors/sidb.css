@@ -34,6 +34,9 @@
 
     --focus_outline_color: var(--sidb_si_on_light);
 
+    /* Succeeded status indicators take the fresh green of the agent gradient */
+    --status_color_success: #34c46a;
+
     --nav_tab_bg_active: hsla(186, 40%, 50%, 30%);
 
     /* The agent runs from a fresh green over Lagoon into a Petrol blue, its accent is Verdigris.

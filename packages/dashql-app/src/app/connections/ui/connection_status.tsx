@@ -3,6 +3,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import { ConnectionState } from '../connection_state.js';
 import { Button, ButtonVariant } from '../../../ui/foundations/button.js';
+import { STATUS_COLOR_FAILED, STATUS_COLOR_IN_PROGRESS, STATUS_COLOR_OTHER, STATUS_COLOR_SUCCESS } from '../../../ui/foundations/status_indicator.js';
 
 interface ButtonProps {
     sessionId?: string;
@@ -20,11 +21,11 @@ export const CONNECTION_HEALTH_NAMES: string[] = [
 ]
 
 export const CONNECTION_HEALTH_COLORS: string[] = [
-    "#6e7781",
-    "#9a6700",
-    "#6e7781",
-    "#1f883d",
-    "#cf222e",
+    STATUS_COLOR_OTHER,
+    STATUS_COLOR_IN_PROGRESS,
+    STATUS_COLOR_OTHER,
+    STATUS_COLOR_SUCCESS,
+    STATUS_COLOR_FAILED,
 ];
 
 export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
@@ -48,7 +49,7 @@ export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>
     ), [connectorIcon]);
     const StatusDotVisual = React.useCallback(() => (
         <svg width="8" height="8" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="4" cy="4" r="4" fill={connStatusColor} />
+            <circle cx="4" cy="4" r="4" style={{ fill: connStatusColor }} />
         </svg>
     ), [connStatusColor]);
 

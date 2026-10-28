@@ -14,10 +14,11 @@ export enum IndicatorStatus {
     Skip,
 }
 
-const STATUS_COLOR_IN_PROGRESS = '#9a6700';
-const STATUS_COLOR_SUCCESS = '#1f883d';
-const STATUS_COLOR_FAILED = '#cf222e';
-const STATUS_COLOR_OTHER = '#6e7781';
+// The status colors are theme tokens of globals.css, flavors can override them
+export const STATUS_COLOR_IN_PROGRESS = 'var(--status_color_in_progress)';
+export const STATUS_COLOR_SUCCESS = 'var(--status_color_success)';
+export const STATUS_COLOR_FAILED = 'var(--status_color_failed)';
+export const STATUS_COLOR_OTHER = 'var(--status_color_other)';
 
 function getIndicatorColor(status: IndicatorStatus): string {
     switch (status) {
@@ -83,6 +84,7 @@ export interface StatusIndicatorProps {
 }
 
 export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusIndicatorProps) => {
+    // SVG presentation attributes cannot resolve var(), the svg therefore takes the color and the shapes paint with currentColor
     const fill = props.fill || getIndicatorColor(props.status);
     let element = <div />;
     switch (props.status) {
@@ -90,16 +92,17 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
             element = (
                 <svg
                     className={classNames(props.className)}
+                    style={{ color: fill }}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
                     viewBox="-8 -8 16 16"
                     fill="none"
-                    stroke={fill}
+                    stroke="currentColor"
                     strokeWidth="2"
                 >
                     <g fill="none" fillRule="evenodd">
                         <circle cx="0" cy="0" r="7" opacity=".5"></circle>
-                        <circle cx="0" cy="0" r="4" strokeWidth="0" fill={fill}></circle>
+                        <circle cx="0" cy="0" r="4" strokeWidth="0" fill="currentColor"></circle>
                         <circle cx="0" cy="0" r="7" strokeDasharray="12, 88" className={styles.status_running_spinner} />
                     </g>
                 </svg>
@@ -110,15 +113,16 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
             element = (
                 <svg
                     className={classNames(props.className)}
+                    style={{ color: fill }}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
                     viewBox="-8 -8 16 16"
                     fill="none"
-                    stroke={fill}
+                    stroke="currentColor"
                     strokeWidth="2"
                 >
                     <g fill="none" fillRule="evenodd">
-                        <circle cx="0" cy="0" r="4" opacity=".5" strokeWidth="0" fill={fill}></circle>
+                        <circle cx="0" cy="0" r="4" opacity=".5" strokeWidth="0" fill="currentColor"></circle>
                     </g>
                 </svg>
             );
@@ -127,6 +131,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
             element = (
                 <svg
                     className={classNames(props.className)}
+                    style={{ color: fill }}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
                     viewBox="-0.5 -0.5 17 17"
@@ -135,7 +140,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                 >
                     <g fill="none" fillRule="evenodd">
                         <path
-                            fill={fill}
+                            fill="currentColor"
                             fillRule="evenodd"
                             d="M2.343 13.657A8 8 0 1113.657 2.343 8 8 0 012.343 13.657zM6.03 4.97a.75.75 0 00-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 101.06 1.06L8 9.06l1.97 1.97a.75.75 0 101.06-1.06L9.06 8l1.97-1.97a.75.75 0 10-1.06-1.06L8 6.94 6.03 4.97z"
                         ></path>
@@ -147,6 +152,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
             element = (
                 <svg
                     className={classNames(props.className)}
+                    style={{ color: fill }}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
                     viewBox="-0.5 -0.5 17 17"
@@ -155,7 +161,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                 >
                     <g fill="none" fillRule="evenodd">
                         <path
-                            fill={fill}
+                            fill="currentColor"
                             fillRule="evenodd"
                             d="M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z"
                         ></path>
@@ -167,6 +173,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
             element = (
                 <svg
                     className={classNames(props.className)}
+                    style={{ color: fill }}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
                     viewBox="-0.5 -0.5 17 17"
@@ -175,7 +182,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                 >
                     <g fill="none" fillRule="evenodd">
                         <path
-                            fill={fill}
+                            fill="currentColor"
                             fillRule="evenodd"
                             d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.333-2.167a.825.825 0 0 0-1.166-1.166l-5.5 5.5a.825.825 0 0 0 1.166 1.166Z"
                         ></path>
@@ -200,11 +207,12 @@ export const BinaryStatusIndicator: React.FC<BinaryStatusIndicatorProps> = (prop
     return (
         <svg
             className={classNames(props.className)}
+            style={{ color: fill }}
             width={props.width || '24px'}
             height={props.height || '24px'}
             viewBox="-8 -8 16 16"
             fill="none"
-            stroke={fill}
+            stroke="currentColor"
             strokeWidth="2"
         >
             <g fill="none" fillRule="evenodd">
@@ -214,7 +222,7 @@ export const BinaryStatusIndicator: React.FC<BinaryStatusIndicatorProps> = (prop
                         cy="0"
                         r="4"
                         strokeWidth="0"
-                        fill={fill}
+                        fill="currentColor"
                         className={styles.status_binary_pulse}
                     />
                 )}
@@ -224,7 +232,7 @@ export const BinaryStatusIndicator: React.FC<BinaryStatusIndicatorProps> = (prop
                     r="4"
                     opacity=".5"
                     strokeWidth="0"
-                    fill={fill}
+                    fill="currentColor"
                 />
             </g>
         </svg>

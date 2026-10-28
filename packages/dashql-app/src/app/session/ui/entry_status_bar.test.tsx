@@ -43,7 +43,7 @@ describe('EntryStatusBar', () => {
             act(() => root.render(
                 <EntryStatusBar status={{ kind: EntryStatusKind.Query, indicator, message: 'status', traceId: null, errorDetail: null }} dependencies={dependencies} />,
             ));
-            return container.querySelector('svg path')!.getAttribute('fill');
+            return container.querySelector('svg')!.style.color;
         };
         const succeeded = renderIndicatorFill(IndicatorStatus.Succeeded);
         const failed = renderIndicatorFill(IndicatorStatus.Failed);

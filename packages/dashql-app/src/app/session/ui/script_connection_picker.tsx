@@ -100,7 +100,7 @@ export function useAttachDefaultConnection(instance: core.DashQL, modifySessionS
 function HealthDot(props: { health: ConnectionHealth | null }) {
     return (
         <svg className={styles.health} width="16px" height="16px" viewBox="0 0 16 16" aria-hidden="true">
-            <circle cx="8" cy="8" r="4" fill={CONNECTION_HEALTH_COLORS[props.health ?? ConnectionHealth.NOT_STARTED]} />
+            <circle cx="8" cy="8" r="4" style={{ fill: CONNECTION_HEALTH_COLORS[props.health ?? ConnectionHealth.NOT_STARTED] }} />
         </svg>
     );
 }

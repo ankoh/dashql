@@ -877,7 +877,7 @@ export const ConnectionStatusButton: React.FC<ConnectionStatusButtonProps> = ({ 
             {health === ConnectionHealth.CONNECTING
                 ? <StatusIndicator status={IndicatorStatus.Running} width="14px" height="14px" />
                 : <svg width="14px" height="14px" viewBox="0 0 16 16" aria-hidden="true" data-testid="connection-health-dot">
-                    <circle cx="8" cy="8" r="4" fill={CONNECTION_HEALTH_COLORS[health] ?? CONNECTION_HEALTH_COLORS[ConnectionHealth.NOT_STARTED]} />
+                    <circle cx="8" cy="8" r="4" style={{ fill: CONNECTION_HEALTH_COLORS[health] ?? CONNECTION_HEALTH_COLORS[ConnectionHealth.NOT_STARTED] }} />
                 </svg>}
         </IconButton>
     );

@@ -35,6 +35,12 @@
     --button_primary_bg_hover: #1a7f37;
     --button_primary_bg_disabled: #94d3a2;
 
+    /* The colors of status indicators, like the status icons of scripts and the health dots of connections */
+    --status_color_in_progress: #9a6700;
+    --status_color_success: #1f883d;
+    --status_color_failed: #cf222e;
+    --status_color_other: #6e7781;
+
     --background_color_80: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 24%);
     --background_color_100: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
     --background: radial-gradient(circle at 50% 50%, var(--background_color_80) 20%, transparent 80%),

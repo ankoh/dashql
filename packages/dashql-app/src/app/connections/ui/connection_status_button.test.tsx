@@ -32,7 +32,7 @@ describe('Connection status button', () => {
     }
 
     function dotFill(button: HTMLButtonElement): string | null {
-        return button.querySelector('[data-testid="connection-health-dot"] circle')?.getAttribute('fill') ?? null;
+        return button.querySelector<SVGElement>('[data-testid="connection-health-dot"] circle')?.style.fill || null;
     }
 
     it('shows the health without a label and opens the settings on click', () => {

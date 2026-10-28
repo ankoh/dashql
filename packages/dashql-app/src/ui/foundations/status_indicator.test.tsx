@@ -24,7 +24,7 @@ describe('StatusIndicator', () => {
 
     function renderColor(element: React.ReactElement): string | null {
         act(() => root.render(element));
-        return container.querySelector('svg [fill]:not([fill="none"])')?.getAttribute('fill') ?? null;
+        return container.querySelector('svg')?.style.color ?? null;
     }
 
     it('distinguishes running, succeeded, and failed and shares a neutral color otherwise', () => {
