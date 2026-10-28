@@ -38,7 +38,7 @@ import {
 import { classNames } from '../../../utils/classnames.js';
 import { OPEN_SESSION, SELECT_SESSION, useRouteContext, useRouterNavigate } from '../../router/router.js';
 import { SessionSetupStatus } from '../../loading/session_setup_status.js';
-import { ConnectionState } from '../../connections/connection_state.js';
+import { ConnectionState, RENAME_CONNECTION } from '../../connections/connection_state.js';
 import {
     findSessionQueries,
     useConnectionReferences,
@@ -418,7 +418,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES;
     const navigate = dependencies.useRouterNavigate();
     const route = dependencies.useRouteContext();
-    const [databaseRegistry] = dependencies.useDynamicConnectionDispatch();
+    const [databaseRegistry, connectionDispatch] = dependencies.useDynamicConnectionDispatch();
     const [scriptsRegistry, setScriptsRegistry] = dependencies.useSessionScriptsRegistry();
     const [, setDatabaseRegistry] = dependencies.useConnectionRegistry();
     const references = dependencies.useConnectionReferences();
@@ -599,6 +599,11 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         connectionSettingsAnchorRef.current = createConnectionButtonRef.current;
         setConnectionOverlayDatabaseId(database.connectionId);
     }, [allocateConnection, dependencies, props.sessionScripts.instance]);
+
+    /// Rename a connection, a blank name restores the default label
+    const renameConnection = React.useCallback((connectionId: string, name: string) => {
+        connectionDispatch(connectionId, { type: RENAME_CONNECTION, value: name });
+    }, [connectionDispatch]);
 
     /// Delete a connection that no script uses.
     /// The sessions whose new scripts default to the connection are detached from it first.
@@ -879,6 +884,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                     {connectionRows.length > 0 && <ConnectionTree
                         databases={connectionRows}
                         describeUsage={describeUsage}
+                        onRename={renameConnection}
                         onDelete={deleteConnection}
                         onDetach={detachConnection}
                         mergeCandidateCount={mergeCandidateCount}

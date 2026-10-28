@@ -85,6 +85,8 @@ export interface ConnectionState {
     connectionHealth: ConnectionHealth;
     /// The connection info
     connectorInfo: ConnectorInfo;
+    /// The name the user gave the connection, the label falls back to the connector without it
+    name?: string;
 
     /// The connection details
     details: ConnectionStateDetailsVariant;
@@ -209,6 +211,7 @@ export const HEALTH_CHECK_FAILED = Symbol('HEALTH_CHECK_FAILED');
 export const SET_CONNECTION_DRAFT = Symbol('SET_CONNECTION_DRAFT');
 export const DISCARD_CONNECTION_DRAFT = Symbol('DISCARD_CONNECTION_DRAFT');
 export const COMMIT_CONNECTION_PARAMS = Symbol('COMMIT_CONNECTION_PARAMS');
+export const RENAME_CONNECTION = Symbol('RENAME_CONNECTION');
 
 export type CatalogAction =
     | VariantKind<typeof SET_CATALOG_SCRIPT, core.DashQLScript>
@@ -234,6 +237,7 @@ export type ConnectionAction =
     | VariantKind<typeof SET_CONNECTION_DRAFT, ConnectionParams>
     | VariantKind<typeof DISCARD_CONNECTION_DRAFT, null>
     | VariantKind<typeof COMMIT_CONNECTION_PARAMS, ConnectionParams>
+    | VariantKind<typeof RENAME_CONNECTION, string>
     | VariantKind<typeof DELETE_CONNECTION, null>
     | VariantKind<typeof RESET_CONNECTION, null>
     | VariantKind<typeof SWITCH_CONNECTOR_TYPE, ConnectorType>
@@ -261,6 +265,12 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 || connectionParamsEqual(connectionParamsWithoutDraftRows(state.paramsDraft), params);
             if (connectionParamsEqual(state.params, params) && (state.paramsDraft == null || !draftSaved)) return state;
             return { ...state, params, paramsDraft: draftSaved ? undefined : state.paramsDraft };
+        }
+        // A blank name clears the name
+        case RENAME_CONNECTION: {
+            const name = action.value.trim() || undefined;
+            if (name === state.name) return state;
+            return { ...state, name };
         }
         case DISCARD_CONNECTION_DRAFT: {
             if (state.connectionHealth === ConnectionHealth.CONNECTING) return state;

@@ -46,12 +46,13 @@ describe('ConnectionRowMenu', () => {
         container.remove();
     });
 
-    function renderMenu(onOpenSettings = vi.fn()) {
+    function renderMenu(onOpenSettings = vi.fn(), onRename?: () => void) {
         act(() => root.render(
             <ConnectionRowMenu
                 database={database()}
                 label="Hyper / WASM"
                 onOpenSettings={onOpenSettings}
+                onRename={onRename}
                 dependencies={dependencies}
             />,
         ));
@@ -72,6 +73,20 @@ describe('ConnectionRowMenu', () => {
         clickAction('settings');
 
         expect(onOpenSettings).toHaveBeenCalledWith(expect.any(HTMLButtonElement));
+    });
+
+    it('renames the connection from the intermediary menu', () => {
+        const onRename = vi.fn();
+        renderMenu(vi.fn(), onRename);
+        clickAction('rename');
+
+        expect(onRename).toHaveBeenCalledOnce();
+    });
+
+    it('offers no rename without a handler', () => {
+        renderMenu();
+
+        expect(document.querySelector('[data-testid="connection-menu-item"][data-action="rename"]')).toBeNull();
     });
 
     it('forces a catalog refresh from the intermediary menu', () => {

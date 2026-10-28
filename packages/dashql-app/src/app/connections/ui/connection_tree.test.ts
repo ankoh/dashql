@@ -40,6 +40,20 @@ describe('connection labels', () => {
         expect(connectionLabelParts(database)).toEqual({ name: 'Hyper', connector: 'Hyper', detail: 'Http' });
     });
 
+    it('labels a named connection by its name instead of its connector and ordinal', () => {
+        const database = {
+            name: 'Production',
+            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
+            details: {
+                type: HYPER_CONNECTOR,
+                value: { proto: { setupParams: { protocol: 'V3_HTTP' } } },
+            },
+        } as ConnectionState;
+
+        expect(connectionLabel(database, 2)).toBe('Production Http');
+        expect(connectionLabelParts(database, 2)).toEqual({ name: 'Production', connector: 'Hyper', detail: 'Http' });
+    });
+
     it('renders Memory first and initially collapses it only when another database exists', () => {
         const memory = {
             connectionId: 'memory',

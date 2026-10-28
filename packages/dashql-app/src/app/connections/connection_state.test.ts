@@ -7,6 +7,7 @@ import {
     DELETE_CONNECTION,
     RESET_CONNECTION,
     reduceConnectionState,
+    RENAME_CONNECTION,
     UPDATE_CATALOG,
     type ConnectionState,
 } from './connection_state.js';
@@ -155,5 +156,17 @@ describe('catalog changes of executed statements', () => {
         }, new TestLogger());
         database = reduceConnectionState(database, { type: CATALOG_UPDATE_SUCCEEDED, value: [1] }, new TestLogger());
         expect(database.catalogChangesSql).toBe('');
+    });
+});
+
+describe('connection names', () => {
+    it('trims the name, keeps the state for the same name and clears it with a blank name', () => {
+        const logger = new TestLogger();
+        const unnamed = state();
+        const named = reduceConnectionState(unnamed, { type: RENAME_CONNECTION, value: '  Production  ' }, logger);
+        expect(named.name).toBe('Production');
+        expect(reduceConnectionState(named, { type: RENAME_CONNECTION, value: 'Production' }, logger)).toBe(named);
+        expect(reduceConnectionState(named, { type: RENAME_CONNECTION, value: '   ' }, logger).name).toBeUndefined();
+        expect(reduceConnectionState(unnamed, { type: RENAME_CONNECTION, value: '' }, logger)).toBe(unnamed);
     });
 });

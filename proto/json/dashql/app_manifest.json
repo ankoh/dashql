@@ -47,6 +47,10 @@
           "$ref": "connection.json#/definitions/ConnectionParams",
           "description": "Unsaved edits of the connection parameters, including incomplete or invalid settings. Never replicated into sessions."
         },
+        "name": {
+          "type": "string",
+          "description": "The name the user gave the connection, absent for the default label"
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

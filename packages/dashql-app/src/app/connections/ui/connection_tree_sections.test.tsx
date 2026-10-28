@@ -106,4 +106,62 @@ describe('ConnectionTree sections', () => {
         act(() => query('hyper-1', 'connection-toggle')!.click());
         expect(catalogToggle()).toBeNull();
     });
+
+    describe('renaming', () => {
+        const nameInput = () => container.querySelector<HTMLInputElement>('input[aria-label="Connection name"]');
+
+        function doubleClickName(connectionId: string): void {
+            act(() => query(connectionId, 'connection-toggle')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+        }
+
+        function pressKey(input: HTMLInputElement, key: string): void {
+            act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })));
+        }
+
+        it('renames a connection after double-clicking its name', () => {
+            const onRename = vi.fn();
+            render({ onRename });
+            doubleClickName('hyper-1');
+
+            const input = nameInput()!;
+            expect(document.activeElement).toBe(input);
+            expect(input.placeholder).toBe('Hyper');
+            input.value = 'Production';
+            pressKey(input, 'Enter');
+
+            expect(onRename).toHaveBeenCalledWith('hyper-1', 'Production');
+            expect(nameInput()).toBeNull();
+        });
+
+        it('abandons the rename with Escape', () => {
+            const onRename = vi.fn();
+            render({ onRename });
+            doubleClickName('trino-1');
+
+            const input = nameInput()!;
+            input.value = 'Production';
+            pressKey(input, 'Escape');
+
+            expect(onRename).not.toHaveBeenCalled();
+            expect(nameInput()).toBeNull();
+        });
+
+        it('renames a connection from the row menu', () => {
+            const onRename = vi.fn();
+            render({ onRename });
+            act(() => query('hyper-1', 'connection-row-menu')!.click());
+            act(() => document.querySelector<HTMLElement>('[data-testid="connection-menu-item"][data-action="rename"]')!.click());
+
+            // Closing the menu must not take the focus from the input
+            expect(nameInput()).not.toBeNull();
+            expect(document.activeElement).toBe(nameInput());
+        });
+
+        it('offers no rename without a handler', () => {
+            render();
+            doubleClickName('hyper-1');
+
+            expect(nameInput()).toBeNull();
+        });
+    });
 });

@@ -18,6 +18,7 @@ import {
     type DynamicConnectionDispatch,
     ConnectionRegistry as ConnectionRegistryProvider,
     ConnectionReferencesProvider,
+    connectionEntryFromState,
     didPersistedConnectionChange,
     resolveSessionConnections,
     resolveDefaultConnection,
@@ -104,6 +105,14 @@ describe('session manifest persistence', () => {
             state(true, 'https://db.example.com'),
             state(true, 'https://other.example.com'),
         )).toBe(true);
+    });
+
+    it('persists the name in the app manifest entry', () => {
+        const prev = state(true, 'https://db.example.com');
+        const next = { ...prev, name: 'Production' };
+        expect(didPersistedConnectionChange(prev, next)).toBe(true);
+        expect(connectionEntryFromState(next).name).toBe('Production');
+        expect('name' in connectionEntryFromState(prev)).toBe(false);
     });
 });
 

@@ -15,7 +15,7 @@ export function supportsConnectionOverview(database: ConnectionState): boolean {
 
 /// The label of a connection, its name and the protocol it speaks
 export interface ConnectionLabelParts {
-    /// The name of the connection, e.g. "Hyper" or "Hyper #2"
+    /// The name of the connection, e.g. "Hyper", "Hyper #2" or the name the user gave it
     name: string;
     /// The name of the connector, e.g. "Hyper"
     connector: string;
@@ -29,8 +29,8 @@ function protocolLabel(protocol: string | undefined): string {
 }
 
 /// The parts of the label of a connection.
-/// A connection is called after its connector, the ordinal tells it apart from other connections
-/// of the same connector, see `connectionOrdinals`.
+/// A connection is called by the name the user gave it, otherwise after its connector. The ordinal
+/// tells it apart from other connections of the same connector, see `connectionOrdinals`.
 export function connectionLabelParts(database: ConnectionState, ordinal: number | null = null): ConnectionLabelParts {
     let detail = 'Http';
     if (database.details.type === HYPER_CONNECTOR) {
@@ -39,7 +39,7 @@ export function connectionLabelParts(database: ConnectionState, ordinal: number 
         detail = protocolLabel(database.details.value.proto.setupParams?.hyperProtocol ?? 'V3_HTTP');
     }
     const connector = database.connectorInfo.names.displayLong;
-    return { name: ordinal == null ? connector : `${connector} #${ordinal}`, connector, detail };
+    return { name: database.name ?? (ordinal == null ? connector : `${connector} #${ordinal}`), connector, detail };
 }
 
 /// The label of a connection as plain text, e.g. "Hyper #2 Local"

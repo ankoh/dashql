@@ -10,12 +10,14 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/b
 import { IndicatorStatus, StatusIndicator } from '../../../ui/foundations/status_indicator.js';
 import { observeSize } from '../../../ui/foundations/size_observer.js';
 import { VerticalScrollShadows } from '../../../ui/foundations/vertical_scroll_shadows.js';
+import { NameInput } from '../../../ui/foundations/name_input.js';
 import {
     ChevronDownIcon,
     ChevronRightIcon,
     DashboardIcon,
     DatabaseIcon,
     FileDirectoryIcon,
+    PencilIcon,
     SymbolIcon,
     SyncIcon,
     TableIcon,
@@ -214,6 +216,10 @@ interface ConnectionTreeEntryProps {
     className?: string;
     /// The test id of the main element
     testId?: string;
+    /// Double-click the entry, only for entries that collapse
+    onDoubleClick?: () => void;
+    /// An editor that replaces the name, e.g. while renaming
+    editor?: React.ReactNode;
 }
 
 const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
@@ -228,6 +234,8 @@ const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
     children,
     className,
     testId,
+    onDoubleClick,
+    editor,
 }) => {
     const collapsible = onToggle != null;
     return (
@@ -241,7 +249,15 @@ const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
             )}
             style={{ paddingLeft: `${depth === 0 ? 8 : depth * 12}px` }}
         >
-            {collapsible ? (
+            {editor != null ? (
+                <div className={styles.tree_entry_main} data-testid={testId}>
+                    {collapsible
+                        ? (expanded ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />)
+                        : <span className={styles.tree_entry_spacer} />}
+                    <span className={styles.tree_entry_icon} aria-hidden="true">{icon}</span>
+                    {editor}
+                </div>
+            ) : collapsible ? (
                 <button
                     type="button"
                     className={classNames(styles.tree_entry_main, styles.tree_entry_toggle)}
@@ -249,6 +265,7 @@ const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
                     aria-expanded={expanded}
                     aria-label={`${expanded ? 'Collapse' : 'Expand'} ${name}`}
                     onClick={onToggle}
+                    onDoubleClick={onDoubleClick}
                 >
                     {expanded ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />}
                     <span className={styles.tree_entry_icon} aria-hidden="true">{icon}</span>
@@ -279,6 +296,37 @@ const ConnectionTreeEntry: React.FC<ConnectionTreeEntryProps> = ({
     );
 };
 
+interface ConnectionRenameInputProps {
+    /// The renamed connection
+    database: ConnectionState;
+    /// The placeholder while the connection has no name
+    placeholder: string;
+    /// Commit the name, blank input means no name
+    onCommit: (name: string) => void;
+    /// Abandon the rename
+    onCancel: () => void;
+}
+
+/// The name of a connection as an input, focused and selected when it appears
+const ConnectionRenameInput: React.FC<ConnectionRenameInputProps> = ({ database, placeholder, onCommit, onCancel }) => {
+    const inputRef = React.useRef<HTMLInputElement>(null);
+    React.useEffect(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+    }, []);
+    return (
+        <NameInput
+            ref={inputRef}
+            className={styles.connection_rename_input}
+            name={database.name ?? null}
+            onCommit={onCommit}
+            onCancel={onCancel}
+            ariaLabel="Connection name"
+            placeholder={placeholder}
+        />
+    );
+};
+
 interface ConnectionTreeRowProps {
     rows: ConnectionTreeRow[];
     expanded: ReadonlySet<string>;
@@ -295,6 +343,12 @@ interface ConnectionTreeRowProps {
     onOpenOverview?: (connectionId: string) => void;
     /// The connection whose overview is open
     openOverviewId: string | null;
+    /// Rename a connection, connections can't be renamed without it
+    onRename?: (connectionId: string, name: string) => void;
+    /// The connection that is being renamed
+    renamingId: string | null;
+    /// Start or stop renaming a connection
+    setRenamingId: (connectionId: string | null) => void;
 }
 
 /// How sessions use a connection
@@ -346,6 +400,9 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
         const labelParts = props.labelOf(row.database);
         const label = connectionLabelText(labelParts);
         const usage = props.describeUsage?.(row.database.connectionId) ?? null;
+        const connectionId = row.database.connectionId;
+        const onRename = props.onRename;
+        const startRename = onRename == null ? undefined : () => props.setRenamingId(connectionId);
         return (
             <div
                 style={props.style}
@@ -364,6 +421,20 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     depth={0}
                     expanded={expanded}
                     onToggle={() => props.onToggle(row.key)}
+                    onDoubleClick={startRename}
+                    editor={onRename != null && props.renamingId === connectionId
+                        ? (
+                            <ConnectionRenameInput
+                                database={row.database}
+                                placeholder={labelParts.connector}
+                                onCommit={name => {
+                                    props.setRenamingId(null);
+                                    onRename(connectionId, name);
+                                }}
+                                onCancel={() => props.setRenamingId(null)}
+                            />
+                        )
+                        : undefined}
                     icon={(
                         <svg width="14" height="14">
                             <use xlinkHref={`${symbols}#${row.database.connectorInfo.icons.colored}`} />
@@ -381,6 +452,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         database={row.database}
                         label={label}
                         onOpenSettings={anchor => props.onOpenSettings(row.database.connectionId, anchor)}
+                        onRename={startRename}
                         onDelete={props.onDelete == null || usage == null ? undefined : () => props.onDelete!(row.database.connectionId)}
                         // The embedded Hyper is the connection that a session falls back to
                         onDetach={props.onDetach == null || usage?.usedHere !== true || isHyperWasmConnection(row.database)
@@ -477,6 +549,8 @@ interface ConnectionTreeProps {
     onOpenOverview?: (connectionId: string) => void;
     /// The connection whose overview is open
     openOverviewId?: string | null;
+    /// Rename a connection, a blank name restores the default label. Connections can't be renamed without it
+    onRename?: (connectionId: string, name: string) => void;
 }
 
 const connectionKey = (connectionId: string) => `connection:${connectionId}`;
@@ -521,6 +595,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     attention = false,
     onOpenOverview,
     openOverviewId = null,
+    onRename,
 }) => {
     // The database states change with every query event while the catalogs rarely change.
     // A catalog caches its snapshot until it is modified (which destroys the snapshot), so the snapshot identity
@@ -599,6 +674,8 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         }
         return next;
     }, [databases, catalogRows, describeUsage, expanded, onOpenOverview, sessionConnectionIds]);
+    // The rows are virtualized, the tree remembers the renamed connection while its row scrolls out of view
+    const [renamingId, setRenamingId] = React.useState<string | null>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
     const size = observeSize(containerRef);
     const listRef = useListRef(null);
@@ -625,7 +702,10 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         attention,
         onOpenOverview,
         openOverviewId,
-    }), [attention, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onDetach, onMerge, onOpenOverview, onOpenSettings, openOverviewId, rows, toggle]);
+        onRename,
+        renamingId,
+        setRenamingId,
+    }), [attention, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onDetach, onMerge, onOpenOverview, onOpenSettings, onRename, openOverviewId, renamingId, rows, toggle]);
     return (
         <div ref={containerRef} className={styles.database_list} aria-label="Connections and catalogs">
             <List
@@ -671,6 +751,8 @@ interface ConnectionRowMenuProps {
     database: ConnectionState;
     label: string;
     onOpenSettings: (anchor: HTMLButtonElement) => void;
+    /// Rename the connection
+    onRename?: () => void;
     /// Delete the connection, only possible if no session keeps it
     onDelete?: () => void;
     /// Detach the connection from the current session, only possible if no script of the session uses it
@@ -694,7 +776,7 @@ const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
     useCatalogLoaderQueue,
 };
 
-export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onDelete, onDetach, onMerge, mergeCandidateCount = 0, sessionCount = 0, scriptCount = 0, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
+export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onDetach, onMerge, mergeCandidateCount = 0, sessionCount = 0, scriptCount = 0, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const refreshCatalog = dependencies.useCatalogLoaderQueue();
@@ -731,6 +813,16 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
         >
             <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${label}`}>
                 <ActionList.List aria-label={`Actions for ${label}`}>
+                    {/* The list takes elements only, the fragment wraps the optional item */}
+                    <>{onRename && (
+                        <ActionList.ListItem data-testid="connection-menu-item" data-action="rename" onClick={() => {
+                            setOpen(false);
+                            onRename();
+                        }}>
+                            <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>Rename</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
                     <ActionList.ListItem data-testid="connection-menu-item" data-action="settings" onClick={() => {
                         const anchor = triggerRef.current;
                         setOpen(false);

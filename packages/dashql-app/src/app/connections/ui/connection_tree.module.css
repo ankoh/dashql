@@ -100,6 +100,25 @@
     white-space: nowrap;
 }
 
+.connection_rename_input {
+    appearance: none;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 1px 4px;
+    margin-left: -5px;
+    border: 1px solid var(--focus_border_color);
+    border-radius: var(--border_radius);
+    background-color: var(--input_bg, #ffffff);
+    color: inherit;
+    font-family: var(--font_family);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.connection_rename_input:focus {
+    outline: none;
+}
+
 .tree_entry_children {
     display: flex;
     align-items: center;
