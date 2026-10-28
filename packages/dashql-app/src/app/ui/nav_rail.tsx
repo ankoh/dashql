@@ -49,8 +49,6 @@ export const NavRailButton = ({ label, active, className, children, ...props }: 
 );
 
 interface NavRailProps {
-    /// Shown above the areas, e.g. the logo
-    header?: React.ReactNode;
     /// Shown at the bottom, e.g. the actions of the navbar
     footer?: React.ReactNode;
 }
@@ -64,7 +62,6 @@ export const NavRail = (props: NavRailProps): React.ReactElement => {
         // Electron excludes the buttons via the global no-drag rules
         <nav className={styles.rail} aria-label="Areas" data-electron-drag-region>
             <div className={styles.group}>
-                {props.header != null && <div className={styles.header}>{props.header}</div>}
                 <NavRailButton label="Workspace" active={workspaceActive} aria-current={workspaceActive ? 'page' : undefined} onClick={openWorkbench}>
                     <svg width="16px" height="16px" aria-hidden="true">
                         <use xlinkHref={`${symbols}#database`} />

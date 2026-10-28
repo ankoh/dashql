@@ -14,27 +14,54 @@
 
 .container {
     --nav_bar_width: 48px;
-    --nav_bar_top_inset: 0px;
+    --nav_bar_top_height: 32px;
+    position: relative;
     display: grid;
-    grid-template-rows: minmax(0, 1fr);
+    grid-template-rows: var(--nav_bar_top_height) minmax(0, 1fr);
     grid-template-columns: var(--nav_bar_width) minmax(0, 1fr);
     height: 100%;
 }
 
-/* The traffic lights of the desktop app on macOS are wider than the rail, see trafficLightPosition in dashql-native.
-   The rail insets the logo below them and the page card cuts a notch out of its top left corner for the rest.
-   Pages clear the notch with --page_notch_width and --page_notch_height. */
-.container_mac {
-    --nav_bar_top_inset: 40px;
-    --page_notch_width: 28px;
-    --page_notch_height: 40px;
-    position: relative;
+/* The dark stripe above the rail and the page card with the brand on the left and the version on the right */
+.top_bar {
+    grid-row: 1;
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    /* Centers a square logo of 24px over the buttons of the rail */
+    padding: 0 4px 0 12px;
+}
+
+/* The brand follows the traffic lights of the desktop app on macOS, see trafficLightPosition in dashql-native */
+.top_bar_mac {
+    padding-left: 84px;
+}
+
+.top_bar .brand_identity {
+    margin-left: 0;
+    padding-left: 0;
+}
+
+/* The version is a size smaller in the stripe than in the compact navbar */
+.top_bar .tab {
+    height: 24px;
+}
+
+.top_bar .tab_button {
+    padding: 0 6px;
+    column-gap: 6px;
+}
+
+.top_bar .tab_button_text {
+    font-size: var(--font_size_caption);
 }
 
 /* Stand-ins for the traffic lights in the browser, placed like trafficLightPosition in dashql-native */
 .traffic_lights {
     position: absolute;
-    top: 13px;
+    top: 10px;
     left: 12px;
     display: flex;
     column-gap: 8px;
@@ -60,15 +87,6 @@
     background: #28c840;
 }
 
-/* The notch rounds like the card, the tile draws the corners and the two gradients the rest of the card.
-   The gradients overlap the tile by a pixel to leave no seam. The tile is 28px + 8px wide and 40px + 8px tall. */
-.container_mac .page_container {
-    mask:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='48'%3E%3Cpath d='M36 0V48H0A8 8 0 0 1 8 40H20A8 8 0 0 0 28 32V8A8 8 0 0 1 36 0Z'/%3E%3C/svg%3E") 0 0 / 36px 48px no-repeat,
-        linear-gradient(#000 0 0) 35px 0 / 100% 100% no-repeat,
-        linear-gradient(#000 0 0) 0 47px / 100% 100% no-repeat;
-}
-
 .navbar_mac {
     color: rgb(255, 255, 255);
     line-height: 24px;
@@ -91,31 +109,6 @@
     display: grid;
     grid-template-columns: max-content auto max-content;
     grid-template-rows: var(--nav_bar_height);
-}
-
-.brand_logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 32px;
-    height: 32px;
-    padding: 4px;
-    border: 0;
-    color: white;
-    fill: white;
-    background: transparent;
-    cursor: pointer;
-}
-
-.brand_logo svg {
-    display: block;
-    color: inherit;
-    fill: inherit;
-}
-
-.brand_logo:focus-visible {
-    outline: 2px solid white;
-    outline-offset: -2px;
 }
 
 .brand_mark {
@@ -238,7 +231,7 @@
 }
 
 .page_container {
-    grid-row: 1;
+    grid-row: 2;
     grid-column: 2;
     height: 100%;
     width: 100%;

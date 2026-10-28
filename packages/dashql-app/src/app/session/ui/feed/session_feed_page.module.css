@@ -10,8 +10,8 @@
     height: 100%;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
-    /* The card meets the window on the top, the right and the bottom, only the corners next to the nav rail round */
-    border-radius: var(--border_radius) 0 0 var(--border_radius);
+    /* The card meets the window on the right and the bottom, the corners below the stripe and next to the nav rail round */
+    border-radius: var(--border_radius) var(--border_radius) 0 var(--border_radius);
     overflow: hidden;
 }
 
@@ -71,13 +71,6 @@
     padding: 0 8px;
     border-bottom: 1px solid var(--border_color_primary);
     background: white;
-}
-
-/* Without the sidebar, the bar sits in the top left corner of the page card, clear of its notch on macOS */
-@media only screen and (max-width: 799px) {
-    .view_bar {
-        padding-left: calc(8px + var(--page_notch_width, 0px));
-    }
 }
 
 @media only screen and (min-width: 800px) {

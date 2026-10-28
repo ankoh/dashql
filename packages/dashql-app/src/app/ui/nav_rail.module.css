@@ -1,13 +1,13 @@
-/* The rail sits on the dark chrome of the app, framing the page card on the left */
+/* The rail sits on the dark chrome of the app, framing the page card on the left below the stripe at the top */
 .rail {
-    grid-row: 1;
+    grid-row: 2;
     grid-column: 1;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
     min-height: 0;
-    padding: calc(var(--nav_bar_top_inset, 0px) + 4px) 0 8px;
+    padding: 12px 0 8px;
     box-sizing: border-box;
 }
 
@@ -16,11 +16,6 @@
     flex-direction: column;
     align-items: center;
     row-gap: 4px;
-}
-
-/* Sets the areas apart from the logo above */
-.header {
-    margin-bottom: 12px;
 }
 
 .button {

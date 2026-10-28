@@ -347,9 +347,12 @@ function VersionRefreshButton(props: {onRefresh: () => void}) {
 
 interface VersionCheckIndicatorProps {
     status: VersionCheckStatusCode;
+    /// The size of the package icon in px, 16 by default, the badge of the status keeps its size
+    size?: number;
 }
 
 export function VersionCheckIndicator(props: VersionCheckIndicatorProps) {
+    const size = `${props.size ?? 16}px`;
     switch (props.status) {
         case VersionCheckStatusCode.Unknown:
         case VersionCheckStatusCode.Disabled:
@@ -357,7 +360,7 @@ export function VersionCheckIndicator(props: VersionCheckIndicatorProps) {
             return (
                 <div className={styles.version_check_container}>
                     <div className={styles.version_check_icon}>
-                        <svg width="16px" height="16px">
+                        <svg width={size} height={size}>
                             <use xlinkHref={`${symbols}#package`} />
                         </svg>
                     </div>
@@ -367,7 +370,7 @@ export function VersionCheckIndicator(props: VersionCheckIndicatorProps) {
             return (
                 <div className={styles.version_check_container_with_indicator}>
                     <div className={styles.version_check_icon}>
-                        <svg width="16px" height="16px">
+                        <svg width={size} height={size}>
                             <use xlinkHref={`${symbols}#package_cut_24`} />
                         </svg>
                     </div>
@@ -382,7 +385,7 @@ export function VersionCheckIndicator(props: VersionCheckIndicatorProps) {
             return (
                 <div className={styles.version_check_container_with_indicator}>
                     <div className={styles.version_check_icon}>
-                        <svg width="16px" height="16px">
+                        <svg width={size} height={size}>
                             <use xlinkHref={`${symbols}#package_cut_24`} />
                         </svg>
                     </div>
@@ -397,7 +400,7 @@ export function VersionCheckIndicator(props: VersionCheckIndicatorProps) {
             return (
                 <div className={styles.version_check_container_with_indicator}>
                     <div className={styles.version_check_icon}>
-                        <svg width="16px" height="16px">
+                        <svg width={size} height={size}>
                             <use xlinkHref={`${symbols}#package_cut_24`} />
                         </svg>
                     </div>
@@ -412,7 +415,7 @@ export function VersionCheckIndicator(props: VersionCheckIndicatorProps) {
             return (
                 <div className={styles.version_check_container_with_indicator}>
                     <div className={styles.version_check_icon}>
-                        <svg width="16px" height="16px">
+                        <svg width={size} height={size}>
                             <use xlinkHref={`${symbols}#package_cut_24`} />
                         </svg>
                     </div>

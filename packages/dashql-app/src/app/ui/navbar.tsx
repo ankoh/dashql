@@ -18,7 +18,7 @@ import { useVersionCheck } from '../../platform/version/version_check.js';
 import { useLocation } from 'react-router-dom';
 import { SessionViewMode, useSessionViewMode } from '../session/ui/session_view_mode.js';
 import { FlavorLogo, useAppFlavor } from '../flavor/flavor_provider.js';
-import { NavRail, NavRailButton, useOpenWorkbench } from './nav_rail.js';
+import { NavRail, NavRailButton } from './nav_rail.js';
 import { useMacWindowLayout } from './mac_window_layout.js';
 
 const LOG_CTX = "navbar";
@@ -144,7 +144,7 @@ const SessionShellButton = (props: { placement: NavBarPlacement }) => {
     );
 };
 
-const VersionButton = (props: { placement: NavBarPlacement }) => {
+const VersionButton = (props: { placement: NavBarPlacement; iconSize?: number }) => {
     const [showVersionOverlay, setShowVersionOverlay] = React.useState<boolean>(false);
     const versionCheck = useVersionCheck();
 
@@ -158,7 +158,7 @@ const VersionButton = (props: { placement: NavBarPlacement }) => {
                         placement={props.placement}
                         anchor={p}
                         label={DASHQL_VERSION}
-                        icon={<VersionCheckIndicator status={versionCheck} />}
+                        icon={<VersionCheckIndicator status={versionCheck} size={props.iconSize} />}
                         onClick={() => setShowVersionOverlay(true)}
                     />
                 )}
@@ -176,15 +176,12 @@ const NavRailActions = () => {
             <AgentButton placement={NavBarPlacement.Rail} />
             {route.sessionId != null && <SessionShellButton placement={NavBarPlacement.Rail} />}
             <InternalsButton sessionId={route.sessionId} placement={NavBarPlacement.Rail} />
-            <VersionButton placement={NavBarPlacement.Rail} />
         </>
     );
 };
 
 /// The height of a wordmark in the navbar, a bit smaller than square logos to match the cap height of text
 const WORDMARK_HEIGHT = 16;
-/// The width of a wordmark in the rail, the narrowest rail leaves a margin of 6px on both sides
-const RAIL_WORDMARK_WIDTH = 36;
 
 /// The brand mark followed by the tagline of the flavor, sharing the baseline
 const BrandMark = (props: { children: React.ReactNode }) => {
@@ -200,20 +197,6 @@ const BrandMark = (props: { children: React.ReactNode }) => {
     );
 };
 
-/// The logo at the top of the rail, without the tagline that would not fit
-const BrandLogo = () => {
-    const flavor = useAppFlavor();
-    const openWorkbench = useOpenWorkbench();
-
-    return (
-        <button type="button" className={styles.brand_logo} aria-label="Open session workbench" onClick={openWorkbench}>
-            {flavor.logo.wordmark
-                ? <FlavorLogo width={RAIL_WORDMARK_WIDTH} ariaHidden />
-                : <FlavorLogo height={24} ariaHidden />}
-        </button>
-    );
-};
-
 const BrandIdentity = () => {
     const flavor = useAppFlavor();
     return (
@@ -224,6 +207,21 @@ const BrandIdentity = () => {
                     <FlavorLogo height={24} ariaHidden />
                     <BrandMark><span>{flavor.displayName}</span></BrandMark>
                 </>}
+        </div>
+    );
+};
+
+/// The height of a wordmark in the stripe at the top, a bit smaller than in the compact navbar
+const TOP_BAR_WORDMARK_HEIGHT = 14;
+
+/// The brand in the stripe at the top, the logo without the name and the tagline.
+/// A square logo is a bit larger without the traffic lights of macOS next to it.
+const TopBarBrand = (props: { mac: boolean }) => {
+    const flavor = useAppFlavor();
+    const height = flavor.logo.wordmark ? TOP_BAR_WORDMARK_HEIGHT : props.mac ? 22 : 24;
+    return (
+        <div className={styles.brand_identity} data-electron-drag-region>
+            <FlavorLogo height={height} ariaHidden />
         </div>
     );
 };
@@ -253,9 +251,9 @@ const TrafficLightPlaceholders = () => (
     </div>
 );
 
-/// The navbar is a rail left of the page card.
-/// On the desktop app on macOS, the traffic lights sit at the top of the rail, above the logo, and reach into a notch of the page card.
-/// The Mac Window Layout setting shows this layout in the browser.
+/// The navbar is a rail left of the page card below a dark stripe that holds the brand on the left and the version on the right.
+/// On the desktop app on macOS, the brand follows the traffic lights.
+/// The Mac Window Layout setting shows them in the browser.
 export function NavBarContainer(props: { children: React.ReactElement }) {
     const logger = useLogger();
     const location = useLocation();
@@ -267,8 +265,12 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
     }, [location.pathname]);
 
     return (
-        <div className={isMac ? `${styles.container} ${styles.container_mac}` : styles.container}>
-            <NavRail key={0} header={<BrandLogo />} footer={<NavRailActions />} />
+        <div className={styles.container}>
+            <header key={2} className={isMac ? `${styles.top_bar} ${styles.top_bar_mac}` : styles.top_bar} data-electron-drag-region>
+                <TopBarBrand mac={isMac} />
+                <VersionButton placement={NavBarPlacement.Top} iconSize={14} />
+            </header>
+            <NavRail key={0} footer={<NavRailActions />} />
             <div key={1} className={styles.page_container}>
                 {props.children}
             </div>
