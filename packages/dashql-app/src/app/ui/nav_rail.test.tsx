@@ -41,14 +41,18 @@ describe('Nav rail upcoming pages', () => {
                 <NavRailUpcomingPages wide={true} />
             </FlavorProvider>,
         ));
-        const button = container.querySelector<HTMLButtonElement>('button[aria-label="Transforms"]');
-        expect(button).not.toBeNull();
-        expect(button!.getAttribute('aria-disabled')).toBe('true');
-        expect(button!.textContent).toBe('Transforms');
-        expect(button!.querySelector('use')?.getAttribute('xlink:href')).toMatch(/#workflow_24$/);
+        // A separator goes in front of every group
         const items = [...container.querySelectorAll('button, [role="separator"]')]
             .map(e => e.getAttribute('aria-label') ?? '|');
-        expect(items).toEqual(['|', 'Ingestion', 'Transforms', 'Indexes', 'Transactional', '|', 'Catalog', 'Monitoring', 'Governance', 'Sharing']);
+        expect(items).toEqual(SIDP_FLAVOR.upcomingPages.flatMap(group => ['|', ...group.map(page => page.label)]));
+        const pages = SIDP_FLAVOR.upcomingPages.flat();
+        expect(pages.length).toBeGreaterThan(0);
+        for (const page of pages) {
+            const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${page.label}"]`)!;
+            expect(button.getAttribute('aria-disabled')).toBe('true');
+            expect(button.textContent).toBe(page.label);
+            expect(button.querySelector('use')?.getAttribute('xlink:href')).toMatch(new RegExp(`#${page.icon}$`));
+        }
     });
 
     it('shows no upcoming pages for DashQL', () => {

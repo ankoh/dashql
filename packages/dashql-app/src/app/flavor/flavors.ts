@@ -75,7 +75,7 @@ export const SIDP_FLAVOR: AppFlavor = {
             { label: 'Ingestion', icon: 'upload_24' },
             { label: 'Transforms', icon: 'workflow_24' },
             { label: 'Indexes', icon: 'ai_model_24' },
-            { label: 'Transactional', icon: 'postgresql_24' },
+            { label: 'PostgreSQL', icon: 'postgresql_24' },
         ],
         [
             { label: 'Catalog', icon: 'database_24' },
