@@ -1,0 +1,51 @@
+/* The rail shares the dark chrome of the navbar, so the page card stays framed on the top and the left */
+.rail {
+    grid-row: 2;
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 0;
+    padding: 4px 0 8px;
+    box-sizing: border-box;
+}
+
+.group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    row-gap: 4px;
+}
+
+.button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: var(--nav_tab_fg);
+    fill: currentColor;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--border_radius);
+    cursor: pointer;
+}
+
+.button:hover,
+.button.active {
+    background-color: var(--navbar_hover_background_color);
+    border: var(--nav_border_active);
+}
+
+.button:focus-visible {
+    outline: 2px solid var(--focus_outline_color);
+    outline-offset: 1px;
+}
+
+@media only screen and (max-width: 799px) {
+    .rail {
+        display: none;
+    }
+}

@@ -13,11 +13,12 @@ import { DASHQL_VERSION } from '../../globals.js';
 import { VersionCheckIndicator } from '../../ui/version/version_viewer.js';
 import { VersionInfoOverlay } from '../../ui/version/version_viewer.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { SESSION_PATH, SELECT_SESSION, useRouteContext, useRouterNavigate } from '../router/router.js';
+import { useRouteContext } from '../router/router.js';
 import { useVersionCheck } from '../../platform/version/version_check.js';
 import { useLocation } from 'react-router-dom';
 import { SessionViewMode, useSessionViewMode } from '../session/ui/session_view_mode.js';
 import { FlavorLogo, useAppFlavor } from '../flavor/flavor_provider.js';
+import { NavRail, useOpenWorkbench } from './nav_rail.js';
 
 const LOG_CTX = "navbar";
 
@@ -154,15 +155,7 @@ const BrandMark = (props: { children: React.ReactNode }) => {
 
 const BrandLogo = () => {
     const flavor = useAppFlavor();
-    const route = useRouteContext();
-    const navigate = useRouterNavigate();
-    const { setMode } = useSessionViewMode();
-    const openWorkbench = React.useCallback(() => {
-        setMode(SessionViewMode.Session);
-        navigate(route.sessionId == null
-            ? { type: SESSION_PATH, value: null }
-            : { type: SELECT_SESSION, value: route.sessionId });
-    }, [navigate, route.sessionId, setMode]);
+    const openWorkbench = useOpenWorkbench();
 
     return (
         <button type="button" className={styles.brand_logo} aria-label="Open session workbench" onClick={openWorkbench}>
@@ -218,7 +211,7 @@ export const NavBar = (): React.ReactElement => {
     const sessionId = route.sessionId;
     return (
         // Electron excludes the interactive controls below via the global no-drag rules.
-        <div className={isMac ? styles.navbar_mac : styles.navbar_default}
+        <div className={`${isMac ? styles.navbar_mac : styles.navbar_default} ${styles.navbar_row}`}
             data-electron-drag-region
         >
             <BrandLogo />
@@ -236,7 +229,8 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
     return (
         <div className={styles.container}>
             <NavBar key={0} />
-            <div key={1} className={styles.page_container}>
+            <NavRail key={1} />
+            <div key={2} className={styles.page_container}>
                 {props.children}
             </div>
         </div>

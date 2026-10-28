@@ -15,9 +15,14 @@
 
 .container {
     display: grid;
-    grid-template-rows: var(--nav_bar_height) 1fr;
-    grid-template-columns: 1fr;
+    grid-template-rows: var(--nav_bar_height) minmax(0, 1fr);
+    grid-template-columns: var(--nav_bar_width) minmax(0, 1fr);
     height: 100%;
+}
+
+.navbar_row {
+    grid-row: 1;
+    grid-column: 1 / -1;
 }
 
 .navbar_mac {
@@ -56,7 +61,8 @@
     height: 32px;
     padding: 4px;
     border: 0;
-    margin-left: 20px;
+    /* Aligns the 32px button with the buttons of the nav rail below */
+    margin-left: calc((var(--nav_bar_width) - 32px) / 2);
     margin-right: 4px;
     background: transparent;
     cursor: pointer;
@@ -194,13 +200,20 @@
 
 .page_container {
     grid-row: 2;
-    grid-column: 1;
+    grid-column: 2;
     height: 100%;
     width: 100%;
     min-height: 0;
 
     box-sizing: border-box;
     overflow: hidden;
+}
+
+/* The rail is hidden on narrow screens where the drawer navigates instead */
+@media only screen and (max-width: 799px) {
+    .container {
+        grid-template-columns: 0 minmax(0, 1fr);
+    }
 }
 
 @media (max-width: 900px) {
