@@ -54,25 +54,20 @@
 
 .composer_editor {
     padding: 10px 12px 4px 12px;
-    font-family: var(--font_family_mono);
-    font-size: 14px;
-    line-height: 20px;
 }
 
 .composer[data-variant="hero"] .composer_editor {
     padding: 14px 16px 6px 16px;
-    font-size: 15px;
-    line-height: 22px;
 }
 
-/* The editors of the scripts are larger, the composer keeps its own size */
+/* The same font as the script editors of the feed, see .feed_script_editor */
 .composer_editor :global(.cm-editor) {
-    font-size: inherit;
+    font-size: var(--font_size_compact);
+    line-height: 1.45;
 }
 
 .composer_editor :global(.cm-placeholder) {
     color: var(--base_color_neutral_5);
-    font-size: var(--font_size_body);
 }
 
 .composer_action_bar {
