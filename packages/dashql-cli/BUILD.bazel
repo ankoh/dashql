@@ -49,6 +49,8 @@ platform_binary(
 rust_test(
     name = "tests",
     size = "small",
+    # The tests check the messages of the agent server against the schema
+    compile_data = ["//proto/json:dashql/agent_bridge.json"],
     crate = ":dashql",
 )
 
@@ -65,9 +67,11 @@ rust_test(
     name = "bridge_test",
     size = "small",
     srcs = [
+        "src/agent/schema.rs",
         "tests/bridge/bridge_test.rs",
         "tests/bridge/support.rs",
     ],
+    compile_data = ["//proto/json:dashql/agent_bridge.json"],
     crate_root = "tests/bridge/bridge_test.rs",
     data = [
         "tests/bridge/fake_harness.sh",
@@ -91,9 +95,11 @@ rust_test(
     name = "bridge_harness_test",
     size = "large",
     srcs = [
+        "src/agent/schema.rs",
         "tests/bridge/bridge_harness_test.rs",
         "tests/bridge/support.rs",
     ],
+    compile_data = ["//proto/json:dashql/agent_bridge.json"],
     crate_root = "tests/bridge/bridge_harness_test.rs",
     data = [":dashql"],
     edition = "2021",

@@ -7,4 +7,6 @@ pub mod harness;
 pub mod http;
 pub mod instructions;
 pub mod protocol;
+#[cfg(test)]
+pub mod schema;
 pub mod server;

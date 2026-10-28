@@ -88,3 +88,15 @@ impl RpcError {
         json!({ "ok": false, "error": self.to_json() })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::agent::schema::BridgeSchema;
+
+    #[test]
+    fn names_the_protocol_version_of_the_schema() {
+        let params = BridgeSchema::get().definition("ClientSessionsParams").unwrap();
+        assert_eq!(params["properties"]["protocol"]["const"], json!(PROTOCOL_VERSION));
+    }
+}

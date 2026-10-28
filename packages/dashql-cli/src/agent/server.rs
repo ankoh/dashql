@@ -1076,6 +1076,7 @@ async fn serve_client(shared: Arc<Shared>, socket: WebSocketStream<TcpStream>, o
 mod tests {
     use super::*;
     use crate::agent::config::{load_config, temp_dir};
+    use crate::agent::schema::BridgeSchema;
     use std::sync::atomic::{AtomicBool, Ordering};
     use tokio::io::AsyncReadExt;
 
@@ -1189,6 +1190,8 @@ mod tests {
     struct TestClient {
         socket: WebSocketStream<TcpStream>,
         messages: Vec<Value>,
+        /// The methods of the sent requests by id, to check the responses
+        requests: BTreeMap<String, String>,
     }
 
     impl TestClient {
@@ -1217,10 +1220,13 @@ mod tests {
             }
             let socket =
                 WebSocketStream::from_partially_read(stream, buffer[length..].to_vec(), Role::Client, None).await;
-            Ok(TestClient { socket, messages: Vec::new() })
+            Ok(TestClient { socket, messages: Vec::new(), requests: BTreeMap::new() })
         }
 
         async fn send(&mut self, message: Value) {
+            if let (Some(method), false) = (message["method"].as_str(), message["id"].is_null()) {
+                self.requests.insert(message["id"].to_string(), method.to_string());
+            }
             self.socket.send(Message::text(message.to_string())).await.unwrap();
         }
 
@@ -1234,7 +1240,12 @@ mod tests {
                 match tokio::time::timeout_at(deadline, self.socket.next()).await {
                     Err(_) => return Err("timed out waiting for a message".into()),
                     Ok(Some(Ok(Message::Text(text)))) => {
-                        self.messages.push(serde_json::from_str(text.as_str()).unwrap())
+                        let message: Value = serde_json::from_str(text.as_str()).unwrap();
+                        let request = self.requests.get(&message["id"].to_string()).map(String::as_str);
+                        if let Err(error) = BridgeSchema::get().check_from_server(&message, request) {
+                            panic!("the server sent a message that the schema does not allow: {error}");
+                        }
+                        self.messages.push(message)
                     }
                     Ok(Some(Ok(Message::Close(_)))) | Ok(Some(Err(_))) | Ok(None) => {
                         return Err("the connection is closed".into())
@@ -1272,7 +1283,11 @@ mod tests {
         let mut response = Vec::new();
         stream.read_to_end(&mut response).await.unwrap();
         let (status, body) = http::parse_response(&response).unwrap();
-        (status, serde_json::from_slice(body).unwrap())
+        let body: Value = serde_json::from_slice(body).unwrap();
+        if let Err(error) = BridgeSchema::get().check("AgentCallResponse", &body) {
+            panic!("the server sent a response that the schema does not allow: {error}");
+        }
+        (status, body)
     }
 
     #[tokio::test]

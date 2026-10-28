@@ -3,6 +3,9 @@
 
 #![allow(dead_code)]
 
+#[path = "../../src/agent/schema.rs"]
+mod schema;
+
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -10,6 +13,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
+use schema::BridgeSchema;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -318,6 +322,8 @@ pub struct Page {
     incoming: mpsc::UnboundedReceiver<Value>,
     received: Vec<Value>,
     next_id: u64,
+    /// The methods of the sent requests by id, to check the responses
+    requests: BTreeMap<String, String>,
     pub model: Arc<Mutex<Model>>,
     /// Commands for this script are never answered, to drop the page during a call
     hang: Arc<Mutex<Option<String>>>,
@@ -379,6 +385,7 @@ impl Page {
                                 Ok(text) => json!({ "id": message["id"], "result": { "text": text } }),
                                 Err((code, text)) => json!({ "id": message["id"], "error": { "code": code, "message": text } }),
                             };
+                            BridgeSchema::get().check_from_client(&reply, Some("command")).expect("the page answers like the schema says");
                             let _ = replies.send(reply);
                         }
                         if received.send(message).is_err() {
@@ -388,7 +395,7 @@ impl Page {
                 }
             }
         });
-        Ok(Page { outgoing, incoming, received: Vec::new(), next_id: 1, model, hang, task })
+        Ok(Page { outgoing, incoming, received: Vec::new(), next_id: 1, requests: BTreeMap::new(), model, hang, task })
     }
 
     /// Give the page sessions, each starts with the scripts q1 and notes
@@ -411,7 +418,10 @@ impl Page {
     pub async fn call(&mut self, method: &str, params: Value) -> Result<Value, Value> {
         let id = format!("p{}", self.next_id);
         self.next_id += 1;
-        self.outgoing.send(json!({ "id": id, "method": method, "params": params })).unwrap();
+        let request = json!({ "id": id, "method": method, "params": params });
+        BridgeSchema::get().check_from_client(&request, None).expect("the page calls the server like the schema says");
+        self.requests.insert(id.clone(), method.to_string());
+        self.outgoing.send(request).unwrap();
         let reply = self.next(|m| m["id"] == id.as_str() && m["method"].is_null(), Duration::from_secs(10)).await;
         match reply["error"].is_null() {
             true => Ok(reply["result"].clone()),
@@ -427,11 +437,20 @@ impl Page {
                 return self.received.remove(index);
             }
             match tokio::time::timeout_at(deadline, self.incoming.recv()).await {
-                Ok(Some(message)) => self.received.push(message),
+                Ok(Some(message)) => self.receive(message),
                 Ok(None) => panic!("the connection closed, received: {:#?}", self.received),
                 Err(_) => panic!("timed out, received: {:#?}", self.received),
             }
         }
+    }
+
+    /// Keep a message from the server, once it passed the schema
+    fn receive(&mut self, message: Value) {
+        let request = message["id"].as_str().and_then(|id| self.requests.get(id)).map(String::as_str);
+        if let Err(error) = BridgeSchema::get().check_from_server(&message, request) {
+            panic!("the server sent a message that the schema does not allow: {error}");
+        }
+        self.received.push(message);
     }
 
     /// Wait for the end of a turn: Ok with the message of agent/done, Err with the params of agent/failed
@@ -447,7 +466,7 @@ impl Page {
     /// The agent/status texts of a turn so far
     pub fn statuses(&mut self, turn_id: &Value) -> Vec<String> {
         while let Ok(message) = self.incoming.try_recv() {
-            self.received.push(message);
+            self.receive(message);
         }
         let statuses = self.received.iter().filter(|m| m["method"] == "agent/status" && m["params"]["turnId"] == *turn_id);
         statuses.map(|m| m["params"]["text"].as_str().unwrap_or_default().to_string()).collect()
