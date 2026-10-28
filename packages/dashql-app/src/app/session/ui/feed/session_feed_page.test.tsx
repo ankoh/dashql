@@ -424,4 +424,18 @@ describe('SessionFeedPage', () => {
         act(() => buttons[0]?.click());
         expect(state.setMode).toHaveBeenCalledWith(SessionViewMode.Session);
     });
+
+    it('closes the script details when another session is selected', () => {
+        const ScriptDetails = vi.fn(() => <div data-testid="script-details" />);
+        const render = (sessionId: string) => act(() => root.render(<SessionFeedPage
+            sessionScripts={{ ...scripts(), sessionId }} modifySessionScripts={vi.fn()} connection={null} active
+            dependencies={{ ...dependencies, ScriptDetails } as unknown as SessionFeedPageDependencies} />));
+        render('session');
+        act(() => state.feedProps.showDetails('01_alpha.sql'));
+        expect(container.querySelector('[data-testid="script-details"]')).not.toBeNull();
+        expect(state.feedProps.active).toBe(false);
+        render('other');
+        expect(container.querySelector('[data-testid="script-details"]')).toBeNull();
+        expect(state.feedProps.active).toBe(true);
+    });
 });

@@ -80,9 +80,9 @@ interface Props {
 
 export const SessionFeedPage: React.FC<Props> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const [showDetails, setShowDetails] = React.useState(false);
-    const [detailsScriptId, setDetailsScriptId] = React.useState<number | undefined>(undefined);
-    const [detailsInitialTab, setDetailsInitialTab] = React.useState<DetailsTabKey | undefined>(undefined);
+    // The details belong to the session they were opened in, another session shows its feed
+    const [details, setDetails] = React.useState<{ sessionId: string; scriptId?: number; initialTab?: DetailsTabKey } | null>(null);
+    const showDetails = details != null && details.sessionId === props.sessionScripts.sessionId;
     const [feedShadowContainer, setFeedShadowContainer] = React.useState<HTMLDivElement | null>(null);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const [overviewConnectionId, setOverviewConnectionId] = React.useState<string | null>(null);
@@ -123,9 +123,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     const openDetails = React.useCallback((fileName?: string, initialTab?: DetailsTabKey) => {
         const sessionScripts = latestSessionScripts.current;
         const targetFileName = fileName ?? sessionScripts.scriptFocus.fileName;
-        setDetailsScriptId(sessionScripts.scriptRefs[targetFileName]?.scriptId);
-        setDetailsInitialTab(initialTab);
-        setShowDetails(true);
+        setDetails({ sessionId: sessionScripts.sessionId, scriptId: sessionScripts.scriptRefs[targetFileName]?.scriptId, initialTab });
         setOverviewConnectionId(null);
     }, []);
     const workbench = (closeAfterSelection: boolean) => (
@@ -256,13 +254,9 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                     modifySessionScripts={props.modifySessionScripts}
                                     connection={props.connection}
                                     scriptConnections={props.scriptConnections}
-                                    hideDetails={() => {
-                                        setShowDetails(false);
-                                        setDetailsScriptId(undefined);
-                                        setDetailsInitialTab(undefined);
-                                    }}
-                                    scriptId={detailsScriptId}
-                                    initialTab={detailsInitialTab}
+                                    hideDetails={() => setDetails(null)}
+                                    scriptId={details.scriptId}
+                                    initialTab={details.initialTab}
                                     navigateToScript={(scriptKey) => {
                                         const target = props.sessionScripts.scripts[scriptKey];
                                         if (!target?.fileName) return;
@@ -270,8 +264,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                             type: SELECT_SCRIPT,
                                             value: target.fileName,
                                         });
-                                        setDetailsScriptId(scriptKey);
-                                        setDetailsInitialTab(undefined);
+                                        setDetails({ sessionId: props.sessionScripts.sessionId, scriptId: scriptKey });
                                     }}
                                 />
                                 : null}
