@@ -10,6 +10,7 @@ import {
     lookupIdentifier,
     lookupPrefix,
 } from '../catalog_name_index.js';
+import { findScriptReferences, SCRIPT_REFERENCE_PREFIX } from '../script_references.js';
 import { DashQLCompletionDisabled } from '../../scripts/editor/dashql_processor.js';
 
 import * as styles from './nl_identifier_plugin.module.css';
@@ -27,6 +28,11 @@ const WORD_START = /[\p{L}_]/u;
 /// The catalog name index of the editor, replaced by reconfiguring the editor
 export const NLIdentifierIndex = Facet.define<CatalogNameIndex, CatalogNameIndex>({
     combine: values => values[0] ?? EMPTY_CATALOG_NAME_INDEX,
+});
+
+/// The display names of the session scripts that the text can reference, replaced by reconfiguring the editor
+export const NLScriptNames = Facet.define<readonly string[], readonly string[]>({
+    combine: values => values[0] ?? [],
 });
 
 /// A completion hint shown as ghost text after the cursor
@@ -74,6 +80,10 @@ export function computeNLIdentifierHint(state: EditorState): NLIdentifierHint | 
     }
     const word = text.substring(begin, offset);
     if (word.length === 0 || !WORD_START.test(word[0])) {
+        return null;
+    }
+    // A script reference names a script, not a catalog object
+    if (begin > 0 && text[begin - 1] === SCRIPT_REFERENCE_PREFIX) {
         return null;
     }
     const index = state.facet(NLIdentifierIndex);
@@ -159,17 +169,32 @@ class HintWidget extends WidgetType {
 
 const TableDecoration = Decoration.mark({ class: styles.identifier_table });
 const ColumnDecoration = Decoration.mark({ class: styles.identifier_column });
+const ScriptDecoration = Decoration.mark({ class: styles.identifier_script });
 
-/// Mark the finished words that name catalog objects
+/// Mark the finished words that name catalog objects and the finished references to session scripts
 function buildHighlights(state: EditorState): DecorationSet {
-    const builder = new RangeSetBuilder<Decoration>();
+    const text = state.doc.toString();
     const selection = state.selection.main;
-    for (const match of findIdentifierMatches(state.facet(NLIdentifierIndex), state.doc.toString())) {
-        // The word the user is still typing is not finished
-        if (selection.empty && selection.head > match.from && selection.head <= match.to) {
+    // The word the user is still typing is not finished
+    const unfinished = (from: number, to: number) => selection.empty && selection.head > from && selection.head <= to;
+    const marks: { from: number; to: number; decoration: Decoration }[] = [];
+    const references = findScriptReferences(state.facet(NLScriptNames), text);
+    for (const reference of references) {
+        if (!unfinished(reference.from, reference.to)) {
+            marks.push({ from: reference.from, to: reference.to, decoration: ScriptDecoration });
+        }
+    }
+    for (const match of findIdentifierMatches(state.facet(NLIdentifierIndex), text)) {
+        // A script name is not a catalog name, even if a table is named alike
+        if (unfinished(match.from, match.to) || references.some(reference => reference.from < match.to && match.from < reference.to)) {
             continue;
         }
-        builder.add(match.from, match.to, match.kind === CatalogNameKind.Table ? TableDecoration : ColumnDecoration);
+        marks.push({ from: match.from, to: match.to, decoration: match.kind === CatalogNameKind.Table ? TableDecoration : ColumnDecoration });
+    }
+    marks.sort((l, r) => l.from - r.from);
+    const builder = new RangeSetBuilder<Decoration>();
+    for (const mark of marks) {
+        builder.add(mark.from, mark.to, mark.decoration);
     }
     return builder.finish();
 }
@@ -181,7 +206,9 @@ const NLIdentifierHighlights = ViewPlugin.fromClass(class {
         this.decorations = buildHighlights(view.state);
     }
     update(update: ViewUpdate) {
-        if (update.docChanged || update.selectionSet || update.startState.facet(NLIdentifierIndex) !== update.state.facet(NLIdentifierIndex)) {
+        if (update.docChanged || update.selectionSet
+            || update.startState.facet(NLIdentifierIndex) !== update.state.facet(NLIdentifierIndex)
+            || update.startState.facet(NLScriptNames) !== update.state.facet(NLScriptNames)) {
             this.decorations = buildHighlights(update.state);
         }
     }
@@ -215,15 +242,16 @@ const KEYBINDINGS: KeyBinding[] = [
     { key: 'Escape', run: dismissHint },
 ];
 
-/// Highlights and completes catalog identifiers in natural language text.
-/// Reads the names from the NLIdentifierIndex facet.
+/// Highlights and completes catalog identifiers in natural language text, and highlights script references.
+/// Reads the names from the NLIdentifierIndex and NLScriptNames facets.
 export const NLIdentifierExtensions = [
     NLIdentifierHintField,
     NLIdentifierHighlights,
     Prec.highest(keymap.of(KEYBINDINGS)),
 ];
 
-/// The assistance for natural language: no SQL completion, the names of the index are highlighted and completed
-export function naturalLanguageAssist(index: CatalogNameIndex): Extension {
-    return [DashQLCompletionDisabled.of(true), NLIdentifierIndex.of(index), ...NLIdentifierExtensions];
+/// The assistance for natural language: no SQL completion, the names of the index are highlighted and completed,
+/// the references to the session scripts are highlighted
+export function naturalLanguageAssist(index: CatalogNameIndex, scriptNames: readonly string[]): Extension {
+    return [DashQLCompletionDisabled.of(true), NLIdentifierIndex.of(index), NLScriptNames.of(scriptNames), ...NLIdentifierExtensions];
 }

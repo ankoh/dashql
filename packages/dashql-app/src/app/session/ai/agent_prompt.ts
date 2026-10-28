@@ -20,6 +20,8 @@ export interface AgentPromptInput {
     dialect: string;
     /// The catalog objects that the question mentions, e.g. "orders (table)"
     mentionedIdentifiers: string[];
+    /// The scripts that the question references, by their display names
+    referencedScripts: string[];
 }
 
 /// Build the prompt of a question for the agent.
@@ -37,6 +39,10 @@ export function buildAgentPrompt(input: AgentPromptInput): string {
         'End with one plain sentence without markdown that answers the question, or with nothing if the results'
             + ' already answer it.',
     ];
+    if (input.referencedScripts.length > 0) {
+        lines.push(`The question targets these scripts, referenced as @<script>: ${input.referencedScripts.join(', ')}.`
+            + ' Work on them instead of writing a new script.');
+    }
     if (input.mentionedIdentifiers.length > 0) {
         lines.push(`The question mentions these catalog objects: ${input.mentionedIdentifiers.join(', ')}.`);
     }

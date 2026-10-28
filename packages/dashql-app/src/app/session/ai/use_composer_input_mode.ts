@@ -29,8 +29,9 @@ export interface ComposerInputModeState {
 /// Tell SQL from natural language in a composer draft.
 ///
 /// The draft starts in natural language and switches to SQL as soon as it is convincingly SQL,
-/// until the user picks a mode explicitly. Natural language highlights and completes the names of the catalog.
-export function useComposerInputMode(catalog: core.DashQLCatalog, aiAvailable: boolean): ComposerInputModeState {
+/// until the user picks a mode explicitly. Natural language highlights and completes the names of the catalog,
+/// and highlights the references to the session scripts.
+export function useComposerInputMode(catalog: core.DashQLCatalog, aiAvailable: boolean, scriptNames: readonly string[]): ComposerInputModeState {
     const logger = useLogger();
 
     // The input mode follows the draft until the user picks one.
@@ -102,8 +103,8 @@ export function useComposerInputMode(catalog: core.DashQLCatalog, aiAvailable: b
 
     const effectiveMode = aiAvailable ? mode : ComposerInputMode.Sql;
     const assist = React.useMemo(
-        () => effectiveMode === ComposerInputMode.Ai ? naturalLanguageAssist(identifierIndex) : undefined,
-        [effectiveMode, identifierIndex],
+        () => effectiveMode === ComposerInputMode.Ai ? naturalLanguageAssist(identifierIndex, scriptNames) : undefined,
+        [effectiveMode, identifierIndex, scriptNames],
     );
     return { mode: effectiveMode, assist, onTextChange, onEditorUpdate, pick, resolveSendMode };
 }

@@ -5,6 +5,8 @@ import { AgentConnectionStatus } from '../../../platform/agent/agent_client.js';
 import type { SessionScripts, ScriptData } from '../scripts/session_scripts.js';
 import { buildCatalogNameIndex, collectMentionedIdentifiers } from './catalog_name_index.js';
 import { buildAgentPrompt, describeSqlDialect } from './agent_prompt.js';
+import { collectReferencedScripts } from './script_references.js';
+import { scriptDisplayName } from '../scripts/script_types.js';
 import { stringifyError } from '../../../platform/logger/logger.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 
@@ -134,6 +136,7 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
             question,
             dialect: describeSqlDialect(sessionScripts.connectorInfo.connectorType),
             mentionedIdentifiers: collectMentionedIdentifiers(buildCatalogNameIndex(sessionScripts.connectionCatalog), question),
+            referencedScripts: collectReferencedScripts(sessionScripts.scriptOrder.map(scriptDisplayName), question),
         });
         logger.info('Asking the agent', { questionId: String(questionId), characters: String(question.length) }, LOG_CTX);
         const active = () => working.current.has(questionId);

@@ -11,12 +11,16 @@ import { PromptEditor } from '../../scripts/editor/prompt_editor.js';
 import { DashQLCompletionAbortEffect } from '../../scripts/editor/dashql_processor.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useComposerInputMode } from '../../ai/use_composer_input_mode.js';
+import { findScriptReferences, renderScriptReference } from '../../ai/script_references.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { AgentPromptPanel, isAgentWorking, type ComposerAgent } from '../../ai/ui/agent_prompt_panel.js';
 import type { ConnectorType } from '../../../connections/connector_info.js';
 import type { SnippetRegistry } from '../../snippets/snippet_registry.js';
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
+
+/// A composer without session scripts
+const NO_SCRIPT_NAMES: readonly string[] = [];
 
 /// Where the composer is shown
 export enum SessionComposerVariant {
@@ -47,6 +51,10 @@ export interface SessionComposerProps {
     setView?: (view: EditorView | null) => void;
     /// Receives the send function of the composer, e.g. for global key bindings
     submitRef?: React.RefObject<(() => void) | null>;
+    /// The display names of the session scripts that a question can reference
+    scriptNames?: readonly string[];
+    /// Receives the function that references a session script in a question, by its display name
+    targetScriptRef?: React.RefObject<((name: string) => void) | null>;
     /// Picks the connection that the draft runs on
     connectionPicker?: React.ReactNode;
     /// The connector of the draft, the composer offers the snippets that run on it
@@ -90,7 +98,8 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     }, [props.setView]);
 
     // The draft is SQL or natural language
-    const input = useComposerInputMode(props.catalog, props.aiAvailable);
+    const scriptNames = props.scriptNames ?? NO_SCRIPT_NAMES;
+    const input = useComposerInputMode(props.catalog, props.aiAvailable, scriptNames);
     const handleTextChange = React.useCallback((text: string) => {
         setEmpty(text.trim().length === 0);
         input.onTextChange(text);
@@ -124,6 +133,28 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     }, [send, view]);
     if (props.submitRef) {
         props.submitRef.current = send;
+    }
+    // A script reference turns the draft into a question, a script that the draft references already is not repeated
+    const targetScript = React.useCallback((name: string) => {
+        if (view == null || !props.aiAvailable) return;
+        input.pick(ComposerInputMode.Ai);
+        const text = view.state.doc.toString();
+        if (findScriptReferences([name], text).length === 0) {
+            const cursor = view.state.selection.main.head;
+            const before = cursor > 0 && !/\s/.test(text[cursor - 1]) ? ' ' : '';
+            const after = cursor < text.length && /\s/.test(text[cursor]) ? '' : ' ';
+            const insert = `${before}${renderScriptReference(name)}${after}`;
+            view.dispatch({
+                changes: { from: cursor, insert },
+                selection: { anchor: cursor + insert.length },
+                effects: DashQLCompletionAbortEffect.of(null),
+                userEvent: 'input',
+            });
+        }
+        view.focus();
+    }, [view, props.aiAvailable, input.pick]);
+    if (props.targetScriptRef) {
+        props.targetScriptRef.current = targetScript;
     }
 
     // The landing view is all about the prompt, focus it right away

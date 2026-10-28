@@ -38,6 +38,7 @@ import { ScriptConnectionPicker, type ScriptConnectionView } from '../script_con
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 
 const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
+const MentionIcon: Icon = SymbolIcon('mention_16');
 
 export interface ScriptCardProps {
     sessionId: string;
@@ -80,6 +81,10 @@ export interface ScriptCardProps {
     onFormat: (scriptKey: number, text: string) => void;
     /// Replace the text of the script with the text of a snippet
     onApplySnippet: (scriptKey: number, text: string) => void;
+    /// Can a question of the composer target the script?
+    canTarget: boolean;
+    /// Reference the script in the question of the composer
+    onTarget: (fileName: string) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     resultExpanded: boolean;
@@ -325,6 +330,17 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             connectorType={props.connectorType}
                         />
                     )}
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        onClick={(event) => { event.stopPropagation(); props.onTarget(props.scriptFileName); }}
+                        aria-label={`Mention ${displayName} in the prompt`}
+                        title={props.canTarget ? undefined : 'Start an agent session in the header and connect the agent server to mention scripts in questions'}
+                        data-testid="script-mention"
+                        disabled={!props.canTarget}
+                    >
+                        <MentionIcon size={16} />
+                    </IconButton>
                     <SnippetsOverlay
                         scriptName={displayName}
                         connectorType={props.connectorType}
@@ -488,6 +504,10 @@ export interface ScriptFeedRowProps {
     onFormat: (scriptKey: number, text: string) => void;
     /// Replace the text of a script with the text of a snippet
     onApplySnippet: (scriptKey: number, text: string) => void;
+    /// Can a question of the composer target the scripts?
+    canTarget: boolean;
+    /// Reference a script in the question of the composer
+    onTarget: (fileName: string) => void;
     onAcceptDiff: (scriptKey: number) => void;
     onRejectDiff: (scriptKey: number) => void;
     collapsedResults: ReadonlyMap<number, number | null>;
@@ -646,6 +666,8 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onRerun={props.onRerun}
                     onFormat={props.onFormat}
                     onApplySnippet={props.onApplySnippet}
+                    canTarget={props.canTarget}
+                    onTarget={props.onTarget}
                     onAcceptDiff={props.onAcceptDiff}
                     onRejectDiff={props.onRejectDiff}
                     resultExpanded={scriptData == null || !props.collapsedResults.has(scriptData.scriptKey)}

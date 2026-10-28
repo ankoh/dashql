@@ -34,6 +34,7 @@ describe('Session composer', () => {
     let catalog: core.DashQLCatalog;
     let view: EditorView | null;
     let onSend: ReturnType<typeof vi.fn<(text: string, mode: ComposerInputMode) => void>>;
+    let targetScript: React.RefObject<((name: string) => void) | null>;
 
     beforeEach(() => {
         container = document.createElement('div');
@@ -42,6 +43,7 @@ describe('Session composer', () => {
         catalog = dql.createCatalog();
         view = null;
         onSend = vi.fn<(text: string, mode: ComposerInputMode) => void>();
+        targetScript = { current: null };
     });
     afterEach(() => {
         act(() => root.unmount());
@@ -57,6 +59,7 @@ describe('Session composer', () => {
         act(() => root.render(<LoggerProvider>
             <SessionComposer instance={dql} catalog={catalog} variant={variant} aiAvailable={aiAvailable}
                 snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
+                scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript}
                 keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
         </LoggerProvider>));
         await vi.waitFor(() => expect(view).not.toBeNull());
@@ -218,6 +221,23 @@ describe('Session composer', () => {
                 `.${identifierStyles.identifier_table}, .${identifierStyles.identifier_column}`)).map(e => e.textContent))
                 .toEqual(['amount', 'orders']));
             session.destroy();
+        });
+
+        it('references a targeted script once and turns the draft into a question', async () => {
+            const editor = await render(SessionComposerVariant.Docked, true);
+            const highlightedScripts = () => Array.from(editor.contentDOM.querySelectorAll(`.${identifierStyles.identifier_script}`))
+                .map(e => e.textContent);
+            act(() => modeButton('sql').click());
+            act(() => type(editor, 'filter'));
+            act(() => targetScript.current!('revenue-2'));
+            expect(editor.state.doc.toString()).toBe('filter @revenue-2 ');
+            expect(editor.state.selection.main.head).toBe(editor.state.doc.length);
+            expect(selectedMode()).toBe('ai');
+            expect(highlightedScripts()).toEqual(['@revenue-2']);
+            act(() => targetScript.current!('revenue-2'));
+            act(() => targetScript.current!('revenue'));
+            expect(editor.state.doc.toString()).toBe('filter @revenue-2 @revenue ');
+            expect(highlightedScripts()).toEqual(['@revenue-2', '@revenue']);
         });
 
         it('sends a question and clears it right away', async () => {

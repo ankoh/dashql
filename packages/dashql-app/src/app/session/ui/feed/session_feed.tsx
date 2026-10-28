@@ -26,6 +26,7 @@ import { ConnectionHealth, ConnectionState } from '../../../connections/connecti
 import { getSelectedScriptRef, getScriptRefs, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/session_scripts.js';
 import { useQueryExecutor } from '../../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../../scripts/session_scripts_registry.js';
+import { scriptDisplayName } from '../../scripts/script_types.js';
 import { type KeyEventHandler, useKeyEvents } from '../../../../utils/key_events.js';
 import { TabKey as DetailsTabKey } from '../script_details.js';
 import { runSessionScript } from '../rerun_query.js';
@@ -406,6 +407,12 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const [composerView, setComposerView] = React.useState<EditorView | null>(null);
     const [composerDraftEmpty, setComposerDraftEmpty] = React.useState(true);
     const composerSubmitRef = React.useRef<(() => void) | null>(null);
+    // The mention button of a script references it in the question of the composer
+    const composerTargetScriptRef = React.useRef<((name: string) => void) | null>(null);
+    const handleTargetScript = React.useCallback((fileName: string) => {
+        composerTargetScriptRef.current?.(scriptDisplayName(fileName));
+    }, []);
+    const scriptNames = React.useMemo(() => props.sessionScripts.scriptOrder.map(scriptDisplayName), [props.sessionScripts.scriptOrder]);
 
     // The feed stays mounted (just hidden) while the catalog/details overlay is open, so its global
     // key handlers would otherwise keep firing behind the overlay. Gate them all on the active flag.
@@ -643,6 +650,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onRerun: handleRerunEntry,
         onFormat: handleFormat,
         onApplySnippet: handleApplySnippet,
+        canTarget: composerAgent.available,
+        onTarget: handleTargetScript,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
         collapsedResults,
@@ -654,7 +663,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, attachScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, attachScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, composerAgent.available, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.
@@ -759,6 +768,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         onDraftEmptyChange={setComposerDraftEmpty}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}
+                        scriptNames={scriptNames}
+                        targetScriptRef={composerTargetScriptRef}
                         snippetConnector={scriptConnections.get(props.sessionScripts.connectionId)?.connectorInfo.connectorType}
                         connectionPicker={(
                             <ScriptConnectionPicker

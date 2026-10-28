@@ -4,7 +4,7 @@ import { EditorView } from '@codemirror/view';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildCatalogNameIndex, CatalogNameIndex } from '../catalog_name_index.js';
-import { NLIdentifierExtensions, NLIdentifierHintField, NLIdentifierIndex } from './nl_identifier_plugin.js';
+import { NLIdentifierExtensions, NLIdentifierHintField, NLIdentifierIndex, NLScriptNames } from './nl_identifier_plugin.js';
 
 import * as styles from './nl_identifier_plugin.module.css';
 
@@ -35,7 +35,7 @@ describe('Natural language identifiers', () => {
     let view: EditorView;
     beforeEach(() => {
         view = new EditorView({
-            state: EditorState.create({ extensions: [NLIdentifierIndex.of(index), ...NLIdentifierExtensions] }),
+            state: EditorState.create({ extensions: [NLIdentifierIndex.of(index), NLScriptNames.of(['orders', 'revenue']), ...NLIdentifierExtensions] }),
             parent: document.body,
         });
     });
@@ -56,6 +56,20 @@ describe('Natural language identifiers', () => {
         expect(highlighted()).toEqual(['amount']);
         type(' ');
         expect(highlighted()).toEqual(['amount', 'orders']);
+    });
+
+    it('highlights finished script references instead of the catalog names they contain', () => {
+        const scripts = () => Array.from(view.contentDOM.querySelectorAll(`.${styles.identifier_script}`)).map(element => element.textContent);
+        type('amount of @orders in @revenue');
+        expect(scripts()).toEqual(['@orders']);
+        expect(highlighted()).toEqual(['amount']);
+        type(' ');
+        expect(scripts()).toEqual(['@orders', '@revenue']);
+    });
+
+    it('hints no catalog names in a script reference', () => {
+        type('@orde');
+        expect(hint()).toBeNull();
     });
 
     it('never highlights function words', () => {
