@@ -28,8 +28,8 @@ export interface AgentTurnListener {
     edited: (scriptKey: number) => void;
     /// The agent runs a script, every time it runs the script
     ran: (scriptKey: number) => void;
-    /// The turn finished. `unrunEdits` are the scripts that the agent edited and did not run afterwards.
-    done: (message: string, unrunEdits: number[]) => void;
+    /// The turn finished with the final message of the agent
+    done: (message: string) => void;
     /// The turn failed or was stopped
     failed: (error: string, cancelled: boolean) => void;
 }
@@ -80,13 +80,6 @@ export function blocksLoopbackWebSockets(userAgent: string, desktop: boolean): b
     return /Safari\//.test(userAgent) && !/Chrome\/|Chromium\/|CriOS\/|Edg\/|Firefox\/|FxiOS\//.test(userAgent);
 }
 
-/// The scripts that the agent touched during a turn of a session
-interface TurnTracking {
-    listener: AgentTurnListener;
-    /// Script key → ran after the last edit?
-    edits: Map<number, boolean>;
-}
-
 const NO_SESSIONS: string[] = [];
 
 export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: React.PropsWithChildren) => {
@@ -105,8 +98,8 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     const accessSessions = config?.settings?.agentSessions ?? NO_SESSIONS;
     const port = config?.settings?.agentPort ?? DASHQL_AGENT_PORT;
 
-    // Turns by turn id, and the turn ids of the requests of a session
-    const turns = React.useRef(new Map<string, TurnTracking>());
+    // The listeners of the turns by turn id, and the turn ids of the requests of a session
+    const turns = React.useRef(new Map<string, AgentTurnListener>());
     const turnsBySession = React.useRef(new Map<string, Set<string>>());
 
     const commandEnv = React.useRef<AgentCommandEnvironment | null>(null);
@@ -118,18 +111,12 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         logger,
         onScriptEdited: (sessionId, scriptKey) => {
             for (const turnId of turnsBySession.current.get(sessionId) ?? []) {
-                const turn = turns.current.get(turnId);
-                if (turn == null) continue;
-                turn.edits.set(scriptKey, false);
-                turn.listener.edited(scriptKey);
+                turns.current.get(turnId)?.edited(scriptKey);
             }
         },
         onScriptRun: (sessionId, scriptKey) => {
             for (const turnId of turnsBySession.current.get(sessionId) ?? []) {
-                const turn = turns.current.get(turnId);
-                if (turn == null) continue;
-                if (turn.edits.has(scriptKey)) turn.edits.set(scriptKey, true);
-                turn.listener.ran(scriptKey);
+                turns.current.get(turnId)?.ran(scriptKey);
             }
         },
     };
@@ -155,7 +142,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                 switch (notification.method) {
                     case 'agent/status': {
                         const p = notification.params;
-                        turns.current.get(p.turnId)?.listener.status(p.state, p.text);
+                        turns.current.get(p.turnId)?.status(p.state, p.text);
                         break;
                     }
                     case 'agent/done': {
@@ -163,9 +150,8 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                         const turn = turns.current.get(p.turnId);
                         if (turn == null) break;
                         forgetTurn(p.session, p.turnId);
-                        const unrunEdits = [...turn.edits].filter(([, ran]) => !ran).map(([scriptKey]) => scriptKey);
-                        logger.info('The agent finished a request', { session: p.session, turnId: p.turnId, editedScripts: String(turn.edits.size) }, LOG_CTX);
-                        turn.listener.done(p.message, unrunEdits);
+                        logger.info('The agent finished a request', { session: p.session, turnId: p.turnId }, LOG_CTX);
+                        turn.done(p.message);
                         break;
                     }
                     case 'agent/failed': {
@@ -174,7 +160,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                         if (turn == null) break;
                         forgetTurn(p.session, p.turnId);
                         logger.warn('The agent failed a request', { session: p.session, turnId: p.turnId, error: p.error }, LOG_CTX);
-                        turn.listener.failed(p.error, p.cancelled);
+                        turn.failed(p.error, p.cancelled);
                         break;
                     }
                 }
@@ -184,7 +170,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
             onDisconnect: reason => {
                 for (const [turnId, turn] of [...turns.current]) {
                     logger.warn('Lost an agent turn', { turnId, reason }, LOG_CTX);
-                    turn.listener.failed(reason, false);
+                    turn.failed(reason, false);
                 }
                 turns.current.clear();
                 turnsBySession.current.clear();
@@ -246,7 +232,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     const request = React.useCallback(async (sessionId: string, prompt: string, listener: AgentTurnListener) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
         const result = await client.request('agent/request', { session: sessionId, prompt });
-        turns.current.set(result.turnId, { listener, edits: new Map() });
+        turns.current.set(result.turnId, listener);
         const sessionTurns = turnsBySession.current.get(sessionId) ?? new Set();
         sessionTurns.add(result.turnId);
         turnsBySession.current.set(sessionId, sessionTurns);

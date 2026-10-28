@@ -526,7 +526,7 @@ describe('Session feed composer', () => {
         await act(async () => feedState.agentListener!.edited(1));
         await act(async () => feedState.agentListener!.edited(1));
         expect(feedState.composerProps?.agent?.turns[0].scripts).toEqual([{ scriptKey: 1, scriptName: '1_alpha' }]);
-        await act(async () => feedState.agentListener!.done('There are 3 rows', [1]));
+        await act(async () => feedState.agentListener!.done('There are 3 rows'));
         const answered = { question: 'how many rows', status: null, error: null, note: 'There are 3 rows', scripts: [1] };
         expect(feedState.composerProps?.agent?.turns).toEqual([{ questionId: 1, question: answered, scripts: [{ scriptKey: 1, scriptName: '1_alpha' }] }]);
         expect(feedState.runSessionScript).toHaveBeenCalledExactlyOnceWith(created, created.scripts[1], feedState.executeQuery, modify, expect.anything());
@@ -613,7 +613,8 @@ describe('Session feed composer', () => {
         const offline = { ...onlineConn, connectionHealth: ConnectionHealth.FAILED };
         const ask = async () => {
             await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
-            await act(async () => feedState.agentListener!.done('', [1]));
+            await act(async () => feedState.agentListener!.edited(1));
+            await act(async () => feedState.agentListener!.done(''));
         };
 
         // The default connection is online, the connection of the script is not
@@ -633,10 +634,22 @@ describe('Session feed composer', () => {
             feedState.agentListener = listener;
             return Promise.resolve('turn-1');
         });
+        render({ ...session(['1_alpha.sql']), connectionCatalog: emptyCatalog as any }, vi.fn());
+        await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+        await act(async () => feedState.agentListener!.edited(1));
+        await act(async () => feedState.agentListener!.ran(1));
+        await act(async () => feedState.agentListener!.done(''));
+        expect(feedState.runSessionScript).not.toHaveBeenCalled();
+    });
+
+    it('drops a question that the agent finished without an answer and without scripts', async () => {
+        feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
+            feedState.agentListener = listener;
+            return Promise.resolve('turn-1');
+        });
         render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
-        await act(async () => feedState.agentListener!.done('', []));
-        // Without an answer and without scripts, the question is gone
+        await act(async () => feedState.agentListener!.done(''));
         expect(feedState.composerProps?.agent?.turns).toEqual([]);
         expect(feedState.runSessionScript).not.toHaveBeenCalled();
     });

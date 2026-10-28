@@ -137,6 +137,8 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
         });
         logger.info('Asking the agent', { questionId: String(questionId), characters: String(question.length) }, LOG_CTX);
         const active = () => working.current.has(questionId);
+        // The scripts that the agent edited, and whether it ran them after the last edit
+        const edits = new Map<number, boolean>();
         const finish = () => {
             turnIds.current.delete(questionId);
             return working.current.delete(questionId);
@@ -148,13 +150,16 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
                 },
                 edited: scriptKey => {
                     if (!active()) return;
+                    edits.set(scriptKey, false);
                     updateQuestion(questionId, q => (q.scripts.includes(scriptKey) ? q : { ...q, scripts: [...q.scripts, scriptKey] }));
                     latest.current.followScript?.(scriptKey, 'script');
                 },
                 ran: scriptKey => {
-                    if (active()) latest.current.followScript?.(scriptKey, 'result');
+                    if (!active()) return;
+                    if (edits.has(scriptKey)) edits.set(scriptKey, true);
+                    latest.current.followScript?.(scriptKey, 'result');
                 },
-                done: (message, unrunEdits) => {
+                done: message => {
                     if (!finish()) return;
                     const note = message.trim();
                     // Without an answer and without scripts, nothing is left to show
@@ -162,7 +167,8 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
                     if (!mounted.current) return;
                     // Run the first script that the agent wrote but did not run
                     const current = latest.current.sessionScripts;
-                    const scriptData = unrunEdits.length > 0 ? current.scripts[unrunEdits[0]] : undefined;
+                    const unrun = [...edits].find(([, ran]) => !ran);
+                    const scriptData = unrun != null ? current.scripts[unrun[0]] : undefined;
                     if (scriptData == null) return;
                     latest.current.followScript?.(scriptData.scriptKey, 'result');
                     latest.current.runScript(current, scriptData);
