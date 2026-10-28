@@ -373,6 +373,32 @@ describe('SessionWorkbenchSidebar session creation', () => {
         expect(container.querySelector('input[aria-label="Session name"]')).toBeNull();
     });
 
+    it('renames a session in place when double-clicking its name', () => {
+        const sessionId = 'current-session';
+        state.connections.set('local-database', state.local!);
+        state.attachedDatabasesBySession.set(sessionId, {
+            mainDatabaseId: 'local-database',
+            attachedDatabaseIds: [],
+        });
+        state.sessionScriptsMap.set(sessionId, {
+            sessionId,
+            name: 'Untitled',
+            sessionMetadata: { originalFileName: 'current' },
+            scripts: {},
+        });
+        act(() => root.render(<SessionWorkbenchSidebar sessionScripts={{
+            sessionId,
+            instance: {},
+        } as any} dependencies={dependencies} />));
+
+        const name = container.querySelector('[aria-label="Sessions"] button[aria-current]') as HTMLButtonElement;
+        act(() => name.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+        const input = container.querySelector('input[aria-label="Session name"]') as HTMLInputElement;
+        expect(input).not.toBeNull();
+        expect(document.activeElement).toBe(input);
+        expect(input.value).toBe('Untitled');
+    });
+
     it('does not select the session while a connection overview is open', () => {
         const sessionId = 'current-session';
         state.connections.set('local-database', state.local!);

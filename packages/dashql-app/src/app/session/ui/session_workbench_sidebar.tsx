@@ -379,6 +379,7 @@ const SessionRow: React.FC<SessionRowProps> = ({ item, selected, onOpen, onDupli
                     aria-current={selected ? 'page' : undefined}
                     title={item.path}
                     onClick={event => onOpen(event.currentTarget)}
+                    onDoubleClick={() => setRenaming(true)}
                 >
                     <FileDirectoryIcon size={14} aria-hidden="true" />
                     <span className={title ? styles.session_name : styles.session_path}>{title ?? item.path}</span>
