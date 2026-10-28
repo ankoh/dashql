@@ -1,25 +1,25 @@
 //! The messages between the agent server and its clients, dashql.app tabs and desktop windows.
-//! The page keeps the types of these messages in packages/dashql-app/src/platform/agent/agent_protocol.ts.
+//! The JSON Schema in proto/json/dashql/agent_bridge.json defines the messages, the table names its definitions.
+//! The page generates its types from the schema.
 //!
 //! Messages are JSON-RPC-style: a request {id, method, params} is answered by {id, result} or {id, error}.
 //! A message with a method but without an id is a notification.
 //!
 //! | Method | Direction | Params | Result |
 //! |---|---|---|---|
-//! | `client/sessions` | client → server | `{protocol, client, sessions: [{id, name}], focused}` | `{}` |
-//! | `command` | server → client | `{session, command, args}` | `{text, data?}` |
-//! | `agent/request` | client → server | `{session, harness?, prompt}` | `{turnId, harness}` |
-//! | `agent/cancel`, `agent/reset` | client → server | `{session}` | `{}` |
-//! | `agent/context` | client → server | `{session}` | `{folder, harness, harnessSession, terminalCommand}` |
-//! | `agent/info` | client → server | `{}` | the status with `home, configPath, dev, defaultHarness, harnesses` |
-//! | `agent/configure` | client → server | `{defaultHarness?}` | `{}` |
-//! | `agent/status` | server → client | `{session, turnId, state: "queued" \| "running", text}` | notification |
-//! | `agent/done` | server → client | `{session, turnId, message}` | notification |
-//! | `agent/failed` | server → client | `{session, turnId, error, cancelled}` | notification |
+//! | `client/sessions` | client → server | `ClientSessionsParams` | `AgentEmptyMessage` |
+//! | `command` | server → client | `AgentCommandParams` | `AgentCommandResult` |
+//! | `agent/request` | client → server | `AgentRequestParams` | `AgentRequestResult` |
+//! | `agent/cancel`, `agent/reset` | client → server | `AgentSessionParams` | `AgentEmptyMessage` |
+//! | `agent/context` | client → server | `AgentSessionParams` | `AgentSessionContext` |
+//! | `agent/info` | client → server | `AgentEmptyMessage` | `AgentServerInfo` |
+//! | `agent/configure` | client → server | `AgentConfigureParams` | `AgentEmptyMessage` |
+//! | `agent/status` | server → client | `AgentStatusParams` | notification |
+//! | `agent/done` | server → client | `AgentDoneParams` | notification |
+//! | `agent/failed` | server → client | `AgentFailedParams` | notification |
 //!
-//! The command line tool calls the server over HTTP: `GET /v1/status` returns `{ok, status}`, `POST /v1/call`
-//! takes `{session?, command, args?}` and returns `{ok: true, session, result: {text, data?}}` or
-//! `{ok: false, error: {code, message}}`.
+//! The command line tool calls the server over HTTP: `GET /v1/status` returns `AgentStatusResponse`,
+//! `POST /v1/call` takes `AgentCallRequest` and returns `AgentCallResponse`.
 
 use serde_json::{json, Value};
 

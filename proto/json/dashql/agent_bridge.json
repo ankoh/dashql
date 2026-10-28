@@ -1,0 +1,306 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dashql/agent_bridge.json",
+  "description": "The messages of the agent bridge: between the agent server and its clients on the WebSocket, and between the server and the command line tool over HTTP. packages/dashql-cli/src/agent/protocol.rs lists the methods with their params and results.",
+  "definitions": {
+    "AgentErrorCode": {
+      "type": "string",
+      "description": "The error code of a failed call",
+      "enum": ["failed", "not_connected", "busy", "usage"]
+    },
+    "AgentRpcError": {
+      "type": "object",
+      "description": "The error of a failed call",
+      "properties": {
+        "code": { "$ref": "#/definitions/AgentErrorCode" },
+        "message": { "type": "string" }
+      },
+      "required": ["code", "message"],
+      "additionalProperties": false
+    },
+    "AgentRpcMessage": {
+      "type": "object",
+      "description": "A message on the WebSocket. A request {id, method, params} is answered by {id, result} or {id, error}. A message with a method but without an id is a notification.",
+      "properties": {
+        "id": { "type": ["string", "number"] },
+        "method": { "type": "string" },
+        "params": { "tsType": "unknown" },
+        "result": { "tsType": "unknown" },
+        "error": { "$ref": "#/definitions/AgentRpcError" }
+      },
+      "additionalProperties": false
+    },
+    "AgentClientSession": {
+      "type": "object",
+      "description": "A session that a client holds",
+      "properties": {
+        "id": { "type": "string", "description": "The DashQL session id" },
+        "name": { "type": "string", "description": "The display name of the session" }
+      },
+      "required": ["id", "name"],
+      "additionalProperties": false
+    },
+    "ClientSessionsParams": {
+      "type": "object",
+      "description": "client/sessions, client → server: the sessions with agent access, sent after connecting and on every change. A server with another protocol version closes the WebSocket with 1008.",
+      "properties": {
+        "protocol": { "type": "integer", "description": "The version of the protocol" },
+        "client": { "type": "string", "description": "The kind of client, \"web\" or \"desktop\"" },
+        "sessions": { "type": "array", "items": { "$ref": "#/definitions/AgentClientSession" } },
+        "focused": {
+          "type": ["string", "null"],
+          "description": "The session that the user looks at, null if it has no agent access"
+        }
+      },
+      "required": ["protocol", "client", "sessions", "focused"],
+      "additionalProperties": false
+    },
+    "AgentCommandParams": {
+      "type": "object",
+      "description": "command, server → client: run a command of the command line tool against a session",
+      "properties": {
+        "session": { "type": "string" },
+        "command": { "type": "string" },
+        "args": { "type": "object", "additionalProperties": { "tsType": "unknown" } }
+      },
+      "required": ["session", "command", "args"],
+      "additionalProperties": false
+    },
+    "AgentCommandResult": {
+      "type": "object",
+      "description": "The result of a command",
+      "properties": {
+        "text": { "type": "string", "description": "The output for the agent" },
+        "data": { "tsType": "unknown", "description": "The structured output, printed with --json" }
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    },
+    "AgentRequestParams": {
+      "type": "object",
+      "description": "agent/request, client → server: run the harness with a prompt",
+      "properties": {
+        "session": { "type": "string" },
+        "harness": { "type": "string", "description": "The name of the harness, the server's default if omitted" },
+        "prompt": { "type": "string" }
+      },
+      "required": ["session", "prompt"],
+      "additionalProperties": false
+    },
+    "AgentRequestResult": {
+      "type": "object",
+      "description": "The result of agent/request, the turn that the server queued",
+      "properties": {
+        "turnId": { "type": "string" },
+        "harness": { "type": "string" }
+      },
+      "required": ["turnId", "harness"],
+      "additionalProperties": false
+    },
+    "AgentSessionParams": {
+      "type": "object",
+      "description": "agent/cancel, agent/reset and agent/context, client → server: the session to stop, forget or describe",
+      "properties": {
+        "session": { "type": "string" }
+      },
+      "required": ["session"],
+      "additionalProperties": false
+    },
+    "AgentSessionContext": {
+      "type": "object",
+      "description": "The result of agent/context",
+      "properties": {
+        "folder": { "type": "string", "description": "The working folder of harness runs of the session" },
+        "harness": { "type": "string", "description": "The harness that holds the conversation of the session, the default harness before the first turn" },
+        "harnessSession": {
+          "type": ["string", "null"],
+          "description": "The harness session that the next request resumes"
+        },
+        "terminalCommand": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "The command that continues the harness session in a terminal"
+        }
+      },
+      "required": ["folder", "harness", "harnessSession", "terminalCommand"],
+      "additionalProperties": false
+    },
+    "AgentConfigureParams": {
+      "type": "object",
+      "description": "agent/configure, client → server: change the configuration of the server",
+      "properties": {
+        "defaultHarness": { "type": "string", "description": "The harness that runs requests, one of the configured harnesses" }
+      },
+      "additionalProperties": false
+    },
+    "AgentEmptyMessage": {
+      "type": "object",
+      "description": "The params of agent/info, and the result of the methods that return nothing",
+      "additionalProperties": false
+    },
+    "AgentHarnessInfo": {
+      "type": "object",
+      "description": "A configured harness",
+      "properties": {
+        "name": { "type": "string" },
+        "command": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The command template, changed in config.json only"
+        },
+        "adapter": { "type": "string" },
+        "program": {
+          "type": ["string", "null"],
+          "description": "The file that the program resolves to, null if it is not installed"
+        }
+      },
+      "required": ["name", "command", "adapter", "program"],
+      "additionalProperties": false
+    },
+    "AgentServerClient": {
+      "type": "object",
+      "description": "A client of the agent server",
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string" },
+        "origin": { "type": "string" },
+        "sessions": { "type": "array", "items": { "$ref": "#/definitions/AgentClientSession" } },
+        "focused": { "type": ["string", "null"] }
+      },
+      "required": ["id", "kind", "origin", "sessions", "focused"],
+      "additionalProperties": false
+    },
+    "AgentTurnState": {
+      "type": "string",
+      "description": "The state of a turn",
+      "enum": ["queued", "running"]
+    },
+    "AgentTurn": {
+      "type": "object",
+      "description": "A turn of the agent server: a prompt that a harness works on until it answers",
+      "properties": {
+        "turnId": { "type": "string" },
+        "session": { "type": "string" },
+        "harness": { "type": "string" },
+        "state": { "$ref": "#/definitions/AgentTurnState" },
+        "status": { "type": "string", "description": "The latest status line" }
+      },
+      "required": ["turnId", "session", "harness", "state", "status"],
+      "additionalProperties": false
+    },
+    "AgentServerStatus": {
+      "type": "object",
+      "description": "The status of the agent server, for GET /v1/status",
+      "properties": {
+        "port": { "type": "integer" },
+        "clients": { "type": "array", "items": { "$ref": "#/definitions/AgentServerClient" } },
+        "turns": { "type": "array", "items": { "$ref": "#/definitions/AgentTurn" } }
+      },
+      "required": ["port", "clients", "turns"],
+      "additionalProperties": false
+    },
+    "AgentServerInfo": {
+      "type": "object",
+      "description": "The result of agent/info: the status with the configuration, for the settings of the app",
+      "properties": {
+        "port": { "type": "integer" },
+        "clients": { "type": "array", "items": { "$ref": "#/definitions/AgentServerClient" } },
+        "turns": { "type": "array", "items": { "$ref": "#/definitions/AgentTurn" } },
+        "home": { "type": "string", "description": "The folder of the configuration and the state" },
+        "configPath": { "type": "string" },
+        "dev": { "type": "boolean", "description": "Does the server accept the dev origins?" },
+        "defaultHarness": { "type": "string" },
+        "harnesses": { "type": "array", "items": { "$ref": "#/definitions/AgentHarnessInfo" } }
+      },
+      "required": ["port", "clients", "turns", "home", "configPath", "dev", "defaultHarness", "harnesses"],
+      "additionalProperties": false
+    },
+    "AgentStatusParams": {
+      "type": "object",
+      "description": "agent/status, server → client notification: the state of a turn",
+      "properties": {
+        "session": { "type": "string" },
+        "turnId": { "type": "string" },
+        "state": { "$ref": "#/definitions/AgentTurnState" },
+        "text": { "type": "string", "description": "The latest status line" }
+      },
+      "required": ["session", "turnId", "state", "text"],
+      "additionalProperties": false
+    },
+    "AgentDoneParams": {
+      "type": "object",
+      "description": "agent/done, server → client notification: a turn finished",
+      "properties": {
+        "session": { "type": "string" },
+        "turnId": { "type": "string" },
+        "message": { "type": "string", "description": "The final message of the agent" }
+      },
+      "required": ["session", "turnId", "message"],
+      "additionalProperties": false
+    },
+    "AgentFailedParams": {
+      "type": "object",
+      "description": "agent/failed, server → client notification: a turn failed or was stopped",
+      "properties": {
+        "session": { "type": "string" },
+        "turnId": { "type": "string" },
+        "error": { "type": "string" },
+        "cancelled": { "type": "boolean" }
+      },
+      "required": ["session", "turnId", "error", "cancelled"],
+      "additionalProperties": false
+    },
+    "AgentCallRequest": {
+      "type": "object",
+      "description": "The body of POST /v1/call: a command of the command line tool, for the given or the focused session",
+      "properties": {
+        "session": { "type": "string" },
+        "command": { "type": "string" },
+        "args": { "type": "object", "additionalProperties": { "tsType": "unknown" } }
+      },
+      "required": ["command"],
+      "additionalProperties": false
+    },
+    "AgentCallResponse": {
+      "description": "The response of POST /v1/call. The failures of every HTTP endpoint have the same shape.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "ok": { "const": true },
+            "session": { "type": "string" },
+            "result": { "$ref": "#/definitions/AgentCommandResult" }
+          },
+          "required": ["ok", "session", "result"],
+          "additionalProperties": false
+        },
+        { "$ref": "#/definitions/AgentFailedResponse" }
+      ]
+    },
+    "AgentStatusResponse": {
+      "description": "The response of GET /v1/status",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "ok": { "const": true },
+            "status": { "$ref": "#/definitions/AgentServerStatus" }
+          },
+          "required": ["ok", "status"],
+          "additionalProperties": false
+        },
+        { "$ref": "#/definitions/AgentFailedResponse" }
+      ]
+    },
+    "AgentFailedResponse": {
+      "type": "object",
+      "description": "The response of a failed HTTP call",
+      "properties": {
+        "ok": { "const": false },
+        "error": { "$ref": "#/definitions/AgentRpcError" }
+      },
+      "required": ["ok", "error"],
+      "additionalProperties": false
+    }
+  }
+}

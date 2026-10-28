@@ -325,7 +325,8 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
   executor and catalog code.
 - **Protocol:** JSON-RPC-style messages (`{id, method, params}` → `{id, result |
   error}`), plus notifications for turns (`agent/status`, `agent/done`,
-  `agent/failed`). A client announces the sessions it holds when it connects and when
+  `agent/failed`). The JSON Schema `proto/json/dashql/agent_bridge.json` defines the messages, the page
+  generates its types from it. A client announces the sessions it holds when it connects and when
   they change.
 - **Desktop windows** use the same client over the same WebSocket. They need no
   special path, and the agent can target a desktop session like a browser one.

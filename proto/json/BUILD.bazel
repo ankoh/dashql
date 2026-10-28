@@ -14,6 +14,7 @@ filegroup(
 jsonschema_typescript(
     name = "ts_gen",
     srcs = [
+        "dashql/agent_bridge.json",
         "dashql/auth.json",
         "dashql/connection.json",
         "dashql/app_event.json",
