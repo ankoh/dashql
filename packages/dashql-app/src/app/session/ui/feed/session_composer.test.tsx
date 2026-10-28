@@ -118,8 +118,11 @@ describe('Session composer', () => {
         expect(editor.state.doc.toString()).toBe('');
     });
 
-    it('replaces the draft with a snippet on the landing view only', async () => {
-        const editor = await render(SessionComposerVariant.Hero);
+    it.each([
+        ['landing', SessionComposerVariant.Hero],
+        ['docked', SessionComposerVariant.Docked],
+    ])('replaces the draft with a snippet on the %s composer', async (_, variant) => {
+        const editor = await render(variant);
         act(() => type(editor, 'select 1'));
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-snippets"]')!.click());
         act(() => document.querySelector<HTMLButtonElement>('[data-testid="snippet-apply"]')!.click());
@@ -127,9 +130,6 @@ describe('Session composer', () => {
         expect(editor.state.doc.toString()).not.toContain('select 1');
         expect(sendButton().disabled).toBe(false);
         expect(document.querySelector('[data-testid="snippets-overlay"]')).toBeNull();
-
-        await render(SessionComposerVariant.Docked);
-        expect(container.querySelector('[data-testid="composer-snippets"]')).toBeNull();
     });
 
     it('keeps the draft across hero and docked variants and disables AI without a provider', async () => {

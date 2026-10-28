@@ -47,7 +47,7 @@ export interface SessionComposerProps {
     submitRef?: React.RefObject<(() => void) | null>;
     /// Picks the connection that the draft runs on
     connectionPicker?: React.ReactNode;
-    /// The connector of the draft, the landing view offers the snippets that run on it
+    /// The connector of the draft, the composer offers the snippets that run on it
     snippetConnector?: ConnectorType;
     /// The snippets to browse, the bundled ones by default
     snippetRegistry?: SnippetRegistry;
@@ -170,7 +170,7 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                 </SegmentedControl>
                 <div className={styles.composer_trailing_actions}>
                     {props.connectionPicker}
-                    {hero && props.snippetConnector != null && (
+                    {props.snippetConnector != null && (
                         <SnippetsOverlay
                             scriptName="the prompt"
                             connectorType={props.snippetConnector}
