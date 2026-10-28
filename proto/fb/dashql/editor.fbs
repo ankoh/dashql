@@ -88,6 +88,8 @@ table EditorDiagnostic {
 struct EditorSyntaxSpan {
     text_span: EditorTextSpan;
     token_type: dashql.buffers.parser.ScannerTokenType;
+    /// The span lies in a comment: a comment span, or a token of a `@vis` tag
+    in_comment: bool;
 }
 
 enum EditorSemanticReferenceKind: uint8 {
@@ -239,4 +241,7 @@ table EditorUpdate {
     /// and processing statistics are left out, the host keeps the ones it holds. The cursor state and context are
     /// always included.
     analysis_omitted: bool;
+    /// The JSON objects of the `@vis vegalite` tags in the comments, from the opening to the closing brace. Part of
+    /// the analysis, left out with it.
+    vegalite_specs: [EditorTextSpan];
 }

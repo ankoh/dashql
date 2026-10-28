@@ -54,6 +54,32 @@ describe('scanner decorations', () => {
         catalog.destroy();
     });
 
+    it('highlights the tokens of @vis tags in comments quieter than the SQL', () => {
+        const text = '/* @vis vegalite {"mark": "bar", "size": 3} */select 1;\n-- @vis card width=2\n-- @end\nselect 2';
+        const catalog = dql!.createCatalog();
+        const session = dql!.createScriptSession(catalog);
+        session.replaceText(0n, text);
+        const update = session.analyze();
+        const state = EditorState.create({ doc: text });
+
+        const quiet: string[] = [];
+        const loud: string[] = [];
+        buildDecorationsForRanges(state, update, [{ from: 0, to: text.length }]).between(
+            0,
+            text.length,
+            (from, to, value) => {
+                if (value.spec.class.split(' ').includes('dashql-comment')) return;
+                const inComment = value.spec.class.split(' ').includes('dashql-comment-token');
+                (inComment ? quiet : loud).push(text.slice(from, to));
+            },
+        );
+
+        expect(quiet).toEqual(['@vis', 'vegalite', '"mark"', '"bar"', '"size"', '3', '@vis', 'card', 'width', '2']);
+        expect(loud).toEqual(['select', '1', 'select', '2']);
+        session.destroy();
+        catalog.destroy();
+    });
+
     it('highlights relation and function identifiers', () => {
         const text = 'select util.read_parquet(path) from db.public.items';
         const catalog = dql!.createCatalog();

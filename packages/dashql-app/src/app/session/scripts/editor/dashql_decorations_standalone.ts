@@ -29,16 +29,16 @@ for (const [_token, tag] of PROTO_TAG_MAPPING) {
 }
 
 /// Build the tag -> decoration lookup for the current editor state (theme dependent).
-function buildTagDecorations(state: EditorState): Map<Tag, Decoration> {
+/// `extraClass` is added to the highlight class of every tag.
+function buildTagDecorations(state: EditorState, extraClass: string | null): Map<Tag, Decoration> {
     const decorations: Map<Tag, Decoration> = new Map();
     for (const tag of CODEMIRROR_TAGS_USED) {
         const highlightClass = highlightingFor(state, [tag]) ?? '';
+        const classes = [highlightClass, tag === commentTag ? 'dashql-comment' : null, extraClass];
         decorations.set(
             tag,
             Decoration.mark({
-                class: tag === commentTag
-                    ? `${highlightClass} dashql-comment`.trim()
-                    : highlightClass,
+                class: classes.filter(c => c).join(' '),
             }),
         );
     }
@@ -56,7 +56,9 @@ export function buildDecorationsForRanges(
     ranges: readonly { from: number; to: number }[],
 ): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>();
-    const decorations = buildTagDecorations(state);
+    const decorations = buildTagDecorations(state, null);
+    // The tokens of `@vis` tags in comments are highlighted quieter than the SQL around them
+    const commentTokenDecorations = buildTagDecorations(state, 'dashql-comment-token');
     const semanticNames = update.semanticSpans.filter(semantic =>
         semantic.textSpan != null && (
             semantic.kind === dashql.buffers.editor.EditorSemanticReferenceKind.TABLE ||
@@ -104,7 +106,8 @@ export function buildDecorationsForRanges(
                         break;
                 }
             }
-            if (tag) builder.add(spanFrom, spanTo, decorations.get(tag)!);
+            const tagDecorations = syntax.inComment && tag !== commentTag ? commentTokenDecorations : decorations;
+            if (tag) builder.add(spanFrom, spanTo, tagDecorations.get(tag)!);
             ++spanCursor;
         }
     }

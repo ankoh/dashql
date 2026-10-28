@@ -3,6 +3,8 @@
 //! In a `@vis` tag, the tag and the kind are keywords. JSON keys and the keys of `card` args are
 //! identifiers, JSON strings, numbers and booleans are literals, and `{{field}}` placeholders of Markdown
 //! templates are identifiers. The rest of the comment stays a comment.
+//!
+//! The JSON objects of `vegalite` tags are found with the tokens, editors fold them.
 
 use dashql_buffers::parser::{CommentBlockType, ScannerTokenType};
 use dashql_parser::parser::ParsedScript;
@@ -15,6 +17,11 @@ const VIS_TAG: &[u8] = b"vis";
 struct Lines<'a> {
     script: &'a [u8],
     out: &'a mut Vec<(TextSpan, ScannerTokenType)>,
+    /// The nesting depth of the JSON objects and the start of the outermost one
+    depth: usize,
+    object_begin: usize,
+    /// The spans of the outermost JSON objects
+    objects: &'a mut Vec<TextSpan>,
 }
 
 impl Lines<'_> {
@@ -68,6 +75,17 @@ impl Lines<'_> {
                     _ => {}
                 }
             } else {
+                if c == b'{' {
+                    if self.depth == 0 {
+                        self.object_begin = i;
+                    }
+                    self.depth += 1;
+                } else if c == b'}' && self.depth > 0 {
+                    self.depth -= 1;
+                    if self.depth == 0 {
+                        self.objects.push(TextSpan::new(self.object_begin as u32, (i + 1 - self.object_begin) as u32));
+                    }
+                }
                 i += 1;
             }
         }
@@ -113,17 +131,18 @@ impl Lines<'_> {
     }
 }
 
-/// The highlighted tokens of the `@vis` tags, sorted by offset
-fn vis_tokens(parsed: &ParsedScript) -> Vec<(TextSpan, ScannerTokenType)> {
+/// The highlighted tokens of the `@vis` tags, sorted by offset, and the JSON objects of the `vegalite` tags
+fn vis_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<TextSpan>) {
     let script = parsed.scanned.text.as_bytes();
     let blocks = &parsed.comment_blocks;
     let mut out = Vec::new();
+    let mut objects = Vec::new();
     for block in &blocks.blocks {
         let tag = block.tag_span;
         if block.block_type != CommentBlockType::DASHQL_TAG || &script[tag.offset as usize..tag.end() as usize] != VIS_TAG {
             continue;
         }
-        let mut lines = Lines { script, out: &mut out };
+        let mut lines = Lines { script, out: &mut out, depth: 0, object_begin: 0, objects: &mut objects };
         // The tag with its `@`
         lines.push(tag.offset as usize - 1, tag.end() as usize, ScannerTokenType::KEYWORD);
         let content = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
@@ -147,13 +166,14 @@ fn vis_tokens(parsed: &ParsedScript) -> Vec<(TextSpan, ScannerTokenType)> {
         }
     }
     out.sort_by_key(|(span, _)| span.offset);
-    out
+    objects.sort_by_key(|span| span.offset);
+    (out, objects)
 }
 
 /// The syntax spans of the comments: a comment is one comment span, `@vis` tags are split into their
-/// tokens and the comment spans between them
-pub fn comment_syntax_spans(parsed: &ParsedScript) -> Vec<(TextSpan, ScannerTokenType)> {
-    let tokens = vis_tokens(parsed);
+/// tokens and the comment spans between them. Returns the spans and the JSON objects of the `vegalite` tags.
+pub fn comment_syntax_spans(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<TextSpan>) {
+    let (tokens, objects) = vis_tokens(parsed);
     let mut out = Vec::with_capacity(parsed.scanned.comments.len() + tokens.len() * 2);
     let mut next = 0;
     for &comment in &parsed.scanned.comments {
@@ -175,7 +195,7 @@ pub fn comment_syntax_spans(parsed: &ParsedScript) -> Vec<(TextSpan, ScannerToke
             out.push((TextSpan::new(at as u32, (end - at) as u32), ScannerTokenType::COMMENT));
         }
     }
-    out
+    (out, objects)
 }
 
 #[cfg(test)]
@@ -188,6 +208,7 @@ mod tests {
     fn spans(text: &str) -> Vec<(&str, ScannerTokenType)> {
         let parsed = parse(Arc::new(scan(text, 0, 0)));
         comment_syntax_spans(&parsed)
+            .0
             .into_iter()
             .map(|(span, token)| (&text[span.offset as usize..span.end() as usize], token))
             .collect()
@@ -240,5 +261,26 @@ mod tests {
                 ("-- @end", T::COMMENT),
             ]
         );
+    }
+
+    fn vegalite_specs(text: &str) -> Vec<&str> {
+        let parsed = parse(Arc::new(scan(text, 0, 0)));
+        comment_syntax_spans(&parsed)
+            .1
+            .into_iter()
+            .map(|span| &text[span.offset as usize..span.end() as usize])
+            .collect()
+    }
+
+    #[test]
+    fn finds_vegalite_specs() {
+        assert_eq!(
+            vegalite_specs("/* @vis vegalite\n   {\n     \"mark\": {\"type\": \"bar\"},\n     \"title\": \"a } b\"\n   }\n*/\nselect 1"),
+            vec!["{\n     \"mark\": {\"type\": \"bar\"},\n     \"title\": \"a } b\"\n   }"]
+        );
+        assert_eq!(vegalite_specs("-- @vis vegalite {\"mark\":\"bar\"}\n-- @end\nselect 1"), vec!["{\"mark\":\"bar\"}"]);
+        // Only the JSON of vegalite tags, and only closed objects
+        assert_eq!(vegalite_specs("/* @vis markdown {{a}} */ select 1; /* {\"mark\": 1} */ select 2"), Vec::<&str>::new());
+        assert_eq!(vegalite_specs("/* @vis vegalite {\"mark\": \"bar\" */ select 1"), Vec::<&str>::new());
     }
 }

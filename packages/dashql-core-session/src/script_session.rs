@@ -749,23 +749,27 @@ impl ScriptSession {
         let lengths = tokens.token_lengths.as_deref().unwrap_or(&[]);
         let types = tokens.token_types.as_deref().unwrap_or(&[]);
         let mut syntax_spans = Vec::with_capacity(offsets.len() + scanned.comments.len());
-        let mut add_syntax = |projector: &mut Projector, token_type: ScannerTokenType, span: TextSpan| {
+        let mut add_syntax = |projector: &mut Projector, token_type: ScannerTokenType, span: TextSpan, in_comment: bool| {
             if let Some(text_span) = projector.span(span) {
                 let mut s = EditorSyntaxSpanT::default();
                 s.token_type = token_type;
                 s.text_span = text_span;
+                s.in_comment = in_comment;
                 syntax_spans.push(s);
             }
         };
         for ((&offset, &length), &token_type) in offsets.iter().zip(lengths).zip(types) {
-            add_syntax(projector, token_type, TextSpan::new(offset, length));
+            add_syntax(projector, token_type, TextSpan::new(offset, length), false);
         }
         // Comments with `@vis` tags are split into the tokens of the tags
-        for (span, token_type) in dashql_core::vis_highlight::comment_syntax_spans(parsed) {
-            add_syntax(projector, token_type, span);
+        let (comment_spans, vegalite_specs) = dashql_core::vis_highlight::comment_syntax_spans(parsed);
+        for (span, token_type) in comment_spans {
+            add_syntax(projector, token_type, span, true);
         }
         syntax_spans.sort_by_key(|s| s.text_span.offset);
         update.syntax_spans = non_empty(syntax_spans);
+        let vegalite_specs: Vec<_> = vegalite_specs.into_iter().filter_map(|span| projector.span(span)).collect();
+        update.vegalite_specs = non_empty(vegalite_specs);
 
         // Semantic spans: table, column and function references
         let mut semantic_spans = Vec::new();

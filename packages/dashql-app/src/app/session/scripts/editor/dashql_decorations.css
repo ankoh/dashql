@@ -94,3 +94,9 @@
     outline: 2px solid var(--focus_border_color);
     outline-offset: 2px;
 }
+
+/* The tokens of @vis tags in comments: keep the colors of the theme, but step back behind the SQL */
+.cm-content .dashql-comment-token {
+    font-weight: normal;
+    opacity: 0.55;
+}

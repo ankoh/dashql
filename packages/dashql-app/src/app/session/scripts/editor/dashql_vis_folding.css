@@ -1,0 +1,16 @@
+.dashql-vis-fold-marker {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    color: #aa0d91;
+    cursor: pointer;
+    font-family: var(--font_family_mono);
+    font-size: 0.85rem;
+    line-height: 16px;
+    text-align: center;
+}
+
+.dashql-vis-fold-marker:hover {
+    background: color-mix(in srgb, #aa0d91 10%, transparent);
+}

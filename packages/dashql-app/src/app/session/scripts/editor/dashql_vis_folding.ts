@@ -1,13 +1,12 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { codeFolding, foldEffect, foldedRanges, foldKeymap, foldService } from '@codemirror/language';
-import { EditorState, Extension, Text, Transaction } from '@codemirror/state';
+import { codeFolding, foldEffect, foldedRanges, foldGutter, foldKeymap, foldService } from '@codemirror/language';
+import { EditorState, Extension, Transaction } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 
 import { DashQLProcessorPlugin, DashQLUpdateEffect } from './dashql_processor.js';
 
-/// The start of a Vega-Lite spec after the kind of its tag, up to its opening brace
-const VEGALITE_SPEC = /^vegalite\s*\{/;
+import './dashql_vis_folding.css';
 
 /// The range between the braces of a Vega-Lite spec
 export interface VegaLiteSpecRange {
@@ -15,65 +14,15 @@ export interface VegaLiteSpecRange {
     to: number;
 }
 
-/// The position of the brace that closes the JSON object opened before `start`, skipping strings
-function findClosingBrace(text: string, start: number): number | null {
-    let depth = 1;
-    let inString = false;
-    for (let i = start; i < text.length; ++i) {
-        const c = text[i];
-        if (inString) {
-            if (c === '\\') ++i;
-            else if (c === '"') inString = false;
-        } else if (c === '"') {
-            inString = true;
-        } else if (c === '{') {
-            ++depth;
-        } else if (c === '}' && --depth === 0) {
-            return i;
-        }
-    }
-    return null;
-}
-
-// The specs of an update are found once per document
-const specCache = new WeakMap<dashql.buffers.editor.EditorUpdateT, { doc: Text; specs: VegaLiteSpecRange[] }>();
-
-/// The ranges between the braces of the non-empty `@vis vegalite` specs in the comments of a document, found through
-/// the syntax spans of the update
-export function findVegaLiteSpecs(doc: Text, update: dashql.buffers.editor.EditorUpdateT | null | undefined): VegaLiteSpecRange[] {
-    if (update == null) return [];
-    const cached = specCache.get(update);
-    if (cached?.doc === doc) return cached.specs;
+/// The ranges between the braces of the non-empty `@vis vegalite` specs of an update
+export function findVegaLiteSpecs(update: dashql.buffers.editor.EditorUpdateT | null | undefined): VegaLiteSpecRange[] {
     const specs: VegaLiteSpecRange[] = [];
-    const spans = update.syntaxSpans;
-    const spanText = (i: number) => {
-        const span = spans[i].textSpan!;
-        return doc.sliceString(Number(span.offset), Number(span.offset + span.length));
-    };
-    let afterTag = false;
-    for (let i = 0; i < spans.length; ++i) {
-        const syntax = spans[i];
-        if (syntax.textSpan == null || syntax.tokenType === dashql.buffers.parser.ScannerTokenType.COMMENT) continue;
-        // The core splits a `@vis` comment into keywords for the tag and the kind, the JSON tokens and the
-        // comment text between them
-        const keyword = syntax.tokenType === dashql.buffers.parser.ScannerTokenType.KEYWORD ? spanText(i) : null;
-        const isKind = afterTag && keyword === 'vegalite';
-        afterTag = keyword === '@vis';
-        if (!isKind) continue;
-        // The comment ends where its spans stop being contiguous
-        const from = Number(syntax.textSpan.offset);
-        let to = from + Number(syntax.textSpan.length);
-        for (let j = i + 1; j < spans.length && Number(spans[j].textSpan?.offset ?? -1) === to; ++j) {
-            to += Number(spans[j].textSpan!.length);
-        }
-        const comment = doc.sliceString(from, Math.min(to, doc.length));
-        const match = VEGALITE_SPEC.exec(comment);
-        if (match == null) continue;
-        const open = match[0].length;
-        const close = findClosingBrace(comment, open);
-        if (close != null && close > open) specs.push({ from: from + open, to: from + close });
+    for (const span of update?.vegaliteSpecs ?? []) {
+        // The core sends the JSON objects with their braces
+        const from = Number(span.offset) + 1;
+        const to = Number(span.offset + span.length) - 1;
+        if (to > from) specs.push({ from, to });
     }
-    specCache.set(update, { doc, specs });
     return specs;
 }
 
@@ -105,12 +54,12 @@ const autoFoldVegaLiteSpecs = EditorState.transactionExtender.of(tr => {
     // A spec that is open before and kept by the new text stays open
     const open = new Set<string>();
     if (!initial) {
-        for (const spec of findVegaLiteSpecs(tr.startState.doc, prev.editorUpdate)) {
+        for (const spec of findVegaLiteSpecs(prev.editorUpdate)) {
             if (!isFolded(tr.startState, spec)) open.add(tr.startState.doc.sliceString(spec.from, spec.to));
         }
     }
     const head = tr.newSelection.main.head;
-    const effects = findVegaLiteSpecs(tr.newDoc, update)
+    const effects = findVegaLiteSpecs(update)
         .filter(spec => (head <= spec.from || head > spec.to) && !open.has(tr.newDoc.sliceString(spec.from, spec.to)))
         .map(spec => foldEffect.of(spec));
     return effects.length > 0 ? { effects } : null;
@@ -119,11 +68,25 @@ const autoFoldVegaLiteSpecs = EditorState.transactionExtender.of(tr => {
 /// Lets the Vega-Lite specs be folded from the line of their opening brace
 const vegaLiteSpecFolds = foldService.of((state, lineStart, lineEnd) => {
     const processor = state.field(DashQLProcessorPlugin, false);
-    return findVegaLiteSpecs(state.doc, processor?.editorUpdate).find(spec => spec.from >= lineStart && spec.from <= lineEnd) ?? null;
+    return findVegaLiteSpecs(processor?.editorUpdate).find(spec => spec.from >= lineStart && spec.from <= lineEnd) ?? null;
+});
+
+/// Folds and unfolds a spec from the gutter next to the line of its opening brace
+const vegaLiteSpecGutter = foldGutter({
+    markerDOM: open => {
+        const marker = document.createElement('span');
+        marker.className = 'dashql-vis-fold-marker';
+        marker.dataset.testid = 'vis-fold-marker';
+        marker.setAttribute('aria-expanded', String(open));
+        marker.title = open ? 'Fold the Vega-Lite spec' : 'Unfold the Vega-Lite spec';
+        marker.textContent = open ? '▾' : '▸';
+        return marker;
+    },
 });
 
 export const DashQLVisFoldingPlugin: Extension = [
     codeFolding(),
+    vegaLiteSpecGutter,
     vegaLiteSpecFolds,
     autoFoldVegaLiteSpecs,
     keymap.of(foldKeymap),

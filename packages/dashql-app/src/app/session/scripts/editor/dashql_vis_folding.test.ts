@@ -2,6 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { foldedRanges, unfoldEffect } from '@codemirror/language';
 import { EditorSelection, EditorState, Transaction } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 
 import { DashQLProcessorPlugin, DashQLProcessorUpdateIn, DashQLUpdateEffect } from './dashql_processor.js';
 import { DashQLVisFoldingPlugin, findVegaLiteSpecs } from './dashql_vis_folding.js';
@@ -66,13 +67,13 @@ function createState(text: string): EditorState {
 describe('Vega-Lite spec folding', () => {
     it('finds the specs between their braces', () => {
         const state = createState(SPEC);
-        const specs = findVegaLiteSpecs(state.doc, state.field(DashQLProcessorPlugin).editorUpdate);
+        const specs = findVegaLiteSpecs(state.field(DashQLProcessorPlugin).editorUpdate);
         expect(specs.map(spec => state.doc.sliceString(spec.from, spec.to))).toEqual([SPEC_BODY]);
     });
 
     it('ignores other tags and empty specs', () => {
         const state = createState('/* @vis vegalite {} */ select 1;\n/* @vis table */ select 2;\n-- {"mark": "bar"}\nselect 3');
-        expect(findVegaLiteSpecs(state.doc, state.field(DashQLProcessorPlugin).editorUpdate)).toEqual([]);
+        expect(findVegaLiteSpecs(state.field(DashQLProcessorPlugin).editorUpdate)).toEqual([]);
     });
 
     it('folds the specs of a script that is opened', () => {
@@ -90,9 +91,36 @@ describe('Vega-Lite spec folding', () => {
         expect(folds(state)).toEqual([]);
     });
 
+    it('folds and unfolds a spec from the gutter', () => {
+        const view = new EditorView({ state: createState(SPEC), parent: document.body });
+        try {
+            // The gutter sizes itself with a hidden spacer marker
+            const marker = () => {
+                const markers = Array.from(view.dom.querySelectorAll<HTMLElement>('[data-testid="vis-fold-marker"]'))
+                    .filter(marker => marker.closest<HTMLElement>('.cm-gutterElement')?.style.visibility !== 'hidden');
+                expect(markers.length).toBe(1);
+                return markers[0];
+            };
+            const click = () => {
+                const rect = marker().getBoundingClientRect();
+                const position = { bubbles: true, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 };
+                marker().dispatchEvent(new MouseEvent('click', position));
+            };
+            expect(folds(view.state)).toEqual([SPEC_BODY]);
+            expect(marker().getAttribute('aria-expanded')).toBe('false');
+            click();
+            expect(folds(view.state)).toEqual([]);
+            expect(marker().getAttribute('aria-expanded')).toBe('true');
+            click();
+            expect(folds(view.state)).toEqual([SPEC_BODY]);
+        } finally {
+            view.destroy();
+        }
+    });
+
     it('keeps a spec open that the user unfolded', () => {
         let state = createState(SPEC);
-        const [spec] = findVegaLiteSpecs(state.doc, state.field(DashQLProcessorPlugin).editorUpdate);
+        const [spec] = findVegaLiteSpecs(state.field(DashQLProcessorPlugin).editorUpdate);
         state = state.update({ effects: unfoldEffect.of(spec) }).state;
         // The query changes but the spec stays the same
         state = replaceText(state, SPEC.replace('select 1', 'select 2'));
