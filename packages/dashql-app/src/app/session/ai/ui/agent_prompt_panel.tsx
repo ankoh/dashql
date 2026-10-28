@@ -114,12 +114,12 @@ const AgentTurnNote: React.FC<{ note: string }> = ({ note }) => {
         return () => observer.disconnect();
     }, [text, expanded]);
     return (
-        <div className={styles.run_note_container}>
-            <div ref={ref} className={styles.run_note} role="note" data-expanded={expanded ? '' : undefined}>{text}</div>
+        <div className={styles.turn_note_container}>
+            <div ref={ref} className={styles.turn_note} role="note" data-expanded={expanded ? '' : undefined}>{text}</div>
             {(overflows || expanded) && (
                 <button
                     type="button"
-                    className={styles.run_note_toggle}
+                    className={styles.turn_note_toggle}
                     aria-expanded={expanded}
                     data-testid="composer-agent-note-toggle"
                     onClick={() => setExpanded(e => !e)}
@@ -138,16 +138,16 @@ const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent }>
     const indicator = working ? IndicatorStatus.Running : (failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
     return (
         <li className={styles.turn} data-state={working ? 'working' : (failed ? 'failed' : 'done')} data-testid="composer-agent-turn">
-            <div className={styles.run_header}>
-                <span className={styles.run_indicator}>
+            <div className={styles.turn_header}>
+                <span className={styles.turn_indicator}>
                     <StatusIndicator status={indicator} width="12px" height="12px" />
                 </span>
-                <span className={styles.run_question} title={question.question}>{question.question}</span>
+                <span className={styles.turn_question} title={question.question}>{question.question}</span>
                 {turn.scripts.map(script => (
                     <button
                         key={script.scriptKey}
                         type="button"
-                        className={styles.run_script}
+                        className={styles.turn_script}
                         aria-label={`Show the script ${script.scriptName}`}
                         data-testid="composer-agent-script"
                         onClick={() => agent.onShowScript(script.scriptKey)}
@@ -177,8 +177,8 @@ const AgentTurnItem: React.FC<{ turn: ComposerAgentTurn; agent: ComposerAgent }>
                     </IconButton>
                 )}
             </div>
-            {working && <div className={styles.run_status} role="status">{question.status}</div>}
-            {failed && <div className={styles.run_error} role="alert">{question.error}</div>}
+            {working && <div className={styles.turn_status} role="status">{question.status}</div>}
+            {failed && <div className={styles.turn_error} role="alert">{question.error}</div>}
             {!working && !failed && question.note != null && <AgentTurnNote note={question.note} />}
         </li>
     );

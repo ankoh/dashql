@@ -754,7 +754,7 @@ impl Shared {
     async fn run_harness(self: &Arc<Self>, turn_id: &str) -> Result<HarnessOutcome, String> {
         let (session, config, prompt) = {
             let state = self.lock();
-            let Some(turn) = state.turns.iter().find(|r| r.turn_id == turn_id) else {
+            let Some(turn) = state.turns.iter().find(|turn| turn.turn_id == turn_id) else {
                 return Ok(HarnessOutcome::failed("Stopped"));
             };
             let config =
@@ -790,7 +790,7 @@ impl Shared {
 
         let harness_name = {
             let state = self.lock();
-            match state.turns.iter().find(|r| r.turn_id == turn_id) {
+            match state.turns.iter().find(|turn| turn.turn_id == turn_id) {
                 Some(turn) if !turn.cancelled => turn.harness.clone(),
                 _ => return Ok(HarnessOutcome::failed("Stopped")),
             }
@@ -804,7 +804,7 @@ impl Shared {
         {
             let mut state = self.lock();
             state.harnesses += 1;
-            match state.turns.iter_mut().find(|r| r.turn_id == turn_id) {
+            match state.turns.iter_mut().find(|turn| turn.turn_id == turn_id) {
                 Some(turn) => {
                     // A cancel that came while the harness started
                     if turn.cancelled {
@@ -836,7 +836,7 @@ impl Shared {
             HarnessEvent::Status(text) => {
                 let mut state = self.lock();
                 let state = &mut *state;
-                let Some(turn) = state.turns.iter_mut().find(|r| r.turn_id == turn_id) else { return };
+                let Some(turn) = state.turns.iter_mut().find(|turn| turn.turn_id == turn_id) else { return };
                 if text.is_empty() || turn.cancelled {
                     return;
                 }
@@ -861,7 +861,7 @@ impl Shared {
 
     fn finish_turn(self: &Arc<Self>, turn_id: &str, outcome: HarnessOutcome) {
         let mut state = self.lock();
-        let Some(index) = state.turns.iter().position(|r| r.turn_id == turn_id) else { return };
+        let Some(index) = state.turns.iter().position(|turn| turn.turn_id == turn_id) else { return };
         let turn = state.turns.remove(index);
         if turn.cancelled {
             notify_failed(&state.clients, &turn, "Stopped", true);
@@ -872,8 +872,8 @@ impl Shared {
             let params = json!({ "session": turn.session, "turnId": turn.turn_id, "message": outcome.message });
             notify_session(&state.clients, &turn.session, "agent/done", params);
         }
-        let next = state.turns.iter().find(|r| r.session == turn.session);
-        if let Some(next) = next.filter(|r| r.state == TurnState::Queued) {
+        let next = state.turns.iter().find(|next| next.session == turn.session);
+        if let Some(next) = next.filter(|next| next.state == TurnState::Queued) {
             tokio::spawn(start_turn(self.clone(), next.turn_id.clone()));
         }
     }
@@ -883,11 +883,11 @@ impl Shared {
 async fn start_or_queue(shared: Arc<Shared>, turn_id: String) {
     {
         let state = shared.lock();
-        let Some(turn) = state.turns.iter().find(|r| r.turn_id == turn_id) else { return };
+        let Some(turn) = state.turns.iter().find(|turn| turn.turn_id == turn_id) else { return };
         if turn.cancelled {
             return;
         }
-        if state.turns.iter().find(|r| r.session == turn.session).map(|r| &r.turn_id) != Some(&turn_id) {
+        if state.turns.iter().find(|first| first.session == turn.session).map(|first| &first.turn_id) != Some(&turn_id) {
             notify_status(&state.clients, turn);
             return;
         }
@@ -899,7 +899,7 @@ async fn start_turn(shared: Arc<Shared>, turn_id: String) {
     {
         let mut state = shared.lock();
         let state = &mut *state;
-        let Some(turn) = state.turns.iter_mut().find(|r| r.turn_id == turn_id) else { return };
+        let Some(turn) = state.turns.iter_mut().find(|turn| turn.turn_id == turn_id) else { return };
         if turn.state != TurnState::Queued || turn.cancelled {
             return;
         }

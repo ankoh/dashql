@@ -60,7 +60,7 @@ export interface AgentClientOptions {
     onNotification: (notification: AgentNotification) => void;
     /// Follow the connection status
     onStatus: (status: AgentConnectionStatus) => void;
-    /// The connection is gone, the notifications of the runs that the server started for it are lost
+    /// The connection is gone, the notifications of the turns that the server started for it are lost
     onDisconnect?: (reason: string) => void;
     /// Create a socket, replaceable in tests
     createSocket?: (url: string) => AgentSocket;
