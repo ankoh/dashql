@@ -71,7 +71,7 @@ async function connectPage(port: number, origin: string): Promise<net.Socket> {
     const message = {
         id: "p1",
         method: "client/sessions",
-        params: {protocol: 2, client: "native", sessions: [{id: "s1", name: "Orders"}], focused: "s1"},
+        params: {protocol: 2, client: "desktop", sessions: [{id: "s1", name: "Orders"}], focused: "s1"},
     };
     socket.write(maskedTextFrame(JSON.stringify(message)));
     return socket;
@@ -115,7 +115,7 @@ describe("AgentHost", () => {
 
         const page = await connectPage(running.status!.port, "app://bundle");
         const connected = await waitFor(agent, (s) => s.status?.clients.length === 1);
-        expect(connected.status?.clients[0]).toMatchObject({kind: "native", origin: "app://bundle", sessions: [{id: "s1", name: "Orders"}], focused: "s1"});
+        expect(connected.status?.clients[0]).toMatchObject({kind: "desktop", origin: "app://bundle", sessions: [{id: "s1", name: "Orders"}], focused: "s1"});
         page.destroy();
         await waitFor(agent, (s) => s.status?.clients.length === 0);
     });

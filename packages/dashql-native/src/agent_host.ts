@@ -9,7 +9,7 @@ export const AGENT_DEV_PORT = 47101;
 
 /// A page or window that holds DashQL sessions, as GET /v1/status reports it
 export interface AgentClientStatus {
-    id: number;
+    id: string;
     kind: string;
     origin: string;
     sessions: {id: string; name: string}[];

@@ -29,7 +29,7 @@ export function harnessName(harness: string): string {
 
 /// How the menu names a page or window that is connected to the agent server
 export function clientName(client: AgentClientStatus): string {
-    if (client.kind === "native") return "DashQL window";
+    if (client.kind === "desktop") return "DashQL window";
     try {
         const url = new URL(client.origin);
         return url.hostname === "localhost" || url.hostname === "127.0.0.1" ? `dev server ${url.host}` : url.host;

@@ -10,8 +10,8 @@ function actions(): MenuBarActions {
 const busy: AgentServerStatus = {
     port: 47100,
     clients: [
-        {id: 1, kind: "web", origin: "https://dashql.app", sessions: [{id: "s1", name: "Revenue analysis"}, {id: "s2", name: "Orders"}], focused: "s1"},
-        {id: 2, kind: "native", origin: "app://bundle", sessions: [{id: "s3", name: "Scratch"}], focused: null},
+        {id: "c1", kind: "web", origin: "https://dashql.app", sessions: [{id: "s1", name: "Revenue analysis"}, {id: "s2", name: "Orders"}], focused: "s1"},
+        {id: "c2", kind: "desktop", origin: "app://bundle", sessions: [{id: "s3", name: "Scratch"}], focused: null},
     ],
     turns: [
         {turnId: "t1", session: "s1", harness: "codex", state: "running", status: "Writing q1"},
@@ -41,7 +41,7 @@ describe("buildMenuBarTemplate", () => {
     it("describes a server without clients, one of another process and a dev page", () => {
         const idle = {port: 47101, clients: [], turns: []};
         expect(labels({state: "running", status: idle, error: null})[0]).toBe("Waiting for DashQL on port 47101");
-        const dev = {...idle, clients: [{id: 1, kind: "web", origin: "http://localhost:9002", sessions: [{id: "s1", name: "a"}], focused: "s1"}]};
+        const dev = {...idle, clients: [{id: "c1", kind: "web", origin: "http://localhost:9002", sessions: [{id: "s1", name: "a"}], focused: "s1"}]};
         expect(labels({state: "external", status: dev, error: null}).slice(0, 2)).toEqual([
             "Connected: dev server localhost:9002 · 1 session",
             "Served by another dashql agent serve",
