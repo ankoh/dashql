@@ -1,6 +1,7 @@
 import type {MenuItemConstructorOptions} from "electron";
 
-import type {AgentClientStatus, AgentHostSnapshot, AgentTurnStatus} from "./agent_host.js";
+import type {AgentServerClient, AgentTurn} from "./agent_bridge.js";
+import type {AgentHostSnapshot} from "./agent_host.js";
 
 export interface MenuBarActions {
     setAgentAccess(enabled: boolean): void;
@@ -28,7 +29,7 @@ export function harnessName(harness: string): string {
 }
 
 /// How the menu names a page or window that is connected to the agent server
-export function clientName(client: AgentClientStatus): string {
+export function clientName(client: AgentServerClient): string {
     if (client.kind === "desktop") return "DashQL window";
     try {
         const url = new URL(client.origin);
@@ -64,7 +65,7 @@ export function statusLine(snapshot: AgentHostSnapshot, agentAccess: boolean): s
 }
 
 /// A line per turn
-export function turnLine(turn: AgentTurnStatus, clients: AgentClientStatus[]): string {
+export function turnLine(turn: AgentTurn, clients: AgentServerClient[]): string {
     const session = clients.flatMap((client) => client.sessions).find((s) => s.id === turn.session);
     const where = `"${session?.name ?? turn.session}"`;
     const what = turn.state === "queued" ? "queued" : turn.status || "running";

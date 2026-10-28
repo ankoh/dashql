@@ -26,13 +26,24 @@ filegroup(
     srcs = ["src/preload.cjs"],
 )
 
+# The messages of the agent server, generated from proto/json/dashql/agent_bridge.json
+genrule(
+    name = "agent_bridge",
+    srcs = ["//proto/json:ts_gen_agent_bridge"],
+    outs = ["src/agent_bridge.ts"],
+    cmd = "cp $< $@",
+)
+
 typescript_bin.tsc_binary(
     name = "tsc_bin",
 )
 
 ts_project(
     name = "compile",
-    srcs = [":srcs"],
+    srcs = [
+        ":agent_bridge",
+        ":srcs",
+    ],
     out_dir = "dist",
     root_dir = "src",
     source_map = True,
@@ -57,6 +68,7 @@ vitest_bin.vitest_test(
     args = ["run", "--config", "vitest.config.ts"],
     chdir = "packages/dashql-native",
     data = [
+        ":agent_bridge",
         ":srcs",
         "tsconfig.bazel.json",
         "vitest.config.ts",

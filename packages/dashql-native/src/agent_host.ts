@@ -7,29 +7,9 @@ import path from "node:path";
 export const AGENT_PORT = 47100;
 export const AGENT_DEV_PORT = 47101;
 
-/// A page or window that holds DashQL sessions, as GET /v1/status reports it
-export interface AgentClientStatus {
-    id: string;
-    kind: string;
-    origin: string;
-    sessions: {id: string; name: string}[];
-    focused: string | null;
-}
+import type {AgentServerStatus, AgentStatusResponse} from "./agent_bridge.js";
 
-/// A turn, as GET /v1/status reports it
-export interface AgentTurnStatus {
-    turnId: string;
-    session: string;
-    harness: string;
-    state: "queued" | "running";
-    status: string;
-}
-
-export interface AgentServerStatus {
-    port: number;
-    clients: AgentClientStatus[];
-    turns: AgentTurnStatus[];
-}
+export type {AgentServerStatus} from "./agent_bridge.js";
 
 /// What the host knows about the agent server
 export type AgentHostState =
@@ -110,8 +90,8 @@ async function fetchStatus(endpoint: Endpoint): Promise<StatusResult> {
             headers: {authorization: `Bearer ${endpoint.token}`},
             signal: AbortSignal.timeout(STATUS_TIMEOUT_MS),
         });
-        const body = await response.json() as {ok?: boolean; status?: AgentServerStatus};
-        if (response.ok && body.ok === true && body.status !== undefined) return {ok: true, status: body.status};
+        const body = await response.json() as AgentStatusResponse;
+        if (response.ok && body.ok) return {ok: true, status: body.status};
         return {ok: false, reachable: true};
     } catch {
         return {ok: false, reachable: false};
