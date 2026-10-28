@@ -1,6 +1,5 @@
 :root {
     --nav_bar_button_margin: 4px;
-    --nav_bar_width: 48px;
     --nav_bar_height: 40px;
     --nav_bar_border: 1px solid var(--border_color_primary);
     --nav_tab_bg: transparent;
@@ -14,15 +13,18 @@
 }
 
 .container {
+    --nav_bar_width: 48px;
+    --nav_bar_top_inset: 0px;
     display: grid;
-    grid-template-rows: var(--nav_bar_height) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     grid-template-columns: var(--nav_bar_width) minmax(0, 1fr);
     height: 100%;
 }
 
-.navbar_row {
-    grid-row: 1;
-    grid-column: 1 / -1;
+/* The rail fits the traffic lights of the desktop app on macOS above the logo, see trafficLightPosition in dashql-native */
+.container_mac {
+    --nav_bar_width: 76px;
+    --nav_bar_top_inset: 40px;
 }
 
 .navbar_mac {
@@ -50,33 +52,28 @@
 }
 
 .brand_logo {
-    grid-row: 1;
-    grid-column: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    fill: white;
     min-width: 32px;
     height: 32px;
     padding: 4px;
     border: 0;
-    /* Aligns the 32px button with the buttons of the nav rail below */
-    margin-left: calc((var(--nav_bar_width) - 32px) / 2);
-    margin-right: 4px;
+    color: white;
+    fill: white;
     background: transparent;
     cursor: pointer;
-}
-
-.brand_logo:focus-visible {
-    outline: 2px solid white;
-    outline-offset: -2px;
 }
 
 .brand_logo svg {
     display: block;
     color: inherit;
     fill: inherit;
+}
+
+.brand_logo:focus-visible {
+    outline: 2px solid white;
+    outline-offset: -2px;
 }
 
 .brand_mark {
@@ -199,7 +196,7 @@
 }
 
 .page_container {
-    grid-row: 2;
+    grid-row: 1;
     grid-column: 2;
     height: 100%;
     width: 100%;
@@ -207,13 +204,6 @@
 
     box-sizing: border-box;
     overflow: hidden;
-}
-
-/* The rail is hidden on narrow screens where the drawer navigates instead */
-@media only screen and (max-width: 799px) {
-    .container {
-        grid-template-columns: 0 minmax(0, 1fr);
-    }
 }
 
 @media (max-width: 900px) {

@@ -1,13 +1,13 @@
-/* The rail shares the dark chrome of the navbar, so the page card stays framed on the top and the left */
+/* The rail sits on the dark chrome of the app, framing the page card on the left */
 .rail {
-    grid-row: 2;
+    grid-row: 1;
     grid-column: 1;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
     min-height: 0;
-    padding: 4px 0 8px;
+    padding: calc(var(--nav_bar_top_inset, 0px) + 4px) 0 8px;
     box-sizing: border-box;
 }
 
@@ -16,6 +16,11 @@
     flex-direction: column;
     align-items: center;
     row-gap: 4px;
+}
+
+/* Sets the areas apart from the logo above */
+.header {
+    margin-bottom: 12px;
 }
 
 .button {
@@ -33,19 +38,14 @@
     cursor: pointer;
 }
 
+/* A light tint, a darkening would vanish on the dark chrome */
 .button:hover,
 .button.active {
-    background-color: var(--navbar_hover_background_color);
-    border: var(--nav_border_active);
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.12);
 }
 
 .button:focus-visible {
     outline: 2px solid var(--focus_outline_color);
     outline-offset: 1px;
-}
-
-@media only screen and (max-width: 799px) {
-    .rail {
-        display: none;
-    }
 }

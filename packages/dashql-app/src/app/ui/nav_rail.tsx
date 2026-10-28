@@ -26,31 +26,52 @@ export function useOpenWorkbench(): () => void {
     }, [navigate, route.sessionId, setMode]);
 }
 
-const NavRailButton = (props: { label: string; icon: string; active: boolean; onClick: () => void }) => (
-    <Tooltip type="label" direction="e" text={props.label}>
+type NavRailButtonProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
+    label: string;
+    active?: boolean;
+    ref?: React.Ref<HTMLButtonElement>;
+    children: React.ReactNode;
+};
+
+/// An icon button of the rail, labeled by a tooltip.
+/// Spreads the props of an anchored overlay so the overlays of the navbar can open from the rail.
+export const NavRailButton = ({ label, active, className, children, ...props }: NavRailButtonProps) => (
+    <Tooltip type="label" direction="e" text={label}>
         <button
+            {...props}
             type="button"
-            className={classNames(styles.button, { [styles.active]: props.active })}
-            aria-label={props.label}
-            aria-current={props.active ? 'page' : undefined}
-            onClick={props.onClick}
+            className={classNames(styles.button, className, { [styles.active]: active })}
+            aria-label={props['aria-label'] ?? label}
         >
-            <svg width="16px" height="16px" aria-hidden="true">
-                <use xlinkHref={`${symbols}#${props.icon}`} />
-            </svg>
+            {children}
         </button>
     </Tooltip>
 );
 
-/// The slim rail left of the page card that switches between the areas of the app
-export const NavRail = (): React.ReactElement => {
+interface NavRailProps {
+    /// Shown above the areas, e.g. the logo
+    header?: React.ReactNode;
+    /// Shown at the bottom, e.g. the actions of the navbar
+    footer?: React.ReactNode;
+}
+
+/// The rail left of the page card that switches between the areas of the app and opens the overlays
+export const NavRail = (props: NavRailProps): React.ReactElement => {
     const location = useLocation();
     const openWorkbench = useOpenWorkbench();
+    const workspaceActive = isWorkspacePath(location.pathname);
     return (
-        <nav className={styles.rail} aria-label="Areas">
+        // Electron excludes the buttons via the global no-drag rules
+        <nav className={styles.rail} aria-label="Areas" data-electron-drag-region>
             <div className={styles.group}>
-                <NavRailButton label="Workspace" icon="file_directory_16" active={isWorkspacePath(location.pathname)} onClick={openWorkbench} />
+                {props.header != null && <div className={styles.header}>{props.header}</div>}
+                <NavRailButton label="Workspace" active={workspaceActive} aria-current={workspaceActive ? 'page' : undefined} onClick={openWorkbench}>
+                    <svg width="16px" height="16px" aria-hidden="true">
+                        <use xlinkHref={`${symbols}#database`} />
+                    </svg>
+                </NavRailButton>
             </div>
+            {props.footer != null && <div className={styles.group}>{props.footer}</div>}
         </nav>
     );
 };
