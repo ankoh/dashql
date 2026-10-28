@@ -431,25 +431,6 @@
     min-width: 0;
 }
 
-.feed_entry_actions {
-    display: none;
-    align-items: center;
-    flex-shrink: 0;
-    padding: 0 4px 0 4px;
-}
-
-.feed_entry_cell:hover .feed_entry_actions {
-    display: flex;
-}
-
-.feed_entry_action_button {
-    opacity: 0.6;
-}
-
-.feed_entry_action_button:hover {
-    opacity: 1;
-}
-
 /* The run button of the focused card keeps the full text color, the one strong action in the muted header */
 .feed_entry_execute_focused {
     color: var(--base_color);

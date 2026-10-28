@@ -11,7 +11,8 @@ export interface MenuBarActions {
     quit(): void;
 }
 
-export interface MenuBarOptions {
+/// What the menu shows besides the agent server
+export interface MenuBarState {
     /// Whether the agent server should run
     agentAccess: boolean;
     /// The version of a downloaded update
@@ -92,7 +93,7 @@ function shorten(label: string): string {
     return label.length > MAX_LABEL ? `${label.slice(0, MAX_LABEL - 1)}…` : label;
 }
 
-export function buildMenuBarTemplate(snapshot: AgentHostSnapshot, options: MenuBarOptions, actions: MenuBarActions): MenuItemConstructorOptions[] {
+export function buildMenuBarTemplate(snapshot: AgentHostSnapshot, options: MenuBarState, actions: MenuBarActions): MenuItemConstructorOptions[] {
     const clients = snapshot.status?.clients ?? [];
     const items: MenuItemConstructorOptions[] = [{label: shorten(statusLine(snapshot, options.agentAccess)), enabled: false}];
     if (snapshot.state === "external") {

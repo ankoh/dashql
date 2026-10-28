@@ -60,6 +60,7 @@ export function harnessLabel(harness: string): string {
     switch (harness) {
         case 'claude': return 'Claude Code';
         case 'codex': return 'Codex';
+        case 'opencode': return 'opencode';
         default: return harness;
     }
 }

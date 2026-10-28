@@ -133,6 +133,7 @@ describe('Agent prompt panel', () => {
     it('names the built-in harnesses', () => {
         expect(harnessLabel('claude')).toBe('Claude Code');
         expect(harnessLabel('codex')).toBe('Codex');
+        expect(harnessLabel('opencode')).toBe('opencode');
         expect(harnessLabel('my-harness')).toBe('my-harness');
     });
 });
