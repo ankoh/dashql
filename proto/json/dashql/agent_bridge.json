@@ -1,8 +1,90 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "dashql/agent_bridge.json",
-  "description": "The messages of the agent bridge: between the agent server and its clients on the WebSocket, and between the server and the command line tool over HTTP. packages/dashql-cli/src/agent/protocol.rs lists the methods with their params and results.",
+  "description": "The messages of the agent bridge: between the agent server and its clients on the WebSocket, and between the server and the command line tool over HTTP. AgentServerMethods and AgentClientMethods name the params and results of the methods on the WebSocket.",
   "definitions": {
+    "AgentServerMethods": {
+      "type": "object",
+      "description": "The requests of a client to the server on the WebSocket, with their params and results",
+      "properties": {
+        "client/sessions": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/ClientSessionsParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
+          "required": ["params", "result"],
+          "additionalProperties": false
+        },
+        "agent/request": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentRequestParams" }, "result": { "$ref": "#/definitions/AgentRequestResult" } },
+          "required": ["params", "result"],
+          "additionalProperties": false
+        },
+        "agent/cancel": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentCancelParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
+          "required": ["params", "result"],
+          "additionalProperties": false
+        },
+        "agent/reset": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentSessionParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
+          "required": ["params", "result"],
+          "additionalProperties": false
+        },
+        "agent/context": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentSessionParams" }, "result": { "$ref": "#/definitions/AgentSessionContext" } },
+          "required": ["params", "result"],
+          "additionalProperties": false
+        },
+        "agent/info": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentEmptyMessage" }, "result": { "$ref": "#/definitions/AgentServerInfo" } },
+          "required": ["params", "result"],
+          "additionalProperties": false
+        },
+        "agent/configure": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentConfigureParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
+          "required": ["params", "result"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["client/sessions", "agent/request", "agent/cancel", "agent/reset", "agent/context", "agent/info", "agent/configure"],
+      "additionalProperties": false
+    },
+    "AgentClientMethods": {
+      "type": "object",
+      "description": "The requests and notifications of the server to a client on the WebSocket, with their params and the results of the requests",
+      "properties": {
+        "command": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentCommandParams" }, "result": { "$ref": "#/definitions/AgentCommandResult" } },
+          "required": ["params", "result"],
+          "additionalProperties": false
+        },
+        "agent/status": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentStatusParams" } },
+          "required": ["params"],
+          "additionalProperties": false
+        },
+        "agent/done": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentDoneParams" } },
+          "required": ["params"],
+          "additionalProperties": false
+        },
+        "agent/failed": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentFailedParams" } },
+          "required": ["params"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["command", "agent/status", "agent/done", "agent/failed"],
+      "additionalProperties": false
+    },
     "AgentErrorCode": {
       "type": "string",
       "description": "The error code of a failed call",
@@ -44,7 +126,7 @@
       "type": "object",
       "description": "client/sessions, client → server: the sessions with agent access, sent after connecting and on every change. A server with another protocol version closes the WebSocket with 1008.",
       "properties": {
-        "protocol": { "type": "integer", "description": "The version of the protocol" },
+        "protocol": { "const": 2, "description": "The version of the protocol, the server turns away other versions" },
         "client": { "type": "string", "description": "The kind of client, \"web\" or \"desktop\"" },
         "sessions": { "type": "array", "items": { "$ref": "#/definitions/AgentClientSession" } },
         "focused": {

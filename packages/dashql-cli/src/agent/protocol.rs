@@ -1,23 +1,10 @@
 //! The messages between the agent server and its clients, dashql.app tabs and desktop windows.
-//! The JSON Schema in proto/json/dashql/agent_bridge.json defines the messages, the table names its definitions.
-//! The page generates its types from the schema.
+//! The JSON Schema in proto/json/dashql/agent_bridge.json defines the messages: AgentServerMethods names the params
+//! and results of the requests of clients, AgentClientMethods the requests and notifications of the server.
+//! The page generates its types from the schema, the tests of the server check its messages against it.
 //!
 //! Messages are JSON-RPC-style: a request {id, method, params} is answered by {id, result} or {id, error}.
 //! A message with a method but without an id is a notification.
-//!
-//! | Method | Direction | Params | Result |
-//! |---|---|---|---|
-//! | `client/sessions` | client → server | `ClientSessionsParams` | `AgentEmptyMessage` |
-//! | `command` | server → client | `AgentCommandParams` | `AgentCommandResult` |
-//! | `agent/request` | client → server | `AgentRequestParams` | `AgentRequestResult` |
-//! | `agent/cancel` | client → server | `AgentCancelParams` | `AgentEmptyMessage` |
-//! | `agent/reset` | client → server | `AgentSessionParams` | `AgentEmptyMessage` |
-//! | `agent/context` | client → server | `AgentSessionParams` | `AgentSessionContext` |
-//! | `agent/info` | client → server | `AgentEmptyMessage` | `AgentServerInfo` |
-//! | `agent/configure` | client → server | `AgentConfigureParams` | `AgentEmptyMessage` |
-//! | `agent/status` | server → client | `AgentStatusParams` | notification |
-//! | `agent/done` | server → client | `AgentDoneParams` | notification |
-//! | `agent/failed` | server → client | `AgentFailedParams` | notification |
 //!
 //! The command line tool calls the server over HTTP: `GET /v1/status` returns `AgentStatusResponse`,
 //! `POST /v1/call` takes `AgentCallRequest` and returns `AgentCallResponse`.

@@ -45,7 +45,7 @@ describe('AgentClient', () => {
             clientKind: 'web',
             logger: new TestLogger(),
             handleCommand,
-            onNotification: (method, params) => notifications.push([method, params]),
+            onNotification: ({ method, params }) => notifications.push([method, params]),
             onStatus: status => statuses.push(status),
             onDisconnect: reason => disconnects.push(reason),
             createSocket: url => {
@@ -197,6 +197,6 @@ describe('AgentClient', () => {
     });
 
     it('rejects requests while disconnected', async () => {
-        await expect(client.request('agent/cancel', {})).rejects.toThrow('The agent server is not connected');
+        await expect(client.request('agent/cancel', { session: 's1' })).rejects.toThrow('The agent server is not connected');
     });
 });

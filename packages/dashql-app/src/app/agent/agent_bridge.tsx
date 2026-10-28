@@ -1,15 +1,12 @@
 import * as React from 'react';
 
 import { AgentClient, AgentConnectionStatus } from '../../platform/agent/agent_client.js';
-import type {
-    AgentCancelParams,
-    AgentClientSession,
-    AgentDoneParams,
-    AgentFailedParams,
-    AgentRequestResult,
-    AgentServerInfo,
-    AgentSessionContext,
-    AgentStatusParams,
+import {
+    AGENT_WEBSOCKET_PATH,
+    type AgentClientSession,
+    type AgentServerInfo,
+    type AgentSessionContext,
+    type AgentTurnState,
 } from '../../platform/agent/agent_protocol.js';
 import { isDesktopHost } from '../../platform/native_globals.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -26,7 +23,7 @@ const LOG_CTX = 'agent_bridge';
 /// Follows a turn that the page started
 export interface AgentTurnListener {
     /// The turn is queued or running, with the latest status line
-    status: (state: 'queued' | 'running', text: string) => void;
+    status: (state: AgentTurnState, text: string) => void;
     /// The agent wrote a script, every time it edits the script
     edited: (scriptKey: number) => void;
     /// The agent runs a script, every time it runs the script
@@ -147,22 +144,22 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     const client = React.useMemo(() => {
         if (!supported) return null;
         return new AgentClient({
-            url: `ws://127.0.0.1:${port}/v1/ws`,
+            url: `ws://127.0.0.1:${port}${AGENT_WEBSOCKET_PATH}`,
             clientKind: isDesktopHost() ? 'desktop' : 'web',
             logger,
             handleCommand: async params => {
                 logger.info('Running an agent command', { session: params.session, command: params.command }, LOG_CTX);
                 return runAgentCommand(commandEnv.current!, params);
             },
-            onNotification: (method, params) => {
-                switch (method) {
+            onNotification: notification => {
+                switch (notification.method) {
                     case 'agent/status': {
-                        const p = params as AgentStatusParams;
+                        const p = notification.params;
                         turns.current.get(p.turnId)?.listener.status(p.state, p.text);
                         break;
                     }
                     case 'agent/done': {
-                        const p = params as AgentDoneParams;
+                        const p = notification.params;
                         const turn = turns.current.get(p.turnId);
                         if (turn == null) break;
                         forgetTurn(p.session, p.turnId);
@@ -172,7 +169,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                         break;
                     }
                     case 'agent/failed': {
-                        const p = params as AgentFailedParams;
+                        const p = notification.params;
                         const turn = turns.current.get(p.turnId);
                         if (turn == null) break;
                         forgetTurn(p.session, p.turnId);
@@ -248,7 +245,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
 
     const request = React.useCallback(async (sessionId: string, prompt: string, listener: AgentTurnListener) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        const result = await client.request<AgentRequestResult>('agent/request', { session: sessionId, prompt });
+        const result = await client.request('agent/request', { session: sessionId, prompt });
         turns.current.set(result.turnId, { listener, edits: new Map() });
         const sessionTurns = turnsBySession.current.get(sessionId) ?? new Set();
         sessionTurns.add(result.turnId);
@@ -257,20 +254,19 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         return result.turnId;
     }, [client, logger]);
     const cancel = React.useCallback(async (sessionId: string, turnId?: string) => {
-        const params: AgentCancelParams = turnId == null ? { session: sessionId } : { session: sessionId, turnId };
-        await client?.request('agent/cancel', params);
+        await client?.request('agent/cancel', turnId == null ? { session: sessionId } : { session: sessionId, turnId });
     }, [client]);
     const reset = React.useCallback(async (sessionId: string) => {
         await client?.request('agent/reset', { session: sessionId });
     }, [client]);
     const context = React.useCallback(async (sessionId: string) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        return client.request<AgentSessionContext>('agent/context', { session: sessionId });
+        return client.request('agent/context', { session: sessionId });
     }, [client]);
 
     const info = React.useCallback(async () => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        return client.request<AgentServerInfo>('agent/info', {});
+        return client.request('agent/info', {});
     }, [client]);
     const setDefaultHarness = React.useCallback(async (harness: string) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');

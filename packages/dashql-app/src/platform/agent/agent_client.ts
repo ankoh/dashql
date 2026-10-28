@@ -5,8 +5,10 @@ import {
     type AgentCommandParams,
     type AgentCommandResult,
     type AgentErrorCode,
+    type AgentNotification,
     type AgentRpcError,
     type AgentRpcMessage,
+    type AgentServerMethods,
     type ClientSessionsParams,
 } from './agent_protocol.js';
 
@@ -55,7 +57,7 @@ export interface AgentClientOptions {
     /// Run a command of the command line tool
     handleCommand: (params: AgentCommandParams) => Promise<AgentCommandResult>;
     /// Receive a notification, e.g. agent/status
-    onNotification: (method: string, params: unknown) => void;
+    onNotification: (notification: AgentNotification) => void;
     /// Follow the connection status
     onStatus: (status: AgentConnectionStatus) => void;
     /// The connection is gone, the notifications of the runs that the server started for it are lost
@@ -129,13 +131,13 @@ export class AgentClient {
     }
 
     /// Send a request to the server
-    request<T>(method: string, params: unknown): Promise<T> {
+    request<M extends keyof AgentServerMethods>(method: M, params: AgentServerMethods[M]['params']): Promise<AgentServerMethods[M]['result']> {
         const socket = this.#socket;
         if (socket == null || socket.readyState !== SOCKET_OPEN) {
             return Promise.reject(new Error('The agent server is not connected'));
         }
         const id = this.#nextRequestId++;
-        return new Promise<T>((resolve, reject) => {
+        return new Promise<AgentServerMethods[M]['result']>((resolve, reject) => {
             this.#pending.set(id, { resolve: resolve as (result: unknown) => void, reject });
             socket.send(JSON.stringify({ id, method, params } satisfies AgentRpcMessage));
         });
@@ -268,7 +270,7 @@ export class AgentClient {
             return;
         }
         if (message.id == null) {
-            this.#options.onNotification(message.method, message.params);
+            this.#options.onNotification({ method: message.method, params: message.params } as AgentNotification);
             return;
         }
         const id = message.id;
