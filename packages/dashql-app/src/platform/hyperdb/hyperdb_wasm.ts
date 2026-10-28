@@ -9,6 +9,7 @@ import {
 import type {
     EmbeddedComputeDatabase,
     EmbeddedConnectionOptions,
+    EmbeddedDatabaseAlias,
     EmbeddedExternalDirectoryDatabase,
     EmbeddedExternalFileDatabase,
     EmbeddedResultStream,
@@ -33,6 +34,8 @@ export interface HyperDBOptions {
     computeDatabasePath?: string;
     /// The database attached as "hyper", created on startup and dropped on termination
     defaultDatabasePath?: string;
+    /// The database of the snippet search, attached as "__dashql_snippets", created on startup and dropped on termination
+    snippetsDatabasePath?: string;
     /// Terminate the engine with the database. Tests share one engine client between databases.
     terminateEngine?: boolean;
 }
@@ -90,6 +93,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
     private readonly terminateEngine: boolean;
     private readonly computeDatabasePath: string | null;
     private readonly defaultDatabasePath: string | null;
+    private readonly snippetsDatabasePath: string | null;
     private readonly externalFiles = new Map<string, MountedResource>();
     private readonly externalDirectories = new Map<string, MountedResource>();
 
@@ -99,6 +103,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
     ) {
         this.computeDatabasePath = options.computeDatabasePath ?? null;
         this.defaultDatabasePath = options.defaultDatabasePath ?? null;
+        this.snippetsDatabasePath = options.snippetsDatabasePath ?? null;
         this.terminateEngine = options.terminateEngine ?? true;
     }
 
@@ -113,8 +118,7 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
         if (this.termination || this.terminated) {
             throw new Error('database is terminated');
         }
-        const compute = options.defaultDatabase !== 'hyper';
-        const alias = compute ? '__dashql_compute' : 'hyper';
+        const alias = options.defaultDatabase ?? '__dashql_compute';
         const clientContext = options.clientContext == null ? null : JSON.stringify(options.clientContext);
         let pool: HyperDBSession[] | null = null;
         if (options.pooled) {
@@ -129,13 +133,30 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             return new HyperDBConnection(idle, release);
         }
 
-        const opening = this.openSession(compute ? this.computeDatabasePath : this.defaultDatabasePath, alias, clientContext);
+        const opening = this.openSession(this.databasePath(alias), alias, clientContext);
         this.openingSessions.add(opening);
         try {
             return new HyperDBConnection(await opening, release);
         } finally {
             this.openingSessions.delete(opening);
         }
+    }
+
+    /// The path of the database that is attached under an alias
+    private databasePath(alias: EmbeddedDatabaseAlias): string | null {
+        switch (alias) {
+            case '__dashql_compute':
+                return this.computeDatabasePath;
+            case 'hyper':
+                return this.defaultDatabasePath;
+            case '__dashql_snippets':
+                return this.snippetsDatabasePath;
+        }
+    }
+
+    /// The paths of the databases that are created on startup and dropped on termination
+    private databasePaths(): string[] {
+        return [this.computeDatabasePath, this.defaultDatabasePath, this.snippetsDatabasePath].filter(path => path != null);
     }
 
     /// Open an engine connection with the database attached under the alias.
@@ -269,11 +290,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
                             mounts.delete(path);
                         }
                     }
-                    if (this.computeDatabasePath != null) {
-                        await this.executeDatabaseStatement(`DROP DATABASE ${quoteIdentifier(this.computeDatabasePath)}`);
-                    }
-                    if (this.defaultDatabasePath != null) {
-                        await this.executeDatabaseStatement(`DROP DATABASE ${quoteIdentifier(this.defaultDatabasePath)}`);
+                    for (const path of this.databasePaths()) {
+                        await this.executeDatabaseStatement(`DROP DATABASE ${quoteIdentifier(path)}`);
                     }
                     if (this.terminateEngine) {
                         await this.engine.terminate();
@@ -295,11 +313,8 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
         if (!this.initialization) {
             this.initialization = (async () => {
                 await this.engine.ready();
-                if (this.computeDatabasePath != null) {
-                    await this.executeDatabaseStatement(`CREATE DATABASE ${quoteIdentifier(this.computeDatabasePath)}`);
-                }
-                if (this.defaultDatabasePath != null) {
-                    await this.executeDatabaseStatement(`CREATE DATABASE ${quoteIdentifier(this.defaultDatabasePath)}`);
+                for (const path of this.databasePaths()) {
+                    await this.executeDatabaseStatement(`CREATE DATABASE ${quoteIdentifier(path)}`);
                 }
             })().catch(error => {
                 this.initialization = null;

@@ -96,6 +96,7 @@ describe('HyperDB stale OPFS instance cleanup', () => {
         expect(instance.directoryPath).toBe(`${hyperOPFSRoot()}/instances/${id}`);
         expect(instance.computeDatabasePath).toBe(`${hyperOPFSRoot()}/instances/${id}/compute.hyper`);
         expect(instance.userDatabasePath).toBe(`${hyperOPFSRoot()}/instances/${id}/user.hyper`);
+        expect(instance.snippetsDatabasePath).toBe(`${hyperOPFSRoot()}/instances/${id}/snippets.hyper`);
         expect(instance.logDirectoryPath).toBe(`${hyperOPFSRoot()}/instances/${id}/logs`);
 
         await cleanupStaleHyperDBOPFSInstances(async () => root);

@@ -30,10 +30,23 @@
     grid-template-columns: 280px minmax(0, 1fr);
 }
 
+/* The search field above the snippet list */
+.sidebar {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border_color_primary);
+}
+
+.search {
+    flex: 0 0 auto;
+    padding: 8px 8px 0 8px;
+}
+
 .list {
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    border-right: 1px solid var(--border_color_primary);
 }
 
 /* The folders of the categories with their snippet files, as in the storage browser */

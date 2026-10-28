@@ -549,6 +549,21 @@ describe('HyperDB embedded database adapter', () => {
         await database.terminate();
     });
 
+    it('creates, attaches and drops the snippet database', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, {
+            computeDatabasePath: '/mnt/fs/compute.hyper',
+            snippetsDatabasePath: '/mnt/fs/snippets.hyper',
+        });
+        expect(client.calls.filter(call => /query:\d+:CREATE DATABASE "\/mnt\/fs\/snippets.hyper"/.test(call))).toHaveLength(1);
+
+        const snippets = await database.connect({ defaultDatabase: '__dashql_snippets' });
+        expect(client.calls.filter(call => /query:\d+:.*ATTACH DATABASE "\/mnt\/fs\/snippets.hyper" AS "__dashql_snippets"/.test(call))).toHaveLength(1);
+        await snippets.close();
+        await database.terminate();
+        expect(client.calls.filter(call => /query:\d+:DROP DATABASE "\/mnt\/fs\/snippets.hyper"/.test(call))).toHaveLength(1);
+    });
+
     it('gives concurrent pooled connections separate sessions and reuses both', async () => {
         const client = new FakeHyperDBEngineClient();
         const database = await createDatabase(client);

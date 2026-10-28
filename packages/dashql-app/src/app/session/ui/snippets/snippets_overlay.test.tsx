@@ -2,9 +2,12 @@ import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { EmbeddedDatabaseProvider } from '../../../../platform/database/embedded_database_provider.js';
+import { HyperDB, HyperDBEngine, type HyperDBClient } from '../../../../platform/hyperdb/hyperdb_wasm.js';
 import { LoggerProvider } from '../../../../platform/logger/logger_provider.js';
+import { getTestHyperDBClient, testDatabasePath } from '../../../../tests/hyperdb_test_client.js';
 import { ConnectorType } from '../../../connections/connector_info.js';
 import { buildSnippetRegistry, getBundledSnippets, type SnippetRegistry } from '../../snippets/snippet_registry.js';
 import { SnippetsOverlay } from './snippets_overlay.js';
@@ -24,11 +27,18 @@ function file(body: string): string {
     return `${dashql.renderCommentTag('description', 'Text.')}\n${body}`;
 }
 
+function setInputValue(input: HTMLInputElement, value: string) {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 describe('SnippetsOverlay', () => {
     let registry: SnippetRegistry;
     let bundled: SnippetRegistry;
     let container: HTMLDivElement;
     let root: Root;
+    let client: HyperDBClient;
+    let sharedClient = false;
     const onApply = vi.fn();
 
     beforeAll(async () => {
@@ -45,6 +55,11 @@ describe('SnippetsOverlay', () => {
         });
         expect(registry.errors).toEqual([]);
         bundled = getBundledSnippets(core);
+        ({ client, shared: sharedClient } = await getTestHyperDBClient());
+    }, 60_000);
+
+    afterAll(async () => {
+        if (!sharedClient) await client?.terminate();
     });
 
     beforeEach(() => {
@@ -66,6 +81,23 @@ describe('SnippetsOverlay', () => {
                 <SnippetsOverlay scriptName="script" connectorType={connectorType} disabled={disabled} onApply={onApply} registry={snippets} />
             </LoggerProvider>,
         ));
+    }
+    // The provider terminates its database when it unmounts, every render gets a database of its own
+    const setupDatabase = async () => await HyperDB.create(new HyperDBEngine(client), {
+        snippetsDatabasePath: await testDatabasePath(`dashql-snippets-overlay-${crypto.randomUUID()}.hyper`),
+        terminateEngine: false,
+    });
+    function renderWithDatabase(connectorType: ConnectorType): void {
+        act(() => root.render(
+            <LoggerProvider>
+                <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                    <SnippetsOverlay scriptName="script" connectorType={connectorType} onApply={onApply} registry={registry} />
+                </EmbeddedDatabaseProvider>
+            </LoggerProvider>,
+        ));
+    }
+    function search(text: string): void {
+        act(() => setInputValue(query<HTMLInputElement>('[data-testid="snippet-search"]')!, text));
     }
     function open(): void {
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-snippets"]')!.click());
@@ -177,6 +209,47 @@ describe('SnippetsOverlay', () => {
         expect(selected()).not.toEqual(first);
         act(() => { list.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
         expect(onApply).toHaveBeenCalledOnce();
+    });
+
+    it('searches the snippets of the connector in the snippet database', async () => {
+        renderWithDatabase(ConnectorType.HYPER);
+        open();
+        // The search field takes the focus when the overlay opens
+        expect(document.activeElement).toBe(query('[data-testid="snippet-search"]'));
+
+        search('LINEITEM');
+        await vi.waitFor(() => expect(snippetIds().sort()).toEqual(['aggregation/count', 'datasets/tpch_0_1']));
+        // The text of the snippet matches as well, the Trino variant of json/access does not run on Hyper
+        search('::json');
+        await vi.waitFor(() => expect(snippetIds()).toEqual(['json/access']));
+        search('json_parse');
+        await vi.waitFor(() => expect(query('[data-testid="snippets-empty"]')?.textContent).toEqual('No snippets match the search.'));
+
+        // Clearing the search shows all snippets again
+        search(' ');
+        expect(snippetIds().sort()).toEqual(['aggregation/count', 'datasets/tpch_0_1', 'dates/month', 'json/access', LONG_ID]);
+    });
+
+    it('keeps the folders with matches open and applies a match with the keyboard', async () => {
+        renderWithDatabase(ConnectorType.TRINO);
+        open();
+        const json = () => query<HTMLButtonElement>('[data-testid="snippet-folder"][data-folder="json"]')!;
+        act(() => json().click());
+        expect(snippetIds()).not.toContain('json/access');
+
+        search('json');
+        await vi.waitFor(() => expect(snippetIds()).toEqual(['json/access']));
+        const input = query<HTMLInputElement>('[data-testid="snippet-search"]')!;
+        act(() => { input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+        expect(onApply).toHaveBeenCalledOnce();
+        expect(onApply.mock.calls[0][0]).toContain('json_parse');
+    });
+
+    it('tells that the search needs the embedded database', async () => {
+        render(ConnectorType.HYPER);
+        open();
+        search('json');
+        await vi.waitFor(() => expect(query('[data-testid="snippets-search-error"]')?.textContent).toEqual('The search needs the embedded database.'));
     });
 
     it('stays closed while disabled', () => {

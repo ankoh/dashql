@@ -20,6 +20,8 @@ export interface HyperDBOPFSInstance {
     readonly computeDatabasePath: string;
     /// The Hyper path of the user database of the embedded Hyper connector
     readonly userDatabasePath: string;
+    /// The Hyper path of the database of the snippet search
+    readonly snippetsDatabasePath: string;
     /// The Hyper path of the folder of the Hyper log files, the setting `log_file_path` of the instance
     readonly logDirectoryPath: string;
     /// Remove the files of the instance and release its lock
@@ -41,6 +43,7 @@ export async function createHyperDBOPFSInstance(
             directoryPath: folder,
             computeDatabasePath: `${folder}/compute.hyper`,
             userDatabasePath: `${folder}/user.hyper`,
+            snippetsDatabasePath: `${folder}/snippets.hyper`,
             logDirectoryPath: `${folder}/${HYPER_INSTANCE_LOGS_DIRECTORY}`,
             async dispose(): Promise<void> {
                 if (disposed) return;

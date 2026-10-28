@@ -131,6 +131,7 @@ export async function setupWebHyperDB(
             const database = await HyperDB.create(engine, {
                 computeDatabasePath: instance.computeDatabasePath,
                 defaultDatabasePath: instance.userDatabasePath,
+                snippetsDatabasePath: instance.snippetsDatabasePath,
             });
             const terminate = database.terminate.bind(database);
             database.terminate = async () => {

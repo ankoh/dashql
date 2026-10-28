@@ -24,6 +24,7 @@ a Hyper path: `sessions/<id>/attachments/a.csv` is `/mnt/fs/sessions/<id>/attach
 ├── instances/<instance-id>/                   embedded database of one app window
 │   ├── compute.hyper                          data frames
 │   ├── user.hyper                             database of the embedded Hyper connector
+│   ├── snippets.hyper                         the snippets of the snippet search
 │   └── logs/hyperd_<timestamp>.log            log files of its Hyper process
 └── exports/<export-id>/                       transient Parquet exports
 ```
@@ -89,11 +90,14 @@ Every app window runs one embedded hyperdb-wasm instance, `setupWebHyperDB` give
   Every compute connection attaches it.
 - `user.hyper`, attached as `hyper`, is the database of the embedded Hyper connector and the shell
   (`connect({ defaultDatabase: 'hyper' })`).
+- `snippets.hyper`, attached as `__dashql_snippets`, holds the `snippets` table of the snippet overlay, one row per
+  snippet and connector with its id, category, path, description and text. `SnippetSearch` fills it on the first search
+  and finds the snippets with `ILIKE`.
 - `logs/` holds the log files of the Hyper process of the instance, the instance sets it as `log_file_path`. They
   are rotated by `log_file_size_limit` and `log_file_max_count` (`HYPERDB_WASM_ENGINE_SETTINGS`), and
   `hyper_log()` reads them. The monitors of the connections copy them into `connections/<id>/monitoring.hyper`.
 
-Both are scratch space: data frames are computed again when queries run in a new window. `HyperDB.terminate()`
+The databases are scratch space: data frames are computed again when queries run in a new window. `HyperDB.terminate()`
 drops both databases and removes the folder. A Web Lock `dashql-instance-<uuid>` is held while the window lives,
 and the startup of the next instance removes every instance folder whose lock is free, e.g. after a crash.
 

@@ -21,6 +21,7 @@ export function installSharedHyperDBTestPool(): SharedHyperDBTestPool {
         return await HyperDB.create(new HyperDBEngine(client), {
             computeDatabasePath: await testDatabasePath(`dashql-test-${nextLease++}.hyper`),
             defaultDatabasePath: await testDatabasePath(`dashql-test-${nextLease++}.hyper`),
+            snippetsDatabasePath: await testDatabasePath(`dashql-test-${nextLease++}.hyper`),
             terminateEngine: false,
         });
     };

@@ -30,8 +30,12 @@ export interface EmbeddedConnection {
 /// A JSON object that describes the client of the queries of a connection
 export type EmbeddedClientContext = Record<string, unknown>;
 
+/// The databases of an embedded database instance by the alias they are attached as:
+/// the data frames of the computations, the database of the embedded Hyper connector, and the snippet search
+export type EmbeddedDatabaseAlias = '__dashql_compute' | 'hyper' | '__dashql_snippets';
+
 export interface EmbeddedConnectionOptions {
-    defaultDatabase?: '__dashql_compute' | 'hyper';
+    defaultDatabase?: EmbeddedDatabaseAlias;
     /// Reuse an idle connection and return it to a pool on close.
     /// Only for callers that leave no session state behind, such as settings, transactions or temporary tables.
     pooled?: boolean;
