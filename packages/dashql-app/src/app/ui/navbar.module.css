@@ -21,10 +21,22 @@
     height: 100%;
 }
 
-/* The rail fits the traffic lights of the desktop app on macOS above the logo, see trafficLightPosition in dashql-native */
+/* The traffic lights of the desktop app on macOS are wider than the rail, see trafficLightPosition in dashql-native.
+   The rail insets the logo below them and the page card cuts a notch out of its top left corner for the rest.
+   Pages clear the notch with --page_notch_width and --page_notch_height. */
 .container_mac {
-    --nav_bar_width: 76px;
     --nav_bar_top_inset: 40px;
+    --page_notch_width: 28px;
+    --page_notch_height: 40px;
+}
+
+/* The notch rounds like the card, the tile draws the corners and the two gradients the rest of the card.
+   The gradients overlap the tile by a pixel to leave no seam. The tile is 28px + 8px wide and 40px + 8px tall. */
+.container_mac .page_container {
+    mask:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='48'%3E%3Cpath d='M36 0V48H0A8 8 0 0 1 8 40H20A8 8 0 0 0 28 32V8A8 8 0 0 1 36 0Z'/%3E%3C/svg%3E") 0 0 / 36px 48px no-repeat,
+        linear-gradient(#000 0 0) 35px 0 / 100% 100% no-repeat,
+        linear-gradient(#000 0 0) 0 47px / 100% 100% no-repeat;
 }
 
 .navbar_mac {

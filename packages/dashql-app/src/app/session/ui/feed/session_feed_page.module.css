@@ -73,6 +73,13 @@
     background: white;
 }
 
+/* Without the sidebar, the bar sits in the top left corner of the page card, clear of its notch on macOS */
+@media only screen and (max-width: 799px) {
+    .view_bar {
+        padding-left: calc(8px + var(--page_notch_width, 0px));
+    }
+}
+
 @media only screen and (min-width: 800px) {
     .view_bar {
         grid-column: 2;

@@ -244,7 +244,7 @@ export const CompactNavBar = (props: { showInternals?: boolean }): React.ReactEl
 };
 
 /// The navbar is a rail left of the page card.
-/// On the desktop app on macOS, the traffic lights sit at the top of the rail, above the logo.
+/// On the desktop app on macOS, the traffic lights sit at the top of the rail, above the logo, and reach into a notch of the page card.
 export function NavBarContainer(props: { children: React.ReactElement }) {
     const logger = useLogger();
     const location = useLocation();

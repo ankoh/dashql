@@ -97,7 +97,7 @@ async function createWindow(testMode: RendererTestMode): Promise<BrowserWindow> 
         width: 1500,
         height: 900,
         titleBarStyle: "hiddenInset",
-        // Centers the traffic lights in the top of the nav rail of the app, see .container_mac of navbar.module.css
+        // Centers the traffic lights in the top of the nav rail and the notch of the page card, see .container_mac of navbar.module.css
         trafficLightPosition: { x: 12, y: 13 },
         webPreferences: {
             contextIsolation: true,

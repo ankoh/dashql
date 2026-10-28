@@ -37,6 +37,11 @@
     border-bottom: 1px solid var(--border_color_primary);
 }
 
+/* The first header sits in the top left corner of the page card, clear of its notch on macOS */
+.section:first-child .section_header {
+    padding-left: calc(12px + var(--page_notch_width, 0px));
+}
+
 .section_title {
     display: flex;
     align-items: center;
