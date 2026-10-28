@@ -52,7 +52,8 @@ pub struct AgentServerOptions {
     pub home: PathBuf,
     /// Accept the origins of the dev servers
     pub dev: bool,
-    /// The executable that harness runs call as `dashql`, None leaves their PATH as it is
+    /// The executable that harness runs call as `dashql`, its folder goes first on their PATH.
+    /// None, or an executable with another name, leaves their PATH as it is.
     pub cli: Option<PathBuf>,
     pub spawn_harness: SpawnHarness,
     pub resolve_path: ResolvePath,
@@ -729,25 +730,14 @@ impl Shared {
         }
     }
 
-    /// The bin folder of harness runs with a dashql shim, so the agent finds the command line tool
-    fn write_cli_shim(&self) -> Result<Option<PathBuf>, String> {
-        let Some(cli) = &self.options.cli else { return Ok(None) };
-        let bin = self.options.home.join("bin");
-        create_private_dir(&bin)?;
-        let error = |path: &Path, e: std::io::Error| format!("{}: {e}", path.display());
-        if cfg!(windows) {
-            let path = bin.join("dashql.cmd");
-            let text = format!("@echo off\r\n\"{}\" %*\r\n", cli.display());
-            write_if_changed(&path, &text).map_err(|e| error(&path, e))?;
-        } else {
-            let path = bin.join("dashql");
-            let quoted = format!("'{}'", cli.display().to_string().replace('\'', "'\\''"));
-            write_if_changed(&path, &format!("#!/bin/sh\nexec {quoted} \"$@\"\n")).map_err(|e| error(&path, e))?;
-            #[cfg(unix)]
-            std::fs::set_permissions(&path, std::os::unix::fs::PermissionsExt::from_mode(0o755))
-                .map_err(|e| error(&path, e))?;
+    /// The folder of the dashql executable, first on the PATH of harness runs so the agent calls this binary.
+    /// Only a binary named dashql: the folder of another one would not give the agent a `dashql` command.
+    fn cli_folder(&self) -> Option<PathBuf> {
+        let cli = std::fs::canonicalize(self.options.cli.as_ref()?).ok()?;
+        if cli.file_stem()? != "dashql" {
+            return None;
         }
-        Ok(Some(bin))
+        cli.parent().map(Path::to_path_buf)
     }
 
     /// Prepare the working folder and start the harness, the outcome once the harness exited
@@ -778,9 +768,8 @@ impl Shared {
             _ => create_private_dir(&input)?,
         }
         let path = self.resolved_path().await;
-        let bin = self.write_cli_shim()?;
         let mut env: BTreeMap<OsString, OsString> = std::env::vars_os().collect();
-        let paths = bin.into_iter().chain(path.iter().flat_map(|p| std::env::split_paths(p)));
+        let paths = self.cli_folder().into_iter().chain(path.iter().flat_map(|p| std::env::split_paths(p)));
         env.insert("PATH".into(), std::env::join_paths(paths).map_err(|e| e.to_string())?);
         env.insert("DASHQL_SESSION".into(), session.clone().into());
         env.insert("DASHQL_AGENT_HOME".into(), self.options.home.clone().into());

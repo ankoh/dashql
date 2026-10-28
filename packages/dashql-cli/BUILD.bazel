@@ -64,7 +64,7 @@ BRIDGE_TEST_DEPS = [
     "@core_crates//:tokio-tungstenite",
 ]
 
-# The agent bridge end to end: the dashql binary as server, command line tool and shim of harness runs,
+# The agent bridge end to end: the dashql binary as server, command line tool and `dashql` of harness runs,
 # a DashQL page on the WebSocket and a scripted harness
 rust_test(
     name = "bridge_test",

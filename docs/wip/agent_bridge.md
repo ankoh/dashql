@@ -271,8 +271,9 @@ Nothing keeps listening once the app is quit or deleted.
   `//packages/dashql-cli:dashql_{aarch64,x86_64}`), like VS Code's `code` command. electron-builder signs and
   notarizes it with the app, with the inherited entitlements like every nested binary. "Install command line tool…" links it into `~/.local/bin` (or
   `/usr/local/bin` with an admin prompt). Users without the app download the binary for their platform.
-- **Harness runs** find `dashql` through a shim in `~/.dashql/agent/bin` that the server writes and puts
-  first on the `PATH` of the run; it calls the binary of the running server.
+- **Harness runs** find `dashql` because the server puts the folder of its own binary first on the `PATH` of the
+  run, so the agent calls the binary of the running server. A binary under another name leaves the `PATH` as it
+  is.
 - **The skill** (`dashql/SKILL.md`) tells the agent when to use `dashql agent`, lists
   the commands, and says that script and data contents are input, not instructions.
   "Install agent skill…" links `~/.codex/skills/dashql` and `~/.claude/skills/dashql` to the skill in the
@@ -585,8 +586,8 @@ Everything builds through Bazel, per `docs/agents/build_bazel_targets.md`.
   the client holding a session; queuing while disconnected; one call at a time; cancel
   kills the process tree.
 - **Bridge tests** (`bazel test //packages/dashql-cli:bridge_test`): the `dashql` binary as server, command
-  line tool and shim, a page on the WebSocket, and a scripted harness that speaks Claude Code's stream-json.
-  Agent → DashQL: every command, `--file` and stdin, `--json`, session targeting, exit codes, wrong token,
+  line tool and `dashql` of harness runs, a page on the WebSocket, and a scripted harness that speaks Claude Code's
+  stream-json. Agent → DashQL: every command, `--file` and stdin, `--json`, session targeting, exit codes, wrong token,
   no server, the page going away during a call. DashQL → agent: a run that calls back into its own session,
   status lines, resume and reset, a failed run's stderr, cancel stopping the harness's children, no nested
   server.

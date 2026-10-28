@@ -1,4 +1,4 @@
-//! The agent bridge end to end, with the dashql binary as server, command line tool and shim of harness runs.
+//! The agent bridge end to end, with the dashql binary as server, command line tool and `dashql` of harness runs.
 //! An agent calls into DashQL through `dashql agent`, and DashQL runs an agent with `agent/request`.
 //! The harness is a script that speaks the stream-json of Claude Code, bridge_harness_test runs the real ones.
 
