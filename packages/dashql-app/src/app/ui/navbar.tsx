@@ -19,6 +19,7 @@ import { useLocation } from 'react-router-dom';
 import { SessionViewMode, useSessionViewMode } from '../session/ui/session_view_mode.js';
 import { FlavorLogo, useAppFlavor } from '../flavor/flavor_provider.js';
 import { NavRail, NavRailButton, useOpenWorkbench } from './nav_rail.js';
+import { useMacWindowLayout } from './mac_window_layout.js';
 
 const LOG_CTX = "navbar";
 
@@ -243,12 +244,23 @@ export const CompactNavBar = (props: { showInternals?: boolean }): React.ReactEl
     );
 };
 
+/// Stand-ins for the traffic lights of the macOS window when the browser shows the layout of the desktop app on macOS
+const TrafficLightPlaceholders = () => (
+    <div className={styles.traffic_lights} aria-hidden="true">
+        <span className={styles.traffic_light_close} />
+        <span className={styles.traffic_light_minimize} />
+        <span className={styles.traffic_light_zoom} />
+    </div>
+);
+
 /// The navbar is a rail left of the page card.
 /// On the desktop app on macOS, the traffic lights sit at the top of the rail, above the logo, and reach into a notch of the page card.
+/// The Mac Window Layout setting shows this layout in the browser.
 export function NavBarContainer(props: { children: React.ReactElement }) {
     const logger = useLogger();
     const location = useLocation();
-    const isMac = isMacDesktopHost();
+    const macHost = isMacDesktopHost();
+    const isMac = useMacWindowLayout();
 
     React.useEffect(() => {
         logger.debug("Navigated to path", { "path": location.pathname }, LOG_CTX);
@@ -260,6 +272,7 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
             <div key={1} className={styles.page_container}>
                 {props.children}
             </div>
+            {isMac && !macHost && <TrafficLightPlaceholders />}
         </div>
     );
 }

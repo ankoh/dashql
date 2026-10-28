@@ -34,6 +34,13 @@ export function AppSettings(props: { onClose: () => void; }) {
         });
     };
 
+    const toggleMacWindowLayout = () => {
+        reconfigure(value => value == null ? null : {
+            ...value,
+            settings: { ...value.settings, macWindowLayout: !value.settings?.macWindowLayout },
+        });
+    };
+
     const toggleScriptDebugMode = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
@@ -287,6 +294,18 @@ export function AppSettings(props: { onClose: () => void; }) {
                             onClick={toggleNarrowScreenLayout}
                             disabled={config == null}
                             aria-labelledby="app-setting-narrow-screen-layout"
+                        />
+                    </div>
+                    <div id="app-setting-mac-window-layout" className={styles.setting_name}>
+                        Mac Window Layout
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={config?.settings?.macWindowLayout ?? false}
+                            onClick={toggleMacWindowLayout}
+                            disabled={config == null}
+                            aria-labelledby="app-setting-mac-window-layout"
                         />
                     </div>
                     <div id="app-setting-script-debug-mode" className={styles.setting_name}>

@@ -28,6 +28,36 @@
     --nav_bar_top_inset: 40px;
     --page_notch_width: 28px;
     --page_notch_height: 40px;
+    position: relative;
+}
+
+/* Stand-ins for the traffic lights in the browser, placed like trafficLightPosition in dashql-native */
+.traffic_lights {
+    position: absolute;
+    top: 13px;
+    left: 12px;
+    display: flex;
+    column-gap: 8px;
+    pointer-events: none;
+}
+
+.traffic_lights > span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.2);
+}
+
+.traffic_light_close {
+    background: #ff5f57;
+}
+
+.traffic_light_minimize {
+    background: #febc2e;
+}
+
+.traffic_light_zoom {
+    background: #28c840;
 }
 
 /* The notch rounds like the card, the tile draws the corners and the two gradients the rest of the card.

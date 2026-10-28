@@ -18,6 +18,8 @@ export interface AppSettings {
     /// A hyperdb-wasm without the backend starts on the default backend.
     experimental_wasm_backend?: boolean;
     narrowScreenLayout?: boolean;
+    /// Lay out the app like the desktop app on macOS, with placeholders of the traffic lights, to check the layout in the browser
+    macWindowLayout?: boolean;
     scriptDebugMode?: boolean;
     tableDebugMode?: boolean;
     formattingDebugMode?: boolean;
