@@ -4,6 +4,7 @@
 
 pub mod analyzer;
 pub mod catalog;
+pub mod compact_json;
 pub mod completion;
 mod completion_vis;
 pub mod cursor;

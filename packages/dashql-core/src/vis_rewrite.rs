@@ -18,6 +18,8 @@ use serde_json::{Map, Value};
 
 /// The tag of visualizations
 const VIS_TAG: &[u8] = b"vis";
+/// The width of the JSON in `@vis vegalite` tags: 80 columns behind a comment prefix of 3 characters
+pub(crate) const VIS_JSON_WIDTH: usize = 77;
 /// The dashboard grid has 12 columns
 const GRID_COLUMNS: i32 = 12;
 
@@ -52,7 +54,7 @@ impl VisRenderer {
     fn lines(&self) -> Vec<String> {
         match self {
             VisRenderer::VegaLite(spec) => {
-                let json = serde_json::to_string_pretty(&Value::Object(spec.clone())).expect("a JSON value always serializes");
+                let json = crate::compact_json::to_string_compact(&Value::Object(spec.clone()), VIS_JSON_WIDTH);
                 // `/*` and `*/` can only be part of JSON strings, escapes split them without changing the
                 // value: `/*` would nest and `*/` would end a block comment
                 let json = json.replace("/*", "/\\u002a").replace("*/", "*\\/");

@@ -259,27 +259,13 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               /* @vis vegalite
-                 {
-                   "mark": "bar",
-                   "encoding": {
-                     "x": {
-                       "field": "region"
-                     }
-                   }
-                 }
+                 {"mark": "bar", "encoding": {"x": {"field": "region"}}}
               */
               select region from sales;
           - mode: pretty
             expected: |-
               /* @vis vegalite
-                 {
-                   "mark": "bar",
-                   "encoding": {
-                     "x": {
-                       "field": "region"
-                     }
-                   }
-                 }
+                 {"mark": "bar", "encoding": {"x": {"field": "region"}}}
               */
               select region
               from sales;
@@ -335,9 +321,7 @@ formatter-snapshots:
                  @description Revenue per region.
                  @vis card width=6 height=3
                  @vis vegalite
-                 {
-                   "mark": "bar"
-                 }
+                 {"mark": "bar"}
               */
               select 1;
           - mode: pretty
@@ -346,9 +330,7 @@ formatter-snapshots:
                  @description Revenue per region.
                  @vis card width=6 height=3
                  @vis vegalite
-                 {
-                   "mark": "bar"
-                 }
+                 {"mark": "bar"}
               */
               select 1;
 
@@ -367,20 +349,8 @@ formatter-snapshots:
             expected: |-
               /* @vis vegalite
                  {
-                   "mark": {
-                     "type": "line",
-                     "point": true
-                   },
-                   "encoding": {
-                     "x": {
-                       "field": "date",
-                       "type": "temporal"
-                     },
-                     "y": {
-                       "field": "revenue",
-                       "aggregate": "sum"
-                     }
-                   }
+                   "mark": {"type": "line", "point": true},
+                   "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}
                  }
               */
               /* @vis card width=12 */
@@ -389,24 +359,66 @@ formatter-snapshots:
             expected: |-
               /* @vis vegalite
                  {
-                   "mark": {
-                     "type": "line",
-                     "point": true
-                   },
-                   "encoding": {
-                     "x": {
-                       "field": "date",
-                       "type": "temporal"
-                     },
-                     "y": {
-                       "field": "revenue",
-                       "aggregate": "sum"
-                     }
-                   }
+                   "mark": {"type": "line", "point": true},
+                   "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}
                  }
               */
               /* @vis card width=12 */
               select date, revenue
+              from sales;
+
+  - name: vis_json_breaks_at_the_width
+    input: |-
+      /* @vis vegalite {"layer": [{"mark": {"type": "bar", "tooltip": true}, "encoding": {"x": {"field": "region", "type": "nominal", "sort": "-y"}, "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}}}, {"mark": {"type": "rule", "color": "red"}, "encoding": {"y": {"datum": 1000}}}]} */
+      select region, revenue from sales
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select region, revenue from sales;
+          - mode: compact
+            width: 80
+            expected: |-
+              /* @vis vegalite
+                 {
+                   "layer": [
+                     {
+                       "mark": {"type": "bar", "tooltip": true},
+                       "encoding": {
+                         "x": {"field": "region", "type": "nominal", "sort": "-y"},
+                         "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}
+                       }
+                     },
+                     {
+                       "mark": {"type": "rule", "color": "red"},
+                       "encoding": {"y": {"datum": 1000}}
+                     }
+                   ]
+                 }
+              */
+              select region, revenue from sales;
+          - mode: pretty
+            width: 80
+            expected: |-
+              /* @vis vegalite
+                 {
+                   "layer": [
+                     {
+                       "mark": {"type": "bar", "tooltip": true},
+                       "encoding": {
+                         "x": {"field": "region", "type": "nominal", "sort": "-y"},
+                         "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}
+                       }
+                     },
+                     {
+                       "mark": {"type": "rule", "color": "red"},
+                       "encoding": {"y": {"datum": 1000}}
+                     }
+                   ]
+                 }
+              */
+              select region, revenue
               from sales;
 
   - name: vis_malformed_json_and_markdown

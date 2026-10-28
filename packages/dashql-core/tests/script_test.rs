@@ -290,12 +290,12 @@ fn rewrite_vis_renderer_replaces_inserts_and_removes() {
     let mut script = parsed_script("/* @vis table\n   @vis card width=4 */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&vegalite("{\"mark\": \"bar\"}")), false).unwrap(),
-        "/* @vis vegalite\n   {\n     \"mark\": \"bar\"\n   }\n   @vis card width=4 */\nselect 1 as a"
+        "/* @vis vegalite\n   {\"mark\": \"bar\"}\n   @vis card width=4 */\nselect 1 as a"
     );
     let mut script = parsed_script("/* @vis table */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&vegalite("{\"mark\": \"bar\"}")), false).unwrap(),
-        "/* @vis vegalite\n   {\n     \"mark\": \"bar\"\n   }\n*/\nselect 1 as a"
+        "/* @vis vegalite\n   {\"mark\": \"bar\"}\n*/\nselect 1 as a"
     );
     // Markdown templates keep their lines
     let mut script = parsed_script("-- @vis table\n-- @end\nselect 1 as a");
@@ -346,7 +346,7 @@ fn rewrite_vis_tags_escape_comment_delimiters() {
     let mut script = parsed_script("/* @vis table */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&vegalite("{\"title\": \"/* a */\"}")), false).unwrap(),
-        "/* @vis vegalite\n   {\n     \"title\": \"/\\u002a a *\\/\"\n   }\n*/\nselect 1 as a"
+        "/* @vis vegalite\n   {\"title\": \"/\\u002a a *\\/\"}\n*/\nselect 1 as a"
     );
     // The escaped spec reads back unchanged
     let catalog = Catalog::new();
@@ -404,7 +404,7 @@ fn rewrite_vegalite_inserts_a_comment() {
     let mut script = parsed_script("/* @description Revenue. */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark":"bar","encoding":{"x":{"field":"a"}}}"#, false).unwrap().0,
-        "/* @description Revenue. */\n/* @vis vegalite\n   {\n     \"mark\": \"bar\",\n     \"encoding\": {\n       \"x\": {\n         \"field\": \"a\"\n       }\n     }\n   }\n*/\nselect 1 as a"
+        "/* @description Revenue. */\n/* @vis vegalite\n   {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n*/\nselect 1 as a"
     );
 }
 
@@ -414,18 +414,18 @@ fn rewrite_vegalite_replaces_the_renderer() {
     let mut script = parsed_script("/* @vis vegalite {\"mark\": \"line\"}\n   @vis card width=6 */\nselect 1");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "/* @vis vegalite\n   {\n     \"mark\": \"bar\"\n   }\n   @vis card width=6 */\nselect 1"
+        "/* @vis vegalite\n   {\"mark\": \"bar\"}\n   @vis card width=6 */\nselect 1"
     );
     // A multi-line spec and other renderers are replaced
     let mut script = parsed_script("/* @vis card width=6\n   @vis vegalite\n   {\n     \"mark\": \"line\"\n   }\n*/\nselect 1");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "/* @vis card width=6\n   @vis vegalite\n   {\n     \"mark\": \"bar\"\n   }\n*/\nselect 1"
+        "/* @vis card width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/\nselect 1"
     );
     let mut script = parsed_script("/* @vis table */ select 1");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "/* @vis vegalite\n   {\n     \"mark\": \"bar\"\n   } */ select 1"
+        "/* @vis vegalite\n   {\"mark\": \"bar\"} */ select 1"
     );
     // Line comments and gutters get the spec on one line
     let mut script = parsed_script("-- @vis markdown\n-- **{{a}}**\n-- @vis card width=2\n-- @end\nselect 1");
@@ -452,7 +452,7 @@ fn rewrite_vegalite_returns_the_span_of_the_tag() {
 fn rewrite_vegalite_escapes_comment_delimiters() {
     let mut script = parsed_script("select 1");
     let (text, _) = script.rewrite_vegalite(r#"{"title": "a */ b /* c"}"#, false).unwrap();
-    assert_eq!(text, "/* @vis vegalite\n   {\n     \"title\": \"a *\\/ b /\\u002a c\"\n   }\n*/\nselect 1");
+    assert_eq!(text, "/* @vis vegalite\n   {\"title\": \"a *\\/ b /\\u002a c\"}\n*/\nselect 1");
     // The comment neither nests nor ends early, the spec reads back unchanged
     let catalog = Catalog::new();
     let mut written = Script::new(&catalog);

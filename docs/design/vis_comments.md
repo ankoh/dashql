@@ -133,8 +133,8 @@ Agents write charts with `dashql agent vis edit <script>`, which takes a Vega-Li
 compiles without errors or warnings (with empty data), and the analyzer must not warn about the new tag,
 e.g. about a `field` that is no output column or about `data`. `Script::rewrite_vegalite` then replaces
 the renderer tag of the terminal query (`vegalite`, `markdown` or `table`) or inserts a
-`/* @vis vegalite ... */` comment; the spec is pretty-printed in block comments and stays on one line in
-line comments and in block comments with a ` * ` gutter.
+`/* @vis vegalite ... */` comment; the spec is printed compactly in block comments (see Formatting) and
+stays on one line in line comments and in block comments with a ` * ` gutter.
 
 The editor highlights `@vis` tags like code (`vis_highlight.rs`): the syntax spans of such a comment are
 split into the tag and kind (keywords), JSON keys and `card` keys (identifiers), JSON strings, numbers
@@ -144,8 +144,12 @@ comments.
 ## Formatting
 
 The formatter prints every comment with a `@vis` tag as a canonical block comment
-(`formatter/comments.rs`): `table` and `card` tags on one line, the JSON of `vegalite` pretty-printed
-with 2-space indentation and the key order kept, Markdown verbatim. The lines after the first are
+(`formatter/comments.rs`): `table` and `card` tags on one line, the JSON of `vegalite` printed
+compactly with the key order kept (`compact_json.rs`), Markdown verbatim. A JSON value that fits in the
+rest of its line stays on one line, objects and arrays that don't fit put each entry on a line of its
+own with 2-space indentation, so a spec reads like the Vega editor prints it instead of one key per
+line. The JSON fills the formatting width behind the comment indentation; `@vis` rewrites, which have
+no formatting width, use 80 columns. The lines after the first are
 aligned after `/* `, and a run of line comments with a `@vis` tag becomes one block comment. Malformed
 JSON stays as written, and a body that contains `/*` or `*/` keeps its original form, since it would
 end or nest the block comment.

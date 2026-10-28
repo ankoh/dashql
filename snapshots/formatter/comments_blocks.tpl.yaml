@@ -142,7 +142,7 @@ formatter-snapshots:
     dialects:
       hyper:
 
-  # Inline JSON is pretty-printed, the card header gets single spaces
+  # Inline JSON is printed compactly, the card header gets single spaces
   - name: vis_inline_json
     input: |-
       /* @vis vegalite {"mark": {"type": "line", "point": true}, "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}} */
@@ -150,6 +150,19 @@ formatter-snapshots:
       select date, revenue from sales
     dialects:
       hyper:
+
+  # JSON objects and arrays that don't fit in the line put each entry on a line of their own
+  - name: vis_json_breaks_at_the_width
+    input: |-
+      /* @vis vegalite {"layer": [{"mark": {"type": "bar", "tooltip": true}, "encoding": {"x": {"field": "region", "type": "nominal", "sort": "-y"}, "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}}}, {"mark": {"type": "rule", "color": "red"}, "encoding": {"y": {"datum": 1000}}}]} */
+      select region, revenue from sales
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 80
+          - mode: pretty
+            width: 80
 
   # Malformed JSON and Markdown are kept as written
   - name: vis_malformed_json_and_markdown

@@ -61,7 +61,7 @@ describe('DashQL @vis tags', () => {
         expect(session.rewriteVisRenderer(1, 'markdown', '**{{b}}**')).toBe(
             'select 1 as a;\n/* @vis markdown\n   **{{b}}**\n*/\nselect 2 as b');
         expect(session.rewriteVisRenderer(0, 'vegalite', '{"mark": "bar"}')).toBe(
-            '/* @vis vegalite\n   {\n     "mark": "bar"\n   }\n*/\nselect 1 as a;\n/* @vis table */\nselect 2 as b');
+            '/* @vis vegalite\n   {"mark": "bar"}\n*/\nselect 1 as a;\n/* @vis table */\nselect 2 as b');
         expect(session.rewriteVisRenderer(1, null)).toBe('select 1 as a;\nselect 2 as b');
         expect(() => session.rewriteVisRenderer(1, 'vegalite', '[1]')).toThrow('JSON object');
         expect(() => session.rewriteVisCard(0, null, null, 6, 3)).toThrow('no @vis renderer');

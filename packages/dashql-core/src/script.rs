@@ -336,10 +336,10 @@ impl Script {
     /// `markdown` or `table`) by `@vis vegalite <spec>`. A query without a renderer gets a
     /// `/* @vis vegalite ... */` comment in front of it.
     ///
-    /// The spec must be a JSON object, it is written with its key order kept: pretty-printed in block
-    /// comments and on one line in line comments and in block comments with a ` * ` gutter. `/*` and
-    /// `*/` in its strings are escaped as `/\u002a` and `*\/`, they would nest or end a block comment. The
-    /// spans of the parsed script are applied to the current text, as in `rewrite_vis_card`.
+    /// The spec must be a JSON object, it is written with its key order kept: compactly in block comments
+    /// (`compact_json`) and on one line in line comments and in block comments with a ` * ` gutter. `/*`
+    /// and `*/` in its strings are escaped as `/\u002a` and `*\/`, they would nest or end a block comment.
+    /// The spans of the parsed script are applied to the current text, as in `rewrite_vis_card`.
     ///
     /// Returns the rewritten text and the span of the written tag or comment in it.
     pub fn rewrite_vegalite(&mut self, spec: &str, parse_if_outdated: bool) -> Result<(String, TextSpan)> {
@@ -362,7 +362,7 @@ impl Script {
         }
         let escape = |json: String| json.replace("/*", "/\\u002a").replace("*/", "*\\/");
         let compact = escape(spec.to_string());
-        let pretty = escape(serde_json::to_string_pretty(&spec).expect("a JSON value always serializes"));
+        let json = escape(crate::compact_json::to_string_compact(&spec, crate::vis_rewrite::VIS_JSON_WIDTH));
 
         let text = parsed.scanned.text.as_str();
         let (begin, end, replacement) = match crate::analyzer::vis_renderer_tag(parsed, statement_id) {
@@ -383,13 +383,13 @@ impl Script {
                     // Align the JSON with the tag, `/* ` becomes spaces
                     let indent: String =
                         text[line_start..at].chars().map(|c| if c.is_whitespace() { c } else { ' ' }).collect();
-                    pretty.lines().map(|l| format!("\n{indent}{l}")).collect()
+                    json.lines().map(|l| format!("\n{indent}{l}")).collect()
                 };
                 (first.offset as usize, last.end() as usize, format!("vegalite{body}"))
             }
             None => {
                 let at = parsed.associate_descriptions()[statement_id].statement_span.offset as usize;
-                let json: Vec<String> = pretty.lines().map(|l| format!("   {l}")).collect();
+                let json: Vec<String> = json.lines().map(|l| format!("   {l}")).collect();
                 (at, at, format!("/* @vis vegalite\n{}\n*/\n", json.join("\n")))
             }
         };

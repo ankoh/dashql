@@ -250,7 +250,7 @@ fn append_line_comment_block(
         }
         let region = &comments[i..region_end];
         let has_vis = region.iter().any(|c| read_comment_tag(input, c).is_some_and(|t| t.name == VIS_TAG));
-        if let Some(block) = has_vis.then(|| print_vis_comment(input, region)).flatten() {
+        if let Some(block) = has_vis.then(|| print_vis_comment(input, region, max_width)).flatten() {
             if !output.is_empty() && !ends_with_line_break(output) {
                 output.push(b'\n');
             }
@@ -299,8 +299,9 @@ fn split_word(line: &[u8]) -> (&[u8], &[u8]) {
     (&line[..end], trim_whitespace(&line[end..]))
 }
 
-/// The canonical lines of a `@vis` tag, `lines` are its content lines
-fn vis_tag_lines(lines: &[&[u8]]) -> Vec<Vec<u8>> {
+/// The canonical lines of a `@vis` tag, `lines` are its content lines and `max_width` is the width of
+/// the comment lines
+fn vis_tag_lines(lines: &[&[u8]], max_width: usize) -> Vec<Vec<u8>> {
     let tag = |rest: &[u8]| {
         let mut line = b"@vis".to_vec();
         if !rest.is_empty() {
@@ -314,11 +315,12 @@ fn vis_tag_lines(lines: &[&[u8]]) -> Vec<Vec<u8>> {
     let verbatim = || std::iter::once(tag(header)).chain(body.iter().map(|l| l.to_vec())).collect();
     match kind {
         b"vegalite" => {
-            // The JSON is pretty-printed with the key order kept, malformed JSON stays as written
+            // The JSON is printed compactly with the key order kept, malformed JSON stays as written
             let json = std::iter::once(rest).chain(body.iter().copied()).collect::<Vec<_>>().join(&b'\n');
             let Ok(value) = serde_json::from_slice::<serde_json::Value>(&json) else { return verbatim() };
-            let pretty = serde_json::to_string_pretty(&value).expect("a JSON value always serializes");
-            std::iter::once(tag(kind)).chain(pretty.lines().map(|l| l.as_bytes().to_vec())).collect()
+            let width = max_width.saturating_sub(VIS_COMMENT_INDENT.len());
+            let compact = crate::compact_json::to_string_compact(&value, width);
+            std::iter::once(tag(kind)).chain(compact.lines().map(|l| l.as_bytes().to_vec())).collect()
         }
         b"table" | b"card" => {
             // Args are separated by single spaces
@@ -339,7 +341,7 @@ fn vis_tag_lines(lines: &[&[u8]]) -> Vec<Vec<u8>> {
 /// Print comments that hold a `@vis` tag as one canonical block comment. The tags keep their order,
 /// text before the first tag stays in front of them. Returns None if the comments stay as written:
 /// without a `@vis` tag, with malformed tags, or with text that would end or nest a block comment.
-fn print_vis_comment(input: &[u8], comments: &[TextSpan]) -> Option<Vec<u8>> {
+fn print_vis_comment(input: &[u8], comments: &[TextSpan], max_width: usize) -> Option<Vec<u8>> {
     let blocks = group_comment_bytes(input, comments);
     if !blocks.warnings.is_empty() {
         return None;
@@ -364,7 +366,7 @@ fn print_vis_comment(input: &[u8], comments: &[TextSpan]) -> Option<Vec<u8>> {
         let name = span_text(block.tag_span);
         if name == VIS_TAG {
             has_vis = true;
-            lines.extend(vis_tag_lines(&content));
+            lines.extend(vis_tag_lines(&content, max_width));
             continue;
         }
         // Other tags are kept, text that followed the tag on its line stays there
@@ -438,7 +440,7 @@ pub(super) fn append_comments(
                 output.push(b'\n');
             }
             let text = comment_text(input, &comments[i]);
-            match find_subslice(text, b"@vis").and_then(|_| print_vis_comment(input, &comments[i..=i])) {
+            match find_subslice(text, b"@vis").and_then(|_| print_vis_comment(input, &comments[i..=i], max_width)) {
                 Some(block) => output.extend_from_slice(&block),
                 None => output.extend_from_slice(text),
             }
@@ -496,9 +498,13 @@ mod tests {
 
     /// Format a script that consists of comments, every comment is found by the scanner
     fn format_comments(input: &str) -> String {
+        format_comments_within(input, 120)
+    }
+
+    fn format_comments_within(input: &str, max_width: usize) -> String {
         let scanned = dashql_parser::scanner::scan(input, 0, 0);
         let mut out = Vec::new();
-        append_comments(&mut out, input.as_bytes(), &scanned.comments, 120, None);
+        append_comments(&mut out, input.as_bytes(), &scanned.comments, max_width, None);
         String::from_utf8(out).unwrap()
     }
 
@@ -506,9 +512,12 @@ mod tests {
     fn prints_vis_block_comments() {
         assert_eq!(format_comments("/*   @vis   card  width=6   height=3 */"), "/* @vis card width=6 height=3 */");
         assert_eq!(format_comments("/* @vis table */"), "/* @vis table */");
+        let input = "/* @vis vegalite {\"mark\":\"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}} */";
+        assert_eq!(format_comments(input), "/* @vis vegalite\n   {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n*/");
+        // The JSON breaks where it does not fit in the comment lines
         assert_eq!(
-            format_comments("/* @vis vegalite {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}} */"),
-            "/* @vis vegalite\n   {\n     \"mark\": \"bar\",\n     \"encoding\": {\n       \"x\": {\n         \"field\": \"a\"\n       }\n     }\n   }\n*/"
+            format_comments_within(input, 40),
+            "/* @vis vegalite\n   {\n     \"mark\": \"bar\",\n     \"encoding\": {\"x\": {\"field\": \"a\"}}\n   }\n*/"
         );
         // Formatting twice gives the same output
         let once = format_comments("/* @vis vegalite\n{\"mark\":\"bar\"}\n*/");
@@ -518,7 +527,7 @@ mod tests {
     #[test]
     fn prints_vis_line_comments_as_block_comment() {
         let input = "-- @description Revenue.\n-- @vis card width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @end";
-        let expected = "/* @description Revenue.\n   @vis card width=6\n   @vis vegalite\n   {\n     \"mark\": \"bar\"\n   }\n*/";
+        let expected = "/* @description Revenue.\n   @vis card width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
         assert_eq!(format_comments(input), expected);
         assert_eq!(format_comments(expected), expected);
         // Regions without a @vis tag stay line comments
