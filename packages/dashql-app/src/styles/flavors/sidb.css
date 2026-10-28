@@ -34,8 +34,8 @@
 
     --focus_outline_color: var(--sidb_si_on_light);
 
-    /* Succeeded status indicators take the fresh green of the agent gradient */
-    --status_color_success: #34c46a;
+    /* Succeeded status indicators take the Verdigris of light surfaces, the green of the agent gradient is too loud */
+    --status_color_success: var(--sidb_si_on_light);
 
     --nav_tab_bg_active: hsla(186, 40%, 50%, 30%);
 
