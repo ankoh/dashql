@@ -22,7 +22,11 @@
     height: 100%;
 }
 
-/* The dark stripe above the rail and the page card with the brand on the left and the version on the right */
+.container_wide {
+    --nav_bar_width: 128px;
+}
+
+/* The dark stripe above the rail and the page card with the brand on the left and the overlays on the right */
 .top_bar {
     grid-row: 1;
     grid-column: 1 / -1;
@@ -44,9 +48,22 @@
     padding-left: 0;
 }
 
-/* The version is a size smaller in the stripe than in the compact navbar */
+.top_bar_actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 4px;
+}
+
+/* The buttons are a size smaller in the stripe than in the compact navbar */
 .top_bar .tab {
     height: 24px;
+}
+
+/* The light tint of the rail buttons, a darkening would vanish on the dark chrome */
+.top_bar .tab:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 .top_bar .tab_button {

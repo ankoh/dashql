@@ -11,11 +11,18 @@
     box-sizing: border-box;
 }
 
+/* The wide rail stretches its buttons to show their labels */
+.rail_wide {
+    align-items: stretch;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
 .group {
     display: flex;
     flex-direction: column;
     align-items: center;
-    row-gap: 4px;
+    row-gap: 8px;
 }
 
 .button {
@@ -31,6 +38,28 @@
     border: 1px solid transparent;
     border-radius: var(--border_radius);
     cursor: pointer;
+}
+
+/* Keeps the icon where it sits in the narrow rail */
+.button_wide {
+    justify-content: flex-start;
+    column-gap: 10px;
+    width: 100%;
+    padding: 0 7px;
+}
+
+.button_label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font_family);
+    font-size: var(--font_size_body);
+    font-weight: 300;
+}
+
+.icon_flipped {
+    transform: scaleX(-1);
 }
 
 /* A light tint, a darkening would vanish on the dark chrome */
