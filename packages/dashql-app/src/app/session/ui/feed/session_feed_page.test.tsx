@@ -9,7 +9,7 @@ import { Button } from '../../../../ui/foundations/button.js';
 import { ConnectionHealth } from '../../../connections/connection_state.js';
 import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
 import { FlavorProvider } from '../../../flavor/flavor_provider.js';
-import { SIDP_FLAVOR } from '../../../flavor/flavors.js';
+import { SIDB_FLAVOR } from '../../../flavor/flavors.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -319,7 +319,7 @@ describe('SessionFeedPage', () => {
 
     it('hides the archive export when the flavor does not support it', () => {
         act(() => root.render(
-            <FlavorProvider requested={SIDP_FLAVOR}>
+            <FlavorProvider requested={SIDB_FLAVOR}>
                 <SessionFeedPage
                     sessionScripts={scripts()}
                     modifySessionScripts={vi.fn()}

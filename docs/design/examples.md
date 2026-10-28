@@ -37,8 +37,8 @@ Electron all serve the page without rewrites. Each page is a lazy chunk, so a de
 is opened.
 
 The host provides the logger, the HTTP client, and the HyperDB WASM of the page (`EmbeddedDatabaseProvider`).
-A flavor goes in front of the hash or into the query of the route, `demos.html?flavor=sidp#/<id>` or
-`demos.html#/<id>?flavor=sidp`: the host brands the page with it, which also gives the charts the chart
+A flavor goes in front of the hash or into the query of the route, `demos.html?flavor=sidb#/<id>` or
+`demos.html#/<id>?flavor=sidb`: the host brands the page with it, which also gives the charts the chart
 colors of the flavor.
 It leaves out the DashQL core and the compute pipeline. Every page load creates a fresh HyperDB instance in
 OPFS, so the tables of a demo never touch the sessions of the app.

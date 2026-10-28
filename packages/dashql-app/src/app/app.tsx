@@ -51,7 +51,7 @@ import { AgentBridgeProvider } from './agent/agent_bridge.js';
 import '../../static/fonts/fonts.css';
 import '../styles/colors.css';
 import '../styles/globals.css';
-import '../styles/flavors/sidp.css';
+import '../styles/flavors/sidb.css';
 
 const LOG_CTX = 'app';
 

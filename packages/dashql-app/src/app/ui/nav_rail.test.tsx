@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { isWorkspacePath, NavRailUpcomingPages } from './nav_rail.js';
 import { FlavorProvider } from '../flavor/flavor_provider.js';
-import { DASHQL_FLAVOR, SIDP_FLAVOR } from '../flavor/flavors.js';
+import { DASHQL_FLAVOR, SIDB_FLAVOR } from '../flavor/flavors.js';
 
 describe('Nav rail', () => {
     it('marks the session pages as the workspace', () => {
@@ -35,17 +35,17 @@ describe('Nav rail upcoming pages', () => {
         container.remove();
     });
 
-    it('shows the upcoming pages of the sidp flavor as disabled buttons', () => {
+    it('shows the upcoming pages of the sidb flavor as disabled buttons', () => {
         act(() => root.render(
-            <FlavorProvider requested={SIDP_FLAVOR}>
+            <FlavorProvider requested={SIDB_FLAVOR}>
                 <NavRailUpcomingPages wide={true} />
             </FlavorProvider>,
         ));
         // A separator goes in front of every group
         const items = [...container.querySelectorAll('button, [role="separator"]')]
             .map(e => e.getAttribute('aria-label') ?? '|');
-        expect(items).toEqual(SIDP_FLAVOR.upcomingPages.flatMap(group => ['|', ...group.map(page => page.label)]));
-        const pages = SIDP_FLAVOR.upcomingPages.flat();
+        expect(items).toEqual(SIDB_FLAVOR.upcomingPages.flatMap(group => ['|', ...group.map(page => page.label)]));
+        const pages = SIDB_FLAVOR.upcomingPages.flat();
         expect(pages.length).toBeGreaterThan(0);
         for (const page of pages) {
             const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${page.label}"]`)!;
