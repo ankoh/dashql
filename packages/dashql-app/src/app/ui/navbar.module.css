@@ -111,18 +111,6 @@
     grid-template-rows: var(--nav_bar_height);
 }
 
-.brand_mark {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-/* A faint outlined tag on the dark navbar, so the tagline reads as a label and not as part of the name */
-.brand_tagline {
-    --tag_outline_border_color: rgba(255, 255, 255, 0.1);
-    --tag_outline_color: rgba(255, 255, 255, 0.45);
-}
-
 .brand_identity {
     grid-row: 1;
     grid-column: 1;
@@ -242,8 +230,7 @@
 }
 
 @media (max-width: 900px) {
-    .tab_button_text,
-    .brand_tagline {
+    .tab_button_text {
         display: none;
     }
 }

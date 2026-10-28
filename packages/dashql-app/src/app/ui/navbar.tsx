@@ -3,7 +3,6 @@ import * as styles from './navbar.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { Tag, TagVariant } from '../../ui/foundations/tag.js';
 import { HoverMode, NavBarButtonWithRef } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { AgentViewOverlay } from '../agent/agent_view.js';
@@ -183,29 +182,15 @@ const NavRailActions = () => {
 /// The height of a wordmark in the navbar, a bit smaller than square logos to match the cap height of text
 const WORDMARK_HEIGHT = 16;
 
-/// The brand mark followed by the tagline of the flavor, sharing the baseline
-const BrandMark = (props: { children: React.ReactNode }) => {
-    const tagline = useAppFlavor().tagline;
-    if (tagline == null) {
-        return <>{props.children}</>;
-    }
-    return (
-        <span className={styles.brand_mark}>
-            {props.children}
-            <Tag variant={TagVariant.Outline} className={styles.brand_tagline}>{tagline}</Tag>
-        </span>
-    );
-};
-
 const BrandIdentity = () => {
     const flavor = useAppFlavor();
     return (
         <div className={styles.brand_identity} data-electron-drag-region>
             {flavor.logo.wordmark
-                ? <BrandMark><FlavorLogo height={WORDMARK_HEIGHT} ariaHidden /></BrandMark>
+                ? <FlavorLogo height={WORDMARK_HEIGHT} ariaHidden />
                 : <>
                     <FlavorLogo height={24} ariaHidden />
-                    <BrandMark><span>{flavor.displayName}</span></BrandMark>
+                    <span>{flavor.displayName}</span>
                 </>}
         </div>
     );

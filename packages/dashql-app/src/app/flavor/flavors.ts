@@ -26,7 +26,7 @@ export interface AppFlavor {
     displayName: string;
     /// The logo
     logo: AppFlavorLogo;
-    /// The tagline shown in smaller type next to the logo, null shows none
+    /// The tagline shown in smaller type next to the logo in the navbar of the shell, null shows none
     tagline: string | null;
     /// The favicon replacing the static favicons of the html entry pages, null keeps them
     favicon: URL | null;
