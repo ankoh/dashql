@@ -283,21 +283,11 @@ Nothing keeps listening once the app is quit or deleted.
 
 ### Commands
 
-| Command | Does |
-|---|---|
-| `dashql agent status` | Connected clients, sessions, focused session and script, connections |
-| `dashql agent scripts` | Scripts of the session with their connections |
-| `dashql agent read <script>` | Script text |
-| `dashql agent edit <script> [--file f \| stdin] [--connection c]` | Replace or create a script, on a connection of the session; applied directly |
-| `dashql agent catalog [connection]` | `CREATE TABLE` statements |
-| `dashql agent lint <script>` | Diagnostics from the page's analyzer |
-| `dashql agent run <script> [--max-rows N]` | Run it; columns, first rows, row count or error |
-| `dashql agent result <script> [--page N]` | More rows of the last result |
-| `dashql agent vis get <script>` | The renderer and the Vega-Lite spec of the `@vis` tag of the last query, without the `$schema` and `data` of the compiler |
-| `dashql agent vis edit <script> [--file f \| stdin]` | Check a Vega-Lite spec and write it as the `@vis vegalite` tag of the last query |
-| `dashql agent vis image <script> [--out f] [--width N] [--height N] [--scale N]` | Render the chart of a script with its last result as PNG, the page sends it as base64 and the tool writes the file |
-| `dashql agent serve` | Run the agent server in the foreground |
-| `dashql lint <file.sql\|dir\|->...` | Lint SQL files on disk with the native dashql-core, without DashQL |
+The agent commands are defined once, in `packages/dashql-cli/src/agent/commands.rs`: the table makes the usage
+of `dashql agent`, the command table of the `AGENTS.md` and `CLAUDE.md` of harness runs, and the server accepts
+only their calls. A test checks that the skill lists the same commands with the same notes
+(`COMMAND_NOTES` in `instructions.rs`). Next to them, `dashql agent serve` runs the agent server in the foreground
+and `dashql lint <file.sql|dir|->...` lints SQL files on disk with the native dashql-core, without DashQL.
 
 - Compact text on stdout, `--json` where useful, real exit codes (0 ok, 1 failed, 2 not
   connected or usage).

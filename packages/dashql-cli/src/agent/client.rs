@@ -1,5 +1,6 @@
 //! The commands that agents call: they reach the open DashQL session through the agent server
 
+use crate::agent::commands::{usage_lines, vis_commands};
 use crate::agent::config::AgentConfig;
 use crate::agent::http;
 use crate::agent::protocol::ErrorCode;
@@ -15,32 +16,23 @@ pub const EXIT_USAGE: u8 = 2;
 pub const NOT_RUNNING_MESSAGE: &str =
     "The DashQL agent server is not running: start DashQL, or run `dashql agent serve`";
 
-pub const USAGE: &str = "Usage: dashql agent <command> [options]
+/// The usage of `dashql agent`
+pub fn usage() -> String {
+    format!(
+        "Usage: dashql agent <command> [options]
 
 Commands for the DashQL session that is open in the browser or the desktop app:
-  status                              Connected clients, sessions, the focused session
-  scripts                             Scripts of the session with their connections
-  read <script>                       Script text
-  edit <script> [--file f]            Replace or create a script with the text of the file or stdin,
-       [--connection c]               on a connection of the session, default: the connection of the
-                                      script, then the default connection
-  catalog [connection]                CREATE TABLE statements
-  lint <script>                       Diagnostics of a script
-  run <script> [--max-rows N]         Run a script: columns, first rows, row count or error
-  result <script> [--page N]          More rows of the last result
-  vis get <script>                    The chart of a script: its renderer and Vega-Lite spec
-  vis edit <script> [--file f]        Chart the last query with the Vega-Lite spec of the file or stdin,
-                                      after checking it
-  vis image <script> [--out f]        Render the chart of a script with its last result as PNG, default:
-            [--width N] [--height N]  <script>.png, 800x500 at scale 2
-            [--scale N]
+{}
   serve [--dev] [--exit-with-stdin]   Run the agent server in the foreground, --exit-with-stdin stops it when
                                       stdin closes, for an app that runs it as a child process
 
 Options:
   --session <id>   Target session, default: $DASHQL_SESSION, then the focused session
   --json           Print structured output
-  --dev            Use the dev server: port 47101, ~/.dashql/agent-dev, accepts the dev origins";
+  --dev            Use the dev server: port 47101, ~/.dashql/agent-dev, accepts the dev origins",
+        usage_lines()
+    )
+}
 
 /// The output of a command
 #[derive(Debug, PartialEq, Eq)]
@@ -60,7 +52,7 @@ impl CliOutput {
     }
 
     fn usage(message: &str) -> Self {
-        CliOutput { stdout: String::new(), stderr: format!("{message}\n\n{USAGE}\n"), exit_code: EXIT_USAGE }
+        CliOutput { stdout: String::new(), stderr: format!("{message}\n\n{}\n", usage()), exit_code: EXIT_USAGE }
     }
 }
 
@@ -262,9 +254,12 @@ pub fn run_cli(options: &Options, cli: &CliEnvironment) -> CliOutput {
     };
     // The vis commands are calls of their own: vis edit calls vis.edit
     let (command, rest) = match (command.as_str(), rest) {
-        ("vis", [sub, rest @ ..]) if ["get", "edit", "image"].contains(&sub.as_str()) => (format!("vis.{sub}"), rest),
+        ("vis", [sub, rest @ ..]) if vis_commands().any(|c| c == sub) => (format!("vis.{sub}"), rest),
         ("vis", [sub, ..]) => return CliOutput::usage(&format!("Unknown vis command: {sub}")),
-        ("vis", []) => return CliOutput::usage("vis needs a command: get, edit or image"),
+        ("vis", []) => {
+            let commands: Vec<_> = vis_commands().collect();
+            return CliOutput::usage(&format!("vis needs a command: {}", commands.join(", ")));
+        }
         _ => (command.clone(), rest),
     };
     if command == "status" {
@@ -387,6 +382,23 @@ mod tests {
         assert_eq!(output, CliOutput { stdout: "select 1\n".into(), stderr: String::new(), exit_code: EXIT_OK });
         assert_eq!(fake.requests.borrow()[0].1, "/v1/call");
         assert_eq!(fake.body(0), json!({ "command": "read", "args": { "script": "q1" } }));
+    }
+
+    #[test]
+    fn calls_every_command_of_the_session() {
+        use crate::agent::commands::AGENT_COMMANDS;
+        let fake = Fake::new(Some(json!({ "ok": true, "session": "s", "result": { "text": "" } })));
+        for command in &AGENT_COMMANDS {
+            let Some(call) = command.call() else { continue };
+            let mut argv: Vec<&str> = command.name.split(' ').collect();
+            if command.args.starts_with("<script>") {
+                argv.push("q1");
+            }
+            let output = fake.run(&argv, None, "select 1");
+            assert_ne!(output.exit_code, EXIT_USAGE, "{}: {}", command.name, output.stderr);
+            let calls = fake.requests.borrow().len();
+            assert_eq!(fake.body(calls - 1)["command"], call.as_str());
+        }
     }
 
     #[test]

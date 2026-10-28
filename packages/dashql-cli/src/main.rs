@@ -110,12 +110,12 @@ fn agent(argv: &[String]) -> ExitCode {
     let options = match client::parse_args(argv) {
         Ok(options) => options,
         Err(e) => {
-            eprintln!("{e}\n\n{}", client::USAGE);
+            eprintln!("{e}\n\n{}", client::usage());
             return ExitCode::from(EXIT_USAGE);
         }
     };
     if options.help || options.positionals.first().map(String::as_str) == Some("help") {
-        println!("{}", client::USAGE);
+        println!("{}", client::usage());
         return ExitCode::SUCCESS;
     }
     if options.positionals == ["serve"] {

@@ -49,8 +49,11 @@ platform_binary(
 rust_test(
     name = "tests",
     size = "small",
-    # The tests check the messages of the agent server against the schema
-    compile_data = ["//proto/json:dashql/agent_bridge.json"],
+    # The tests check the messages of the agent server against the schema, and the skill against the commands
+    compile_data = [
+        "skill/dashql/SKILL.md",
+        "//proto/json:dashql/agent_bridge.json",
+    ],
     crate = ":dashql",
 )
 

@@ -1,5 +1,6 @@
 //! The local agent server: DashQL clients connect over WebSocket, the command line tool over HTTP
 
+use crate::agent::commands::is_session_command;
 use crate::agent::config::{
     create_private_dir, random_bytes, to_json_text, update_stored_config, write_private_file, AgentConfig, DEV_ORIGINS,
     RELEASE_ORIGINS,
@@ -10,7 +11,7 @@ use crate::agent::harness::{
 };
 use crate::agent::http::{self, Request};
 use crate::agent::instructions::{claude_instructions, session_instructions, INPUT_FOLDER, OPENCODE_CONFIG};
-use crate::agent::protocol::{ErrorCode, RpcError, CLIENT_COMMANDS, PROTOCOL_VERSION, WEBSOCKET_PATH};
+use crate::agent::protocol::{ErrorCode, RpcError, PROTOCOL_VERSION, WEBSOCKET_PATH};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -365,7 +366,7 @@ impl Shared {
 
     /// Run a command of the command line tool against a session
     async fn call(&self, call: &Value) -> Value {
-        let Some(command) = call["command"].as_str().filter(|c| CLIENT_COMMANDS.contains(c)) else {
+        let Some(command) = call["command"].as_str().filter(|c| is_session_command(c)) else {
             let command = call["command"].as_str().map_or_else(|| call["command"].to_string(), str::to_string);
             return RpcError::new(ErrorCode::Usage, format!("unknown command: {command}")).to_call_response();
         };
