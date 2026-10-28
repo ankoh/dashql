@@ -41,6 +41,8 @@ export interface SessionComposerProps {
     agent?: ComposerAgent | null;
     /// Called with the draft and its input mode when the user sends it, the draft is cleared before
     onSend: (text: string, mode: ComposerInputMode) => void;
+    /// Called with whether the draft is blank, once on mount and whenever that changes
+    onDraftEmptyChange?: (empty: boolean) => void;
     /// Receives the editor view once it is mounted
     setView?: (view: EditorView | null) => void;
     /// Receives the send function of the composer, e.g. for global key bindings
@@ -93,6 +95,7 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
         setEmpty(text.trim().length === 0);
         input.onTextChange(text);
     }, [input.onTextChange]);
+    React.useEffect(() => props.onDraftEmptyChange?.(empty), [empty, props.onDraftEmptyChange]);
     const handleModeChange = React.useCallback((index: number) => {
         input.pick(index === 0 ? ComposerInputMode.Sql : ComposerInputMode.Ai);
     }, [input.pick]);

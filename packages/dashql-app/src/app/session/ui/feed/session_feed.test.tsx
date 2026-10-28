@@ -398,6 +398,16 @@ describe('Session feed composer', () => {
         expect(feedState.composerProps?.variant).toBe(SessionComposerVariant.Hero);
     });
 
+    it('hides the greeting while the user writes a draft', () => {
+        render(session(), vi.fn());
+        const title = () => container.querySelector('[data-testid="feed-landing-title"]')!.parentElement!;
+        expect(title().hasAttribute('data-hidden')).toBe(false);
+        act(() => feedState.composerProps!.onDraftEmptyChange!(false));
+        expect(title().hasAttribute('data-hidden')).toBe(true);
+        act(() => feedState.composerProps!.onDraftEmptyChange!(true));
+        expect(title().hasAttribute('data-hidden')).toBe(false);
+    });
+
     it('docks the composer below the scripts of a session', () => {
         render(session(['1_alpha.sql']), vi.fn());
         expect(container.querySelector('[data-testid="feed-landing-title"]')).toBeNull();

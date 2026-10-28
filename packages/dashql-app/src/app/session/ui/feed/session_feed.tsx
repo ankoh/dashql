@@ -404,6 +404,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     }, []);
 
     const [composerView, setComposerView] = React.useState<EditorView | null>(null);
+    const [composerDraftEmpty, setComposerDraftEmpty] = React.useState(true);
     const composerSubmitRef = React.useRef<(() => void) | null>(null);
 
     // The feed stays mounted (just hidden) while the catalog/details overlay is open, so its global
@@ -703,7 +704,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                 {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
             </section>}
             {landing && (
-                <div className={styles.feed_landing_header}>
+                <div className={styles.feed_landing_header} data-hidden={composerDraftEmpty ? undefined : ''}>
                     <h1 className={styles.feed_landing_title} data-testid="feed-landing-title">What do you want to know about your data today?</h1>
                 </div>
             )}
@@ -755,6 +756,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         aiAvailable={composerAgent.available}
                         agent={composerAgent.agent}
                         onSend={handleComposerSend}
+                        onDraftEmptyChange={setComposerDraftEmpty}
                         setView={setComposerView}
                         submitRef={composerSubmitRef}
                         snippetConnector={scriptConnections.get(props.sessionScripts.connectionId)?.connectorInfo.connectorType}

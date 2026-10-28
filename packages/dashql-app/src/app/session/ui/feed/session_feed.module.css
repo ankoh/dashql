@@ -50,6 +50,13 @@
     align-items: center;
     padding: 32px 16px 24px 16px;
     text-align: center;
+    transition: opacity 120ms ease-out;
+}
+
+/* Faded out while the user writes a draft, the growing composer would otherwise push the greeting up */
+.feed_landing_header[data-hidden] {
+    visibility: hidden;
+    opacity: 0;
 }
 
 .feed_landing_title {
