@@ -133,8 +133,8 @@ Agents write charts with `dashql agent vis edit <script>`, which takes a Vega-Li
 compiles without errors or warnings (with empty data), and the analyzer must not warn about the new tag,
 e.g. about a `field` that is no output column or about `data`. `Script::rewrite_vegalite` then replaces
 the renderer tag of the terminal query (`vegalite`, `markdown` or `table`) or inserts a
-`/* @vis vegalite ... */` comment; the spec is printed compactly in block comments (see Formatting) and
-stays on one line in line comments and in block comments with a ` * ` gutter.
+`/* @vis vegalite ... */` comment; the spec is printed compactly (see Formatting), its lines take the
+`-- ` of line comments, the ` * ` gutter or the indentation of block comments.
 
 The editor highlights `@vis` tags like code (`vis_highlight.rs`): the syntax spans of such a comment are
 split into the tag and kind (keywords), JSON keys and `card` keys (identifiers), JSON strings, numbers

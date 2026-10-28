@@ -336,9 +336,10 @@ impl Script {
     /// `markdown` or `table`) by `@vis vegalite <spec>`. A query without a renderer gets a
     /// `/* @vis vegalite ... */` comment in front of it.
     ///
-    /// The spec must be a JSON object, it is written with its key order kept: compactly in block comments
-    /// (`compact_json`) and on one line in line comments and in block comments with a ` * ` gutter. `/*`
-    /// and `*/` in its strings are escaped as `/\u002a` and `*\/`, they would nest or end a block comment.
+    /// The spec must be a JSON object, it is written compactly with its key order kept (`compact_json`).
+    /// Its lines take the prefix of the tag: `-- ` in line comments, the ` * ` gutter or the indentation
+    /// after `/* ` in block comments. `/*` and `*/` in its strings are escaped as `/\u002a` and `*\/`,
+    /// they would nest or end a block comment.
     /// The spans of the parsed script are applied to the current text, as in `rewrite_vis_card`.
     ///
     /// Returns the rewritten text and the span of the written tag or comment in it.
@@ -361,7 +362,6 @@ impl Script {
             return Err(Error::invalid_argument("the Vega-Lite spec is no JSON object"));
         }
         let escape = |json: String| json.replace("/*", "/\\u002a").replace("*/", "*\\/");
-        let compact = escape(spec.to_string());
         let json = escape(crate::compact_json::to_string_compact(&spec, crate::vis_rewrite::VIS_JSON_WIDTH));
 
         let text = parsed.scanned.text.as_str();
@@ -373,18 +373,18 @@ impl Script {
                 let line_start = text[..at].rfind('\n').map_or(0, |i| i + 1);
                 let comment = parsed.scanned.comments[block.comments_begin as usize];
                 let comment_text = &text[comment.offset as usize..comment.end() as usize];
-                let has_gutter = comment_text.lines().skip(1).any(|l| {
-                    let l = l.trim_start();
-                    l.starts_with('*') && !l.starts_with("*/")
+                // The parser strips a gutter only if every line after the first has one
+                let gutter = comment_text.lines().skip(1).find_map(|l| {
+                    let star = l.len() - l.trim_start().len();
+                    (l[star..].starts_with('*') && !l[star..].starts_with("*/")).then(|| format!("{}* ", &l[..star]))
                 });
-                let body = if comment_text.starts_with("--") || has_gutter {
-                    format!(" {compact}")
-                } else {
+                let prefix = match gutter {
+                    _ if comment_text.starts_with("--") => text[line_start..at].to_string(),
+                    Some(gutter) => gutter,
                     // Align the JSON with the tag, `/* ` becomes spaces
-                    let indent: String =
-                        text[line_start..at].chars().map(|c| if c.is_whitespace() { c } else { ' ' }).collect();
-                    json.lines().map(|l| format!("\n{indent}{l}")).collect()
+                    None => text[line_start..at].chars().map(|c| if c.is_whitespace() { c } else { ' ' }).collect(),
                 };
+                let body: String = json.lines().map(|l| format!("\n{prefix}{l}")).collect();
                 (first.offset as usize, last.end() as usize, format!("vegalite{body}"))
             }
             None => {

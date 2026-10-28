@@ -439,16 +439,21 @@ fn rewrite_vegalite_replaces_the_renderer() {
         script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
         "/* @vis vegalite\n   {\"mark\": \"bar\"} */ select 1"
     );
-    // Line comments and gutters get the spec on one line
+    // Line comments and gutters prefix the lines of the spec
     let mut script = parsed_script("-- @vis markdown\n-- **{{a}}**\n-- @vis card width=2\n-- @end\nselect 1");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "-- @vis vegalite {\"mark\":\"bar\"}\n-- @vis card width=2\n-- @end\nselect 1"
+        "-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @vis card width=2\n-- @end\nselect 1"
     );
     let mut script = parsed_script("/*\n * @vis table\n * @vis card width=2\n */\nselect 1");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "/*\n * @vis vegalite {\"mark\":\"bar\"}\n * @vis card width=2\n */\nselect 1"
+        "/*\n * @vis vegalite\n * {\"mark\": \"bar\"}\n * @vis card width=2\n */\nselect 1"
+    );
+    let mut script = parsed_script("/** @vis table\n  * @vis card width=2 */\nselect 1");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
+        "/** @vis vegalite\n  * {\"mark\": \"bar\"}\n  * @vis card width=2 */\nselect 1"
     );
 }
 
@@ -473,6 +478,24 @@ fn rewrite_vegalite_escapes_comment_delimiters() {
     let analyzed = written.analyzed.as_ref().unwrap();
     assert!(analyzed.parsed.scanned.errors.is_empty() && analyzed.parsed.errors.is_empty() && analyzed.errors.is_empty());
     assert_eq!(analyzed.visualization_specs[0].vegalite.as_ref().unwrap()["title"], "a */ b /* c");
+}
+
+#[test]
+fn rewrite_vegalite_spans_lines_in_every_comment() {
+    // A spec of several lines reads back unchanged behind the indentation, `-- ` and the ` * ` gutter
+    let spec = r#"{"mark": "bar", "encoding": {"x": {"field": "a", "type": "nominal", "axis": {"title": "The first column of the query"}}}}"#;
+    for before in ["/* @vis table */\n", "-- @vis table\n-- @end\n", "/*\n * @vis table\n */\n", "/** @vis table\n  * @vis card width=2 */\n"] {
+        let (text, _) = parsed_script(&format!("{before}select 1 as a")).rewrite_vegalite(spec, false).unwrap();
+        assert!(text.lines().count() > 3, "{text}");
+        let catalog = Catalog::new();
+        let mut written = Script::new(&catalog);
+        written.replace_text(&text);
+        written.analyze(&catalog, true).unwrap();
+        let analyzed = written.analyzed.as_ref().unwrap();
+        assert!(analyzed.parsed.errors.is_empty() && analyzed.errors.is_empty(), "{text}");
+        let expected: serde_json::Value = serde_json::from_str(spec).unwrap();
+        assert_eq!(analyzed.visualization_specs[0].vegalite.as_ref().unwrap(), expected.as_object().unwrap(), "{text}");
+    }
 }
 
 #[test]
