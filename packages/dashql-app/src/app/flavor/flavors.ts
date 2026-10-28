@@ -48,20 +48,28 @@ export const DASHQL_FLAVOR: AppFlavor = {
     },
 };
 
-/// The sidb flavor
-export const SIDB_FLAVOR: AppFlavor = {
-    id: 'sidb',
-    displayName: 'SIDB',
-    logo: { symbol: 'sidb', aspectRatio: 2231 / 688, wordmark: true },
+/// The sidp flavor
+export const SIDP_FLAVOR: AppFlavor = {
+    id: 'sidp',
+    displayName: 'SIDP',
+    logo: { symbol: 'sidp', aspectRatio: 2207 / 688, wordmark: true },
     tagline: 'powered by Hyper',
-    favicon: new URL('../../../static/favicons/sidb/favicon.svg?no-inline', import.meta.url),
+    favicon: new URL('../../../static/favicons/sidp/favicon.svg?no-inline', import.meta.url),
     features: {
         sessionArchiveExport: false,
     },
 };
 
 /// All flavors by id
-export const FLAVORS: Map<string, AppFlavor> = new Map([DASHQL_FLAVOR, SIDB_FLAVOR].map(f => [f.id, f]));
+export const FLAVORS: Map<string, AppFlavor> = new Map([DASHQL_FLAVOR, SIDP_FLAVOR].map(f => [f.id, f]));
+
+/// Former flavor ids that urls may still request
+const FLAVOR_ALIASES: Map<string, AppFlavor> = new Map([['sidb', SIDP_FLAVOR]]);
+
+/// Find a flavor by its id or a former id
+export function findFlavor(id: string): AppFlavor | undefined {
+    return FLAVORS.get(id) ?? FLAVOR_ALIASES.get(id);
+}
 
 /// Layer the settings of a flavor over the settings of the app config
 export function applyFlavorSettings(settings: AppSettings | undefined, flavor: AppFlavor): AppSettings | undefined {

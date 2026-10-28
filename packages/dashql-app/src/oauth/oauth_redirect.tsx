@@ -28,7 +28,7 @@ import { getRequestedFlavor } from '../app/flavor/flavor_resolution.js';
 
 import '../../static/fonts/fonts.css';
 import '../styles/globals.css';
-import '../styles/flavors/sidb.css';
+import '../styles/flavors/sidp.css';
 
 const AUTO_TRIGGER_DELAY = 2000;
 const AUTO_TRIGGER_COUNTER_INTERVAL = 200;

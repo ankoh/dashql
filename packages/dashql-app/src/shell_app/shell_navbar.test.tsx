@@ -6,7 +6,7 @@ import { ResizeObserverMock } from '../tests/mocks/view_mocks.js';
 import { ShellNavBar } from './shell_navbar.js';
 import { FlavorProvider } from '../app/flavor/flavor_provider.js';
 import { applyFlavorToDocument } from '../app/flavor/flavor_resolution.js';
-import { DASHQL_FLAVOR, SIDB_FLAVOR } from '../app/flavor/flavors.js';
+import { DASHQL_FLAVOR, SIDP_FLAVOR } from '../app/flavor/flavors.js';
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
@@ -51,17 +51,17 @@ describe('ShellNavBar', () => {
 
     it('shows the wordmark and tagline of a requested flavor', () => {
         act(() => root.render(
-            <FlavorProvider requested={SIDB_FLAVOR}>
+            <FlavorProvider requested={SIDP_FLAVOR}>
                 <ShellNavBar engineVersion="1.0.0" onReset={() => {}} Internals={EmptyInternals} />
             </FlavorProvider>,
         ));
 
         const brand = container.querySelector('[data-testid="shell-flavor-brand"]');
         expect(brand).not.toBeNull();
-        expect(brand!.querySelector('use')?.getAttribute('xlink:href')).toMatch(/#sidb$/);
-        expect(brand!.textContent).toContain(SIDB_FLAVOR.tagline);
-        expect(document.documentElement.dataset.flavor).toBe('sidb');
-        expect(document.title).toBe('SIDB');
+        expect(brand!.querySelector('use')?.getAttribute('xlink:href')).toMatch(/#sidp$/);
+        expect(brand!.textContent).toContain(SIDP_FLAVOR.tagline);
+        expect(document.documentElement.dataset.flavor).toBe('sidp');
+        expect(document.title).toBe('SIDP');
         applyFlavorToDocument(DASHQL_FLAVOR);
     });
 });
