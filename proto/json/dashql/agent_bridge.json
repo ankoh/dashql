@@ -97,9 +97,19 @@
       "required": ["turnId", "harness"],
       "additionalProperties": false
     },
+    "AgentCancelParams": {
+      "type": "object",
+      "description": "agent/cancel, client → server: stop a turn of a session, or all turns of the session without a turn id",
+      "properties": {
+        "session": { "type": "string" },
+        "turnId": { "type": "string" }
+      },
+      "required": ["session"],
+      "additionalProperties": false
+    },
     "AgentSessionParams": {
       "type": "object",
-      "description": "agent/cancel, agent/reset and agent/context, client → server: the session to stop, forget or describe",
+      "description": "agent/reset and agent/context, client → server: the session to forget or describe",
       "properties": {
         "session": { "type": "string" }
       },

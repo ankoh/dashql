@@ -100,17 +100,24 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
 
     // The questions that the agent works on, notifications of other requests are dropped
     const working = React.useRef(new Set<number>());
+    // The turns of the questions, once the server queued them
+    const turnIds = React.useRef(new Map<number, string>());
     const nextQuestionId = React.useRef(1);
 
     const sessionId = args.sessionScripts.sessionId;
+    const cancelTurn = React.useCallback((questionId: number, turnId: string) => {
+        logger.info('Stopping the agent', { questionId: String(questionId), turnId }, LOG_CTX);
+        latest.current.agent?.cancel(sessionId, turnId).catch(e => {
+            logger.warn('Stopping the agent failed', { error: stringifyError(e) }, LOG_CTX);
+        });
+    }, [logger, sessionId]);
     const stop = React.useCallback((questionId: number) => {
         if (!working.current.delete(questionId)) return;
         setQuestion(questionId, null);
-        logger.info('Stopping the agent', { questionId: String(questionId) }, LOG_CTX);
-        latest.current.agent?.cancel(sessionId).catch(e => {
-            logger.warn('Stopping the agent failed', { error: stringifyError(e) }, LOG_CTX);
-        });
-    }, [logger, setQuestion, sessionId]);
+        // A question without a turn id is stopped once the request returns it
+        const turnId = turnIds.current.get(questionId);
+        if (turnId != null) cancelTurn(questionId, turnId);
+    }, [setQuestion, cancelTurn]);
     const dismiss = React.useCallback((questionId: number) => setQuestion(questionId, null), [setQuestion]);
 
     const ask = React.useCallback(async (question: string) => {
@@ -130,8 +137,12 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
         });
         logger.info('Asking the agent', { questionId: String(questionId), characters: String(question.length) }, LOG_CTX);
         const active = () => working.current.has(questionId);
+        const finish = () => {
+            turnIds.current.delete(questionId);
+            return working.current.delete(questionId);
+        };
         try {
-            await agent.request(sessionId, prompt, {
+            const turnId = await agent.request(sessionId, prompt, {
                 status: (_state, text) => {
                     if (active()) updateQuestion(questionId, q => ({ ...q, status: text }));
                 },
@@ -144,7 +155,7 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
                     if (active()) latest.current.followScript?.(scriptKey, 'result');
                 },
                 done: (message, unrunEdits) => {
-                    if (!working.current.delete(questionId)) return;
+                    if (!finish()) return;
                     const note = message.trim();
                     // Without an answer and without scripts, nothing is left to show
                     updateQuestion(questionId, q => (note.length > 0 || q.scripts.length > 0 ? { ...q, status: null, note: note.length > 0 ? note : null } : null));
@@ -157,17 +168,19 @@ export function useSqlGenerations(args: SqlGenerationsArgs): SqlGenerations {
                     latest.current.runScript(current, scriptData);
                 },
                 failed: (error, cancelled) => {
-                    if (!working.current.delete(questionId)) return;
+                    if (!finish()) return;
                     if (cancelled) setQuestion(questionId, null);
                     else updateQuestion(questionId, q => ({ ...q, status: null, error }));
                 },
             });
+            if (active()) turnIds.current.set(questionId, turnId);
+            else cancelTurn(questionId, turnId);
         } catch (e: unknown) {
-            if (!working.current.delete(questionId)) return;
+            if (!finish()) return;
             logger.error('Asking the agent failed', { questionId: String(questionId), error: stringifyError(e) }, LOG_CTX);
             updateQuestion(questionId, q => ({ ...q, status: null, error: stringifyError(e) }));
         }
-    }, [logger, setQuestion, updateQuestion, sessionId]);
+    }, [logger, setQuestion, updateQuestion, cancelTurn, sessionId]);
 
     const available = args.agent != null
         && args.agent.hasAccess(sessionId)

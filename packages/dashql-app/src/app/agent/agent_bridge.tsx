@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { AgentClient, AgentConnectionStatus } from '../../platform/agent/agent_client.js';
 import type {
+    AgentCancelParams,
     AgentClientSession,
     AgentDoneParams,
     AgentFailedParams,
@@ -54,8 +55,8 @@ export interface AgentBridge {
     setAccess: (sessionId: string, enabled: boolean) => void;
     /// Run the harness with a prompt in a session, resolves with the turn id
     request: (sessionId: string, prompt: string, listener: AgentTurnListener) => Promise<string>;
-    /// Stop the turns of a session
-    cancel: (sessionId: string) => Promise<void>;
+    /// Stop a turn of a session, or all turns of the session without a turn id
+    cancel: (sessionId: string, turnId?: string) => Promise<void>;
     /// Forget the harness context of a session, the next request starts a new harness session
     reset: (sessionId: string) => Promise<void>;
     /// The harness context of a session
@@ -255,8 +256,9 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         logger.info('Sent a request to the agent', { session: sessionId, turnId: result.turnId, harness: result.harness }, LOG_CTX);
         return result.turnId;
     }, [client, logger]);
-    const cancel = React.useCallback(async (sessionId: string) => {
-        await client?.request('agent/cancel', { session: sessionId });
+    const cancel = React.useCallback(async (sessionId: string, turnId?: string) => {
+        const params: AgentCancelParams = turnId == null ? { session: sessionId } : { session: sessionId, turnId };
+        await client?.request('agent/cancel', params);
     }, [client]);
     const reset = React.useCallback(async (sessionId: string) => {
         await client?.request('agent/reset', { session: sessionId });

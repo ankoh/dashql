@@ -513,9 +513,14 @@ impl Shared {
                 }
                 Err(error) => reply(Err(error)),
             },
-            "agent/cancel" => reply(session().map(|session| {
-                self.cancel_turns(&session);
-                json!({})
+            "agent/cancel" => reply(session().and_then(|session| {
+                let turn_id = match params.get("turnId") {
+                    None | Some(Value::Null) => None,
+                    Some(Value::String(turn_id)) => Some(turn_id.as_str()),
+                    Some(_) => return Err(RpcError::new(ErrorCode::Usage, "the turn id must be a string")),
+                };
+                self.cancel_turns(&session, turn_id);
+                Ok(json!({}))
             })),
             "agent/reset" => reply(session().and_then(|session| {
                 let state = SessionState::default();
@@ -701,11 +706,12 @@ impl Shared {
         Ok((json!({ "turnId": turn_id, "harness": harness }), turn_id))
     }
 
-    /// Stop the turns of a session
-    fn cancel_turns(&self, session: &str) {
+    /// Stop a turn of a session, or all turns of the session without a turn id
+    fn cancel_turns(self: &Arc<Self>, session: &str, turn_id: Option<&str>) {
         let mut state = self.lock();
         let state = &mut *state;
-        for turn in state.turns.iter_mut().filter(|r| r.session == session) {
+        let stops = |turn: &Turn| turn.session == session && turn_id.is_none_or(|id| turn.turn_id == id);
+        for turn in state.turns.iter_mut().filter(|turn| stops(turn)) {
             turn.cancelled = true;
             match (turn.state, &turn.kill) {
                 (TurnState::Queued, _) => notify_failed(&state.clients, turn, "Stopped", true),
@@ -714,7 +720,12 @@ impl Shared {
                 (TurnState::Running, None) => {}
             }
         }
-        state.turns.retain(|r| r.session != session || r.state == TurnState::Running);
+        state.turns.retain(|turn| !stops(turn) || turn.state == TurnState::Running);
+        // The first turn of the session may have been dropped before it started
+        let next = state.turns.iter().find(|turn| turn.session == session);
+        if let Some(next) = next.filter(|turn| turn.state == TurnState::Queued) {
+            tokio::spawn(start_turn(self.clone(), next.turn_id.clone()));
+        }
     }
 
     /// The bin folder of harness runs with a dashql shim, so the agent finds the command line tool
@@ -1508,6 +1519,39 @@ mod tests {
         assert!(fixture.run(0, |run| run.killed.load(Ordering::SeqCst)));
         assert_eq!(fixture.runs.lock().unwrap().len(), 1);
         assert_eq!(fixture.server.status()["turns"], json!([]));
+    }
+
+    #[tokio::test]
+    async fn cancels_one_turn_of_a_session() {
+        let fixture = Fixture::start(json!({}), false).await;
+        let mut client = fixture.connect("https://dashql.app").await;
+        client.announce(&["s1"], Some("s1")).await;
+        for (id, prompt) in [(2, "first"), (3, "second"), (4, "third")] {
+            client.send(json!({ "id": id, "method": "agent/request", "params": { "session": "s1", "prompt": prompt } })).await;
+        }
+        let mut turn_ids = Vec::new();
+        for id in [2, 3, 4] {
+            turn_ids.push(client.next(|m| m["id"] == id).await.unwrap()["result"]["turnId"].clone());
+        }
+        fixture.wait_for_runs(1).await;
+
+        // Stopping a queued turn leaves the running turn alone
+        client.send(json!({ "id": 5, "method": "agent/cancel", "params": { "session": "s1", "turnId": turn_ids[1] } })).await;
+        let failed = client.next(|m| m["method"] == "agent/failed").await.unwrap();
+        assert_eq!((&failed["params"]["turnId"], &failed["params"]["cancelled"]), (&turn_ids[1], &json!(true)));
+        assert!(!fixture.run(0, |run| run.killed.load(Ordering::SeqCst)));
+
+        // Stopping the running turn starts the next one
+        client.send(json!({ "id": 6, "method": "agent/cancel", "params": { "session": "s1", "turnId": turn_ids[0] } })).await;
+        let failed = client.next(|m| m["method"] == "agent/failed").await.unwrap();
+        assert_eq!((&failed["params"]["turnId"], &failed["params"]["cancelled"]), (&turn_ids[0], &json!(true)));
+        assert!(fixture.run(0, |run| run.killed.load(Ordering::SeqCst)));
+        fixture.wait_for_runs(2).await;
+        assert_eq!(fixture.run(1, |run| run.args.prompt.clone()), "third");
+
+        client.send(json!({ "id": 7, "method": "agent/cancel", "params": { "session": "s1", "turnId": 1 } })).await;
+        let error = client.next(|m| m["id"] == 7).await.unwrap();
+        assert_eq!(error["error"]["code"], "usage");
     }
 
     #[cfg(unix)]

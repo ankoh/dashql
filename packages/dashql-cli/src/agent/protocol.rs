@@ -10,7 +10,8 @@
 //! | `client/sessions` | client → server | `ClientSessionsParams` | `AgentEmptyMessage` |
 //! | `command` | server → client | `AgentCommandParams` | `AgentCommandResult` |
 //! | `agent/request` | client → server | `AgentRequestParams` | `AgentRequestResult` |
-//! | `agent/cancel`, `agent/reset` | client → server | `AgentSessionParams` | `AgentEmptyMessage` |
+//! | `agent/cancel` | client → server | `AgentCancelParams` | `AgentEmptyMessage` |
+//! | `agent/reset` | client → server | `AgentSessionParams` | `AgentEmptyMessage` |
 //! | `agent/context` | client → server | `AgentSessionParams` | `AgentSessionContext` |
 //! | `agent/info` | client → server | `AgentEmptyMessage` | `AgentServerInfo` |
 //! | `agent/configure` | client → server | `AgentConfigureParams` | `AgentEmptyMessage` |

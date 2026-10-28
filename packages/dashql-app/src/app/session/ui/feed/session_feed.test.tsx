@@ -623,10 +623,37 @@ describe('Session feed composer', () => {
         render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         await act(async () => feedState.composerProps!.agent!.onStop(1));
-        expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session');
+        expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session', 'turn-1');
         expect(feedState.composerProps?.agent?.turns).toEqual([]);
         await act(async () => feedState.agentListener!.failed('Stopped', true));
         expect(feedState.composerProps?.agent?.turns).toEqual([]);
+    });
+
+    it('stops one question of the agent and keeps the others', async () => {
+        const listeners: AgentTurnListener[] = [];
+        feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
+            listeners.push(listener);
+            return Promise.resolve(`turn-${listeners.length}`);
+        });
+        render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
+        await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+        await act(async () => feedState.composerProps!.onSend('how many columns', ComposerInputMode.Ai));
+        await act(async () => feedState.composerProps!.agent!.onStop(1));
+        expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session', 'turn-1');
+        await act(async () => listeners[0].failed('Stopped', true));
+        expect(feedState.composerProps?.agent?.turns.map(t => t.question.question)).toEqual(['how many columns']);
+    });
+
+    it('stops a question before the agent server queued its turn', async () => {
+        let queued: (turnId: string) => void = () => {};
+        feedState.agent = connectedAgent(() => new Promise<string>(resolve => { queued = resolve; }));
+        render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
+        act(() => { void feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai); });
+        await vi.waitFor(() => expect(feedState.agent.request).toHaveBeenCalledOnce());
+        await act(async () => feedState.composerProps!.agent!.onStop(1));
+        expect(feedState.agent.cancel).not.toHaveBeenCalled();
+        await act(async () => queued('turn-1'));
+        expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session', 'turn-1');
     });
 
     it('replaces the text of a script with a snippet, as a diff if the script has text', async () => {
