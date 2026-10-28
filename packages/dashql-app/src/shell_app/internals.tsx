@@ -75,7 +75,7 @@ export const ShellInternals: React.FC = () => {
                     <svg width="14px" height="14px" aria-hidden="true">
                         <use xlinkHref={`${icons}#processor`} />
                     </svg>
-                    <span className={styles.actionLabel}>System</span>
+                    <span className={styles.actionLabel}>Client</span>
                 </button>
             )}
         >
