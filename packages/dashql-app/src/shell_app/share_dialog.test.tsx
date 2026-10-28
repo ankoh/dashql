@@ -49,10 +49,14 @@ function copyButton(): HTMLButtonElement {
     return document.querySelector<HTMLButtonElement>('[data-testid="share-url-copy"]')!;
 }
 
-async function waitForUpdate() {
-    await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 250));
-    });
+/// Wait for the debounced, asynchronous URL update until the shown URL satisfies the predicate
+async function waitForUrl(predicate: (url: string) => boolean) {
+    await vi.waitFor(async () => {
+        await act(async () => {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        });
+        expect(predicate(shownUrl())).toBe(true);
+    }, { timeout: 5_000, interval: 0 });
 }
 
 describe('Share dialog', () => {
@@ -114,7 +118,7 @@ describe('Share dialog', () => {
         act(() => setEditorText(script));
         expect(copyButton().disabled).toBe(true);
 
-        await waitForUpdate();
+        await waitForUrl(url => URL.canParse(url));
         const url = new URL(shownUrl());
         expect(url.origin).toBe(window.location.origin);
         expect(url.pathname).toBe(window.location.pathname);
@@ -124,8 +128,7 @@ describe('Share dialog', () => {
         await expect(decodeShareScript(payload)).resolves.toBe(script);
 
         act(() => setEditorText(''));
-        await waitForUpdate();
-        expect(URL.canParse(shownUrl())).toBe(false);
+        await waitForUrl(url => !URL.canParse(url));
         expect(copyButton().disabled).toBe(true);
 
         close();
@@ -135,15 +138,14 @@ describe('Share dialog', () => {
     it('restores the last script when reopened', async () => {
         let result = open();
         act(() => setEditorText('select 42;'));
-        await waitForUpdate();
+        await waitForUrl(url => URL.canParse(url));
         const url = shownUrl();
         close();
         await result;
 
         result = open();
         expect(editorText()).toBe('select 42;');
-        await waitForUpdate();
-        expect(shownUrl()).toBe(url);
+        await waitForUrl(shown => shown === url);
         close();
         await result;
     });
