@@ -153,20 +153,6 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             state.diagnose(NONE, "stale catalog analysis".into(), true);
             continue;
         }
-        // The other scripts resolve the relations of this script against what the catalog published for
-        // it. The columns may differ, a script published before the relations it reads has fewer.
-        let declared = &analyzed.entry.table_declarations;
-        let published = match input.catalog.entry(script.catalog_entry_id()) {
-            Some(entry) => {
-                let tables = &entry.data().table_declarations;
-                tables.len() == declared.len() && tables.iter().zip(declared).all(|(a, b)| a.table_name.key() == b.table_name.key())
-            }
-            None => declared.is_empty(),
-        };
-        if !published {
-            state.diagnose(NONE, "script declarations are not published".into(), true);
-            continue;
-        }
         for e in &scanned.errors {
             state.diagnose(NONE, format!("scanner: {}", e.message), true);
         }

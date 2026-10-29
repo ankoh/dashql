@@ -16,10 +16,7 @@ declarations bumps the catalog revision, one with unchanged declarations does no
 
 The native API is `planner::plan(&[PlannerInput])` (`packages/dashql-core-session/src/planner.rs`). Each
 input borrows a live `Script` and the `Catalog` it was analyzed with; there is no caller-supplied
-revision. Inputs with different catalogs or duplicate scripts invalidate the plan, and so does an
-input whose catalog entry declares other relations than its analysis, e.g. a script that renamed a
-table without publishing it again. The columns may differ: a script published before the relations
-it reads has fewer.
+revision. Inputs with different catalogs or duplicate scripts invalidate the plan.
 The core-js API is:
 
 ```typescript
