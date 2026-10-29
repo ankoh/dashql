@@ -62,8 +62,9 @@ describe('Snippet search', () => {
     it('finds only the snippets of the connector', async () => {
         expect(await ids(ConnectorType.TRINO, 'split')).toEqual(['strings/split']);
         expect(await ids(ConnectorType.HYPER, 'split')).toEqual([]);
-        // The Hyper snippets run on Data Cloud as well
-        expect(await ids(ConnectorType.SALESFORCE_DATA_CLOUD, 'json')).toEqual(['json/access']);
+        // Data Cloud has its own snippets
+        expect(await ids(ConnectorType.SIDB, 'json')).toEqual(['json/access']);
+        expect(await ids(ConnectorType.SALESFORCE_DATA_CLOUD, 'json')).toEqual([]);
     });
 
     it('matches the wildcards of the text literally', async () => {

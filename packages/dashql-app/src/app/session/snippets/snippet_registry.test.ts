@@ -97,12 +97,14 @@ describe('Snippet registry', () => {
         const registry = buildSnippetRegistry(core, {
             'hyper/json/access.sql': file("select '{}'::json;"),
             'trino/json/access.sql': file("select json_extract_scalar('{}', '$.a');"),
+            'salesforce/json/access.sql': file('select 1;'),
         });
         expect(registry.errors).toEqual([]);
         const snippet = registry.byId.get('json/access')!;
         expect(snippet.connectors.sort()).toEqual([ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO, ConnectorType.SIDB].sort());
         expect(snippet.paths.get(ConnectorType.HYPER)).toEqual('hyper/json/access.sql');
-        expect(snippet.paths.get(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual('hyper/json/access.sql');
+        expect(snippet.paths.get(ConnectorType.SIDB)).toEqual('hyper/json/access.sql');
+        expect(snippet.paths.get(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual('salesforce/json/access.sql');
         expect(snippet.paths.get(ConnectorType.TRINO)).toEqual('trino/json/access.sql');
         expect(snippetText(snippet, ConnectorType.TRINO)).toContain('json_extract_scalar');
         expect(snippetText(snippet, ConnectorType.HYPER)).toContain('::json');
@@ -134,10 +136,12 @@ describe('Snippet registry', () => {
             'hyper/dates/series.sql': file(),
             'hyper/datasets/tpch_1.sql': file(),
             'hyper/my-folder/anything.sql': file(),
+            'salesforce/profiles/recent.sql': file(),
         });
         const ids = (connector: ConnectorType) => snippetsForConnector(registry, connector).map(snippet => snippet.id);
         expect(ids(ConnectorType.HYPER)).toEqual(['datasets/tpch_1', 'dates/month', 'dates/series', 'json/access', 'my-folder/anything']);
         expect(ids(ConnectorType.TRINO)).toEqual(['dates/month', 'json/access']);
-        expect(ids(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual(ids(ConnectorType.HYPER));
+        expect(ids(ConnectorType.SIDB)).toEqual(ids(ConnectorType.HYPER));
+        expect(ids(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual(['profiles/recent']);
     });
 });
