@@ -70,7 +70,7 @@ describe('registerSessionScriptQuery', () => {
 describe('runSessionScript', () => {
     it.each([
         [undefined, true], [null, true], [5, true], [undefined, false],
-    ])('uses retained result id %s and session caching %s after analyzing an outdated script', async (latestResultQueryId, cacheQueryResults) => {
+    ])('runs with result id %s and session caching %s after analyzing an outdated script', async (latestResultQueryId, cacheQueryResults) => {
         const compileQuery = vi.fn((_config: dashql.buffers.formatting.FormattingConfigT) => ({
             read: () => ({
                 errorsLength: () => 0,
@@ -125,7 +125,6 @@ describe('runSessionScript', () => {
             scriptExecution,
             cacheable: cacheQueryResults,
             cacheSignature: 'signature',
-            replaceComputationId: latestResultQueryId === undefined ? 9 : latestResultQueryId,
         }));
         expect(modifySessionScripts).toHaveBeenNthCalledWith(2, {
             type: REGISTER_QUERY,

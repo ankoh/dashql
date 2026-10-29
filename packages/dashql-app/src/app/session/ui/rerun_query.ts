@@ -112,8 +112,6 @@ function executeSessionScript(
         scriptExecution: createScriptExecution(scriptData, connectorInfo.connectorType),
         analyzeResults: true,
         throwOnError,
-        replaceComputationId: scriptData.latestResultQueryId === undefined
-            ? scriptData.latestQueryId : scriptData.latestResultQueryId,
         // Sessions opt into reusing cached results, a script decides if its query result can be cached
         cacheable: sessionScripts.settings.cacheQueryResults && compiled.cacheable,
         cacheSignature: compiled.cacheSignature,

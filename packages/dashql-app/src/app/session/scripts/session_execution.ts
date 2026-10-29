@@ -231,10 +231,6 @@ export async function runSessionExecution(args: {
             const statementIndexes = blockScripts.map(() => [] as number[]);
             const outputNodeIndexes = blockScripts.map(() => -1);
             const outputQueryIds = blockScripts.map(() => null as number | null);
-            const previousResultQueryIds = blockScripts.map(script => {
-                const liveScript = args.getSession()?.scripts[script.scriptKey];
-                return liveScript?.latestResultQueryId === undefined ? liveScript?.latestQueryId : liveScript.latestResultQueryId;
-            });
             const settledStatementCounts = blockScripts.map(() => 0);
             for (const [nodeIndex, node] of graph.nodes.entries()) {
                 statementIndexes[node.script].push(nodeIndex);
@@ -258,7 +254,6 @@ export async function runSessionExecution(args: {
                 const statementIndex = statementIndexes[scriptIndex].indexOf(nodeIndex);
                 const output = outputNodeIndexes[scriptIndex] === nodeIndex;
                 const visualization = visualizations.get(node) ?? null;
-                const previousQueryId = previousResultQueryIds[scriptIndex];
                 let released = false;
                 const release = () => {
                     if (released) return;
@@ -274,7 +269,7 @@ export async function runSessionExecution(args: {
                 running++;
                 const [queryId, execution] = args.executeQuery(connectionId, {
                     query: String(node.sql ?? ''), catalogChanges: node.catalogChanges, cacheable: false, throwOnError: true, abortSignal: signal,
-                    analyzeResults: output, publishResults: output, replaceComputationId: output ? previousQueryId : undefined,
+                    analyzeResults: output, publishResults: output,
                     onResultsReady: release,
                     metadata: { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, sessionId, resultOwner: scriptResultOwner(sessionId, script.scriptKey) },
                 });

@@ -21,6 +21,7 @@ import {
 import { useComputationDispatch } from '../../compute/computation_registry.js';
 import { analyzeTable } from '../../compute/analyze_table.js';
 import { DELETE_COMPUTATION } from '../../compute/computation_state.js';
+import { ResultComputations } from './result_computations.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
 import { useStorage } from '../storage/storage_provider.js';
 import { createSessionQueryResultCache } from '../storage/session_query_result_cache.js';
@@ -134,6 +135,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     const computeDb = useComputeDatabase();
     const [storageReader, storageWriter] = useStorage();
     const queryRuntimes = React.useRef(new Map<number, QueryExecutionRuntime>());
+    const resultComputations = React.useRef(new ResultComputations());
 
     // Execute a query with pre-allocated query id
     const executeImpl = React.useCallback(async (connectionId: string, args: QueryExecutionArgs, queryId: number, runtime: QueryExecutionRuntime, trace: TraceContext): Promise<arrow.Table | null> => {
@@ -257,15 +259,24 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 // Compute all table summaries of the result
                 const analyzeResults = async (table: arrow.Table) => {
                     if (!args.analyzeResults) return;
-                    if (args.replaceComputationId != null && args.replaceComputationId !== queryId) {
-                        computeDispatch({ type: DELETE_COMPUTATION, value: [args.replaceComputationId] });
-                    }
                     queryTracker.dispatch({ type: QUERY_PROCESSING_RESULTS, value: [queryId] });
-                    await measurePostprocessing(async () => {
-                        await yieldToBrowser();
-                        await analyzeTable(queryId, table, computeDispatch, computeDb, traced, connectionId);
-                        initialState.cancellation.signal.throwIfAborted();
-                    });
+                    try {
+                        await measurePostprocessing(async () => {
+                            await yieldToBrowser();
+                            await analyzeTable(queryId, table, computeDispatch, computeDb, traced, connectionId);
+                            initialState.cancellation.signal.throwIfAborted();
+                        });
+                    } catch (e) {
+                        // The previous result of the owner stays
+                        computeDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
+                        throw e;
+                    }
+                    // The result replaces the previous result of its owner, or a later result replaced it already
+                    const owner = args.metadata.resultOwner;
+                    const unused = owner == null ? null : resultComputations.current.retain(owner, queryId);
+                    if (unused != null) {
+                        computeDispatch({ type: DELETE_COMPUTATION, value: [unused] });
+                    }
                     queryTracker.dispatch({ type: QUERY_PROCESSED_RESULTS, value: [queryId] });
                 };
                 // Cache write path: after a successful miss, store the result for next time. Fire-and-forget

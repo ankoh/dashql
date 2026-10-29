@@ -246,7 +246,6 @@ describe('runSessionExecution', () => {
         expect(f.session.scripts[100].latestResultQueryId).toBe(50);
         f.graph.nodes[0].producesOutput = true;
         await runSessionExecution(f.args);
-        expect(f.executeQuery.mock.calls[2][1].replaceComputationId).toBe(50);
         expect(f.modifySessionScripts.mock.calls.some(([action]) => action.type === REGISTER_SCRIPT_RESULT)).toBe(false);
     });
 
@@ -255,7 +254,6 @@ describe('runSessionExecution', () => {
         f.executeQuery.mockImplementation(() => [f.executeQuery.mock.calls.length, Promise.resolve(tableFromArrays({ value: [1] }))]);
         await runSessionExecution(f.args);
         expect(f.executeQuery.mock.calls.map(([, args]) => args.analyzeResults)).toEqual([false, false, true, false]);
-        expect(f.executeQuery.mock.calls[2][1].replaceComputationId).toBe(50);
         for (const [, args] of f.executeQuery.mock.calls) {
             expect(args).toMatchObject({ cacheable: false, throwOnError: true, abortSignal: f.controller.signal });
             expect(args.scriptExecution).toBeUndefined();
@@ -268,16 +266,7 @@ describe('runSessionExecution', () => {
         expect(f.modifySessionScripts).toHaveBeenCalledWith({ type: REGISTER_SCRIPT_RESULT, value: [100, 3] });
     });
 
-    it.each([undefined, null, 42])('captures retained result id %s before registering command ids', async latestResultQueryId => {
-        const f = fixture([{ file: '1_output.sql', outputs: [false, true] }]);
-        f.session.scripts[100].latestResultQueryId = latestResultQueryId;
-        await runSessionExecution(f.args);
-        expect(f.executeQuery.mock.calls[1][1].replaceComputationId)
-            .toBe(latestResultQueryId === undefined ? 50 : latestResultQueryId);
-        expect(f.modifySessionScripts.mock.calls.some(([action]) => action.type === REGISTER_SCRIPT_RESULT)).toBe(false);
-    });
-
-    it('retains output cleanup identity after a trailing command fails and reuses it on the next run', async () => {
+    it('keeps the output result after a trailing command fails', async () => {
         const f = fixture([{ file: '1_output.sql', outputs: [true, false] }]);
         f.executeQuery.mockImplementationOnce(() => [1, Promise.resolve(tableFromArrays({ value: [1] }))])
             .mockImplementationOnce(() => [2, Promise.reject(new Error('Command failed'))]);
@@ -288,11 +277,10 @@ describe('runSessionExecution', () => {
         expect(f.session.scripts[100].latestResultQueryId).toBe(1);
         expect(f.modifySessionScripts).toHaveBeenCalledWith({ type: REGISTER_SCRIPT_RESULT, value: [100, 1] });
         await runSessionExecution(f.args);
-        expect(f.executeQuery.mock.calls[2][1].replaceComputationId).toBe(1);
         expect(f.session.scripts[100].latestResultQueryId).toBe(1);
     });
 
-    it('retains output cleanup identity when a later output fails', async () => {
+    it('keeps the output result when a later output fails', async () => {
         const f = fixture([{ file: '1_output.sql', outputs: [true] }]);
         f.executeQuery.mockImplementationOnce(() => [1, Promise.resolve(tableFromArrays({ value: [1] }))])
             .mockImplementationOnce(() => [2, Promise.reject(new Error('Output failed'))]);
@@ -300,8 +288,6 @@ describe('runSessionExecution', () => {
         await runSessionExecution(f.args);
         expect(f.session.scripts[100].latestQueryId).toBe(2);
         expect(f.session.scripts[100].latestResultQueryId).toBe(1);
-        await runSessionExecution(f.args);
-        expect(f.executeQuery.mock.calls[2][1].replaceComputationId).toBe(1);
     });
 
     it('uses captured SQL after execution starts, even when live text changes', async () => {

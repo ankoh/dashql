@@ -31,9 +31,6 @@ export interface QueryExecutionArgs {
     /// Called once after the backend result is fully consumed, but before optional result analysis.
     /// The normal execution promise still resolves only after postprocessing completes.
     onResultsReady?: () => void;
-    /// Computation from the previous execution of the same session entry. It can be retired before
-    /// analyzing this result so its temporary embedded-database tables do not accumulate across reruns.
-    replaceComputationId?: number | null;
     metadata: QueryMetadata;
     /// When true, the executor consults the file-based query result cache: it serves a matching
     /// cached `.arrow` result instead of hitting the backend, and stores the result after a miss.

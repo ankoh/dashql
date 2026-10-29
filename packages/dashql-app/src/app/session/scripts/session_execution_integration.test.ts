@@ -206,7 +206,6 @@ describe('session execution with real core planning', () => {
         expect(f.graphs[0].nodes.map(node => node.producesOutput)).toEqual([false, true, true, false, true, true]);
         expect(f.executeQuery.mock.calls.map(([, args]) => args.analyzeResults))
             .toEqual([false, false, true, false, false, true]);
-        expect(f.executeQuery.mock.calls[2][1].replaceComputationId).toBe(0);
         expect(f.script('1_outputs.sql').latestQueryId).toBe(3);
         expect(f.script('2_outputs.sql').latestQueryId).toBe(6);
         expect(f.calls.map(call => call.queryId)).toEqual([1, 2, 3, 4, 5, 6]);
@@ -376,7 +375,6 @@ describe('session execution with real core planning', () => {
         expect(f.graphs[1].scripts[0].textVersion).toBe(f.script('1_query.sql').scriptSession.getTextVersion());
         expect(f.calls.map(call => call.sql)).toEqual(['select 1', 'select 2', 'select 3']);
         expect(f.executeQuery.mock.calls.map(([, args]) => args.analyzeResults)).toEqual([true, false, true]);
-        expect(f.executeQuery.mock.calls[2][1].replaceComputationId).toBe(1);
         expect(f.script('1_query.sql').latestQueryId).toBe(3);
         expect(f.lastState()).toMatchObject({ phase: 'succeeded', totalStatements: 2, completedStatements: 2 });
     });
