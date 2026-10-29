@@ -48,9 +48,11 @@ export class NativeHttpServerStream implements HttpFetchResult {
     initialBody: ArrayBuffer | null;
     /// Whether more response batches need to be fetched
     fetchNext: boolean;
+    /// The abort signal of the request
+    signal: AbortSignal | null;
 
     /// Constructor
-    constructor(endpoint: NativeHttpProxyConfig, streamId: number | null, headers: Headers, status: number, statusText: string, logger: Logger) {
+    constructor(endpoint: NativeHttpProxyConfig, streamId: number | null, headers: Headers, status: number, statusText: string, logger: Logger, signal: AbortSignal | null = null) {
         this.headers = headers;
         this.status = status;
         this.statusText = statusText;
@@ -60,6 +62,22 @@ export class NativeHttpServerStream implements HttpFetchResult {
         this.textDecoder = new TextDecoder();
         this.initialBody = null;
         this.fetchNext = streamId != null;
+        this.signal = signal;
+        // An abort drops the stream in the proxy, which also ends the upstream request
+        signal?.addEventListener('abort', () => void this.drop(), { once: true });
+    }
+
+    /// Drop a stream that has more batches, the proxy forgets finished streams by itself
+    async drop(): Promise<void> {
+        if (this.streamId == null || !this.fetchNext) return;
+        this.fetchNext = false;
+        const url = new URL(this.endpoint.proxyEndpoint);
+        url.pathname = `/http/stream/${this.streamId}`;
+        try {
+            await nativeProxyFetch(new Request(url, { method: 'DELETE' }));
+        } catch (error) {
+            this.logger.warn("Failed to drop an aborted http stream", { streamId: this.streamId.toString(), error: String(error) }, "native_http_client");
+        }
     }
 
     private updateFetchState(batchEvent: string | null): void {
@@ -77,6 +95,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
     }
 
     private async readNextBatch(): Promise<{ response: Response; buffer: ArrayBuffer }> {
+        this.signal?.throwIfAborted();
         const url = new URL(this.endpoint.proxyEndpoint);
         url.pathname = `/http/stream/${this.streamId}`;
         const headers = new Headers();
@@ -88,6 +107,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
             method: 'GET',
             headers,
         }));
+        this.signal?.throwIfAborted();
         if (response.headers.get(HEADER_NAME_ERROR) ?? false) {
             const proxyError = await response.json() as RawProxyError;
             throw new NativeHttpError(proxyError);
@@ -204,6 +224,8 @@ export class NativeHttpClient implements HttpClient {
         if (inputUrl.protocol === 'app:') {
             return await fetch(input, init);
         }
+        const signal = init?.signal ?? null;
+        signal?.throwIfAborted();
         const url = new URL(this.endpoint.proxyEndpoint);
         url.pathname = `/http/streams`;
         const remote = `${inputUrl.protocol}//${inputUrl.host}`;
@@ -235,7 +257,9 @@ export class NativeHttpClient implements HttpClient {
             }
             streamId = Number.parseInt(streamIdText);
 
-            const stream = new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, this.logger);
+            const stream = new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, this.logger, signal);
+            // The request may have been aborted while the stream started
+            if (signal?.aborted) await stream.drop();
             await stream.initialize();
             return stream;
         } else {

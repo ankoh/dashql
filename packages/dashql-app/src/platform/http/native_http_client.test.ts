@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../logger/test_logger.js';
 import { LogLevel } from '../logger/log_buffer.js';
@@ -23,6 +23,28 @@ describe('NativeHttpClient', () => {
             },
         } as unknown as DashQLElectronBridge;
     }
+
+    it('drops the stream in the proxy when the request is aborted', async () => {
+        const requests: string[] = [];
+        const abort = new AbortController();
+        const responses = [
+            new Response(null, { headers: { 'dashql-stream-id': '7' } }),
+            new Response('partial', { headers: { 'dashql-batch-event': 'FlushAfterTimeout' } }),
+            new Response(null),
+        ];
+        globalThis.dashqlElectron = {
+            nativeProxyRequest: async (request: { method: string; url: string }) => {
+                requests.push(`${request.method} ${new URL(request.url).pathname}`);
+                // The first batch arrives, the caller aborts before the next one
+                if (requests.length === 2) abort.abort();
+                const response = responses.shift()!;
+                return { status: response.status, statusText: response.statusText, headers: [...response.headers], body: new Uint8Array(await response.arrayBuffer()) };
+            },
+        } as unknown as DashQLElectronBridge;
+
+        await expect(client.fetch('https://trino.example/v1/statement', { signal: abort.signal })).rejects.toThrow();
+        await vi.waitFor(() => expect(requests).toEqual(['POST /http/streams', 'GET /http/stream/7', 'DELETE /http/stream/7']));
+    });
 
     it('surfaces proxy setup failures with their cause and details', async () => {
         setProxyResponses(new Response(JSON.stringify({
