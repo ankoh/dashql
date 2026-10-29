@@ -34,7 +34,7 @@ use dashql_buffers::completion::CompletionT;
 use dashql_buffers::cursor::RelativeSymbolPosition;
 use dashql_buffers::diff::ScriptDiffT;
 use dashql_buffers::editor::{
-    EditorCursorSemanticContextT, EditorCursorSemanticKind, EditorCursorStateT, EditorDiagnosticSeverity,
+    EditorCommentTagT, EditorCursorSemanticContextT, EditorCursorSemanticKind, EditorCursorStateT, EditorDiagnosticSeverity,
     EditorDiagnosticSource, EditorDiagnosticT, EditorEvent, EditorEventAction, EditorEventIntent, EditorEventOrigin,
     EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorAnalysisVersionT, EditorScriptAnnotationsT,
     EditorSelectionT, EditorSemanticReferenceKind, EditorSemanticResolution, EditorSemanticSpanT,
@@ -43,7 +43,7 @@ use dashql_buffers::editor::{
 };
 use dashql_buffers::execution::ScriptCompilationResultT;
 use dashql_buffers::formatting::{FormattingConfigT, KeywordCase};
-use dashql_buffers::parser::{AttributeKey, ScannerTokenType, SymbolSpan, SymbolSpanT, TextSpanT};
+use dashql_buffers::parser::{AttributeKey, CommentBlockType, ScannerTokenType, SymbolSpan, SymbolSpanT, TextSpanT};
 use dashql_buffers::status::StatusCode;
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
@@ -770,6 +770,20 @@ impl ScriptSession {
         update.syntax_spans = non_empty(syntax_spans);
         let vegalite_specs: Vec<_> = vegalite_specs.into_iter().filter_map(|span| projector.span(span)).collect();
         update.vegalite_specs = non_empty(vegalite_specs);
+        // The tagged regions of the comments, editors style e.g. descriptions apart from other comments
+        let mut comment_tags = Vec::new();
+        for block in &parsed.comment_blocks.blocks {
+            if block.block_type != CommentBlockType::DASHQL_TAG {
+                continue;
+            }
+            let lines = &parsed.comment_blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
+            let mut tag = EditorCommentTagT::default();
+            tag.name = Some(scanned.text[block.tag_span.offset as usize..block.tag_span.end() as usize].to_string());
+            tag.text_span = projector.span(block.text_span);
+            tag.lines = non_empty(lines.iter().filter_map(|&line| projector.span(line)).collect());
+            comment_tags.push(tag);
+        }
+        update.comment_tags = non_empty(comment_tags);
 
         // Semantic spans: table, column and function references
         let mut semantic_spans = Vec::new();

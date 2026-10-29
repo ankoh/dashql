@@ -155,6 +155,16 @@ table EditorTableDefinition {
     statement_id: uint32;
 }
 
+/// A `@<tag>` region of the comments, e.g. `-- @description` up to `-- @end`
+table EditorCommentTag {
+    /// The tag name without the `@`, e.g. `description`
+    name: string;
+    /// The whole region, with the comment markers, the tag line and the closing `@end`
+    text_span: EditorTextSpan;
+    /// The content lines without the comment markers and the tag
+    lines: [EditorTextSpan];
+}
+
 table EditorStatementDescription {
     statement_id: uint32;
     statement_type: dashql.buffers.parser.StatementType;
@@ -244,4 +254,6 @@ table EditorUpdate {
     /// The JSON objects of the `@vis vegalite` tags in the comments, from the opening to the closing brace. Part of
     /// the analysis, left out with it.
     vegalite_specs: [EditorTextSpan];
+    /// The `@<tag>` regions of the comments in script order. Part of the analysis, left out with it.
+    comment_tags: [EditorCommentTag];
 }

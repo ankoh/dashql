@@ -574,6 +574,31 @@ fn edit_can_synchronously_analyze_and_place_cursor() {
 }
 
 #[test]
+fn projects_the_tagged_comment_regions() {
+    let text = "-- @description\n-- Two lines\n-- of text.\n-- @end\nselect 1;\n/* @vis table */\nselect 2";
+    let catalog = new_catalog();
+    let mut session = session(&catalog, UTF8);
+    let update = analyze(&mut session, text);
+
+    let tags: Vec<_> = update
+        .comment_tags
+        .iter()
+        .flatten()
+        .map(|tag| {
+            let lines: Vec<_> = tag.lines.iter().flatten().map(|line| read_span(text, Some(line))).collect();
+            (tag.name.as_deref().unwrap_or(""), read_span(text, tag.text_span.as_ref()), lines)
+        })
+        .collect();
+    assert_eq!(
+        tags,
+        vec![
+            ("description", "-- @description\n-- Two lines\n-- of text.\n-- @end", vec!["Two lines", "of text."]),
+            ("vis", "/* @vis table */", vec!["table"]),
+        ]
+    );
+}
+
+#[test]
 fn projects_unicode_syntax_comments_and_diagnostics_as_utf8_bytes() {
     let text = "-- caf\u{e9}\nselect '\u{e9}' from missing";
     let catalog = new_catalog();

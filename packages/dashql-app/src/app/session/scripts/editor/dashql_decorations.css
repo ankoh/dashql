@@ -100,3 +100,8 @@
     font-weight: normal;
     opacity: 0.55;
 }
+
+/* The comment markers and tags of @description regions step back behind the text of the description */
+.cm-content .dashql-comment-tag {
+    opacity: 0.55;
+}

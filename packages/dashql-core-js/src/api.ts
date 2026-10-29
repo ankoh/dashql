@@ -549,6 +549,7 @@ export class DashQLScriptSession {
             update.diagnostics = this.lastAnalysis.diagnostics;
             update.syntaxSpans = this.lastAnalysis.syntaxSpans;
             update.vegaliteSpecs = this.lastAnalysis.vegaliteSpecs;
+            update.commentTags = this.lastAnalysis.commentTags;
             update.semanticSpans = this.lastAnalysis.semanticSpans;
             update.scriptAnnotations = this.lastAnalysis.scriptAnnotations;
             update.processingStatistics = this.lastAnalysis.processingStatistics;
