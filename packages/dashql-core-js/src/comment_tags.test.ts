@@ -23,7 +23,6 @@ function withParsed<T>(text: string, fn: (parsed: dashql.buffers.parser.ParsedSc
     try {
         return fn(parsed.read(), encoder.encode(text));
     } finally {
-        parsed.destroy();
         script.destroy();
         catalog.destroy();
     }

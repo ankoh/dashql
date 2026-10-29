@@ -116,7 +116,7 @@ describe('updateSalesforceCatalog', () => {
         expect(Array.from({ length: qualified.qualifiedNameLength() }, (_, index) => qualified.qualifiedName(index)))
             .toEqual(['lakehouse', 'public', '"Account__dlm"']);
         expect(functionScript.toString()).toBe(functionsSQL);
-        expect(catalog.describeEntries().unpackAndDestroy().entries.every((entry: dashql.buffers.catalog.CatalogEntryT) =>
+        expect(catalog.describeEntries().unpack().entries.every((entry: dashql.buffers.catalog.CatalogEntryT) =>
             entry.catalogEntryType === dashql.buffers.catalog.CatalogEntryType.DESCRIPTOR_POOL,
         )).toBe(true);
         expect(logger.info).toHaveBeenCalledWith(

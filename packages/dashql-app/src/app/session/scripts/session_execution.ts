@@ -169,7 +169,7 @@ export async function runSessionExecution(args: {
             }
             await cooperate();
             const graph: core.buffers.execution.ExecutionGraphT = instance
-                .plan(blockScripts.map(script => script.scriptSession)).unpackAndDestroy();
+                .plan(blockScripts.map(script => script.scriptSession)).unpack();
             if (!graph.valid) {
                 throw new Error(graph.diagnostics.map(diagnostic => String(diagnostic.message ?? '')).join('; ')
                     || 'Invalid session execution plan');

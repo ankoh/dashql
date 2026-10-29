@@ -303,7 +303,6 @@ function rewriteVisTag(state: SessionScripts, script: ScriptData, spec: string):
             if (error.errorType() !== core.buffers.analyzer.AnalyzerErrorType.INVALID_VIS_TAG || span == null) continue;
             if (span.offset() < tag.offset + tag.length && span.offset() + span.length() > tag.offset) problems.push(error.message() ?? '');
         }
-        analyzedPtr.destroy();
         return [scratch.toString(), problems];
     } finally {
         scratch.destroy();

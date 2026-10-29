@@ -170,7 +170,6 @@ function analyzeSql(
     } catch (error) {
         return { update: null, diagnostic: errorMessage(error) };
     } finally {
-        parsed?.destroy();
         script.destroy();
         session.destroy();
     }

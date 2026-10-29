@@ -50,13 +50,13 @@ function fixture(entries: Array<{ file: string; outputs: boolean[]; connection?:
     // Most lifecycle tests model a sequential script. Parallel-scheduler tests replace these
     // explicit planner dependencies with the graph shape they need to exercise.
     graph.edges.push(...graph.nodes.slice(1).map((_node, index) => ({ from: index, to: index + 1 })));
-    const unpackAndDestroy = vi.fn(() => graph as unknown as core.buffers.execution.ExecutionGraphT);
+    const unpack = vi.fn(() => graph as unknown as core.buffers.execution.ExecutionGraphT);
     const plan = vi.fn((input: core.DashQLScriptSession[]) => {
         graph.scripts = input.map(scriptSession => ({
             scriptId: scriptSession.getCatalogEntryId(), textVersion: scriptSession.getTextVersion(),
             analyzedTextVersion: scriptSession.getTextVersion(), analyzedCatalogRevision: scriptSession.getCatalogRevision(),
         }));
-        return { unpackAndDestroy };
+        return { unpack };
     });
     const session = {
         sessionId: 'session', connectionId: 'connection', instance: { plan }, connectionCatalog: {},
@@ -82,7 +82,7 @@ function fixture(entries: Array<{ file: string; outputs: boolean[]; connection?:
     const args: Parameters<typeof runSessionExecution>[0] = { session, getSession, executeQuery, cancelQuery, modifySessionScripts,
         signal: controller.signal, onState, yieldToBrowser };
     const lastState = () => states[states.length - 1];
-    return { args, session, scriptSessions, graph, plan, unpackAndDestroy, preparation,
+    return { args, session, scriptSessions, graph, plan, unpack, preparation,
         executeQuery, cancelQuery, modifySessionScripts, getSession, controller, states, onState, yieldToBrowser, lastState };
 }
 
@@ -112,7 +112,7 @@ describe('runSessionExecution', () => {
         expect(f.states.some(state => state.completedScripts === 1 && state.completedStatements === 0)).toBe(true);
         expect(f.states.filter(state => state.activeScriptKey === 101).map(state => state.activeStatementIndex))
             .toEqual(expect.arrayContaining([1, 2, 3]));
-        expect(f.unpackAndDestroy).toHaveBeenCalledOnce();
+        expect(f.unpack).toHaveBeenCalledOnce();
         f.scriptSessions.forEach(scriptSession => expect(scriptSession.startExecution).not.toHaveBeenCalled());
     });
 
@@ -213,7 +213,7 @@ describe('runSessionExecution', () => {
             expect(f.executeQuery).not.toHaveBeenCalled();
             expect(f.lastState()?.phase).toBe('failed');
             expect(f.lastState()?.error).toBeTruthy();
-            expect(f.unpackAndDestroy).toHaveBeenCalledOnce();
+            expect(f.unpack).toHaveBeenCalledOnce();
         });
 
     it('checks editor update status before publishing', async () => {
@@ -436,7 +436,7 @@ describe('runSessionExecution', () => {
                 edges: [] as Array<{ from: number; to: number }>,
                 diagnostics: [],
             };
-            return { unpackAndDestroy: vi.fn(() => graph as unknown as core.buffers.execution.ExecutionGraphT) };
+            return { unpack: vi.fn(() => graph as unknown as core.buffers.execution.ExecutionGraphT) };
         });
         await runSessionExecution(f.args);
         expect(f.plan.mock.calls.map(([input]) => input.map(session => session.getCatalogEntryId()))).toEqual([

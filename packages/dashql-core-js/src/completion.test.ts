@@ -19,7 +19,7 @@ describe('DashQL Completion', () => {
             const script = dql!.createScript(catalog);
             script.insertTextAt(0, text);
             script.analyze();
-            script.moveCursor(cursor_offset).destroy();
+            script.moveCursor(cursor_offset);
 
             const completionBuffer = script.completeAtCursor(10);
             const completion = completionBuffer.read();
@@ -60,7 +60,6 @@ describe('DashQL Completion', () => {
         scriptA.analyze();
         const cursor = scriptA.moveCursor(text.length);
         const completion = scriptA.completeAtCursor(10);
-        cursor.destroy();
 
         const completionReader = completion.read()
         expect(completionReader.candidatesLength()).toEqual(10);

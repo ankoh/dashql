@@ -45,7 +45,6 @@ function describeConnectionRelations(instance: core.DashQL, relationScript: stri
             }
         }
     } finally {
-        parsed?.destroy();
         script.destroy();
         catalog.destroy();
     }
@@ -66,24 +65,20 @@ function describeSessionTables(sessionScripts: SessionScripts, connectionId: str
             // The script is not loaded into the catalog
             continue;
         }
-        try {
-            const reader = entries.read();
-            for (let i = 0; i < reader.entriesLength(); ++i) {
-                const entry = reader.entries(i)!;
-                for (let j = 0; j < entry.schemasLength(); ++j) {
-                    const schema = entry.schemas(j)!;
-                    for (let k = 0; k < schema.tablesLength(); ++k) {
-                        const table = schema.tables(k)!;
-                        const columns: string[] = [];
-                        for (let l = 0; l < table.columnsLength(); ++l) {
-                            columns.push(quoteIdentifier(table.columns(l)!.columnName() ?? ''));
-                        }
-                        statements.push(`CREATE TABLE ${quoteIdentifier(table.tableName() ?? '')} (${columns.join(', ')});`);
+        const reader = entries.read();
+        for (let i = 0; i < reader.entriesLength(); ++i) {
+            const entry = reader.entries(i)!;
+            for (let j = 0; j < entry.schemasLength(); ++j) {
+                const schema = entry.schemas(j)!;
+                for (let k = 0; k < schema.tablesLength(); ++k) {
+                    const table = schema.tables(k)!;
+                    const columns: string[] = [];
+                    for (let l = 0; l < table.columnsLength(); ++l) {
+                        columns.push(quoteIdentifier(table.columns(l)!.columnName() ?? ''));
                     }
+                    statements.push(`CREATE TABLE ${quoteIdentifier(table.tableName() ?? '')} (${columns.join(', ')});`);
                 }
             }
-        } finally {
-            entries.destroy();
         }
     }
     return statements;

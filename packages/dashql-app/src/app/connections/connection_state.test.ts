@@ -100,7 +100,7 @@ describe('attached database descriptor catalogs', () => {
 function relationsOf(database: ConnectionState): string[] {
     const relations: string[] = [];
     const entries = database.catalog.describeEntriesOf(database.catalogRelationScript.catalog_entry_id)
-        .unpackAndDestroy() as dashql.buffers.catalog.CatalogEntriesT;
+        .unpack() as dashql.buffers.catalog.CatalogEntriesT;
     for (const entry of entries.entries) {
         for (const schema of entry.schemas) {
             for (const table of schema.tables) {

@@ -27,15 +27,11 @@ function parseErrors(text: string): string[] {
         script.insertTextAt(0, text);
         script.parse();
         const parsed = script.getParsed();
-        try {
-            const reader = parsed.read();
-            const errors: string[] = [];
-            for (let i = 0; i < reader.scannerErrorsLength(); ++i) errors.push(reader.scannerErrors(i)!.message() ?? '');
-            for (let i = 0; i < reader.parserErrorsLength(); ++i) errors.push(reader.parserErrors(i)!.message() ?? '');
-            return errors;
-        } finally {
-            parsed.destroy();
-        }
+        const reader = parsed.read();
+        const errors: string[] = [];
+        for (let i = 0; i < reader.scannerErrorsLength(); ++i) errors.push(reader.scannerErrors(i)!.message() ?? '');
+        for (let i = 0; i < reader.parserErrorsLength(); ++i) errors.push(reader.parserErrors(i)!.message() ?? '');
+        return errors;
     } finally {
         script.destroy();
         catalog.destroy();

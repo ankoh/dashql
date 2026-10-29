@@ -89,7 +89,6 @@ describe('DashQL scripts', () => {
         const error = analyzed.read().errors(0);
         expect(error?.errorType()).toBe(dashql.buffers.analyzer.AnalyzerErrorType.INVALID_VIS_TAG);
         expect(error?.message()).toBe('unknown field "b", the statement has the columns a');
-        analyzed.destroy();
 
         script.destroy();
         catalog.destroy();
@@ -113,7 +112,6 @@ describe('DashQL scripts', () => {
         expect(analyzed.tableReferencesLength()).toBe(1);
         expect(analyzed.tableReferences(0)!.role()).toBe(dashql.buffers.analyzer.TableReferenceRole.WRITE);
 
-        analyzedBuffer.destroy();
         script.destroy();
         schema.destroy();
         catalog.destroy();
@@ -124,11 +122,11 @@ describe('DashQL scripts', () => {
         const script = dql!.createScript(catalog);
         script.replaceText('select 1');
         script.analyze();
-        script.getAnalyzed().destroy();
+        script.getAnalyzed();
         script.replaceText('select 2');
         script.analyze();
         expect(script.toString()).toBe('select 2');
-        script.getAnalyzed().destroy();
+        script.getAnalyzed();
         script.destroy();
         catalog.destroy();
     });

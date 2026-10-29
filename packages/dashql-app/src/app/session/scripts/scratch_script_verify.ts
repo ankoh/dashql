@@ -45,8 +45,6 @@ export function verifyScript(instance: core.DashQL, catalog: core.DashQLCatalog,
     } catch (error: any) {
         parserErrors.push(error?.message ? String(error.message) : String(error));
     } finally {
-        parsed?.destroy();
-        analyzed?.destroy();
         script.destroy();
     }
 

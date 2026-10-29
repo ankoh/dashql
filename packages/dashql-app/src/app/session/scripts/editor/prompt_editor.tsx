@@ -149,7 +149,6 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     const completion = React.useRef<DashQLProcessorUpdateOut['scriptCompletion']>(null);
     const releaseCompletion = React.useCallback((next: DashQLProcessorUpdateOut['scriptCompletion']) => {
         if (completion.current != null && completion.current.buffer !== next?.buffer) {
-            completion.current.buffer.destroy();
         }
         completion.current = next;
     }, []);

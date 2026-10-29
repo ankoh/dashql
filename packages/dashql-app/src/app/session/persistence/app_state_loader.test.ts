@@ -280,7 +280,7 @@ describe('real-core startup catalog restoration', () => {
         expect(main.catalogChangesSql).toBe(changesSql);
         expect(main.catalogRelationScript.toString()).toBe(schema);
         const entries = main.catalog.describeEntriesOf(main.catalogRelationScript.catalog_entry_id)
-            .unpackAndDestroy() as dashql.buffers.catalog.CatalogEntriesT;
+            .unpack() as dashql.buffers.catalog.CatalogEntriesT;
         const tables = entries.entries.flatMap(entry => entry.schemas.flatMap(schema => schema.tables.map(table => table.tableName)));
         expect(tables.sort()).toEqual(['created', 'kept']);
     });
@@ -359,7 +359,7 @@ describe('real-core startup catalog restoration', () => {
         expect(main.catalogFunctionScript.toString()).toBe(functions);
         expect(processor).toHaveBeenCalledTimes(1);
         expect(session.scripts[session.scriptRefs['01_query.sql'].scriptId].connection.catalog).toBe(main.catalog);
-        const entries = main.catalog.describeEntries().unpackAndDestroy().entries as dashql.buffers.catalog.CatalogEntryT[];
+        const entries = main.catalog.describeEntries().unpack().entries as dashql.buffers.catalog.CatalogEntryT[];
         expect(entries.map(entry => entry.catalogEntryId).sort((a, b) => a - b)).toEqual([
             main.catalogRelationScript.catalog_entry_id, main.catalogFunctionScript.catalog_entry_id,
         ].sort((a, b) => a - b));
@@ -370,12 +370,12 @@ describe('real-core startup catalog restoration', () => {
         const query = dql.createScript(main.catalog);
         query.replaceText('SELECT id FROM db.public.restored_items;');
         query.analyze();
-        expect(query.getAnalyzed().unpackAndDestroy().tableReferences[0].resolvedTable.catalogTableId)
+        expect(query.getAnalyzed().unpack().tableReferences[0].resolvedTable.catalogTableId)
             .toBe(dashql.ExternalObjectID.create(main.catalogRelationScript.catalog_entry_id, 0));
         query.replaceText('SELECT restored_fun');
         query.analyze();
-        query.moveCursor('SELECT restored_fun'.length).destroy();
-        const completion = query.completeAtCursor(50).unpackAndDestroy();
+        query.moveCursor('SELECT restored_fun'.length);
+        const completion = query.completeAtCursor(50).unpack();
         const candidate = completion.candidates.find((candidate: dashql.buffers.completion.CompletionCandidateT) => candidate.completionText === 'restored_function()');
         expect(candidate).toBeDefined();
         expect(candidate.catalogObjects[0].objectType).toBe(dashql.buffers.completion.CompletionCandidateObjectType.FUNCTION);

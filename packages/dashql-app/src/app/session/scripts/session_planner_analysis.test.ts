@@ -137,7 +137,6 @@ describe('planner analysis projection', () => {
         f.query.scriptSession.setCursor(f.query.scriptSession.getTextVersion(), 8n);
         const cursorUpdate = f.query.scriptSession.analyze();
         const buffer = f.query.scriptSession.completeAtCursor(10);
-        const destroy = vi.spyOn(buffer, 'destroy');
         const query = {
             ...f.query,
             completion: {
@@ -153,7 +152,6 @@ describe('planner analysis projection', () => {
             semanticUserFocus: deriveFocusFromEditorUpdate(query.scriptKey, cursorUpdate),
         };
         const next = f.apply(f.updates, current);
-        expect(destroy).toHaveBeenCalledOnce();
         expect(next.scripts[query.scriptKey].completion).toBeNull();
         expect(next.scripts[query.scriptKey].pendingDiff).toBe(query.pendingDiff);
         expect(next.scripts[query.scriptKey].latestQueryId).toBe(42);

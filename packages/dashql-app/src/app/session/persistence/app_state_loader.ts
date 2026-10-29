@@ -130,8 +130,6 @@ async function restoreSessionScripts(
         return { sessionScripts, session: resolved.session };
     } catch (error) {
         for (const scriptData of Object.values(scripts)) {
-            scriptData.completion?.buffer.destroy();
-            scriptData.pendingDiff?.diffBuffer.destroy();
             scriptData.scriptSession.destroy();
         }
         throw error;

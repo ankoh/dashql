@@ -64,8 +64,8 @@ describe('real-core empty PostgreSQL function refresh', () => {
         const query = dql.createScript(catalog);
         query.replaceText('SELECT old_f');
         query.analyze();
-        query.moveCursor('SELECT old_f'.length).destroy();
-        expect(query.completeAtCursor(50).unpackAndDestroy().candidates.map((candidate: dashql.buffers.completion.CompletionCandidateT) => candidate.completionText))
+        query.moveCursor('SELECT old_f'.length);
+        expect(query.completeAtCursor(50).unpack().candidates.map((candidate: dashql.buffers.completion.CompletionCandidateT) => candidate.completionText))
             .not.toContain('old_fn()');
     });
 });

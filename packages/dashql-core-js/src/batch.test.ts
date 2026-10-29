@@ -238,17 +238,18 @@ describe('DashQL catalog descriptors', () => {
         const before = catalog.createSnapshot();
         const version = before.read().catalogReader.catalogVersion();
         catalog.replaceDescriptor(id, dashql.buffers.catalog.CatalogLayer.CONNECTION, bytes);
-        expect(before.ptr.isNull()).toBe(true);
+        // The change invalidates the cached snapshot
+        expect(catalog.createSnapshot()).not.toBe(before);
         const snapshot = catalog.createSnapshot();
         expect(snapshot.read().catalogReader.catalogVersion()).toBe(version + 1n);
         expect(snapshot.read().catalogReader.tablesLength()).toBe(1);
-        expect(catalog.describeEntries().unpackAndDestroy().entries[0].layer).toBe(dashql.buffers.catalog.CatalogLayer.CONNECTION);
+        expect(catalog.describeEntries().unpack().entries[0].layer).toBe(dashql.buffers.catalog.CatalogLayer.CONNECTION);
         bytes.fill(0);
 
         const query = dql.createScript(catalog);
         query.replaceText('select id from db.sch.items');
         query.analyze();
-        const analyzed = query.getAnalyzed().unpackAndDestroy();
+        const analyzed = query.getAnalyzed().unpack();
         expect(analyzed.tableReferences[0].resolvedTable.catalogTableId).toBe(dashql.ExternalObjectID.create(id, 0));
         expect(analyzed.resolvedColumnReferencesById).toHaveLength(1);
         for (const [text, expected] of [
@@ -260,12 +261,12 @@ describe('DashQL catalog descriptors', () => {
         ]) {
             query.replaceText(text);
             query.analyze();
-            query.moveCursor(text.length).destroy();
-            const completion = query.completeAtCursor(50).unpackAndDestroy();
+            query.moveCursor(text.length);
+            const completion = query.completeAtCursor(50).unpack();
             expect(completion.candidates.map((candidate: dashql.buffers.completion.CompletionCandidateT) => candidate.completionText)).toContain(expected);
         }
         catalog.dropDescriptor(id);
-        expect(snapshot.ptr.isNull()).toBe(true);
+        expect(catalog.createSnapshot()).not.toBe(snapshot);
         expect(catalog.containsEntryId(id)).toBe(false);
         expect(catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(0);
     });
@@ -284,33 +285,33 @@ describe('DashQL catalog descriptors', () => {
         const snapshot = catalog.createSnapshot();
         const version = snapshot.read().catalogReader.catalogVersion();
         catalog.replaceDescriptor(id, dashql.buffers.catalog.CatalogLayer.EXECUTED, updated);
-        expect(snapshot.ptr.isNull()).toBe(true);
+        expect(catalog.createSnapshot()).not.toBe(snapshot);
         const current = catalog.createSnapshot();
         expect(current.read().catalogReader.catalogVersion()).toBe(version + 1n);
         expect(current.read().catalogReader.tablesLength()).toBe(2);
-        expect(catalog.describeEntriesOf(id).unpackAndDestroy().entries[0].layer).toBe(dashql.buffers.catalog.CatalogLayer.EXECUTED);
+        expect(catalog.describeEntriesOf(id).unpack().entries[0].layer).toBe(dashql.buffers.catalog.CatalogLayer.EXECUTED);
         expect(() => catalog.replaceDescriptor(otherId, dashql.buffers.catalog.CatalogLayer.CONNECTION, new Uint8Array([0, 1, 2, 3]))).toThrow();
         expect(catalog.createSnapshot()).toBe(current);
         expect(catalog.containsEntryId(otherId)).toBe(false);
         expect(current.read().catalogReader.catalogVersion()).toBe(version + 1n);
         expect(() => catalog.replaceDescriptor(id, dashql.buffers.catalog.CatalogLayer.CONNECTION, new Uint8Array([0, 1, 2, 3]))).toThrow();
         expect(catalog.createSnapshot()).toBe(current);
-        expect(catalog.describeEntriesOf(id).unpackAndDestroy().entries[0].layer).toBe(dashql.buffers.catalog.CatalogLayer.EXECUTED);
+        expect(catalog.describeEntriesOf(id).unpack().entries[0].layer).toBe(dashql.buffers.catalog.CatalogLayer.EXECUTED);
         const query = dql.createScript(catalog);
         query.replaceText('select id from updated');
         query.analyze();
         // Table ids are keyed by name, the replaced descriptor declares another table than the original
-        expect(query.getAnalyzed().unpackAndDestroy().tableReferences[0].resolvedTable.catalogTableId)
+        expect(query.getAnalyzed().unpack().tableReferences[0].resolvedTable.catalogTableId)
             .toBe(dashql.ExternalObjectID.create(id, 1));
 
         catalog.replaceDescriptor(otherId, dashql.buffers.catalog.CatalogLayer.CONNECTION, original);
-        expect(current.ptr.isNull()).toBe(true);
+        expect(catalog.createSnapshot()).not.toBe(current);
         const next = catalog.createSnapshot();
         expect(next.read().catalogReader.catalogVersion()).toBe(version + 2n);
         expect(catalog.containsEntryId(script.getCatalogEntryId())).toBe(true);
         expect(catalog.containsEntryId(otherId)).toBe(true);
         expect(next.read().catalogReader.tablesLength()).toBe(3);
-        expect(catalog.describeEntriesOf(otherId).unpackAndDestroy().entries[0].layer).toBe(dashql.buffers.catalog.CatalogLayer.CONNECTION);
+        expect(catalog.describeEntriesOf(otherId).unpack().entries[0].layer).toBe(dashql.buffers.catalog.CatalogLayer.CONNECTION);
         catalog.dropDescriptor(id);
         expect(catalog.containsEntryId(otherId)).toBe(true);
         expect(catalog.containsEntryId(script.getCatalogEntryId())).toBe(true);

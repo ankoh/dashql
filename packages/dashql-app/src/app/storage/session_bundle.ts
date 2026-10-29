@@ -281,7 +281,6 @@ function parsesWithoutErrors(core: DashQL, sql: string): boolean {
     } catch {
         return false;
     } finally {
-        parsed?.destroy();
         script.destroy();
         catalog.destroy();
     }

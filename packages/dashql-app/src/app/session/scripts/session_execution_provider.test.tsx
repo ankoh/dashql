@@ -62,7 +62,7 @@ function fixture(sessionId: string, deferStream = false) {
         getTextVersion: () => 1n,
         getCatalogRevision: () => 1n,
     };
-    const plan = vi.fn(() => ({ unpackAndDestroy: () => ({
+    const plan = vi.fn(() => ({ unpack: () => ({
         valid: true,
         scripts: [{ scriptId: 1, textVersion: 1n, analyzedTextVersion: 1n, analyzedCatalogRevision: 1n }],
         // Command-only nodes avoid exercising result computation in provider lifecycle tests.

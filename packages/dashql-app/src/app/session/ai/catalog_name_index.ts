@@ -72,44 +72,40 @@ export function buildCatalogNameIndex(catalog: core.DashQLCatalog): CatalogNameI
         }
     };
     const snapshot = catalog.createUncachedSnapshot();
-    try {
-        const reader = snapshot.read();
-        const flat = reader.catalogReader;
-        const entry = new core.buffers.catalog.FlatCatalogEntry();
-        // Every level references its parent by the index into the flat array of the level above
-        const systemSchemas: boolean[] = [];
-        for (let i = 0; i < flat.schemasLength(); ++i) {
-            systemSchemas.push(isSystemSchema(reader.readName(flat.schemas(i, entry)!.nameId())));
+    const reader = snapshot.read();
+    const flat = reader.catalogReader;
+    const entry = new core.buffers.catalog.FlatCatalogEntry();
+    // Every level references its parent by the index into the flat array of the level above
+    const systemSchemas: boolean[] = [];
+    for (let i = 0; i < flat.schemasLength(); ++i) {
+        systemSchemas.push(isSystemSchema(reader.readName(flat.schemas(i, entry)!.nameId())));
+    }
+    const tableNames: (string | null)[] = [];
+    for (let i = 0; i < flat.tablesLength(); ++i) {
+        const table = flat.tables(i, entry)!;
+        const name = reader.readName(table.nameId());
+        if (systemSchemas[table.flatParentIdx()] || name.length === 0) {
+            tableNames.push(null);
+            continue;
         }
-        const tableNames: (string | null)[] = [];
-        for (let i = 0; i < flat.tablesLength(); ++i) {
-            const table = flat.tables(i, entry)!;
-            const name = reader.readName(table.nameId());
-            if (systemSchemas[table.flatParentIdx()] || name.length === 0) {
-                tableNames.push(null);
-                continue;
-            }
-            tableNames.push(name);
-            add({ name, kind: CatalogNameKind.Table, table: null });
+        tableNames.push(name);
+        add({ name, kind: CatalogNameKind.Table, table: null });
+    }
+    for (let i = 0; i < flat.columnsLength(); ++i) {
+        const column = flat.columns(i, entry)!;
+        const table = tableNames[column.flatParentIdx()];
+        const name = reader.readName(column.nameId());
+        if (table == null || name.length === 0) {
+            continue;
         }
-        for (let i = 0; i < flat.columnsLength(); ++i) {
-            const column = flat.columns(i, entry)!;
-            const table = tableNames[column.flatParentIdx()];
-            const name = reader.readName(column.nameId());
-            if (table == null || name.length === 0) {
-                continue;
-            }
-            add({ name, kind: CatalogNameKind.Column, table });
-            const tableKey = table.toLowerCase();
-            let columns = columnsByTable.get(tableKey);
-            if (columns == null) {
-                columns = new Set();
-                columnsByTable.set(tableKey, columns);
-            }
-            columns.add(name.toLowerCase());
+        add({ name, kind: CatalogNameKind.Column, table });
+        const tableKey = table.toLowerCase();
+        let columns = columnsByTable.get(tableKey);
+        if (columns == null) {
+            columns = new Set();
+            columnsByTable.set(tableKey, columns);
         }
-    } finally {
-        snapshot.destroy();
+        columns.add(name.toLowerCase());
     }
     const keys = [...byKey.keys()].sort();
     return { keys, byKey, columnsByTable };

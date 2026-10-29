@@ -429,8 +429,6 @@ describe('DashQL processor completion triggers', () => {
         expect(refreshed?.buffer).not.toBe(previous?.buffer);
         expect(refreshed?.buffer.read().candidates(refreshed.candidateId)?.completionText()).toBe('SELECT');
         expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ scriptCompletion: refreshed }));
-        refreshed?.buffer.destroy();
-        previous?.buffer.destroy();
         scriptSession.destroy();
         catalog.destroy();
     });
@@ -444,13 +442,11 @@ describe('DashQL processor completion triggers', () => {
         const objects = scriptSession.completeAtCursor(20, dashql.buffers.formatting.KeywordCase.UPPER);
         expect(Array.from({ length: objects.read().candidatesLength() }, (_, i) => objects.read().candidates(i)?.completionText()))
             .toContain('orders');
-        objects.destroy();
         scriptSession.replaceText(scriptSession.getTextVersion(), 'select * from orders group');
         scriptSession.setCursor(scriptSession.getTextVersion(), BigInt('select * from orders group'.length));
         const keywords = scriptSession.completeAtCursor(30, dashql.buffers.formatting.KeywordCase.UPPER);
         const candidates = Array.from({ length: keywords.read().candidatesLength() }, (_, i) => keywords.read().candidates(i));
         expect(candidates.find(candidate => candidate?.completionText() === 'GROUP')?.keywordContinuation()).toBe('BY');
-        keywords.destroy();
         scriptSession.destroy();
         schema.destroy();
         catalog.destroy();

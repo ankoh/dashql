@@ -29,7 +29,6 @@ function splitSql(core: dashql.DashQL, catalog: dashql.DashQLCatalog, sql: strin
             if (text.length > 0) out.push(terminateStatement(text));
         }
     } finally {
-        parsed?.destroy();
         script.destroy();
     }
 }

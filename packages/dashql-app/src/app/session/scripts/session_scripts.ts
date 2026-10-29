@@ -437,7 +437,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                     : prevScript.scriptSession.analyze();
                 const projectionChanged = prevScript.editorUpdate?.stateRevision !== nextUpdate.stateRevision;
                 if (projectionChanged) {
-                    prevScript.completion?.buffer.destroy();
                 }
                 if (scripts === state.scripts) scripts = { ...scripts };
                 scripts[scriptKey] = {
@@ -481,7 +480,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
                 }, LOG_CTX);
                 update.scriptBuffers?.destroy(update.scriptBuffers);
-                update.scriptCompletion?.buffer.destroy();
                 return clearSemanticUserFocus(state);
             }
             if (updateSession !== prevScript.scriptSession) {
@@ -492,7 +490,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
                 }, LOG_CTX);
                 update.scriptBuffers?.destroy(update.scriptBuffers);
-                update.scriptCompletion?.buffer.destroy();
                 return clearSemanticUserFocus(state);
             }
             const nextCursorContext = update.editorUpdate?.primaryCursorContext;
@@ -529,11 +526,9 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             // Did the pending diff change? The editor clears it on accept/reject (and auto-accept);
             // free the superseded buffer, mirroring the completion-buffer discipline above.
             if (update.scriptPendingDiff !== prevScript.pendingDiff) {
-                prevScript.pendingDiff?.diffBuffer.destroy();
             }
 
             if (prevScript.completion?.buffer !== update.scriptCompletion?.buffer) {
-                prevScript.completion?.buffer.destroy();
             }
             if (projectionChanged) {
                 focusUpdate = update.scriptCompletion != null
@@ -965,7 +960,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             }
             // A staged diff on this script replaces any earlier one — free the superseded buffer.
             if (scriptData.pendingDiff != null) {
-                scriptData.pendingDiff.diffBuffer.destroy();
             }
             // Rewrite the script text in-place
             replaceScriptSessionText(scriptData.scriptSession, text);
@@ -1006,7 +1000,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             if (!scriptData || scriptData.pendingDiff == null) {
                 return state;
             }
-            scriptData.pendingDiff.diffBuffer.destroy();
             return {
                 ...state,
                 scripts: {
@@ -1027,7 +1020,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                 return state;
             }
             const priorText = scriptData.pendingDiff.priorText;
-            scriptData.pendingDiff.diffBuffer.destroy();
             // Rewrite the script text in-place and re-analyze through the path-aware helper.
             replaceScriptSessionText(scriptData.scriptSession, priorText);
             const nextScriptData = analyzeScriptData(scriptData, logger);
@@ -1081,8 +1073,6 @@ function markOtherScriptsOutdatedInPlace(scripts: ScriptDataMap, changed: Script
 }
 function destroyScriptData(data: ScriptData) {
     data.scriptSession.destroy();
-    data.completion?.buffer.destroy();
-    data.pendingDiff?.diffBuffer.destroy();
 }
 
 /// Drop a script from its catalog and destroy it
@@ -1184,8 +1174,6 @@ export function replaceSessionScriptsFromStorage(
         } else {
             scriptData = existing!;
             if (scriptData.scriptSession.getText() !== entry.sql) {
-                scriptData.pendingDiff?.diffBuffer.destroy();
-                scriptData.completion?.buffer.destroy();
                 replaceScriptSessionText(scriptData.scriptSession, entry.sql);
                 scriptData = {
                     ...scriptData,

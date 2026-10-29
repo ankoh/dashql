@@ -74,8 +74,8 @@ function fixture(entries: Array<[string, string]>) {
     const nativePlan = dql.plan.bind(dql);
     const plan = vi.spyOn(dql, 'plan').mockImplementation(input => {
         const buffer = nativePlan(input);
-        const unpack = buffer.unpackAndDestroy.bind(buffer);
-        vi.spyOn(buffer, 'unpackAndDestroy').mockImplementation(() => {
+        const unpack = buffer.unpack.bind(buffer);
+        vi.spyOn(buffer, 'unpack').mockImplementation(() => {
             const graph = unpack();
             graphs.push(graph);
             return graph;
@@ -329,8 +329,8 @@ describe('session execution with real core planning', () => {
         const planner = f.plan.getMockImplementation()!;
         f.plan.mockImplementation(input => {
             const buffer = planner(input);
-            const unpack = vi.mocked(buffer.unpackAndDestroy).getMockImplementation()!;
-            vi.mocked(buffer.unpackAndDestroy).mockImplementation(() => {
+            const unpack = vi.mocked(buffer.unpack).getMockImplementation()!;
+            vi.mocked(buffer.unpack).mockImplementation(() => {
                 const graph = unpack();
                 graph.nodes[1].visualization!.renderer = 'vegalite';
                 graph.nodes[1].visualization!.vegaliteSpec = '{';

@@ -174,7 +174,6 @@ describe('V2 flat session script mutations', () => {
         ));
         expect(compiled.read().errorsLength()).toBeGreaterThan(0);
         expect(compiled.read().sql()).toBe(sql);
-        compiled.destroy();
         const executeQuery = vi.fn(() => [11, Promise.resolve(null)] as [number, Promise<null>]);
         const modifySessionScripts = vi.fn((action) => action.type === ANALYZE_OUTDATED_SCRIPT
             ? Promise.resolve(reduce(current, action))
@@ -412,12 +411,8 @@ describe('V2 flat session script mutations', () => {
             beta.scriptSession.analyze();
             beta.scriptSession.setCursor(beta.scriptSession.getTextVersion(), BigInt(text.length));
             const completion = beta.scriptSession.completeAtCursor(10);
-            try {
-                const reader = completion.read();
-                return Array.from({ length: reader.candidatesLength() }, (_, i) => reader.candidates(i)!.completionText());
-            } finally {
-                completion.destroy();
-            }
+            const reader = completion.read();
+            return Array.from({ length: reader.candidatesLength() }, (_, i) => reader.candidates(i)!.completionText());
         };
         // On the same connection, the table of the other script completes
         expect(completeTables(current)).toContain('only_on_main');

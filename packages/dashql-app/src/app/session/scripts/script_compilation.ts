@@ -33,42 +33,38 @@ export function compileSessionQuery(
         textLength: scriptData.scriptSession.getText?.().length.toString(),
     }, LOG_CTX);
     const compiled = scriptData.scriptSession.compileQuery(executionFormattingConfig(connectorType));
-    try {
-        const reader = compiled.read();
-        const sql = reader.sql() ?? '';
-        if (reader.errorsLength() > 0 && sql.length > 0) {
-            logger?.warn('Passing unparseable SQL through to the remote database', {
-                scriptKey: scriptData.scriptKey.toString(),
-                fileName: scriptData.fileName,
-                diagnostic: reader.errors(0)?.message() ?? '',
-            }, LOG_CTX);
-        } else if (reader.errorsLength() > 0) {
-            const error = reader.errors(0);
-            throw new LoggableException(error?.message() ?? 'Could not compile query', {
-                scriptKey: scriptData.scriptKey.toString(),
-                fileName: scriptData.fileName,
-                errorCode: error?.code().toString(),
-            }, LOG_CTX);
-        }
-        if (sql.trim().length == 0) {
-            throw new LoggableException('Compile query is empty', {
-                scriptKey: scriptData.scriptKey.toString(),
-                fileName: scriptData.fileName,
-                script: scriptData.scriptSession.getText(),
-            }, LOG_CTX);
-        }
-        logger?.debug('Compiled script for query execution', {
+    const reader = compiled.read();
+    const sql = reader.sql() ?? '';
+    if (reader.errorsLength() > 0 && sql.length > 0) {
+        logger?.warn('Passing unparseable SQL through to the remote database', {
             scriptKey: scriptData.scriptKey.toString(),
-            sqlLength: sql.length.toString(),
+            fileName: scriptData.fileName,
+            diagnostic: reader.errors(0)?.message() ?? '',
         }, LOG_CTX);
-        return {
-            sql,
-            cacheSignature: reader.cacheSignature() ?? '',
-            cacheable: reader.cacheable(),
-        };
-    } finally {
-        compiled.destroy();
+    } else if (reader.errorsLength() > 0) {
+        const error = reader.errors(0);
+        throw new LoggableException(error?.message() ?? 'Could not compile query', {
+            scriptKey: scriptData.scriptKey.toString(),
+            fileName: scriptData.fileName,
+            errorCode: error?.code().toString(),
+        }, LOG_CTX);
     }
+    if (sql.trim().length == 0) {
+        throw new LoggableException('Compile query is empty', {
+            scriptKey: scriptData.scriptKey.toString(),
+            fileName: scriptData.fileName,
+            script: scriptData.scriptSession.getText(),
+        }, LOG_CTX);
+    }
+    logger?.debug('Compiled script for query execution', {
+        scriptKey: scriptData.scriptKey.toString(),
+        sqlLength: sql.length.toString(),
+    }, LOG_CTX);
+    return {
+        sql,
+        cacheSignature: reader.cacheSignature() ?? '',
+        cacheable: reader.cacheable(),
+    };
 }
 
 export function createScriptExecution(scriptData: ScriptData, connectorType: ConnectorType): core.DashQLScriptExecution {
@@ -90,20 +86,16 @@ function executionFormattingConfig(connectorType: ConnectorType): core.buffers.f
 export function compileVisualizeQuery(scriptSession: core.DashQLScriptSession, connectorType: ConnectorType,
     logger?: LoggerLike): ResolvedVisualizeQuery | null {
     const compiled = scriptSession.compileQuery(executionFormattingConfig(connectorType));
-    try {
-        const reader = compiled.read();
-        if (reader.errorsLength() > 0 ||
-            reader.kind() !== core.buffers.execution.ScriptCompilationStatementKind.VISUALIZE) {
-            return null;
-        }
-        const sql = reader.sql();
-        const visualization = reader.visualization();
-        if (!sql || !visualization) return null;
-        logger?.debug('Compiled visualization for execution', { sql }, LOG_CTX);
-        return resolveCompiledVisualization(sql, visualization.unpack(), reader.terminalStatementId());
-    } finally {
-        compiled.destroy();
+    const reader = compiled.read();
+    if (reader.errorsLength() > 0 ||
+        reader.kind() !== core.buffers.execution.ScriptCompilationStatementKind.VISUALIZE) {
+        return null;
     }
+    const sql = reader.sql();
+    const visualization = reader.visualization();
+    if (!sql || !visualization) return null;
+    logger?.debug('Compiled visualization for execution', { sql }, LOG_CTX);
+    return resolveCompiledVisualization(sql, visualization.unpack(), reader.terminalStatementId());
 }
 
 export function resolveCompiledVisualization(

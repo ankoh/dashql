@@ -47,8 +47,8 @@ describe('PostgreSQL function query integration', () => {
             const query = dql.createScript(catalog);
             query.replaceText('SELECT pow');
             query.analyze();
-            query.moveCursor('SELECT pow'.length).destroy();
-            expect(query.completeAtCursor(50).unpackAndDestroy().candidates
+            query.moveCursor('SELECT pow'.length);
+            expect(query.completeAtCursor(50).unpack().candidates
                 .map((candidate: dashql.buffers.completion.CompletionCandidateT) => candidate.completionText)).toContain('power()');
         } finally {
             await connection.close();

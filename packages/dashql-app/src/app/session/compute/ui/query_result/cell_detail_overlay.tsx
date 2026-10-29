@@ -78,7 +78,6 @@ export function detectFormats(core: dashql.DashQL | null, value: string | null, 
             script.parse();
             const parsed = script.getParsed();
             const hasErrors = parsed != null && (parsed.read().scannerErrorsLength() > 0 || parsed.read().parserErrorsLength() > 0);
-            parsed?.destroy();
             const originalUpdate = projectSqlText(core, catalog, value);
             let formattedText: string | null = null;
             let formattedUpdate: dashql.buffers.editor.EditorUpdateT | null = null;

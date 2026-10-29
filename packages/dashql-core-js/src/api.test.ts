@@ -62,7 +62,6 @@ describe('DashQL setup', () => {
                 expect(table?.tableName()?.tableName()).toBe('foo');
                 expect(table?.tableColumns(0)?.columnName()).toBe('a');
             } finally {
-                analyzed.destroy();
             }
         } finally {
             dql!.decoder = decoder;
@@ -125,9 +124,6 @@ describe('DashQL planner', () => {
         expect(reader.edgesLength()).toBe(0);
         expect(reader.diagnosticsLength()).toBe(0);
         expect(dql!.registeredMemory.size).toBe(0);
-        result.destroy();
-        result.destroy();
-        expect(result.isNull()).toBe(true);
         expect(dql!.registeredMemory.size).toBe(0);
     });
 
@@ -186,8 +182,7 @@ describe('DashQL planner', () => {
         }
         expect(first.getCatalogRevision()).toBe(version);
         expect(first.getStateRevision()).toBe(state);
-        expect(dql!.plan([second, first]).unpackAndDestroy()).toEqual(graph);
-        result.destroy();
+        expect(dql!.plan([second, first]).unpack()).toEqual(graph);
     });
 
     it('packs DDL and read/write conflicts across sessions', () => {
@@ -199,7 +194,7 @@ describe('DashQL planner', () => {
         create.analyze();
         const [table] = resolvedTables(reads);
         writes.analyze();
-        const graph = dql!.plan([create, reads, writes]).unpackAndDestroy() as
+        const graph = dql!.plan([create, reads, writes]).unpack() as
             dashql.buffers.execution.ExecutionGraphT;
         expect(graph.valid).toBe(true);
         expect(graph.nodes).toHaveLength(6);
@@ -243,7 +238,7 @@ describe('DashQL planner', () => {
         const [oldTable] = resolvedTables(create);
         const tables = resolvedTables(use);
         const newTable = tables[tables.length - 1];
-        const graph = dql!.plan(participating ? [create, use] : [use]).unpackAndDestroy() as
+        const graph = dql!.plan(participating ? [create, use] : [use]).unpack() as
             dashql.buffers.execution.ExecutionGraphT;
         expect(graph.valid).toBe(true);
         expect(graph.diagnostics).toEqual([]);
@@ -300,7 +295,7 @@ describe('DashQL planner', () => {
         expect(reader.unresolvedReferencesLength()).toBe(1);
         expect(reader.nodes(1)?.accesses(0)?.entity()).toBe(absent);
         expect(reader.nodes(1)?.accesses(0)?.unresolvedReference()).toBe(0);
-        const graph = result.unpackAndDestroy() as dashql.buffers.execution.ExecutionGraphT;
+        const graph = result.unpack() as dashql.buffers.execution.ExecutionGraphT;
         expect(graph.valid).toBe(true);
         expect(graph.entities).toEqual([]);
         expect(graph.unresolvedReferences.map(reference =>
@@ -333,7 +328,7 @@ describe('DashQL planner', () => {
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, 'select 1');
         const version = session.getCatalogRevision();
-        const missing = dql!.plan([session]).unpackAndDestroy();
+        const missing = dql!.plan([session]).unpack();
         expect(missing.valid).toBe(false);
         expect(missing.nodes).toEqual([]);
         expect(missing.diagnostics[0].message).toContain('missing or stale');
@@ -342,11 +337,11 @@ describe('DashQL planner', () => {
         session.analyze();
         session.loadIntoCatalog();
         session.replaceText(1n, 'select 2');
-        const stale = dql!.plan([session]).unpackAndDestroy();
+        const stale = dql!.plan([session]).unpack();
         expect(stale.valid).toBe(false);
         expect(stale.nodes).toEqual([]);
         session.analyze();
-        const refreshed = dql!.plan([session]).unpackAndDestroy();
+        const refreshed = dql!.plan([session]).unpack();
         expect(refreshed.valid).toBe(true);
         expect(refreshed.scripts[0].textVersion).toBe(2n);
         expect(refreshed.scripts[0].analyzedTextVersion).toBe(refreshed.scripts[0].textVersion);
@@ -359,7 +354,7 @@ describe('DashQL planner', () => {
         for (const [sessions, message] of [
             [[first, second], 'different catalogs'], [[first, first], 'duplicate'],
         ] as const) {
-            const graph = dql!.plan(sessions).unpackAndDestroy();
+            const graph = dql!.plan(sessions).unpack();
             expect(graph.valid).toBe(false);
             expect(graph.nodes).toEqual([]);
             expect(graph.diagnostics.some((diagnostic: dashql.buffers.execution.ExecutionGraphDiagnosticT) =>
@@ -373,7 +368,7 @@ describe('DashQL planner', () => {
         prepare(catalog, 'create table added (id int)', true);
         const revision = session.getCatalogRevision();
         const state = session.getStateRevision();
-        const stale = dql!.plan([session]).unpackAndDestroy();
+        const stale = dql!.plan([session]).unpack();
         expect(stale.valid).toBe(false);
         expect(stale.nodes).toEqual([]);
         expect(stale.diagnostics.some((diagnostic: dashql.buffers.execution.ExecutionGraphDiagnosticT) =>
@@ -381,7 +376,7 @@ describe('DashQL planner', () => {
         expect(session.getCatalogRevision()).toBe(revision);
         expect(session.getStateRevision()).toBe(state);
         session.analyze();
-        const refreshed = dql!.plan([session]).unpackAndDestroy();
+        const refreshed = dql!.plan([session]).unpack();
         expect(refreshed.valid).toBe(true);
         expect(refreshed.scripts[0].analyzedCatalogRevision).toBe(revision);
         expect(refreshed.nodes[0].sql).toBe('select 1');
@@ -435,8 +430,8 @@ describe('DashQL planner', () => {
         catalog.destroy();
         expect(dql!.registeredMemory.size).toBe(0);
         expect(first.read().nodes(0)?.sql()).toBe('select 1');
-        const unpacked = first.unpackAndDestroy();
-        expect(first.isNull()).toBe(true);
+        const unpacked = first.unpack();
+        expect(first.read().nodes(0)?.sql()).toBe('select 1');
         dql!.resetUnsafe();
         expect(second.read().nodes(0)?.sql()).toBe('select 1');
         expect(unpacked.nodes[0].sql).toBe('select 1');
@@ -668,7 +663,6 @@ describe('DashQL editor sessions', () => {
 
         const completion = session.completeAtCursor(10);
         expect(completion.read().candidates(0)?.completionText()).toBe('select');
-        completion.destroy();
     });
 
     it('compiles, formats, and diffs the session script', () => {
@@ -683,7 +677,6 @@ describe('DashQL editor sessions', () => {
         expect(compilation.read().errorsLength()).toBe(0);
         expect(compilation.read().cacheable()).toBe(true);
         expect(compilation.read().cacheSignature()).toMatch(/^[0-9a-f]{32}$/);
-        compilation.destroy();
 
         expect(session.isFullyFormattable(config)).toBe(true);
         const formatted = session.format(config);
@@ -696,7 +689,6 @@ describe('DashQL editor sessions', () => {
         expect(diff.read().opsLength()).toBe(1);
         expect(diff.read().ops(0)?.code()).toBe(dashql.buffers.diff.ScriptDiffOpCode.UPDATE);
 
-        diff.destroy();
         target.destroy();
         formatted.destroy();
     });

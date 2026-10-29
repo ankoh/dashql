@@ -35,7 +35,7 @@ describe('prefetched Hyper functions', () => {
         expect(script.toString()).toBe(sql);
         expect(analyze).not.toHaveBeenCalled();
         expect(parse).not.toHaveBeenCalled();
-        expect(catalog.describeEntries().unpackAndDestroy().entries[0].catalogEntryType)
+        expect(catalog.describeEntries().unpack().entries[0].catalogEntryType)
             .toBe(dashql.buffers.catalog.CatalogEntryType.DESCRIPTOR_POOL);
         expect(sql).toContain('CREATE FUNCTION "hyper"."pg_catalog"."date_add"() RETURNS any;');
         expect(sql).toContain('CREATE AGGREGATE "hyper"."pg_catalog"."count"() RETURNS any;');

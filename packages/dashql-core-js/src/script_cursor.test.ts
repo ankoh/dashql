@@ -54,9 +54,6 @@ describe('DashQL Cursor', () => {
             const tokenLength = scannerTokenLengths[cursor.scannerSymbolId()];
             expect(scriptText.substring(tokenOffset, tokenOffset + tokenLength)).toEqual('select');
 
-            cursorBuffer.destroy();
-            analyzedBuffer.destroy();
-            parsedBuffer.destroy();
         };
 
         test(script, 0, {

@@ -17,7 +17,7 @@ const ChangeType = dashql.buffers.catalog.CatalogChangeType;
 /// The tables of a catalog entry as `db.schema.table(a, b)`
 function tablesOf(catalog: dashql.DashQLCatalog, entryId: number): string[] {
     const tables: string[] = [];
-    for (const entry of catalog.describeEntriesOf(entryId).unpackAndDestroy().entries) {
+    for (const entry of catalog.describeEntriesOf(entryId).unpack().entries) {
         for (const schema of entry.schemas) {
             for (const table of schema.tables) {
                 tables.push(`${schema.databaseName}.${schema.schemaName}.${table.tableName}(${table.columns.map(c => c.columnName).join(', ')})`);

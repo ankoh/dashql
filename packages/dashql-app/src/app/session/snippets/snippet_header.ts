@@ -40,17 +40,13 @@ function readComments(core: dashql.DashQL, text: string, bytes: Uint8Array): Sni
         script.insertTextAt(0, text);
         script.parse();
         const parsed = script.getParsed();
-        try {
-            const reader = parsed.read();
-            const block = new dashql.buffers.parser.CommentBlock();
-            let plain = 0;
-            for (let i = 0; i < reader.commentBlocksLength(); ++i) {
-                if (reader.commentBlocks(i, block)!.blockType() === dashql.buffers.parser.CommentBlockType.COMMENT) ++plain;
-            }
-            return { tags: dashql.readCommentTags(reader, bytes), plain };
-        } finally {
-            parsed.destroy();
+        const reader = parsed.read();
+        const block = new dashql.buffers.parser.CommentBlock();
+        let plain = 0;
+        for (let i = 0; i < reader.commentBlocksLength(); ++i) {
+            if (reader.commentBlocks(i, block)!.blockType() === dashql.buffers.parser.CommentBlockType.COMMENT) ++plain;
         }
+        return { tags: dashql.readCommentTags(reader, bytes), plain };
     } finally {
         script.destroy();
         catalog.destroy();

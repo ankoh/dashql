@@ -124,11 +124,9 @@ function editorUpdateMessage(update: dashql.buffers.editor.EditorUpdateT): strin
 /// Destory the buffers
 const destroyBuffers = (state: DashQLScriptBuffers) => {
     if (state.parsed != null) {
-        state.parsed.destroy();
         state.parsed = null;
     }
     if (state.analyzed != null) {
-        state.analyzed.destroy();
         state.analyzed = null;
     }
     return state;
@@ -391,7 +389,6 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
     if (buffer.read().candidatesLength() == 0) {
         // No candidates?
         // Drop the completion...
-        buffer.destroy();
         state = copyLazily(state, prevState);
         state.scriptCompletion = null;
     } else {

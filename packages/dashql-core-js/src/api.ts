@@ -309,7 +309,7 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
     /// The DashQL api
     public readonly api: DashQL;
     /// The bytes
-    private bytes: Uint8Array | null;
+    private readonly bytes: Uint8Array;
     /// The factory
     factory: () => T;
 
@@ -319,23 +319,12 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
         this.bytes = bytes;
         this.factory = factory;
     }
-    /// Release the buffer
-    public destroy() {
-        this.bytes = null;
-    }
-    /// Is null?
-    public isNull(): boolean {
-        return this.bytes == null;
-    }
     /// The data length
     public get dataLength(): number {
-        return this.bytes?.byteLength ?? 0;
+        return this.bytes.byteLength;
     }
     /// Get the data
     public get data(): Uint8Array {
-        if (this.bytes == null) {
-            throw NULL_POINTER_EXCEPTION;
-        }
         return this.bytes;
     }
     /// Copy the data into a buffer
@@ -353,11 +342,9 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
         const bb = new flatbuffers.ByteBuffer(this.data);
         return obj.__init(bb.readInt32(bb.position()) + bb.position(), bb);
     }
-    // Get the flatbuffer object, unpack it and destroy the buffer
-    public unpackAndDestroy(obj: T | null = null): O {
-        const out = this.read(obj).unpack();
-        this.destroy();
-        return out;
+    // Get the flatbuffer object and unpack it
+    public unpack(obj: T | null = null): O {
+        return this.read(obj).unpack();
     }
 }
 
@@ -414,7 +401,7 @@ export class DashQLScriptExecution {
             this.ptr.api,
             bytes,
             () => new buffers.execution.ScriptExecutionUpdate(),
-        ).unpackAndDestroy();
+        ).unpack();
     }
 }
 
@@ -595,7 +582,7 @@ export class DashQLScriptSession {
             this.ptr.api,
             bytes,
             () => new buffers.editor.EditorUpdate(),
-        ).unpackAndDestroy();
+        ).unpack();
         if (update.analysisOmitted && this.lastAnalysis != null) {
             update.diagnostics = this.lastAnalysis.diagnostics;
             update.syntaxSpans = this.lastAnalysis.syntaxSpans;
@@ -791,10 +778,6 @@ export class DashQLCatalogSnapshot {
         this.ptr = snapshot;
         this.nameDictionary = [];
     }
-    /// Delete a snapshot
-    public destroy() {
-        this.ptr.destroy();
-    }
     /// Read a snapshot
     public read(): DashQLCatalogSnapshotReader {
         const reader = this.ptr.read();
@@ -828,12 +811,9 @@ export class DashQLCatalog {
         this.deleteSnapshot();
         this.ptr.destroy();
     }
-    /// Delete the snapshot if there is one
+    /// Forget the cached snapshot
     protected deleteSnapshot() {
-        if (this.snapshot != null) {
-            this.snapshot.destroy();
-            this.snapshot = null;
-        }
+        this.snapshot = null;
     }
     /// Reset a catalog
     public clear(): void {
@@ -1007,7 +987,6 @@ export class DashQLPlanViewModel {
     /// Delete the plan view model
     public destroy() {
         this.ptr.destroy();
-        this.buffer?.destroy();
     }
     /// Reconfigure the plan view model
     public reconfigure(config: buffers.view.PlanLayoutConfigT) {
@@ -1028,7 +1007,6 @@ export class DashQLPlanViewModel {
     /// Pack the view model as FlatBuffer
     public pack(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
         const bytes = this.ptr.assertNotNull().pack();
-        this.buffer?.destroy();
         this.buffer = new FlatBufferPtr(FLAT_PLAN_VIEW_MODEL_TYPE, this.ptr.api, bytes, () => new buffers.view.PlanViewModel());
         return this.buffer;
     }
