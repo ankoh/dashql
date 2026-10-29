@@ -253,15 +253,15 @@ describe('V2 session feed rows', () => {
         rect.mockRestore();
     });
 
-    it('disables the play button offline and requests attention once per pointer entry without opening settings', () => {
+    it('greys the play button offline and requests attention once per pointer entry without opening settings', () => {
         const props = baseProps();
         const request = vi.fn();
         act(() => root.render(<SessionConnectionAttentionContext.Provider value={{ sessionId: 'session', active: false, request }}>
             <ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />
         </SessionConnectionAttentionContext.Provider>));
         const play = container.querySelector<HTMLButtonElement>('[data-testid="script-execute"]')!;
-        // The button stays the play button but cannot run the script
-        expect(play.disabled).toBe(true);
+        // The button stays a greyed play button that does not run the script
+        expect(play.disabled).toBe(false);
         expect(play.getAttribute('aria-label')).toMatch(/^Execute /);
         expect(props.onExecute).not.toHaveBeenCalled();
         const wrapper = container.querySelector<HTMLElement>('[data-execution-connection-blocked="true"]')!;
@@ -273,9 +273,9 @@ describe('V2 session feed rows', () => {
         });
         expect(request).toHaveBeenCalledExactlyOnceWith('session');
         expect(wrapper.tabIndex).toBe(0);
-        // A click does nothing, it opens nothing
+        // A click pulses the connections as well, it opens nothing
         act(() => play.click());
-        expect(request).toHaveBeenCalledTimes(1);
+        expect(request).toHaveBeenCalledTimes(2);
         expect(props.onExecute).not.toHaveBeenCalled();
         expect(document.querySelector('[role="dialog"]')).toBeNull();
     });

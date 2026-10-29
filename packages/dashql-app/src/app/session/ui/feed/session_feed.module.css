@@ -438,6 +438,11 @@
     color: var(--base_color_neutral_4);
 }
 
+/* The play button of a script whose connection is not connected, greyed like a disabled button */
+.feed_entry_execute_offline {
+    color: hsl(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%);
+}
+
 .feed_entry_stats_bar {
     height: 24px;
     flex-shrink: 0;
