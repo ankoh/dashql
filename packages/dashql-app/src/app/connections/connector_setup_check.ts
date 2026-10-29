@@ -1,7 +1,7 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { ConnectionState } from './connection_state.js';
-import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';
+import { isSalesforceDetails } from './connection_state_details.js';
 
 export enum ConnectionSetupCheck {
     UNKNOWN,
@@ -21,7 +21,7 @@ export function checkSalesforceConnectionSetup(
     if (!state) {
         return ConnectionSetupCheck.CONNECTION_NULL;
     }
-    if (state?.details.type != SALESFORCE_DATA_CLOUD_CONNECTOR) {
+    if (!isSalesforceDetails(state.details)) {
         return ConnectionSetupCheck.CONNECTION_TYPE_MISMATCH;
     }
     const details = state.details.value;

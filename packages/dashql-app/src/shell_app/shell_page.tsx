@@ -132,7 +132,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     if (!oauthRedirect) throw new Error('Salesforce OAuth redirect is not configured');
                     const abortSignal = signal ?? new AbortController().signal;
                     const params: connectionTypes.SalesforceConnectionParams = {
-                        hyperProtocol: 'WASM',
                         instanceUrl: form.instanceUrl,
                         appConsumerKey: form.appConsumerKey,
                         appConsumerSecret: '',

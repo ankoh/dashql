@@ -48,11 +48,13 @@ function reduce(state: ConnectionState, action: ConnectionAction) {
 function edited(params: ConnectionParams, endpoint: string): ConnectionParams {
     if ('hyper' in params) return { hyper: { ...params.hyper, protocol: 'V3_HTTP', endpoint } };
     if ('trino' in params) return { trino: { ...params.trino, endpoint } };
+    if ('sidb' in params) return { sidb: { ...params.sidb, instanceUrl: endpoint } };
     return { salesforce: { ...params.salesforce, instanceUrl: endpoint } };
 }
 function start(params: ConnectionParams): ConnectionAction {
     if ('hyper' in params) return { type: HYPER_CHANNEL_SETUP_STARTED, value: params.hyper as any };
     if ('trino' in params) return { type: TRINO_CHANNEL_SETUP_STARTED, value: params.trino as any };
+    if ('sidb' in params) return { type: SETUP_STARTED, value: params.sidb };
     return { type: SETUP_STARTED, value: params.salesforce };
 }
 
@@ -70,7 +72,7 @@ describe('durable connection drafts', () => {
         expect(next.signal.aborted).toBe(true);
         unregisterNext();
     });
-    it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD])('keeps %s committed until health check succeeds', type => {
+    it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB])('keeps %s committed until health check succeeds', type => {
         let state = database(type);
         const committed = state.params;
         const draft = edited(committed, 'invalid endpoint');
@@ -90,7 +92,7 @@ describe('durable connection drafts', () => {
         expect(state.paramsDraft).toBeUndefined();
     });
 
-    it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD])('preserves %s draft and committed parameters on failure, cancellation and reset', type => {
+    it.each([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB])('preserves %s draft and committed parameters on failure, cancellation and reset', type => {
         const initial = database(type);
         const draft = edited(initial.params, 'invalid incomplete endpoint');
         let state = reduce(initial, { type: SET_CONNECTION_DRAFT, value: draft });
@@ -111,7 +113,7 @@ describe('durable connection drafts', () => {
             expect(next.paramsDraft).toEqual(draft);
             expect(next.setupAttemptParams).toBeUndefined();
             expect(next.details.value.proto.setupParams).not.toEqual(
-                'hyper' in initial.params ? initial.params.hyper : 'trino' in initial.params ? initial.params.trino : initial.params.salesforce,
+                'hyper' in initial.params ? initial.params.hyper : 'trino' in initial.params ? initial.params.trino : 'sidb' in initial.params ? initial.params.sidb : initial.params.salesforce,
             );
         }
         state = reduce(state, { type: HEALTH_CHECK_FAILED, value: { message: 'failed' } });
@@ -123,7 +125,7 @@ describe('durable connection drafts', () => {
 
     it('exports only sanitized committed settings through the connection encoder', () => {
         const state = database(ConnectorType.SALESFORCE_DATA_CLOUD);
-        state.params = { salesforce: { hyperProtocol: 'V3_HTTP', instanceUrl: 'committed', appConsumerKey: 'key', appConsumerSecret: 'secret', login: '' } };
+        state.params = { salesforce: { instanceUrl: 'committed', appConsumerKey: 'key', appConsumerSecret: 'secret', login: '' } };
         state.paramsDraft = edited(state.params, 'draft');
         state.details = getConnectionStateDetailsFromParams(edited(state.params, 'attempted'))!;
         const encoded = JSON.stringify(encodeConnectionAsProto(state));

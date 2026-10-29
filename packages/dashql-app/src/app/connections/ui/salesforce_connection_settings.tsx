@@ -21,8 +21,8 @@ import {
 import { IndicatorStatus } from '../../../ui/foundations/status_indicator.js';
 import { classNames } from '../../../utils/classnames.js';
 import { Logger } from '../../../platform/logger/logger.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
-import { isDesktopHost } from '../../../platform/native_globals.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR, TRINO_CONNECTOR } from '../connector_info.js';
+import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '../connector_descriptor.js';
 import { ConnectionStateDetailsVariant } from '../connection_state_details.js';
 import type { DetailedError } from '../../../utils/error.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
@@ -31,7 +31,6 @@ import { collectSalesforceAuthInfo } from '../salesforce/salesforce_api_client.j
 const LOG_CTX = "sf_connector";
 
 interface PageState {
-    hyperProtocol: connection.HyperProtocol;
     instanceUrl: string;
     appConsumerKey: string;
     login: string;
@@ -112,6 +111,7 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
         case TRINO_CONNECTOR:
             return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
+        case SIDB_CONNECTOR:
             return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
         case HYPER_CONNECTOR:
             return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
@@ -120,8 +120,13 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
     }
 }
 
+/// The connectors that share the Salesforce settings
+export type SalesforceConnectorType = ConnectorType.SALESFORCE_DATA_CLOUD | ConnectorType.SIDB;
+
 interface Props {
     connectionId: string | null;
+    /// The connector of the settings
+    connector: SalesforceConnectorType;
     onClose?: () => void;
 }
 
@@ -136,8 +141,8 @@ export interface SalesforceConnectionAliasField {
 
 interface SalesforceConnectionSettingsPageProps {
     connectionState: ReturnType<typeof useConnectionById>[0];
-    hyperProtocol: connection.HyperProtocol;
-    protocols?: connection.HyperProtocol[];
+    /// The connector of the settings, Salesforce Data Cloud if not set
+    connector?: SalesforceConnectorType;
     wrongPlatform: boolean;
     freezeInput: boolean;
     instanceUrl: string;
@@ -150,7 +155,6 @@ interface SalesforceConnectionSettingsPageProps {
     dataCloudTenantId: string;
     instanceUrlValidation: TextFieldValidationStatus;
     appConsumerValidation: TextFieldValidationStatus;
-    setHyperProtocol: (protocol: connection.HyperProtocol) => void;
     updateInstanceUrl: React.ChangeEventHandler<HTMLInputElement>;
     updateAppConsumerKey: React.ChangeEventHandler<HTMLInputElement>;
     updateLogin: React.ChangeEventHandler<HTMLInputElement>;
@@ -167,7 +171,7 @@ interface SalesforceConnectionSettingsPageProps {
 }
 
 export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSettingsPageProps> = props => {
-    const connectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+    const connectorInfo = CONNECTOR_INFOS[props.connector ?? ConnectorType.SALESFORCE_DATA_CLOUD];
     return (
         <div className={style.layout}>
             <ConnectionInlineHeader
@@ -177,9 +181,6 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                 setupConnection={props.setupConnection}
                 cancelSetup={props.cancelSetup}
                 resetSetup={props.resetSetup}
-                protocol={props.hyperProtocol}
-                protocols={props.protocols ?? ["V3_GRPC", "V3_HTTP"]}
-                onProtocolChange={props.setHyperProtocol}
                 freezeInput={props.freezeInput}
                 onClose={props.onClose}
                 statusText={props.statusText}
@@ -328,27 +329,22 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectionSetup = useConnectionSetup(props.connectionId);
     const { saving } = useConnectionSave(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
+    const paramsKey = CONNECTOR_DESCRIPTORS[props.connector].paramsKey as 'salesforce' | 'sidb';
     const editableParams = connectionState?.paramsDraft ?? connectionState?.params;
-    const salesforceParams = editableParams && 'salesforce' in editableParams ? editableParams.salesforce : undefined;
+    const salesforceParams = editableParams && paramsKey in editableParams ? (editableParams as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined;
 
     const buildPageState = (params: connection.SalesforceConnectionParams | undefined): PageState => ({
-        hyperProtocol: params?.hyperProtocol ?? "V3_HTTP",
         instanceUrl: params?.instanceUrl ?? "",
         appConsumerKey: params?.appConsumerKey ?? "",
         login: params?.login ?? "",
     });
     const [pageState, setPageState] = useConnectionDraftForm(props.connectionId,
-        params => buildPageState(params && 'salesforce' in params ? params.salesforce : undefined),
-        form => ({ salesforce: {
+        params => buildPageState(params && paramsKey in params ? (params as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined),
+        form => connectionParamsOf(CONNECTOR_DESCRIPTORS[props.connector], {
             ...salesforceParams,
             ...form,
             appConsumerSecret: salesforceParams?.appConsumerSecret ?? '',
-        } }));
-    const hyperProtocol = pageState.hyperProtocol;
-
-    // gRPC requires the native platform
-    const wrongPlatform = hyperProtocol === "V3_GRPC" && !isDesktopHost();
-    const setHyperProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, hyperProtocol: v }));
+        }));
     const updateInstanceUrl: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, instanceUrl: ev.target.value }));
     const updateAppConsumerKey: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, appConsumerKey: ev.target.value }));
     const updateLogin: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, login: ev.target.value }));
@@ -368,7 +364,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     }, [connectionState?.paramsDraft]);
 
     const setupParams = React.useMemo<connection.SalesforceConnectionParams>(() => ({
-        hyperProtocol: pageState.hyperProtocol,
         instanceUrl: pageState.instanceUrl,
         appConsumerKey: pageState.appConsumerKey,
         appConsumerSecret: salesforceParams?.appConsumerSecret ?? '',
@@ -433,8 +428,8 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     return (
         <SalesforceConnectionSettingsPage
             connectionState={connectionState}
-            hyperProtocol={hyperProtocol}
-            wrongPlatform={wrongPlatform}
+            connector={props.connector}
+            wrongPlatform={false}
             freezeInput={freezeInput}
             instanceUrl={pageState.instanceUrl}
             appConsumerKey={pageState.appConsumerKey}
@@ -446,7 +441,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             dataCloudTenantId={dcAuthInfo?.offcoreTenantId ?? ''}
             instanceUrlValidation={instanceUrlValidation}
             appConsumerValidation={appConsumerValidation}
-            setHyperProtocol={setHyperProtocol}
             updateInstanceUrl={updateInstanceUrl}
             updateAppConsumerKey={updateAppConsumerKey}
             updateLogin={updateLogin}

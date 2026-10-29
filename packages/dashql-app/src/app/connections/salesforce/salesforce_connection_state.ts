@@ -5,7 +5,8 @@ import type { DetailedError } from '../../../utils/error.js';
 
 import { VariantKind } from '../../../utils/variant.js';
 import { SalesforceDatabaseChannel } from './salesforce_api_client.js';
-import { SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connector_info.js';
+import { SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR } from '../connector_info.js';
+import type { SalesforceDetailsType } from '../connection_state_details.js';
 import {
     ConnectionHealth,
     ConnectionState,
@@ -38,7 +39,9 @@ export function createSalesforceConnectionStateDetails(params: connection.Salesf
 export function getSalesforceConnectionDetails(state: ConnectionState | null): SalesforceConnectionStateDetails | null {
     if (state == null) return null;
     switch (state.details.type) {
-        case SALESFORCE_DATA_CLOUD_CONNECTOR: return state.details.value;
+        case SALESFORCE_DATA_CLOUD_CONNECTOR:
+        case SIDB_CONNECTOR:
+            return state.details.value;
         default: return null;
     }
 }
@@ -89,6 +92,7 @@ export type SalesforceConnectionStateAction =
 
 export function reduceSalesforceConnectionState(state: ConnectionState, action: SalesforceConnectionStateAction): ConnectionState | null {
     const details = state.details.value as SalesforceConnectionStateDetails;
+    const detailsType = state.details.type as SalesforceDetailsType;
     let next: ConnectionState | null = null;
     switch (action.type) {
         case DELETE_CONNECTION:
@@ -97,7 +101,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
             next = {
                 ...state,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -146,7 +150,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionHealth: ConnectionHealth.CONNECTING,
                 metrics: state.metrics,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: newDetails,
                 },
             };
@@ -159,7 +163,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionHealth: ConnectionHealth.CANCELLED,
 
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -181,7 +185,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.AUTH_FAILED,
                 connectionHealth: ConnectionHealth.FAILED,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -203,7 +207,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.PKCE_GENERATION_STARTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -224,7 +228,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.PKCE_GENERATED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -251,7 +255,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.WAITING_FOR_OAUTH_CODE_VIA_LINK,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -271,7 +275,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.WAITING_FOR_OAUTH_CODE_VIA_WINDOW,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -289,7 +293,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
             next = {
                 ...state,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -309,7 +313,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.OAUTH_CODE_RECEIVED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -336,7 +340,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.ACCESS_TOKEN_REQUESTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -356,7 +360,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.CORE_ACCESS_TOKEN_RECEIVED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -386,7 +390,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
             next = {
                 ...state,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -406,7 +410,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.DATA_CLOUD_TOKEN_REQUESTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -426,7 +430,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.DATA_CLOUD_TOKEN_RECEIVED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -453,7 +457,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_STARTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -474,7 +478,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_CANCELLED,
                 connectionHealth: ConnectionHealth.CANCELLED,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -496,7 +500,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_FAILED,
                 connectionHealth: ConnectionHealth.FAILED,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {
@@ -518,7 +522,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 connectionStatus: ConnectionStatus.CHANNEL_READY,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+                    type: detailsType,
                     value: {
                         ...details,
                         proto: {

@@ -7,7 +7,6 @@ import {
     DEFAULT_SALESFORCE_DATA_SPACE,
     formatSalesforceMetadataProgress,
     getSalesforceDataSpace,
-    getSalesforceLakehousePath,
     getSalesforceDataCloudUrl,
     collectSalesforceAuthInfo,
     parseCoreAccessToken,
@@ -400,9 +399,7 @@ describe('Salesforce data-space resolution', () => {
         }))).toBe('Sales');
     });
 
-    it('falls back to default and uses the same value in the lakehouse path', () => {
-        const dataSpace = getSalesforceDataSpace(makeDataCloudAccessToken({}));
-        expect(dataSpace).toBe(DEFAULT_SALESFORCE_DATA_SPACE);
-        expect(getSalesforceLakehousePath('tenant-id', dataSpace)).toBe('sf:tenant-id;default');
+    it('falls back to the default data space', () => {
+        expect(getSalesforceDataSpace(makeDataCloudAccessToken({}))).toBe(DEFAULT_SALESFORCE_DATA_SPACE);
     });
 });

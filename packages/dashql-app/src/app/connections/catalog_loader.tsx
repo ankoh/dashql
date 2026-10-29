@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useDynamicConnectionDispatch } from './connection_registry.js';
 import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import {
     ConnectionHealth,
     CATALOG_UPDATE_CANCELLED,
@@ -193,6 +193,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                 }
                 // Update the catalog by querying the Salesforce Metadata Service
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
+                case SIDB_CONNECTOR:
                     await updateSalesforceCatalog(
                         traced,
                         conn.details.value,

@@ -1,5 +1,5 @@
 import type { ConnectorDescriptor } from '../connector_descriptor.js';
-import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR } from '../connector_info.js';
 import { SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA } from './salesforce_catalog_update.js';
 import { createSalesforceConnectionStateDetails, reduceSalesforceConnectionState } from './salesforce_connection_state.js';
 
@@ -8,7 +8,7 @@ export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> 
     info: CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD],
     paramsKey: 'salesforce',
     detailsType: SALESFORCE_DATA_CLOUD_CONNECTOR,
-    defaultParams: () => ({ hyperProtocol: 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' }),
+    defaultParams: () => ({ instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' }),
     createDetails: createSalesforceConnectionStateDetails,
     reduce: reduceSalesforceConnectionState,
     withoutDraftRows: params => params,
@@ -17,10 +17,18 @@ export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> 
     loginHint: params => params.login || null,
     cacheSignature: params => ({
         case: "salesforce",
-        hyperProtocol: params.hyperProtocol,
         instanceUrl: params.instanceUrl,
         appConsumerKey: params.appConsumerKey,
         login: params.login,
     }),
     catalogNameDefaults: () => ({ databaseName: SALESFORCE_CATALOG_DATABASE, schemaName: SALESFORCE_CATALOG_SCHEMA }),
+};
+
+/// SIDB connections, they behave like Salesforce Data Cloud connections for now
+export const SIDB_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'sidb'> = {
+    ...SALESFORCE_CONNECTOR_DESCRIPTOR,
+    info: CONNECTOR_INFOS[ConnectorType.SIDB],
+    paramsKey: 'sidb',
+    detailsType: SIDB_CONNECTOR,
+    cacheSignature: params => ({ ...SALESFORCE_CONNECTOR_DESCRIPTOR.cacheSignature(params) as object, case: "sidb" }),
 };

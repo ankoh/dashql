@@ -23,7 +23,7 @@ import {
 } from './salesforce_connection_state.js';
 import { PlatformType } from '../../../platform/platform_type.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
-import { collectSalesforceAuthInfo, getSalesforceLakehousePath, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
+import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { Dispatch } from '../../../utils/variant.js';
 import { Logger, stringifyError } from '../../../platform/logger/logger.js';
 import { PlatformEventListener } from '../../../platform/events/event_listener.js';
@@ -63,7 +63,7 @@ const LOG_CTX = "salesforce_setup";
 //  5. Client sends authorization_code and code_verifier to the token endpoint. (RFC 7636, Section 4.5)
 //  6. Server transforms the code_verifier using the code_challenge_method from the initial authorization request and checks the result against the code_challenge. If the value of both strings match, then the server has verified that the requests came from the same client and will issue an access_token. (RFC 7636, Section 4.6)
 
-export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, appEvents: PlatformEventListener, forceReLogin: boolean, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
+export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, httpClient: HyperDatabaseClient | null, appEvents: PlatformEventListener, forceReLogin: boolean, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     params = structuredClone(params);
     let hyperChannel: HyperDatabaseChannel;
     let sfChannel: SalesforceDatabaseChannel;
@@ -130,12 +130,9 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         });
         abortSignal.throwIfAborted();
 
-        // Start the channel setup
-        if (params.hyperProtocol === 'WASM') {
-            throw new Error('Salesforce connections do not support Hyper WASM');
-        }
+        // Start the channel setup, Salesforce connections speak to Hyper over http
         const connParams: connection.HyperConnectionParams = {
-            protocol: params.hyperProtocol,
+            protocol: 'V3_HTTP',
             endpoint: dcToken.instanceUrl ?? "",
             tls: {
                 clientKeyPath: "",
@@ -159,11 +156,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         const authInfo = collectSalesforceAuthInfo(coreAccessToken, dcToken);
         const connectionContext: HyperDatabaseConnectionContext = {
             getAttachedDatabases(): AttachedDatabase[] {
-                if (params.hyperProtocol === 'V3_HTTP') return [];
-                return [{
-                    path: getSalesforceLakehousePath(authInfo?.offcoreTenantId, authInfo?.dataspace ?? "default"),
-                    alias: 'lakehouse',
-                }];
+                return [];
             },
             async getRequestMetadata(): Promise<Record<string, string>> {
                 return {
@@ -177,9 +170,8 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         };
 
         // Create the channel
-        const client = connParams.protocol === 'V3_HTTP' ? httpClient : grpcClient;
-        if (!client) throw new Error(`No client available for protocol ${connParams.protocol}`);
-        hyperChannel = await client.connect(connParams, connectionContext);
+        if (!httpClient) throw new Error(`No client available for protocol ${connParams.protocol}`);
+        hyperChannel = await httpClient.connect(connParams, connectionContext);
         sfChannel = new SalesforceDatabaseChannel(apiClient, coreAccessToken, dcToken, hyperChannel);
         abortSignal.throwIfAborted();
 
@@ -218,9 +210,9 @@ export interface SalesforceSetupApi {
     reset(dispatch: Dispatch<SalesforceConnectionStateAction>): Promise<void>
 }
 
-export function createSalesforceSetup(grpcClient: HyperDatabaseClient | null, httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, forceReLogin: boolean, logger: Logger): (SalesforceSetupApi | null) {
+export function createSalesforceSetup(httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, forceReLogin: boolean, logger: Logger): (SalesforceSetupApi | null) {
     const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
-        return setupSalesforceConnection(updateState, logger, params, config, platformType, salesforceApi, grpcClient, httpClient, appEvents, forceReLogin, abort);
+        return setupSalesforceConnection(updateState, logger, params, config, platformType, salesforceApi, httpClient, appEvents, forceReLogin, abort);
     };
     const reset = async (updateState: Dispatch<SalesforceConnectionStateAction>) => {
         updateState({

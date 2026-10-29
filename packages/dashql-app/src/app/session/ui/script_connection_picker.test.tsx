@@ -73,7 +73,7 @@ describe('ScriptConnectionPicker', () => {
         render(attach);
         act(() => (container.querySelector('[data-testid="script-connection-picker"]') as HTMLButtonElement).click());
         expect(attachOptions().map(option => Number(option.getAttribute('data-connector'))))
-            .toEqual([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD]);
+            .toEqual([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB]);
         expect(document.querySelector('[data-testid="connection-settings"]')).toBeNull();
 
         act(() => attachOptions().find(option => Number(option.getAttribute('data-connector')) === ConnectorType.TRINO)!.click());

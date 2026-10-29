@@ -7,7 +7,7 @@ import { SalesforceSetupApi, createSalesforceSetup } from './salesforce_connecti
 import { useAppConfig } from '../../config/app_config.js';
 import { useHttpClient } from '../../../platform/http/http_client_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
-import { useHyperGrpcClient, useHyperHttpClient } from '../hyper/hyperdb_grpc_client_provider.js';
+import { useHyperHttpClient } from '../hyper/hyperdb_grpc_client_provider.js';
 import { usePlatformType } from '../../../platform/platform_type.js';
 import { usePlatformEventListener } from '../../../platform/events/event_listener_provider.js';
 
@@ -25,7 +25,6 @@ export const SalesforceConnector: React.FC<Props> = (props: Props) => {
     const connectorConfig = config?.connectors?.salesforce;
     const forceReLogin = config?.settings?.forceReLogin ?? false;
     const httpClient = useHttpClient();
-    const grpcClient = useHyperGrpcClient();
     const hyperHttpClient = useHyperHttpClient();
     const platformType = usePlatformType();
     const appEvents = usePlatformEventListener();
@@ -37,14 +36,14 @@ export const SalesforceConnector: React.FC<Props> = (props: Props) => {
             const api = new SalesforceAPIClientMock(connectorConfig.mock);
             const setup = mockSalesforceSetup(api, connectorConfig, logger);
             return [api, setup];
-        } else if (!httpClient || (!grpcClient && !hyperHttpClient)) {
+        } else if (!httpClient || !hyperHttpClient) {
             return [null, null];
         } else {
             const api = new SalesforceApiClient(logger, httpClient);
-            const setup = createSalesforceSetup(grpcClient, hyperHttpClient, api, platformType, appEvents, connectorConfig, forceReLogin, logger);
+            const setup = createSalesforceSetup(hyperHttpClient, api, platformType, appEvents, connectorConfig, forceReLogin, logger);
             return [api, setup];
         }
-    }, [connectorConfig, httpClient, grpcClient, hyperHttpClient, platformType, appEvents, forceReLogin]);
+    }, [connectorConfig, httpClient, hyperHttpClient, platformType, appEvents, forceReLogin]);
 
     return (
         <API_CTX.Provider value={api}>

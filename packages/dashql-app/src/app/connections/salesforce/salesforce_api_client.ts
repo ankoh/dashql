@@ -87,10 +87,6 @@ export function getSalesforceDataSpace(access: connection.SalesforceDataCloudAcc
     return DEFAULT_SALESFORCE_DATA_SPACE;
 }
 
-export function getSalesforceLakehousePath(tenantId: string | null | undefined, dataSpace: string): string {
-    return `sf:${tenantId ?? ""};${dataSpace}`;
-}
-
 /// Read the Salesforce auth tokens
 export function getSalesforceDataCloudUrl(endpoint: string | undefined): string {
     if (typeof endpoint !== 'string' || endpoint.trim().length === 0) {

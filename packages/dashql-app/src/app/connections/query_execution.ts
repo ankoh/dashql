@@ -5,7 +5,7 @@ import type { TracedLogger } from '../../platform/logger/logger.js';
 import type { QueryExecutionProgress, QueryExecutionResponseStream } from '../../query/query_execution_state.js';
 import * as buf from '@bufbuild/protobuf';
 import * as proto from '../../proto.js';
-import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import type { ConnectionStateDetailsVariant } from './connection_state_details.js';
 import type { QueryExecutionArgs } from './query_execution_args.js';
 
@@ -27,7 +27,8 @@ export function executeConnectionQuery(
     const override = args.channelOverride;
     switch (details.type) {
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
-            return requireChannel(override?.type === 'salesforce' ? override.channel : details.value.channel, 'Salesforce').executeQuery(param, abort);
+        case SIDB_CONNECTOR:
+            return requireChannel(override?.type === 'salesforce' ? override.channel : details.value.channel, details.type === SIDB_CONNECTOR ? 'SIDB' : 'Salesforce').executeQuery(param, abort);
         case HYPER_CONNECTOR:
             return requireChannel(override?.type === 'hyper' ? override.channel : details.value.channel, 'Hyper').executeQuery(param, abort, { readTimeoutMs: args.readTimeoutMs });
         case TRINO_CONNECTOR:

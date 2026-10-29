@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 describe('updateSalesforceCatalog', () => {
-    it.each(['V3_GRPC', 'V3_HTTP'] as const)('loads %s metadata relations and the prefetched function catalog', async protocol => {
+    it('loads the metadata relations and the prefetched function catalog', async () => {
         const functionsSQL = PREFETCHED_HYPER_FUNCTIONS_SQL;
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(functionsSQL)));
         const api = {
@@ -32,7 +32,7 @@ describe('updateSalesforceCatalog', () => {
         };
         const connection = {
             proto: {
-                setupParams: { hyperProtocol: protocol },
+                setupParams: {},
                 oauthState: {
                     coreAccessToken: {
                         accessToken: 'core-token',

@@ -335,8 +335,6 @@ function SalesforceLoginDialog(props: SalesforceLoginDialogProps) {
             >
                 <SalesforceConnectionSettingsPage
                     connectionState={null}
-                    hyperProtocol="V3_HTTP"
-                    protocols={[]}
                     wrongPlatform={false}
                     freezeInput={freezeInput}
                     instanceUrl={instanceUrl}
@@ -349,7 +347,6 @@ function SalesforceLoginDialog(props: SalesforceLoginDialogProps) {
                     dataCloudTenantId={authentication?.offcoreTenantId ?? ''}
                     instanceUrlValidation={instanceUrlValidation}
                     appConsumerValidation={appConsumerValidation}
-                    setHyperProtocol={() => {}}
                     updateInstanceUrl={event => setInstanceUrl(event.target.value)}
                     updateAppConsumerKey={event => setAppConsumerKey(event.target.value)}
                     updateLogin={event => setLoginHint(event.target.value)}

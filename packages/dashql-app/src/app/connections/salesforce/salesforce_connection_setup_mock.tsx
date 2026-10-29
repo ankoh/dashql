@@ -87,7 +87,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
         abortSignal.throwIfAborted();
         updateState({ type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN, value: token });
         const connParams: connection.HyperConnectionParams = {
-            protocol: params.hyperProtocol,
+            protocol: 'V3_HTTP',
             endpoint: token.instanceUrl ?? "",
             tls: {
                 clientKeyPath: "",

@@ -19,7 +19,6 @@ class NullLogger extends Logger {
 }
 
 const params: connection.SalesforceConnectionParams = {
-    hyperProtocol: 'V3_HTTP',
     instanceUrl: 'https://example.my.salesforce.com',
     appConsumerKey: 'consumer+key',
     appConsumerSecret: '',

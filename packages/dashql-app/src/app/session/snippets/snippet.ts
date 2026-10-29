@@ -22,7 +22,7 @@ export interface Snippet {
 /// The connectors of the engine folders of the snippets, `<engine>/<category>/<name>.sql`.
 /// The snippets of an engine run on all of its connectors.
 export const SNIPPET_ENGINE_CONNECTORS: ReadonlyMap<string, readonly ConnectorType[]> = new Map([
-    ['hyper', [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD]],
+    ['hyper', [ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB]],
     ['trino', [ConnectorType.TRINO]],
 ]);
 

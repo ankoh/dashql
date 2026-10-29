@@ -305,10 +305,6 @@
       "type": "object",
       "description": "Connection Parameters - Salesforce",
       "properties": {
-        "hyperProtocol": {
-          "$ref": "#/definitions/HyperProtocol",
-          "description": "The Hyper connection protocol"
-        },
         "instanceUrl": {
           "type": "string",
           "description": "The instance url"
@@ -326,7 +322,7 @@
           "description": "The login"
         }
       },
-      "required": ["hyperProtocol", "instanceUrl", "appConsumerKey", "appConsumerSecret", "login"],
+      "required": ["instanceUrl", "appConsumerKey", "appConsumerSecret", "login"],
       "additionalProperties": false
     },
     "SalesforceOAuthConfig": {
@@ -981,6 +977,16 @@
         },
         {
           "properties": {
+            "sidb": {
+              "$ref": "#/definitions/SalesforceConnectionParams",
+              "description": "Parameters for SIDB connections, they share the parameters of Salesforce connections"
+            }
+          },
+          "required": ["sidb"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
             "trino": {
               "$ref": "#/definitions/TrinoConnectionParams",
               "description": "Parameters for trino connections"
@@ -1013,6 +1019,16 @@
             }
           },
           "required": ["salesforce"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "sidb": {
+              "$ref": "#/definitions/SalesforceConnectionDetails",
+              "description": "Details for SIDB connections, they share the details of Salesforce connections"
+            }
+          },
+          "required": ["sidb"],
           "additionalProperties": false
         },
         {

@@ -1,6 +1,6 @@
 import type { ConnectionState } from '../connection_state.js';
 import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from '../connection_registry.js';
-import { getConnectorInfoForParams, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connector_info.js';
+import { getConnectorInfoForParams, HYPER_CONNECTOR } from '../connector_info.js';
 import type { ConnectionParams } from '../connection_params.js';
 
 export function isHyperWasmConnection(database: ConnectionState): boolean {
@@ -35,8 +35,6 @@ export function connectionLabelParts(database: ConnectionState, ordinal: number 
     let detail = 'Http';
     if (database.details.type === HYPER_CONNECTOR) {
         detail = protocolLabel(database.details.value.proto.setupParams?.protocol ?? 'WASM');
-    } else if (database.details.type === SALESFORCE_DATA_CLOUD_CONNECTOR) {
-        detail = protocolLabel(database.details.value.proto.setupParams?.hyperProtocol ?? 'V3_HTTP');
     }
     const connector = database.connectorInfo.names.displayLong;
     return { name: database.name ?? (ordinal == null ? connector : `${connector} #${ordinal}`), connector, detail };
@@ -78,5 +76,6 @@ export function connectionParamsLabel(params: ConnectionParams): string {
     }
     if ('trino' in params) return `${name} / ${params.trino.endpoint ?? ''}`;
     if ('salesforce' in params) return `${name} / ${params.salesforce.instanceUrl ?? ''}`;
+    if ('sidb' in params) return `${name} / ${params.sidb.instanceUrl ?? ''}`;
     return name;
 }

@@ -103,7 +103,7 @@ describe('Snippet registry', () => {
         });
         expect(registry.errors).toEqual([]);
         const snippet = registry.byId.get('json/access')!;
-        expect(snippet.connectors.sort()).toEqual([ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO].sort());
+        expect(snippet.connectors.sort()).toEqual([ConnectorType.HYPER, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO, ConnectorType.SIDB].sort());
         expect(snippet.paths.get(ConnectorType.HYPER)).toEqual('hyper/json/access.sql');
         expect(snippet.paths.get(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual('hyper/json/access.sql');
         expect(snippet.paths.get(ConnectorType.TRINO)).toEqual('trino/json/access.sql');

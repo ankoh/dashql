@@ -12,7 +12,7 @@ import { SETUP_FAILED, SF_CHANNEL_READY } from './salesforce_connection_state.js
 afterEach(() => vi.unstubAllGlobals());
 
 for (const exchangeFails of [false, true]) describe(`setupSalesforceConnection with exchange failure=${exchangeFails}`, () => {
-    it.each(['V3_GRPC', 'V3_HTTP'] as const)('configures the Salesforce database for %s', async protocol => {
+    it('configures the Salesforce database over http', async () => {
         let context: HyperDatabaseConnectionContext | undefined;
         const client: HyperDatabaseClient = {
             connect: vi.fn(async (_params, connectionContext) => {
@@ -20,12 +20,10 @@ for (const exchangeFails of [false, true]) describe(`setupSalesforceConnection w
                 return { executeQuery: vi.fn(), close: vi.fn() } as any;
             }),
         };
-        const unusedClient: HyperDatabaseClient = { connect: vi.fn() };
         const popup = { closed: false, focus: vi.fn(), close: vi.fn() };
         const open = vi.fn((_url: string | URL) => popup);
         vi.stubGlobal('open', open);
         const params = {
-            hyperProtocol: protocol,
             instanceUrl: 'https://example.my.salesforce.com',
             appConsumerKey: 'consumer-key',
             appConsumerSecret: '',
@@ -75,8 +73,7 @@ for (const exchangeFails of [false, true]) describe(`setupSalesforceConnection w
             { auth: { oauthRedirect: 'https://example.com/callback' } },
             PlatformType.WEB,
             api,
-            protocol === 'V3_HTTP' ? unusedClient : client,
-            protocol === 'V3_HTTP' ? client : unusedClient,
+            client,
             events as any,
             false,
             new AbortController().signal,
@@ -85,21 +82,16 @@ for (const exchangeFails of [false, true]) describe(`setupSalesforceConnection w
         if (exchangeFails) {
             await expect(setup).rejects.toThrow('exchange failed');
             expect(client.connect).not.toHaveBeenCalled();
-            expect(unusedClient.connect).not.toHaveBeenCalled();
             expect(api.getDataCloudAccessToken).toHaveBeenCalledWith(coreToken, expect.any(AbortSignal));
             expect(dispatch).toHaveBeenLastCalledWith({ type: SETUP_FAILED, value: { message: expect.any(String) } });
             return;
         }
         const channel = await setup;
-        expect(unusedClient.connect).not.toHaveBeenCalled();
         expect(client.connect).toHaveBeenCalledWith(expect.objectContaining({
-            protocol,
+            protocol: 'V3_HTTP',
             endpoint: 'https://hyper.example.com/',
         }), context);
-        expect(context?.getAttachedDatabases()).toEqual(protocol === 'V3_HTTP' ? [] : [{
-            path: 'sf:tenant-id;analytics',
-            alias: 'lakehouse',
-        }]);
+        expect(context?.getAttachedDatabases()).toEqual([]);
         expect(await context?.getRequestMetadata()).toEqual({
             audience: 'tenant-id',
             authorization: 'Bearer offcore-token',

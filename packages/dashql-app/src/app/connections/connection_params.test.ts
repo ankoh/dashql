@@ -18,9 +18,10 @@ describe('createDefaultConnectionParamsForConnector', () => {
         }
     });
 
-    it('uses HTTP for Salesforce', () => {
-        const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD]);
-        expect(params).toMatchObject({ salesforce: { hyperProtocol: 'V3_HTTP' } });
+    it('gives SIDB the params of Salesforce', () => {
+        const salesforce = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD]);
+        const sidb = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.SIDB]);
+        expect(sidb).toEqual({ sidb: 'salesforce' in salesforce ? salesforce.salesforce : null });
     });
 });
 
@@ -73,7 +74,6 @@ describe('sanitizeConnectionParamsForSharing', () => {
     it('strips the salesforce consumer secret but keeps the identity and login hint', () => {
         const params: ConnectionParams = {
             salesforce: {
-                hyperProtocol: 'V3_HTTP',
                 instanceUrl: 'https://example.my.salesforce.com',
                 appConsumerKey: 'consumer-key',
                 appConsumerSecret: 'super-secret',
@@ -92,7 +92,6 @@ describe('sanitizeConnectionParamsForSharing', () => {
     it('clears the salesforce login hint when withLoginHint is false but keeps the rest of the identity', () => {
         const params: ConnectionParams = {
             salesforce: {
-                hyperProtocol: 'V3_HTTP',
                 instanceUrl: 'https://example.my.salesforce.com',
                 appConsumerKey: 'consumer-key',
                 appConsumerSecret: 'super-secret',

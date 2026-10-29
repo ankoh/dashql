@@ -12,7 +12,6 @@ import {
     ConnectorInfo,
     getConnectorInfoForParams,
     ConnectorType,
-    SALESFORCE_DATA_CLOUD_CONNECTOR,
 } from './connector_info.js';
 import {
     createQueryExecutionMetrics,
@@ -37,7 +36,7 @@ import {
 } from '../../query/query_execution_state.js';
 import { reduceQueryAction } from '../../query/query_execution_state.js';
 import type { TrinoConnectorAction } from './trino/trino_connection_state.js';
-import { ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
+import { ConnectionStateDetailsVariant, createConnectionStateDetails, isSalesforceDetails } from './connection_state_details.js';
 import { Logger, stringifyError } from '../../platform/logger/logger.js';
 import { invalidateCatalogBatch } from './catalog_batch.js';
 import { connectionParamsEqual, connectionParamsWithoutDraftRows, getConnectionParamsFromStateDetails, type ConnectionParams } from './connection_params.js';
@@ -47,7 +46,7 @@ import { SETUP_STARTED } from './salesforce/salesforce_connection_state.js';
 import { cancelConnectionSetup } from './connection_setup_cancellation.js';
 import { dateToTimestamp } from './proto_helper.js';
 import type { DetailedError } from '../../utils/error.js';
-import { catalogNameDefaults, connectorOfDetails } from './connector_descriptor.js';
+import { catalogNameDefaults, connectionParamsOf, connectorOfDetails, connectorParams } from './connector_descriptor.js';
 
 const LOG_CTX = 'connection_state';
 
@@ -397,7 +396,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                     setupAttemptDraft = state.setupAttemptParams == null ? state.paramsDraft : state.setupAttemptDraft;
                     break;
                 case SETUP_STARTED:
-                    setupAttemptParams = structuredClone({ salesforce: action.value });
+                    setupAttemptParams = structuredClone(connectionParamsOf(connectorOfDetails(state.details), action.value));
                     setupAttemptDraft = state.paramsDraft;
                     break;
             }
@@ -417,11 +416,13 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                     setupAttemptParams: undefined,
                     setupAttemptDraft: undefined,
                 };
-                if ('salesforce' in setupAttemptParams && newState.details.type === SALESFORCE_DATA_CLOUD_CONNECTOR) {
-                    newState.params = { salesforce: {
-                        ...setupAttemptParams.salesforce,
-                        login: newState.details.value.proto.setupParams?.login ?? setupAttemptParams.salesforce.login,
-                    } };
+                const connector = connectorOfDetails(newState.details);
+                if (isSalesforceDetails(newState.details) && connector.paramsKey in setupAttemptParams) {
+                    const salesforceParams = connectorParams(connector, setupAttemptParams) as connection.SalesforceConnectionParams;
+                    newState.params = connectionParamsOf(connector, {
+                        ...salesforceParams,
+                        login: newState.details.value.proto.setupParams?.login ?? salesforceParams.login,
+                    });
                 }
             } else if (newState.connectionHealth === ConnectionHealth.FAILED || newState.connectionHealth === ConnectionHealth.CANCELLED) {
                 newState.setupAttemptParams = undefined;
