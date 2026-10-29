@@ -57,7 +57,7 @@ const InternalsButton = (props: { sessionId: string | null }) => {
                         label="Client"
                         icon={(
                             <svg width="14px" height="14px" aria-hidden="true">
-                                <use xlinkHref={`${symbols}#processor`} />
+                                <use xlinkHref={`${symbols}#device_desktop_24`} />
                             </svg>
                         )}
                         onClick={() => setInternalsViewerOverlay(true)}
