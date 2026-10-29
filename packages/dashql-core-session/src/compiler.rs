@@ -82,9 +82,10 @@ fn has_returning(parsed: &ParsedScript, statement: &Statement) -> bool {
 }
 
 /// Does a statement produce output?
-fn produces_output(parsed: &ParsedScript, statement: &Statement) -> bool {
+pub fn produces_output(parsed: &ParsedScript, statement: &Statement) -> bool {
     match statement.statement_type {
-        StatementType::SELECT | StatementType::EXPLAIN | StatementType::SELECT_INTO => true,
+        // SELECT INTO creates a table and returns no rows
+        StatementType::SELECT | StatementType::EXPLAIN => true,
         StatementType::INSERT | StatementType::DELETE => has_returning(parsed, statement),
         _ => false,
     }
@@ -187,7 +188,7 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         if output && statement_id != terminal_statement_id {
             errors.push(error(
                 ErrorCode::OUTPUT_STATEMENT_NOT_LAST,
-                "SELECT, EXPLAIN, SELECT INTO, INSERT RETURNING, or DELETE RETURNING must be the final statement",
+                "SELECT, EXPLAIN, INSERT RETURNING, or DELETE RETURNING must be the final statement",
                 statement_id as u32,
                 statement.root,
                 Some(span),
@@ -225,7 +226,13 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
 
     let mut formatter = Formatter::new(&parsed);
     formatter.replace_obfuscated_literals();
-    let sql = formatter.format_node_at(terminal_root as usize, config);
+    let formatted = formatter.format_node_at(terminal_root as usize, config);
+    // A placeholder of a node that the formatter does not know would change the query, the source text runs instead
+    let sql = if formatter.is_fully_formatted() {
+        formatted
+    } else {
+        statements.last().and_then(|s| s.sql.clone()).unwrap_or_default()
+    };
     if sql.is_empty() {
         result.sql = Some(String::new());
         errors.push(error(

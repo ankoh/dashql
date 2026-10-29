@@ -278,6 +278,12 @@ planner-snapshots:
       - name: consumer
         input: select * from copied;
 
+  - name: ObfuscatedLiterals
+    catalog: create table source (id int);
+    scripts:
+      - name: query
+        input: select * from source where id = /*Integer(FCD0)*/;
+
   - name: QualifiedIdentifierComponents
     catalog: |
       create table "Db.Dot"."s""quote"."Mixed.Name" (id int);

@@ -2037,6 +2037,37 @@ planner-snapshots:
           entity: '256.65536.8589934592'
       diagnostics: []
 
+  - name: ObfuscatedLiterals
+    catalog: create table source (id int);
+    scripts:
+      - name: query
+        input: select * from source where id = /*Integer(FCD0)*/;
+    expected:
+      valid: true
+      scripts:
+        - name: query
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: '"source"'
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: query
+          statement-id: 0
+          type: SELECT
+          sql: "select * from source where id = 64720"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics: []
+
   - name: QualifiedIdentifierComponents
     catalog: |
       create table "Db.Dot"."s""quote"."Mixed.Name" (id int);

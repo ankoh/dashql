@@ -8,7 +8,7 @@
 use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, TableRole};
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration};
 use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
-use crate::compiler::compile_visualization;
+use crate::compiler::{compile_visualization, produces_output, read_executable_text};
 use dashql_core::pack;
 use dashql_core::script::Script;
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
@@ -258,8 +258,9 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
             node.statement_type = statement.statement_type;
             let ty = statement.statement_type;
             let span = descriptions[statement_id].statement_span;
-            let mut sql = text_at(span.offset, span.length);
-            node.produces_output = matches!(ty, Type::SELECT | Type::EXPLAIN);
+            // The same SQL and output as a compiled statement
+            let mut sql = read_executable_text(scanned, span);
+            node.produces_output = produces_output(parsed, statement);
             let root = &parsed.nodes[statement.root as usize];
             let mut explain_executes = false;
             let mut accesses: BTreeMap<(u32, u32), Mode> = BTreeMap::new();
@@ -350,14 +351,6 @@ pub fn plan(planner_inputs: &[PlannerInput]) -> ExecutionGraphT {
                 if invalid {
                     barrier = true;
                 }
-            }
-            if ty == Type::INSERT || ty == Type::DELETE {
-                let [returning] = if ty == Type::INSERT {
-                    attrs!(children(root), [Key::SQL_INSERT_RETURNING])
-                } else {
-                    attrs!(children(root), [Key::SQL_DELETE_RETURNING])
-                };
-                node.produces_output = returning.is_some_and(|r| r.node_type() != NodeType::NONE);
             }
             // AST effects that are not represented by ordinary relation reads
             for ni in statement.nodes_begin..statement.nodes_begin + statement.node_count {

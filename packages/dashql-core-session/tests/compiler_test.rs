@@ -136,6 +136,15 @@ fn returning_statements_produce_output() {
 }
 
 #[test]
+fn select_into_is_a_command() {
+    // The table of a SELECT INTO can be read by a later statement
+    let result = compile_text("select 1 as a into t; select a from t");
+    assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
+    let kinds: Vec<_> = result.statements.as_ref().unwrap().iter().map(|s| s.kind).collect();
+    assert_eq!(kinds, vec![CompiledKind::COMMAND, CompiledKind::OUTPUT]);
+}
+
+#[test]
 fn output_statement_must_be_last() {
     let result = compile_text("select 1; select 2;");
     assert_eq!(error_codes(&result), vec![ErrorCode::OUTPUT_STATEMENT_NOT_LAST]);
