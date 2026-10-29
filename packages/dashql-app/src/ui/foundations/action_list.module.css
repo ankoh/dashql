@@ -52,7 +52,7 @@
     grid-column: 2;
     display: inline-flex;
     font-size: 0.9rem;
-    text-align: unset;
+    text-align: left;
     flex-direction: column;
     align-items: start;
 }
