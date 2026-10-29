@@ -63,7 +63,8 @@ interface ConflictDialogState {
     existingDisplayLocation: string;
     presentation: ImportPresentation;
     busy: boolean;
-    run(choice: ConflictChoice): Promise<string>;
+    /// Run the import with the choice, null if the user cancelled it while choosing connections
+    run(choice: ConflictChoice): Promise<string | null>;
     resolve(value: string | null): void;
 }
 
@@ -201,7 +202,7 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
         bundle: SessionBundle,
         existingDisplayLocation: string,
         presentation: ImportPresentation,
-        run: (choice: ConflictChoice) => Promise<string>,
+        run: (choice: ConflictChoice) => Promise<string | null>,
     ): Promise<string | null> => {
         return new Promise<string | null>(resolve => {
             setDialog(current => {
@@ -220,12 +221,14 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
         options: PortableSessionImportOptions,
     ): Promise<string | null> => {
         if (backend == null) throw new Error('Session imports require composite storage');
-        bundle = await validatePortableBundle(bundle);
-        const resolved = await resolveConnections(bundle);
-        if (resolved == null) return null;
-        bundle = resolved;
-        const conflict = await findSessionImportConflict(backend, bundle.session.sessionId);
+        const validated = await validatePortableBundle(bundle);
+        // Whether the session is already registered is asked before the connections, resolving them
+        // keeps the session id
+        const conflict = await findSessionImportConflict(backend, validated.session.sessionId);
         if (conflict == null) {
+            const resolved = await resolveConnections(validated);
+            if (resolved == null) return null;
+            bundle = resolved;
             const sessionId = bundle.session.sessionId;
             if (options.reloadAfterSuccess) {
                 await reloadThen(() => writePortableSessionFresh(backend, bundle, sessionId), writer);
@@ -236,10 +239,12 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
         }
 
         return await requestConflictChoice(
-            bundle,
+            validated,
             displayPath(conflict.sessionId, conflict.location),
             options.presentation,
             async choice => {
+                const bundle = await resolveConnections(validated);
+                if (bundle == null) return null;
                 if (choice === 'create-new') {
                     const sessionId = crypto.randomUUID();
                     const importedBundle = withFreshIdentity(bundle, sessionId);
@@ -304,25 +309,34 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
     ): Promise<string | null> => {
         if (backend == null) throw new Error('Native session imports require composite storage');
         const original = await prepareNativeSessionImport(backend, dir);
-        const resolved = await resolveConnections(original.bundle);
-        if (resolved == null) return null;
-        const prepared: PreparedNativeSession = { ...original, bundle: resolved };
         // The folder is registered untouched, references to consolidated connections are written after
-        const refsChanged = connectionRefsChanged(original.bundle.session, resolved.session);
-        const conflict = await findSessionImportConflict(backend, prepared.bundle.session.sessionId);
+        const resolve = async () => {
+            const resolved = await resolveConnections(original.bundle);
+            if (resolved == null) return null;
+            const prepared: PreparedNativeSession = { ...original, bundle: resolved };
+            return { prepared, refsChanged: connectionRefsChanged(original.bundle.session, resolved.session) };
+        };
+        const conflict = await findSessionImportConflict(backend, original.bundle.session.sessionId);
         if (conflict == null) {
+            const resolution = await resolve();
+            if (resolution == null) return null;
+            const { prepared, refsChanged } = resolution;
             await reloadThen(async () => {
                 const sessionId = await registerNativeSession(backend, prepared);
-                if (refsChanged) await writeNativeConnectionRefs(backend, sessionId, resolved);
+                if (refsChanged) await writeNativeConnectionRefs(backend, sessionId, prepared.bundle);
                 return sessionId;
             }, writer);
             return prepared.bundle.session.sessionId;
         }
         return await requestConflictChoice(
-            prepared.bundle,
+            original.bundle,
             displayPath(conflict.sessionId, conflict.location),
             presentation,
-            choice => runNativeConflict(choice, prepared, refsChanged, conflict, backend, writer, stopSessionWork),
+            async choice => {
+                const resolution = await resolve();
+                if (resolution == null) return null;
+                return await runNativeConflict(choice, resolution.prepared, resolution.refsChanged, conflict, backend, writer, stopSessionWork);
+            },
         );
     }, [backend, requestConflictChoice, resolveConnections, stopSessionWork, writer]);
 
@@ -361,8 +375,9 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
             >
                 {props.children}
             </div>
-            {dialog?.presentation.mode === 'centered' && renderConflictDialog(dialog, handleChoice, cancelDialog)}
-            {dialog?.presentation.mode === 'anchored' && renderConflictDialog(dialog, handleChoice, cancelDialog)}
+            {/* The connections are asked after the conflict choice, the conflict dialog waits behind them */}
+            {connectionDialog == null && dialog?.presentation.mode === 'centered' && renderConflictDialog(dialog, handleChoice, cancelDialog)}
+            {connectionDialog == null && dialog?.presentation.mode === 'anchored' && renderConflictDialog(dialog, handleChoice, cancelDialog)}
             {connectionDialog != null && (
                 <SessionConnectionImportDialog
                     sessionName={connectionDialog.sessionName}
