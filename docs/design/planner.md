@@ -215,6 +215,6 @@ qualified identifiers containing dots, quotes, keywords, or case-sensitive text.
 
 ```bash
 bazel run //snapshots/planner:update
-bazel test //packages/dashql-core:planner_snapshot_test //packages/dashql-core:dashql_core_unit_tests
+bazel test //packages/dashql-core-session:planner_snapshot_test //packages/dashql-core-session:dashql_core_session_unit_tests
 bazel test //packages/dashql-core-js:all //packages/dashql-core-js/test:all
 ```
