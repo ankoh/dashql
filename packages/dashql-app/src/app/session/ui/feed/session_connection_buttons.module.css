@@ -1,7 +1,7 @@
 .buttons {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     min-width: 0;
     /* Set apart from the session actions to the right */
     margin-right: 12px;
