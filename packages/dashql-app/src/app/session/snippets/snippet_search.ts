@@ -28,7 +28,6 @@ function snippetRows(registry: SnippetRegistry): arrow.Table {
         category: snippet.category,
         connector: ConnectorType[connector],
         path: snippet.paths.get(connector)!,
-        description: snippet.description,
         body: snippet.bodies.get(connector)!,
     })));
     return new arrow.Table({
@@ -36,7 +35,6 @@ function snippetRows(registry: SnippetRegistry): arrow.Table {
         category: utf8Vector(rows.map(row => row.category)),
         connector: utf8Vector(rows.map(row => row.connector)),
         path: utf8Vector(rows.map(row => row.path)),
-        description: utf8Vector(rows.map(row => row.description)),
         body: utf8Vector(rows.map(row => row.body)),
     });
 }
@@ -62,8 +60,9 @@ export class SnippetSearch {
         return new SnippetSearch(await database.connect({ defaultDatabase: '__dashql_snippets' }));
     }
 
-    /// The ids of the snippets of a registry that run on a connector and contain a text in their id, description or
-    /// text, ignoring case. The snippet table is filled with the registry first, if it holds another one.
+    /// The ids of the snippets of a registry that run on a connector and contain a text in their id or text, ignoring
+    /// case. The text includes the description. The snippet table is filled with the registry first, if it holds
+    /// another one.
     search(registry: SnippetRegistry, connector: ConnectorType, text: string): Promise<Set<string>> {
         return this.enqueue(async () => {
             if (this.loaded !== registry) {
@@ -77,7 +76,7 @@ export class SnippetSearch {
             const result = await this.connection.query(`
                 SELECT id FROM ${SNIPPET_SEARCH_TABLE}
                 WHERE connector = ${quoteLiteral(ConnectorType[connector])}
-                    AND (${matches('id')} OR ${matches('description')} OR ${matches('body')})
+                    AND (${matches('id')} OR ${matches('body')})
             `);
             const ids = new Set<string>();
             for (const id of result.getChild('id') ?? []) ids.add(String(id));

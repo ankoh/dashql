@@ -43,7 +43,6 @@ function mergeSnippetFiles(files: SnippetFile[]): Snippet {
     return {
         id: files[0].id,
         category: files[0].category,
-        description: files.find(file => file.description.length > 0)?.description ?? '',
         connectors: [...bodies.keys()],
         bodies,
         paths,

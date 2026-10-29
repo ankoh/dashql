@@ -87,21 +87,12 @@
     overflow: auto;
 }
 
-/* The bar above the text of the snippet, its description on the left and the apply button on the right */
+/* The bar above the text of the snippet with the apply button on the right */
 .preview_header {
     flex: 0 0 auto;
     padding: 8px 16px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: flex-end;
     border-bottom: 1px solid var(--border_color_primary);
-}
-
-/* The description of the snippet, the text is plain SQL */
-.preview_description {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-size: 12px;
-    white-space: pre-line;
-    color: hsl(var(--neutral_hue), calc(7.8% * var(--neutral_tint)), 42.9%);
 }

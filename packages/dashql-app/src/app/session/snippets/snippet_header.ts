@@ -6,7 +6,7 @@ import { SNIPPET_ENGINE_CONNECTORS } from './snippet.js';
 /// The comment tag of the description of a snippet
 const SNIPPET_DESCRIPTION_TAG = 'description';
 
-/// One snippet file, `<engine>/<category>/<name>.sql`, a `@description` block describes the snippet.
+/// One snippet file, `<engine>/<category>/<name>.sql`, a leading `@description` block describes the snippet.
 /// The files of the engines with the same category and name are the variants of one snippet.
 export interface SnippetFile {
     /// The path of the file below the snippet folder
@@ -17,9 +17,7 @@ export interface SnippetFile {
     category: string;
     /// The connectors that the body of the file runs on, those of its engine
     connectors: readonly ConnectorType[];
-    /// The description of the snippet, empty without a description block
-    description: string;
-    /// The text of the file without its comment tag blocks
+    /// The text of the file, with its description
     body: string;
 }
 
@@ -81,24 +79,22 @@ export function parseSnippetFile(core: dashql.DashQL, path: string, raw: string)
     if (otherTag != null) {
         throw new Error(`snippet ${path} has a @${otherTag.name} block, snippets only have a description`);
     }
-    // The tag blocks are for the snippet browser, the applied text is plain SQL
-    let body = '';
+    // The description stays in the applied text, a snippet needs statements besides it
+    let statements = '';
     let end = 0;
     for (const tag of [...tags].sort((l, r) => l.offset - r.offset)) {
-        body += decoder.decode(bytes.subarray(end, tag.offset));
+        statements += decoder.decode(bytes.subarray(end, tag.offset));
         end = tag.offset + tag.length;
     }
-    body += decoder.decode(bytes.subarray(end));
-    const file: SnippetFile = {
+    statements += decoder.decode(bytes.subarray(end));
+    if (statements.trim().length === 0) {
+        throw new Error(`snippet ${path} has no body`);
+    }
+    return {
         path,
         id: `${category}/${name}`,
         category,
         connectors: engineConnectors,
-        description: tags.find(tag => tag.name === SNIPPET_DESCRIPTION_TAG)?.text.trim() ?? '',
-        body: body.trim(),
+        body: raw.trim(),
     };
-    if (file.body.length === 0) {
-        throw new Error(`snippet ${path} has no body`);
-    }
-    return file;
 }

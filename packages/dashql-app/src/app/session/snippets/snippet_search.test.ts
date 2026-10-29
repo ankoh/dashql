@@ -52,7 +52,7 @@ describe('Snippet search', () => {
         return [...await search!.search(snippets, connector, text)].sort();
     }
 
-    it('finds the snippets with the text in their id, description or text, ignoring case', async () => {
+    it('finds the snippets with the text in their id or text with the description, ignoring case', async () => {
         expect(await ids(ConnectorType.HYPER, 'json')).toEqual(['json/access']);
         expect(await ids(ConnectorType.HYPER, 'FIRST DAY')).toEqual(['dates/month']);
         expect(await ids(ConnectorType.HYPER, 'date_trunc')).toEqual(['dates/month']);

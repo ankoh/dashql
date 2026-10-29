@@ -68,8 +68,6 @@ describe('Snippet registry', () => {
             for (const connector of snippet.connectors) {
                 const text = snippetText(snippet, connector);
                 expect(parseErrors(text), `${snippet.id} ${ConnectorType[connector]}`).toEqual([]);
-                // The tag blocks are for the browser, the applied text is plain SQL
-                expect(text).not.toMatch(/^\s*--\s*@(description|end)\b/m);
             }
         }
     });
@@ -87,13 +85,12 @@ describe('Snippet registry', () => {
         }
     });
 
-    it('keeps the description out of the text', () => {
+    it('keeps the description in the text', () => {
         const registry = buildSnippetRegistry(core, {
             'hyper/json/access.sql': file('select 1;', 'Access a value.'),
         });
         const snippet = registry.byId.get('json/access')!;
-        expect(snippet.description).toEqual('Access a value.');
-        expect(snippetText(snippet, ConnectorType.HYPER)).toEqual('select 1;\n');
+        expect(snippetText(snippet, ConnectorType.HYPER)).toEqual(`${file('select 1;', 'Access a value.')}\n`);
     });
 
     it('merges the engine variants of a snippet', () => {
@@ -126,7 +123,6 @@ describe('Snippet registry', () => {
         expect(registry.errors).toContainEqual(expect.stringContaining('metadata.sql has a @metadata block'));
         expect(registry.errors).toContainEqual(expect.stringContaining('inline-comment.sql has comments outside its comment tags'));
         expect(registry.snippets.map(snippet => snippet.id)).toEqual(['json/fine', 'json/no-description']);
-        expect(registry.byId.get('json/no-description')!.description).toEqual('');
     });
 
     it('lists the snippets of a connector with the datasets first, then by path', () => {

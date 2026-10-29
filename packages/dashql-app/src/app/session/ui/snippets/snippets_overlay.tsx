@@ -318,7 +318,6 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
                     {selected != null && (
                         <>
                             <div className={styles.preview_header}>
-                                <div className={styles.preview_description} data-testid="snippet-description">{selected.description}</div>
                                 <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} data-testid="snippet-apply" onClick={apply}>
                                     Use
                                 </Button>

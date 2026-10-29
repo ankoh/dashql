@@ -75,7 +75,7 @@ describe('shell snippets dialog', () => {
 
         act(() => query<HTMLButtonElement>('[data-testid="snippet"][data-snippet-id="datasets/tpch_0_1"]')!.click());
         act(() => query<HTMLButtonElement>('[data-testid="snippet-apply"]')!.click());
-        await expect(result).resolves.toBe('create table a as select 1;\ncreate table b as select 2;\n');
+        await expect(result).resolves.toBe(`${file('create table a as select 1;\ncreate table b as select 2;')}\n`);
         expect(query('[data-testid="snippets-overlay"]')).toBeNull();
     });
 

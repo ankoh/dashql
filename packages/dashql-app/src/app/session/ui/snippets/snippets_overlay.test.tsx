@@ -125,7 +125,6 @@ describe('SnippetsOverlay', () => {
         applySelected();
         expect(onApply).toHaveBeenCalledOnce();
         expect(onApply.mock.calls[0][0]).toContain('json_parse');
-        expect(onApply.mock.calls[0][0]).not.toContain('@description');
         expect(query('[data-testid="snippets-overlay"]')).toBeNull();
     });
 
@@ -190,13 +189,12 @@ describe('SnippetsOverlay', () => {
         }
     });
 
-    it('shows the description of a snippet and applies its text without comment tags', () => {
+    it('applies the text of a snippet with its description', () => {
         render(ConnectorType.HYPER);
         open();
         selectSnippet('aggregation/count');
-        expect(query('[data-testid="snippet-description"]')!.textContent).toEqual('Text.');
         applySelected();
-        expect(onApply.mock.calls[0][0]).toEqual('select count(*) from lineitem;\n');
+        expect(onApply.mock.calls[0][0]).toEqual(`${file('select count(*) from lineitem;')}\n`);
     });
 
     it('applies the selection with the keyboard', () => {

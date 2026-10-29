@@ -9,8 +9,6 @@ export interface Snippet {
     id: string;
     /// The category of the snippet, the folder of its files
     category: string;
-    /// The description of the snippet, empty without one
-    description: string;
     /// The connectors that the snippet runs on
     connectors: ConnectorType[];
     /// The text of the snippet per connector
