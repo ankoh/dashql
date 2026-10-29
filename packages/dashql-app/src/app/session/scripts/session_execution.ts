@@ -2,7 +2,7 @@ import * as core from '@ankoh/dashql-core';
 
 import type { CancelQuery, QueryExecutor } from '../../connections/query_executor.js';
 import { QueryType } from '../../../query/query_execution_state.js';
-import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, type ScriptData, type SessionScripts } from './session_scripts.js';
+import { APPLY_PLANNER_ANALYSIS, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, SET_SCRIPT_EXECUTION_VISUALIZATION, scriptResultOwner, type ScriptData, type SessionScripts } from './session_scripts.js';
 import { resolveCompiledVisualization } from './script_compilation.js';
 import type { ModifySessionScripts } from './session_scripts_registry.js';
 import { yieldToBrowser } from '../../../utils/yield_to_browser.js';
@@ -276,7 +276,7 @@ export async function runSessionExecution(args: {
                     query: String(node.sql ?? ''), catalogChanges: node.catalogChanges, cacheable: false, throwOnError: true, abortSignal: signal,
                     analyzeResults: output, publishResults: output, replaceComputationId: output ? previousQueryId : undefined,
                     onResultsReady: release,
-                    metadata: { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, sessionId },
+                    metadata: { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, sessionId, resultOwner: scriptResultOwner(sessionId, script.scriptKey) },
                 });
                 activeExecutions.set(queryId, { connectionId, execution });
                 args.modifySessionScripts({ type: REGISTER_QUERY, value: [script.scriptKey, queryId] });

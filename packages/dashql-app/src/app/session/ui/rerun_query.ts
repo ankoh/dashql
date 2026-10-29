@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 
 import type { QueryExecutor } from '../../connections/query_executor.js';
 import { QueryType } from '../../../query/query_execution_state.js';
-import { SessionScripts, ScriptData, REGISTER_QUERY, REGISTER_SCRIPT_RESULT } from '../scripts/session_scripts.js';
+import { SessionScripts, ScriptData, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, scriptResultOwner } from '../scripts/session_scripts.js';
 import { compileSessionQuery, createScriptExecution } from '../scripts/script_compilation.js';
 import { ensureSessionScriptAnalyzed, ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';
@@ -124,6 +124,7 @@ function executeSessionScript(
             issuer: 'Query Rerun',
             userProvided: true,
             sessionId: sessionScripts.sessionId,
+            resultOwner: scriptResultOwner(sessionScripts.sessionId, scriptData.scriptKey),
         },
     });
     logger?.info('Session query allocated', {

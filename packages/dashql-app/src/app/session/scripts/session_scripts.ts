@@ -35,6 +35,11 @@ const LOG_CTX = 'session_scripts';
 
 /// A script key
 export type ScriptKey = number;
+
+/// The result owner of the queries of a script, the connection keeps only the latest result of a script
+export function scriptResultOwner(sessionId: string, scriptKey: ScriptKey): string {
+    return `${sessionId}/${scriptKey}`;
+}
 /// A script data map
 export type ScriptDataMap = { [scriptKey: number]: ScriptData };
 /// A session user focus

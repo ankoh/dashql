@@ -141,6 +141,9 @@ export interface QueryMetadata {
     /// Several sessions may share a connection, the session scopes the query result cache and the
     /// cleanup of the session's queries.
     sessionId?: string;
+    /// The owner of the result, e.g. a script of a session. A succeeded query releases the result table of the
+    /// earlier queries of its owner, the owner shows only its latest result.
+    resultOwner?: string;
 }
 
 export interface QueryExecutionState {
@@ -494,11 +497,7 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
                 status: QueryExecutionStatus.SUCCEEDED,
                 metrics: metrics,
             };
-            state.queriesActive.delete(query.queryId);
-            removePrimitiveFromArray(state.queriesActiveOrdered, query.queryId);
-            state.queriesFinished.set(query.queryId, query);
-            state.queriesFinishedOrdered.push(query.queryId);
-            state.snapshotQueriesActiveFinished += 1;
+            finishQuery(state, query);
             return query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
                 ? { ...state }
                 : {
@@ -522,11 +521,7 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
                 error: action.value[1],
                 metrics
             };
-            state.queriesActive.delete(query.queryId);
-            removePrimitiveFromArray(state.queriesActiveOrdered, query.queryId);
-            state.queriesFinished.set(query.queryId, query);
-            state.queriesFinishedOrdered.push(query.queryId);
-            state.snapshotQueriesActiveFinished += 1;
+            finishQuery(state, query);
             return query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
                 ? { ...state }
                 : {
@@ -550,11 +545,7 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
                 error: action.value[1],
                 metrics
             };
-            state.queriesActive.delete(query.queryId);
-            removePrimitiveFromArray(state.queriesActiveOrdered, query.queryId);
-            state.queriesFinished.set(query.queryId, query);
-            state.queriesFinishedOrdered.push(query.queryId);
-            state.snapshotQueriesActiveFinished += 1;
+            finishQuery(state, query);
             return query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
                 ? { ...state }
                 : {
@@ -564,6 +555,58 @@ export function reduceQueryAction<T extends QueryExecutionHistoryState>(state: T
                         failedQueries: mergeQueryMetrics(state.metrics.failedQueries!, metrics)
                     },
                 };
+        }
+    }
+}
+
+/// The finished internal queries that the history keeps, internal queries keep no result
+export const INTERNAL_QUERY_HISTORY_LIMIT = 100;
+
+/// Move a terminal query to the finished queries.
+///
+/// The finished queries keep their result tables for the views of their results, but not their batches, the
+/// table holds them. Internal queries return their results to their callers and keep only their metrics. A
+/// succeeded query with a result owner releases the result tables of the other queries of its owner, except for
+/// a later one, like the latest result of a script.
+function finishQuery(state: QueryExecutionHistoryState, query: QueryExecutionState) {
+    const userProvided = query.queryMetadata.queryType == QueryType.USER_PROVIDED;
+    query = {
+        ...query,
+        resultBatches: [],
+        resultTable: userProvided ? query.resultTable : null,
+    };
+    state.queriesActive.delete(query.queryId);
+    removePrimitiveFromArray(state.queriesActiveOrdered, query.queryId);
+    state.queriesFinished.set(query.queryId, query);
+    state.queriesFinishedOrdered.push(query.queryId);
+    state.snapshotQueriesActiveFinished += 1;
+
+    const owner = query.queryMetadata.resultOwner;
+    if (userProvided && owner != null && query.status == QueryExecutionStatus.SUCCEEDED && query.resultTable != null) {
+        for (const [otherId, other] of state.queriesFinished) {
+            if (otherId === query.queryId || other.resultTable == null || other.queryMetadata.resultOwner !== owner) continue;
+            // A later result stays, the earlier query finished after it
+            if (otherId > query.queryId) {
+                state.queriesFinished.set(query.queryId, { ...query, resultTable: null });
+            } else {
+                state.queriesFinished.set(otherId, { ...other, resultTable: null });
+            }
+        }
+    }
+
+    // Internal queries leave only their metrics
+    let internal = 0;
+    for (const queryId of state.queriesFinishedOrdered) {
+        if (state.queriesFinished.get(queryId)?.queryMetadata.queryType != QueryType.USER_PROVIDED) ++internal;
+    }
+    for (let i = 0; internal > INTERNAL_QUERY_HISTORY_LIMIT && i < state.queriesFinishedOrdered.length;) {
+        const queryId = state.queriesFinishedOrdered[i];
+        if (state.queriesFinished.get(queryId)?.queryMetadata.queryType != QueryType.USER_PROVIDED) {
+            state.queriesFinished.delete(queryId);
+            state.queriesFinishedOrdered.splice(i, 1);
+            --internal;
+        } else {
+            ++i;
         }
     }
 }
