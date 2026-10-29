@@ -3,20 +3,28 @@
     align-items: center;
     gap: 2px;
     min-width: 0;
+    /* Set apart from the session actions to the right */
+    margin-right: 12px;
 }
 
-/* The look and the hover outline are the ones of the other buttons of the bar, the dot is placed on top */
+/* The look and the hover outline are the ones of the other buttons of the bar */
 .button {
     position: relative;
 }
 
-/* The health dot sits on the bottom right corner of the connector logo */
+/* The connector logo carries the health dot */
+.logo {
+    position: relative;
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+}
+
+/* The health dot overlaps the bottom right corner of the connector logo, a white ring sets it apart */
 .health {
     position: absolute;
-    right: 3px;
-    bottom: 3px;
-    border-radius: 50%;
-    box-shadow: 0 0 0 1px white;
+    right: -2px;
+    bottom: -2px;
 }
 
 .button[data-attention] {

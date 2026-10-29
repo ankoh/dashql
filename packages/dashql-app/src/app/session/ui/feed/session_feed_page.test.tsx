@@ -24,7 +24,6 @@ const state = {
     sidebarProps: null as any,
     attention: null as any,
     connectionButtonsProps: null as any,
-    settingsProps: null as any,
     execution: { state: null, busy: false, start: vi.fn(), stop: vi.fn() } as any,
 };
 const dependencies = {
@@ -57,10 +56,6 @@ const dependencies = {
     },
     SessionConnectionButtons: (props: any) => {
         state.connectionButtonsProps = props;
-        return null;
-    },
-    ConnectionSettingsOverlay: (props: any) => {
-        state.settingsProps = props;
         return null;
     },
     useSessionViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
@@ -97,7 +92,6 @@ describe('SessionFeedPage', () => {
         state.shareProps = null;
         state.exportProps = null;
         state.connectionButtonsProps = null;
-        state.settingsProps = null;
         state.execution = { state: null, busy: false, start: vi.fn(), stop: vi.fn() };
         container = document.createElement('div');
         document.body.appendChild(container);
@@ -152,9 +146,11 @@ describe('SessionFeedPage', () => {
         expect(button.getAttribute('aria-label')).toBe('Connect to run');
         // The top bar shows the connections of the scripts only
         expect(state.connectionButtonsProps.connections).toEqual([lake]);
+        // A click draws attention to the connections that are not connected, it opens nothing
+        const request = vi.spyOn(state.attention, 'request');
         act(() => button.click());
         expect(state.execution.start).not.toHaveBeenCalled();
-        expect(state.settingsProps.connectionId).toBe('lake');
+        expect(request).toHaveBeenCalledWith('session');
         // Once connected the session runs
         const online = { ...lake, connectionHealth: ConnectionHealth.ONLINE };
         render([main, online, unused]);

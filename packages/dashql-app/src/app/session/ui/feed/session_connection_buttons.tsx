@@ -56,12 +56,15 @@ export function SessionConnectionButtons(props: Props & { dependencies?: Session
                             setSettingsConnectionId(connection.connectionId);
                         }}
                     >
-                        <svg width="16px" height="16px" aria-hidden="true">
-                            <use xlinkHref={`${symbols}#${connection.connectorInfo.icons.colored}`} />
-                        </svg>
-                        <svg className={styles.health} width="8px" height="8px" viewBox="0 0 8 8" aria-hidden="true">
-                            <circle cx="4" cy="4" r="3" style={{ fill: CONNECTION_HEALTH_COLORS[health] }} />
-                        </svg>
+                        <span className={styles.logo}>
+                            <svg width="16px" height="16px" aria-hidden="true">
+                                <use xlinkHref={`${symbols}#${connection.connectorInfo.icons.colored}`} />
+                            </svg>
+                            <svg className={styles.health} width="10px" height="10px" viewBox="0 0 10 10" aria-hidden="true">
+                                <circle cx="5" cy="5" r="5" fill="white" />
+                                <circle cx="5" cy="5" r="3.5" style={{ fill: CONNECTION_HEALTH_COLORS[health] }} />
+                            </svg>
+                        </span>
                     </IconButton>
                 );
             })}
