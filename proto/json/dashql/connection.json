@@ -320,6 +320,10 @@
         "login": {
           "type": "string",
           "description": "The login"
+        },
+        "databaseName": {
+          "type": "string",
+          "description": "The Hyper Cloud database that SIDB connections attach, \"default\" if empty"
         }
       },
       "required": ["instanceUrl", "appConsumerKey", "appConsumerSecret", "login"],

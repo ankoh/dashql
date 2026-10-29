@@ -31,7 +31,7 @@ import { RESET_CONNECTION } from '../connection_state.js';
 import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
 import { authenticateSalesforce, SalesforceAuthenticationProgress } from './salesforce_authentication.js';
 import { ConnectorType } from '../connector_info.js';
-import { SALESFORCE_CATALOG_DATABASE } from './salesforce_catalog_update.js';
+import { SALESFORCE_CATALOG_DATABASE, SIDB_DEFAULT_DATABASE_NAME } from './salesforce_catalog_update.js';
 
 const LOG_CTX = "salesforce_setup";
 
@@ -159,11 +159,11 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         // Static connection context.
         // Inject the database name, the audience header and the bearer token
         const authInfo = collectSalesforceAuthInfo(coreAccessToken, dcToken);
-        // SIDB queries the Hyper Cloud database of the offcore tenant
+        // SIDB queries the configured Hyper Cloud database
         const attachedDatabases: AttachedDatabase[] = [];
         if (connector === ConnectorType.SIDB) {
-            if (!authInfo?.offcoreTenantId) throw new Error('missing offcore tenant id');
-            attachedDatabases.push({ path: `hyper.cloud:${authInfo.offcoreTenantId}`, alias: SALESFORCE_CATALOG_DATABASE });
+            const databaseName = params.databaseName || SIDB_DEFAULT_DATABASE_NAME;
+            attachedDatabases.push({ path: `hyper.cloud:${databaseName}`, alias: SALESFORCE_CATALOG_DATABASE });
         }
         const connectionContext: HyperDatabaseConnectionContext = {
             getAttachedDatabases(): AttachedDatabase[] {

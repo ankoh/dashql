@@ -1,6 +1,6 @@
 import type { ConnectorDescriptor } from '../connector_descriptor.js';
 import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR } from '../connector_info.js';
-import { SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA } from './salesforce_catalog_update.js';
+import { SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA, SIDB_DEFAULT_DATABASE_NAME } from './salesforce_catalog_update.js';
 import { createSalesforceConnectionStateDetails, reduceSalesforceConnectionState } from './salesforce_connection_state.js';
 import { queryParam, requireChannel } from '../query_channel.js';
 
@@ -36,7 +36,12 @@ export const SIDB_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'sidb'> = {
     info: CONNECTOR_INFOS[ConnectorType.SIDB],
     paramsKey: 'sidb',
     detailsType: SIDB_CONNECTOR,
-    cacheSignature: params => ({ ...SALESFORCE_CONNECTOR_DESCRIPTOR.cacheSignature(params) as object, case: "sidb" }),
+    defaultParams: () => ({ ...SALESFORCE_CONNECTOR_DESCRIPTOR.defaultParams(), databaseName: SIDB_DEFAULT_DATABASE_NAME }),
+    cacheSignature: params => ({
+        ...SALESFORCE_CONNECTOR_DESCRIPTOR.cacheSignature(params) as object,
+        case: "sidb",
+        databaseName: params.databaseName || SIDB_DEFAULT_DATABASE_NAME,
+    }),
     executeQuery: (details, args, abort) => requireChannel(args.channelOverride?.type === 'salesforce' ? args.channelOverride.channel : details.channel, 'SIDB')
         .executeQuery(queryParam(args), abort),
 };

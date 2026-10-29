@@ -18,10 +18,10 @@ describe('createDefaultConnectionParamsForConnector', () => {
         }
     });
 
-    it('gives SIDB the params of Salesforce', () => {
+    it('gives SIDB the params of Salesforce and the default database', () => {
         const salesforce = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD]);
         const sidb = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.SIDB]);
-        expect(sidb).toEqual({ sidb: 'salesforce' in salesforce ? salesforce.salesforce : null });
+        expect(sidb).toEqual({ sidb: 'salesforce' in salesforce ? { ...salesforce.salesforce, databaseName: 'default' } : null });
     });
 });
 

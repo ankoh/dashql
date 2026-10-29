@@ -11,6 +11,8 @@ import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from
 
 export const SALESFORCE_CATALOG_DATABASE = 'lakehouse';
 export const SALESFORCE_CATALOG_SCHEMA = 'public';
+/// The Hyper Cloud database of SIDB connections that don't name one
+export const SIDB_DEFAULT_DATABASE_NAME = 'default';
 
 export interface ResolvedSalesforceCatalog {
     tables: Map<string, ColumnMetadata[]>;

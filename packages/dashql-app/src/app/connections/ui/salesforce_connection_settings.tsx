@@ -28,6 +28,7 @@ import { ConnectionStateDetailsVariant } from '../connection_state_details.js';
 import type { DetailedError } from '../../../utils/error.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { collectSalesforceAuthInfo } from '../salesforce/salesforce_api_client.js';
+import { SIDB_DEFAULT_DATABASE_NAME } from '../salesforce/salesforce_catalog_update.js';
 
 const LOG_CTX = "sf_connector";
 
@@ -35,6 +36,7 @@ interface PageState {
     instanceUrl: string;
     appConsumerKey: string;
     login: string;
+    databaseName: string;
 };
 
 export function getConnectionStatusText(status: ConnectionStatus | undefined, logger: Logger) {
@@ -146,6 +148,8 @@ interface SalesforceConnectionSettingsPageProps {
     instanceUrl: string;
     appConsumerKey: string;
     login: string;
+    /// The Hyper Cloud database, only shown for SIDB connections
+    databaseName?: string;
     coreAccessToken: string;
     dataCloudAccessToken: string;
     dataCloudInstanceUrl: string;
@@ -156,6 +160,7 @@ interface SalesforceConnectionSettingsPageProps {
     updateInstanceUrl: React.ChangeEventHandler<HTMLInputElement>;
     updateAppConsumerKey: React.ChangeEventHandler<HTMLInputElement>;
     updateLogin: React.ChangeEventHandler<HTMLInputElement>;
+    updateDatabaseName?: React.ChangeEventHandler<HTMLInputElement>;
     setupConnection: () => void;
     cancelSetup: () => void;
     resetSetup: () => void;
@@ -248,6 +253,20 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                             disabled={props.freezeInput}
                             logContext={LOG_CTX}
                         />
+                        {props.connector === ConnectorType.SIDB && (
+                            <TextField
+                                name="Database Name"
+                                data-testid="sidb-database-name"
+                                caption="Hyper Cloud database that is queried"
+                                value={props.databaseName ?? ""}
+                                placeholder={SIDB_DEFAULT_DATABASE_NAME}
+                                leadingVisual={() => <div>DB</div>}
+                                onChange={props.updateDatabaseName}
+                                readOnly={props.freezeInput}
+                                disabled={props.freezeInput}
+                                logContext={LOG_CTX}
+                            />
+                        )}
                     </div>
                 </div>
                 <div className={style.section}>
@@ -328,6 +347,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const { saving } = useConnectionSave(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
     const paramsKey = CONNECTOR_DESCRIPTORS[props.connector].paramsKey as 'salesforce' | 'sidb';
+    const isSidb = props.connector === ConnectorType.SIDB;
     const editableParams = connectionState?.paramsDraft ?? connectionState?.params;
     const salesforceParams = editableParams && paramsKey in editableParams ? (editableParams as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined;
 
@@ -335,17 +355,20 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         instanceUrl: params?.instanceUrl ?? "",
         appConsumerKey: params?.appConsumerKey ?? "",
         login: params?.login ?? "",
+        databaseName: params?.databaseName ?? SIDB_DEFAULT_DATABASE_NAME,
     });
     const [pageState, setPageState] = useConnectionDraftForm(props.connectionId,
         params => buildPageState(params && paramsKey in params ? (params as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined),
-        form => connectionParamsOf(CONNECTOR_DESCRIPTORS[props.connector], {
+        ({ databaseName, ...form }) => connectionParamsOf(CONNECTOR_DESCRIPTORS[props.connector], {
             ...salesforceParams,
             ...form,
             appConsumerSecret: salesforceParams?.appConsumerSecret ?? '',
+            ...(isSidb ? { databaseName } : {}),
         }));
     const updateInstanceUrl: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, instanceUrl: ev.target.value }));
     const updateAppConsumerKey: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, appConsumerKey: ev.target.value }));
     const updateLogin: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, login: ev.target.value }));
+    const updateDatabaseName: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, databaseName: ev.target.value }));
 
     // Maintain setting validations
     const [instanceUrlValidation, setInstanceUrlValidation] = React.useState<TextFieldValidationStatus>({
@@ -366,7 +389,8 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         appConsumerKey: pageState.appConsumerKey,
         appConsumerSecret: salesforceParams?.appConsumerSecret ?? '',
         login: pageState.login,
-    }), [pageState, salesforceParams?.appConsumerSecret]);
+        ...(isSidb ? { databaseName: pageState.databaseName } : {}),
+    }), [pageState, salesforceParams?.appConsumerSecret, isSidb]);
     const setupConnection = async () => {
         let validationSucceeded = true;
         if (pageState.instanceUrl == "") {
@@ -432,6 +456,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             instanceUrl={pageState.instanceUrl}
             appConsumerKey={pageState.appConsumerKey}
             login={pageState.login}
+            databaseName={pageState.databaseName}
             coreAccessToken={coreAccessToken?.accessToken ?? ''}
             dataCloudAccessToken={dcAuthInfo?.offcoreRawJwt ?? ''}
             dataCloudInstanceUrl={dcAuthInfo?.offcoreInstanceUrl ?? ''}
@@ -442,6 +467,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             updateInstanceUrl={updateInstanceUrl}
             updateAppConsumerKey={updateAppConsumerKey}
             updateLogin={updateLogin}
+            updateDatabaseName={updateDatabaseName}
             setupConnection={setupConnection}
             cancelSetup={cancelSetup}
             resetSetup={resetSetup}

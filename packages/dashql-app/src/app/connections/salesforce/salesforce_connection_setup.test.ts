@@ -12,7 +12,7 @@ import { ConnectorType } from '../connector_info.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
-for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB] as const) for (const exchangeFails of [false, true]) describe(`setupSalesforceConnection of ${ConnectorType[connector]} with exchange failure=${exchangeFails}`, () => {
+for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB] as const) for (const exchangeFails of [false, true]) for (const databaseName of [undefined, 'sales']) describe(`setupSalesforceConnection of ${ConnectorType[connector]} with exchange failure=${exchangeFails} and database=${databaseName}`, () => {
     it('configures the Salesforce database over http', async () => {
         let context: HyperDatabaseConnectionContext | undefined;
         const client: HyperDatabaseClient = {
@@ -29,6 +29,7 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB
             appConsumerKey: 'consumer-key',
             appConsumerSecret: '',
             login: '',
+            databaseName,
         } as connection.SalesforceConnectionParams;
         const coreToken: connection.SalesforceCoreAccessToken = {
             createdAt: new Date(0).toISOString(),
@@ -94,7 +95,7 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB
             endpoint: 'https://hyper.example.com/',
         }), context);
         expect(context?.getAttachedDatabases()).toEqual(connector === ConnectorType.SIDB
-            ? [{ path: 'hyper.cloud:tenant-id', alias: 'lakehouse' }]
+            ? [{ path: `hyper.cloud:${databaseName ?? 'default'}`, alias: 'lakehouse' }]
             : []);
         expect(await context?.getRequestMetadata()).toEqual({
             audience: 'tenant-id',
