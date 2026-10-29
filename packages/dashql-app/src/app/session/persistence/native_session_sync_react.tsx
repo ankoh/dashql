@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { connectionEntryFromState, registerConnection, useConnectionRegistry, type ConnectionRegistry } from '../../connections/connection_registry.js';
-import { reindexSessionScriptConnections, useSessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
+import { replaceSessionScriptsInRegistry, useSessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
 import { sessionScriptsMatchStorageSnapshot, replaceSessionScriptsFromStorage, scriptConnectionOf } from '../scripts/session_scripts.js';
 import { isDesktopHost } from '../../../platform/native_globals.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
@@ -256,9 +256,7 @@ export const NativeSessionSync: React.FC = () => {
                     if (registry.sessionScriptsMap.get(sessionId) !== latestSessionScripts) {
                         return registry;
                     }
-                    registry.sessionScriptsMap.set(sessionId, reloadedSessionScripts);
-                    reindexSessionScriptConnections(registry, latestSessionScripts, reloadedSessionScripts);
-                    return { ...registry };
+                    return replaceSessionScriptsInRegistry(registry, latestSessionScripts, reloadedSessionScripts);
                 });
             }
             logger.info('reloaded externally changed session', { sessionId }, LOG_CTX);

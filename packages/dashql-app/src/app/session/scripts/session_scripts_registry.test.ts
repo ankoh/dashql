@@ -30,6 +30,15 @@ describe('removeSessionScriptsFromRegistry', () => {
         expect(next.sessionScriptsByConnection.has('connection-a')).toBe(false);
     });
 
+    it('leaves the given registry unchanged', () => {
+        const reg = registry(['a', 'b']);
+        const next = removeSessionScriptsFromRegistry(reg, 'a');
+
+        expect(next.sessionScriptsMap).not.toBe(reg.sessionScriptsMap);
+        expect(reg.sessionScriptsMap.has('a')).toBe(true);
+        expect(reg.sessionScriptsByConnection.get('connection-a')).toEqual(['a']);
+    });
+
     it('leaves sibling sessions intact', () => {
         const reg = registry(['a', 'b']);
         const next = removeSessionScriptsFromRegistry(reg, 'a');

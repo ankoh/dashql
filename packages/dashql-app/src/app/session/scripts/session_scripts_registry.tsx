@@ -35,6 +35,24 @@ export interface SessionScriptsRegistry {
 }
 
 export type SetSessionScriptsRegistryAction = React.SetStateAction<SessionScriptsRegistry>;
+
+/// Copy the indices of a registry before modifying them. Snapshots of the registry are never modified, a
+/// component that renders an older snapshot keeps seeing the maps of that snapshot.
+export function copySessionScriptsRegistry(reg: SessionScriptsRegistry): SessionScriptsRegistry {
+    return {
+        ...reg,
+        sessionScriptsMap: new Map(reg.sessionScriptsMap),
+        sessionScriptsByConnection: new Map(reg.sessionScriptsByConnection),
+    };
+}
+
+/// The registry with the next scripts of a session, the given registry stays unchanged
+export function replaceSessionScriptsInRegistry(reg: SessionScriptsRegistry, prev: SessionScripts, next: SessionScripts): SessionScriptsRegistry {
+    const copy = copySessionScriptsRegistry(reg);
+    copy.sessionScriptsMap.set(next.sessionId, next);
+    reindexSessionScriptConnections(copy, prev, next);
+    return copy;
+}
 export type SessionScriptsAllocator = (scripts: SessionScripts) => [string, SessionScripts];
 export type ModifySessionScripts = (action: SessionScriptsAction) => Promise<SessionScripts | null> | void;
 /// Resolves once the action was applied to the sessions
@@ -140,17 +158,18 @@ export function useSessionScriptsAllocator(): SessionScriptsAllocator {
         const scripts: SessionScripts = { ...state };
 
         // Modify the registry
-        setReg((reg) => {
+        setReg((prevReg) => {
             const connectorInfo = newScriptConnection(scripts, null)?.connectorInfo;
             if (scripts.sessionMetadata.originalFileName == "" && connectorInfo != null) {
                 scripts.sessionMetadata.originalFileName = `${connectorInfo.names.fileShort}`;
             }
 
+            const reg = copySessionScriptsRegistry(prevReg);
             for (const connectionId of sessionConnectionIds(scripts)) {
                 addSessionScriptsForConnection(reg, connectionId, sessionId);
             }
             reg.sessionScriptsMap.set(sessionId, scripts);
-            return { ...reg };
+            return reg;
         });
 
         storage.write(groupSessionWrites(scripts.sessionId), {
@@ -217,18 +236,19 @@ export function removeSessionScriptsForConnection(reg: SessionScriptsRegistry, c
 
 /// Remove a session from all three registry indices.
 ///
-/// Pure and idempotent (a missing entry is a no-op), so it is safe to run inside a React state
-/// updater that may be invoked more than once. It touches no Wasm — freeing the session's Wasm is
+/// Pure and idempotent (a missing entry is a no-op, the given registry stays unchanged), so it is safe to run
+/// inside a React state updater that may be invoked more than once. It touches no Wasm — freeing the session's Wasm is
 /// the caller's responsibility and must happen separately (see useSessionScriptsDeletion), because that
 /// teardown is order-sensitive against the shared connection catalog.
 export function removeSessionScriptsFromRegistry(reg: SessionScriptsRegistry, sessionId: string): SessionScriptsRegistry {
     const entry = reg.sessionScriptsMap.get(sessionId);
     if (!entry) return reg;
-    reg.sessionScriptsMap.delete(sessionId);
+    const next = copySessionScriptsRegistry(reg);
+    next.sessionScriptsMap.delete(sessionId);
     for (const connectionId of sessionConnectionIds(entry)) {
-        removeSessionScriptsForConnection(reg, connectionId, sessionId);
+        removeSessionScriptsForConnection(next, connectionId, sessionId);
     }
-    return { ...reg };
+    return next;
 }
 
 /// Delete a session's scripts and free their Wasm.
@@ -241,18 +261,18 @@ export function removeSessionScriptsFromRegistry(reg: SessionScriptsRegistry, se
 /// pure updater (safe to run more than once). Callers must invoke this before dispatching
 /// DELETE_CONNECTION for the same session.
 export function useSessionScriptsDeletion(): (sessionId: string) => void {
-    const reg = React.useContext(SESSION_SCRIPTS_REGISTRY_CTX)!;
+    const readReg = React.useContext(SESSION_SCRIPTS_REGISTRY_READER_CTX)!;
     const setReg = React.useContext(SESSION_SCRIPTS_REGISTRY_SETTER_CTX)!;
     return React.useCallback((sessionId: string) => {
-        // Free the session-owned Wasm now, before the shared catalog can be destroyed. The
-        // registry closure is recreated on every change, so this read is current at call time.
-        const scripts = reg.sessionScriptsMap.get(sessionId);
+        // Free the session-owned Wasm now, before the shared catalog can be destroyed. The store holds the
+        // latest registry, a rendered snapshot may miss the latest scripts of the session.
+        const scripts = readReg().sessionScriptsMap.get(sessionId);
         if (scripts) {
             destroySessionScripts(scripts);
         }
         // Drop the entry from all three indices.
         setReg((prev) => removeSessionScriptsFromRegistry(prev, sessionId));
-    }, [reg, setReg]);
+    }, [readReg, setReg]);
 }
 
 /// Apply an action to the scripts of a session through the shared queue
@@ -291,9 +311,7 @@ function dispatchSessionScriptsAction(
             resolve(next);
             // Keep the registry identity for no-ops (e.g. re-selecting the hovered script)
             if (next === prev) return reg;
-            reg.sessionScriptsMap.set(id, next);
-            reindexSessionScriptConnections(reg, prev, next);
-            return { ...reg };
+            return replaceSessionScriptsInRegistry(reg, prev, next);
         });
     });
 }
@@ -345,8 +363,8 @@ export function useConnectionScriptsDispatch(): ModifyConnectionSessionScripts {
     const logger = useLogger();
 
     return React.useCallback<ModifyConnectionSessionScripts>((conn: string, action: SessionScriptsAction) => new Promise<void>(resolve => {
-        queue.push(reg => {
-            let changed = false;
+        queue.push(prevReg => {
+            let reg = prevReg;
             // Every session with scripts that analyze with the connection receives the action
             for (const sessionId of [...(reg.sessionScriptsByConnection.get(conn) ?? [])]) {
                 const prev = reg.sessionScriptsMap.get(sessionId);
@@ -364,13 +382,11 @@ export function useConnectionScriptsDispatch(): ModifyConnectionSessionScripts {
                         }, LOG_CTX);
                         continue;
                     }
-                    reg.sessionScriptsMap.set(sessionId, next);
-                    reindexSessionScriptConnections(reg, prev, next);
-                    changed ||= next !== prev;
+                    if (next !== prev) reg = replaceSessionScriptsInRegistry(reg, prev, next);
                 }
             }
             resolve();
-            return changed ? { ...reg } : reg;
+            return reg;
         });
     }), [queue, storage, logger]);
 }

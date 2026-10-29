@@ -5,7 +5,7 @@ import { ProgressCounter } from '../../../utils/progress.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import { registerConnection, sessionConnectionFromState, type ConnectionRegistry } from '../../connections/connection_registry.js';
 import type { SessionScripts, ScriptData } from '../scripts/session_scripts.js';
-import { addSessionScriptsForConnection, type SessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
+import { addSessionScriptsForConnection, copySessionScriptsRegistry, type SessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
 import { createEmptyScriptData, destroySessionScripts, replaceScriptSessionText, scriptConnectionOf, sessionConnectionIds } from '../scripts/session_scripts.js';
 import { connectionStateFromStorage, destroyUnregisteredConnection, restoreConnectionCatalog } from '../../connections/connection_restore.js';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '../../connections/connector_info.js';
@@ -516,11 +516,12 @@ export function mergeRestoredSessionIntoScripts(
     reg: SessionScriptsRegistry,
     restored: RestoredSession,
 ): SessionScriptsRegistry {
-    reg.sessionScriptsMap.set(restored.sessionId, restored.sessionScripts);
+    const next = copySessionScriptsRegistry(reg);
+    next.sessionScriptsMap.set(restored.sessionId, restored.sessionScripts);
     for (const connectionId of sessionConnectionIds(restored.sessionScripts)) {
-        addSessionScriptsForConnection(reg, connectionId, restored.sessionId);
+        addSessionScriptsForConnection(next, connectionId, restored.sessionId);
     }
-    return { ...reg };
+    return next;
 }
 
 export function destroyRestoredSession(restored: RestoredSession): void {
