@@ -105,21 +105,27 @@ describe('session shell environment', () => {
     it('honors forced UI, terminal, and off output modes', async () => {
         let mode: ShellOutputMode = 'ui';
         const execute = vi.fn<QueryExecutor>(() => [7, Promise.resolve(arrow.tableFromArrays({ value: [42] }))]);
-        const environment = createSessionShellEnvironment('session', 'session-1', execute, vi.fn(), () => mode);
+        const release = vi.fn();
+        const environment = createSessionShellEnvironment('session', 'session-1', execute, vi.fn(), () => mode, () => 100, release);
         const result = vi.fn();
 
         expect(arrow.tableFromIPC(await environment.executeQuery('SELECT 42', undefined, undefined, result)).numCols).toBe(0);
         expect(result).toHaveBeenCalledWith(7, 1);
+        // The overlay holds the result
+        expect(release).not.toHaveBeenCalled();
 
         mode = 'term';
         result.mockClear();
         expect(arrow.tableFromIPC(await environment.executeQuery('SELECT 42', undefined, undefined, result))
             .getChild('value')?.get(0)).toBe(42);
         expect(result).not.toHaveBeenCalled();
+        expect(release).toHaveBeenCalledWith(7);
 
         mode = 'off';
+        release.mockClear();
         expect(arrow.tableFromIPC(await environment.executeQuery('SELECT 42', undefined, undefined, result)).numCols).toBe(0);
         expect(result).not.toHaveBeenCalled();
+        expect(release).toHaveBeenCalledWith(7);
     });
 
     it('does not open a result UI for successful statements without columns', async () => {

@@ -21,6 +21,8 @@ import { getKeywordCase } from '../ui/script_format.js';
 import { ConnectorType } from '../../connections/connector_info.js';
 import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '../../connections/ui/connection_label.js';
 import { useComputeDatabase } from '../../../compute/compute_connection_provider.js';
+import { useComputationDispatch } from '../../../compute/computation_registry.js';
+import { DELETE_COMPUTATION } from '../../../compute/computation_state.js';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../../shell/shell_files.js';
 import { useShellFiles } from '../../../shell/filesystem_dialog.js';
 import { createExamplesCommand } from '../../../shell/shell_examples.js';
@@ -66,6 +68,15 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
     const [status, setStatus] = React.useState('Instantiating Shell');
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
     const resultQuery = useQueryState(sessionId, resultQueryId);
+    // The overlay shows one result, the computation of a result is released once it is no longer shown
+    const computationDispatch = useComputationDispatch();
+    const releaseResult = React.useCallback((queryId: number) => {
+        computationDispatch({ type: DELETE_COMPUTATION, value: [queryId] });
+    }, [computationDispatch]);
+    React.useEffect(() => {
+        if (resultQueryId == null) return;
+        return () => releaseResult(resultQueryId);
+    }, [resultQueryId, releaseResult]);
     const connectorName = connection?.connectorInfo.names.displayShort ?? '';
     // The shell names its connection like the workbench does, e.g. "Hyper #2 Http Shell" with the prompt "hyper#2> "
     const shellName = connection == null ? 'Shell' : `${connectionLabelText(connectionLabelParts(connection, ordinal))} Shell`;
@@ -104,6 +115,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
             cancelQuery,
             getOutputMode,
             () => terminalColumnsRef.current,
+            releaseResult,
         );
         const outputCommand = createShellOutputCommand(getOutputMode, mode => {
             outputModeRef.current = mode;
@@ -166,7 +178,7 @@ export const SessionShellPage: React.FC<Props> = ({ sessionId, sessionName, conn
         return () => {
             cancelled = true;
         };
-    }, [connection?.connectionId, prompt, sessionName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand]);
+    }, [connection?.connectionId, prompt, sessionName, shellName, relationsSql, functionsSql, executeQuery, cancelQuery, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();

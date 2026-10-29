@@ -17,6 +17,7 @@ export function createSessionShellEnvironment(
     cancelQuery: CancelQuery,
     getOutputMode: () => ShellOutputMode = () => 'auto',
     getTerminalColumns: () => number = () => 100,
+    releaseResult: (queryId: number) => void = () => { },
 ): DashQLShellEnvironment {
     return {
         async executeQuery(query, signal, onProgress, onResult, onTiming) {
@@ -49,6 +50,8 @@ export function createSessionShellEnvironment(
                         onResult?.(queryId, table.numRows);
                         return EMPTY_RESULT_IPC;
                     }
+                    // The terminal shows the result as text, its computation is not needed
+                    releaseResult(queryId);
                     if (outputMode === 'off') return EMPTY_RESULT_IPC;
                     return arrow.tableToIPC(table, 'file');
                 } finally {
