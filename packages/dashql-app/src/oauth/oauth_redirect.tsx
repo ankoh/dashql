@@ -23,7 +23,7 @@ import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARN
 import { classNames } from '../utils/classnames.js';
 import { formatHHMMSS, formatTimeDifference } from '../utils/format.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
-import { isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
+import { decodeOAuthState, getOAuthStateFlavor, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
 import { getRequestedFlavor } from '../app/flavor/flavor_resolution.js';
 
 import '../../static/fonts/fonts.css';
@@ -418,9 +418,7 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
 
     const authState = React.useMemo<Result<OAuthState>>(() => {
         try {
-            const authStateBuffer = BASE64URL_CODEC.decode(state);
-            const authStateString = new TextDecoder().decode(authStateBuffer);
-            const parsed = JSON.parse(authStateString) as OAuthState;
+            const parsed = decodeOAuthState(state);
             validateOAuthRedirectState(parsed);
             return {
                 type: RESULT_OK,
@@ -460,12 +458,16 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
     }
 };
 
+// Resolve the flavor before the first render, the page would otherwise flip from DashQL to the flavor.
+// The query parameter wins over the flavor carried in the OAuth state.
+const flavor = getRequestedFlavor() ?? getOAuthStateFlavor(new URLSearchParams(window.location.search).get('state'));
+
 const element = document.getElementById('root');
 const root = createRoot(element!);
 root.render(
     <React.StrictMode>
         <BrowserRouter>
-            <FlavorProvider requested={getRequestedFlavor()}>
+            <FlavorProvider requested={flavor}>
                 <GitHubTheme>
                     <LoggerProvider>
                         <Routes>

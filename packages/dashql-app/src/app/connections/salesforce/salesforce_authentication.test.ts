@@ -122,6 +122,40 @@ describe('Salesforce OAuth callback state', () => {
 });
 
 describe('authenticateSalesforce', () => {
+    it('carries the flavor of the document in the OAuth state', async () => {
+        document.documentElement.dataset.flavor = 'sidb';
+        try {
+            const popup = { closed: false, close: vi.fn(), focus: vi.fn() } as unknown as Window;
+            const open = vi.spyOn(window, 'open').mockReturnValue(popup);
+            const apiClient = {
+                getCoreAccessToken: vi.fn().mockResolvedValue(coreAccessToken),
+                getCoreUserInfo: vi.fn().mockResolvedValue(undefined),
+                getDataCloudAccessToken: vi.fn().mockResolvedValue(dataCloudAccessToken),
+            } as unknown as SalesforceApiClientInterface;
+            const appEvents = {
+                waitForOAuthRedirect: vi.fn().mockImplementation(async () => {
+                    const state = decodeState(new URL(open.mock.calls[0][0]!.toString()));
+                    return { state, code: 'authorization-code' };
+                }),
+            };
+
+            await authenticateSalesforce({
+                logger: new NullLogger(),
+                params,
+                authConfig,
+                platformType: PlatformType.WEB,
+                apiClient,
+                appEvents: appEvents as any,
+                forceReLogin: false,
+                abortSignal: new AbortController().signal,
+            });
+
+            expect(decodeState(new URL(open.mock.calls[0][0]!.toString())).flavor).toBe('sidb');
+        } finally {
+            delete document.documentElement.dataset.flavor;
+        }
+    });
+
     it('returns both tokens and optional user info through staged progress', async () => {
         const popup = { closed: false, close: vi.fn(), focus: vi.fn() } as unknown as Window;
         const open = vi.spyOn(window, 'open').mockReturnValue(popup);

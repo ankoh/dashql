@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { OAuthState } from './oauth_types.js';
-import { isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
+import { getOAuthStateFlavor, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
+import { BASE64URL_CODEC } from '../utils/base64.js';
 
 function makeState(expiresAt = 2_000): OAuthState {
     return {
@@ -57,5 +58,21 @@ describe('OAuth redirect state validation', () => {
     it('rejects missing flow IDs and expired state', () => {
         expect(() => validateOAuthRedirectState({ ...makeState(), flowId: '' }, 1_500)).toThrow('flow ID');
         expect(() => validateOAuthRedirectState(makeState(1_500), 1_500)).toThrow('expired');
+    });
+});
+
+describe('OAuth redirect state flavor', () => {
+    const encode = (state: object) => BASE64URL_CODEC.encode(new TextEncoder().encode(JSON.stringify(state)).buffer);
+
+    it('reads a known flavor', () => {
+        expect(getOAuthStateFlavor(encode({ ...makeState(), flavor: 'sidb' }))?.id).toBe('sidb');
+    });
+
+    it('ignores missing, unknown and malformed flavors', () => {
+        expect(getOAuthStateFlavor(null)).toBeNull();
+        expect(getOAuthStateFlavor(encode(makeState()))).toBeNull();
+        expect(getOAuthStateFlavor(encode({ ...makeState(), flavor: 'unknown' }))).toBeNull();
+        expect(getOAuthStateFlavor(encode({ ...makeState(), flavor: 42 }))).toBeNull();
+        expect(getOAuthStateFlavor('not base64 json')).toBeNull();
     });
 });

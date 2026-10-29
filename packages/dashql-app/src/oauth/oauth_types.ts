@@ -3,6 +3,8 @@ export interface OAuthState {
     flowVariant: 'UNSPECIFIED_FLOW' | 'WEB_OPENER_FLOW' | 'NATIVE_LINK_FLOW';
     debugMode: boolean;
     callbackUrl?: string;
+    /// The flavor of the app that started the flow, the redirect page is branded with it
+    flavor?: string;
     salesforceProvider?: {
         instanceUrl: string;
         appConsumerKey: string;

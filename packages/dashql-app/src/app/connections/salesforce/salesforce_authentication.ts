@@ -132,6 +132,9 @@ export async function authenticateSalesforce(options: SalesforceAuthenticationOp
             ? 'WEB_OPENER_FLOW'
             : 'NATIVE_LINK_FLOW';
         const requestedAt = Date.now();
+        // The redirect page cannot see the flavor of the app, the url of the redirect is fixed by the connected app.
+        // The flavor provider brands the document with the resolved flavor, pass that one through the state.
+        const flavor = globalThis.document?.documentElement.dataset.flavor;
         const state: OAuthState = {
             flowId: crypto.randomUUID(),
             flowVariant,
@@ -139,6 +142,7 @@ export async function authenticateSalesforce(options: SalesforceAuthenticationOp
             ...(flowVariant === 'WEB_OPENER_FLOW'
                 ? { callbackUrl: new URL('/oauth.html', window.location.origin).toString() }
                 : {}),
+            ...(flavor ? { flavor } : {}),
             salesforceProvider: {
                 instanceUrl: params.instanceUrl,
                 appConsumerKey: params.appConsumerKey,
@@ -166,6 +170,7 @@ export async function authenticateSalesforce(options: SalesforceAuthenticationOp
                 flowVariant: state.flowVariant,
                 debugMode: state.debugMode,
                 callbackUrl: state.callbackUrl ?? null,
+                flavor: state.flavor ?? null,
                 salesforceProvider: {
                     instanceUrl: state.salesforceProvider?.instanceUrl,
                     appConsumerKey: state.salesforceProvider?.appConsumerKey,

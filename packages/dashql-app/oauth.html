@@ -18,6 +18,29 @@
         <meta property="og:image" content="/static/favicons/dashql/sharing-dashql.png" />
 
         <title>DashQL</title>
+
+        <script>
+            // Drop the static DashQL branding before the first paint when the OAuth flow carries another flavor.
+            // The module script brands the page with the flavor, but would only replace the DashQL favicons and title once it loaded.
+            (function () {
+                var search = new URLSearchParams(window.location.search);
+                var flavor = search.get('flavor');
+                if (flavor == null) {
+                    try {
+                        var state = (search.get('state') || '').replace(/-/g, '+').replace(/_/g, '/');
+                        flavor = JSON.parse(atob(state)).flavor;
+                    } catch (e) {}
+                }
+                if (typeof flavor !== 'string' || flavor === 'dashql') {
+                    return;
+                }
+                document.documentElement.dataset.flavor = flavor;
+                document.title = '';
+                document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"], link[rel="mask-icon"]').forEach(function (link) {
+                    link.remove();
+                });
+            })();
+        </script>
     </head>
     <body>
         <div id="root"></div>
