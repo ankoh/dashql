@@ -435,9 +435,10 @@ The catalog loader starts the refresh again.
 - The JS `Catalog` wraps a `SharedCatalog`, the only shared catalog of the Rust side. `Script`,
   `ScriptSession` and the shell's `Shell` handles clone it, so they can outlive the JS catalog object,
   and pass borrows of it into the core.
-- Freeing a `Script` or `ScriptSession` drops its entry and freeing a `Shell` detaches its session
-  relations (`SharedCatalog::modify_or_defer`). If the catalog is borrowed at that moment, the
-  modification waits for the next access instead of being lost.
+- Freeing a `Script` or `ScriptSession` only frees memory, the app drops their catalog entries
+  explicitly. Freeing a `Shell` detaches its session relations (`SharedCatalog::modify_or_defer`). If
+  the catalog is borrowed at that moment, the modification waits for the next access instead of
+  being lost.
 - All catalogs of a module share one `EntryIdSource`, so an entry id identifies a script across
   catalogs of the same module. The app runs three core modules (main thread, batch worker, shell),
   each with its own id space.
