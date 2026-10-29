@@ -14,6 +14,7 @@ import { useComposerInputMode } from '../../ai/use_composer_input_mode.js';
 import { findScriptReferences, renderScriptReference } from '../../ai/script_references.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { AgentPromptPanel, isAgentWorking, type ComposerAgent } from '../../ai/ui/agent_prompt_panel.js';
+import { ExecuteConnectionGuard, SessionConnectionAttentionContext } from '../session_connection_attention.js';
 import type { ConnectorType } from '../../../connections/connector_info.js';
 import type { SnippetRegistry } from '../../snippets/snippet_registry.js';
 
@@ -57,6 +58,9 @@ export interface SessionComposerProps {
     targetScriptRef?: React.RefObject<((name: string) => void) | null>;
     /// Picks the connection that the draft runs on
     connectionPicker?: React.ReactNode;
+    /// The session of the draft, set while the connection of the draft is not connected.
+    /// A SQL draft is not sent then, the connections of the session ask for attention instead.
+    offlineSessionId?: string | null;
     /// The connector of the draft, the composer offers the snippets that run on it
     snippetConnector?: ConnectorType;
     /// The snippets to browse, the bundled ones by default
@@ -109,14 +113,21 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
         input.pick(index === 0 ? ComposerInputMode.Sql : ComposerInputMode.Ai);
     }, [input.pick]);
 
+    // The connection of a SQL draft has to be connected first, the draft stays until it is
+    const connectionAttention = React.useContext(SessionConnectionAttentionContext);
+    const offlineSessionId = props.offlineSessionId ?? null;
     const send = React.useCallback(() => {
         if (view == null) return;
         const mode = input.resolveSendMode();
+        if (mode === ComposerInputMode.Sql && offlineSessionId != null) {
+            connectionAttention?.request(offlineSessionId);
+            return;
+        }
         const text = takeComposerDraft(view);
         if (text != null) {
             props.onSend(text, mode);
         }
-    }, [props.onSend, view, input.resolveSendMode]);
+    }, [props.onSend, view, input.resolveSendMode, offlineSessionId, connectionAttention]);
     // A snippet replaces the draft right away, there is no script yet whose text could be compared
     const applySnippet = React.useCallback((text: string) => {
         if (view == null) return;
@@ -164,6 +175,22 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     }, [view]);
 
     const naturalLanguage = input.mode === ComposerInputMode.Ai;
+    const blockedSessionId = naturalLanguage ? null : offlineSessionId;
+    const blocked = blockedSessionId != null;
+    // A blocked button stays clickable, it pulses the connections that are not connected
+    const sendButton = (
+        <IconButton
+            variant={hero && !blocked ? ButtonVariant.Primary : ButtonVariant.Default}
+            size={ButtonSize.Small}
+            aria-label={naturalLanguage ? 'Ask the agent' : blocked ? 'Connect to run' : 'Run query'}
+            data-testid="composer-send"
+            data-connect={blocked ? '' : undefined}
+            disabled={empty && !blocked}
+            onClick={handleSendClick}
+        >
+            <PaperAirplaneIcon />
+        </IconButton>
+    );
     const agent = props.agent ?? null;
     const placeholder = naturalLanguage
         ? 'Ask a question about your data'
@@ -214,16 +241,9 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
                             testId="composer-snippets"
                         />
                     )}
-                    <IconButton
-                        variant={hero ? ButtonVariant.Primary : ButtonVariant.Default}
-                        size={ButtonSize.Small}
-                        aria-label={naturalLanguage ? 'Ask the agent' : 'Run query'}
-                        data-testid="composer-send"
-                        disabled={empty}
-                        onClick={handleSendClick}
-                    >
-                        <PaperAirplaneIcon />
-                    </IconButton>
+                    {blockedSessionId != null
+                        ? <ExecuteConnectionGuard sessionId={blockedSessionId} blocked>{sendButton}</ExecuteConnectionGuard>
+                        : sendButton}
                 </div>
             </div>
         </div>

@@ -518,7 +518,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     }, [props.modifySessionScripts]);
 
     // The composer appends its draft as a new script and runs it right away.
-    // Without a healthy connection, the script is only created and the connection asks for attention.
+    // The composer keeps a SQL draft while its connection is not connected, a script that the agent writes
+    // on a connection that is not connected is only created and the connection asks for attention.
     const connectionAttention = React.useContext(SessionConnectionAttentionContext);
     const pendingScrollToEndRef = React.useRef(false);
     const appendScript = React.useCallback(async (text: string) => {
@@ -769,6 +770,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         scriptNames={scriptNames}
                         targetScriptRef={composerTargetScriptRef}
                         snippetConnector={composerConnection.connectorInfo.connectorType}
+                        offlineSessionId={scriptConnections.get(composerConnection.connectionId)?.connectionHealth === ConnectionHealth.ONLINE
+                            ? null : props.sessionScripts.sessionId}
                         connectionPicker={(
                             <ScriptConnectionPicker
                                 sessionId={props.sessionScripts.sessionId}

@@ -12,6 +12,7 @@ import { ComposerInputMode } from '../../ai/input_mode.js';
 import { LoggerProvider } from '../../../../platform/logger/logger_provider.js';
 import * as identifierStyles from '../../ai/editor/nl_identifier_plugin.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../../scripts/editor/dashql_processor.js';
+import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -35,6 +36,7 @@ describe('Session composer', () => {
     let view: EditorView | null;
     let onSend: ReturnType<typeof vi.fn<(text: string, mode: ComposerInputMode) => void>>;
     let targetScript: React.RefObject<((name: string) => void) | null>;
+    let attention: { sessionId: string; active: boolean; request: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
         container = document.createElement('div');
@@ -44,6 +46,7 @@ describe('Session composer', () => {
         view = null;
         onSend = vi.fn<(text: string, mode: ComposerInputMode) => void>();
         targetScript = { current: null };
+        attention = { sessionId: 'session', active: false, request: vi.fn() };
     });
     afterEach(() => {
         act(() => root.unmount());
@@ -54,13 +57,15 @@ describe('Session composer', () => {
     });
 
     // The view is created by a chain of effects, wait until the composer hands it out
-    async function render(variant = SessionComposerVariant.Docked, aiAvailable = false) {
+    async function render(variant = SessionComposerVariant.Docked, aiAvailable = false, offlineSessionId: string | null = null) {
         const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `${core.renderCommentTag('description', 'Text.')}\nselect 42;` });
         act(() => root.render(<LoggerProvider>
-            <SessionComposer instance={dql} catalog={catalog} variant={variant} aiAvailable={aiAvailable}
-                snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
-                scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript}
-                keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
+            <SessionConnectionAttentionContext.Provider value={attention as any}>
+                <SessionComposer instance={dql} catalog={catalog} variant={variant} aiAvailable={aiAvailable}
+                    snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
+                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineSessionId={offlineSessionId}
+                    keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
+            </SessionConnectionAttentionContext.Provider>
         </LoggerProvider>));
         await vi.waitFor(() => expect(view).not.toBeNull());
         return view!;
@@ -119,6 +124,39 @@ describe('Session composer', () => {
         act(() => sendButton().click());
         expect(onSend).toHaveBeenCalledExactlyOnceWith('  select 2', ComposerInputMode.Sql);
         expect(editor.state.doc.toString()).toBe('');
+    });
+
+    it.each([
+        ['landing', SessionComposerVariant.Hero],
+        ['docked', SessionComposerVariant.Docked],
+    ])('keeps a SQL draft on the %s composer while its connection is not connected and pulses the connections', async (_, variant) => {
+        const editor = await render(variant, false, 'session');
+        // The button is clickable even without a draft, it never sends
+        expect(sendButton().disabled).toBe(false);
+        expect(sendButton().getAttribute('aria-label')).toBe('Connect to run');
+        expect(container.querySelector('[data-execution-connection-blocked="true"]')?.contains(sendButton())).toBe(true);
+        act(() => type(editor, 'select 1'));
+        act(() => sendButton().click());
+        act(() => press(editor, 'Enter'));
+        expect(onSend).not.toHaveBeenCalled();
+        expect(attention.request).toHaveBeenCalledTimes(2);
+        expect(attention.request).toHaveBeenCalledWith('session');
+        expect(editor.state.doc.toString()).toBe('select 1');
+        // Once connected the draft is sent
+        await render(variant, false, null);
+        expect(sendButton().getAttribute('aria-label')).toBe('Run query');
+        act(() => sendButton().click());
+        expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1', ComposerInputMode.Sql);
+    });
+
+    it('asks the agent while the connection of the draft is not connected', async () => {
+        const editor = await render(SessionComposerVariant.Docked, true, 'session');
+        act(() => type(editor, 'how many rows'));
+        await vi.waitFor(() => expect(sendButton().getAttribute('aria-label')).toBe('Ask the agent'));
+        expect(container.querySelector('[data-execution-connection-blocked]')).toBeNull();
+        act(() => sendButton().click());
+        expect(onSend).toHaveBeenCalledExactlyOnceWith('how many rows', ComposerInputMode.Ai);
+        expect(attention.request).not.toHaveBeenCalled();
     });
 
     it.each([

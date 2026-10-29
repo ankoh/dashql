@@ -436,6 +436,13 @@ describe('Session feed composer', () => {
         expect(attention.request).not.toHaveBeenCalled();
     });
 
+    it('keeps the composer draft while the connection of the next script is not connected', () => {
+        render(session(), vi.fn());
+        expect(feedState.composerProps?.offlineSessionId).toBeNull();
+        render(session(), vi.fn(), { ...onlineConn, connectionHealth: ConnectionHealth.NOT_STARTED });
+        expect(feedState.composerProps?.offlineSessionId).toBe('session');
+    });
+
     it('only creates the script without a healthy connection', async () => {
         const modify = vi.fn(() => Promise.resolve(session(['1_alpha.sql'])));
         render(session(), modify, null);
