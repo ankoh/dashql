@@ -96,6 +96,7 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
 | OAuth loopback | Node HTTP server in main (`src/oauth_loopback.ts`), used by Trino; Salesforce uses the deep-link relay (`oauth_salesforce.md`) |
 | Drag and drop | Renderer DOM drop events, as on the web |
 | Updates | `electron-updater` in main (`src/updater.ts`) |
+| Pending writes | Before a window closes and before the app quits, main sends `dashql:flush` and waits up to 5 s for `dashql:flushed`; the renderer flushes its storage writer through `onFlush` |
 
 ## Build and Packaging
 

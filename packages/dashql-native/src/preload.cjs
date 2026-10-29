@@ -1,5 +1,17 @@
 const {contextBridge, ipcRenderer} = require("electron");
 
+// The main process asks for the pending writes before a window closes, a renderer without a handler answers right away
+let flushHandler = null;
+ipcRenderer.on("dashql:flush", async (_event, requestId) => {
+    try {
+        if (flushHandler !== null) await flushHandler();
+    } catch (error) {
+        console.error("Failed to flush before closing", error);
+    } finally {
+        ipcRenderer.send("dashql:flushed", requestId);
+    }
+});
+
 contextBridge.exposeInMainWorld("dashqlElectron", {
     confirm: async (options) => await ipcRenderer.invoke("dashql:confirm", options),
     fs: {
@@ -48,6 +60,12 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
             ipcRenderer.on("dashql:update-status", handler);
             return () => ipcRenderer.removeListener("dashql:update-status", handler);
         },
+    },
+    onFlush: (handler) => {
+        flushHandler = handler;
+        return () => {
+            if (flushHandler === handler) flushHandler = null;
+        };
     },
     onDeepLink: (listener) => {
         const handler = (_event, data) => listener(data);

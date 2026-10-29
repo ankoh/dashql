@@ -65,6 +65,13 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
                 return;
             }
 
+            // OPFS is the only copy of browser sessions, ask the browser not to evict it under storage pressure
+            void navigator.storage?.persist?.().then(persisted => {
+                logger.info("Requested persistent storage", { persisted: persisted.toString() }, "storage_provider");
+            }, error => {
+                logger.warn("Failed to request persistent storage", { error: stringifyError(error) }, "storage_provider");
+            });
+
             logger.info("Initializing storage backend", {}, "storage_provider");
             const opfsBackend = new OPFSStorageBackend();
             const composite = new CompositeStorageBackend(opfsBackend, logger);
@@ -87,6 +94,32 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
         if (!backend) return null;
         return new StorageWriter(logger, backend);
     }, [logger, backend]);
+
+    // Write the pending changes when the page goes away, the writer debounces them.
+    // Browsers don't wait for the writes when the page unloads, a hidden page usually still finishes them.
+    // Electron asks for the writes before it closes a window and waits for them.
+    React.useEffect(() => {
+        if (!writer) return;
+        const flush = async () => {
+            try {
+                await writer.flush();
+            } catch (error) {
+                logger.error("Failed to flush the storage writer", { error: stringifyError(error) }, "storage_provider");
+            }
+        };
+        const flushIfHidden = () => {
+            if (document.visibilityState === 'hidden') void flush();
+        };
+        const flushOnPageHide = () => void flush();
+        window.addEventListener('pagehide', flushOnPageHide);
+        document.addEventListener('visibilitychange', flushIfHidden);
+        const removeElectronFlush = globalThis.dashqlElectron?.onFlush(flush);
+        return () => {
+            window.removeEventListener('pagehide', flushOnPageHide);
+            document.removeEventListener('visibilitychange', flushIfHidden);
+            removeElectronFlush?.();
+        };
+    }, [writer, logger]);
 
     // Another tab takes over the app, the migration and the pending writes finish first
     useAppHandOver(async () => {

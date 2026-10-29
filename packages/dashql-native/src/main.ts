@@ -5,7 +5,7 @@ import {promisify} from "node:util";
 import {fileURLToPath} from "node:url";
 import {brotliDecompress} from "node:zlib";
 
-import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProcess, type WebContents} from "electron";
+import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProcess, type IpcMainEvent, type WebContents} from "electron";
 
 import {AgentHost} from "./agent_host.js";
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
@@ -143,6 +143,16 @@ async function createWindow(testMode: RendererTestMode): Promise<BrowserWindow> 
         ? `hyperdb-capability.html?mode=${testMode}`
         : "index.html";
     await window.loadURL(`${rendererDevOrigin ?? APP_ORIGIN}/${target}`);
+    // The renderer writes its pending changes first, the quit already waited for them
+    let flushed = false;
+    window.on("close", (event) => {
+        if (flushed || quitState === "confirmed") return;
+        event.preventDefault();
+        void flushRenderer(window).finally(() => {
+            flushed = true;
+            if (!window.isDestroyed()) window.close();
+        });
+    });
     window.on("closed", () => {
         if (mainWindow === window) mainWindow = null;
         deepLinks.detach();
@@ -489,6 +499,33 @@ async function startMenuBar(): Promise<void> {
 
 let quitState: "running" | "confirming" | "confirmed" = "running";
 
+/// How long a closing window waits for the renderer to write its pending changes
+const RENDERER_FLUSH_TIMEOUT_MS = 5000;
+let nextFlushRequestId = 1;
+
+/// Ask the renderer of a window to write its pending changes, the storage writer of the app debounces them.
+/// Resolves when the renderer is done, or after a timeout so that a hanging renderer cannot block the close.
+async function flushRenderer(window: BrowserWindow): Promise<void> {
+    if (window.isDestroyed()) return;
+    const contents = window.webContents;
+    const requestId = nextFlushRequestId++;
+    await new Promise<void>((resolve) => {
+        const done = () => {
+            clearTimeout(timer);
+            ipcMain.removeListener("dashql:flushed", onFlushed);
+            contents.removeListener("destroyed", done);
+            resolve();
+        };
+        const onFlushed = (event: IpcMainEvent, flushedId: unknown) => {
+            if (event.sender === contents && flushedId === requestId) done();
+        };
+        const timer = setTimeout(done, RENDERER_FLUSH_TIMEOUT_MS);
+        ipcMain.on("dashql:flushed", onFlushed);
+        contents.once("destroyed", done);
+        contents.send("dashql:flush", requestId);
+    });
+}
+
 /// Ask before a quit stops the turns of agents
 async function confirmQuit(): Promise<boolean> {
     const turns = agentHost?.snapshot.state === "running" ? agentHost.snapshot.status?.turns.length ?? 0 : 0;
@@ -513,6 +550,7 @@ async function quitDashQL(install: boolean): Promise<void> {
         return;
     }
     quitState = "confirmed";
+    await Promise.all(BrowserWindow.getAllWindows().map(flushRenderer));
     menuBar?.destroy();
     menuBar = null;
     nativeProxy?.close();

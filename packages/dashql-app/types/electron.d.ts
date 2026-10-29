@@ -34,6 +34,8 @@ interface DashQLElectronBridge {
     getRuntimeCapabilities(): Promise<unknown>;
     nativeProxyRequest(request: unknown): Promise<unknown>;
     onDeepLink(listener: (link: {type: "event" | "session"; value: string}) => void): () => void;
+    /// Write the pending changes before a window closes, the main process waits until the handler resolves
+    onFlush(handler: () => Promise<void>): () => void;
     openExternal(url: string): Promise<void>;
     oauthLoopback: {
         listen(callbackUrl: string): Promise<number>;
