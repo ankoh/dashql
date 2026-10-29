@@ -1,10 +1,18 @@
 .trigger {
-    max-width: 200px;
+    max-width: 280px;
     min-width: 0;
     --button_visual_gap: 8px;
 }
 
+/* The content of the button doesn't shrink by default, a long name would push the tag over the
+   padding. The content shrinks with the button instead and the name is truncated. */
+button.trigger > span {
+    flex-shrink: 1;
+    min-width: 0;
+}
+
 .trigger_label {
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
