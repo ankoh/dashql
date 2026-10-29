@@ -265,14 +265,15 @@ function resolveEmbeddedConnection(ctx: RestoreContext, sessionId: string, copie
         });
 }
 
-/// Restores a single session (connection references + catalog + session)
+/// Restores a single session (connection references + catalog + session).
+/// Returns the session as invalid when its scripts could not be restored.
 async function restoreSessionEntry(
     ctx: RestoreContext,
     sessionEntry: SessionEntry,
     sessionScripts: Map<string, SessionScripts>,
     sessionScriptsByConnection: Map<string, string[]>,
     progress: RestoreProgress,
-): Promise<void> {
+): Promise<InvalidSession | null> {
     const { backend, logger } = ctx;
     // The session UUID is the authoritative identity and the key the backend routes on. Gate it up
     // front: a manifest entry whose path is not a valid UUID can't be loaded (the backend would
@@ -379,14 +380,15 @@ async function restoreSessionEntry(
         progress.sessionScripts.addFailed();
     }
 
-    if (restoredSessionScripts != null) {
-        sessionScripts.set(sessionId, restoredSessionScripts);
-        for (const id of sessionConnectionIds(restoredSessionScripts)) {
-            sessionScriptsByConnection.set(id, [...(sessionScriptsByConnection.get(id) ?? []), sessionId]);
-        }
-    }
-
     progress.report();
+    if (restoredSessionScripts == null) {
+        return describeInvalidSession(sessionEntry, SessionValidationError.SessionNotRestored, sessionData);
+    }
+    sessionScripts.set(sessionId, restoredSessionScripts);
+    for (const id of sessionConnectionIds(restoredSessionScripts)) {
+        sessionScriptsByConnection.set(id, [...(sessionScriptsByConnection.get(id) ?? []), sessionId]);
+    }
+    return null;
 }
 
 /// Load a session and validate its metadata
@@ -653,13 +655,17 @@ export async function restoreAppState(
                     sessionId: sessionEntry.path
                 }, LOG_CTX);
 
-                await restoreSessionEntry(
+                const invalid = await restoreSessionEntry(
                     ctx,
                     sessionEntry,
                     sessionScripts,
                     sessionScriptsByConnection,
                     progress,
                 );
+                if (invalid != null) {
+                    // The session stays visible as invalid, the user can delete it
+                    invalidSessions.set(invalid.sessionId, invalid);
+                }
 
                 const sessionDuration = performance.now() - sessionStartTime;
                 logger.info("Session restored", {
@@ -691,6 +697,8 @@ export async function restoreAppState(
                     error: stringifyError(error)
                 }, LOG_CTX);
 
+                // The session stays visible as invalid, the user can delete it
+                invalidSessions.set(sessionEntry.path, describeInvalidSession(sessionEntry, SessionValidationError.SessionNotRestored, null));
                 progress.connections.addFailed();
                 progress.catalogs.addFailed();
                 progress.sessionScripts.addFailed();

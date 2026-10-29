@@ -40,6 +40,8 @@ export enum SessionValidationError {
     /// but it lands in the same bucket: the session can't be opened and should be surfaced as invalid
     /// so the user can remove the stale entry.
     SessionUnreadable = 'session_unreadable',
+    /// The session metadata is valid, but restoring the session failed, e.g. its scripts could not be read
+    SessionNotRestored = 'session_not_restored',
 }
 
 /// A short, human-readable explanation for each validation error, shown in the session workbench.
@@ -61,6 +63,8 @@ export function describeSessionValidationError(error: SessionValidationError): s
             return 'Unknown connector';
         case SessionValidationError.SessionUnreadable:
             return 'Session files missing';
+        case SessionValidationError.SessionNotRestored:
+            return 'Session could not be loaded';
     }
 }
 

@@ -250,6 +250,13 @@ describe('V2 app state loader', () => {
         expect(result.connectionStates.size).toBe(0);
         expect(result.sessionScripts.size).toBe(0);
     });
+
+    it('surfaces a session whose scripts fail to load as invalid', async () => {
+        vi.mocked(backend.loadScripts).mockRejectedValue(new Error('unreadable scripts'));
+        const result = await restoreAppState(core, backend, new NullLogger(), () => {});
+        expect(result.sessionScripts.size).toBe(0);
+        expect(result.invalidSessions.get(TEST_SESSION_ID)).toMatchObject({ sessionId: TEST_SESSION_ID, error: 'session_not_restored' });
+    });
 });
 
 describe('real-core startup catalog restoration', () => {
