@@ -9,7 +9,7 @@ import { ComputeConnectionProvider, useComputeDatabase } from '../../../compute/
 import { EmbeddedDatabaseProvider } from '../../../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '../../../platform/database/embedded_database.js';
 import { LoggerProvider } from '../../../platform/logger/logger_provider.js';
-import { createQueryResponseStreamMetrics, QueryExecutionStatus, type QueryExecutionResponseStream } from '../../../query/query_execution_state.js';
+import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '../../../query/query_execution_state.js';
 import { ConnectionRegistry, useConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectionHealth, createConnectionMetrics, type ConnectionState } from '../../connections/connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
@@ -349,7 +349,7 @@ describe('SessionExecutionProvider', () => {
     it.each(['offline', 'active query'] as const)('does not start with an %s connection', async reason => {
         const f = fixtures[0];
         if (reason === 'offline') f.database.connectionHealth = ConnectionHealth.FAILED;
-        else f.database.queriesActive.set(99, {} as never);
+        else f.database.queriesActive.set(99, { queryMetadata: { queryType: QueryType.USER_PROVIDED } } as never);
         await render();
         act(() => current.start(f.modify));
         expect(f.plan).not.toHaveBeenCalled();
@@ -357,6 +357,14 @@ describe('SessionExecutionProvider', () => {
         expect(f.modify).not.toHaveBeenCalled();
         expect(current.state).toBeNull();
         expect(current.busy).toBe(false);
+    });
+
+    it('starts while computations of the session query the compute database', async () => {
+        const f = fixtures[0];
+        f.database.queriesActive.set(99, { queryMetadata: { queryType: QueryType.INTERNAL_SQLFRAME } } as never);
+        await render();
+        act(() => current.start(f.modify));
+        await vi.waitFor(() => expect(f.plan).toHaveBeenCalledTimes(1));
     });
 
     it('aborts every active run when the provider unmounts, not when route consumers unmount', async () => {

@@ -7,6 +7,7 @@ import { useCancelQuery, useQueryExecutor } from '../../connections/query_execut
 import { useSessionScriptsRegistry, type ModifySessionScripts } from './session_scripts_registry.js';
 import { runSessionExecution, type SessionExecutionState } from './session_execution.js';
 import { scriptConnectionIds } from './session_scripts.js';
+import { QueryType } from '../../../query/query_execution_state.js';
 
 interface ExecutionContext {
     states: Map<string, SessionExecutionState>;
@@ -19,6 +20,15 @@ const CONTEXT = React.createContext<ExecutionContext | null>(null);
 /// The number of statements of a session run that a connection executes at once
 function maxConcurrentQueries(connection: ConnectionState | undefined): number {
     return connection == null ? 1 : connectorOfDetails(connection.details).maxConcurrentQueries(connection.details.value);
+}
+
+/// Does a connection run a query? The SQLFrame queries of computations run on the compute database,
+/// the connection only tracks them.
+function runsQueries(connection: ConnectionState): boolean {
+    for (const query of connection.queriesActive.values()) {
+        if (query.queryMetadata.queryType !== QueryType.INTERNAL_SQLFRAME) return true;
+    }
+    return false;
 }
 
 export function sessionExecutionIsBusy(state: SessionExecutionState | null | undefined): boolean {
@@ -75,7 +85,7 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
             const connection = connections.connections.get(connectionId);
             return !runningDatabases.current.has(connectionId)
                 && connection?.connectionHealth === ConnectionHealth.ONLINE
-                && connection.queriesActive.size === 0;
+                && !runsQueries(connection);
         });
         if (!idle) return;
         const controller = new AbortController();
