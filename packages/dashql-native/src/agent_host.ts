@@ -3,9 +3,8 @@ import {readFile} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-/// The ports of the agent server, see packages/dashql-cli/src/agent/config.rs
+/// The port of the agent server, see packages/dashql-cli/src/agent/config.rs
 export const AGENT_PORT = 47100;
-export const AGENT_DEV_PORT = 47101;
 
 import type {AgentServerStatus, AgentStatusResponse} from "./agent_bridge.js";
 
@@ -35,8 +34,6 @@ export interface AgentHostSnapshot {
 export interface AgentHostOptions {
     /// The dashql binary
     binary: string;
-    /// Accept the dev origins, use the dev port and ~/.dashql/agent-dev
-    dev: boolean;
     /// The environment of the server, DASHQL_AGENT_HOME and DASHQL_AGENT_PORT are honored like the server does
     env?: NodeJS.ProcessEnv;
     /// How often the status is read
@@ -55,9 +52,9 @@ const STOP_GRACE_MS = 6000;
 const STATUS_TIMEOUT_MS = 2000;
 
 /// The folder of config.json, as `agent_home` in packages/dashql-cli/src/agent/config.rs
-export function agentHome(env: NodeJS.ProcessEnv, dev: boolean): string {
+export function agentHome(env: NodeJS.ProcessEnv): string {
     if (env.DASHQL_AGENT_HOME) return env.DASHQL_AGENT_HOME;
-    return path.join(env.HOME ?? os.homedir(), ".dashql", dev ? "agent-dev" : "agent");
+    return path.join(env.HOME ?? os.homedir(), ".dashql", "agent");
 }
 
 interface Endpoint {
@@ -66,10 +63,10 @@ interface Endpoint {
 }
 
 /// The port and the token of the server from its config.json, null before the server created it
-async function readEndpoint(env: NodeJS.ProcessEnv, dev: boolean): Promise<Endpoint | null> {
+async function readEndpoint(env: NodeJS.ProcessEnv): Promise<Endpoint | null> {
     let config: {port?: unknown; token?: unknown};
     try {
-        config = JSON.parse(await readFile(path.join(agentHome(env, dev), "config.json"), "utf8"));
+        config = JSON.parse(await readFile(path.join(agentHome(env), "config.json"), "utf8"));
     } catch {
         return null;
     }
@@ -77,7 +74,7 @@ async function readEndpoint(env: NodeJS.ProcessEnv, dev: boolean): Promise<Endpo
     const fromEnv = Number(env.DASHQL_AGENT_PORT);
     const port = Number.isInteger(fromEnv) && fromEnv > 0 ? fromEnv
         : typeof config.port === "number" ? config.port
-        : dev ? AGENT_DEV_PORT : AGENT_PORT;
+        : AGENT_PORT;
     return {port, token: config.token};
 }
 
@@ -166,7 +163,7 @@ export class AgentHost {
 
     #spawn(): void {
         // The server stops when its stdin closes, so it does not outlive a crash of the app
-        const args = ["agent", "serve", "--exit-with-stdin", ...(this.#options.dev ? ["--dev"] : [])];
+        const args = ["agent", "serve", "--exit-with-stdin"];
         const child = spawn(this.#options.binary, args, {env: this.#env, stdio: ["pipe", "ignore", "pipe"]});
         child.stdin?.on("error", () => {});
         this.#child = child;
@@ -207,7 +204,7 @@ export class AgentHost {
         const error = !this.#listening && this.#lastLine !== "" ? this.#lastLine : exit;
         // Another server holds the port: follow it while it answers our token
         if (/is taken/.test(error)) {
-            const endpoint = await readEndpoint(this.#env, this.#options.dev);
+            const endpoint = await readEndpoint(this.#env);
             const result = endpoint !== null ? await fetchStatus(endpoint) : null;
             if (!this.#wanted) return;
             if (result?.ok) {
@@ -236,7 +233,7 @@ export class AgentHost {
         if (!this.#wanted || this.#polling) return;
         this.#polling = true;
         try {
-            const endpoint = await readEndpoint(this.#env, this.#options.dev);
+            const endpoint = await readEndpoint(this.#env);
             const result = endpoint !== null ? await fetchStatus(endpoint) : null;
             if (!this.#wanted) return;
             const {state} = this.#snapshot;

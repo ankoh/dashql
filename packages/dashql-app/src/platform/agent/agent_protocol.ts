@@ -18,6 +18,3 @@ export type AgentNotification = {
         ? never
         : { method: M; params: AgentClientMethods[M]['params'] };
 }[keyof AgentClientMethods];
-
-/// The default port of the agent server
-export const DEFAULT_AGENT_PORT = 47100;

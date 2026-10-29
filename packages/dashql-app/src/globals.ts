@@ -3,7 +3,7 @@ export const DASHQL_BUILD_MODE: string = process.env.DASHQL_BUILD_MODE!;
 export const DASHQL_VERSION: string = process.env.DASHQL_VERSION!;
 export const DASHQL_GIT_COMMIT: string = process.env.DASHQL_GIT_COMMIT!;
 export const HYPERDB_WASM_VERSION: string = process.env.HYPERDB_WASM_VERSION!;
-/// The port of the local agent server, the dev server uses its own
+/// The port of the local agent server
 export const DASHQL_AGENT_PORT: number = Number(process.env.DASHQL_AGENT_PORT ?? '47100');
 
 // The URL of the git repository

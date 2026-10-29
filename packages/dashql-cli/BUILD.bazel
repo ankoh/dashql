@@ -4,8 +4,8 @@ load("//bazel:macos_packaging.bzl", "platform_binary")
 package(default_visibility = ["//visibility:private"])
 
 # bazel run //packages/dashql-cli:dashql -- lint <file.sql|dir|->...
-# bazel run //packages/dashql-cli:dashql -- agent serve --dev
-# bazel run //packages/dashql-cli:dashql -- agent --dev status
+# bazel run //packages/dashql-cli:dashql -- agent serve
+# bazel run //packages/dashql-cli:dashql -- agent status
 rust_binary(
     name = "dashql",
     srcs = glob(["src/**/*.rs"]),

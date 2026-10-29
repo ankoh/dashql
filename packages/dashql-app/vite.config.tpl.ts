@@ -229,8 +229,7 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.HYPERDB_WASM_VERSION': JSON.stringify(HYPERDB_WASM_VERSION),
             'process.env.DASHQL_APP_URL': JSON.stringify(process.env.DASHQL_APP_URL || 'https://dashql.app'),
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),
-            // The dev server talks to a dev agent server, an installed DashQL.app may hold the release port
-            'process.env.DASHQL_AGENT_PORT': JSON.stringify(process.env.DASHQL_AGENT_PORT || (command === 'serve' ? '47101' : '47100')),
+            'process.env.DASHQL_AGENT_PORT': JSON.stringify(process.env.DASHQL_AGENT_PORT || '47100'),
         },
         resolve: {
             alias: [

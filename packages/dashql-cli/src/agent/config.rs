@@ -6,13 +6,9 @@ use std::time::Duration;
 
 /// The default port of the agent server
 pub const DEFAULT_PORT: u16 = 47100;
-/// The default port of a server in dev mode, an installed DashQL.app may hold the release port
-pub const DEV_PORT: u16 = 47101;
 
-/// The origins of DashQL clients that every server accepts
-pub const RELEASE_ORIGINS: [&str; 2] = ["https://dashql.app", "app://bundle"];
-/// The origins of the dev servers, accepted only by a server started in dev mode
-pub const DEV_ORIGINS: [&str; 2] = ["http://localhost:9002", "http://127.0.0.1:9002"];
+/// The origins of DashQL clients: the web app, desktop windows and the dev server of the web app
+pub const ORIGINS: [&str; 4] = ["https://dashql.app", "app://bundle", "http://localhost:9002", "http://127.0.0.1:9002"];
 
 /// How long a call waits for DashQL to hold its session, unless `callWaitMs` says otherwise
 const DEFAULT_CALL_WAIT: Duration = Duration::from_secs(30);
@@ -75,8 +71,8 @@ pub struct AgentConfig {
     pub default_harness: String,
     /// The harnesses by name, the built-in ones first
     pub harnesses: Vec<(String, HarnessConfig)>,
-    /// Additional origins that a server in dev mode accepts
-    pub dev_origins: Vec<String>,
+    /// Additional origins that the server accepts
+    pub origins: Vec<String>,
     /// How long a call waits for DashQL to hold its session
     pub call_wait: Duration,
 }
@@ -121,13 +117,13 @@ fn default_harnesses() -> Value {
     })
 }
 
-/// The folder of the configuration and the state of the agent server, dev mode keeps its own
-pub fn agent_home(env: &dyn Fn(&str) -> Option<String>, dev: bool) -> PathBuf {
+/// The folder of the configuration and the state of the agent server
+pub fn agent_home(env: &dyn Fn(&str) -> Option<String>) -> PathBuf {
     if let Some(home) = env("DASHQL_AGENT_HOME").filter(|h| !h.is_empty()) {
         return home.into();
     }
     let user_home = env("HOME").or_else(|| env("USERPROFILE")).unwrap_or_default();
-    PathBuf::from(user_home).join(".dashql").join(if dev { "agent-dev" } else { "agent" })
+    PathBuf::from(user_home).join(".dashql").join("agent")
 }
 
 /// Random bytes from the operating system
@@ -143,16 +139,16 @@ fn new_token() -> String {
 
 /// Read the configuration, a missing configuration is created with a new token.
 /// The folder and the file are readable by the user only.
-pub fn load_config(home: &Path, env: &dyn Fn(&str) -> Option<String>, dev: bool) -> Result<AgentConfig, String> {
+pub fn load_config(home: &Path, env: &dyn Fn(&str) -> Option<String>) -> Result<AgentConfig, String> {
     create_private_dir(home)?;
     let mut stored = read_stored_config(home)?;
     if stored.get("token").and_then(Value::as_str).is_none_or(str::is_empty) {
         stored.insert("token".into(), new_token().into());
-        stored.entry("port").or_insert((if dev { DEV_PORT } else { DEFAULT_PORT }).into());
+        stored.entry("port").or_insert(DEFAULT_PORT.into());
         stored.entry("defaultHarness").or_insert("claude".into());
         save_config(home, &stored)?;
     }
-    let mut config = parse_config(&stored, dev)?;
+    let mut config = parse_config(&stored)?;
     if let Some(port) = env("DASHQL_AGENT_PORT") {
         config.port = port
             .parse()
@@ -163,15 +159,9 @@ pub fn load_config(home: &Path, env: &dyn Fn(&str) -> Option<String>, dev: bool)
     Ok(config)
 }
 
-fn parse_config(stored: &Map<String, Value>, dev: bool) -> Result<AgentConfig, String> {
+fn parse_config(stored: &Map<String, Value>) -> Result<AgentConfig, String> {
     let port = match stored.get("port") {
-        None => {
-            if dev {
-                DEV_PORT
-            } else {
-                DEFAULT_PORT
-            }
-        }
+        None => DEFAULT_PORT,
         Some(port) => port
             .as_u64()
             .and_then(|p| u16::try_from(p).ok())
@@ -210,8 +200,8 @@ fn parse_config(stored: &Map<String, Value>, dev: bool) -> Result<AgentConfig, S
             Ok((name.clone(), config))
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let dev_origins = match stored.get("devOrigins") {
-        Some(origins) => strings(origins, "devOrigins")?,
+    let origins = match stored.get("origins") {
+        Some(origins) => strings(origins, "origins")?,
         None => Vec::new(),
     };
     Ok(AgentConfig {
@@ -219,7 +209,7 @@ fn parse_config(stored: &Map<String, Value>, dev: bool) -> Result<AgentConfig, S
         token: stored.get("token").and_then(Value::as_str).unwrap_or_default().to_string(),
         default_harness: stored.get("defaultHarness").and_then(Value::as_str).unwrap_or("claude").to_string(),
         harnesses,
-        dev_origins,
+        origins,
         call_wait: stored.get("callWaitMs").and_then(Value::as_u64).map_or(DEFAULT_CALL_WAIT, Duration::from_millis),
     })
 }
@@ -294,18 +284,17 @@ mod tests {
     #[test]
     fn creates_a_configuration_with_claude_as_default_harness() {
         let home = temp_dir("dashql-config");
-        let config = load_config(&home, &no_env, false).unwrap();
+        let config = load_config(&home, &no_env).unwrap();
         assert_eq!(config.default_harness, "claude");
         assert_eq!(config.port, DEFAULT_PORT);
         assert_eq!(config.token.len(), 48);
         assert!(config.token.chars().all(|c| c.is_ascii_hexdigit()));
         let names: Vec<_> = config.harnesses.iter().map(|(n, _)| n.as_str()).collect();
         assert_eq!(names, ["claude", "codex", "opencode"]);
-        assert_eq!(load_config(&home, &no_env, false).unwrap().token, config.token);
+        assert_eq!(load_config(&home, &no_env).unwrap().token, config.token);
         // The built-in harnesses are not written, so they change with the binary
         let stored: Value = serde_json::from_str(&std::fs::read_to_string(home.join("config.json")).unwrap()).unwrap();
         assert!(stored.get("harnesses").is_none());
-        assert_eq!(load_config(&temp_dir("dashql-config-dev"), &no_env, true).unwrap().port, DEV_PORT);
     }
 
     #[test]
@@ -316,7 +305,7 @@ mod tests {
             "harnesses": { "codex": { "command": ["codex2", "{prompt}"], "adapter": "codex" }, "mine": { "command": ["mine", "{prompt}"], "adapter": "text" } },
         });
         std::fs::write(home.join("config.json"), stored.to_string()).unwrap();
-        let config = load_config(&home, &no_env, false).unwrap();
+        let config = load_config(&home, &no_env).unwrap();
         assert_eq!(config.default_harness, "mine");
         assert_eq!(config.port, 1234);
         let names: Vec<_> = config.harnesses.iter().map(|(n, _)| n.as_str()).collect();
@@ -328,29 +317,28 @@ mod tests {
     #[test]
     fn does_not_persist_the_port_of_the_environment() {
         let home = temp_dir("dashql-config");
-        load_config(&home, &no_env, false).unwrap();
+        load_config(&home, &no_env).unwrap();
         let env = |name: &str| (name == "DASHQL_AGENT_PORT").then(|| "4000".to_string());
-        assert_eq!(load_config(&home, &env, false).unwrap().port, 4000);
+        assert_eq!(load_config(&home, &env).unwrap().port, 4000);
         let stored: Value = serde_json::from_str(&std::fs::read_to_string(home.join("config.json")).unwrap()).unwrap();
         assert_eq!(stored["port"], DEFAULT_PORT);
         let bad = |name: &str| (name == "DASHQL_AGENT_PORT").then(|| "70000".to_string());
-        assert!(load_config(&home, &bad, false).is_err());
+        assert!(load_config(&home, &bad).is_err());
     }
 
     #[test]
     fn rejects_malformed_harnesses() {
         let home = temp_dir("dashql-config");
         std::fs::write(home.join("config.json"), r#"{"token": "t", "harnesses": {"x": {"command": "x"}}}"#).unwrap();
-        assert_eq!(load_config(&home, &no_env, false).unwrap_err(), "harnesses.x.command must be a list of strings");
+        assert_eq!(load_config(&home, &no_env).unwrap_err(), "harnesses.x.command must be a list of strings");
     }
 
     #[test]
     fn resolves_the_home_folder() {
         let env = |name: &str| (name == "HOME").then(|| "/home/u".to_string());
-        assert_eq!(agent_home(&env, false), Path::new("/home/u/.dashql/agent"));
-        assert_eq!(agent_home(&env, true), Path::new("/home/u/.dashql/agent-dev"));
+        assert_eq!(agent_home(&env), Path::new("/home/u/.dashql/agent"));
         let env = |name: &str| (name == "DASHQL_AGENT_HOME").then(|| "/tmp/a".to_string());
-        assert_eq!(agent_home(&env, true), Path::new("/tmp/a"));
+        assert_eq!(agent_home(&env), Path::new("/tmp/a"));
     }
 }
 

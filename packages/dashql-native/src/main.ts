@@ -463,8 +463,6 @@ async function startMenuBar(): Promise<void> {
     const binary = process.env.DASHQL_AGENT_CLI ?? path.join(process.resourcesPath, "bin", "dashql");
     const host = new AgentHost({
         binary,
-        // The dev page connects to the dev port, see packages/dashql-app
-        dev: rendererDevOrigin !== null,
         log: (line) => console.error(line),
     });
     let settings = await readMenuBarSettings();

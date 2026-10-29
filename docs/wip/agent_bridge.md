@@ -326,7 +326,8 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
 ### Authentication
 
 - **Clients → server:** the server accepts a WebSocket only with `Origin:
-  https://dashql.app`, `app://bundle` (desktop windows) or configured dev origins, and
+  https://dashql.app`, `app://bundle` (desktop windows), the web dev server
+  (`http://localhost:9002`) or the origins configured in `config.json`, and
   `Host: 127.0.0.1:<port>` or `localhost:<port>`. Other websites cannot fake `Origin`,
   and the `Host` check blocks DNS rebinding. Local processes can fake both, but they
   can already read the user's files. No pairing flow is needed.
@@ -475,23 +476,18 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
 - **Main loop: web dev server plus `dashql agent serve`.** The agent server is a standalone
   binary, so most work happens with Vite and the server in a terminal. Electron
   hosting starts the same binary.
-- **Separate dev instance.** An installed release DashQL.app may already listen on
-  47100 in the menu bar. Dev uses its own port and state folder (`DASHQL_AGENT_PORT=47101`,
-  `DASHQL_AGENT_HOME=~/.dashql/agent-dev`). The dev page gets the dev port from Vite's
-  environment, so it talks to the dev server and the release tab to the release server.
-  The unpackaged app's name (`@ankoh/dashql-native`, no `productName`) already gives it
-  its own user data folder and single instance lock, so the dev app and the installed
-  app run side by side.
-- **Dev origins** (`http://localhost:9002`) are accepted only by a server started in
-  dev mode, never by the release app's default config.
-- **`--dev`** gives `dashql agent` the dev port and state folder (47101, `~/.dashql/agent-dev`) unless
-  `DASHQL_AGENT_PORT` or `DASHQL_AGENT_HOME` say otherwise: `bazel run //packages/dashql-cli:dashql -- agent serve --dev`
-  next to `bazel run //packages/dashql-app:dev`, and `dashql agent --dev status` for calls by hand.
+- **One server.** Dev and release use the same port and state folder (47100,
+  `~/.dashql/agent`), and every server accepts the web dev server's origin
+  (`http://localhost:9002`). An installed DashQL.app holds the port, so quit it while
+  developing the server: `bazel run //packages/dashql-cli:dashql -- agent serve` next to
+  `bazel run //packages/dashql-app:dev`. `DASHQL_AGENT_PORT` and `DASHQL_AGENT_HOME`
+  still move a server elsewhere. The unpackaged app's name (`@ankoh/dashql-native`, no
+  `productName`) gives it its own user data folder and single instance lock.
 - **Menu bar in dev:** the tray, menu and activation policy work in unpackaged Electron;
   `bazel run //packages/dashql-native:dev -- --menu-bar` simulates a start at login.
   Registering the login item needs the packaged, signed app (the launch agent plist
   lives in the bundle), so that is tested with packaged builds only.
-- **CLI in dev:** `bazel run //packages/dashql-cli:dashql -- agent --dev <command>`, pointed at the dev port.
+- **CLI in dev:** `bazel run //packages/dashql-cli:dashql -- agent <command>`.
 - **Local Network Access is not exercised in dev.** A page on `http://localhost`
   reaching 127.0.0.1 is local to local, so Chrome shows no permission prompt. Testing the
   prompt needs the page on a public HTTPS origin: the deployed site, a preview
@@ -607,7 +603,7 @@ Everything builds through Bazel, per `docs/agents/build_bazel_targets.md`.
   icon but serves the WebSocket; opening DashQL shows a window in the same process;
   closing it hides the Dock icon and keeps serving; Quit stops the listener. Extends
   `//packages/dashql-native:startup_smoke_test`. Checked by hand so far with
-  `bazel run //packages/dashql-native:dev -- --menu-bar`: the icon shows, `dashql agent --dev status` reaches the
+  `bazel run //packages/dashql-native:dev -- --menu-bar`: the icon shows, `dashql agent status` reaches the
   server, a killed server comes back, and killing Electron stops the server.
 - **Harness matrix:** extend `bridge_harness_test` with more tasks (fix a broken script, an impossible
   request) and Codex once a model is available.

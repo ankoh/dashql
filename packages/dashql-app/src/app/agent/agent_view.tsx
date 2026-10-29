@@ -10,7 +10,7 @@ import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { TextInput, TextInputValidationStatus } from '../../ui/foundations/text_input.js';
 import { AgentConnectionStatus } from '../../platform/agent/agent_client.js';
-import { DEFAULT_AGENT_PORT, type AgentServerInfo } from '../../platform/agent/agent_protocol.js';
+import type { AgentServerInfo } from '../../platform/agent/agent_protocol.js';
 import { stringifyError } from '../../platform/logger/logger.js';
 import { DASHQL_AGENT_PORT } from '../../globals.js';
 import { useAgentBridge, type AgentBridge } from './agent_bridge.js';
@@ -149,8 +149,7 @@ export function AgentView(props: { onClose: () => void }) {
                     {error != null && <div className={styles.error}>{error}</div>}
                     {info == null && bridge.supported && (
                         <div className={styles.hint}>
-                            Start the agent server with <code>dashql agent serve</code>
-                            {bridge.port !== DEFAULT_AGENT_PORT ? <> <code>--dev</code></> : null} on this machine.
+                            Start the agent server with <code>dashql agent serve</code> on this machine.
                         </div>
                     )}
                 </section>

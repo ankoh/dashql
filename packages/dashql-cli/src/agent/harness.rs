@@ -503,7 +503,7 @@ mod tests {
 
     fn harness(name: &str) -> HarnessConfig {
         let home = crate::agent::config::temp_dir("dashql-harness");
-        let config = crate::agent::config::load_config(&home, &|_| None, false).unwrap();
+        let config = crate::agent::config::load_config(&home, &|_| None).unwrap();
         config.harness(name).unwrap().clone()
     }
 

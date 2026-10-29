@@ -240,12 +240,12 @@ bazel run //packages/dashql-native:dev
 
 Run the last two commands in separate terminals for Electron development.
 
-For the agent bridge, run the dev agent server next to the dev server; it listens on port 47101 and keeps
-its state in `~/.dashql/agent-dev`, apart from an installed DashQL.app:
+For the agent bridge, run the agent server from the checkout next to the dev server. It uses the same port
+(47100) and state folder (`~/.dashql/agent`) as an installed DashQL.app, so quit the installed one first:
 
 ```bash
-bazel run //packages/dashql-cli:dashql -- agent serve --dev
-bazel run //packages/dashql-cli:dashql -- agent --dev status
+bazel run //packages/dashql-cli:dashql -- agent serve
+bazel run //packages/dashql-cli:dashql -- agent status
 ```
 `//packages/dashql-native:dev` defaults to `http://localhost:9002`; set
 `DASHQL_ELECTRON_RENDERER_URL` to use another loopback HTTP origin.

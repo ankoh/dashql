@@ -2,7 +2,7 @@
 
 use crate::agent::commands::is_session_command;
 use crate::agent::config::{
-    create_private_dir, random_bytes, to_json_text, write_private_file, AgentConfig, DEV_ORIGINS, RELEASE_ORIGINS,
+    create_private_dir, random_bytes, to_json_text, write_private_file, AgentConfig, ORIGINS,
 };
 use crate::agent::harness::{
     resolve_login_shell_path, resolve_program, spawn_harness, HarnessEvent, HarnessOutcome, HarnessProcess,
@@ -49,8 +49,6 @@ pub struct AgentServerOptions {
     pub config: AgentConfig,
     /// The folder of the state, ~/.dashql/agent
     pub home: PathBuf,
-    /// Accept the origins of the dev servers
-    pub dev: bool,
     /// The executable that harness runs call as `dashql`, its folder goes first on their PATH.
     /// None, or an executable with another name, leaves their PATH as it is.
     pub cli: Option<PathBuf>,
@@ -67,11 +65,10 @@ pub struct AgentServerOptions {
 }
 
 impl AgentServerOptions {
-    pub fn new(config: AgentConfig, home: PathBuf, dev: bool) -> Self {
+    pub fn new(config: AgentConfig, home: PathBuf) -> Self {
         AgentServerOptions {
             config,
             home,
-            dev,
             cli: None,
             spawn_harness: Arc::new(spawn_harness),
             resolve_path: Arc::new(|| Box::pin(resolve_login_shell_path()) as Pin<Box<dyn Future<Output = _> + Send>>),
@@ -219,11 +216,8 @@ impl AgentServer {
     pub async fn listen(options: AgentServerOptions) -> std::io::Result<AgentServer> {
         let listener = TcpListener::bind(("127.0.0.1", options.config.port)).await?;
         let port = listener.local_addr()?.port();
-        let mut origins: Vec<String> = RELEASE_ORIGINS.iter().map(|o| o.to_string()).collect();
-        if options.dev {
-            origins.extend(DEV_ORIGINS.iter().map(|o| o.to_string()));
-            origins.extend(options.config.dev_origins.iter().cloned());
-        }
+        let mut origins: Vec<String> = ORIGINS.iter().map(|o| o.to_string()).collect();
+        origins.extend(options.config.origins.iter().cloned());
         let shared = Arc::new(Shared {
             state: Mutex::new(State {
                 config: options.config.clone(),
@@ -608,7 +602,6 @@ impl Shared {
         let extra = json!({
             "home": self.options.home.display().to_string(),
             "configPath": self.options.home.join("config.json").display().to_string(),
-            "dev": self.options.dev,
             "defaultHarness": state.config.default_harness,
             "harnesses": harnesses,
         });
@@ -1071,26 +1064,26 @@ mod tests {
     }
 
     impl Fixture {
-        async fn start(config: Value, dev: bool) -> Fixture {
-            Fixture::start_with(config, dev, false).await
+        async fn start(config: Value) -> Fixture {
+            Fixture::start_with(config, false).await
         }
 
         /// A server whose harness runs start real processes
         async fn start_with_real_harness(config: Value) -> Fixture {
-            Fixture::start_with(config, false, true).await
+            Fixture::start_with(config, true).await
         }
 
-        async fn start_with(config: Value, dev: bool, real_harness: bool) -> Fixture {
+        async fn start_with(config: Value, real_harness: bool) -> Fixture {
             let home = temp_dir("dashql-agent");
             let mut stored = json!({ "token": TOKEN, "defaultHarness": "codex", "callWaitMs": 300 });
             stored.as_object_mut().unwrap().extend(config.as_object().unwrap().clone());
             std::fs::write(home.join("config.json"), stored.to_string()).unwrap();
-            let mut config = load_config(&home, &|_| None, dev).unwrap();
+            let mut config = load_config(&home, &|_| None).unwrap();
             std::fs::remove_file(home.join("config.json")).unwrap();
             // Any free port
             config.port = 0;
             let runs: Arc<Mutex<Vec<FakeRun>>> = Arc::default();
-            let mut options = AgentServerOptions::new(config, home.clone(), dev);
+            let mut options = AgentServerOptions::new(config, home.clone());
             options.resolve_path = Arc::new(|| {
                 Box::pin(async { Some(OsString::from("/usr/bin")) }) as Pin<Box<dyn Future<Output = _> + Send>>
             });
@@ -1259,7 +1252,7 @@ mod tests {
 
     #[tokio::test]
     async fn accepts_dashql_origins_on_the_loopback_host() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let _first = fixture.connect("https://dashql.app").await;
         let _second =
             TestClient::connect(fixture.port(), Some("app://bundle"), &format!("localhost:{}", fixture.port()))
@@ -1271,7 +1264,7 @@ mod tests {
 
     #[tokio::test]
     async fn refuses_other_origins_and_hosts() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let port = fixture.port();
         let host = format!("127.0.0.1:{port}");
         assert_eq!(TestClient::connect(port, Some("https://evil.example"), &host).await.err(), Some(403));
@@ -1283,18 +1276,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn accepts_the_dev_origins_only_in_dev_mode() {
-        let fixture = Fixture::start(json!({}), false).await;
+    async fn accepts_the_dev_server_and_configured_origins() {
+        let fixture = Fixture::start(json!({})).await;
         let host = format!("127.0.0.1:{}", fixture.port());
-        assert_eq!(TestClient::connect(fixture.port(), Some("http://localhost:9002"), &host).await.err(), Some(403));
-        let fixture = Fixture::start(json!({ "devOrigins": ["http://localhost:5173"] }), true).await;
         fixture.connect("http://localhost:9002").await;
+        assert_eq!(TestClient::connect(fixture.port(), Some("http://localhost:5173"), &host).await.err(), Some(403));
+        let fixture = Fixture::start(json!({ "origins": ["http://localhost:5173"] })).await;
         fixture.connect("http://localhost:5173").await;
     }
 
     #[tokio::test]
     async fn turns_away_other_protocol_versions() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         let params = json!({ "protocol": PROTOCOL_VERSION + 1, "client": "web", "sessions": [], "focused": null });
         client.send(json!({ "id": 1, "method": "client/sessions", "params": params })).await;
@@ -1303,7 +1296,7 @@ mod tests {
 
     #[tokio::test]
     async fn requires_the_token_and_refuses_browsers() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let body = json!({ "command": "scripts" });
         assert_eq!(call(fixture.port(), body.clone(), vec![("Authorization", "Bearer wrong")]).await.0, 401);
         assert_eq!(call(fixture.port(), body, vec![("Origin", "https://dashql.app")]).await.0, 403);
@@ -1311,14 +1304,14 @@ mod tests {
 
     #[tokio::test]
     async fn refuses_unknown_commands() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let (_, body) = fixture.call(json!({ "command": "rm" })).await.unwrap();
         assert_eq!(body, json!({ "ok": false, "error": { "code": "usage", "message": "unknown command: rm" } }));
     }
 
     #[tokio::test]
     async fn routes_a_call_to_the_focused_session() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["a", "b"], Some("b")).await;
         let response = fixture.call(json!({ "command": "read", "args": { "script": "q1" } }));
@@ -1331,7 +1324,7 @@ mod tests {
 
     #[tokio::test]
     async fn routes_a_call_to_the_client_holding_the_session() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut first = fixture.connect("https://dashql.app").await;
         let mut second = fixture.connect("app://bundle").await;
         first.announce(&["a"], Some("a")).await;
@@ -1346,7 +1339,7 @@ mod tests {
 
     #[tokio::test]
     async fn queues_a_call_until_a_client_holds_the_session() {
-        let fixture = Fixture::start(json!({ "callWaitMs": 2000 }), false).await;
+        let fixture = Fixture::start(json!({ "callWaitMs": 2000 })).await;
         let response = fixture.call(json!({ "session": "a", "command": "scripts" }));
         tokio::time::sleep(Duration::from_millis(100)).await;
         let mut client = fixture.connect("https://dashql.app").await;
@@ -1358,14 +1351,14 @@ mod tests {
 
     #[tokio::test]
     async fn fails_when_no_client_holds_the_session() {
-        let fixture = Fixture::start(json!({ "callWaitMs": 50 }), false).await;
+        let fixture = Fixture::start(json!({ "callWaitMs": 50 })).await;
         let (_, body) = fixture.call(json!({ "session": "a", "command": "scripts" })).await.unwrap();
         assert_eq!(body["error"]["code"], "not_connected");
     }
 
     #[tokio::test]
     async fn runs_one_call_at_a_time_per_session() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["a"], Some("a")).await;
         let first = fixture.call(json!({ "command": "run", "args": { "script": "q1" } }));
@@ -1378,7 +1371,7 @@ mod tests {
 
     #[tokio::test]
     async fn fails_calls_of_a_client_that_disconnects() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["a"], Some("a")).await;
         let response = fixture.call(json!({ "command": "scripts" }));
@@ -1390,7 +1383,7 @@ mod tests {
 
     #[tokio::test]
     async fn runs_a_request_and_reports_status_and_the_final_message() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;
         client.send(json!({ "id": 2, "method": "agent/request", "params": { "session": "s1", "prompt": "count the orders" } })).await;
@@ -1448,7 +1441,7 @@ mod tests {
 
     #[tokio::test]
     async fn describes_the_conversation_of_the_picked_harness() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;
         client.send(json!({ "id": 2, "method": "agent/context", "params": { "session": "s1" } })).await;
@@ -1479,7 +1472,7 @@ mod tests {
 
     #[tokio::test]
     async fn queues_requests_of_a_session_and_cancels_them() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;
         client
@@ -1511,7 +1504,7 @@ mod tests {
 
     #[tokio::test]
     async fn cancels_one_turn_of_a_session() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;
         for (id, prompt) in [(2, "first"), (3, "second"), (4, "third")] {
@@ -1577,7 +1570,7 @@ mod tests {
 
     #[tokio::test]
     async fn refuses_requests_for_sessions_without_agent_access() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;
         client
@@ -1591,7 +1584,7 @@ mod tests {
 
     #[tokio::test]
     async fn reports_a_failed_turn() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;
         client.send(json!({ "id": 2, "method": "agent/request", "params": { "session": "s1", "prompt": "hi" } })).await;
@@ -1605,7 +1598,7 @@ mod tests {
 
     #[tokio::test]
     async fn describes_the_harnesses_and_runs_the_picked_harness() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.send(json!({ "id": 1, "method": "agent/info", "params": {} })).await;
         let info = client.next(|m| m["id"] == 1).await.unwrap()["result"].clone();
@@ -1628,7 +1621,7 @@ mod tests {
 
     #[tokio::test]
     async fn refuses_unknown_harnesses() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;
         let params = json!({ "session": "s1", "harness": "sh -c evil" });
@@ -1638,7 +1631,7 @@ mod tests {
 
     #[tokio::test]
     async fn closes_clients_when_it_stops() {
-        let fixture = Fixture::start(json!({}), false).await;
+        let fixture = Fixture::start(json!({})).await;
         let mut client = fixture.connect("https://dashql.app").await;
         client.announce(&["s1"], Some("s1")).await;
         fixture.server.close().await;

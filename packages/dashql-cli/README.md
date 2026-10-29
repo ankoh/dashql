@@ -11,17 +11,19 @@
 - **`dashql lint`** lints SQL files on disk without DashQL.
 
 ```
-bazel run //packages/dashql-cli:dashql -- agent serve --dev
-bazel run //packages/dashql-cli:dashql -- agent --dev status
+bazel run //packages/dashql-cli:dashql -- agent serve
+bazel run //packages/dashql-cli:dashql -- agent status
 bazel run //packages/dashql-cli:dashql -- lint examples/sessions/tpch
 ```
 
 ## Agent server
 
-`dashql agent serve` listens on `127.0.0.1:47100` (`--dev`: 47101) and keeps its configuration and state in
-`~/.dashql/agent` (`--dev`: `~/.dashql/agent-dev`); `DASHQL_AGENT_PORT` and `DASHQL_AGENT_HOME` override both.
-`config.json` holds the port, the token of the agent commands, the default harness, and harnesses that override or
-add to the built-in ones:
+`dashql agent serve` listens on `127.0.0.1:47100` and keeps its configuration and state in `~/.dashql/agent`;
+`DASHQL_AGENT_PORT` and `DASHQL_AGENT_HOME` override both. Only one server runs at a time: to try a server built from
+the checkout, quit DashQL.app or stop the installed server first. The server accepts pages from `https://dashql.app`,
+desktop windows and the dev server of the web app on `http://localhost:9002`.
+`config.json` holds the port, the token of the agent commands, the default harness, harnesses that override or add to
+the built-in ones, and further page origins to accept (`origins`):
 
 ```json
 {

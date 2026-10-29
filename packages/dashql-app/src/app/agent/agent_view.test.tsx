@@ -13,7 +13,6 @@ const INFO: AgentServerInfo = {
     port: 47100,
     home: '/home/u/.dashql/agent',
     configPath: '/home/u/.dashql/agent/config.json',
-    dev: false,
     defaultHarness: 'claude',
     harnesses: [
         { name: 'claude', command: ['claude', '-p', '{prompt}'], adapter: 'claude', program: '/usr/local/bin/claude' },

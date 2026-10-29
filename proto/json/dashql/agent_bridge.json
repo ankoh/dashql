@@ -296,11 +296,10 @@
         "turns": { "type": "array", "items": { "$ref": "#/definitions/AgentTurn" } },
         "home": { "type": "string", "description": "The folder of the configuration and the state" },
         "configPath": { "type": "string" },
-        "dev": { "type": "boolean", "description": "Does the server accept the dev origins?" },
         "defaultHarness": { "type": "string", "description": "The harness of requests that name none, from config.json" },
         "harnesses": { "type": "array", "items": { "$ref": "#/definitions/AgentHarnessInfo" } }
       },
-      "required": ["port", "clients", "turns", "home", "configPath", "dev", "defaultHarness", "harnesses"],
+      "required": ["port", "clients", "turns", "home", "configPath", "defaultHarness", "harnesses"],
       "additionalProperties": false
     },
     "AgentStatusParams": {

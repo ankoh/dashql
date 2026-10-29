@@ -27,14 +27,14 @@ fn env_var(name: &str) -> Option<String> {
 
 /// Run the agent server in the foreground until it is interrupted, or until stdin closes with exit_with_stdin.
 /// DashQL.app holds the other end of stdin, so the server stops with the app even when the app crashes.
-fn serve(dev: bool, exit_with_stdin: bool) -> ExitCode {
+fn serve(exit_with_stdin: bool) -> ExitCode {
     // An agent in a harness run may not start a server, whatever its harness allows
     if env_var(AGENT_RUN_ENV).is_some() {
         eprintln!("dashql agent serve cannot run inside an agent run");
         return ExitCode::from(EXIT_USAGE);
     }
-    let home = agent_home(&env_var, dev);
-    let config = match load_config(&home, &env_var, dev) {
+    let home = agent_home(&env_var);
+    let config = match load_config(&home, &env_var) {
         Ok(config) => config,
         Err(e) => {
             eprintln!("Cannot read the agent configuration: {e}");
@@ -50,7 +50,7 @@ fn serve(dev: bool, exit_with_stdin: bool) -> ExitCode {
     };
     runtime.block_on(async {
         let port = config.port;
-        let mut options = AgentServerOptions::new(config, home, dev);
+        let mut options = AgentServerOptions::new(config, home);
         // Harness runs call this executable as dashql
         options.cli = std::env::current_exe().ok();
         options.log = true;
@@ -67,9 +67,6 @@ fn serve(dev: bool, exit_with_stdin: bool) -> ExitCode {
                 return ExitCode::from(EXIT_FAILED);
             }
         };
-        if dev {
-            eprintln!("[dashql] Dev mode: accepting the origins of the dev servers");
-        }
         let stdin_closed = async {
             if !exit_with_stdin {
                 return std::future::pending().await;
@@ -119,9 +116,9 @@ fn agent(argv: &[String]) -> ExitCode {
         return ExitCode::SUCCESS;
     }
     if options.positionals == ["serve"] {
-        return serve(options.dev, options.exit_with_stdin);
+        return serve(options.exit_with_stdin);
     }
-    let config = match load_config(&agent_home(&env_var, options.dev), &env_var, options.dev) {
+    let config = match load_config(&agent_home(&env_var), &env_var) {
         Ok(config) => config,
         Err(e) => {
             eprintln!("Cannot read the agent configuration: {e}");

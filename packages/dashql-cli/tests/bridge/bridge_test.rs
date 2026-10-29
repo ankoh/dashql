@@ -152,8 +152,7 @@ async fn a_call_fails_when_the_page_goes_away() {
 async fn the_server_refuses_foreign_pages() {
     let server = start();
     assert_eq!(Page::connect(server.port, "https://evil.example").await.err(), Some(403));
-    // Dev origins need a server in dev mode
-    assert_eq!(Page::connect(server.port, "http://localhost:9002").await.err(), Some(403));
+    assert_eq!(Page::connect(server.port, "http://localhost:5173").await.err(), Some(403));
 }
 
 // ------------------------------------------------------------------------------------------------

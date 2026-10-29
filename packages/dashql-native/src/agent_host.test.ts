@@ -86,23 +86,22 @@ function maskedTextFrame(text: string): Buffer {
     return Buffer.concat([Buffer.from([0x81]), length, mask, masked]);
 }
 
-const options = {binary: "", dev: false, pollIntervalMs: 100, restartDelaysMs: [100]};
+const options = {binary: "", pollIntervalMs: 100, restartDelaysMs: [100]};
 
 describe("AgentHost", () => {
     const hosts: AgentHost[] = [];
     afterEach(async () => {
         await Promise.all(hosts.splice(0).map((host) => host.stop()));
     });
-    function host(env: NodeJS.ProcessEnv, dev = false): AgentHost {
-        const created = new AgentHost({...options, binary: dashqlBinary(), env, dev});
+    function host(env: NodeJS.ProcessEnv): AgentHost {
+        const created = new AgentHost({...options, binary: dashqlBinary(), env});
         hosts.push(created);
         return created;
     }
 
     it("finds the home of the server", () => {
-        expect(agentHome({HOME: "/home/u"}, false)).toBe("/home/u/.dashql/agent");
-        expect(agentHome({HOME: "/home/u"}, true)).toBe("/home/u/.dashql/agent-dev");
-        expect(agentHome({HOME: "/home/u", DASHQL_AGENT_HOME: "/tmp/a"}, true)).toBe("/tmp/a");
+        expect(agentHome({HOME: "/home/u"})).toBe("/home/u/.dashql/agent");
+        expect(agentHome({HOME: "/home/u", DASHQL_AGENT_HOME: "/tmp/a"})).toBe("/tmp/a");
     });
 
     it("runs the server and follows its clients", async () => {
@@ -172,7 +171,7 @@ describe("AgentHost", () => {
     });
 
     it("stops the server", async () => {
-        const agent = host(await environment(), true);
+        const agent = host(await environment());
         agent.start();
         const running = await waitFor(agent, inState("running"));
         const pid = agent.pid!;

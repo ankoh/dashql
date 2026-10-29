@@ -23,13 +23,12 @@ pub fn usage() -> String {
 
 Commands for the DashQL session that is open in the browser or the desktop app:
 {}
-  serve [--dev] [--exit-with-stdin]   Run the agent server in the foreground, --exit-with-stdin stops it when
+  serve [--exit-with-stdin]           Run the agent server in the foreground, --exit-with-stdin stops it when
                                       stdin closes, for an app that runs it as a child process
 
 Options:
   --session <id>   Target session, default: $DASHQL_SESSION, then the focused session
-  --json           Print structured output
-  --dev            Use the dev server: port 47101, ~/.dashql/agent-dev, accepts the dev origins",
+  --json           Print structured output",
         usage_lines()
     )
 }
@@ -77,7 +76,6 @@ pub struct Options {
     pub width: Option<String>,
     pub height: Option<String>,
     pub scale: Option<String>,
-    pub dev: bool,
     pub exit_with_stdin: bool,
     pub help: bool,
     pub positionals: Vec<String>,
@@ -110,7 +108,6 @@ pub fn parse_args(argv: &[String]) -> Result<Options, String> {
         }
         match name {
             "--json" if inline.is_none() => options.json = true,
-            "--dev" if inline.is_none() => options.dev = true,
             "--exit-with-stdin" if inline.is_none() => options.exit_with_stdin = true,
             "-h" | "--help" if inline.is_none() => options.help = true,
             "--" => options.positionals.extend(args.by_ref().cloned()),
