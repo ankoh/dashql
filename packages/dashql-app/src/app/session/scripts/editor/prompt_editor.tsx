@@ -145,15 +145,6 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         props.setView?.(editorView);
     }, [editorView, props.setView]);
 
-    // The processor keeps its own state, we only release the completion buffers it superseded
-    const completion = React.useRef<DashQLProcessorUpdateOut['scriptCompletion']>(null);
-    const releaseCompletion = React.useCallback((next: DashQLProcessorUpdateOut['scriptCompletion']) => {
-        if (completion.current != null && completion.current.buffer !== next?.buffer) {
-        }
-        completion.current = next;
-    }, []);
-    React.useEffect(() => () => releaseCompletion(null), [editorView]);
-
     // Bind the script session to the editor.
     // A new session (e.g. after the connection catalog changed) takes over the current text. The
     // binding is a layout effect, the caller may destroy the previous session in a regular effect.
@@ -166,16 +157,11 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
         if (scriptSession.getText() !== text) {
             replaceScriptSessionText(scriptSession, text);
         }
-        // A different session drops the completion of the previous one
         const onUpdate = (update: DashQLProcessorUpdateOut) => {
-            releaseCompletion(update.scriptCompletion);
             if (update.editorUpdate != null) {
                 callbacks.current?.onEditorUpdate?.(update.editorUpdate);
             }
         };
-        if (editorView.state.field(DashQLProcessorPlugin).scriptSession !== scriptSession) {
-            releaseCompletion(null);
-        }
         editorView.dispatch({
             effects: DashQLUpdateEffect.of({
                 scriptKey: scriptSession.getCatalogEntryId(),

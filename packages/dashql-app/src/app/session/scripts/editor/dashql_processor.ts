@@ -16,10 +16,6 @@ export interface DashQLScriptBuffers {
     parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null;
     /// The analyzed script
     analyzed: dashql.FlatBufferPtr<dashql.buffers.analyzer.AnalyzedScript> | null;
-    /// Destroy the state.
-    /// The user is responsible for cleanup up FlatBufferRefs that are no longer needed.
-    /// E.g. one strategy may be to destroy the "old" state once a script with the same script key is emitted.
-    destroy: (state: DashQLScriptBuffers) => void;
 }
 
 /// A completion status
@@ -107,12 +103,11 @@ export function analyzeScript(
         return {
             parsed: script.getParsed(),
             analyzed: script.getAnalyzed(),
-            destroy: destroyBuffers,
         };
     } catch (e: unknown) {
         reportError(e);
     }
-    return { parsed: null, analyzed: null, destroy: destroyBuffers };
+    return { parsed: null, analyzed: null };
 }
 
 function editorUpdateMessage(update: dashql.buffers.editor.EditorUpdateT): string {
@@ -120,17 +115,6 @@ function editorUpdateMessage(update: dashql.buffers.editor.EditorUpdateT): strin
         ? update.statusMessage
         : `editor update failed with status ${update.status}`;
 }
-
-/// Destory the buffers
-const destroyBuffers = (state: DashQLScriptBuffers) => {
-    if (state.parsed != null) {
-        state.parsed = null;
-    }
-    if (state.analyzed != null) {
-        state.analyzed = null;
-    }
-    return state;
-};
 
 function eventAction(transaction: Transaction): dashql.buffers.editor.EditorEventAction {
     const userEvent = transaction.annotation(Transaction.userEvent);

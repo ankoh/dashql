@@ -436,8 +436,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                     ? editorUpdate
                     : prevScript.scriptSession.analyze();
                 const projectionChanged = prevScript.editorUpdate?.stateRevision !== nextUpdate.stateRevision;
-                if (projectionChanged) {
-                }
                 if (scripts === state.scripts) scripts = { ...scripts };
                 scripts[scriptKey] = {
                     ...prevScript,
@@ -479,7 +477,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                     textVersion: update.editorUpdate?.textVersion.toString(),
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
                 }, LOG_CTX);
-                update.scriptBuffers?.destroy(update.scriptBuffers);
                 return clearSemanticUserFocus(state);
             }
             if (updateSession !== prevScript.scriptSession) {
@@ -489,7 +486,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                     textVersion: update.editorUpdate?.textVersion.toString(),
                     stateRevision: update.editorUpdate?.stateRevision.toString(),
                 }, LOG_CTX);
-                update.scriptBuffers?.destroy(update.scriptBuffers);
                 return clearSemanticUserFocus(state);
             }
             const nextCursorContext = update.editorUpdate?.primaryCursorContext;
@@ -523,13 +519,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                     }
                 }
             }
-            // Did the pending diff change? The editor clears it on accept/reject (and auto-accept);
-            // free the superseded buffer, mirroring the completion-buffer discipline above.
-            if (update.scriptPendingDiff !== prevScript.pendingDiff) {
-            }
-
-            if (prevScript.completion?.buffer !== update.scriptCompletion?.buffer) {
-            }
             if (projectionChanged) {
                 focusUpdate = update.scriptCompletion != null
                     ? FocusUpdate.UpdateFromCompletion
@@ -537,7 +526,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                         ? FocusUpdate.UpdateFromCursor
                         : FocusUpdate.Clear;
             }
-            update.scriptBuffers?.destroy(update.scriptBuffers);
             const nextScript: ScriptData = {
                 ...prevScript,
                 analysisOutdated: false,
@@ -957,9 +945,6 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             let pendingDiff: DashQLPendingDiff | null = null;
             if (withDiff && text !== priorText) {
                 pendingDiff = computePendingDiff(state.instance, scriptData.scriptSession, text, priorText, logger);
-            }
-            // A staged diff on this script replaces any earlier one — free the superseded buffer.
-            if (scriptData.pendingDiff != null) {
             }
             // Rewrite the script text in-place
             replaceScriptSessionText(scriptData.scriptSession, text);

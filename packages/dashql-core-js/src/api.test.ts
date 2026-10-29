@@ -56,13 +56,9 @@ describe('DashQL setup', () => {
             const script = dql!.createScript(catalog);
             script.replaceText('CREATE TABLE foo(a INT)');
             script.analyze();
-            const analyzed = script.getAnalyzed();
-            try {
-                const table = analyzed.read().tables(0);
-                expect(table?.tableName()?.tableName()).toBe('foo');
-                expect(table?.tableColumns(0)?.columnName()).toBe('a');
-            } finally {
-            }
+            const table = script.getAnalyzed().read().tables(0);
+            expect(table?.tableName()?.tableName()).toBe('foo');
+            expect(table?.tableColumns(0)?.columnName()).toBe('a');
         } finally {
             dql!.decoder = decoder;
         }
