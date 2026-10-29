@@ -75,16 +75,18 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
                 const attached = resolveSessionConnections(databaseRegistry, references, sessionScripts.sessionId);
                 if (attached != null) {
                     const params = new Map();
+                    const connectionNames = new Map<string, string>();
                     for (const database of attached) {
                         const connectionParams = database.params;
                         if (connectionParams != null) params.set(database.connectionId, connectionParams);
+                        if (database.name != null) connectionNames.set(database.connectionId, database.name);
                     }
                     setupUrl = await exportSessionAsUrl(
                         storage.backend,
                         sessionScripts.sessionId,
                         params,
                         SessionLinkTarget.WEB,
-                        settings,
+                        { ...settings, connectionNames },
                     );
                 }
             }

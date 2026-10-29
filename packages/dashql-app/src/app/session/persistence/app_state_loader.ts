@@ -233,7 +233,8 @@ function resolveSessionConnection(ctx: RestoreContext, sessionId: string, databa
     const known = ctx.connectionStates.get(connectionId)
         ?? (isLocalHyperWasmParams(database.params) ? findEmbeddedConnection(ctx.connectionStates.values()) : null);
     if (known != null) {
-        if (known.connectionId === connectionId && (database.paramsDraft != null || !connectionParamsEqual(database.params, known.params))) {
+        if (known.connectionId === connectionId
+            && (database.paramsDraft != null || database.name != null || !connectionParamsEqual(database.params, known.params))) {
             ctx.pendingWrites.sessionCopies.push({ sessionId, connectionId });
         }
         return known;
@@ -246,10 +247,11 @@ function resolveSessionConnection(ctx: RestoreContext, sessionId: string, databa
         id: state.connectionId,
         params: state.params,
         ...(database.paramsDraft == null ? {} : { paramsDraft: database.paramsDraft }),
+        ...(state.name == null ? {} : { name: state.name }),
         createdAt: new Date().toISOString(),
     });
-    if (database.paramsDraft != null) {
-        // Drafts move into the app manifest
+    if (database.paramsDraft != null || database.name != null) {
+        // Drafts and the names of imported connections move into the app manifest
         ctx.pendingWrites.sessionCopies.push({ sessionId, connectionId });
     }
     return state;

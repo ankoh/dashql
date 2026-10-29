@@ -45,6 +45,8 @@ Static HTTP servers cannot enumerate folders, so `dashql-session.json` lists the
   first use them, so the tree is self-contained. A session without scripts holds the one connection its first
   script will run on. Unlisted script files run on the connection of the script before them. Exports drop the
   connections that no script uses.
+- A connection may carry the `name` the user gave it. Only exports write it, the app manifest keeps the names of
+  the connections of the app (see Imported Connections).
 - An embedded database (`"protocol": "WASM"`) is never a choice on import: the app holds a single connection
   to its embedded Hyper, every embedded database of an imported session uses it.
 - The script list is authoritative for the order of the scripts and for the connection each script is
@@ -141,6 +143,8 @@ Exports give every connection a fresh id, so an import finds the connections of 
 - A connection that the app knows under the same id and the same params (ignoring secrets) is used silently.
 - A server connection whose params match connections of the app asks the user whether to use one of them or
   keep a connection of its own. Unknown connections are registered.
+- A registered connection takes the exported name, the restoration moves it from the session file into the app
+  manifest. A connection that uses one of the app keeps the name of the app.
 - An embedded database (`"protocol": "WASM"`) always uses the embedded database of the app, without a question.
   Its id is rewritten in `connections`, in the `connectionId` of every script and in the names of its catalogs.
   The restoration of the app does the same for an embedded database with an unknown id

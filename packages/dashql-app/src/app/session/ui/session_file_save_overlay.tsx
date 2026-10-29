@@ -26,11 +26,13 @@ async function packAndCompressFile(
     settings: SessionExportSettings,
 ): Promise<Uint8Array> {
     const connectionParams = new Map();
+    const connectionNames = new Map<string, string>();
     for (const database of databases) {
         const params = database.params;
         if (params != null) connectionParams.set(database.connectionId, params);
+        if (database.name != null) connectionNames.set(database.connectionId, database.name);
     }
-    const zipBlob = await exportSessionAsSharedZip(backend, sessionScripts.sessionId, connectionParams, settings);
+    const zipBlob = await exportSessionAsSharedZip(backend, sessionScripts.sessionId, connectionParams, { ...settings, connectionNames });
     const arrayBuffer = await zipBlob.arrayBuffer();
     return new Uint8Array(arrayBuffer);
 }

@@ -97,4 +97,28 @@ describe('session connection import', () => {
         expect(plan[0].decision).toEqual({ kind: 'register' });
         expect(connectionRefsChanged(session, applyConnectionImportPlan(session, plan, new Map(), ENTRIES).session)).toBe(false);
     });
+
+    it('keeps the names of new connections and drops them for existing ones', () => {
+        const session = testSession({
+            connections: [
+                { connectionId: IMPORTED, params: trino('https://unknown'), name: 'Theirs' },
+                { connectionId: FRESH, params: trino('https://trino'), name: 'Production' },
+            ],
+            scripts: [
+                { name: 'new.sql', connectionId: IMPORTED },
+                { name: 'known.sql', connectionId: FRESH },
+            ],
+        });
+        const plan = planConnectionImport(session, ENTRIES);
+        // The question shows the name the connection had in the exporting app
+        expect(connectionImportQuestions(plan).map(item => item.ref.name)).toEqual(['Production']);
+
+        const linked = applyConnectionImportPlan(session, plan, new Map([[FRESH, { kind: 'link', connectionId: KNOWN }]]), ENTRIES).session;
+        expect(linked.connections).toEqual([
+            { connectionId: IMPORTED, params: trino('https://unknown'), name: 'Theirs' },
+            { connectionId: KNOWN, params: trino('https://trino', 'secret') },
+        ]);
+        const separate = applyConnectionImportPlan(session, plan, new Map([[FRESH, { kind: 'separate' }]]), ENTRIES).session;
+        expect(separate.connections[1]).toEqual({ connectionId: FRESH, params: trino('https://trino'), name: 'Production' });
+    });
 });

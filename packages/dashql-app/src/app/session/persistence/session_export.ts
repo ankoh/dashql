@@ -48,6 +48,8 @@ export interface SharedSessionExportOptions {
     withCatalog?: boolean;
     /// Keep the session and connection UUIDs instead of generating export-only identities.
     preserveUUIDs?: boolean;
+    /// The names the user gave the connections (connectionId -> name), an import names new connections after them.
+    connectionNames?: ReadonlyMap<string, string>;
 }
 
 type SharedSessionExportOptionsInput = SharedSessionExportOptions | boolean;
@@ -67,6 +69,7 @@ export async function createSessionZip(
         connections: sessionData.connections.map(connection => ({
             connectionId: connection.connectionId,
             params: sanitizeConnectionParamsForSharing(connection.params),
+            ...(connection.name == null ? {} : { name: connection.name }),
         })),
     }, null, 2));
     // The catalogs of the connections, an import seeds the connections that are new to the app
@@ -123,7 +126,7 @@ export async function exportSessionAsZip(
 /// Export a session as a shareable ZIP.
 ///
 /// Scripts and the session name are read straight from disk (via `exportSessionAsZip`). Connection
-/// params are replaced with their live values and sanitized. By default the exported session and
+/// params are replaced with their live values and sanitized, the connections carry the given names. By default the exported session and
 /// connections receive fresh UUIDs so importing a copy cannot collide with existing runtime state.
 export async function exportSessionAsSharedZip(
     backend: StorageBackend,
@@ -139,13 +142,17 @@ export async function exportSessionAsSharedZip(
             const { session } = bundle;
             const sanitized: SessionData = {
                 ...session,
-                connections: session.connections.map(connection => ({
-                    ...connection,
-                    params: sanitizeConnectionParamsForSharing(
-                        connectionParams.get(connection.connectionId) ?? connection.params,
-                        withLoginHint,
-                    ),
-                })),
+                connections: session.connections.map(connection => {
+                    const name = options.connectionNames?.get(connection.connectionId);
+                    return {
+                        ...connection,
+                        params: sanitizeConnectionParamsForSharing(
+                            connectionParams.get(connection.connectionId) ?? connection.params,
+                            withLoginHint,
+                        ),
+                        ...(name == null ? {} : { name }),
+                    };
+                }),
             };
             return options.preserveUUIDs
                 ? { ...bundle, session: sanitized }

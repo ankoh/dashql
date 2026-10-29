@@ -13,7 +13,7 @@ const LOG_CTX = "connection_restore";
 
 /// The stored params of a connection, as the app manifest or a session file holds them
 export type StoredConnection = Pick<SessionConnection, 'params' | 'paramsDraft'> & {
-    /// The name of the connection, only the app manifest keeps it
+    /// The name of the connection, the app manifest keeps it, an imported session brings it along
     name?: string;
 };
 

@@ -9,6 +9,8 @@ export interface ImportedConnectionRef {
     connectionId: string;
     /// The params of the connection in the session, shared sessions carry them without secrets
     params: ConnectionParams;
+    /// The name the connection had in the exporting app
+    name?: string;
 }
 
 /// How an imported connection relates to the connections of the app
@@ -54,6 +56,7 @@ export function planConnectionImport(session: SessionData, entries: readonly Con
     const refs: ImportedConnectionRef[] = session.connections.map(connection => ({
         connectionId: connection.connectionId,
         params: connection.params,
+        ...(connection.name == null ? {} : { name: connection.name }),
     }));
     const embedded = entries.find(entry => isLocalHyperWasmParams(entry.params)) ?? null;
     return refs.map(ref => {
@@ -91,8 +94,9 @@ export interface ConnectionImport {
 /// Rewrite the connection references of an imported session.
 ///
 /// Linked references take the id and the full params of the app's connection, the session then
-/// carries the secrets the same way every other copy does. Separate connections keep their id unless
-/// the app already uses it for another connection. Unanswered questions keep the connection separate.
+/// carries the secrets the same way every other copy does, and the app's connection keeps its name.
+/// Separate connections keep their id unless the app already uses it for another connection, and
+/// keep their name to be registered with it. Unanswered questions keep the connection separate.
 export function applyConnectionImportPlan(
     session: SessionData,
     plan: readonly ConnectionImportPlanItem[],
@@ -128,7 +132,12 @@ export function applyConnectionImportPlan(
     };
     const rewrite = (connection: SessionConnection): SessionConnection => {
         const resolved = resolve(connection.connectionId);
-        return { connectionId: resolved.connectionId, params: resolved.entry?.params ?? connection.params };
+        if (resolved.entry != null) return { connectionId: resolved.connectionId, params: resolved.entry.params };
+        return {
+            connectionId: resolved.connectionId,
+            params: connection.params,
+            ...(connection.name == null ? {} : { name: connection.name }),
+        };
     };
     // The scripts follow their connections
     return {

@@ -388,6 +388,7 @@ describe('real-core startup catalog restoration', () => {
 
 describe('global connections', () => {
     const OTHER_SESSION_ID = '22222222-3333-4444-8555-666666666666';
+    const OTHER_CONNECTION_ID = '33333333-4444-4555-8666-777777777777';
     const trino = (endpoint: string) => ({ trino: { endpoint, auth: { authType: 'AUTH_BASIC' } } }) as any;
     let dql: dashql.DashQL;
     beforeAll(async () => {
@@ -433,6 +434,34 @@ describe('global connections', () => {
         expect(backend.connections).toMatchObject([{ id: TEST_CONNECTION_ID, params: trino('https://unknown') }]);
         expect(connection.catalogRelationScript.toString()).toBe('CREATE TABLE db.public.seeded(id integer);');
         expect(connection.catalogUpdates.restoredAt).toBeInstanceOf(Date);
+        for (const session of restored.sessionScripts.values()) destroySessionScripts(session);
+    });
+
+    it('moves the name of an imported connection into the app manifest', async () => {
+        const backend = new SessionTestBackend();
+        backend.connections = [{ id: OTHER_CONNECTION_ID, params: trino('https://known'), name: 'Mine' }];
+        backend.sessions.set(TEST_SESSION_ID, testSession({
+            ...testConnections(
+                { connectionId: TEST_CONNECTION_ID, params: trino('https://unknown'), name: 'Production' },
+                { connectionId: OTHER_CONNECTION_ID, params: trino('https://known'), name: 'Theirs' },
+            ),
+            scripts: [
+                { name: '01_new.sql', connectionId: TEST_CONNECTION_ID },
+                { name: '02_known.sql', connectionId: OTHER_CONNECTION_ID },
+            ],
+        }));
+        backend.scripts.set(TEST_SESSION_ID, new Map([['01_new.sql', 'SELECT 1'], ['02_known.sql', 'SELECT 2']]));
+        const restored = await restoreAppState(dql, backend, new NullLogger(), () => {});
+
+        // A new connection is registered with its name, a known connection keeps its own
+        expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.name).toBe('Production');
+        expect(restored.connectionStates.get(OTHER_CONNECTION_ID)!.name).toBe('Mine');
+        expect(backend.connections).toMatchObject([
+            { id: OTHER_CONNECTION_ID, name: 'Mine' },
+            { id: TEST_CONNECTION_ID, name: 'Production' },
+        ]);
+        // The session copies drop the names
+        expect(backend.sessions.get(TEST_SESSION_ID)!.connections.map(connection => 'name' in connection)).toEqual([false, false]);
         for (const session of restored.sessionScripts.values()) destroySessionScripts(session);
     });
 });

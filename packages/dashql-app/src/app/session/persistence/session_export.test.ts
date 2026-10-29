@@ -244,6 +244,33 @@ describe('V2 session export', () => {
         ]);
     });
 
+    it('carries the names of the connections in shared exports', async () => {
+        const backend = new SessionTestBackend();
+        const otherConnectionId = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession({
+            ...testConnections(testSession().connections[0], { connectionId: otherConnectionId, params: { hyper: {} } as any }),
+            scripts: [
+                { name: '01_main.sql', connectionId: TEST_CONNECTION_ID },
+                { name: '02_other.sql', connectionId: otherConnectionId },
+            ],
+        }));
+        await backend.saveScript(TEST_SESSION_ID, '01_main.sql', 'SELECT 1');
+        await backend.saveScript(TEST_SESSION_ID, '02_other.sql', 'SELECT 2');
+
+        const archive = await JSZip.loadAsync(await exportSessionAsSharedZip(
+            backend,
+            TEST_SESSION_ID,
+            new Map(),
+            { connectionNames: new Map([[TEST_CONNECTION_ID, 'Production']]) },
+        ));
+        const exported = JSON.parse(await archive.file('dashql-session.json')!.async('text')) as SessionData;
+
+        // The names follow their connections to the fresh ids, unnamed connections carry none
+        expect(exported.connections[0].connectionId).not.toBe(TEST_CONNECTION_ID);
+        expect(exported.connections.map(connection => connection.name)).toEqual(['Production', undefined]);
+        expect('name' in exported.connections[1]).toBe(false);
+    });
+
     it('preserves session and connection UUIDs when requested', async () => {
         const backend = new SessionTestBackend();
         await backend.saveSessionManifest(TEST_SESSION_ID, testSession());
