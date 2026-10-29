@@ -21,6 +21,28 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
+#[wasm_bindgen]
+extern "C" {
+    /// The panic listener that `installPanicHook` reports to, set by the JS wrapper
+    #[wasm_bindgen(catch, js_namespace = globalThis, js_name = __dashqlCorePanic)]
+    fn report_panic(message: &str) -> Result<(), JsValue>;
+}
+
+/// Report panics to `globalThis.__dashqlCorePanic` before the module traps.
+///
+/// A panic aborts: the call traps without dropping its guards, so the objects it borrowed stay borrowed and the
+/// module must not be used anymore. JS sees only the trap, the hook tells it why.
+#[wasm_bindgen(js_name = installPanicHook)]
+pub fn install_panic_hook() {
+    static INSTALLED: std::sync::Once = std::sync::Once::new();
+    INSTALLED.call_once(|| {
+        std::panic::set_hook(Box::new(|info| {
+            // Without a listener the trap is all JS gets
+            let _ = report_panic(&info.to_string());
+        }));
+    });
+}
+
 /// Convert a core error into a JS exception
 fn js_error(error: Error) -> JsError {
     JsError::new(&error.message)

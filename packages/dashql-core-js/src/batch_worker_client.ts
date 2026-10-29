@@ -1,7 +1,8 @@
 import type { BatchRequest, BatchResult } from './batch.js';
 import type { BatchWorkerRequest, BatchWorkerResponse } from './batch_worker_protocol.js';
 
-/// Owns the supplied worker. Disposing or a transport failure rejects every outstanding request.
+/// Owns the supplied worker. Disposing, a transport failure or a fatal error, e.g. a panic of the worker's core,
+/// rejects every outstanding request and closes the worker.
 export class DashQLBatchWorker {
     private nextRequestId = 1;
     private closed: Error | null = null;
@@ -61,8 +62,14 @@ export class DashQLBatchWorker {
         const pending = this.pending.get(response.requestId);
         if (!pending) return;
         this.pending.delete(response.requestId);
-        if ('error' in response) pending.reject(new Error(response.error));
-        else pending.resolve(response.result);
+        if ('error' in response) {
+            const error = new Error(response.error);
+            pending.reject(error);
+            // The worker cannot process further requests
+            if (response.fatal) this.close(error);
+        } else {
+            pending.resolve(response.result);
+        }
     };
 
     private readonly onError = (event: ErrorEvent): void => {

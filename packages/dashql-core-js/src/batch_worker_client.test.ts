@@ -90,6 +90,20 @@ describe('Core batch worker transport', () => {
         client.dispose();
     });
 
+    it('closes the transport after a fatal error', async () => {
+        const worker = new TestWorker();
+        const client = new DashQLBatchWorker(worker as unknown as Worker);
+        const first = client.processBatch(request);
+        const second = client.processBatch(request);
+        const rejected = expect(first).rejects.toThrow('Core panicked');
+        worker.respond({ requestId: worker.requests[0].requestId, error: 'Core panicked: index out of bounds', fatal: true });
+        await rejected;
+        await expect(second).rejects.toThrow('Core panicked');
+        expect(client.isClosed).toBe(true);
+        expect(worker.terminate).toHaveBeenCalledTimes(1);
+        await expect(client.processBatch(request)).rejects.toThrow('Core panicked');
+    });
+
     it.each(['error', 'messageerror', 'dispose'])('settles all outstanding requests on %s', async failure => {
         const worker = new TestWorker();
         const client = new DashQLBatchWorker(worker as unknown as Worker);

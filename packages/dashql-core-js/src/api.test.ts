@@ -18,6 +18,27 @@ describe('DashQL setup', () => {
         expect(dql).not.toBeUndefined();
     });
 
+    it('installs the panic listener of the core', () => {
+        // The panic hook of the module reports through this global
+        const report = (globalThis as { __dashqlCorePanic?: (message: string) => void }).__dashqlCorePanic;
+        expect(typeof report).toBe('function');
+        expect(dashql.getCorePanic()).toBeNull();
+        const messages: string[] = [];
+        const unsubscribe = dashql.onCorePanic(message => messages.push(message));
+        try {
+            report!('panicked at src/catalog/mod.rs');
+            report!('panicked again');
+            expect(messages).toEqual(['panicked at src/catalog/mod.rs', 'panicked again']);
+            // The first panic is kept, later listeners learn about it right away
+            expect(dashql.getCorePanic()).toBe('panicked at src/catalog/mod.rs');
+            const late: string[] = [];
+            dashql.onCorePanic(message => late.push(message))();
+            expect(late).toEqual(['panicked at src/catalog/mod.rs']);
+        } finally {
+            unsubscribe();
+        }
+    });
+
     it('copies FlatBuffer strings from shared Wasm memory before decoding them', () => {
         const decoder = dql!.decoder;
         const nativeDecoder = new TextDecoder();

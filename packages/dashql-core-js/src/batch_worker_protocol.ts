@@ -7,4 +7,5 @@ export interface BatchWorkerRequest {
 
 export type BatchWorkerResponse =
     | { requestId: number; result: BatchResult }
-    | { requestId: number; error: string };
+    /// A fatal error leaves the worker unusable, e.g. a panic of the core
+    | { requestId: number; error: string; fatal?: boolean };

@@ -20,7 +20,44 @@ export type DashQLBindings = Pick<
     | 'processBatch'
     | 'appendCatalogChangesSql'
     | 'qualifyCatalogChanges'
+    | 'installPanicHook'
 >;
+
+/// A listener for panics of the core
+export type CorePanicListener = (message: string) => void;
+
+const corePanicListeners = new Set<CorePanicListener>();
+let corePanicMessage: string | null = null;
+
+/// Listen for panics of the core, e.g. to ask for a reload. A listener added after a panic is called right away.
+///
+/// A panic traps the wasm call that raised it without releasing what the call borrowed, so the catalogs, scripts
+/// and sessions it touched throw on every later call. The module stays unusable until the page reloads.
+/// The panic hook reports for every module of this realm, the core module and the shell module that re-exports it.
+export function onCorePanic(listener: CorePanicListener): () => void {
+    corePanicListeners.add(listener);
+    if (corePanicMessage != null) listener(corePanicMessage);
+    return () => corePanicListeners.delete(listener);
+}
+
+/// The message of the first panic of the core in this realm, null if the core did not panic
+export function getCorePanic(): string | null {
+    return corePanicMessage;
+}
+
+function installPanicListener(bindings: DashQLBindings) {
+    (globalThis as { __dashqlCorePanic?: CorePanicListener }).__dashqlCorePanic = (message: string) => {
+        corePanicMessage ??= message;
+        for (const listener of corePanicListeners) {
+            try {
+                listener(message);
+            } catch {
+                // A failing listener must not hide the panic from the others
+            }
+        }
+    };
+    bindings.installPanicHook();
+}
 
 export interface DashQLModuleOptions {
     /// The wasm binary
@@ -95,6 +132,7 @@ export class DashQL {
         this.decoder = new TextDecoder();
         this.bindings = bindings;
         this.registeredMemory = new Set();
+        installPanicListener(bindings);
     }
 
     /// Create a DashQL instance.

@@ -1,6 +1,6 @@
 const coreWasmUrl = new URL('./wasm/dashql_core.wasm', import.meta.url);
 
-import { DashQL } from './api.js';
+import { DashQL, getCorePanic } from './api.js';
 import type { BatchWorkerRequest, BatchWorkerResponse } from './batch_worker_protocol.js';
 
 // Only the module survives between jobs. Native scripts and catalogs are job-local.
@@ -28,10 +28,11 @@ self.onmessage = (event: MessageEvent<BatchWorkerRequest>) => {
             const response: BatchWorkerResponse = { requestId, result };
             (self as unknown as Worker).postMessage(response, transfer);
         } catch (error) {
-            const response: BatchWorkerResponse = {
-                requestId,
-                error: error instanceof Error ? error.message : String(error),
-            };
+            // After a panic the module is unusable, the client replaces the worker
+            const panic = getCorePanic();
+            const response: BatchWorkerResponse = panic != null
+                ? { requestId, error: `Core panicked: ${panic}`, fatal: true }
+                : { requestId, error: error instanceof Error ? error.message : String(error) };
             (self as unknown as Worker).postMessage(response);
         }
     });

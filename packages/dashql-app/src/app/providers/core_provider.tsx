@@ -6,6 +6,7 @@ import { TracedLogger, stringifyError } from '../../platform/logger/logger.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
 import { decodedContentLength } from '../../utils/content_length.js';
 import { disposeCatalogBatchWorker, initializeCatalogBatchWorker } from '../connections/catalog_batch.js';
+import { CorePanicOverlay } from './core_panic_overlay.js';
 
 // Load the WebAssembly asset through the core package export.
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
@@ -153,7 +154,10 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
     return (
         <INSTANTIATOR_CONTEXT.Provider value={instantiator}>
             <PROGRESS_CONTEXT.Provider value={progress}>
-                {props.children}
+                <>
+                    {props.children}
+                    <CorePanicOverlay />
+                </>
             </PROGRESS_CONTEXT.Provider>
         </INSTANTIATOR_CONTEXT.Provider>
     );

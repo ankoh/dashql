@@ -81,6 +81,7 @@ declare module '@ankoh/dashql-shell-js' {
     export const processBatch: DashQLBindings['processBatch'];
     export const appendCatalogChangesSql: DashQLBindings['appendCatalogChangesSql'];
     export const qualifyCatalogChanges: DashQLBindings['qualifyCatalogChanges'];
+    export const installPanicHook: DashQLBindings['installPanicHook'];
 
     export default function init(options?: { module_or_path?: BufferSource | WebAssembly.Module | string | URL | Response }): Promise<unknown>;
 }

@@ -1,0 +1,26 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.card {
+    max-width: 440px;
+}
+
+.description {
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.message {
+    margin-top: 8px;
+    font-family: var(--font_family_mono);
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+}

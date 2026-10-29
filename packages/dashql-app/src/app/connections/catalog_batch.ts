@@ -24,8 +24,15 @@ const lifetimes = new WeakMap<DashQL, AbortController>();
 const generations = new WeakMap<DashQLCatalog, number>();
 
 function getCatalogBatchWorker(core: DashQL): DashQLBatchWorker {
-    const worker = workers.get(core);
-    if (!worker?.isInitialized) throw new Error('Core batch worker is not initialized; enable setupBatchWorker during initial setup');
+    let worker = workers.get(core);
+    if (worker == null || (!worker.isInitialized && !worker.isClosed)) {
+        throw new Error('Core batch worker is not initialized; enable setupBatchWorker during initial setup');
+    }
+    // A worker closes after a failure, e.g. a panic of its core, the next batch runs on a new one
+    if (worker.isClosed) {
+        worker = createBatchWorker();
+        workers.set(core, worker);
+    }
     return worker;
 }
 
