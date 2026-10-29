@@ -9,6 +9,7 @@ import { SessionViewMode, useSessionViewMode } from '../session/ui/session_view_
 import { classNames } from '../../utils/classnames.js';
 import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
 import { useAppFlavor } from '../flavor/flavor_provider.js';
+import type { AppFlavorRailPage } from '../flavor/flavors.js';
 
 /// Is the pathname a page of the workspace, the sessions and their connections?
 export function isWorkspacePath(pathname: string): boolean {
@@ -81,23 +82,53 @@ export const NavRailButton = ({ label, active, wide, className, children, ...pro
     return wide ? button : <Tooltip type="label" direction="e" text={label}>{button}</Tooltip>;
 };
 
-/// The pages that the flavor will have, disabled buttons that do nothing yet.
-/// A separator goes in front of every group, the first follows the workspace and the shell.
-export const NavRailUpcomingPages = (props: { wide: boolean }): React.ReactElement => {
+/// An icon of the rail from the svg sprite
+const NavRailIcon = (props: { icon: string }) => (
+    <svg width="16px" height="16px" aria-hidden="true">
+        <use xlinkHref={`${symbols}#${props.icon}`} />
+    </svg>
+);
+
+/// The pages of the rail in the groups of the flavor, with a separator between the groups.
+/// The pages that are not there yet are buttons that do nothing.
+export const NavRailPages = (props: { wide: boolean }): React.ReactElement => {
     const flavor = useAppFlavor();
+    const location = useLocation();
+    const { mode } = useSessionViewMode();
+    const openWorkbench = useOpenWorkbench();
+    const openShell = useOpenShell();
+    const onSessionPath = isWorkspacePath(location.pathname);
+    const shellActive = onSessionPath && mode === SessionViewMode.Shell;
+    const workspaceActive = onSessionPath && !shellActive;
+    const renderPage = (page: AppFlavorRailPage) => {
+        switch (page.type) {
+            case 'workspace':
+                return (
+                    <NavRailButton key="workspace" label="Workspace" wide={props.wide} active={workspaceActive} aria-current={workspaceActive ? 'page' : undefined} onClick={openWorkbench}>
+                        <NavRailIcon icon="compose_24" />
+                    </NavRailButton>
+                );
+            case 'shell':
+                return openShell == null ? null : (
+                    <NavRailButton key="shell" label="Shell" wide={props.wide} active={shellActive} aria-current={shellActive ? 'page' : undefined} onClick={openShell}>
+                        <NavRailIcon icon="command_palette_24" />
+                    </NavRailButton>
+                );
+            case 'upcoming':
+                return (
+                    // Not disabled but aria-disabled, so that the tooltip still names the page
+                    <NavRailButton key={page.label} label={page.label} wide={props.wide} className={styles.button_upcoming} aria-disabled="true">
+                        <NavRailIcon icon={page.icon} />
+                    </NavRailButton>
+                );
+        }
+    };
     return (
         <>
-            {flavor.upcomingPages.map((group, i) => (
+            {flavor.railPages.map((group, i) => (
                 <React.Fragment key={i}>
-                    <div className={styles.separator} role="separator" />
-                    {group.map(page => (
-                        // Not disabled but aria-disabled, so that the tooltip still names the page
-                        <NavRailButton key={page.label} label={page.label} wide={props.wide} className={styles.button_upcoming} aria-disabled="true">
-                            <svg width="16px" height="16px" aria-hidden="true">
-                                <use xlinkHref={`${symbols}#${page.icon}`} />
-                            </svg>
-                        </NavRailButton>
-                    ))}
+                    {i > 0 && <div className={styles.separator} role="separator" />}
+                    {group.map(renderPage)}
                 </React.Fragment>
             ))}
         </>
@@ -108,31 +139,12 @@ export const NavRailUpcomingPages = (props: { wide: boolean }): React.ReactEleme
 /// The shell is a page of its own although it shows the current session.
 /// The button at the bottom widens the rail to show the labels of the buttons.
 export const NavRail = (): React.ReactElement => {
-    const location = useLocation();
     const [wide, toggleWide] = useNavRailWide();
-    const { mode } = useSessionViewMode();
-    const openWorkbench = useOpenWorkbench();
-    const openShell = useOpenShell();
-    const onSessionPath = isWorkspacePath(location.pathname);
-    const shellActive = onSessionPath && mode === SessionViewMode.Shell;
-    const workspaceActive = onSessionPath && !shellActive;
     return (
         // Electron excludes the buttons via the global no-drag rules
         <nav className={classNames(styles.rail, { [styles.rail_wide]: wide })} aria-label="Areas" data-electron-drag-region>
             <div className={styles.group}>
-                <NavRailButton label="Explore" wide={wide} active={workspaceActive} aria-current={workspaceActive ? 'page' : undefined} onClick={openWorkbench}>
-                    <svg width="16px" height="16px" aria-hidden="true">
-                        <use xlinkHref={`${symbols}#telescope_24`} />
-                    </svg>
-                </NavRailButton>
-                {openShell != null && (
-                    <NavRailButton label="Shell" wide={wide} active={shellActive} aria-current={shellActive ? 'page' : undefined} onClick={openShell}>
-                        <svg width="16px" height="16px" aria-hidden="true">
-                            <use xlinkHref={`${symbols}#command_palette_24`} />
-                        </svg>
-                    </NavRailButton>
-                )}
-                <NavRailUpcomingPages wide={wide} />
+                <NavRailPages wide={wide} />
             </div>
             <div className={styles.group}>
                 {/* The octicons show the sidebar on the right, flipped it sits on the left like the rail */}

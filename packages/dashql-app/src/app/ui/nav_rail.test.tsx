@@ -3,9 +3,12 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, expect, it } from 'vitest';
 
-import { isWorkspacePath, NavRailUpcomingPages } from './nav_rail.js';
+import { MemoryRouter } from 'react-router-dom';
+
+import { isWorkspacePath, NavRailPages } from './nav_rail.js';
 import { FlavorProvider } from '../flavor/flavor_provider.js';
-import { DASHQL_FLAVOR, SIDB_FLAVOR } from '../flavor/flavors.js';
+import { type AppFlavor, DASHQL_FLAVOR, SIDB_FLAVOR } from '../flavor/flavors.js';
+import { SessionViewModeProvider } from '../session/ui/session_view_mode.js';
 
 describe('Nav rail', () => {
     it('marks the session pages as the workspace', () => {
@@ -20,7 +23,7 @@ describe('Nav rail', () => {
     });
 });
 
-describe('Nav rail upcoming pages', () => {
+describe('Nav rail pages', () => {
     let container: HTMLDivElement;
     let root: Root;
 
@@ -35,32 +38,39 @@ describe('Nav rail upcoming pages', () => {
         container.remove();
     });
 
-    it('shows the upcoming pages of the sidb flavor as disabled buttons', () => {
-        act(() => root.render(
-            <FlavorProvider requested={SIDB_FLAVOR}>
-                <NavRailUpcomingPages wide={true} />
-            </FlavorProvider>,
-        ));
-        // A separator goes in front of every group
-        const items = [...container.querySelectorAll('button, [role="separator"]')]
-            .map(e => e.getAttribute('aria-label') ?? '|');
-        expect(items).toEqual(SIDB_FLAVOR.upcomingPages.flatMap(group => ['|', ...group.map(page => page.label)]));
-        const pages = SIDB_FLAVOR.upcomingPages.flat();
-        expect(pages.length).toBeGreaterThan(0);
-        for (const page of pages) {
+    // A session is open, so the rail shows the shell
+    const render = (flavor: AppFlavor) => act(() => root.render(
+        <MemoryRouter initialEntries={['/sessions/abc']}>
+            <FlavorProvider requested={flavor}>
+                <SessionViewModeProvider>
+                    <NavRailPages wide={true} />
+                </SessionViewModeProvider>
+            </FlavorProvider>
+        </MemoryRouter>,
+    ));
+    const items = () => [...container.querySelectorAll('button, [role="separator"]')]
+        .map(e => e.getAttribute('aria-label') ?? '|');
+
+    it('lays out the pages of the sidb flavor in groups', () => {
+        render(SIDB_FLAVOR);
+        expect(items()).toEqual([
+            'Workspace', 'Shell', 'Ingestion', 'Data Pipelines', '|',
+            'Indexes', 'AI & ML', 'PostgreSQL', 'Marketplace', '|',
+            'Catalog', 'Monitoring', 'Governance', 'Sharing', '|',
+            'Compute', 'Admin',
+        ]);
+        const upcoming = SIDB_FLAVOR.railPages.flat().filter(page => page.type === 'upcoming');
+        for (const page of upcoming) {
             const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${page.label}"]`)!;
             expect(button.getAttribute('aria-disabled')).toBe('true');
             expect(button.textContent).toBe(page.label);
             expect(button.querySelector('use')?.getAttribute('xlink:href')).toMatch(new RegExp(`#${page.icon}$`));
         }
+        expect(container.querySelector('button[aria-label="Workspace"]')!.getAttribute('aria-current')).toBe('page');
     });
 
-    it('shows no upcoming pages for DashQL', () => {
-        act(() => root.render(
-            <FlavorProvider requested={DASHQL_FLAVOR}>
-                <NavRailUpcomingPages wide={true} />
-            </FlavorProvider>,
-        ));
-        expect(container.querySelectorAll('button').length).toBe(0);
+    it('shows only the workspace and the shell for DashQL', () => {
+        render(DASHQL_FLAVOR);
+        expect(items()).toEqual(['Workspace', 'Shell']);
     });
 });

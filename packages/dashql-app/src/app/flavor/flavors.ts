@@ -19,10 +19,22 @@ export interface AppFlavorFeatures {
 
 /// A page that a flavor will have, announced by a disabled button in the rail
 export interface AppFlavorUpcomingPage {
+    type: 'upcoming';
     /// The label of the button
     label: string;
     /// The id of the icon in the svg sprite
     icon: string;
+}
+
+/// A page of the rail, the workspace, the shell or a page that is not there yet
+export type AppFlavorRailPage = { type: 'workspace' } | { type: 'shell' } | AppFlavorUpcomingPage;
+
+const WORKSPACE: AppFlavorRailPage = { type: 'workspace' };
+const SHELL: AppFlavorRailPage = { type: 'shell' };
+
+/// A page that is not there yet
+function upcoming(label: string, icon: string): AppFlavorUpcomingPage {
+    return { type: 'upcoming', label, icon };
 }
 
 /// A product flavor of the app: brand identity, theme tokens and settings defaults.
@@ -40,9 +52,9 @@ export interface AppFlavor {
     favicon: URL | null;
     /// The features
     features: AppFlavorFeatures;
-    /// The pages that are not there yet, shown as disabled buttons in the rail.
-    /// A separator goes in front of every group, the first follows the workspace and the shell.
-    upcomingPages: AppFlavorUpcomingPage[][];
+    /// The pages of the rail in groups with a separator between them.
+    /// The pages that are not there yet are disabled buttons.
+    railPages: AppFlavorRailPage[][];
     /// Settings layered over the settings of config.json, persisted user settings still win
     settings?: AppSettings;
 }
@@ -57,7 +69,7 @@ export const DASHQL_FLAVOR: AppFlavor = {
     features: {
         sessionArchiveExport: true,
     },
-    upcomingPages: [],
+    railPages: [[WORKSPACE, SHELL]],
 };
 
 /// The sidb flavor
@@ -70,19 +82,21 @@ export const SIDB_FLAVOR: AppFlavor = {
     features: {
         sessionArchiveExport: false,
     },
-    upcomingPages: [
+    railPages: [
+        [WORKSPACE, SHELL, upcoming('Ingestion', 'upload_24'), upcoming('Data Pipelines', 'workflow_24')],
         [
-            { label: 'Ingestion', icon: 'upload_24' },
-            { label: 'Transforms', icon: 'workflow_24' },
-            { label: 'Indexes', icon: 'ai_model_24' },
-            { label: 'PostgreSQL', icon: 'postgresql_24' },
+            upcoming('Indexes', 'tree_structure_24'),
+            upcoming('AI & ML', 'ai_model_24'),
+            upcoming('PostgreSQL', 'postgresql_24'),
+            upcoming('Marketplace', 'apps_24'),
         ],
         [
-            { label: 'Catalog', icon: 'database_24' },
-            { label: 'Monitoring', icon: 'pulse_24' },
-            { label: 'Governance', icon: 'shield_lock_24' },
-            { label: 'Sharing', icon: 'share_android_24' },
+            upcoming('Catalog', 'database_24'),
+            upcoming('Monitoring', 'pulse_24'),
+            upcoming('Governance', 'shield_lock_24'),
+            upcoming('Sharing', 'share_android_24'),
         ],
+        [upcoming('Compute', 'zap_24'), upcoming('Admin', 'settings_24')],
     ],
 };
 
