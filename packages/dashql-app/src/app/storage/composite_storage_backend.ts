@@ -12,7 +12,9 @@ import {
     type StorageManifest,
     StorageBackendType,
     STORAGE_MANIFEST_FILE,
+    validateDataFileName,
 } from './storage_backend.js';
+import { type FileStamp } from '../../platform/electron_fs.js';
 import { type CacheFileStat } from './query_result_cache_eviction.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
 import { type SessionLocation, locationFromEntry } from './session_locator.js';
@@ -61,6 +63,8 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     private readonly locations: Map<string, SessionLocation>;
     /// Cached per-session native backends, keyed by uuid
     private readonly nativeCache: Map<string, NativeStorageBackend>;
+    /// The stamps of the native attachments that are mirrored into OPFS, keyed by session uuid
+    private readonly mirroredAttachments: Map<string, Map<string, FileStamp>>;
     /// The logger
     private readonly logger: Logger;
 
@@ -68,6 +72,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         this.opfs = opfs;
         this.locations = new Map();
         this.nativeCache = new Map();
+        this.mirroredAttachments = new Map();
         this.logger = logger;
     }
 
@@ -153,6 +158,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         await this.opfs.removeSessionEntry(sessionId);
         this.locations.delete(sessionId);
         this.nativeCache.delete(sessionId);
+        this.mirroredAttachments.delete(sessionId);
     }
     async reorderSessions(orderedIds: string[]): Promise<void> {
         // Keep the in-memory location map's iteration order (the source of `getSessionOrder`) in
@@ -198,23 +204,41 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     async loadSession(sessionId: string): Promise<SessionData> {
         const backend = await this.backendFor(sessionId);
         const session = await backend.loadSession(sessionId);
-        await this.syncNativeAttachments(sessionId, backend);
+        await this.syncNativeAttachments(sessionId);
         return session;
     }
 
-    private async syncNativeAttachments(sessionId: string, backend: StorageBackend): Promise<void> {
-        if (backend === this.opfs) {
+    /// Mirror the attachments of a native session into OPFS, HyperDB-WASM reads them from there.
+    /// A file is copied when its stamp differs from the one it was mirrored with, so the first sync of
+    /// a session in an app run copies every attachment and later syncs copy only the changed ones.
+    private async syncNativeAttachments(sessionId: string): Promise<void> {
+        const native = this.nativeSessionFolder(sessionId);
+        if (native == null) {
             return;
         }
-        // HyperDB-WASM reads attachments from OPFS even when the native folder owns the session.
-        const files = await backend.listDataFiles(sessionId);
-        const names = new Set(files.map(file => file.name));
+        const files = (await native.stampFolder()).attachments;
+        let mirrored = this.mirroredAttachments.get(sessionId);
+        if (mirrored === undefined) {
+            mirrored = new Map();
+            this.mirroredAttachments.set(sessionId, mirrored);
+        }
+        const names = new Set<string>();
         for (const file of files) {
-            await this.opfs.saveDataFile(sessionId, file.name, await backend.loadDataFile(sessionId, file.name));
+            validateDataFileName(file.name);
+            names.add(file.name);
+            const stamp = mirrored.get(file.name);
+            if (stamp !== undefined && stamp.size === file.size && stamp.mtimeMs === file.mtimeMs) {
+                continue;
+            }
+            // Forget the stamp first, a failed copy is retried by the next sync
+            mirrored.delete(file.name);
+            await this.opfs.saveDataFile(sessionId, file.name, await native.loadDataFile(sessionId, file.name));
+            mirrored.set(file.name, { size: file.size, mtimeMs: file.mtimeMs });
         }
         for (const file of await this.opfs.listDataFiles(sessionId)) {
             if (!names.has(file.name)) {
                 await this.opfs.deleteDataFile(sessionId, file.name);
+                mirrored.delete(file.name);
             }
         }
     }
@@ -259,6 +283,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         }
         this.locations.delete(sessionId);
         this.nativeCache.delete(sessionId);
+        this.mirroredAttachments.delete(sessionId);
     }
 
     async loadScripts(sessionId: string): Promise<ScriptData[]> {
@@ -288,17 +313,17 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
     async saveDataFile(sessionId: string, name: string, content: DataFileContent): Promise<void> {
         const backend = await this.backendFor(sessionId);
         await backend.saveDataFile(sessionId, name, content);
-        await this.syncNativeAttachments(sessionId, backend);
+        await this.syncNativeAttachments(sessionId);
     }
     async deleteDataFile(sessionId: string, name: string): Promise<void> {
         const backend = await this.backendFor(sessionId);
         await backend.deleteDataFile(sessionId, name);
-        await this.syncNativeAttachments(sessionId, backend);
+        await this.syncNativeAttachments(sessionId);
     }
     async renameDataFile(sessionId: string, oldName: string, newName: string): Promise<void> {
         const backend = await this.backendFor(sessionId);
         await backend.renameDataFile(sessionId, oldName, newName);
-        await this.syncNativeAttachments(sessionId, backend);
+        await this.syncNativeAttachments(sessionId);
     }
     async saveQueryResultCache(sessionId: string, hash: string, bytes: Uint8Array): Promise<void> {
         return (await this.backendFor(sessionId)).saveQueryResultCache(sessionId, hash, bytes);
@@ -321,6 +346,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         // user-owned folders on disk that we never delete; they're simply unregistered when the
         // OPFS manifest is reset. We drop the in-memory location/backend caches to match.
         this.nativeCache.clear();
+        this.mirroredAttachments.clear();
         this.locations.clear();
         await this.opfs.clearAllStorage?.();
     }
@@ -419,6 +445,7 @@ export class CompositeStorageBackend implements SessionRegistryBackend {
         await this.opfs.deleteSession(sessionId);
         this.locations.delete(sessionId);
         this.nativeCache.delete(sessionId);
+        this.mirroredAttachments.delete(sessionId);
     }
 
     /// Register an already-prepared native folder and reconcile its file lists with its files.

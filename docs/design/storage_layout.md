@@ -118,6 +118,8 @@ and `nativePath`. The directory has the layout of an OPFS session folder (`dashq
 
 hyperdb-wasm can only read OPFS. When a native session loads, its attachments are mirrored into
 `sessions/<id>/attachments/` in OPFS, so the attachment paths of the session work in both storage types.
+The app remembers the stamp (size and modification time) that each attachment was mirrored with and copies a
+file again only when its stamp changed, so the first load of a session in an app run copies every attachment.
 Connections, the manifest, the shell files and the instances stay in OPFS.
 
 ## Hyper paths

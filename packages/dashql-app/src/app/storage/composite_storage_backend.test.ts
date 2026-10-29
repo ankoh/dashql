@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
@@ -110,6 +110,22 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         await native.deleteDataFile(TEST_SESSION_ID, 'second.bin');
         await backend.loadSession(TEST_SESSION_ID);
         expect(await registry.listDataFiles(TEST_SESSION_ID)).toEqual([]);
+    });
+
+    it('copies only the native attachments that changed since they were mirrored', async () => {
+        const native = new NativeStorageBackend('/tmp/native-unchanged');
+        await native.saveSessionManifest(TEST_SESSION_ID, testSession());
+        await native.saveDataFile(TEST_SESSION_ID, 'first.bin', new Uint8Array([1]));
+        await native.saveDataFile(TEST_SESSION_ID, 'second.bin', new Uint8Array([2]));
+        await backend.upsertSessionEntry({ path: TEST_SESSION_ID, storageType: StorageBackendType.Native, nativePath: native.getDir() });
+        await backend.loadSession(TEST_SESSION_ID);
+        const copies = vi.spyOn(registry, 'saveDataFile');
+        await backend.loadSession(TEST_SESSION_ID);
+        expect(copies).not.toHaveBeenCalled();
+        await native.saveDataFile(TEST_SESSION_ID, 'second.bin', new Uint8Array([3]));
+        await backend.loadSession(TEST_SESSION_ID);
+        expect(copies.mock.calls.map(call => call[1])).toEqual(['second.bin']);
+        expect(await registry.loadDataFile(TEST_SESSION_ID, 'second.bin')).toEqual(new Uint8Array([3]));
     });
 
     it('mirrors native attachment saves through the composite backend', async () => {
