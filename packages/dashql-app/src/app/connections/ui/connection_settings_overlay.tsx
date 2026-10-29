@@ -56,6 +56,15 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
         if (!saving) onClose();
     }, [saving, onClose]);
 
+    useCloseOnConnect({
+        isOpen: props.isOpen,
+        connectionId: props.connectionId,
+        health: conn?.connectionHealth,
+        saving,
+        saveResult,
+        onClose,
+    });
+
     const connectionId = props.connectionId;
     const sessionIds = useConnectionReferencesSelector(React.useCallback(
         references => connectionId == null ? '' : references.sessionsOf(connectionId).join(','),
@@ -99,6 +108,39 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
         </AnchoredOverlay>
     );
 };
+
+export interface CloseOnConnectProps {
+    /// Is the overlay open?
+    isOpen: boolean;
+    /// The configured connection
+    connectionId: string | null;
+    /// The health of the connection
+    health: ConnectionHealth | undefined;
+    /// Is the connection being saved?
+    saving: boolean;
+    /// The outcome of the last save
+    saveResult: ConnectionSaveResult | null;
+    /// Close the overlay
+    onClose: () => void;
+}
+
+/// Close the overlay once a connect seen while open comes online, unless the save bar reports a failure
+export function useCloseOnConnect(props: CloseOnConnectProps): void {
+    const { isOpen, connectionId, health, saving, saveResult, onClose } = props;
+    const connectingId = React.useRef<string | null>(null);
+    React.useEffect(() => {
+        if (!isOpen || connectionId == null) {
+            connectingId.current = null;
+        } else if (health === ConnectionHealth.CONNECTING) {
+            connectingId.current = connectionId;
+        } else if (health !== ConnectionHealth.ONLINE || connectingId.current !== connectionId) {
+            connectingId.current = null;
+        } else if (!saving && (saveResult == null || connectionSaveSucceeded(saveResult))) {
+            connectingId.current = null;
+            onClose();
+        }
+    }, [isOpen, connectionId, health, saving, saveResult, onClose]);
+}
 
 /// How long the bar confirms a save
 const SAVED_NOTICE_DURATION = 2500;
