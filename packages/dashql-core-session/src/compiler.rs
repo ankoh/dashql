@@ -177,8 +177,8 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     let vis_tags = options.allow_extensions
         && parsed.statements[terminal_statement_id].statement_type == StatementType::SELECT
         && dashql_core::analyzer::has_vis_tags(&parsed, terminal_statement_id);
-    let terminal_type = parsed.statements[terminal_statement_id].statement_type;
-    result.cacheable = matches!(terminal_type, StatementType::SELECT | StatementType::EXPLAIN);
+    // A cache hit skips the whole script, so every statement must be a query, not only the terminal one
+    result.cacheable = parsed.statements.iter().all(|s| matches!(s.statement_type, StatementType::SELECT | StatementType::EXPLAIN));
 
     let descriptions = parsed.associate_descriptions();
     for (statement_id, statement) in parsed.statements.iter().enumerate() {

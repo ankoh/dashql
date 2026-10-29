@@ -8,7 +8,7 @@ The cache stores an Arrow IPC stream for a result table. It applies only when th
 
 Single-script session executions opt in when the session setting `cacheQueryResults` is on: explicit execution, execute-on-send, reruns, and refreshes, all through `runSessionScript` (`packages/dashql-app/src/app/session/ui/rerun_query.ts`). The setting defaults to the connector's `features.queryResultCaching` (off for Hyper, on for Salesforce and Trino) and can be toggled in the Query Cache tab. Planned execution of a whole session passes `cacheable: false`. Shell queries never opt in: the session shell sets `cacheable: false`, and the standalone shell executes directly against its embedded database connection. Internal catalog, setup, and health-check queries also do not set the flag and therefore never read or write the cache. Merely loading or viewing a session does not execute queries or read cached results; a user-triggered execution is required.
 
-The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and executable script AST. Only scripts whose terminal statement is `SELECT` or `EXPLAIN` are cacheable. `CREATE TABLE`, `CREATE VIEW`, and other terminal commands always execute.
+The cache is deliberately not a general consistency mechanism. It assumes that a result is a pure function of its connection signature and executable script AST. Only scripts whose statements are all `SELECT` or `EXPLAIN` are cacheable: a hit skips the complete script, so a script with commands before its terminal query, such as `CREATE TABLE t AS ...; SELECT * FROM t`, always executes. `CREATE TABLE`, `CREATE VIEW`, and other terminal commands always execute too.
 
 ## Cache Key
 

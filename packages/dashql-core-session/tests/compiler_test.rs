@@ -102,6 +102,16 @@ fn commands_precede_the_terminal_query() {
 }
 
 #[test]
+fn commands_before_the_terminal_query_are_not_cacheable() {
+    // A cache hit would skip the commands
+    for text in ["create table t as select 1 as a; select a from t", "set search_path = x; select 1"] {
+        let result = compile_text(text);
+        assert!(result.errors.as_ref().unwrap().is_empty(), "{text}");
+        assert!(!result.cacheable, "{text}");
+    }
+}
+
+#[test]
 fn script_of_commands_is_not_cacheable() {
     let result = compile_text("create table t (a int)");
     assert!(result.errors.as_ref().unwrap().is_empty());
