@@ -17,7 +17,7 @@ interface JsonNestedCloseProps {
 export function JsonNestedClose(props: JsonNestedCloseProps) {
     // Is the node expanded?
     const expands = useNestedExpansionState();
-    const { collapsed, shouldExpandNodeInitially } = useJsonViewerState();
+    const { variant, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
     const defaultExpanded =
         typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? props.level <= collapsed : true;
     const isExpanded = expands[props.expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
@@ -31,6 +31,10 @@ export function JsonNestedClose(props: JsonNestedCloseProps) {
         });
 
     if (expands[props.expandKey] === undefined && !shouldExpand) {
+        return null;
+    }
+    // The explorer has no closing brackets
+    if (variant === 'explorer') {
         return null;
     }
 

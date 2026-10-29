@@ -1,13 +1,23 @@
 import * as React from 'react';
 import * as styles from './json_view.module.css';
 
+import { useJsonViewerState } from './json_view_state.js';
+
 export interface KeyNameCompProps {
     keyName?: (string | number);
     keyPath: (string | number)[];
 }
 
 export function JsonKeyName(props: React.PropsWithChildren<KeyNameCompProps>) {
+    const { variant } = useJsonViewerState();
     const isNumber = typeof props.keyName === 'number';
+    if (variant === 'explorer') {
+        return (
+            <span className={isNumber ? styles.explorer_key_number : styles.explorer_key}>
+                {props.keyName}
+            </span>
+        );
+    }
     return (
         <React.Fragment>
             <span>

@@ -14,10 +14,16 @@ export type ShouldExpandNodeInitially = (
     props: { keyName?: string | number; value?: object; parentValue?: object; keyPath: (number | string)[]; level: number },
 ) => boolean;
 
+/// How the viewer renders values.
+/// `json` shows the JSON syntax, `explorer` shows an object explorer without brackets, quotes or colons.
+export type JsonViewVariant = 'json' | 'explorer';
+
 export interface JsonViewProps
     extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
     /// This property contains your input JSON
     value: object;
+    /// Render the JSON syntax or an object explorer @default 'json'
+    variant?: JsonViewVariant;
     /// Define the root node name. @default undefined
     keyName?: string | number;
     /// Whether sort keys through `String.prototype.localeCompare()` @default false
@@ -71,6 +77,7 @@ export const AlwaysCollapse = () => false;
 export const JsonView: JsonViewComponent = React.memo(React.forwardRef<HTMLDivElement, JsonViewProps>((props, ref) => {
     const {
         value,
+        variant,
         keyName: _keyName,
         objectSortKeys,
         indentWidth,
@@ -104,6 +111,7 @@ export const JsonView: JsonViewComponent = React.memo(React.forwardRef<HTMLDivEl
     // Memoize the state to not re-render the whole tree when the parent re-renders
     const initialState: JsonViewerState = React.useMemo(() => ({
         value,
+        variant: variant ?? 'json',
         objectSortKeys,
         indentWidth: indentWidth ?? 15,
         arrayPageSize: arrayPageSize ?? 0,
@@ -118,6 +126,7 @@ export const JsonView: JsonViewComponent = React.memo(React.forwardRef<HTMLDivEl
         beforeCopy,
     }), [
         value,
+        variant,
         objectSortKeys,
         indentWidth,
         arrayPageSize,
@@ -136,7 +145,7 @@ export const JsonView: JsonViewComponent = React.memo(React.forwardRef<HTMLDivEl
             <div
                 {...containerProps}
                 ref={ref}
-                className={`${styles.viewer}${className ? ` ${className}` : ''}`}
+                className={`${styles.viewer}${variant === 'explorer' ? ` ${styles.viewer_explorer}` : ''}${className ? ` ${className}` : ''}`}
                 data-electron-drag-region="false"
             >
                 <JsonValue

@@ -139,3 +139,107 @@
     cursor: pointer;
     font: inherit;
 }
+
+/* The explorer variant renders values like an object explorer, without the JSON syntax */
+.viewer_explorer {
+    --json_explorer_key_color: hsl(var(--neutral_hue), calc(15% * var(--neutral_tint)), 38%);
+    --json_explorer_dim_color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 56%);
+    --json_explorer_hover_bg: hsl(var(--neutral_hue), calc(20% * var(--neutral_tint)), 96%);
+}
+
+.viewer_explorer .value_container {
+    font-family: var(--font_family);
+    font-size: var(--font_size_small);
+    line-height: 20px;
+    color: var(--base_color);
+}
+
+.explorer_row,
+.viewer_explorer .object_entries_line {
+    display: flex;
+    align-items: baseline;
+    column-gap: 8px;
+    padding-right: 20px;
+    border-radius: 4px;
+}
+
+.viewer_explorer .object_entries_line {
+    padding-left: calc(1em + 8px);
+}
+
+.viewer_explorer .object_entries_line > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.explorer_row:has(> .expand_button) {
+    cursor: pointer;
+}
+
+.explorer_row:hover,
+.viewer_explorer .object_entries_line:hover {
+    background-color: var(--json_explorer_hover_bg);
+}
+
+.explorer_row > .expand_button {
+    flex: none;
+    align-self: center;
+    color: var(--json_explorer_dim_color);
+}
+
+.explorer_arrow_spacer {
+    flex: none;
+    width: 1em;
+}
+
+.explorer_key,
+.explorer_key_number {
+    flex: none;
+    min-width: var(--json_explorer_key_width, 88px);
+    color: var(--json_explorer_key_color);
+}
+
+.explorer_key_number {
+    color: var(--json_explorer_dim_color);
+    font-variant-numeric: tabular-nums;
+}
+
+.explorer_summary {
+    color: var(--json_explorer_dim_color);
+}
+
+.explorer_placeholder {
+    color: var(--json_explorer_dim_color);
+    font-style: italic;
+}
+
+.viewer_explorer .literal_string,
+.viewer_explorer .literal_string_short,
+.viewer_explorer .literal_url {
+    color: var(--base_color);
+}
+
+.viewer_explorer .literal_int,
+.viewer_explorer .literal_float,
+.viewer_explorer .literal_bigint {
+    color: #0550ae;
+    font-variant-numeric: tabular-nums;
+}
+
+.viewer_explorer .literal_true,
+.viewer_explorer .literal_false {
+    color: #8250df;
+}
+
+.viewer_explorer .literal_null,
+.viewer_explorer .literal_undefined,
+.viewer_explorer .literal_nan {
+    color: var(--json_explorer_dim_color);
+    font-style: italic;
+}
+
+.viewer_explorer .copy_button {
+    top: 4px;
+    right: 4px;
+    background-color: transparent;
+}

@@ -23,7 +23,7 @@ export function JsonNestedOpen(props: NestedOpenProps) {
     // Is the node expanded?
     const nodeExpansions = useNestedExpansionState();
     const dispatchExpands = useNestedExpansionDispatch();
-    const { onExpand, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
+    const { variant, onExpand, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
     const defaultExpanded =
         typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? props.level <= collapsed : true;
     let isExpanded = nodeExpansions[props.expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
@@ -58,6 +58,37 @@ export function JsonNestedOpen(props: NestedOpenProps) {
         value: props.value,
         parentValue: props.parentValue
     };
+    if (variant === 'explorer') {
+        // The whole row toggles the node, the arrow button stays the accessible control
+        return (
+            <div className={styles.explorer_row} onClick={showArrow ? click : undefined}>
+                {showArrow ? (
+                    <button
+                        type="button"
+                        className={styles.expand_button}
+                        aria-label={isExpanded ? 'Collapse value' : 'Expand value'}
+                        aria-expanded={isExpanded}
+                        onClick={(e) => { e.stopPropagation(); click(); }}
+                    >
+                        <JsonArrowSymbol isExpanded={isExpanded} />
+                    </button>
+                ) : (
+                    <span className={styles.explorer_arrow_spacer} />
+                )}
+                {(props.keyName || typeof props.keyName === 'number') && (
+                    <JsonKeyName {...childProps} />
+                )}
+                <ExplorerSummary value={props.value} initialValue={props.initialValue} />
+                <JsonCopyButton
+                    keyName={props.keyName!}
+                    value={props.value}
+                    expandKey={props.expandKey}
+                    parentValue={props.parentValue}
+                    keyPath={props.keyPath}
+                />
+            </div>
+        );
+    }
     return (
         <span style={style}>
             {showArrow && (
@@ -94,6 +125,23 @@ export function JsonNestedOpen(props: NestedOpenProps) {
         </span>
     );
 };
+
+/// The explorer describes nested values instead of showing their brackets
+function ExplorerSummary(props: { value: object; initialValue: object }) {
+    const len = Object.keys(props.value ?? {}).length;
+    if (len === 0) {
+        return <span className={styles.explorer_placeholder}>empty</span>;
+    }
+    let noun: string;
+    if (props.initialValue instanceof Map) {
+        noun = len === 1 ? 'entry' : 'entries';
+    } else if (Array.isArray(props.value) || props.initialValue instanceof Set) {
+        noun = len === 1 ? 'item' : 'items';
+    } else {
+        noun = len === 1 ? 'field' : 'fields';
+    }
+    return <span className={styles.explorer_summary}>{len} {noun}</span>;
+}
 
 function SetHeader(props: { value: unknown; }) {
     const isSet = props.value instanceof Set;

@@ -82,3 +82,47 @@ describe('JsonView array pagination', () => {
         expect(container.querySelectorAll(copyButtons).length).toBe(0);
     });
 });
+
+describe('JsonView explorer variant', () => {
+    let container: HTMLDivElement;
+    let root: Root;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        root = createRoot(container);
+    });
+
+    afterEach(() => {
+        act(() => root.unmount());
+        container.remove();
+    });
+
+    it('renders values without the JSON syntax', () => {
+        const value = { message: 'hello', tags: ['a', 'b'], context: null, empty: '' };
+        act(() => root.render(<JsonView value={value} variant="explorer" />));
+
+        const text = container.textContent ?? '';
+        expect(text).toContain('message');
+        expect(text).toContain('hello');
+        expect(text).toContain('2 items');
+        expect(text).toContain('null');
+        expect(text).toContain('empty');
+        for (const symbol of ['{', '}', '[', ']', '"', ':']) {
+            expect(text).not.toContain(symbol);
+        }
+    });
+
+    it('toggles nested values when clicking their row', () => {
+        const value = { nested: { inner: 'deep' } };
+        act(() => root.render(<JsonView value={value} variant="explorer" collapsed={0} />));
+        expect(container.textContent).not.toContain('deep');
+
+        const button = container.querySelector<HTMLButtonElement>('button[aria-expanded="false"]')!;
+        act(() => (button.parentElement as HTMLElement).click());
+        expect(container.textContent).toContain('deep');
+
+        act(() => button.click());
+        expect(container.textContent).not.toContain('deep');
+    });
+});

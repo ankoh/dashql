@@ -6,6 +6,7 @@ import { useNestedExpansionReducer, NestedExpansionStateProvider } from './json_
 
 export interface JsonViewerState {
     value?: object;
+    variant?: JsonViewProps['variant'];
     onExpand?: JsonViewProps['onExpand'];
     onCopied?: JsonViewProps['onCopied'];
     beforeCopy?: JsonViewProps['beforeCopy'];
@@ -22,6 +23,7 @@ export interface JsonViewerState {
 }
 
 export const initialState: JsonViewerState = {
+    variant: 'json',
     objectSortKeys: false,
     indentWidth: 15,
 };

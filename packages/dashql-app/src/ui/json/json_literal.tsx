@@ -60,7 +60,7 @@ export function bigIntToString(bi?: BigInt | string) {
 };
 
 function StringLiteral(props: { children: string }) {
-    const { shortenTextAfterLength: length = 30, stringEllipsis = '...' } = useJsonViewerState();
+    const { variant, shortenTextAfterLength: length = 30, stringEllipsis = '...' } = useJsonViewerState();
     const childrenStr = props.children as string;
     const [shorten, setShorten] = React.useState(length && childrenStr.length > length);
     React.useEffect(() => setShorten(length && childrenStr.length > length), [length]);
@@ -73,6 +73,17 @@ function StringLiteral(props: { children: string }) {
     const text = shorten ? `${childrenStr.slice(0, length)}${stringEllipsis}` : childrenStr;
     const cls = shorten ? styles.literal_string_short : styles.literal_string;
 
+    // The explorer shows strings without quotes, so an empty string needs a placeholder
+    if (variant === 'explorer') {
+        if (childrenStr.length === 0) {
+            return <span className={styles.explorer_placeholder}>empty</span>;
+        }
+        return (
+            <span className={cls} style={style} onClick={onClick}>
+                {text}
+            </span>
+        );
+    }
     return (
         <React.Fragment>
             <LiteralQuotes />
@@ -85,6 +96,8 @@ function StringLiteral(props: { children: string }) {
 };
 
 function LiteralQuotes() {
+    const { variant } = useJsonViewerState();
+    if (variant === 'explorer') return null;
     return (
         <span className={styles.literal_quotes}>
             "

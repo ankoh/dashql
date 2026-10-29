@@ -46,7 +46,7 @@ export const LogJsonModal: React.FC<LogJsonModalProps> = (props) => {
             <div className={styles.json_modal}>
                 <div className={styles.json_modal_main}>
                     <div className={styles.json_modal_content}>
-                        {props.record && <JsonView value={props.record as object} beforeCopy={beforeCopy} />}
+                        {props.record && <JsonView value={props.record as object} variant="explorer" beforeCopy={beforeCopy} />}
                     </div>
                 </div>
                 <div className={styles.json_modal_sidebar}>
