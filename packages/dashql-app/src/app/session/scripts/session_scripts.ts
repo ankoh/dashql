@@ -1408,9 +1408,20 @@ export function replaceScriptSessionText(scriptSession: core.DashQLScriptSession
     }
 }
 
+/// Is the analysis of a script outdated? The flag marks the changes that the app knows about, the versions also
+/// catch the ones it missed: the text of the session or its catalog changed since the analysis. A script that
+/// published its own declarations changed its catalog too, so a current script may analyze once more.
+export function isAnalysisOutdated(scriptData: ScriptData): boolean {
+    if (scriptData.analysisOutdated) return true;
+    const update = scriptData.editorUpdate;
+    if (update == null) return false;
+    return update.textVersion !== scriptData.scriptSession.getTextVersion()
+        || update.catalogRevision !== scriptData.scriptSession.getCatalogRevision();
+}
+
 export function analyzeOutdatedScript<V extends SessionScripts>(state: V, scriptKey: number, logger: Logger): V {
     const scriptData = state.scripts[scriptKey];
-    if (!scriptData || !scriptData.analysisOutdated) {
+    if (!scriptData || !isAnalysisOutdated(scriptData)) {
         return state;
     }
     // Create the next session scripts state

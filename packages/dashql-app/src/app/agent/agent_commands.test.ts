@@ -16,8 +16,8 @@ function script(scriptKey: number, fileName: string, text: string, diagnostics: 
         scriptKey,
         fileName,
         analysisOutdated: false,
-        scriptSession: { getText: () => text },
-        editorUpdate: { diagnostics },
+        scriptSession: { getText: () => text, getTextVersion: () => 0n, getCatalogRevision: () => 0n },
+        editorUpdate: { diagnostics, textVersion: 0n, catalogRevision: 0n },
         connection: { connectionId: 'db', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: {} },
         latestQueryId: null,
         latestResultQueryId: null,
@@ -206,6 +206,8 @@ describe('agent commands', () => {
             ...script(1, 'orders.sql', text),
             scriptSession: {
                 getText: () => text,
+                getTextVersion: () => 1,
+                getCatalogRevision: () => 1,
                 compileQuery: () => ({
                     read: () => ({ errorsLength: () => 0, sql: () => text, cacheSignature: () => '', cacheable: () => false }),
                     destroy: () => { },
@@ -213,7 +215,7 @@ describe('agent commands', () => {
                 startExecution: () => ({}),
             },
             annotations: { visualizeQuery: null },
-            editorUpdate: { diagnostics: [], textVersion: 1, stateRevision: 1, analysisAvailable: true },
+            editorUpdate: { diagnostics: [], textVersion: 1, stateRevision: 1, catalogRevision: 1, analysisAvailable: true },
         }]);
         // Like the query executor: a failed query resolves with null unless the caller asks for the error
         const failure = { message: 'Index support is disabled.' };

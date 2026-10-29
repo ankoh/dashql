@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptData, destroySessionScripts, newScriptConnection, reduceSessionScripts, SessionScriptsEffects, sessionConnectionIds, sessionScriptListWrite } from './session_scripts.js';
+import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptData, destroySessionScripts, isAnalysisOutdated, newScriptConnection, reduceSessionScripts, SessionScriptsEffects, sessionConnectionIds, sessionScriptListWrite } from './session_scripts.js';
 import { Dispatch } from '../../../utils/variant.js';
 import { UpdateQueue, useStore, useStoreState, useUpdateQueue } from '../../../utils/store.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
@@ -352,7 +352,7 @@ export async function ensureSessionScriptAnalyzed(
 ): Promise<ScriptData | null> {
     const scriptData = sessionScripts.scripts[scriptKey];
     if (!scriptData) return null;
-    if (!scriptData.analysisOutdated) return scriptData;
+    if (!isAnalysisOutdated(scriptData)) return scriptData;
     const result = modifySessionScripts({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
     if (!result) return null;
     const next = await result;

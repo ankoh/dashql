@@ -25,6 +25,7 @@ import {
     type SessionScripts,
     reduceSessionScripts,
     SessionScriptsEffects,
+    isAnalysisOutdated,
     RENAME_SCRIPT,
     RENAME_SESSION,
     UPDATE_FROM_PROCESSOR,
@@ -446,6 +447,25 @@ describe('V2 flat session script mutations', () => {
         next = reduce(next, { type: CATALOG_DID_UPDATE, value: other.connectionId });
         expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].analysisOutdated).toBe(false);
         expect(next.scripts[next.scriptRefs['2_beta.sql'].scriptId].analysisOutdated).toBe(true);
+    });
+
+    it('derives an outdated analysis from the versions of the session and its catalog', () => {
+        let current = state(['1_table.sql', '2_query.sql']);
+        const key = (name: string) => current.scriptRefs[name].scriptId;
+        replaceScriptSessionText(current.scripts[key('1_table.sql')].scriptSession, 'create table a (x int)');
+        replaceScriptSessionText(current.scripts[key('2_query.sql')].scriptSession, 'select x from a');
+        for (let pass = 0; pass < 3; ++pass) {
+            for (const name of current.scriptOrder) current = reduce(current, { type: ANALYZE_OUTDATED_SCRIPT, value: key(name) });
+        }
+        const query = current.scripts[key('2_query.sql')];
+        expect(isAnalysisOutdated(query)).toBe(false);
+
+        // A change of the catalog that nobody flagged
+        current.scripts[key('1_table.sql')].scriptSession.dropFromCatalog();
+        expect(query.analysisOutdated).toBe(false);
+        expect(isAnalysisOutdated(query)).toBe(true);
+        current = reduce(current, { type: ANALYZE_OUTDATED_SCRIPT, value: key('2_query.sql') });
+        expect(isAnalysisOutdated(current.scripts[key('2_query.sql')])).toBe(false);
     });
 
     it('outdates the other scripts when a script is deleted', () => {

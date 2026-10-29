@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 
 import type { QueryExecutor } from '../../connections/query_executor.js';
 import { QueryType } from '../../../query/query_execution_state.js';
-import { SessionScripts, ScriptData, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, scriptResultOwner } from '../scripts/session_scripts.js';
+import { SessionScripts, ScriptData, REGISTER_QUERY, REGISTER_SCRIPT_RESULT, isAnalysisOutdated, scriptResultOwner } from '../scripts/session_scripts.js';
 import { compileSessionQuery, createScriptExecution } from '../scripts/script_compilation.js';
 import { ensureSessionScriptAnalyzed, ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import type { LoggerLike } from '../../../platform/logger/logger.js';
@@ -42,7 +42,7 @@ export function runSessionScript(
         nativeTextVersion: scriptData.scriptSession.getTextVersion?.().toString(),
         textLength: scriptData.scriptSession.getText?.().length.toString(),
     }, 'session_execution');
-    if (scriptData.analysisOutdated) {
+    if (isAnalysisOutdated(scriptData)) {
         return ensureSessionScriptAnalyzed(sessionScripts, scriptData.scriptKey, modifySessionScripts)
             .then((analyzed) => {
                 if (analyzed != null) {
@@ -75,7 +75,7 @@ export async function runSessionScriptForResult(
     if (isSessionExecutionRunning(sessionScripts)) {
         throw new Error('Another script of the session is running');
     }
-    const analyzed = scriptData.analysisOutdated
+    const analyzed = isAnalysisOutdated(scriptData)
         ? await ensureSessionScriptAnalyzed(sessionScripts, scriptData.scriptKey, modifySessionScripts)
         : scriptData;
     if (analyzed == null) {
