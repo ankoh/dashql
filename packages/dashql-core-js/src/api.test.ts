@@ -713,9 +713,11 @@ describe('DashQL editor sessions', () => {
         session.dropFromCatalog();
         expect(catalog.containsEntryId(session.catalog_entry_id)).toBeFalsy();
 
+        // Freeing the session releases its memory and leaves the catalog as it is, its owner drops it
         session.loadIntoCatalog();
+        const entryId = session.catalog_entry_id;
         session.destroy();
-        expect(catalog.containsEntryId(session.catalog_entry_id)).toBeFalsy();
+        expect(catalog.containsEntryId(entryId)).toBeTruthy();
     });
 });
 

@@ -5,7 +5,8 @@
 //! Errors become exceptions with the status code name or the error message.
 //!
 //! Scripts share their catalog through a reference-counted handle, so a script can outlive the JS
-//! catalog object. Freeing a script removes it from its catalog.
+//! catalog object. Freeing a script or session releases its memory and leaves the catalog as it is: its owner
+//! drops it from the catalog explicitly (`Catalog.dropScript`, `ScriptSession.dropFromCatalog`).
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
 use dashql_core_session::catalog_changes::{append_catalog_changes_sql, parse_catalog_changes_sql, qualify_catalog_changes, CatalogNameDefaults};
@@ -76,8 +77,9 @@ type CatalogModification = Box<dyn FnOnce(&mut CoreCatalog)>;
 /// The catalog shared by the JS objects of the module: the catalog object and the scripts, sessions and
 /// shells created on it.
 ///
-/// The JS objects are freed independently. Freeing one removes what it published from the catalog. If
-/// the catalog is borrowed at that moment, the removal waits for the next access instead of being lost.
+/// The JS objects are freed independently. A shell detaches its session relations from the catalog when it is
+/// freed. If the catalog is borrowed at that moment, the modification waits for the next access instead of being
+/// lost.
 #[derive(Clone)]
 pub struct SharedCatalog(Rc<SharedCatalogState>);
 
@@ -284,18 +286,10 @@ impl Default for ScriptBatch {
 /// A script (`dashql_script_*`)
 #[wasm_bindgen]
 pub struct Script {
-    /// The catalog the script was created for, the script is dropped from it on drop
+    /// The catalog the script was created for
     catalog: SharedCatalog,
     /// The core script
     inner: CoreScript,
-}
-
-impl Drop for Script {
-    fn drop(&mut self) {
-        // A freed script leaves the catalog
-        let id = self.inner.catalog_entry_id();
-        self.catalog.modify_or_defer(move |catalog| catalog.drop_script(id));
-    }
 }
 
 impl Script {
@@ -521,14 +515,6 @@ pub struct ScriptSession {
     catalog: SharedCatalog,
     /// The core session, shared with the session lists it was added to
     inner: Rc<RefCell<CoreScriptSession>>,
-}
-
-impl Drop for ScriptSession {
-    fn drop(&mut self) {
-        // A freed session leaves the catalog
-        let id = self.inner.borrow().catalog_entry_id();
-        self.catalog.modify_or_defer(move |catalog| catalog.drop_script(id));
-    }
 }
 
 impl ScriptSession {

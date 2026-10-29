@@ -122,16 +122,22 @@ export class DashQL {
     decoder: TextDecoder;
     /// The wasm-bindgen module
     bindings: DashQLBindings;
-    /// The native objects owned by this instance. The set holds them strongly on purpose: the
-    /// finalizers of wasm-bindgen then never free a native object, so a script or session that
-    /// misses its `destroy()` leaks instead of dropping its catalog entry at a random GC time.
-    registeredMemory: Set<Ptr<symbol>>;
+    /// The native objects owned by this instance, held weakly. Freeing a native object releases its memory and
+    /// leaves the catalog as it is, so a script or session that misses its `destroy()` is freed by the finalizer of
+    /// wasm-bindgen once it is unreachable.
+    registeredMemory: Set<WeakRef<Ptr<symbol>>>;
+    /// The entries of `registeredMemory` by object
+    registeredMemoryRefs: WeakMap<Ptr<symbol>, WeakRef<Ptr<symbol>>>;
+    /// Removes the entries of collected objects from `registeredMemory`
+    registeredMemoryCleanup: FinalizationRegistry<WeakRef<Ptr<symbol>>>;
 
     public constructor(bindings: DashQLBindings) {
         this.encoder = new TextEncoder();
         this.decoder = new TextDecoder();
         this.bindings = bindings;
         this.registeredMemory = new Set();
+        this.registeredMemoryRefs = new WeakMap();
+        this.registeredMemoryCleanup = new FinalizationRegistry(ref => this.registeredMemory.delete(ref));
         installPanicListener(bindings);
     }
 
@@ -146,10 +152,17 @@ export class DashQL {
     }
 
     public registerMemory(ptr: Ptr<symbol>) {
-        this.registeredMemory.add(ptr);
+        const ref = new WeakRef(ptr);
+        this.registeredMemory.add(ref);
+        this.registeredMemoryRefs.set(ptr, ref);
+        this.registeredMemoryCleanup.register(ptr, ref, ref);
     }
     public unregisterMemory(ptr: Ptr<symbol>) {
-        this.registeredMemory.delete(ptr);
+        const ref = this.registeredMemoryRefs.get(ptr);
+        if (ref == null) return;
+        this.registeredMemory.delete(ref);
+        this.registeredMemoryRefs.delete(ptr);
+        this.registeredMemoryCleanup.unregister(ref);
     }
     /// Destroy all native objects of this instance.
     /// Test-only teardown helper; JS objects that still reference them become null pointers.
@@ -158,7 +171,7 @@ export class DashQL {
         const entries = Array.from(this.registeredMemory);
         for (let i = entries.length - 1; i >= 0; --i) {
             try {
-                entries[i].destroy();
+                entries[i].deref()?.destroy();
             } catch (e) {
                 // Ignore errors during cleanup
             }
