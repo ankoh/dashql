@@ -430,6 +430,10 @@ async function loadValidSession(backend: StorageBackend, logger: Logger, session
 
 /// Perform the writes that bring the stored state in line with the restored one.
 /// Failures are logged, the next load attempts them again.
+///
+/// The writes go to the backend directly, not through the storage writer. They run before the restored
+/// sessions join the registry, so no write of the storage writer touches these sessions yet, and the
+/// backend serializes the updates of the app manifest.
 async function flushRestoreWrites(ctx: RestoreContext): Promise<void> {
     const { registry, pendingWrites } = ctx;
     if (registry != null) {

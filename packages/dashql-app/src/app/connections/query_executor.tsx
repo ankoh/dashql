@@ -22,7 +22,7 @@ import { useComputationDispatch } from '../../compute/computation_registry.js';
 import { analyzeTable } from '../../compute/analyze_table.js';
 import { DELETE_COMPUTATION } from '../../compute/computation_state.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
-import { useStorageReader } from '../storage/storage_provider.js';
+import { useStorage } from '../storage/storage_provider.js';
 import { createSessionQueryResultCache } from '../storage/session_query_result_cache.js';
 import type { CachedQueryResult } from '../../query/query_result_cache.js';
 import { getConnectionParamsFromStateDetails, createConnectionParamsSignature } from './connection_params.js';
@@ -132,7 +132,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
     const computeDispatch = useComputationDispatch();
     const computeDb = useComputeDatabase();
-    const storageReader = useStorageReader();
+    const [storageReader, storageWriter] = useStorage();
     const queryRuntimes = React.useRef(new Map<number, QueryExecutionRuntime>());
 
     // Execute a query with pre-allocated query id
@@ -210,7 +210,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 }
                 const resultCache = cacheHash == null || querySessionId == null
                     ? null
-                    : createSessionQueryResultCache(storageReader.backend, querySessionId);
+                    : createSessionQueryResultCache(storageReader.backend, storageWriter, querySessionId);
 
                 // Cache read path: on a hit, load the Arrow IPC bytes and drive the state machine as if
                 // the result had just streamed in, skipping the backend entirely.
@@ -274,7 +274,9 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 const storeInCache = (table: arrow.Table | null) => {
                     if (cacheHash == null || table == null) return;
                     const bytes = arrow.tableToIPC(table, 'stream');
-                    void resultCache!.store(cacheHash, bytes).then(() => {
+                    void resultCache!.store(cacheHash, bytes).then(written => {
+                        // A write that was discarded, e.g. because the session was deleted, failed or was replaced
+                        if (!written) return;
                         // The write landed: record the key (but not servedFromCache — this run hit the
                         // backend) so the UI can offer to delete the freshly-cached entry. The "cached at"
                         // time is the write we just made; a later hit reads the precise mtime from disk.
@@ -521,7 +523,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         });
         return execution;
 
-    }, [computeDb, connStore, connDispatch, computeDispatch, logger, storageReader]);
+    }, [computeDb, connStore, connDispatch, computeDispatch, logger, storageReader, storageWriter]);
 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((connectionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {

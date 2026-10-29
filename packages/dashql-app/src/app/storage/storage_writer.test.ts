@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '../../platform/logger/logger.js';
 import { SessionTestBackend } from './session_test_backend.js';
@@ -23,7 +23,10 @@ import {
     REPLACE_SESSION_SCRIPTS,
     WRITE_SESSION_SCRIPTS,
     storageWriteChainKey,
+    WRITE_QUERY_RESULT_CACHE,
+    groupQueryResultCacheWrites,
 } from './storage_writer.js';
+import { createSessionQueryResultCache } from './session_query_result_cache.js';
 import { ExternalScriptChangeError } from './storage_backend.js';
 import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '../connections/connector_info.js';
 import { ConnectionHealth, ConnectionStatus, DISCARD_CONNECTION_DRAFT, SET_CONNECTION_DRAFT, reduceConnectionState, type ConnectionState } from '../connections/connection_state.js';
@@ -265,6 +268,7 @@ describe('storage writer outcomes', () => {
         expect(storageWriteChainKey(groupSessionConnectionCopyWrites(TEST_SESSION_ID, TEST_CONNECTION_ID))).toBe(TEST_SESSION_ID);
         expect(storageWriteChainKey(groupConnectionEntryWrites(TEST_CONNECTION_ID))).toBe('@manifest');
         expect(storageWriteChainKey(`@connections/${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`)).toBe(`@connections/${TEST_CONNECTION_ID}`);
+        expect(storageWriteChainKey(groupQueryResultCacheWrites(TEST_SESSION_ID, 'hash'))).toBe(`${TEST_SESSION_ID}/cache`);
     });
 
     it('writes durably without debouncing and defers while paused', async () => {
@@ -312,6 +316,35 @@ describe('storage writer outcomes', () => {
         await writer.flush();
         expect(backend.sessions.has(TEST_SESSION_ID)).toBe(false);
         expect(backend.calls.filter(call => call.startsWith('write:'))).toEqual([]);
+    });
+
+    it('deletes a session after its running cache writes and drops the later ones', async () => {
+        const events: string[] = [];
+        let finishWrite = () => { };
+        class Backend extends SessionTestBackend {
+            override async saveQueryResultCache(_sessionId?: string, hash?: string): Promise<void> {
+                events.push(`store:${hash}`);
+                await new Promise<void>(resolve => { finishWrite = resolve; });
+                events.push(`stored:${hash}`);
+            }
+            override async deleteSession(sessionId: string): Promise<void> {
+                events.push('delete');
+                await super.deleteSession(sessionId);
+            }
+        }
+        const backend = new Backend();
+        backend.sessions.set(TEST_SESSION_ID, testSession());
+        const writer = new StorageWriter(new NullLogger(), backend);
+        const cache = createSessionQueryResultCache(backend, writer, TEST_SESSION_ID);
+        const running = cache.store('first', new Uint8Array([1]));
+        await vi.waitFor(() => expect(events).toEqual(['store:first']));
+        const deleted = writer.deleteSession(TEST_SESSION_ID);
+        finishWrite();
+        await deleted;
+        expect(await running).toBe(true);
+        expect(await cache.store('second', new Uint8Array([2]))).toBe(false);
+        expect(await writer.write(groupQueryResultCacheWrites(TEST_SESSION_ID, 'third'), { type: WRITE_QUERY_RESULT_CACHE, value: [TEST_SESSION_ID, 'third', new Uint8Array()] })).toBe(false);
+        expect(events).toEqual(['store:first', 'stored:first', 'delete']);
     });
 
     it('accepts writes again when a deleted session is registered again', async () => {
