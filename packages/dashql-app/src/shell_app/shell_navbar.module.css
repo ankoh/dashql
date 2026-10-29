@@ -32,7 +32,9 @@
     gap: 12px;
     fill: currentColor;
     font-family: var(--font_family);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
     white-space: nowrap;
 }
 

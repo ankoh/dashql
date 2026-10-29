@@ -159,8 +159,9 @@
     fill: currentColor;
     /* The brand name, like the brand of the shell and the banner of the oauth redirect */
     font-family: var(--font_family);
-    font-size: 0.95rem;
-    font-weight: 400;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
 }
 
 .navbar_overlay {
