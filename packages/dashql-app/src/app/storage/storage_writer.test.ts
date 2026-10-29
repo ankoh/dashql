@@ -314,6 +314,18 @@ describe('storage writer outcomes', () => {
         expect(backend.calls.filter(call => call.startsWith('write:'))).toEqual([]);
     });
 
+    it('accepts writes again when a deleted session is registered again', async () => {
+        const backend = new SessionTestBackend();
+        backend.sessions.set(TEST_SESSION_ID, testSession());
+        const writer = new StorageWriter(new NullLogger(), backend);
+        await writer.deleteSession(TEST_SESSION_ID);
+        // An import of the same bundle registers the id again
+        backend.sessions.set(TEST_SESSION_ID, testSession());
+        writer.reviveSession(TEST_SESSION_ID);
+        expect(await writer.write(groupScriptWrites(TEST_SESSION_ID, 'a.sql'), { type: WRITE_SCRIPT, value: [TEST_SESSION_ID, 'a.sql', 'select 1'] })).toBe(true);
+        expect(backend.calls).toContain(`write:${TEST_SESSION_ID}/a.sql=select 1`);
+    });
+
     it('patches the copies of a connection and rewrites the connections it replaced', async () => {
         const backend = new SessionTestBackend();
         const writer = new StorageWriter(new NullLogger(), backend);

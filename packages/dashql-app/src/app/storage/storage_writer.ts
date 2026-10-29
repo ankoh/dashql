@@ -304,7 +304,7 @@ export class StorageWriter {
     paused: boolean;
     /// Sessions temporarily held by external reload/conflict handling.
     pausedSessions: Set<string>;
-    /// Deleted sessions, their ids are never reused and writes for them are discarded.
+    /// Deleted sessions, writes for them are discarded until a session with the id is registered again.
     deletedSessions: Set<string>;
     /// The executions that are currently in flight (used by flush() to await completion).
     inFlight: Set<Promise<void>>;
@@ -436,6 +436,12 @@ export class StorageWriter {
             throw error;
         }
         this.logger.info("Deleted session", { sessionId }, LOG_CTX);
+    }
+
+    /// A session with the id of a deleted session was registered again, e.g. by importing the same bundle.
+    /// Writes for the id are accepted again, the writes discarded while it was deleted stay discarded.
+    public reviveSession(sessionId: string): void {
+        this.deletedSessions.delete(sessionId);
     }
 
     /// Wait for writes that have already started without flushing pending debounced work.

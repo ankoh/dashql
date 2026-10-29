@@ -176,6 +176,8 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
             ? withFreshIdentity(bundle, targetSessionId)
             : bundle;
         await writePortableSessionFresh(backend, importedBundle, targetSessionId);
+        // The same bundle may have been imported and deleted before in this tab
+        writer.reviveSession(targetSessionId);
         try {
             const core = await setupCore('session_import');
             const restored = await restoreSingleSession(
@@ -196,7 +198,7 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
             }
             throw error;
         }
-    }, [backend, connectionStore, logger, setConnections, setScripts, setupCore]);
+    }, [backend, connectionStore, logger, setConnections, setScripts, setupCore, writer]);
 
     const requestConflictChoice = React.useCallback((
         bundle: SessionBundle,
