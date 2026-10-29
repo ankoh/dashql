@@ -7,6 +7,7 @@ import { ConnectionHealth, type ConnectionState } from '../../../connections/con
 import {
     scriptConnectionIds,
     SELECT_SCRIPT,
+    sessionConnectionIds,
     type SessionScripts,
 } from '../../scripts/session_scripts.js';
 import type { ModifySessionScripts } from '../../scripts/session_scripts_registry.js';
@@ -101,9 +102,11 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     // A session run takes every connection that a script runs on, they have to be connected first
     const scriptConnections = props.scriptConnections ?? new Map(props.connection == null ? [] : [[props.connection.connectionId, props.connection]]);
     const runConnections = scriptConnectionIds(props.sessionScripts).flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
+    // The bar also shows the connection that the composer drafts the next script on, e.g. the one picked in an empty session
+    const barConnections = sessionConnectionIds(props.sessionScripts).flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
     const toConnect = connectionsToConnect(runConnections);
     const disconnected = toConnect.length > 0;
-    const connectionAttention = useSessionConnectionAttention(props.sessionScripts.sessionId, connectionHealthKey(runConnections));
+    const connectionAttention = useSessionConnectionAttention(props.sessionScripts.sessionId, connectionHealthKey(barConnections));
     const scriptConnectionsIdle = runConnections.length > 0 && runConnections.every(connection =>
         connection.connectionHealth === ConnectionHealth.ONLINE && (connection.queriesActive?.size ?? 0) === 0);
     const execution = dependencies.useSessionExecution(props.sessionScripts.sessionId);
@@ -213,8 +216,8 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         </div>
                     </div>
                     <div className={styles.header_actions}>
-                        {/* The connections of the scripts, the user sees which one is not connected */}
-                        <dependencies.SessionConnectionButtons connections={runConnections} attention={connectionAttention.active} />
+                        {/* The connections of the session, the user sees which one is not connected */}
+                        <dependencies.SessionConnectionButtons connections={barConnections} attention={connectionAttention.active} />
                         <AgentSessionMenu sessionId={props.sessionScripts.sessionId} labelClassName={styles.action_label} />
                         <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
                             setExportOpen(false);

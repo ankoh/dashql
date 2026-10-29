@@ -144,7 +144,7 @@ describe('SessionFeedPage', () => {
         const button = container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!;
         expect(button.disabled).toBe(false);
         expect(button.getAttribute('aria-label')).toBe('Connect to run');
-        // The top bar shows the connections of the scripts only
+        // The top bar shows the connections of the session only
         expect(state.connectionButtonsProps.connections).toEqual([lake]);
         // A click draws attention to the connections that are not connected, it opens nothing
         const request = vi.spyOn(state.attention, 'request');
@@ -158,6 +158,19 @@ describe('SessionFeedPage', () => {
         expect(button.getAttribute('aria-label')).toBe('Execute All');
         act(() => button.click());
         expect(state.execution.start).toHaveBeenCalledWith(modify);
+    });
+
+    it('shows the connection picked for the next script in the top bar without running it', () => {
+        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActive: new Map() } as any;
+        // An empty session runs nothing yet, the composer drafts its first script on the picked connection
+        const session = { ...scripts(), scriptRefs: {}, scriptOrder: [], scripts: {}, pendingConnection: { connectionId: 'lake' } };
+        act(() => root.render(<SessionFeedPage
+            sessionScripts={session} modifySessionScripts={vi.fn()} connection={lake}
+            scriptConnections={new Map([['lake', lake]])} active dependencies={dependencies} />));
+        expect(state.connectionButtonsProps.connections).toEqual([lake]);
+        const button = container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!;
+        expect(button.disabled).toBe(true);
+        expect(button.getAttribute('aria-label')).toBe('Execute All');
     });
 
     it('requests connection attention on blocked execution hover and clears on main health or session changes', async () => {

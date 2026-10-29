@@ -12,7 +12,7 @@ import { connectionLabelText } from '../../../connections/ui/connection_label.js
 import { useConnectionLabeler } from '../connection_labels.js';
 
 interface Props {
-    /// The connections that the scripts of the session run on
+    /// The connections that the scripts of the session and the next script run on
     connections: readonly ConnectionState[];
     /// The session asks for attention to its connections, e.g. when a blocked run button is hovered
     attention: boolean;
@@ -26,7 +26,7 @@ const DEFAULT_DEPENDENCIES: SessionConnectionButtonsDependencies = {
     ConnectionSettingsOverlay,
 };
 
-/// The connections that the scripts of a session run on, a connector logo with a health dot each.
+/// The connections that the scripts of a session and its next script run on, a connector logo with a health dot each.
 ///
 /// The user sees which connection is not connected yet. A button opens the settings of its connection,
 /// nothing connects by itself.
