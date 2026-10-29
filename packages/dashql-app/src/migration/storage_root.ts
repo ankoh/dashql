@@ -52,7 +52,12 @@ export async function listSessionFolders(root: FileSystemDirectoryHandle, manife
             continue;
         }
         if (storageType === 'native') {
-            if (typeof nativePath !== 'string' || globalThis.dashqlElectron === undefined || !(await exists(nativePath))) {
+            if (typeof nativePath !== 'string' || globalThis.dashqlElectron === undefined) {
+                continue;
+            }
+            // Folders registered before the app granted folders are claimed once, later starts reject the claim
+            await globalThis.dashqlElectron.claimSessionFolder(nativePath);
+            if (!(await exists(nativePath))) {
                 continue;
             }
             folders.push({ sessionId: path, folder: new NativeFolder(nativePath) });

@@ -33,6 +33,7 @@ describe('storage migration', () => {
     let files: Map<string, string | ArrayBuffer>;
     let dirs: Set<string>;
     let root: FileSystemDirectoryHandle;
+    let claims: string[];
     const text = (path: string) => {
         const value = files.get(path);
         return typeof value === 'string' || value === undefined ? value : new TextDecoder().decode(value);
@@ -44,7 +45,11 @@ describe('storage migration', () => {
         dirs = new Set();
         root = new OPFSDirectoryMock('', files, dirs) as unknown as FileSystemDirectoryHandle;
         resetFsStore();
-        globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
+        claims = [];
+        globalThis.dashqlElectron = {
+            fs: makeFsMock(),
+            claimSessionFolder: async (path: string) => { claims.push(path); return true; },
+        } as unknown as DashQLElectronBridge;
     });
 
     afterEach(() => {
@@ -79,6 +84,8 @@ describe('storage migration', () => {
         const summary = await migrateStorage(new NullLogger(), root);
         expect(summary.steps).toBe(STORAGE_MIGRATION_STEPS.length);
         expect(summary.sessions).toBeGreaterThan(0);
+        // The native session folder is claimed before it is read
+        expect(new Set(claims)).toEqual(new Set([NATIVE_DIR]));
 
         // The manifest lists sessions and the consolidated connections
         const manifest = json('dashql-manifest.json');

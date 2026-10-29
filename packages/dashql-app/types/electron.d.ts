@@ -12,6 +12,9 @@ interface DashQLFileStamp {
 }
 
 interface DashQLElectronBridge {
+    /// Claim the access to a session folder that the storage registered before the app granted folders.
+    /// Accepted once, on the first start with folder grants, for a folder that holds a session file.
+    claimSessionFolder(path: string): Promise<boolean>;
     confirm(options: {message: string; title: string}): Promise<boolean>;
     fs: {
         exists(path: string): Promise<boolean>;

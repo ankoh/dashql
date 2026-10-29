@@ -10,6 +10,7 @@ import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, shell, utilityProce
 import {AgentHost} from "./agent_host.js";
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
+import {FolderGrants} from "./folder_grants.js";
 import {GrpcTestServer, GRPC_TEST_REQUEST, GRPC_TEST_STREAM_BODY, GRPC_TEST_UNARY_RESPONSE} from "./grpc_test_server.js";
 import {MenuBar} from "./menu_bar.js";
 import {NativeProxyService, type NativeProxyRequest, validateNativeProxyRequest} from "./native_proxy.js";
@@ -499,6 +500,9 @@ async function startMenuBar(): Promise<void> {
 
 let quitState: "running" | "confirming" | "confirmed" = "running";
 
+/// The folders that the renderer may access, in the user data folder
+const FOLDER_GRANTS_FILE = "folder-grants.json";
+
 /// How long a closing window waits for the renderer to write its pending changes
 const RENDERER_FLUSH_TIMEOUT_MS = 5000;
 let nextFlushRequestId = 1;
@@ -609,10 +613,20 @@ if (!hasSingleInstanceLock) {
         return initial;
     });
 
+    // The renderer reaches the folders that the user picked, see FolderGrants
+    const folderGrants = FolderGrants.load(path.join(app.getPath("userData"), FOLDER_GRANTS_FILE));
+
     ipcMain.handle("dashql:open-directory", async (event, title: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof title !== "string") throw new Error("Rejected directory request");
         const result = await dialog.showOpenDialog({properties: ["openDirectory", "createDirectory"], title});
-        return result.canceled ? null : result.filePaths[0] ?? null;
+        const folder = result.canceled ? null : result.filePaths[0] ?? null;
+        if (folder !== null) await (await folderGrants).grant(folder);
+        return folder;
+    });
+
+    ipcMain.handle("dashql:claim-session-folder", async (event, folder: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || typeof folder !== "string") throw new Error("Rejected folder claim");
+        return await (await folderGrants).claimSessionFolder(folder);
     });
 
     ipcMain.handle("dashql:confirm", async (event, options: unknown) => {
@@ -629,7 +643,23 @@ if (!hasSingleInstanceLock) {
             if (typeof value !== "string" || !path.isAbsolute(value) || value.includes("\0")) throw new Error("Rejected filesystem path");
             return value;
         };
-        const target = requirePath(args[0]);
+        const grants = await folderGrants;
+        const resolved = await grants.resolve(requirePath(args[0]));
+        if (resolved === null) {
+            // Folders that were not granted look missing to the probes, the app shows their sessions as unreadable
+            switch (operation) {
+                case "exists": return false;
+                case "fileStamp": return null;
+                case "listFiles": return [];
+            }
+            throw new Error("Rejected filesystem path");
+        }
+        const target = resolved;
+        const requireGranted = async (value: unknown): Promise<string> => {
+            const granted = await grants.resolve(requirePath(value));
+            if (granted === null || grants.isRoot(granted)) throw new Error("Rejected filesystem path");
+            return granted;
+        };
         // A stamp changes whenever anybody writes the file, the renderer compares stamps instead of contents
         const stampOf = async (file: string) => { const value = await stat(file); return {size: value.size, mtimeMs: value.mtimeMs}; };
         const isMissing = (error: unknown) => (error as NodeJS.ErrnoException | null)?.code === "ENOENT";
@@ -649,8 +679,15 @@ if (!hasSingleInstanceLock) {
             case "readDir": return (await readdir(target, {withFileTypes: true})).map(entry => ({name: entry.name, isFile: entry.isFile(), isDirectory: entry.isDirectory(), isSymlink: entry.isSymbolicLink()}));
             case "readFile": return new Uint8Array(await readFile(target));
             case "readTextFile": return await readFile(target, "utf8");
-            case "remove": return await rm(target, {recursive: (args[1] as {recursive?: boolean} | undefined)?.recursive ?? false, force: false});
-            case "rename": return await rename(target, requirePath(args[1]));
+            case "remove": {
+                // The app never deletes a folder the user picked, only what it wrote into it
+                if (grants.isRoot(target)) throw new Error("Rejected filesystem path");
+                return await rm(target, {recursive: (args[1] as {recursive?: boolean} | undefined)?.recursive ?? false, force: false});
+            }
+            case "rename": {
+                if (grants.isRoot(target)) throw new Error("Rejected filesystem path");
+                return await rename(target, await requireGranted(args[1]));
+            }
             case "stat": { const value = await stat(target); return {size: value.size, mtime: value.mtime.toISOString(), isFile: value.isFile(), isDirectory: value.isDirectory(), isSymlink: value.isSymbolicLink()}; }
             case "writeFile": return await writeFile(target, typeof args[1] === "string" ? args[1] : Buffer.from(args[1] as Uint8Array));
             case "writeTextFile": if (typeof args[1] === "string") { await writeFile(target, args[1], "utf8"); return await stampOf(target); } break;

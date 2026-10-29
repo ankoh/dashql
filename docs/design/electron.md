@@ -91,6 +91,7 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
 | Deep links | `dashql://` registered as protocol client and in `CFBundleURLTypes`; `open-url`, `second-instance` and cold-start argv go through `src/deep_link.ts`. It accepts `dashql://localhost`, `https://dashql.app` and `http://localhost:9002` links with exactly one `data` or `session` parameter (legacy `notebook`), up to 64 KiB. `DeepLinkQueue` buffers links until the renderer asks for them. |
 | Dialogs | `dashql:open-directory` and a two-button `dashql:confirm` |
 | Filesystem | `dashql:fs` (exists, fileStamp, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile) for absolute paths without NUL; `fileStamp`, `listFiles` and `writeTextFile` return sizes and modification times; app wrapper `platform/electron_fs.ts` |
+| Folder grants | `dashql:fs` reaches only folders the user picked in `dashql:open-directory` (`src/folder_grants.ts`), stored as a JSON list of real paths in `userData/folder-grants.json`. Paths resolve through symbolic links and must stay inside a granted folder; the probes `exists`, `fileStamp` and `listFiles` report other paths as missing, the other operations reject them. A granted folder itself is never removed or renamed. On the first start with grants, `dashql:claim-session-folder` grants the session folders that the manifest already registers, if they hold `dashql-session.json` or `dashql-notebook.json`. |
 | Session folder changes | No file watching; the renderer checks session folders on window focus and before script writes, see `native_file_sync.md` |
 | Open external | `shell.openExternal` for `https:` URLs only |
 | OAuth loopback | Node HTTP server in main (`src/oauth_loopback.ts`), used by Trino; Salesforce uses the deep-link relay (`oauth_salesforce.md`) |
@@ -138,6 +139,6 @@ and canary. Integrity relies on electron-updater's SHA-512 manifest and Apple co
 - Signed update manifests, staged rollout cohorts, a kill switch, and update failure tests.
 - Proxy request cancellation, backpressure, a startup timeout, response size bounds, and restart after a
   utility-process crash.
-- Open-file and save-file dialogs, scoped filesystem grants, and a renderer-to-main logger.
+- Open-file and save-file dialogs, revoking folder grants of removed sessions, and a renderer-to-main logger.
 - Size, cold-start and memory measurements of release artifacts.
 - Windows and Linux packages.
