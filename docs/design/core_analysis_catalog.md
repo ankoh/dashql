@@ -75,7 +75,9 @@ entry; positions within the entry are `TableLoc` / `ColumnLoc` and are looked up
   the catalog even though it borrows it immutably.
 - Database and schema ids survive drops and `clear`. The table, function and column ids of an entry
   are released when the entry is dropped (`drop_script`, also for scripts that were analyzed but
-  never published, and `drop_descriptor`); a later version gets fresh ids.
+  never published, and `drop_descriptor`); a later version gets its ids in declaration order again.
+  `drop_script` leaves the ids of a descriptor pool that is published under the same entry id, the
+  pool keeps them until `drop_descriptor`.
 - While a script is typed, every intermediate name of a declared table reserves an id until the
   script is dropped.
 

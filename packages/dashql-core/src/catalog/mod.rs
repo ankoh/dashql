@@ -619,8 +619,11 @@ impl Catalog {
 
     /// Drop a script
     pub fn drop_script(&mut self, id: CatalogEntryId) {
-        // Also for scripts that were analyzed but never published
-        self.ids.borrow_mut().release_entry(id);
+        // Also for scripts that were analyzed but never published. A descriptor pool published under the id of the
+        // script owns the ids, they stay until the pool is dropped.
+        if !self.descriptor_entries.contains_key(&id) {
+            self.ids.borrow_mut().release_entry(id);
+        }
         let Some((analyzed, layer)) = self.script_entries.remove(&id) else {
             return;
         };

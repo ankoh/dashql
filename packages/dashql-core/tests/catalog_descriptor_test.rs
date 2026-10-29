@@ -452,3 +452,25 @@ fn replaced_descriptors_keep_the_ids_of_their_tables() {
     assert_eq!(refreshed.column_by_name("total").unwrap().column_id(), 1);
     assert_eq!(resolve(&catalog, "select total from orders"), vec!["total -> orders.total"]);
 }
+
+#[test]
+fn dropping_a_script_keeps_the_ids_of_a_descriptor_under_its_id() {
+    // The app publishes the connection descriptor under the entry id of the script that holds its text
+    let mut catalog = Catalog::new();
+    let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "orders", &["id"])]));
+    let orders = catalog.entry(id).unwrap().data().table_declarations[0].object_id;
+    catalog.drop_script(id);
+    assert!(catalog.entry(id).is_some());
+
+    // A refresh that lists a new table first keeps the id of orders
+    catalog
+        .replace_descriptor(
+            id,
+            CatalogLayer::CONNECTION,
+            &tables_only(vec![table("", "main", "customers", &["id"]), table("", "main", "orders", &["id"])]),
+        )
+        .unwrap();
+    let data = catalog.entry(id).unwrap().data();
+    let refreshed = data.table_declarations.iter().find(|t| t.table_name.table_name.text() == "orders").unwrap();
+    assert_eq!(refreshed.object_id, orders);
+}
