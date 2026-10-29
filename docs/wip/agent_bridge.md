@@ -492,6 +492,15 @@ loaded from that dev server (`DASHQL_ELECTRON_RENDERER_URL`,
   reaching 127.0.0.1 is local to local, so Chrome shows no permission prompt. Testing the
   prompt needs the page on a public HTTPS origin: the deployed site, a preview
   deployment, or a tunnel.
+- **Logs.** `dashql agent serve` writes `[dashql] <UTC time> <message>` lines to stderr:
+  every WebSocket message in full (`Client 3 <-` received, `Client 3 ->` sent), the
+  bodies of `POST /v1/call` and their responses, the turns from queued to answered, and
+  each turn's harness command, PATH, raw stdout and stderr lines and exit status.
+  `GET /v1/status` polls are not logged. The page logs the same messages and its
+  connection changes under `agent_client` and `agent_bridge` in the app's log.
+  DashQL.app writes the server's lines and its own `[agent-host]` lines (spawn, exit,
+  restart, state) to the console of the main process. Messages and lines over 64 KiB
+  are cut.
 
 ## Prior Art
 

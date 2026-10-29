@@ -20,6 +20,12 @@ pub enum HarnessEvent {
     Status(String),
     /// The id of the harness session, to resume it with the next request
     Session(String),
+    /// A line that the harness wrote to stdout, for the log
+    Stdout(String),
+    /// A line that the harness wrote to stderr, for the log
+    Stderr(String),
+    /// What happened to the process, for the log
+    Process(String),
 }
 
 /// The outcome of a harness run
@@ -378,43 +384,74 @@ async fn run_harness(args: HarnessSpawnArgs, kill: Arc<Notify>) -> HarnessOutcom
         Err(e) => return HarnessOutcome::failed(format!("Cannot start {program}: {e}")),
     };
     let pid = child.id();
+    let events = args.events;
+    let process = |text: String| {
+        let _ = events.send(HarnessEvent::Process(text));
+    };
+    process(format!("Started {program} with pid {}", pid.map_or_else(|| "unknown".into(), |p| p.to_string())));
     let mut stderr = child.stderr.take().expect("stderr is piped");
-    let stderr = tokio::spawn(async move {
-        let mut kept = Vec::new();
-        let mut chunk = [0; 4096];
-        while let Ok(n @ 1..) = stderr.read(&mut chunk).await {
-            kept.extend_from_slice(&chunk[..n]);
-            kept.drain(..kept.len().saturating_sub(STDERR_LIMIT));
+    let stderr = tokio::spawn({
+        let events = events.clone();
+        async move {
+            let mut kept = Vec::new();
+            let mut line = Vec::new();
+            let mut chunk = [0; 4096];
+            let send_line = |line: &[u8]| {
+                let text = String::from_utf8_lossy(line);
+                let _ = events.send(HarnessEvent::Stderr(text.trim_end_matches(['\n', '\r']).to_string()));
+            };
+            while let Ok(n @ 1..) = stderr.read(&mut chunk).await {
+                kept.extend_from_slice(&chunk[..n]);
+                kept.drain(..kept.len().saturating_sub(STDERR_LIMIT));
+                line.extend_from_slice(&chunk[..n]);
+                while let Some(end) = line.iter().position(|b| *b == b'\n') {
+                    send_line(&line[..end]);
+                    line.drain(..=end);
+                }
+            }
+            if !line.is_empty() {
+                send_line(&line);
+            }
+            String::from_utf8_lossy(&kept).into_owned()
         }
-        String::from_utf8_lossy(&kept).into_owned()
     });
     let mut stdout = BufReader::new(child.stdout.take().expect("stdout is piped"));
     let mut reader = create_harness_reader(args.config.adapter);
-    let events = args.events;
-    let stdout = tokio::spawn(async move {
-        let mut line = Vec::new();
-        while let Ok(1..) = stdout.read_until(b'\n', &mut line).await {
-            let text = String::from_utf8_lossy(&line);
-            reader.line(text.trim_end_matches(['\n', '\r']), &mut |event| {
-                let _ = events.send(event);
-            });
-            line.clear();
+    let stdout = tokio::spawn({
+        let events = events.clone();
+        async move {
+            let mut line = Vec::new();
+            while let Ok(1..) = stdout.read_until(b'\n', &mut line).await {
+                let text = String::from_utf8_lossy(&line);
+                let text = text.trim_end_matches(['\n', '\r']);
+                let _ = events.send(HarnessEvent::Stdout(text.to_string()));
+                reader.line(text, &mut |event| {
+                    let _ = events.send(event);
+                });
+                line.clear();
+            }
+            reader
         }
-        reader
     });
     let status = tokio::select! {
         status = child.wait() => status,
         _ = kill.notified() => {
+            process("Stopping the process group with SIGTERM".into());
             signal_process_group(pid, false);
             match tokio::time::timeout(KILL_GRACE, child.wait()).await {
                 Ok(status) => status,
                 Err(_) => {
+                    process(format!("Still running after {}s, killing the process group", KILL_GRACE.as_secs()));
                     signal_process_group(pid, true);
                     child.wait().await
                 }
             }
         }
     };
+    match &status {
+        Ok(status) => process(format!("Exited: {status}")),
+        Err(e) => process(format!("Cannot wait for the process: {e}")),
+    }
     let exit_code = status.ok().and_then(|s| s.code());
     let stderr = stderr.await.unwrap_or_default();
     match stdout.await {
@@ -521,6 +558,7 @@ mod tests {
             reader.line(&text, &mut |event| match event {
                 HarnessEvent::Status(s) => statuses.push(s),
                 HarnessEvent::Session(s) => sessions.push(s),
+                HarnessEvent::Stdout(_) | HarnessEvent::Stderr(_) | HarnessEvent::Process(_) => {}
             });
         }
         Read { statuses, sessions, outcome: reader.finish(exit_code, stderr) }
@@ -748,7 +786,13 @@ mod tests {
         let outcome = process.outcome.await;
         assert_eq!(outcome.message, "hello");
         assert_eq!(outcome.error.unwrap(), "The harness exited with code 3: oops");
-        assert_eq!(received.recv().await, Some(HarnessEvent::Status("hello".into())));
+        let mut first_run = Vec::new();
+        while let Ok(event) = received.try_recv() {
+            first_run.push(event);
+        }
+        assert!(first_run.contains(&HarnessEvent::Status("hello".into())), "{first_run:?}");
+        assert!(first_run.contains(&HarnessEvent::Stdout("hello".into())), "{first_run:?}");
+        assert!(first_run.contains(&HarnessEvent::Stderr("oops".into())), "{first_run:?}");
 
         let process = spawn_harness(HarnessSpawnArgs {
             config: config(&["sh", "-c", "sleep 30 & wait"]),

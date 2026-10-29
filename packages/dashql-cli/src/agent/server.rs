@@ -5,21 +5,22 @@ use crate::agent::config::{
     create_private_dir, random_bytes, to_json_text, write_private_file, AgentConfig, ORIGINS,
 };
 use crate::agent::harness::{
-    resolve_login_shell_path, resolve_program, spawn_harness, HarnessEvent, HarnessOutcome, HarnessProcess,
-    HarnessSpawnArgs, Kill, KILL_GRACE,
+    build_harness_args, resolve_login_shell_path, resolve_program, spawn_harness, HarnessEvent, HarnessOutcome,
+    HarnessProcess, HarnessSpawnArgs, Kill, KILL_GRACE,
 };
 use crate::agent::http::{self, Request};
 use crate::agent::instructions::{claude_instructions, session_instructions, INPUT_FOLDER, OPENCODE_CONFIG};
 use crate::agent::protocol::{ErrorCode, RpcError, PROTOCOL_VERSION, WEBSOCKET_PATH};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Map, Value};
+use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ffi::OsString;
 use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, oneshot, Notify, OnceCell};
@@ -39,6 +40,49 @@ const SERVER_STOPPED_MESSAGE: &str = "The agent server stopped";
 const CLOSE_GRACE: Duration = Duration::from_secs(1);
 /// Set in the environment of harness runs
 pub const AGENT_RUN_ENV: &str = "DASHQL_AGENT_RUN";
+
+/// Messages and output lines are cut after this many bytes in the log
+const LOG_TEXT_LIMIT: usize = 64 * 1024;
+
+/// A text for the log, cut after LOG_TEXT_LIMIT bytes
+fn clip(text: &str) -> Cow<'_, str> {
+    if text.len() <= LOG_TEXT_LIMIT {
+        return Cow::Borrowed(text);
+    }
+    let mut end = LOG_TEXT_LIMIT;
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    Cow::Owned(format!("{}... ({} more bytes)", &text[..end], text.len() - end))
+}
+
+/// The current time in UTC, e.g. 2026-10-29T12:34:56.789Z
+fn timestamp() -> String {
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+    let (days, seconds) = ((now.as_secs() / 86400) as i64, now.as_secs() % 86400);
+    // The civil date of a day number, Howard Hinnant's days_from_civil inverted
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}.{:03}Z",
+        seconds / 3600,
+        seconds / 60 % 60,
+        seconds % 60,
+        now.subsec_millis()
+    )
+}
+
+/// Write a line to the log on stderr
+pub fn log_line(message: &str) {
+    eprintln!("[dashql] {} {message}", timestamp());
+}
 
 /// Start a harness process, replaceable in tests
 pub type SpawnHarness = Arc<dyn Fn(HarnessSpawnArgs) -> HarnessProcess + Send + Sync>;
@@ -271,6 +315,11 @@ impl AgentServer {
         {
             let mut state = self.shared.lock();
             let state = &mut *state;
+            self.shared.log(&format!(
+                "Stopping: failing {} turns, closing {} clients",
+                state.turns.len(),
+                state.clients.len()
+            ));
             for turn in state.turns.drain(..) {
                 notify_failed(&state.clients, &turn, SERVER_STOPPED_MESSAGE, false);
                 if let Some(kill) = &turn.kill {
@@ -293,6 +342,9 @@ impl AgentServer {
             let waits_for_harnesses = harnesses > 0 && now < harnesses_deadline;
             let waits_for_clients = clients > 0 && now < clients_deadline;
             if !waits_for_harnesses && !waits_for_clients {
+                if harnesses > 0 || clients > 0 {
+                    self.shared.log(&format!("Stopped with {harnesses} harnesses and {clients} clients left"));
+                }
                 break;
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
@@ -307,7 +359,7 @@ impl Shared {
 
     fn log(&self, message: &str) {
         if self.options.log {
-            eprintln!("[dashql] {message}");
+            log_line(message);
         }
     }
 
@@ -379,9 +431,13 @@ impl Shared {
             _ => return RpcError::new(ErrorCode::Usage, "the session must be a string").to_call_response(),
         };
         let Some((client, session)) = self.wait_for_session(session).await else {
+            let target = session.map_or_else(|| "a focused session".into(), |s| format!("session {s}"));
+            self.log(&format!("Call {command}: no client holds {target}"));
             return RpcError::new(ErrorCode::NotConnected, NOT_CONNECTED_MESSAGE).to_call_response();
         };
+        self.log(&format!("Call {command}: forwarding to client {client} for session {session}"));
         if !self.lock().busy.insert(session.clone()) {
+            self.log(&format!("Call {command}: session {session} is busy with another call"));
             let message = "Another dashql agent call of this session is running, wait for it to finish";
             return RpcError::new(ErrorCode::Busy, message).to_call_response();
         }
@@ -425,7 +481,12 @@ impl Shared {
             if target.is_some() {
                 return target;
             }
-            if wait.is_zero() || tokio::time::timeout_at(deadline, changed).await.is_err() {
+            if wait.is_zero() {
+                return None;
+            }
+            let target = session.map_or_else(|| "a focused session".into(), |s| format!("session {s}"));
+            self.log(&format!("Waiting up to {}ms for a client that holds {target}", wait.as_millis()));
+            if tokio::time::timeout_at(deadline, changed).await.is_err() {
                 return None;
             }
         }
@@ -446,8 +507,15 @@ impl Shared {
         match tokio::time::timeout(self.options.call_timeout, rx).await {
             Ok(Ok(result)) => result,
             // The client is gone with its pending calls
-            Ok(Err(_)) => Err(disconnected()),
+            Ok(Err(_)) => {
+                self.log(&format!("Client {client} disconnected before it answered {id}"));
+                Err(disconnected())
+            }
             Err(_) => {
+                self.log(&format!(
+                    "Client {client} did not answer {id} within {}s",
+                    self.options.call_timeout.as_secs()
+                ));
                 if let Some(client) = self.lock().clients.get_mut(&client) {
                     client.pending.remove(&id);
                 }
@@ -472,16 +540,23 @@ impl Shared {
     }
 
     fn handle_message(self: &Arc<Self>, client: u64, text: &str) {
-        let Ok(message) = serde_json::from_str::<Value>(text) else {
-            self.close_client(client, CLOSE_POLICY_VIOLATION, "invalid JSON".into());
-            return;
+        let message = match serde_json::from_str::<Value>(text) {
+            Ok(message) => message,
+            Err(e) => {
+                self.log(&format!("Client {client} sent invalid JSON, closing it: {e}"));
+                self.close_client(client, CLOSE_POLICY_VIOLATION, "invalid JSON".into());
+                return;
+            }
         };
         let id = message.get("id").filter(|id| !id.is_null()).cloned();
         let Some(method) = message["method"].as_str() else {
             // A response to a command
             let id = id.map(|id| id.as_str().map_or_else(|| id.to_string(), str::to_string)).unwrap_or_default();
             let mut state = self.lock();
-            let Some(pending) = state.clients.get_mut(&client).and_then(|c| c.pending.remove(&id)) else { return };
+            let Some(pending) = state.clients.get_mut(&client).and_then(|c| c.pending.remove(&id)) else {
+                self.log(&format!("Client {client} answered {id}, no call waits for it"));
+                return;
+            };
             let _ = pending.send(match &message["error"] {
                 Value::Null => Ok(message["result"].clone()),
                 error => Err(RpcError::from_json(error)),
@@ -527,6 +602,7 @@ impl Shared {
                 Ok(json!({}))
             })),
             "agent/reset" => reply(session().and_then(|session| {
+                self.log(&format!("Forgetting the harness sessions of session {session}"));
                 let state = SessionState::default();
                 self.write_session_state(&session, &state).map_err(|e| RpcError::new(ErrorCode::Failed, e))?;
                 Ok(json!({}))
@@ -550,6 +626,7 @@ impl Shared {
         if params["protocol"].as_u64() != Some(PROTOCOL_VERSION) {
             let reason =
                 format!("protocol version {} is not supported, expected {PROTOCOL_VERSION}", params["protocol"]);
+            self.log(&format!("Turning client {client} away: {reason}"));
             self.close_client(client, CLOSE_POLICY_VIOLATION, reason);
             return false;
         }
@@ -668,6 +745,11 @@ impl Shared {
             return Err(RpcError::new(ErrorCode::Failed, "the prompt is empty"));
         }
         let turn_id = random_uuid();
+        let ahead = state.turns.iter().filter(|turn| turn.session == session).count();
+        self.log(&format!(
+            "Turn {turn_id}: queued for session {session} with {harness}, {ahead} turns ahead, prompt: {}",
+            clip(prompt)
+        ));
         state.turns.push(Turn {
             turn_id: turn_id.clone(),
             session: session.to_string(),
@@ -686,7 +768,10 @@ impl Shared {
         let mut state = self.lock();
         let state = &mut *state;
         let stops = |turn: &Turn| turn.session == session && turn_id.is_none_or(|id| turn.turn_id == id);
+        let stopped = state.turns.iter().filter(|turn| stops(turn)).count();
+        self.log(&format!("Stopping {stopped} turns of session {session} (turn {})", turn_id.unwrap_or("all")));
         for turn in state.turns.iter_mut().filter(|turn| stops(turn)) {
+            self.log(&format!("Turn {}: stopped while {}", turn.turn_id, turn.state.name()));
             turn.cancelled = true;
             match (turn.state, &turn.kill) {
                 (TurnState::Queued, _) => notify_failed(&state.clients, turn, "Stopped", true),
@@ -757,9 +842,18 @@ impl Shared {
                 _ => return Ok(HarnessOutcome::failed("Stopped")),
             }
         };
-        self.log(&format!("Starting {harness_name} for session {session}"));
         let harness_session =
             self.read_session_state(&session).harness_sessions.get(&harness_name).and_then(Value::as_str).map(str::to_string);
+        let argv = build_harness_args(&config, &prompt, harness_session.as_deref());
+        self.log(&format!(
+            "Turn {turn_id}: starting {harness_name} for session {session} in {}, {}, command: {}",
+            cwd.display(),
+            harness_session
+                .as_ref()
+                .map_or_else(|| "new harness session".into(), |id| format!("resuming harness session {id}")),
+            clip(&serde_json::to_string(&argv).unwrap_or_default())
+        ));
+        self.log(&format!("Turn {turn_id}: PATH={}", env[&OsString::from("PATH")].to_string_lossy()));
         let (events, mut received) = mpsc::unbounded_channel();
         let process =
             (self.options.spawn_harness)(HarnessSpawnArgs { config, prompt, harness_session, cwd, env, events });
@@ -795,6 +889,9 @@ impl Shared {
 
     fn handle_event(&self, turn_id: &str, session: &str, harness: &str, event: HarnessEvent) {
         match event {
+            HarnessEvent::Stdout(line) => self.log(&format!("Turn {turn_id}: {harness} stdout: {}", clip(&line))),
+            HarnessEvent::Stderr(line) => self.log(&format!("Turn {turn_id}: {harness} stderr: {}", clip(&line))),
+            HarnessEvent::Process(text) => self.log(&format!("Turn {turn_id}: {harness}: {text}")),
             HarnessEvent::Status(text) => {
                 let mut state = self.lock();
                 let state = &mut *state;
@@ -810,6 +907,7 @@ impl Shared {
                 if state.harness_sessions.get(harness).and_then(Value::as_str) == Some(&id) {
                     return;
                 }
+                self.log(&format!("Turn {turn_id}: {harness} runs in harness session {id}"));
                 state.harness_sessions.insert(harness.to_string(), id.into());
                 if let Err(e) = self.write_session_state(session, &state) {
                     self.log(&format!("Cannot store the harness session: {e}"));
@@ -823,11 +921,18 @@ impl Shared {
         let Some(index) = state.turns.iter().position(|turn| turn.turn_id == turn_id) else { return };
         let turn = state.turns.remove(index);
         if turn.cancelled {
+            self.log(&format!("Turn {turn_id}: stopped"));
             notify_failed(&state.clients, &turn, "Stopped", true);
         } else if let Some(error) = &outcome.error {
-            self.log(&format!("{} failed for session {}: {error}", turn.harness, turn.session));
+            self.log(&format!("Turn {turn_id}: {} failed for session {}: {error}", turn.harness, turn.session));
             notify_failed(&state.clients, &turn, error, false);
         } else {
+            self.log(&format!(
+                "Turn {turn_id}: {} answered for session {}: {}",
+                turn.harness,
+                turn.session,
+                clip(&outcome.message)
+            ));
             let params = json!({ "session": turn.session, "turnId": turn.turn_id, "message": outcome.message });
             notify_session(&state.clients, &turn.session, "agent/done", params);
         }
@@ -847,6 +952,7 @@ async fn start_or_queue(shared: Arc<Shared>, turn_id: String) {
             return;
         }
         if state.turns.iter().find(|first| first.session == turn.session).map(|first| &first.turn_id) != Some(&turn_id) {
+            shared.log(&format!("Turn {turn_id}: waits for an earlier turn of session {}", turn.session));
             notify_status(&state.clients, turn);
             return;
         }
@@ -864,9 +970,13 @@ async fn start_turn(shared: Arc<Shared>, turn_id: String) {
         }
         turn.state = TurnState::Running;
         turn.status = "starting the agent...".into();
+        shared.log(&format!("Turn {turn_id}: running"));
         notify_status(&state.clients, turn);
     }
-    let outcome = shared.run_harness(&turn_id).await.unwrap_or_else(HarnessOutcome::failed);
+    let outcome = shared.run_harness(&turn_id).await.unwrap_or_else(|e| {
+        shared.log(&format!("Turn {turn_id}: cannot start the harness: {e}"));
+        HarnessOutcome::failed(e)
+    });
     shared.finish_turn(&turn_id, outcome);
 }
 
@@ -897,11 +1007,18 @@ async fn respond(stream: &mut TcpStream, status: u16, reason: &str, body: &Value
 
 async fn handle_http(shared: Arc<Shared>, mut stream: TcpStream, request: Request) {
     let failure = |code, message: &str| RpcError::new(code, message).to_call_response();
+    let target = format!("{} {}", request.method, request.path());
     // Browsers send an Origin, the command line tool doesn't. Pages never reach the HTTP endpoints.
     if !shared.host_allowed(request.header("host")) || request.header("origin").is_some() {
+        shared.log(&format!(
+            "HTTP {target}: refused, host {:?}, origin {:?}",
+            request.header("host"),
+            request.header("origin")
+        ));
         return respond(&mut stream, 403, "Forbidden", &failure(ErrorCode::Usage, "forbidden")).await;
     }
     if !shared.token_valid(&request) {
+        shared.log(&format!("HTTP {target}: refused, invalid token"));
         return respond(&mut stream, 401, "Unauthorized", &failure(ErrorCode::Usage, "invalid token")).await;
     }
     match (request.method.as_str(), request.path()) {
@@ -910,21 +1027,28 @@ async fn handle_http(shared: Arc<Shared>, mut stream: TcpStream, request: Reques
             respond(&mut stream, 200, "OK", &json!({ "ok": true, "status": status })).await;
         }
         ("POST", "/v1/call") => {
-            let call = http::read_body(&mut stream, &request, MAX_HTTP_BODY_BYTES)
-                .await
-                .and_then(|body| serde_json::from_slice::<Value>(&body).map_err(|e| e.to_string()));
+            let body = http::read_body(&mut stream, &request, MAX_HTTP_BODY_BYTES).await;
+            if let Ok(body) = &body {
+                shared.log(&format!("HTTP {target} <- {}", clip(&String::from_utf8_lossy(body))));
+            }
+            let call = body.and_then(|body| serde_json::from_slice::<Value>(&body).map_err(|e| e.to_string()));
             match call {
                 Ok(call) => {
                     let result = shared.call(&call).await;
+                    shared.log(&format!("HTTP {target} -> 200 {}", clip(&result.to_string())));
                     respond(&mut stream, 200, "OK", &result).await;
                 }
                 Err(e) => {
                     let body = failure(ErrorCode::Usage, &format!("invalid request: {e}"));
+                    shared.log(&format!("HTTP {target} -> 400 {body}"));
                     respond(&mut stream, 400, "Bad Request", &body).await;
                 }
             }
         }
-        _ => respond(&mut stream, 404, "Not Found", &failure(ErrorCode::Usage, "not found")).await,
+        _ => {
+            shared.log(&format!("HTTP {target} -> 404"));
+            respond(&mut stream, 404, "Not Found", &failure(ErrorCode::Usage, "not found")).await
+        }
     }
 }
 
@@ -935,6 +1059,7 @@ async fn reject_upgrade(mut stream: TcpStream, status: u16, reason: &str) {
 
 async fn handle_upgrade(shared: Arc<Shared>, mut stream: TcpStream, request: Request) {
     if request.path() != WEBSOCKET_PATH {
+        shared.log(&format!("Refused a WebSocket upgrade for {}: not found", request.path()));
         return reject_upgrade(stream, 404, "Not Found").await;
     }
     // Other websites cannot fake the Origin, the Host check blocks DNS rebinding
@@ -951,12 +1076,14 @@ async fn handle_upgrade(shared: Arc<Shared>, mut stream: TcpStream, request: Req
         upgrade.eq_ignore_ascii_case("websocket"),
         request.header("sec-websocket-version"),
     ) else {
+        shared.log(&format!("Refused a WebSocket upgrade from {origin:?}: invalid handshake"));
         return reject_upgrade(stream, 400, "Bad Request").await;
     };
     let accept = derive_accept_key(key.as_bytes());
     let handshake =
         format!("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n");
-    if stream.write_all(handshake.as_bytes()).await.is_err() {
+    if let Err(e) = stream.write_all(handshake.as_bytes()).await {
+        shared.log(&format!("Cannot complete the WebSocket handshake with {origin:?}: {e}"));
         return;
     }
     let config = WebSocketConfig::default()
@@ -986,50 +1113,64 @@ async fn serve_client(shared: Arc<Shared>, socket: WebSocketStream<TcpStream>, o
         state.clients.insert(key, client);
         key
     };
-    shared.log(&format!("Client connected from {origin}"));
+    shared.log(&format!("Client {key} connected from {origin}"));
     let (mut sink, mut incoming) = socket.split();
     let interval = shared.options.ping_interval;
     let mut ping = tokio::time::interval_at(tokio::time::Instant::now() + interval, interval);
     let mut awaiting_pong = false;
-    loop {
+    let reason = loop {
         tokio::select! {
             message = outgoing.recv() => match message {
                 Some(Outgoing::Text(text)) => {
-                    if sink.send(Message::text(text)).await.is_err() {
-                        break;
+                    shared.log(&format!("Client {key} -> {}", clip(&text)));
+                    if let Err(e) = sink.send(Message::text(text)).await {
+                        break format!("cannot send: {e}");
                     }
                 }
                 Some(Outgoing::Close(code, reason)) => {
-                    let frame = CloseFrame { code: CloseCode::from(code), reason: reason.into() };
+                    let frame = CloseFrame { code: CloseCode::from(code), reason: reason.clone().into() };
                     let _ = sink.send(Message::Close(Some(frame))).await;
                     let _ = sink.close().await;
-                    break;
+                    break format!("closed by the server with {code}: {reason}");
                 }
-                None => break,
+                None => break "the server dropped the client".into(),
             },
             message = incoming.next() => match message {
-                Some(Ok(Message::Text(text))) => shared.handle_message(key, text.as_str()),
+                Some(Ok(Message::Text(text))) => {
+                    shared.log(&format!("Client {key} <- {}", clip(text.as_str())));
+                    shared.handle_message(key, text.as_str());
+                }
                 Some(Ok(Message::Pong(_))) => awaiting_pong = false,
-                Some(Ok(Message::Binary(_))) => {
+                Some(Ok(Message::Binary(data))) => {
                     let frame = CloseFrame { code: CloseCode::Unsupported, reason: "binary messages are not supported".into() };
                     let _ = sink.send(Message::Close(Some(frame))).await;
-                    break;
+                    break format!("sent a binary message of {} bytes", data.len());
                 }
-                // Pings are answered and closes acknowledged by the socket itself
+                Some(Ok(Message::Close(frame))) => {
+                    // The socket acknowledges the close itself and ends the stream next
+                    let frame = frame
+                        .map_or_else(|| "no close frame".into(), |f| format!("{}: {}", u16::from(f.code), f.reason));
+                    shared.log(&format!("Client {key} closes the connection with {frame}"));
+                }
+                // Pings are answered by the socket itself
                 Some(Ok(_)) => {}
-                Some(Err(_)) | None => break,
+                Some(Err(e)) => break format!("socket error: {e}"),
+                None => break "the connection ended".into(),
             },
             _ = ping.tick() => {
-                if awaiting_pong || sink.send(Message::Ping(Default::default())).await.is_err() {
-                    break;
+                if awaiting_pong {
+                    break format!("no pong within {}s", interval.as_secs());
+                }
+                if let Err(e) = sink.send(Message::Ping(Default::default())).await {
+                    break format!("cannot send a ping: {e}");
                 }
                 awaiting_pong = true;
             }
         }
-    }
+    };
     // Dropping the client fails its pending calls
-    shared.lock().clients.remove(&key);
-    shared.log(&format!("Client from {origin} disconnected"));
+    let pending = shared.lock().clients.remove(&key).map_or(0, |client| client.pending.len());
+    shared.log(&format!("Client {key} from {origin} disconnected ({reason}), failing {pending} pending calls"));
 }
 
 #[cfg(test)]

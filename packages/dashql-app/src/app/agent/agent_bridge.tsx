@@ -139,19 +139,35 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
             logger,
             handleCommand: async params => {
                 logger.info('Running an agent command', { session: params.session, command: params.command }, LOG_CTX);
-                return runAgentCommand(commandEnv.current!, params);
+                const started = performance.now();
+                try {
+                    const result = await runAgentCommand(commandEnv.current!, params);
+                    logger.info('Ran an agent command', { session: params.session, command: params.command, durationMs: String(Math.round(performance.now() - started)) }, LOG_CTX);
+                    return result;
+                } catch (e: unknown) {
+                    logger.warn('An agent command failed', { session: params.session, command: params.command, durationMs: String(Math.round(performance.now() - started)), error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
+                    throw e;
+                }
             },
             onNotification: notification => {
                 switch (notification.method) {
                     case 'agent/status': {
                         const p = notification.params;
-                        turns.current.get(p.turnId)?.status(p.state, p.text);
+                        const turn = turns.current.get(p.turnId);
+                        if (turn == null) {
+                            logger.info('Ignored the status of an unknown agent turn', { session: p.session, turnId: p.turnId }, LOG_CTX);
+                            break;
+                        }
+                        turn.status(p.state, p.text);
                         break;
                     }
                     case 'agent/done': {
                         const p = notification.params;
                         const turn = turns.current.get(p.turnId);
-                        if (turn == null) break;
+                        if (turn == null) {
+                            logger.info('Ignored the answer of an unknown agent turn', { session: p.session, turnId: p.turnId }, LOG_CTX);
+                            break;
+                        }
                         forgetTurn(p.session, p.turnId);
                         logger.info('The agent finished a request', { session: p.session, turnId: p.turnId }, LOG_CTX);
                         turn.done(p.message);
@@ -160,9 +176,12 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
                     case 'agent/failed': {
                         const p = notification.params;
                         const turn = turns.current.get(p.turnId);
-                        if (turn == null) break;
+                        if (turn == null) {
+                            logger.info('Ignored the failure of an unknown agent turn', { session: p.session, turnId: p.turnId, error: p.error }, LOG_CTX);
+                            break;
+                        }
                         forgetTurn(p.session, p.turnId);
-                        logger.warn('The agent failed a request', { session: p.session, turnId: p.turnId, error: p.error }, LOG_CTX);
+                        logger.warn('The agent failed a request', { session: p.session, turnId: p.turnId, error: p.error, cancelled: String(p.cancelled) }, LOG_CTX);
                         turn.failed(p.error, p.cancelled);
                         break;
                     }
@@ -238,7 +257,11 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
 
     const request = React.useCallback(async (sessionId: string, prompt: string, listener: AgentTurnListener) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        const result = await client.request('agent/request', { session: sessionId, prompt, ...(harness != null ? { harness } : {}) });
+        logger.info('Sending a request to the agent', { session: sessionId, harness: harness ?? 'default', promptLength: String(prompt.length) }, LOG_CTX);
+        const result = await client.request('agent/request', { session: sessionId, prompt, ...(harness != null ? { harness } : {}) }).catch((e: unknown) => {
+            logger.warn('The agent server refused a request', { session: sessionId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
+            throw e;
+        });
         turns.current.set(result.turnId, listener);
         const sessionTurns = turnsBySession.current.get(sessionId) ?? new Set();
         sessionTurns.add(result.turnId);
@@ -247,11 +270,13 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         return result.turnId;
     }, [client, harness, logger]);
     const cancel = React.useCallback(async (sessionId: string, turnId?: string) => {
+        logger.info('Stopping agent turns', { session: sessionId, turnId: turnId ?? 'all' }, LOG_CTX);
         await client?.request('agent/cancel', turnId == null ? { session: sessionId } : { session: sessionId, turnId });
-    }, [client]);
+    }, [client, logger]);
     const reset = React.useCallback(async (sessionId: string) => {
+        logger.info('Resetting the agent context', { session: sessionId }, LOG_CTX);
         await client?.request('agent/reset', { session: sessionId });
-    }, [client]);
+    }, [client, logger]);
     const context = React.useCallback(async (sessionId: string) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
         return client.request('agent/context', { session: sessionId, ...(harness != null ? { harness } : {}) });

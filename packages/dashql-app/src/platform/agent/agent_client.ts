@@ -38,6 +38,14 @@ export interface AgentSocket {
 }
 
 const SOCKET_OPEN = 1;
+/// Messages are cut after this many characters in the log
+const LOG_TEXT_LIMIT = 64 * 1024;
+
+/// A message for the log, cut after LOG_TEXT_LIMIT characters
+function clip(text: string): string {
+    if (text.length <= LOG_TEXT_LIMIT) return text;
+    return `${text.slice(0, LOG_TEXT_LIMIT)}... (${text.length - LOG_TEXT_LIMIT} more characters)`;
+}
 /// The close code of a server that turns a client away, e.g. for another protocol version
 const CLOSE_POLICY_VIOLATION = 1008;
 
@@ -134,12 +142,13 @@ export class AgentClient {
     request<M extends keyof AgentServerMethods>(method: M, params: AgentServerMethods[M]['params']): Promise<AgentServerMethods[M]['result']> {
         const socket = this.#socket;
         if (socket == null || socket.readyState !== SOCKET_OPEN) {
+            this.#options.logger.warn('Cannot send a request, the agent server is not connected', { method }, LOG_CTX);
             return Promise.reject(new Error('The agent server is not connected'));
         }
         const id = this.#nextRequestId++;
         return new Promise<AgentServerMethods[M]['result']>((resolve, reject) => {
             this.#pending.set(id, { resolve: resolve as (result: unknown) => void, reject });
-            socket.send(JSON.stringify({ id, method, params } satisfies AgentRpcMessage));
+            this.#send(socket, JSON.stringify({ id, method, params } satisfies AgentRpcMessage));
         });
     }
 
@@ -150,8 +159,15 @@ export class AgentClient {
         this.#disconnect();
     }
 
+    /// Send a message and log it
+    #send(socket: AgentSocket, text: string): void {
+        this.#options.logger.info('Sent to the agent server', { message: clip(text) }, LOG_CTX);
+        socket.send(text);
+    }
+
     #setStatus(status: AgentConnectionStatus): void {
         if (this.#status === status) return;
+        this.#options.logger.info('Changed the connection status', { from: this.#status, to: status }, LOG_CTX);
         this.#status = status;
         this.#options.onStatus(status);
     }
@@ -174,6 +190,7 @@ export class AgentClient {
         this.#reconnectTimer = null;
         // An incompatible server stays incompatible until it takes the sessions
         if (this.#status !== AgentConnectionStatus.Incompatible) this.#setStatus(AgentConnectionStatus.Connecting);
+        this.#options.logger.info('Connecting to the agent server', { url: this.#options.url }, LOG_CTX);
         let socket: AgentSocket;
         try {
             socket = (this.#options.createSocket ?? (url => new WebSocket(url) as unknown as AgentSocket))(this.#options.url);
@@ -184,6 +201,7 @@ export class AgentClient {
         }
         this.#socket = socket;
         socket.onopen = () => {
+            this.#options.logger.info('Opened the socket to the agent server, announcing the sessions', { url: this.#options.url }, LOG_CTX);
             void this.#announce().then(accepted => {
                 if (!accepted || this.#socket !== socket) return;
                 this.#options.logger.info('Connected to the agent server', { url: this.#options.url }, LOG_CTX);
@@ -194,11 +212,20 @@ export class AgentClient {
         socket.onmessage = event => {
             if (typeof event.data === 'string') this.#receive(socket, event.data);
         };
-        socket.onerror = () => { };
+        socket.onerror = () => {
+            // Browsers do not tell why a WebSocket failed, the close event follows
+            this.#options.logger.warn('The socket to the agent server failed', { url: this.#options.url }, LOG_CTX);
+        };
         socket.onclose = event => {
             if (this.#socket !== socket) return;
             this.#socket = null;
-            const { code, reason } = (event ?? {}) as { code?: number; reason?: string };
+            const { code, reason, wasClean } = (event ?? {}) as { code?: number; reason?: string; wasClean?: boolean };
+            this.#options.logger.info('The socket to the agent server closed', {
+                code: String(code ?? ''),
+                reason: reason ?? '',
+                wasClean: String(wasClean ?? ''),
+                pending: String(this.#pending.size),
+            }, LOG_CTX);
             if (code === CLOSE_POLICY_VIOLATION) {
                 this.#options.logger.warn('The agent server turned the client away', { reason: reason ?? '' }, LOG_CTX);
                 this.#lose(`The agent server turned DashQL away: ${reason || 'unknown reason'}`);
@@ -224,6 +251,7 @@ export class AgentClient {
         if (this.#status !== AgentConnectionStatus.Incompatible) this.#setStatus(AgentConnectionStatus.Connecting);
         const delay = this.#backoffMs;
         this.#backoffMs = Math.min(this.#backoffMs * 2, this.#options.maxBackoffMs ?? 30_000);
+        this.#options.logger.info('Reconnecting to the agent server later', { delayMs: String(delay) }, LOG_CTX);
         this.#reconnectTimer = setTimeout(() => this.#connect(), delay);
     }
 
@@ -245,22 +273,29 @@ export class AgentClient {
 
     /// The connection is gone: fail the pending requests and tell the owner
     #lose(reason: string): void {
+        if (this.#pending.size > 0) {
+            this.#options.logger.warn('Failing the pending requests', { count: String(this.#pending.size), reason }, LOG_CTX);
+        }
         for (const pending of this.#pending.values()) pending.reject(new Error(reason));
         this.#pending.clear();
         this.#options.onDisconnect?.(reason);
     }
 
     #receive(socket: AgentSocket, text: string): void {
+        this.#options.logger.info('Received from the agent server', { message: clip(text) }, LOG_CTX);
         let message: AgentRpcMessage;
         try {
             message = JSON.parse(text) as AgentRpcMessage;
-        } catch {
-            this.#options.logger.warn('Received invalid JSON from the agent server', {}, LOG_CTX);
+        } catch (e: unknown) {
+            this.#options.logger.warn('Received invalid JSON from the agent server', { error: String(e) }, LOG_CTX);
             return;
         }
         if (message.method == null) {
             const pending = this.#pending.get(Number(message.id));
-            if (pending == null) return;
+            if (pending == null) {
+                this.#options.logger.warn('Received a response that no request waits for', { id: String(message.id) }, LOG_CTX);
+                return;
+            }
             this.#pending.delete(Number(message.id));
             if (message.error != null) {
                 pending.reject(new Error(message.error.message));
@@ -275,7 +310,11 @@ export class AgentClient {
         }
         const id = message.id;
         const reply = (body: { result: AgentCommandResult } | { error: AgentRpcError }) => {
-            if (socket.readyState === SOCKET_OPEN) socket.send(JSON.stringify({ id, ...body }));
+            if (socket.readyState === SOCKET_OPEN) {
+                this.#send(socket, JSON.stringify({ id, ...body }));
+            } else {
+                this.#options.logger.warn('Cannot answer the agent server, the socket is closed', { id: String(id) }, LOG_CTX);
+            }
         };
         if (message.method !== 'command') {
             reply({ error: { code: 'usage', message: `unknown method: ${message.method}` } });

@@ -291,7 +291,7 @@ fn the_server_stops_when_the_app_closes_stdin() {
     let mut stderr = BufReader::new(child.stderr.take().unwrap());
     let mut line = String::new();
     stderr.read_line(&mut line).unwrap();
-    assert!(line.starts_with("[dashql] Listening on 127.0.0.1:"), "{line}");
+    assert!(line.starts_with("[dashql] ") && line.contains(" Listening on 127.0.0.1:"), "{line}");
 
     let started = std::time::Instant::now();
     drop(child.stdin.take());

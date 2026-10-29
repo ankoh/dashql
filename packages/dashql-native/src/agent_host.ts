@@ -42,7 +42,7 @@ export interface AgentHostOptions {
     restartDelaysMs?: number[];
     /// A server that runs this long resets the restart delays
     stableAfterMs?: number;
-    /// The lines that the server writes to stderr
+    /// The log: the lines that the server writes to stderr and what the host does with the server
     log?: (line: string) => void;
 }
 
@@ -50,6 +50,8 @@ const DEFAULT_RESTART_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
 /// The server gives a killed harness 3 s before it kills it for good, see KILL_GRACE in harness.rs
 const STOP_GRACE_MS = 6000;
 const STATUS_TIMEOUT_MS = 2000;
+/// The prefix and the timestamp of a line of the server, e.g. "[dashql] 2026-10-29T12:34:56.789Z "
+const SERVER_LINE_PREFIX = /^\[dashql\] (\d{4}-\d{2}-\d{2}T\S+Z )?/;
 
 /// The folder of config.json, as `agent_home` in packages/dashql-cli/src/agent/config.rs
 export function agentHome(env: NodeJS.ProcessEnv): string {
@@ -78,7 +80,7 @@ async function readEndpoint(env: NodeJS.ProcessEnv): Promise<Endpoint | null> {
     return {port, token: config.token};
 }
 
-type StatusResult = {ok: true; status: AgentServerStatus} | {ok: false; reachable: boolean};
+type StatusResult = {ok: true; status: AgentServerStatus} | {ok: false; reachable: boolean; error: string};
 
 /// GET /v1/status, reachable tells a server that refuses the token from no server at all
 async function fetchStatus(endpoint: Endpoint): Promise<StatusResult> {
@@ -89,9 +91,9 @@ async function fetchStatus(endpoint: Endpoint): Promise<StatusResult> {
         });
         const body = await response.json() as AgentStatusResponse;
         if (response.ok && body.ok) return {ok: true, status: body.status};
-        return {ok: false, reachable: true};
-    } catch {
-        return {ok: false, reachable: false};
+        return {ok: false, reachable: true, error: `HTTP ${response.status}: ${JSON.stringify(body)}`};
+    } catch (e: unknown) {
+        return {ok: false, reachable: false, error: e instanceof Error ? e.message : String(e)};
     }
 }
 
@@ -137,6 +139,7 @@ export class AgentHost {
     /// Start the server, does nothing while it runs
     start(): void {
         if (this.#wanted) return;
+        this.#log("Starting the agent server");
         this.#wanted = true;
         this.#restarts = 0;
         this.#spawn();
@@ -151,9 +154,11 @@ export class AgentHost {
         const child = this.#child;
         const exited = this.#childExited;
         if (child !== null && exited !== null) {
+            this.#log(`Stopping the agent server, pid ${child.pid}, with SIGTERM`);
             child.kill("SIGTERM");
             const timeout = new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), STOP_GRACE_MS).unref());
             if (await Promise.race([exited, timeout]) === "timeout") {
+                this.#log(`The agent server did not stop within ${STOP_GRACE_MS}ms, killing it`);
                 child.kill("SIGKILL");
                 await exited;
             }
@@ -165,7 +170,8 @@ export class AgentHost {
         // The server stops when its stdin closes, so it does not outlive a crash of the app
         const args = ["agent", "serve", "--exit-with-stdin"];
         const child = spawn(this.#options.binary, args, {env: this.#env, stdio: ["pipe", "ignore", "pipe"]});
-        child.stdin?.on("error", () => {});
+        this.#log(`Spawned ${this.#options.binary} ${args.join(" ")}, pid ${child.pid ?? "unknown"}`);
+        child.stdin?.on("error", (error) => this.#log(`The stdin of the agent server failed: ${error.message}`));
         this.#child = child;
         this.#startedAt = Date.now();
         this.#lastLine = "";
@@ -178,16 +184,18 @@ export class AgentHost {
             const lines = buffered.split("\n");
             buffered = lines.pop() ?? "";
             for (const line of lines.filter((l) => l.trim() !== "")) {
-                this.#lastLine = line.replace(/^\[dashql\] /, "");
+                this.#lastLine = line.replace(SERVER_LINE_PREFIX, "");
                 if (this.#lastLine.startsWith("Listening on")) this.#listening = true;
                 this.#options.log?.(line);
             }
         });
         this.#childExited = new Promise((resolve) => {
             child.once("error", (error) => {
+                this.#log(`Cannot run the agent server: ${error.message}`);
                 this.#lastLine = error.message;
             });
             child.once("close", (code, signal) => {
+                this.#log(`The agent server, pid ${child.pid}, exited with ${signal ?? `code ${code}`}`);
                 if (this.#child === child) {
                     this.#child = null;
                     this.#childExited = null;
@@ -208,15 +216,18 @@ export class AgentHost {
             const result = endpoint !== null ? await fetchStatus(endpoint) : null;
             if (!this.#wanted) return;
             if (result?.ok) {
+                this.#log(`Another agent server holds port ${endpoint?.port}, following it`);
                 this.#publish({state: "external", status: result.status, error: null});
                 return;
             }
+            this.#log(`Another program holds the port and does not answer as an agent server: ${result?.ok === false ? result.error : "no config.json"}`);
         }
         if (Date.now() - this.#startedAt >= (this.#options.stableAfterMs ?? 60000)) this.#restarts = 0;
         const delays = this.#options.restartDelaysMs ?? DEFAULT_RESTART_DELAYS_MS;
         const delay = delays[Math.min(this.#restarts, delays.length - 1)] ?? 1000;
         this.#restarts += 1;
         this.#publish({state: "failed", status: null, error});
+        this.#log(`Restarting the agent server in ${delay}ms, restart ${this.#restarts}`);
         this.#restartTimer = setTimeout(() => {
             this.#restartTimer = null;
             if (this.#wanted && this.#child === null) this.#spawn();
@@ -246,9 +257,11 @@ export class AgentHost {
                 }
             } else if (state === "external") {
                 // The other server went away, run our own
+                this.#log(`The other agent server went away (${result?.error ?? "no config.json"}), starting our own`);
                 this.#publish({state: "starting", status: null, error: null});
                 if (this.#child === null) this.#spawn();
             } else if (state === "running") {
+                if (this.#snapshot.status !== null) this.#log(`The agent server stopped answering: ${result?.error ?? "no config.json"}`);
                 this.#publish({state: "running", status: null, error: null});
             }
         } finally {
@@ -264,10 +277,17 @@ export class AgentHost {
         this.#pollTimer = null;
     }
 
+    #log(message: string): void {
+        this.#options.log?.(`[agent-host] ${new Date().toISOString()} ${message}`);
+    }
+
     #publish(next: AgentHostSnapshot): void {
         const previous = this.#snapshot;
         this.#snapshot = next;
         if (JSON.stringify(previous) === JSON.stringify(next)) return;
+        if (previous.state !== next.state || previous.error !== next.error) {
+            this.#log(`State ${previous.state} -> ${next.state}${next.error !== null ? `: ${next.error}` : ""}`);
+        }
         for (const listener of this.#listeners) listener(next);
     }
 }

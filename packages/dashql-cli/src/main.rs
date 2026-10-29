@@ -10,7 +10,7 @@ mod report;
 
 use agent::client::{self, CliEnvironment, EXIT_FAILED, EXIT_OK, EXIT_USAGE};
 use agent::config::{agent_home, load_config};
-use agent::server::{AgentServer, AgentServerOptions, AGENT_RUN_ENV};
+use agent::server::{log_line, AgentServer, AgentServerOptions, AGENT_RUN_ENV};
 use std::io::Write;
 use std::process::ExitCode;
 
@@ -79,8 +79,8 @@ fn serve(exit_with_stdin: bool) -> ExitCode {
             let _ = on_closed.await;
         };
         tokio::select! {
-            _ = shutdown_signal() => {}
-            _ = stdin_closed => eprintln!("[dashql] Stopping: stdin closed"),
+            _ = shutdown_signal() => log_line("Stopping: received a stop signal"),
+            _ = stdin_closed => log_line("Stopping: stdin closed"),
         }
         server.close().await;
         ExitCode::from(EXIT_OK)
