@@ -49,7 +49,7 @@
     }
     .banner_title {
         font-size: 1.6rem;
-        font-family: var(--font_family_mono);
+        font-family: var(--font_family);
         font-weight: 400;
         color: white;
     }
@@ -121,7 +121,7 @@
     }
     .banner_title {
         font-size: 1.6rem;
-        font-family: var(--font_family_mono);
+        font-family: var(--font_family);
         font-weight: 400;
         color: white;
     }

@@ -232,7 +232,8 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
         convertEol: true,
         cursorBlink: true,
         cursorStyle: 'block',
-        fontFamily: 'Roboto Mono, monospace',
+        // The mono font of the app, a theme token that the app flavor may override
+        fontFamily: getComputedStyle(options.container).getPropertyValue('--font_family_mono').trim() || 'monospace',
         fontSize: 13,
         screenReaderMode: true,
         scrollback: 10000,

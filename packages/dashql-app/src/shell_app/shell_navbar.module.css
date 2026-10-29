@@ -29,9 +29,10 @@
 .brand_mark {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     fill: currentColor;
-    font-family: var(--font_family_mono);
+    font-family: var(--font_family);
+    font-size: 0.95rem;
     white-space: nowrap;
 }
 

@@ -157,8 +157,9 @@
     padding-left: 4px;
     color: white;
     fill: currentColor;
-    font-family: var(--font_family_mono);
-    font-size: var(--font_size_title);
+    /* The brand name, like the brand of the shell and the banner of the oauth redirect */
+    font-family: var(--font_family);
+    font-size: 0.95rem;
     font-weight: 400;
 }
 

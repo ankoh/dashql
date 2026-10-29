@@ -18,8 +18,8 @@
     --font_size_editor: 0.95rem;
     --font_size_title: 1rem;
 
-    --font_family: 'Roboto';
-    --font_family_mono: 'Roboto Mono', monospace;
+    --font_family: 'Geist', sans-serif;
+    --font_family_mono: 'Geist Mono', monospace;
 
     --navbar_hover_background_color: rgba(0, 0, 0, 0.2);
     --shell_background_color: rgba(0, 0, 0, 0.2);

@@ -91,14 +91,20 @@ export function resolveChartColors(): ChartColors {
     };
 }
 
-/// The font of the app
-const FONT = 'Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+/// The fallback fonts of charts behind the font of the app
+const FALLBACK_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+/// The font of the app, a theme token that the app flavor may override
+function resolveFont(): string {
+    const family = getComputedStyle(document.documentElement).getPropertyValue('--font_family').trim();
+    return family === '' ? FALLBACK_FONT : `${family}, ${FALLBACK_FONT}`;
+}
 
 /// The Vega-Lite config of all charts of the app: recessive axes and grids, thin marks, square bars.
 export function createVegaLiteConfig(colors: ChartColors): Config {
     return {
         background: 'transparent',
-        font: FONT,
+        font: resolveFont(),
         padding: 0,
         view: { stroke: null },
         range: { category: colors.categorical },
