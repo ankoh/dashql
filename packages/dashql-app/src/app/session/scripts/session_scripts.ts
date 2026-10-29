@@ -1253,6 +1253,10 @@ function destroyDeadScripts(state: SessionScripts): SessionScripts {
         destroyScriptData(v);
         delete cleanedScripts[k];
     }
+    // The remaining scripts of their catalogs may have referenced their declarations
+    for (const v of deadScripts.values()) {
+        markOtherScriptsOutdatedInPlace(cleanedScripts, v);
+    }
     return { ...state, scripts: cleanedScripts };
 }
 

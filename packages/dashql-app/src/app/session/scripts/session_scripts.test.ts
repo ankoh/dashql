@@ -436,6 +436,21 @@ describe('V2 flat session script mutations', () => {
         expect(next.scripts[next.scriptRefs['2_beta.sql'].scriptId].analysisOutdated).toBe(true);
     });
 
+    it('outdates the other scripts when a script is deleted', () => {
+        let current = state(['1_table.sql', '2_query.sql']);
+        const key = (name: string) => current.scriptRefs[name].scriptId;
+        replaceScriptSessionText(current.scripts[key('1_table.sql')].scriptSession, 'create table a (x int)');
+        replaceScriptSessionText(current.scripts[key('2_query.sql')].scriptSession, 'select x from a');
+        for (let pass = 0; pass < 2; ++pass) {
+            for (const name of current.scriptOrder) current = reduce(current, { type: ANALYZE_OUTDATED_SCRIPT, value: key(name) });
+        }
+        expect(current.scripts[key('2_query.sql')].analysisOutdated).toBe(false);
+
+        // The query no longer resolves the table of the deleted script
+        current = reduce(current, { type: DELETE_SCRIPT, value: '1_table.sql' });
+        expect(current.scripts[key('2_query.sql')].analysisOutdated).toBe(true);
+    });
+
     it('outdates the other scripts when a background analysis changes the declarations', () => {
         let current = state(['1_table.sql', '2_view.sql', '3_query.sql']);
         const key = (name: string) => current.scriptRefs[name].scriptId;
