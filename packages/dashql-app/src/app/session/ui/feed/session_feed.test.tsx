@@ -274,6 +274,11 @@ describe('V2 session feed rows', () => {
         });
         expect(request).toHaveBeenCalledExactlyOnceWith('session');
         expect(wrapper.tabIndex).toBe(0);
+        // A click pulses the connections as well, it opens nothing
+        act(() => play.click());
+        expect(request).toHaveBeenCalledTimes(2);
+        expect(props.onExecute).not.toHaveBeenCalled();
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
     });
 
     it('translates a dragged card without applying dnd-kit scale distortion', () => {
