@@ -31,25 +31,43 @@
 .top_bar {
     grid-row: 1;
     grid-column: 1 / -1;
-    display: flex;
+    /* Shares the columns of the container to place the brand relative to the page card, whatever the width of the rail */
+    display: grid;
+    grid-template-columns: subgrid;
     align-items: center;
-    justify-content: space-between;
     min-width: 0;
-    /* Centers a square logo of 24px over the buttons of the rail */
-    padding: 0 4px 0 12px;
 }
 
-/* The brand follows the traffic lights of the desktop app on macOS, see trafficLightPosition in dashql-native */
-.top_bar_mac {
-    padding-left: 84px;
-}
-
+/* The brand sits a bit right of the left edge of the page card next to the narrow rail */
 .top_bar .brand_identity {
-    margin-left: 0;
+    grid-row: 1;
+    grid-column: 2;
+    justify-self: start;
+    margin-left: 16px;
     padding-left: 0;
 }
 
+/* The brand follows the traffic lights of the desktop app on macOS, see trafficLightPosition in dashql-native.
+ * They end at 76px, right of the page card of the narrow rail of 48px. */
+.top_bar_mac .brand_identity {
+    margin-left: 36px;
+}
+
+/* The wide rail has room for the brand, which then sits in the top left corner centered over the icons of the rail */
+.container_wide .top_bar .brand_identity {
+    grid-column: 1;
+    margin-left: 12px;
+}
+
+.container_wide .top_bar_mac .brand_identity {
+    margin-left: 84px;
+}
+
 .top_bar_actions {
+    grid-row: 1;
+    grid-column: 2;
+    justify-self: end;
+    margin-right: 4px;
     display: flex;
     flex-direction: row;
     align-items: center;
