@@ -93,6 +93,19 @@ class EmbeddedQueryResultStream implements QueryExecutionResponseStream {
     }
 }
 
+/// Wait for a promise, an abort rejects right away
+function waitUnlessAborted(promise: Promise<void>, abort?: AbortSignal): Promise<void> {
+    if (abort == null) return promise;
+    return new Promise((resolve, reject) => {
+        const onAbort = () => reject(abort.reason);
+        abort.addEventListener('abort', onAbort, { once: true });
+        void promise.then(() => {
+            abort.removeEventListener('abort', onAbort);
+            resolve();
+        });
+    });
+}
+
 export class EmbeddedDatabaseChannel {
     /// The connection runs one statement at a time, so queries wait until the result of the previous one is read.
     /// One connection keeps the session state of the scripts, such as settings and attached databases.
@@ -104,9 +117,11 @@ export class EmbeddedDatabaseChannel {
         abort?.throwIfAborted();
         const previous = this.previousQuery;
         let release!: () => void;
-        this.previousQuery = new Promise(resolve => { release = resolve; });
+        const finished = new Promise<void>(resolve => { release = resolve; });
+        // The next query waits for the previous one as well, this query may be cancelled while it waits
+        this.previousQuery = previous.then(() => finished);
         try {
-            await previous;
+            await waitUnlessAborted(previous, abort);
             abort?.throwIfAborted();
             const startedAt = performance.now();
             const stream = new EmbeddedQueryResultStream(await this.connection.queryStream(query, abort), startedAt);

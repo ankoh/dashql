@@ -134,6 +134,29 @@ describe('EmbeddedDatabaseChannel', () => {
         expect(connection.queryStream).toHaveBeenCalledOnce();
     });
 
+    it('rejects a waiting query when it is cancelled while the next one keeps waiting', async () => {
+        const { connection, running } = createExclusiveConnection();
+        const channel = new EmbeddedDatabaseChannel(connection);
+        const abort = new AbortController();
+
+        const first = channel.executeQuery('select 1');
+        const second = channel.executeQuery('select 2', abort.signal);
+        const third = channel.executeQuery('select 3');
+        await vi.waitFor(() => expect(running).toHaveLength(1));
+        abort.abort(new DOMException('cancelled', 'AbortError'));
+        // The cancellation does not wait for the running query
+        await expect(second).rejects.toMatchObject({ name: 'AbortError' });
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(connection.queryStream).toHaveBeenCalledOnce();
+
+        running[0].resolve(ONE_ROW);
+        await produceAll(await first);
+        await vi.waitFor(() => expect(running).toHaveLength(2));
+        running[1].resolve(ONE_ROW);
+        expect(await produceAll(await third)).toHaveLength(1);
+        expect(connection.queryStream).toHaveBeenNthCalledWith(2, 'select 3', undefined);
+    });
+
     it('streams the result batches to the query response stream', async () => {
         const table = arrow.tableFromArrays({ value: [1, 2, 3] });
         const connection: EmbeddedConnection = {
