@@ -57,7 +57,7 @@ export function statusLine(snapshot: AgentHostSnapshot, agentAccess: boolean): s
         case "external": {
             const status = snapshot.status;
             if (status === null) return "Agent server does not answer";
-            if (status.clients.length === 0) return `Waiting for DashQL on port ${status.port}`;
+            if (status.clients.length === 0) return "Waiting for DashQL";
             const names = [...new Set(status.clients.map(clientName))].join(", ");
             const sessions = status.clients.reduce((count, client) => count + client.sessions.length, 0);
             return `Connected: ${names} · ${plural(sessions, "session")}`;
@@ -96,8 +96,9 @@ function shorten(label: string): string {
 export function buildMenuBarTemplate(snapshot: AgentHostSnapshot, options: MenuBarState, actions: MenuBarActions): MenuItemConstructorOptions[] {
     const clients = snapshot.status?.clients ?? [];
     const items: MenuItemConstructorOptions[] = [{label: shorten(statusLine(snapshot, options.agentAccess)), enabled: false}];
-    if (snapshot.state === "external") {
-        items.push({label: "Served by another dashql agent serve", enabled: false});
+    if (snapshot.status !== null) {
+        const owner = snapshot.state === "external" ? " · served by another dashql agent serve" : "";
+        items.push({label: `Port ${snapshot.status.port}${owner}`, enabled: false});
     }
     for (const turn of snapshot.status?.turns ?? []) {
         items.push({label: shorten(turnLine(turn, clients)), enabled: false});

@@ -27,6 +27,7 @@ describe("buildMenuBarTemplate", () => {
     it("lists the clients and the turns", () => {
         expect(labels({state: "running", status: busy, error: null})).toEqual([
             "Connected: dashql.app, DashQL window · 3 sessions",
+            "Port 47100",
             "Codex · Writing q1 in \"Revenue analysis\"",
             "Claude Code · queued in \"Scratch\"",
             "---",
@@ -40,11 +41,11 @@ describe("buildMenuBarTemplate", () => {
 
     it("describes a server without clients, one of another process and a dev page", () => {
         const idle = {port: 47101, clients: [], turns: []};
-        expect(labels({state: "running", status: idle, error: null})[0]).toBe("Waiting for DashQL on port 47101");
+        expect(labels({state: "running", status: idle, error: null}).slice(0, 2)).toEqual(["Waiting for DashQL", "Port 47101"]);
         const dev = {...idle, clients: [{id: "c1", kind: "web", origin: "http://localhost:9002", sessions: [{id: "s1", name: "a"}], focused: "s1"}]};
         expect(labels({state: "external", status: dev, error: null}).slice(0, 2)).toEqual([
             "Connected: dev server localhost:9002 · 1 session",
-            "Served by another dashql agent serve",
+            "Port 47101 · served by another dashql agent serve",
         ]);
     });
 
