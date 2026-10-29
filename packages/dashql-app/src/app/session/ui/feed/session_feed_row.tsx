@@ -5,7 +5,7 @@ import { useSessionExecution } from '../../scripts/session_execution_provider.js
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '../../../../ui/foundations/symbol_icon.js';
-import { PaperAirplaneIcon, PlugIcon, PlusIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { PaperAirplaneIcon, PlusIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
 import type { RowComponentProps } from 'react-window';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -15,7 +15,7 @@ import { ButtonGroup } from '../../../../ui/foundations/button_group.js';
 import { IndicatorStatus } from '../../../../ui/foundations/status_indicator.js';
 import { SymbolIcon } from '../../../../ui/foundations/symbol_icon.js';
 import { ConnectionHealth, type ConnectionState } from '../../../connections/connection_state.js';
-import { ExecuteConnectionGuard, SessionConnectionAttentionContext } from '../session_connection_attention.js';
+import { ExecuteConnectionGuard } from '../session_connection_attention.js';
 import { ConnectorType } from '../../../connections/connector_info.js';
 import { QueryExecutionStatus, queryIsDone } from '../../../../query/query_execution_state.js';
 import { computeQueryCacheKeyForConnection, useCancelQuery, useQueryState } from '../../../connections/query_executor.js';
@@ -223,10 +223,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
         }
     }, [cancelQuery, entryStatus?.kind, props.connectionId, props.scriptData?.latestQueryId, sessionExecution.busy, sessionExecution.stop]);
 
-    // A script on a connection that is not connected pulses the connections in the bar instead of running
-    const needsConnection = !queryActive && props.connectionId != null && props.connectionHealth !== ConnectionHealth.ONLINE;
-    const connectionAttention = React.useContext(SessionConnectionAttentionContext);
-
     const acceptDiff = React.useCallback(() => {
         if (scriptKey != null) props.onAcceptDiff(scriptKey);
     }, [scriptKey, props.onAcceptDiff]);
@@ -293,23 +289,20 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         className={props.isFocused ? styles.feed_entry_execute_focused : styles.feed_entry_execute_unfocused}
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
-                        aria-label={queryActive ? `Stop ${displayName} query` : needsConnection ? `Connect to run ${displayName}` : `Execute ${displayName} query`}
+                        aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
                         data-testid="script-execute"
-                        data-connect={needsConnection ? '' : undefined}
                         aria-current={props.isFocused ? 'true' : undefined}
-                        disabled={!queryActive && (sessionExecution.busy || (needsConnection ? props.scriptData == null : !props.canExecute))}
+                        disabled={!queryActive && (sessionExecution.busy || !props.canExecute)}
                         onClick={() => {
                             if (queryActive && props.scriptData?.latestQueryId != null) {
                                 if (sessionExecution.busy) sessionExecution.stop();
                                 else if (props.connectionId != null) cancelQuery(props.connectionId, props.scriptData.latestQueryId);
-                            } else if (needsConnection) {
-                                connectionAttention?.request(props.sessionId);
                             } else {
                                 props.onExecute(props.scriptFileName);
                             }
                         }}
                     >
-                        {queryActive ? <SquareFillIcon size={14} /> : needsConnection ? <PlugIcon size={16} /> : <PaperAirplaneIcon size={16} />}
+                        {queryActive ? <SquareFillIcon size={14} /> : <PaperAirplaneIcon size={16} />}
                     </IconButton>
                     </ExecuteConnectionGuard>
                     <span className={styles.feed_entry_action_separator} aria-hidden="true" />
