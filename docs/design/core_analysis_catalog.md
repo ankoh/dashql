@@ -438,9 +438,9 @@ statement's successful result.
 - `SessionList` + `plan()` borrow every session and its catalog for one planning call.
 
 **JS caches** (`packages/dashql-core-js/src/api.ts`)
-- `DashQLCatalog` caches a `flatten()` snapshot and clears it only on catalog calls made through the
-  wrapper. Publishes and drops made through sessions, scripts or the shell do not clear it
-  (`createUncachedSnapshot` bypasses the cache).
+- `DashQLCatalog` caches a `flatten()` snapshot for the version of the catalog (`Catalog.version`).
+  Publishes and drops made through sessions, scripts or the shell bump the version, so the next
+  `createSnapshot` flattens again.
 - `DashQLScriptSession` keeps the latest update that carries an analysis, sets `known_analysis` on
   every event it applies, and fills an update with `analysis_omitted` from the arrays of that update.
   An unchanged analysis therefore keeps its array identity: the decoration fields and the gutter of

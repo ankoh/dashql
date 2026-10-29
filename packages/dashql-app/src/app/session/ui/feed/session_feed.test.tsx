@@ -517,12 +517,11 @@ describe('Session feed composer', () => {
 
     // A catalog without tables, enough to build the agent prompt
     const emptyCatalog = {
-        createUncachedSnapshot: () => ({
+        createSnapshot: () => ({
             read: () => ({
                 catalogReader: { schemasLength: () => 0, tablesLength: () => 0, columnsLength: () => 0 },
                 readName: () => '',
             }),
-            destroy: () => { },
         }),
     };
 

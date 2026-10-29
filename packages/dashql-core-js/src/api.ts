@@ -800,11 +800,19 @@ function assertLayer(layer: buffers.catalog.CatalogLayer): void {
 
 export class DashQLCatalog {
     public readonly ptr: Ptr<typeof CATALOG_TYPE, NativeCatalog>;
+    /// The cached snapshot
     public snapshot: DashQLCatalogSnapshot | null;
+    /// The version of the catalog that the cached snapshot shows
+    private snapshotVersion: number | null;
 
     public constructor(ptr: Ptr<typeof CATALOG_TYPE, NativeCatalog>) {
         this.ptr = ptr;
         this.snapshot = null;
+        this.snapshotVersion = null;
+    }
+    /// The version of the catalog, bumped by every change, also by the script sessions on the catalog
+    public version(): number {
+        return this.ptr.assertNotNull().version();
     }
     /// Delete the catalog
     public destroy() {
@@ -867,24 +875,19 @@ export class DashQLCatalog {
         }
         return new FlatBufferPtr(CATALOG_ENTRIES_TYPE, this.ptr.api, bytes, () => new buffers.catalog.CatalogEntries());
     }
-    /// Export a catalog snapshot
+    /// Export a catalog snapshot. The snapshot is cached until the version of the catalog changes, the identity of
+    /// the snapshot tells when the catalog changed.
     public createSnapshot(): DashQLCatalogSnapshot {
-        if (this.snapshot != null) {
+        const version = this.version();
+        if (this.snapshot != null && this.snapshotVersion === version) {
             return this.snapshot;
         }
         const bytes = this.ptr.assertNotNull().flatten();
         this.snapshot = new DashQLCatalogSnapshot(
             new FlatBufferPtr(FLAT_CATALOG_TYPE, this.ptr.api, bytes, () => new buffers.catalog.FlatCatalog()),
         );
+        this.snapshotVersion = version;
         return this.snapshot;
-    }
-    /// Export a fresh catalog snapshot that the caller owns and destroys.
-    /// The cached snapshot of createSnapshot misses scripts that script sessions loaded into the catalog since.
-    public createUncachedSnapshot(): DashQLCatalogSnapshot {
-        const bytes = this.ptr.assertNotNull().flatten();
-        return new DashQLCatalogSnapshot(
-            new FlatBufferPtr(FLAT_CATALOG_TYPE, this.ptr.api, bytes, () => new buffers.catalog.FlatCatalog()),
-        );
     }
     /// Add a script to a layer of the catalog (throws exception on error)
     public loadScript(script: DashQLScript, layer: buffers.catalog.CatalogLayer) {

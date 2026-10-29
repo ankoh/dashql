@@ -161,6 +161,12 @@ impl Catalog {
         self.inner.borrow_mut().clear();
     }
 
+    /// The version of the catalog, every change of its contents bumps it. Sessions and shells change the catalog
+    /// too, the version tells JS when its copies of the catalog are outdated.
+    pub fn version(&self) -> u32 {
+        self.inner.borrow().version()
+    }
+
     #[wasm_bindgen(js_name = allocateEntryId)]
     pub fn allocate_entry_id(&self) -> u32 {
         self.inner.borrow().allocate_entry_id()

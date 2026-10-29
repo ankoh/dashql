@@ -598,8 +598,8 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     onRename,
 }) => {
     // The database states change with every query event while the catalogs rarely change.
-    // A catalog caches its snapshot until it is modified (which destroys the snapshot), so the snapshot identity
-    // tells us when the trees must be rebuilt. Never keep a reader of a snapshot that is no longer current.
+    // A catalog caches its snapshot until its version changes, so the snapshot identity tells us when the trees
+    // must be rebuilt.
     const connectionIds = useShallowStableArray(databases.map(database => database.connectionId));
     const snapshots = useShallowStableArray(databases.map(database => database.catalog.createSnapshot()));
     const catalogTrees = React.useMemo(() => connectionIds.map((connectionId, i) => {

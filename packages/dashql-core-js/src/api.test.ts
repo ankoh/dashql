@@ -689,6 +689,24 @@ describe('DashQL editor sessions', () => {
         formatted.destroy();
     });
 
+    it('refreshes the cached catalog snapshot when a session publishes', () => {
+        const catalog = dql!.createCatalog();
+        const session = dql!.createScriptSession(catalog);
+        session.replaceText(0n, 'create table items (id int)');
+        session.analyze();
+        const before = catalog.createSnapshot();
+        expect(catalog.createSnapshot()).toBe(before);
+        expect(before.read().catalogReader.tablesLength()).toBe(0);
+
+        // The session changes the catalog without going through the catalog wrapper
+        session.loadIntoCatalog();
+        const after = catalog.createSnapshot();
+        expect(after).not.toBe(before);
+        expect(after.read().catalogReader.tablesLength()).toBe(1);
+        session.dropFromCatalog();
+        expect(catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(0);
+    });
+
     it('loads and drops the session-owned script from its catalog', () => {
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);

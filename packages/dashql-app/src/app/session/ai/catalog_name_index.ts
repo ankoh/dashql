@@ -58,7 +58,6 @@ export interface IdentifierMatch {
 export const EMPTY_CATALOG_NAME_INDEX: CatalogNameIndex = { keys: [], byKey: new Map(), columnsByTable: new Map() };
 
 /// Build the name index of a catalog, skipping the schemas of the database system.
-/// Reads a fresh snapshot, the cached one misses the scripts that script sessions loaded into the catalog since.
 export function buildCatalogNameIndex(catalog: core.DashQLCatalog): CatalogNameIndex {
     const byKey = new Map<string, CatalogName[]>();
     const columnsByTable = new Map<string, Set<string>>();
@@ -71,7 +70,7 @@ export function buildCatalogNameIndex(catalog: core.DashQLCatalog): CatalogNameI
             names.push(name);
         }
     };
-    const snapshot = catalog.createUncachedSnapshot();
+    const snapshot = catalog.createSnapshot();
     const reader = snapshot.read();
     const flat = reader.catalogReader;
     const entry = new core.buffers.catalog.FlatCatalogEntry();
