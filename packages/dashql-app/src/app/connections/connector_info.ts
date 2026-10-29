@@ -123,7 +123,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
     },
     {
-        // SIDB connections behave like Salesforce Data Cloud connections for now
+        // SIDB connections behave like Salesforce Data Cloud connections for now, but can write to their database
         connectorType: ConnectorType.SIDB,
         helloWorldScript: 'select version();',
         names: {
@@ -138,7 +138,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         },
         features: {
             queryResultCaching: true,
-            readOnly: true,
+            readOnly: false,
         },
         platforms: {
             browser: true,
