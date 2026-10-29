@@ -119,7 +119,7 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
         if (streamBatchMessages != messages.length) {
             // Fatal error, silently drop the stream
             const url = new URL(this.endpoint.proxyEndpoint);
-            url.pathname = `/grpc/channels/${this.channelId}/stream/${this.streamId}`;
+            url.pathname = `/grpc/channel/${this.channelId}/stream/${this.streamId}`;
             const request = new Request(url, {
                 method: 'DELETE'
             });
