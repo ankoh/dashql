@@ -209,9 +209,10 @@ catalog, so it only moves when what other entries resolve against may have chang
 
 `same_declarations` compares what other entries resolve against: the ids and names of databases,
 schemas, tables, columns and functions, plus column order, function params and return types. It
-ignores AST positions, source locations and name ids, which only the declaring script reads. So typing in a query of
-a script that also declares tables republishes without a version bump, while adding a column, renaming
-a table or changing the layer bumps it.
+ignores AST positions, source locations and name ids. So typing in a query of a script that also declares
+tables republishes without a version bump, while adding a column, renaming a table or changing the layer
+bumps it. Other scripts read the locations for the declaration under the cursor: an analysis that is
+current reads them from the catalog, its snapshot holds the locations of the earlier publish.
 
 A rebuilding publish stages new maps and swaps them in at the end, so a failed publish leaves the
 catalog unchanged.

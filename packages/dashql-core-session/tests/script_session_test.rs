@@ -1203,6 +1203,29 @@ fn completion_ignores_published_version_of_edited_script() {
 }
 
 #[test]
+fn cursor_context_follows_a_declaration_that_moved_without_a_new_catalog_version() {
+    let catalog = new_catalog();
+    let mut schema = session(&catalog, UTF8);
+    assert!(analyze(&mut schema, "create table t (x int)").analysis_available);
+    schema.load_into_catalog(CatalogLayer::SESSION).unwrap();
+    let mut query = session(&catalog, UTF8);
+    let text = "select x from t";
+    assert!(analyze(&mut query, text).analysis_available);
+
+    // The declarations stay the same, only their locations move
+    let schema_text = "-- items\ncreate table t (x int)";
+    let revision = catalog.borrow().version();
+    assert!(analyze(&mut schema, schema_text).analysis_available);
+    schema.load_into_catalog(CatalogLayer::SESSION).unwrap();
+    assert_eq!(catalog.borrow().version(), revision);
+
+    let update = query.set_primary_cursor(query.text_version(), 7);
+    let context = update.primary_cursor_context.as_ref().unwrap();
+    let span = context.declaration_location.as_ref().expect("declaration location");
+    assert_eq!(&schema_text[span.offset as usize..(span.offset + span.length) as usize], "x int");
+}
+
+#[test]
 fn cursor_context_points_into_the_catalog_script_that_declares_the_table() {
     // The connection catalog is a script whose descriptor is published, like a catalog batch
     let catalog_sql = "create table items (\n    id integer,\n    name text\n);";

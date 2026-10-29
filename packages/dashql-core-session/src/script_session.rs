@@ -133,9 +133,18 @@ fn resolved_column_ids(expression: &dashql_core::analyzer::Expression) -> Option
 
 /// The entry that declares a resolved table, and the text of the declaration in the script of that
 /// entry: the column definition of a resolved column, else the table name
-fn declaration(analyzed: &AnalyzedScript, table_id: CatalogTableId, column: Option<u32>) -> Option<(CatalogEntryId, Option<TextSpan>)> {
+fn declaration(
+    analyzed: &AnalyzedScript,
+    catalog: &Catalog,
+    table_id: CatalogTableId,
+    column: Option<u32>,
+) -> Option<(CatalogEntryId, Option<TextSpan>)> {
     let table = if table_id.origin == analyzed.catalog_entry_id() {
         analyzed.entry.table_by_id(table_id)
+    } else if analyzed.snapshot.version() == catalog.version() {
+        // A script that republishes the same declarations keeps the catalog version but moves their
+        // locations, the catalog holds the current ones
+        catalog.table_by_id(table_id)
     } else {
         analyzed.snapshot.table_by_id(table_id)
     }?;
@@ -969,7 +978,7 @@ impl ScriptSession {
             context.catalog_table_id = table.table_id;
             context.catalog_column_id = column.unwrap_or(0);
             context.referenced_catalog_version = table.catalog_version;
-            if let Some((entry_id, location)) = declaration(analyzed, CatalogTableId::unpack(table.table_id), column) {
+            if let Some((entry_id, location)) = declaration(analyzed, catalog, CatalogTableId::unpack(table.table_id), column) {
                 context.declaration_catalog_entry_id = entry_id;
                 context.declaration_location = location.map(|l| TextSpanT { offset: l.offset, length: l.length });
             }
