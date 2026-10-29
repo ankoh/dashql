@@ -4,13 +4,11 @@ import { Range } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
-import { CompletionPatch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor } from './dashql_completion_patches.js';
+import { CompletionPatch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor, comparePatches } from './dashql_completion_patches.js';
 
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import * as styles from './dashql_completion_hint.module.css';
-
-const HINT_PRIORITY_MAX = 10000;
 
 type Hint = CompletionPatch & {
     /// Should we render the category controls for the user?
@@ -191,30 +189,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
         ...hints.candidateHints,
         ...hints.catalogObjectHints
     ];
-    mergedPatches.sort((l, r) => {
-        let a = l.value.at;
-        let b = r.value.at;
-        if (a != b) {
-            return a - b;
-        }
-        switch (l.type) {
-            case PATCH_INSERT_TEXT:
-                a = (l.value.textAnchor as number) * (l.target as number);
-                break;
-            case PATCH_DELETE_TEXT:
-                a = (l.target as number) * HINT_PRIORITY_MAX;
-                break;
-        }
-        switch (r.type) {
-            case PATCH_INSERT_TEXT:
-                b = (r.value.textAnchor as number) * (r.target as number);
-                break;
-            case PATCH_DELETE_TEXT:
-                b = (r.target as number) * HINT_PRIORITY_MAX
-                break;
-        }
-        return a - b;
-    });
+    mergedPatches.sort(comparePatches);
 
     // Create decorations
     const decorations: Range<Decoration>[] = [];

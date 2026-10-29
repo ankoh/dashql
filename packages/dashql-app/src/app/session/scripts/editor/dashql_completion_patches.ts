@@ -45,8 +45,8 @@ interface RemoveTextPatch {
 
 /// Given two strings, derive the required patches to get from `have` to `want`.
 /// If `have` is a proper substring of `want`, emit before/after inserts around it.
-/// Otherwise, delete `have` entirely and insert `want`.
-export function completionDiff(at: number, have: string, want: string, target: CompletionPatchTarget, cursor: number): CompletionPatch[] {
+/// Otherwise, delete `have` entirely and insert `want` with the anchor `insertAnchor`.
+export function completionDiff(at: number, have: string, want: string, target: CompletionPatchTarget, cursor: number, insertAnchor: TextAnchor = TextAnchor.Left): CompletionPatch[] {
     const out: CompletionPatch[] = [];
     const idx = have.length > 0 ? want.indexOf(have) : -1;
     if (idx >= 0) {
@@ -76,7 +76,7 @@ export function completionDiff(at: number, have: string, want: string, target: C
         out.push({
             target,
             type: PATCH_INSERT_TEXT,
-            value: { at: at + have.length, text: want, textAnchor: TextAnchor.Left },
+            value: { at: at + have.length, text: want, textAnchor: insertAnchor },
         });
     }
     return out;
@@ -180,7 +180,8 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         if (qualPrefix.length > 0) {
             let have = text.sliceString(qualifiedFrom, targetFrom);
             let want = qualPrefix.join(".") + ".";
-            let patch = completionDiff(qualifiedFrom, have, want, CompletionPatchTarget.CatalogObject, cursor);
+            // The prefix precedes the candidate, an opening quote of the candidate must follow it
+            let patch = completionDiff(qualifiedFrom, have, want, CompletionPatchTarget.CatalogObject, cursor, TextAnchor.Right);
             nextState.catalogObjectPatch = patch;
         }
 
@@ -218,9 +219,40 @@ export function updateCursorWithCompletion(patch: CompletionPatch[], cursorAt: n
     return out;
 }
 
+const PATCH_PRIORITY_MAX = 10000;
+
+/// Order patches by location. Inserts at the same location are ordered by anchor and target, so that
+/// a qualification prefix lands before the opening quote of a candidate and a qualification suffix
+/// after its closing quote.
+export function comparePatches(l: CompletionPatch, r: CompletionPatch): number {
+    let a = l.value.at;
+    let b = r.value.at;
+    if (a != b) {
+        return a - b;
+    }
+    switch (l.type) {
+        case PATCH_INSERT_TEXT:
+            a = (l.value.textAnchor as number) * (l.target as number);
+            break;
+        case PATCH_DELETE_TEXT:
+            a = (l.target as number) * PATCH_PRIORITY_MAX;
+            break;
+    }
+    switch (r.type) {
+        case PATCH_INSERT_TEXT:
+            b = (r.value.textAnchor as number) * (r.target as number);
+            break;
+        case PATCH_DELETE_TEXT:
+            b = (r.target as number) * PATCH_PRIORITY_MAX
+            break;
+    }
+    return a - b;
+}
+
 export function applyCompletion(patch: CompletionPatch[]): ChangeSpec {
     const out: ChangeSpec[] = [];
-    for (const p of patch) {
+    // CodeMirror applies inserts at the same location in the given order
+    for (const p of [...patch].sort(comparePatches)) {
         switch (p.type) {
             case PATCH_DELETE_TEXT:
                 out.push({

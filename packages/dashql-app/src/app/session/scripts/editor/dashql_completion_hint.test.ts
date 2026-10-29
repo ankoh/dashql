@@ -156,7 +156,7 @@ describe('Completion Hint', () => {
             value: {
                 at: text.length - "tab".length,
                 text: "db0.schema0.",
-                textAnchor: TextAnchor.Left,
+                textAnchor: TextAnchor.Right,
             },
         }]);
     });

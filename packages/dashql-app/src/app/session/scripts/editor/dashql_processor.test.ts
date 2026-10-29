@@ -492,6 +492,44 @@ describe('DashQL processor completion triggers', () => {
         expect(updated).toBe("select 'é😀', orders");
     });
 
+    it('qualifies a quoted candidate outside of its quotes', () => {
+        const catalog = dql!.createCatalog();
+        const schemaScript = dql!.createScript(catalog);
+        schemaScript.insertTextAt(0, 'create table foo.bar."MyTable"(id int);');
+        schemaScript.analyze();
+        catalog.loadScript(schemaScript, 0);
+
+        const text = 'select * from MyT';
+        const { scriptSession } = createScriptSession(catalog, text);
+        const completionBuffer = scriptSession.completeAtCursor(10);
+        const completion = completionBuffer.read();
+        let candidateId = -1;
+        for (let i = 0; i < completion.candidatesLength(); ++i) {
+            if (completion.candidates(i)?.displayText() === 'MyTable') {
+                candidateId = i;
+                break;
+            }
+        }
+        expect(candidateId).toBeGreaterThanOrEqual(0);
+
+        const completionState = computePatches({
+            status: DashQLCompletionStatus.AVAILABLE,
+            passiveHint: false,
+            buffer: completionBuffer,
+            candidateId,
+            candidatePatch: [],
+            catalogObjectId: 0,
+            catalogObjectPatch: [],
+            catalogObjectCursorOffset: null,
+        }, EditorState.create({ doc: text }).doc, text.length);
+        expect(completionState.catalogObjectPatch).not.toHaveLength(0);
+        const updated = EditorState.create({ doc: text }).update({
+            changes: applyCompletion([...completionState.candidatePatch, ...completionState.catalogObjectPatch]),
+        }).newDoc.toString();
+
+        expect(updated).toBe('select * from foo.bar."MyTable"');
+    });
+
     it('completes the keys of a @vis vegalite spec inside the comment', () => {
         const catalog = dql!.createCatalog();
         const text = '/* 😀 chart\n   @vis vegalite {"ma */\nselect 1';
