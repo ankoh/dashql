@@ -71,7 +71,7 @@ import {
 } from '../persistence/app_state_loader.js';
 import { useSessionImport } from '../persistence/session_import_provider.js';
 import { describeSessionValidationError } from '../../storage/session_validation.js';
-import { DETACH_CONNECTION, scriptConnectionOf, scriptsOnConnection, type SessionScripts } from '../scripts/session_scripts.js';
+import { DETACH_CONNECTION, scriptConnectionOf, scriptsOnConnection, SET_PENDING_CONNECTION, type SessionScripts } from '../scripts/session_scripts.js';
 import {
     useInvalidSessions,
     useSessionScripts,
@@ -581,15 +581,16 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         props.closeAfterSelection?.();
     }, [createSession, navigate, props.closeAfterSelection, props.sessionScripts.instance, resolveNewSessionConnection]);
 
-    /// Create a connection that no session uses yet and open its settings
+    /// Create a connection and open its settings, the next script of the current session runs on it
     const createConnection = React.useCallback((connector: ConnectorType) => {
         setCreateConnectionOpen(false);
         const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
         const initialDatabase = dependencies.createConnectionStateFromParams(props.sessionScripts.instance, params);
         const database = allocateConnection({ ...initialDatabase, active: true });
+        void modifyCurrentSession({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(database) });
         connectionSettingsAnchorRef.current = createConnectionButtonRef.current;
         setConnectionOverlayDatabaseId(database.connectionId);
-    }, [allocateConnection, dependencies, props.sessionScripts.instance]);
+    }, [allocateConnection, dependencies, modifyCurrentSession, props.sessionScripts.instance]);
 
     /// Rename a connection, a blank name restores the default label
     const renameConnection = React.useCallback((connectionId: string, name: string) => {

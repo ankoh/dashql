@@ -8,7 +8,7 @@ import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_
 import { connectionLabelParts } from '../../connections/ui/connection_label.js';
 import { SessionSetupStatus } from '../../loading/session_setup_status.js';
 import { SELECT_SESSION } from '../../router/router.js';
-import { DETACH_CONNECTION } from '../scripts/session_scripts.js';
+import { DETACH_CONNECTION, SET_PENDING_CONNECTION } from '../scripts/session_scripts.js';
 import { SessionWorkbenchSidebar, type SessionWorkbenchSidebarDependencies } from './session_workbench_sidebar.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -263,6 +263,24 @@ describe('SessionWorkbenchSidebar session creation', () => {
             value: '00000000-0000-4000-8000-000000000001',
         });
         expect(state.overlayProps?.isOpen).toBe(false);
+    });
+
+    it('creates a connection that the next script of the current session runs on', () => {
+        const trino = { ...state.local!, connectionId: 'trino-database', connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
+            details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } }, params: { trino: {} } } as unknown as ConnectionState;
+        state.allocateConnection.mockReturnValue(trino);
+        act(() => (container.querySelector('[aria-label="Create connection"]') as HTMLButtonElement).click());
+        act(() => {
+            Array.from(document.querySelectorAll<HTMLButtonElement>('[aria-label="Connection connector"] button'))
+                .find(item => item.textContent === CONNECTOR_INFOS[ConnectorType.TRINO].names.displayShort)!
+                .click();
+        });
+        expect(state.allocateConnection).toHaveBeenCalledWith(expect.objectContaining({ active: true }));
+        expect(state.modifySessionScripts).toHaveBeenCalledWith({
+            type: SET_PENDING_CONNECTION,
+            value: expect.objectContaining({ connectionId: trino.connectionId }),
+        });
+        expect(state.overlayProps).toMatchObject({ connectionId: trino.connectionId, isOpen: true });
     });
 
     it.each([ConnectionHealth.NOT_STARTED, ConnectionHealth.CONNECTING, ConnectionHealth.FAILED, ConnectionHealth.CANCELLED])('selects a disconnected session immediately (%s)', async connectionHealth => {
