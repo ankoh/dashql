@@ -528,6 +528,27 @@ fn published_sessions_refresh_at_final_catalog_revision_before_planning() {
 }
 
 #[test]
+fn plan_is_invalid_when_a_script_declares_relations_it_did_not_publish() {
+    let catalog = new_catalog();
+    let mut schema = session(&catalog, UTF8);
+    assert!(analyze(&mut schema, "create table a (id int)").analysis_available);
+    schema.load_into_catalog(CatalogLayer::SESSION).unwrap();
+    // The script now creates another table, but the catalog still holds the published one
+    assert!(analyze(&mut schema, "create table b (id int)").analysis_available);
+    let mut query = session(&catalog, UTF8);
+    assert!(analyze(&mut query, "select * from a").analysis_available);
+
+    let catalog_ref = catalog.borrow();
+    let graph = plan(&[
+        PlannerInput { script: schema.script(), catalog: &catalog_ref },
+        PlannerInput { script: query.script(), catalog: &catalog_ref },
+    ]);
+    assert!(!graph.valid);
+    let diagnostics: Vec<_> = graph.diagnostics.iter().flatten().filter_map(|d| d.message.as_deref()).collect();
+    assert!(diagnostics.contains(&"script declarations are not published"), "{diagnostics:?}");
+}
+
+#[test]
 fn planned_statements_carry_their_catalog_changes() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
