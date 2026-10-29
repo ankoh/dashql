@@ -185,12 +185,11 @@ class HttpFolder implements MigrationFolder {
 /// Validate the URL of a hosted session, returns the name of the session metadata
 function validateManifestUrl(url: URL): string {
     const isPublicHttps = url.protocol === 'https:';
-    const isBundledSession = url.protocol === 'app:' && url.hostname === 'bundle' && !url.port;
     const isDevelopmentLoopback = process.env.DASHQL_BUILD_MODE === 'development'
         && url.protocol === 'http:'
         && (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]');
-    if ((!isPublicHttps && !isBundledSession && !isDevelopmentLoopback) || url.username || url.password || url.hash) {
-        throw new Error('Session URL must be public HTTPS, development loopback HTTP, or a bundled app URL without credentials or a fragment');
+    if ((!isPublicHttps && !isDevelopmentLoopback) || url.username || url.password || url.hash) {
+        throw new Error('Session URL must be public HTTPS or development loopback HTTP without credentials or a fragment');
     }
     // Links of older versions point to the metadata under its older name
     const name = url.pathname.split('/').pop();

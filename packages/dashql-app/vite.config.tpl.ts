@@ -15,7 +15,6 @@ export default vite.defineConfig(({ mode, command }) => {
     const includesBrowserTests = mode === 'pages' || mode === 'development';
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
-    const PUBLIC_DIR = path.resolve(rootDir, "__PUBLIC_DIR__");
     const CORE_PATH = path.resolve(rootDir, "__CORE_PATH__");
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
@@ -178,7 +177,7 @@ export default vite.defineConfig(({ mode, command }) => {
             }),
         ],
         root: rootDir,
-        publicDir: PUBLIC_DIR,
+        publicDir: false,
         base,
         build: {
             target: 'es2020',

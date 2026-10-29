@@ -27,17 +27,6 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 
-# Stage the declared session examples as Vite public assets. The root filegroup controls exactly
-# which source files enter this directory; Vite then copies them unchanged into every app bundle.
-copy_to_directory(
-    name = "example_sessions",
-    srcs = ["//:example_sessions"],
-    out = "public/static/examples/sessions",
-    replace_prefixes = {
-        "examples/sessions": "",
-    },
-    visibility = ["//visibility:private"],
-)
 # Stage the declared SQL snippets for the @dashql/snippets alias, the app bundles them as text.
 # A fresh output directory, so snippets deleted from examples/snippets don't linger in bazel-bin.
 copy_to_directory(
@@ -107,8 +96,7 @@ genrule(
         if [ -z "$$VERSION" ]; then VERSION="0.0.1"; fi
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
 
-        sed -e "s|__PUBLIC_DIR__|./public|g" \\
-            -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
+        sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
             -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
             -e "s|__CORE_PATH__|../../node_modules/@ankoh/dashql-core/dist|g" \\
             -e "s|__SHELL_JS_PATH__|./dependencies/dashql-shell-wasm/dashql_shell.js|g" \\
@@ -137,8 +125,7 @@ genrule(
         if [ -z "$$VERSION" ]; then VERSION="0.0.1"; fi
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
 
-        sed -e "s|__PUBLIC_DIR__|../../bazel-bin/packages/dashql-app/public|g" \
-            -e "s|__DASHQL_VERSION__|$${VERSION}|g" \
+        sed -e "s|__DASHQL_VERSION__|$${VERSION}|g" \
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \
             -e "s|__CORE_PATH__|../../bazel-bin/node_modules/@ankoh/dashql-core/dist|g" \
@@ -237,7 +224,6 @@ ts_project(
 _vite_web_deps = [
     ":srcs",
     ":browser_test_files",
-    ":example_sessions",
     ":example_snippets",
     ":vite_config",
     "//:node_modules/@ankoh/dashql-core",
@@ -377,8 +363,7 @@ sh_binary(
     srcs = ["utils/dev.sh"],
     args = ["$(location :dev_config)"],
     data = [
-        ":example_sessions",
-        ":dev_config",
+            ":dev_config",
         "//:node_modules/@ankoh/dashql-core",
         ":dep_protobuf",
         ":dep_jsonschema",

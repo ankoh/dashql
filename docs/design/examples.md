@@ -1,16 +1,8 @@
 # Examples
 
-DashQL has two kinds of examples.
-
-- **Example sessions** (`examples/sessions/<name>/`) are published sessions: SQL scripts with a manifest. The
-  app imports one as an editable session from the "Example Sessions" popover. They show the editor and its
-  scripts, see `session_publishing.md`.
-- **Demos** (`packages/dashql-app/src/demos/<name>/`) are pages of their own, served by
-  `demos.html`. They show what the app cannot do yet, such as a dashboard that refreshes live while a feed
-  writes into Hyper. Each page brings its own TypeScript and SQL.
-
-A demo can become an example session once sessions can do what the demo does. A live board, for
-instance, needs dashboard cards that run their scripts again on an interval.
+DashQL shows its examples as **demos** (`packages/dashql-app/src/demos/<name>/`), pages of their own served
+by `demos.html`. They show what the app cannot do yet, such as a dashboard that refreshes live while a feed
+writes into Hyper. Each page brings its own TypeScript and SQL.
 
 ## Demos
 

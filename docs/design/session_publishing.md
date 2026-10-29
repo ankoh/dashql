@@ -2,8 +2,7 @@
 
 DashQL sessions can be published as ordinary, reviewable files on any static host with CORS, such as
 GitHub Pages, without a `.dashql` archive or a DashQL-hosted publishing service. A link points
-https://dashql.app at the session file, and the app imports the tree as an editable local session. The
-bundled example sessions use the same mechanism.
+https://dashql.app at the session file, and the app imports the tree as an editable local session.
 
 ## Published Tree
 
@@ -101,9 +100,8 @@ flowchart TD
 
 `readSessionBundleFromHttp` (`packages/dashql-app/src/app/session/persistence/http_session_bundle.ts`):
 
-- accepts public `https:` URLs, `app://bundle` URLs of bundled sessions, and loopback `http:` in development
-  builds, without credentials or fragment, ending in `dashql-session.json` (or the legacy
-  `dashql-notebook.json`),
+- accepts public `https:` URLs and loopback `http:` in development builds, without credentials or fragment,
+  ending in `dashql-session.json` (or the legacy `dashql-notebook.json`),
 - requires only the session file; listed scripts, attachments and catalogs are optional and skipped when
   unavailable, so stale lists degrade gracefully,
 - builds file URLs as `scripts/<name>`, `attachments/<name>` and `connections/<id>/<file>` relative to the
@@ -157,23 +155,6 @@ attaches them again. Before the app held a single embedded database, such a sess
 database of its own. A solution could merge the attached databases into the embedded database of the app or
 attach them per session; it has to settle what happens when two sessions attach different files under the
 same alias.
-
-## Bundled Examples
-
-The Bazel build stages `examples/sessions/` under Vite's `publicDir`, excluding `.DS_Store` files and
-`cache/` folders. Vite copies the tree unchanged into the Pages, Electron and reloc builds:
-
-```text
-https://dashql.app/static/examples/sessions/<name>/dashql-session.json
-```
-
-- `bundled_sessions.ts` is the typed registry of the example session files. Paths resolve against the
-  current origin on the web and under `app://bundle/static/examples/sessions/` in the desktop app. The files
-  stay separate static resources rather than being embedded into a JavaScript chunk.
-- `_headers` serves the example subtree with `Cache-Control: no-store, max-age=0, must-revalidate`, so every
-  open requests the files again.
-- Cloudflare Pages treats a deployment without a root `404.html` as an SPA. A directory-local
-  `static/404.html` makes a missing optional file return a real 404 instead of the application HTML.
 
 ## GitHub URL Forms
 

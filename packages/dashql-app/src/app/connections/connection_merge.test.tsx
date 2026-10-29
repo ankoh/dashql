@@ -14,7 +14,7 @@ vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect()
 
 const grpc = (endpoint: string, token?: string) => ({ hyper: { protocol: 'V3_GRPC', endpoint, ...(token ? { metadata: { auth: token } } : {}) } }) as any;
 const trino = (endpoint: string) => ({ trino: { endpoint } }) as any;
-/// The embedded database as the example sessions store it
+/// The embedded database as exported sessions store it
 const wasm = () => ({ hyper: {
     protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
     attachedDatabases: [], metadata: {}, queryParameters: {},
@@ -56,10 +56,10 @@ describe('connectionMergeCandidates', () => {
         expect(connectionMergeCandidates(reg, NO_CONNECTION_REFERENCES, 'target').map(db => db.connectionId)).toEqual(['same']);
     });
 
-    it('lists the embedded database of an example next to the default one', () => {
+    it('lists the embedded database of an imported session next to the default one', () => {
         const reg = registry(
             database('default', createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]), ConnectionHealth.ONLINE),
-            // Example sessions carry every list and map, even when empty
+            // Exported sessions carry every list and map, even when empty
             database('example', wasm(), ConnectionHealth.ONLINE),
         );
         expect(connectionMergeCandidates(reg, NO_CONNECTION_REFERENCES, 'default').map(db => db.connectionId)).toEqual(['example']);

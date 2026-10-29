@@ -15,18 +15,6 @@ exports_files([
 ])
 
 filegroup(
-    name = "example_sessions",
-    srcs = glob(
-        ["examples/sessions/**"],
-        exclude = [
-            "examples/sessions/**/.DS_Store",
-            "examples/sessions/**/cache/**",
-        ],
-        allow_empty = False,
-    ),
-)
-
-filegroup(
     name = "example_snippets",
     srcs = glob(["examples/snippets/**/*.sql"], allow_empty = False),
 )
@@ -36,19 +24,6 @@ js_library(
     name = "tsconfig_json",
     srcs = ["tsconfig.json"],
     visibility = ["//visibility:public"],
-)
-
-js_library(
-    name = "example_sessions_test_data",
-    srcs = glob(
-        ["examples/sessions/**"],
-        exclude = [
-            "examples/sessions/**/.DS_Store",
-            "examples/sessions/**/.gitignore",
-            "examples/sessions/**/cache/**",
-        ],
-        allow_empty = False,
-    ),
 )
 
 # npm link tree from pnpm lockfile (package.bazel.json + pnpm-lock.yaml).

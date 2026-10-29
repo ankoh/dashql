@@ -85,7 +85,6 @@ import { useMergeConnections } from '../session_connection_merge.js';
 import { useDetachConnection } from '../session_connection_detach.js';
 import { useDeleteConnection } from '../../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../../connections/connection_merge.js';
-import { BundledSessionsOverlay } from '../../ui/bundled_sessions_overlay.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../../connections/ui/connection_label.js';
 import { useAppFlavor } from '../../flavor/flavor_provider.js';
 import { SessionURLShareOverlay } from './session_url_share_overlay.js';
@@ -151,7 +150,6 @@ export interface SessionWorkbenchSidebarDependencies {
     useEmbeddedConnection: typeof useEmbeddedConnection;
     useNewSessionConnection: typeof useNewSessionConnection;
     createConnectionStateFromParams: typeof createConnectionStateFromParams;
-    BundledSessionsOverlay: typeof BundledSessionsOverlay;
     ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
     SessionStorageOverlay: typeof SessionStorageOverlay;
     SessionURLShareOverlay: typeof SessionURLShareOverlay;
@@ -184,7 +182,6 @@ const DEFAULT_SESSION_WORKBENCH_SIDEBAR_DEPENDENCIES: SessionWorkbenchSidebarDep
     useEmbeddedConnection,
     useNewSessionConnection,
     createConnectionStateFromParams,
-    BundledSessionsOverlay,
     ConnectionSettingsOverlay,
     SessionStorageOverlay,
     SessionURLShareOverlay,
@@ -754,12 +751,6 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
                         </span>
                     </div>
                     <div className={styles.section_actions}>
-                        <dependencies.BundledSessionsOverlay
-                            side={AnchorSide.OutsideBottom}
-                            align={AnchorAlignment.End}
-                            triggerSize={ButtonSize.Small}
-                            triggerIconSize={14}
-                        />
                         {storageReader.sessionFolders != null && (
                             <>
                                 <IconButton

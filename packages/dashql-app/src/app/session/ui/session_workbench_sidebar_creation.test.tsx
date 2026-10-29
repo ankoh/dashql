@@ -96,7 +96,6 @@ const dependencies = {
     useStorageReader: () => storageReader,
     useStorageWriter: () => storageWriter,
     useComputationDispatch: () => vi.fn(),
-    BundledSessionsOverlay: () => null,
     SessionStorageOverlay: () => null,
     SessionURLShareOverlay: (props: typeof state.shareProps) => {
         state.shareProps = props;
