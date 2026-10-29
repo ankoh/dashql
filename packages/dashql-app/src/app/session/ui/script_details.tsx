@@ -37,7 +37,7 @@ import { ScriptActionMenu, type ScriptStorage } from './script_action_menu.js';
 import { ScriptDetailsEditorPane, ScriptDetailsOutputPane } from './script_details_panes.js';
 import { VerticalSplit } from '../../../ui/foundations/vertical_split.js';
 import { SessionConnectionAttentionContext } from './session_connection_attention.js';
-import { scriptConnectionView, useAttachScriptConnection, usePickScriptConnection } from './script_connection_picker.js';
+import { scriptConnectionView, usePickScriptConnection } from './script_connection_picker.js';
 import { useConnectionLabeler } from './connection_labels.js';
 import { displayPath } from '../../storage/session_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '../../storage/storage_backend.js';
@@ -67,7 +67,6 @@ export interface ScriptDetailsDependencies {
     useCancelQuery: typeof useCancelQuery;
     useQueryExecutor: typeof useQueryExecutor;
     useStorageReader: typeof useStorageReader;
-    useAttachScriptConnection: typeof useAttachScriptConnection;
     formatScriptEditor: typeof formatScriptEditor;
     isScriptFormattable: typeof isScriptFormattable;
     runSessionScript: typeof runSessionScript;
@@ -84,7 +83,6 @@ const DEFAULT_DEPENDENCIES: ScriptDetailsDependencies = {
     useCancelQuery,
     useQueryExecutor,
     useStorageReader,
-    useAttachScriptConnection,
     formatScriptEditor,
     isScriptFormattable,
     runSessionScript,
@@ -128,7 +126,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         [connection, labeler],
     );
     const pickConnection = usePickScriptConnection(props.sessionScripts.sessionId, props.modifySessionScripts);
-    const attachConnection = dependencies.useAttachScriptConnection(props.sessionScripts.instance, props.modifySessionScripts);
 
     React.useEffect(() => {
         setResultExpanded(hasExecution);
@@ -323,7 +320,6 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             connection={connectionView}
                             connectionPickDisabled={sessionExecution.busy || (activeQueryState != null && !queryIsDone(activeQueryState.status))}
                             onPickConnection={connectionId => pickConnection(scriptFileName, connectionId)}
-                            onAttachConnection={connector => attachConnection(scriptFileName, connector)}
                             isFormattable={isFormattable}
                             connectorType={scriptData?.connection.connectorInfo.connectorType ?? props.connection?.connectorInfo.connectorType}
                             hasPendingDiff={hasPendingDiff}

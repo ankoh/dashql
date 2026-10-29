@@ -309,7 +309,6 @@ describe('Session feed composer', () => {
         useStorageReader: () => storageReader,
         useStorageWriter: () => storageWriter,
         usePickScriptConnection: () => vi.fn(),
-        useAttachScriptConnection: () => vi.fn(),
         usePickPendingConnection: () => vi.fn(),
         useAttachPendingConnection: () => vi.fn(),
         useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },

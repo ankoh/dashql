@@ -27,7 +27,6 @@ const dependencies = {
     useCancelQuery: () => vi.fn(),
     useQueryExecutor: () => state.executeQuery,
     useStorageReader: () => storageReader,
-    useAttachScriptConnection: () => vi.fn(),
     isScriptFormattable: () => true,
     formatScriptEditor: (...args: any[]) => {
         state.formatScriptEditor(...args);

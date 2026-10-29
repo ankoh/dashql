@@ -46,7 +46,6 @@ import {
     ScriptConnectionPicker,
     scriptConnectionView,
     useAttachPendingConnection,
-    useAttachScriptConnection,
     usePickPendingConnection,
     usePickScriptConnection,
     type ScriptConnectionView,
@@ -83,7 +82,6 @@ export interface SessionFeedDependencies {
     useStorageReader: typeof useStorageReader;
     useStorageWriter: typeof useStorageWriter;
     usePickScriptConnection: typeof usePickScriptConnection;
-    useAttachScriptConnection: typeof useAttachScriptConnection;
     usePickPendingConnection: typeof usePickPendingConnection;
     useAttachPendingConnection: typeof useAttachPendingConnection;
     useKeyEvents: typeof useKeyEvents;
@@ -98,7 +96,6 @@ const DEFAULT_DEPENDENCIES: SessionFeedDependencies = {
     useStorageReader,
     useStorageWriter,
     usePickScriptConnection,
-    useAttachScriptConnection,
     usePickPendingConnection,
     useAttachPendingConnection,
     useKeyEvents,
@@ -250,7 +247,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const latest = React.useRef({ sessionScripts: props.sessionScripts, scriptConnections });
     latest.current = { sessionScripts: props.sessionScripts, scriptConnections };
     const pickScriptConnection = dependencies.usePickScriptConnection(props.sessionScripts.sessionId, props.modifySessionScripts);
-    const attachScriptConnection = dependencies.useAttachScriptConnection(props.sessionScripts.instance, props.modifySessionScripts);
     // New scripts, and the draft of the composer, use the default connection of the session
     const pickPendingConnection = dependencies.usePickPendingConnection(props.modifySessionScripts);
     const attachPendingConnection = dependencies.useAttachPendingConnection(props.sessionScripts.instance, props.modifySessionScripts);
@@ -642,7 +638,6 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onDelete: handleDelete,
         onRename: handleRename,
         onPickConnection: pickScriptConnection,
-        onAttachConnection: attachScriptConnection,
         onMoveUp: handleMoveUp,
         onMoveDown: handleMoveDown,
         onExecute: handleExecuteEntry,
@@ -666,7 +661,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, attachScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, composerAgent.available, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, composerAgent.available, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.

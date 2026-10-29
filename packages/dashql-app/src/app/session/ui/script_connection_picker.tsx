@@ -65,16 +65,6 @@ export function usePickScriptConnection(_sessionId: string, modifySessionScripts
     }, [modifySessionScripts, registryStore]);
 }
 
-/// Run a script of a session on a new connection of a connector, returns the id of the connection
-export function useAttachScriptConnection(instance: core.DashQL, modifySessionScripts: ModifySessionScripts): (fileName: string, connector: ConnectorType) => string {
-    const attach = useConnectionAttach();
-    return React.useCallback((fileName: string, connector: ConnectorType) => {
-        const connection = attach(instance, connector);
-        modifySessionScripts({ type: SET_SCRIPT_CONNECTION, value: { fileName, connection: scriptConnectionOf(connection) } });
-        return connection.connectionId;
-    }, [attach, instance, modifySessionScripts]);
-}
-
 /// Create the next script of a session on a connection
 export function usePickPendingConnection(modifySessionScripts: ModifySessionScripts): (connectionId: string) => void {
     const registryStore = useConnectionRegistryStore();
