@@ -8,10 +8,11 @@ import { TestLogger } from '../../../platform/logger/test_logger.js';
 import { PlatformType } from '../../../platform/platform_type.js';
 import { BASE64URL_CODEC } from '../../../utils/base64.js';
 import { SETUP_FAILED, SF_CHANNEL_READY } from './salesforce_connection_state.js';
+import { ConnectorType } from '../connector_info.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
-for (const exchangeFails of [false, true]) describe(`setupSalesforceConnection with exchange failure=${exchangeFails}`, () => {
+for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.SIDB] as const) for (const exchangeFails of [false, true]) describe(`setupSalesforceConnection of ${ConnectorType[connector]} with exchange failure=${exchangeFails}`, () => {
     it('configures the Salesforce database over http', async () => {
         let context: HyperDatabaseConnectionContext | undefined;
         const client: HyperDatabaseClient = {
@@ -69,6 +70,7 @@ for (const exchangeFails of [false, true]) describe(`setupSalesforceConnection w
         const setup = setupSalesforceConnection(
             dispatch,
             new TestLogger(),
+            connector,
             params,
             { auth: { oauthRedirect: 'https://example.com/callback' } },
             PlatformType.WEB,
@@ -91,7 +93,9 @@ for (const exchangeFails of [false, true]) describe(`setupSalesforceConnection w
             protocol: 'V3_HTTP',
             endpoint: 'https://hyper.example.com/',
         }), context);
-        expect(context?.getAttachedDatabases()).toEqual([]);
+        expect(context?.getAttachedDatabases()).toEqual(connector === ConnectorType.SIDB
+            ? [{ path: 'hyper.cloud:tenant-id', alias: 'lakehouse' }]
+            : []);
         expect(await context?.getRequestMetadata()).toEqual({
             audience: 'tenant-id',
             authorization: 'Bearer offcore-token',

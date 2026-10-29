@@ -20,7 +20,7 @@ import { sleep } from '../../../utils/sleep.js';
 import { Dispatch } from '../../../utils/variant.js';
 import { Logger, stringifyError } from '../../../platform/logger/logger.js';
 import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
-import { SalesforceSetupApi } from './salesforce_connection_setup.js';
+import { SalesforceConnectorType, SalesforceSetupApi } from './salesforce_connection_setup.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
 import { RESET_CONNECTION } from '../connection_state.js';
 import { HyperDatabaseChannelMock } from '../hyper/hyperdb_grpc_client_mock.js';
@@ -137,7 +137,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
 }
 
 export function mockSalesforceAuthFlow(api: SalesforceApiClientInterface, config: SalesforceConnectorConfig, logger: Logger): (SalesforceSetupApi | null) {
-    const setup = async (dispatch: Dispatch<SalesforceConnectionStateAction>, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
+    const setup = async (dispatch: Dispatch<SalesforceConnectionStateAction>, _connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
         return setupSalesforceConnection(dispatch, logger, params, config, api, abort);
     };
     const reset = async (dispatch: Dispatch<SalesforceConnectionStateAction>) => {

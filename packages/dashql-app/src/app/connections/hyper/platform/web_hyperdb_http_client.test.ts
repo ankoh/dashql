@@ -142,10 +142,32 @@ describe('WebHyperDatabaseClient', () => {
             expect(capturedSettings).toEqual({ lc_time: 'de_DE', time_zone: 'UTC' });
         });
 
+        it('sends the attached databases', async () => {
+            let capturedDatabases: unknown;
+            const ctx: HyperDatabaseConnectionContext = {
+                getAttachedDatabases: () => [{ path: 'hyper.cloud:tenant-id', alias: 'lakehouse' }],
+                getRequestMetadata: async () => ({}),
+                getQueryParameters: () => ({}),
+            };
+            mock.setHandler((_sql, request) => {
+                capturedDatabases = request.databases;
+                return {
+                    queryId: 'q-databases',
+                    completionStatus: 'RESULTS_PRODUCED',
+                    arrowBytes: encodeIntTable('n', [1]),
+                };
+            });
+
+            const channel = await client.connect(makeHyperArgs(), ctx);
+            await channel.executeQuery({ query: 'select 1 as n' } as any);
+
+            expect(capturedDatabases).toEqual([{ path: 'hyper.cloud:tenant-id', alias: 'lakehouse' }]);
+        });
+
         it('omits settings when there are no query parameters', async () => {
             let sawSettingsKey = false;
             mock.setHandler((_sql, request) => {
-                sawSettingsKey = 'settings' in request;
+                sawSettingsKey = 'settings' in request || 'databases' in request;
                 return {
                     queryId: 'q-no-settings',
                     completionStatus: 'RESULTS_PRODUCED',

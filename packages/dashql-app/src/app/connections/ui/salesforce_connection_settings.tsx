@@ -11,6 +11,7 @@ import { ConnectionHealth, ConnectionStatus } from '../connection_state.js';
 import { performHealthCheck } from '../health_check.js';
 import { useQueryExecutor } from '../query_executor.js';
 import { useSalesforceSetup } from '../salesforce/salesforce_connector.js';
+import type { SalesforceConnectorType } from '../salesforce/salesforce_connection_setup.js';
 import { getSalesforceConnectionDetails } from '../salesforce/salesforce_connection_state.js';
 import {
     TextField,
@@ -119,9 +120,6 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
             return null;
     }
 }
-
-/// The connectors that share the Salesforce settings
-export type SalesforceConnectorType = ConnectorType.SALESFORCE_DATA_CLOUD | ConnectorType.SIDB;
 
 interface Props {
     connectionId: string | null;
@@ -387,7 +385,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
 
         await connectionSetup.run(async signal => {
             try {
-                const sfChannel = await sfSetup.setup(dispatchConnectionState, setupParams, signal);
+                const sfChannel = await sfSetup.setup(dispatchConnectionState, props.connector, setupParams, signal);
                 if (connectionState != null) {
                     await performHealthCheck(queryExecutor, connectionState.connectionId, { type: 'salesforce', channel: sfChannel }, dispatchConnectionState, signal);
                 }

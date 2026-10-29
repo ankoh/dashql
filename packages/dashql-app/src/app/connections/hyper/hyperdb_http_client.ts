@@ -47,6 +47,10 @@ export interface ExecuteQueryRequest {
     };
     queryRowLimit?: number;
     paramStyle?: "NAMED" | string;
+    databases?: {
+        path: string;
+        alias?: string;
+    }[];
 }
 
 export interface GetQueryStatusParams {

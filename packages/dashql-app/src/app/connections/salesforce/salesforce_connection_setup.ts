@@ -30,8 +30,13 @@ import { PlatformEventListener } from '../../../platform/events/event_listener.j
 import { RESET_CONNECTION } from '../connection_state.js';
 import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../hyper/hyperdb_grpc_client.js';
 import { authenticateSalesforce, SalesforceAuthenticationProgress } from './salesforce_authentication.js';
+import { ConnectorType } from '../connector_info.js';
+import { SALESFORCE_CATALOG_DATABASE } from './salesforce_catalog_update.js';
 
 const LOG_CTX = "salesforce_setup";
+
+/// The connectors that share the Salesforce setup
+export type SalesforceConnectorType = ConnectorType.SALESFORCE_DATA_CLOUD | ConnectorType.SIDB;
 
 // We use the web-server OAuth Flow with or without consumer secret.
 //
@@ -63,7 +68,7 @@ const LOG_CTX = "salesforce_setup";
 //  5. Client sends authorization_code and code_verifier to the token endpoint. (RFC 7636, Section 4.5)
 //  6. Server transforms the code_verifier using the code_challenge_method from the initial authorization request and checks the result against the code_challenge. If the value of both strings match, then the server has verified that the requests came from the same client and will issue an access_token. (RFC 7636, Section 4.6)
 
-export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, httpClient: HyperDatabaseClient | null, appEvents: PlatformEventListener, forceReLogin: boolean, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
+export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, httpClient: HyperDatabaseClient | null, appEvents: PlatformEventListener, forceReLogin: boolean, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     params = structuredClone(params);
     let hyperChannel: HyperDatabaseChannel;
     let sfChannel: SalesforceDatabaseChannel;
@@ -154,9 +159,15 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         // Static connection context.
         // Inject the database name, the audience header and the bearer token
         const authInfo = collectSalesforceAuthInfo(coreAccessToken, dcToken);
+        // SIDB queries the Hyper Cloud database of the offcore tenant
+        const attachedDatabases: AttachedDatabase[] = [];
+        if (connector === ConnectorType.SIDB) {
+            if (!authInfo?.offcoreTenantId) throw new Error('missing offcore tenant id');
+            attachedDatabases.push({ path: `hyper.cloud:${authInfo.offcoreTenantId}`, alias: SALESFORCE_CATALOG_DATABASE });
+        }
         const connectionContext: HyperDatabaseConnectionContext = {
             getAttachedDatabases(): AttachedDatabase[] {
-                return [];
+                return attachedDatabases;
             },
             async getRequestMetadata(): Promise<Record<string, string>> {
                 return {
@@ -206,13 +217,13 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
 }
 
 export interface SalesforceSetupApi {
-    setup(dispatch: Dispatch<SalesforceConnectionStateAction>, params: connection.SalesforceConnectionParams, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel>
+    setup(dispatch: Dispatch<SalesforceConnectionStateAction>, connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel>
     reset(dispatch: Dispatch<SalesforceConnectionStateAction>): Promise<void>
 }
 
 export function createSalesforceSetup(httpClient: HyperDatabaseClient | null, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, forceReLogin: boolean, logger: Logger): (SalesforceSetupApi | null) {
-    const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
-        return setupSalesforceConnection(updateState, logger, params, config, platformType, salesforceApi, httpClient, appEvents, forceReLogin, abort);
+    const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, connector: SalesforceConnectorType, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
+        return setupSalesforceConnection(updateState, logger, connector, params, config, platformType, salesforceApi, httpClient, appEvents, forceReLogin, abort);
     };
     const reset = async (updateState: Dispatch<SalesforceConnectionStateAction>) => {
         updateState({
