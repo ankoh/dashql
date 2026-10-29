@@ -21,7 +21,6 @@ import {
     connectionEntryFromState,
     didPersistedConnectionChange,
     resolveSessionConnections,
-    resolveDefaultConnection,
     useConnectionRegistry,
     useDynamicConnectionDispatch,
 } from './connection_registry.js';
@@ -48,26 +47,16 @@ function registry(): ConnectionRegistry {
 }
 
 describe('session connection routing', () => {
-    it('resolves the default connection and the other connections of a session', () => {
-        const connections = resolveSessionConnections(registry(), fixedConnectionReferences({ session: ['local', 'remote'] }), 'session');
-        expect(connections?.main.connectionId).toBe('local');
-        expect(connections?.attached.map(database => database.connectionId)).toEqual(['remote']);
-    });
-
-    it('routes to the remote default connection even when it is offline', () => {
-        const connection = resolveDefaultConnection(registry(), fixedConnectionReferences({ session: ['remote'] }), 'session');
-        expect(connection?.connectionId).toBe('remote');
-        expect(connection?.connectionHealth).toBe(ConnectionHealth.FAILED);
-    });
-
-    it('routes to the local default connection even when scripts use a remote one', () => {
-        expect(resolveDefaultConnection(registry(), fixedConnectionReferences({ session: ['local', 'remote'] }), 'session')?.connectionId).toBe('local');
+    it('resolves the connections of a session in the order the scripts use them', () => {
+        const connections = resolveSessionConnections(registry(), fixedConnectionReferences({ session: ['remote', 'local'] }), 'session');
+        expect(connections?.map(database => database.connectionId)).toEqual(['remote', 'local']);
+        expect(connections?.[0].connectionHealth).toBe(ConnectionHealth.FAILED);
     });
 
     it('does not fall back to local when a configured remote is missing', () => {
         const value = registry();
         value.connections.delete('remote');
-        expect(resolveDefaultConnection(value, fixedConnectionReferences({ session: ['remote'] }), 'session')).toBeNull();
+        expect(resolveSessionConnections(value, fixedConnectionReferences({ session: ['remote'] }), 'session')).toBeNull();
         expect(resolveSessionConnections(value, fixedConnectionReferences({ session: ['local', 'remote'] }), 'session')).toBeNull();
     });
 });

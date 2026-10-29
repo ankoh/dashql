@@ -7,7 +7,7 @@
   "properties": {
     "formatVersion": {
       "type": "integer",
-      "enum": [7],
+      "enum": [8],
       "description": "Session persistence format. The app migrates older versions at startup and on import, see packages/dashql-app/src/migration."
     },
     "sessionId": {
@@ -31,16 +31,12 @@
       "type": "string",
       "description": "User-supplied session name shown as the primary label in the session bar and selector. Absent (or empty) means the user never named the session, and the UI falls back to the display path."
     },
-    "defaultConnectionId": {
-      "type": "string",
-      "description": "The connectionId of the connection that new scripts use and whose catalog the catalog files of the session copy."
-    },
     "connections": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/SessionConnection"
       },
-      "description": "The connections that the scripts of the session use, the default connection included. The application's internal compute database is never persisted here."
+      "description": "The connections that the scripts of the session use, in the order the scripts first use them. A session without scripts holds the connection its first script will run on. The application's internal compute database is never persisted here."
     },
     "scripts": {
       "type": "array",
@@ -75,7 +71,7 @@
       "description": "When was last accessed"
     }
   },
-  "required": ["formatVersion", "sessionId", "defaultConnectionId", "connections", "scripts", "attachments", "metadata"],
+  "required": ["formatVersion", "sessionId", "connections", "scripts", "attachments", "metadata"],
   "additionalProperties": false,
   "definitions": {
     "SessionConnection": {

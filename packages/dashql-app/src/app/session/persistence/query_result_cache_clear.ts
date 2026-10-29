@@ -33,7 +33,7 @@ export function markDeletedQueryResults(
     const deleted = new Set(hashes);
     const databases = resolveSessionConnections(registry, references, sessionId);
     let marked = 0;
-    for (const database of databases == null ? [] : [databases.main, ...databases.attached]) {
+    for (const database of databases ?? []) {
         for (const query of database.queriesFinished.values()) {
             if (query.cacheKey != null && deleted.has(query.cacheKey) && !query.cacheDeleted) {
                 dispatch(database.connectionId, { type: QUERY_CACHE_DELETED, value: [query.queryId] });

@@ -8,10 +8,10 @@ import { useConnectionScriptsDispatch } from './scripts/session_scripts_registry
 /// Detach a connection from the sessions
 export type ConnectionDetach = (dql: core.DashQL, connectionId: string) => Promise<void>;
 
-/// Detach a connection from every session whose new scripts merely default to it.
+/// Detach a connection from every session whose next script would merely run on it.
 ///
-/// Those sessions create their new scripts on the embedded Hyper again. Sessions with scripts on the
-/// connection keep it, see DETACH_CONNECTION.
+/// Sessions without scripts hold the embedded Hyper again. Sessions with scripts on the connection
+/// keep it, see DETACH_CONNECTION.
 export function useDetachConnection(): ConnectionDetach {
     const resolveEmbeddedConnection = useEmbeddedConnection();
     const scriptsDispatch = useConnectionScriptsDispatch();

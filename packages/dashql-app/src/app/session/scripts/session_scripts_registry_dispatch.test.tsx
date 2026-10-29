@@ -22,8 +22,10 @@ function fixture(sessionId: string): SessionScripts {
     return {
         sessionId,
         settings: { cacheQueryResults: false },
-        connectionId: `${sessionId}-database`,
-        scripts: { 1: { scriptKey: 1, latestQueryId: null, connection: { connectionId: `${sessionId}-database` } } },
+        pendingConnection: null,
+        scripts: { 1: { scriptKey: 1, fileName: '1.sql', latestQueryId: null, connection: { connectionId: `${sessionId}-database` } } },
+        scriptRefs: { '1.sql': { scriptId: 1, fileName: '1.sql' } },
+        scriptOrder: ['1.sql'],
     } as unknown as SessionScripts;
 }
 

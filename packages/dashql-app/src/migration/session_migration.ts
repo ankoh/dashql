@@ -5,6 +5,7 @@ import { notebooksToSessions } from './session/v4_notebooks_to_sessions.js';
 import { scriptsInSessionFile } from './session/v5_scripts_in_session_file.js';
 import { sessionConnections } from './session/v6_session_connections.js';
 import { catalogsOfConnections } from './session/v7_catalogs_of_connections.js';
+import { connectionsOfScripts } from './session/v8_connections_of_scripts.js';
 
 /// A step that brings a session folder from the previous format version to `version`.
 ///
@@ -28,6 +29,7 @@ export const SESSION_MIGRATION_STEPS: readonly SessionMigrationStep[] = [
     scriptsInSessionFile,
     sessionConnections,
     catalogsOfConnections,
+    connectionsOfScripts,
 ];
 
 /// The oldest format version the steps migrate, older sessions are not supported

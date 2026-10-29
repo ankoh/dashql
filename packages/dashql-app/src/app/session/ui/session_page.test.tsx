@@ -19,8 +19,9 @@ const OTHER_CONNECTION = { connectionId: 'other' };
 
 const dependencies = {
     useSessionViewMode: () => ({ mode: state.mode }),
-    useSessionScripts: () => [{ sessionId: state.sessionId, name: 'Session', connectionId: 'database', scripts: {} }, vi.fn()],
-    useDefaultConnection: () => [DEFAULT_CONNECTION],
+    useSessionScripts: () => [{
+        sessionId: state.sessionId, name: 'Session', pendingConnection: { connectionId: 'database' }, scripts: {}, scriptRefs: {}, scriptOrder: [],
+    }, vi.fn()],
     useConnectionRegistry: () => [{ connections: new Map([['database', DEFAULT_CONNECTION], ['other', OTHER_CONNECTION]]) }] as any,
     useLogger: () => ({ warn: vi.fn() }),
     useRouteContext: () => ({ sessionId: state.sessionId }),

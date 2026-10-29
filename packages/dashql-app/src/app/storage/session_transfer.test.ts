@@ -46,7 +46,7 @@ describe('session transfer', () => {
         await cloneSession(TEST_SESSION_ID, source, target, cloneId, new TestLogger());
         const cloned = await target.loadSession(cloneId);
         expect(cloned).toMatchObject({ sessionId: cloneId, name: 'V2 Session (copy)' });
-        expect(cloned.defaultConnectionId).toBe(TEST_CONNECTION_ID);
+        expect(cloned.connections.map(connection => connection.connectionId)).toEqual([TEST_CONNECTION_ID]);
         expect(await target.loadScripts(cloneId)).toHaveLength(3);
         expect((await target.loadScript(cloneId, '03_attachment.sql')).sql).toContain(
             `${hyperOPFSRoot()}/sessions/${cloneId}/attachments/payload.bin`);

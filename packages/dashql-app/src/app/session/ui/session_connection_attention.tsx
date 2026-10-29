@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ConnectionHealth } from '../../connections/connection_state.js';
+import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
 import { Tooltip } from '../../../ui/foundations/tooltip.js';
 
 export const CONNECTION_ATTENTION_DURATION_MS = 900;
@@ -12,7 +12,17 @@ interface ConnectionAttention {
 
 export const SessionConnectionAttentionContext = React.createContext<ConnectionAttention | null>(null);
 
-export function useSessionConnectionAttention(sessionId: string | null, connectionId: string | null, health: ConnectionHealth | undefined): ConnectionAttention {
+/// The connections whose health resets the attention, as a key that changes with them
+export function connectionHealthKey(connections: readonly ConnectionState[] | null): string {
+    return (connections ?? []).map(connection => `${connection.connectionId}:${connection.connectionHealth}`).join(',');
+}
+
+/// The connections of a session that are not online, a session runs once they are
+export function connectionsToConnect(connections: Iterable<ConnectionState>): ConnectionState[] {
+    return [...connections].filter(connection => connection.connectionHealth !== ConnectionHealth.ONLINE);
+}
+
+export function useSessionConnectionAttention(sessionId: string | null, healthKey: string): ConnectionAttention {
     const shared = React.useContext(SessionConnectionAttentionContext);
     const [active, setActive] = React.useState(false);
     const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -24,8 +34,8 @@ export function useSessionConnectionAttention(sessionId: string | null, connecti
             if (timer.current != null) clearTimeout(timer.current);
             timer.current = null;
         };
-    }, [sessionId, connectionId, health]);
-    // Callers request attention for the connection a script runs on, which need not be the default connection
+    }, [sessionId, healthKey]);
+    // Callers request attention for the connections the scripts of the session run on
     const request = React.useCallback((targetSessionId: string) => {
         if (targetSessionId !== sessionId || timer.current != null) return;
         setActive(true);

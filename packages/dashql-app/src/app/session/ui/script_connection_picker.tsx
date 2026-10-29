@@ -7,7 +7,6 @@ import { Button, ButtonSize, ButtonVariant } from '../../../ui/foundations/butto
 import * as ActionList from '../../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../../ui/foundations/anchored_overlay.js';
-import { DatabaseIcon } from '../../../ui/foundations/symbol_icon.js';
 import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType, type ConnectorInfo } from '../../connections/connector_info.js';
 import { ATTACHABLE_CONNECTORS, useConnectionAttach } from '../../connections/attached_connection.js';
@@ -18,7 +17,7 @@ import {
     useConnectionRegistry,
     useConnectionRegistryStore,
 } from '../../connections/connection_registry.js';
-import { scriptConnectionOf, SET_DEFAULT_CONNECTION, SET_SCRIPT_CONNECTION } from '../scripts/session_scripts.js';
+import { scriptConnectionOf, SET_PENDING_CONNECTION, SET_SCRIPT_CONNECTION } from '../scripts/session_scripts.js';
 import type { ModifySessionScripts } from '../scripts/session_scripts_registry.js';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/ui/connection_status.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/ui/connection_label.js';
@@ -76,22 +75,22 @@ export function useAttachScriptConnection(instance: core.DashQL, modifySessionSc
     }, [attach, instance, modifySessionScripts]);
 }
 
-/// Create the new scripts of a session on a connection
-export function usePickDefaultConnection(modifySessionScripts: ModifySessionScripts): (connectionId: string) => void {
+/// Create the next script of a session on a connection
+export function usePickPendingConnection(modifySessionScripts: ModifySessionScripts): (connectionId: string) => void {
     const registryStore = useConnectionRegistryStore();
     return React.useCallback((connectionId: string) => {
         const connection = registryStore.current.connections.get(connectionId);
         if (connection == null) return;
-        modifySessionScripts({ type: SET_DEFAULT_CONNECTION, value: scriptConnectionOf(connection) });
+        modifySessionScripts({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(connection) });
     }, [modifySessionScripts, registryStore]);
 }
 
-/// Create the new scripts of a session on a new connection of a connector, returns the id of the connection
-export function useAttachDefaultConnection(instance: core.DashQL, modifySessionScripts: ModifySessionScripts): (connector: ConnectorType) => string {
+/// Create the next script of a session on a new connection of a connector, returns the id of the connection
+export function useAttachPendingConnection(instance: core.DashQL, modifySessionScripts: ModifySessionScripts): (connector: ConnectorType) => string {
     const attach = useConnectionAttach();
     return React.useCallback((connector: ConnectorType) => {
         const connection = attach(instance, connector);
-        modifySessionScripts({ type: SET_DEFAULT_CONNECTION, value: scriptConnectionOf(connection) });
+        modifySessionScripts({ type: SET_PENDING_CONNECTION, value: scriptConnectionOf(connection) });
         return connection.connectionId;
     }, [attach, instance, modifySessionScripts]);
 }
@@ -163,7 +162,7 @@ export const ScriptConnectionPicker: React.FC<Props> = (props) => {
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
                         disabled={props.disabled}
-                        leadingVisual={props.connection == null ? undefined : <DatabaseIcon className={styles.connector_icon} size={14} />}
+                        leadingVisual={props.connection == null ? undefined : <HealthDot health={props.connection.connectionHealth} />}
                         trailingVisual={props.connection == null ? undefined : <ConnectionProtocolTag detail={props.connection.labelParts.detail} />}
                         aria-label={`Connection of ${props.scriptName} script: ${label}`}
                         data-testid={props.testId ?? "script-connection-picker"}
@@ -219,8 +218,7 @@ export function ConnectionMenu(props: MenuProps) {
     const [scripts] = useSessionScriptsRegistry();
     const references = useConnectionReferences();
     const { sessionConnections, otherConnections, ordinals } = React.useMemo(() => {
-        const session = resolveSessionConnections(connections, references, props.sessionId);
-        const sessionConnections = session == null ? [] : [session.main, ...session.attached];
+        const sessionConnections = resolveSessionConnections(connections, references, props.sessionId) ?? [];
         const listed = listedConnections(connections, references, sessionConnections);
         return {
             sessionConnections,

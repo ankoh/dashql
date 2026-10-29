@@ -23,7 +23,7 @@ import {
 } from '@dnd-kit/sortable';
 
 import { ConnectionHealth, ConnectionState } from '../../../connections/connection_state.js';
-import { getSelectedScriptRef, getScriptRefs, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/session_scripts.js';
+import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/session_scripts.js';
 import { useQueryExecutor } from '../../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';
@@ -45,9 +45,9 @@ import { SessionDataCard } from './session_data_card.js';
 import {
     ScriptConnectionPicker,
     scriptConnectionView,
-    useAttachDefaultConnection,
+    useAttachPendingConnection,
     useAttachScriptConnection,
-    usePickDefaultConnection,
+    usePickPendingConnection,
     usePickScriptConnection,
     type ScriptConnectionView,
 } from '../script_connection_picker.js';
@@ -66,8 +66,9 @@ export interface SessionFeedProps {
     sessionScripts: SessionScripts;
     modifySessionScripts: ModifySessionScripts;
     showDetails: (fileName?: string, initialTab?: DetailsTabKey) => void;
+    /// The connection that the next script runs on
     conn: ConnectionState | null;
-    /// The connections that the scripts run on, by default the connection of the session
+    /// The connections that the scripts run on, by default the connection of the next script
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
     /// Whether the feed is the visible, interactive layer. The feed stays mounted (just hidden) while
     /// the catalog/details overlay is open so it keeps its scroll position and measured row heights;
@@ -83,8 +84,8 @@ export interface SessionFeedDependencies {
     useStorageWriter: typeof useStorageWriter;
     usePickScriptConnection: typeof usePickScriptConnection;
     useAttachScriptConnection: typeof useAttachScriptConnection;
-    usePickDefaultConnection: typeof usePickDefaultConnection;
-    useAttachDefaultConnection: typeof useAttachDefaultConnection;
+    usePickPendingConnection: typeof usePickPendingConnection;
+    useAttachPendingConnection: typeof useAttachPendingConnection;
     useKeyEvents: typeof useKeyEvents;
     runSessionScript: typeof runSessionScript;
     useAgentBridge: typeof useAgentBridge;
@@ -98,8 +99,8 @@ const DEFAULT_DEPENDENCIES: SessionFeedDependencies = {
     useStorageWriter,
     usePickScriptConnection,
     useAttachScriptConnection,
-    usePickDefaultConnection,
-    useAttachDefaultConnection,
+    usePickPendingConnection,
+    useAttachPendingConnection,
     useKeyEvents,
     runSessionScript,
     useAgentBridge,
@@ -188,6 +189,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         [props.conn],
     );
     const scriptConnections = useScriptConnectionViews(props.scriptConnections ?? defaultConnections);
+    // The composer drafts the next script, on the connection that the script will run on
+    const composerConnection = newScriptConnection(props.sessionScripts, null);
     const storageReader = dependencies.useStorageReader();
     const storageWriter = dependencies.useStorageWriter();
     const sessionId = props.sessionScripts.sessionId;
@@ -249,8 +252,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const pickScriptConnection = dependencies.usePickScriptConnection(props.sessionScripts.sessionId, props.modifySessionScripts);
     const attachScriptConnection = dependencies.useAttachScriptConnection(props.sessionScripts.instance, props.modifySessionScripts);
     // New scripts, and the draft of the composer, use the default connection of the session
-    const pickDefaultConnection = dependencies.usePickDefaultConnection(props.modifySessionScripts);
-    const attachDefaultConnection = dependencies.useAttachDefaultConnection(props.sessionScripts.instance, props.modifySessionScripts);
+    const pickPendingConnection = dependencies.usePickPendingConnection(props.modifySessionScripts);
+    const attachPendingConnection = dependencies.useAttachPendingConnection(props.sessionScripts.instance, props.modifySessionScripts);
 
     const pendingCreatedScriptKeyRef = React.useRef<number | null>(null);
     const editorViewsRef = React.useRef(new Map<number, EditorView>());
@@ -533,7 +536,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         return scriptData != null ? { next, scriptData } : null;
     }, [props.modifySessionScripts]);
     const runAppendedScript = React.useCallback((next: SessionScripts, scriptData: ScriptData) => {
-        // The agent may write the script on another connection than the default one
+        // The agent may write the script on another connection than the one of the composer
         if (!isScriptOnline(scriptData)) {
             connectionAttention?.request(next.sessionId);
             return;
@@ -756,10 +759,10 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
             </div>
             <div className={styles.feed_composer_section} ref={composerSectionRef}>
                 <div className={styles.feed_composer_body}>
-                    <dependencies.SessionComposer
+                    {composerConnection != null && <dependencies.SessionComposer
                         key={props.sessionScripts.sessionId}
                         instance={props.sessionScripts.instance}
-                        catalog={props.sessionScripts.connectionCatalog}
+                        catalog={composerConnection.catalog}
                         variant={landing ? SessionComposerVariant.Hero : SessionComposerVariant.Docked}
                         keywordCase={keywordCase}
                         aiAvailable={composerAgent.available}
@@ -770,19 +773,19 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         submitRef={composerSubmitRef}
                         scriptNames={scriptNames}
                         targetScriptRef={composerTargetScriptRef}
-                        snippetConnector={scriptConnections.get(props.sessionScripts.connectionId)?.connectorInfo.connectorType}
+                        snippetConnector={composerConnection.connectorInfo.connectorType}
                         connectionPicker={(
                             <ScriptConnectionPicker
                                 sessionId={props.sessionScripts.sessionId}
                                 scriptName="new"
-                                connection={scriptConnections.get(props.sessionScripts.connectionId) ?? null}
+                                connection={scriptConnections.get(composerConnection.connectionId) ?? null}
                                 disabled={false}
-                                onPick={pickDefaultConnection}
-                                onAttach={attachDefaultConnection}
+                                onPick={pickPendingConnection}
+                                onAttach={attachPendingConnection}
                                 testId="composer-connection-picker"
                             />
                         )}
-                    />
+                    />}
                 </div>
             </div>
         </div>

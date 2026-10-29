@@ -46,9 +46,8 @@ function fixture() {
         scriptRefs[fileName] = createScriptRef(scriptKey, fileName);
     }
     const state: SessionScripts = {
-        instance: dql, sessionId: crypto.randomUUID(), name: 'Test', connectionId: connection.connectionId, settings: { cacheQueryResults: false },
-        sessionMetadata: createEmptyMetadata(), connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        connectionCatalog: catalog, scripts, scriptRefs, scriptOrder: ['1_items.sql', '2_query.sql', '3_other.sql'],
+        instance: dql, sessionId: crypto.randomUUID(), name: 'Test', pendingConnection: null, settings: { cacheQueryResults: false },
+        sessionMetadata: createEmptyMetadata(), scripts, scriptRefs, scriptOrder: ['1_items.sql', '2_query.sql', '3_other.sql'],
         scriptFocus: { fileName: '2_query.sql' }, semanticUserFocus: null,
     };
     const [definition, query, other] = Object.values(scripts);

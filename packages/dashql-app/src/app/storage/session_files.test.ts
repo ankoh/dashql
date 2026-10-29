@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { reconcileSessionScripts, remapSessionScripts, sanitizeSessionFiles, sessionAttachments, withDefaultConnection } from './session_files.js';
+import { reconcileSessionScripts, remapSessionScripts, sanitizeSessionFiles, sessionAttachments, withSessionScripts } from './session_files.js';
 import { TEST_CONNECTION_ID, testSession } from './session_test_backend.js';
 
 const OTHER_CONNECTION_ID = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
@@ -63,19 +63,35 @@ describe('session file lists', () => {
     });
 });
 
-describe('session default connection', () => {
+describe('session connections', () => {
     const copy = { connectionId: OTHER_CONNECTION_ID, params: { trino: { endpoint: 'https://trino.example' } } as any };
 
-    it('takes a copy of the new default connection and drops the previous one that no script uses', () => {
-        const next = withDefaultConnection(testSession(), copy);
-        expect(next.defaultConnectionId).toBe(OTHER_CONNECTION_ID);
+    it('holds the connections of the scripts in the order the scripts first use them', () => {
+        const scripts = [
+            { name: 'a.sql', connectionId: OTHER_CONNECTION_ID },
+            { name: 'b.sql', connectionId: TEST_CONNECTION_ID },
+            { name: 'c.sql', connectionId: OTHER_CONNECTION_ID },
+        ];
+        const next = withSessionScripts(testSession(), scripts, [copy]);
+        expect(next.connections.map(connection => connection.connectionId)).toEqual([OTHER_CONNECTION_ID, TEST_CONNECTION_ID]);
+    });
+
+    it('drops a connection that no script uses', () => {
+        const next = withSessionScripts(testSession({ connections: [testSession().connections[0], copy] }), [{ name: 'a.sql', connectionId: OTHER_CONNECTION_ID }]);
         expect(next.connections).toEqual([copy]);
     });
 
-    it('keeps the previous default connection while a script uses it', () => {
-        const scripts = [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }];
-        const next = withDefaultConnection(testSession({ scripts }), copy);
-        expect(next.connections.map(connection => connection.connectionId)).toEqual([OTHER_CONNECTION_ID, TEST_CONNECTION_ID]);
-        expect(next.scripts).toEqual(scripts);
+    it('keeps the connection of the next script in a session without scripts', () => {
+        expect(withSessionScripts(testSession(), []).connections).toEqual(testSession().connections);
+        expect(withSessionScripts(testSession(), [], [copy]).connections).toEqual([copy]);
+    });
+
+    it('appends script files without an entry on the connection of the script before them', () => {
+        const reconciled = reconcileSessionScripts([{ name: 'a.sql', connectionId: OTHER_CONNECTION_ID }], ['a.sql', 'b.sql'], TEST_CONNECTION_ID);
+        expect(reconciled.scripts).toEqual([
+            { name: 'a.sql', connectionId: OTHER_CONNECTION_ID },
+            { name: 'b.sql', connectionId: OTHER_CONNECTION_ID },
+        ]);
+        expect(reconcileSessionScripts([], ['a.sql'], TEST_CONNECTION_ID).scripts).toEqual([{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }]);
     });
 });

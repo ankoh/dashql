@@ -5,7 +5,7 @@ import { useConnectionSaver } from '../connections/connection_persistence.js';
 import { connectionLabel } from '../connections/ui/connection_label.js';
 import { useDashQLCoreSetup } from '../providers/core_provider.js';
 import { OPEN_LINK_SESSION, useRouteContext, useRouterNavigate } from '../router/router.js';
-import type { SessionScripts } from '../session/scripts/session_scripts.js';
+import { sessionConnectionIds, type SessionScripts } from '../session/scripts/session_scripts.js';
 import { useSessionScriptsRegistryReader } from '../session/scripts/session_scripts_registry.js';
 import { useSessionCreation } from '../session/session_creation.js';
 import type { ConnectionState } from '../connections/connection_state.js';
@@ -19,9 +19,10 @@ const LOG_CTX = 'hyper_link';
 /// The session that a link opens: the open session if it runs on the connection of the link, otherwise the first
 /// session on it, null if a new one is needed
 export function sessionOnConnection(sessions: Map<string, SessionScripts>, currentSessionId: string | null, connectionId: string): string | null {
-    if (currentSessionId != null && sessions.get(currentSessionId)?.connectionId === connectionId) return currentSessionId;
+    const current = currentSessionId == null ? undefined : sessions.get(currentSessionId);
+    if (current != null && sessionConnectionIds(current).includes(connectionId)) return currentSessionId;
     for (const [sessionId, scripts] of sessions) {
-        if (scripts.connectionId === connectionId) return sessionId;
+        if (sessionConnectionIds(scripts).includes(connectionId)) return sessionId;
     }
     return null;
 }

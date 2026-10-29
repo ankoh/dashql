@@ -13,7 +13,7 @@ import { classNames } from '../../../utils/classnames.js';
 import { exportSessionAsUrl, SessionLinkTarget } from '../persistence/session_export.js';
 import { connectionParamsHaveLoginHint, getConnectionParamsFromStateDetails } from '../../connections/connection_params.js';
 import { sleep } from '../../../utils/sleep.js';
-import { resolveSessionConnections, useConnectionReferences, useDefaultConnection, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { resolveSessionConnections, useConnectionReferences, useConnectionRegistry, useSessionConnections } from '../../connections/connection_registry.js';
 import { useRouteContext } from '../../router/router.js';
 import { useSessionScripts } from '../scripts/session_scripts_registry.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
@@ -42,7 +42,9 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
     const buttonRef = React.createRef<HTMLButtonElement>();
 
     const [sessionScripts] = useSessionScripts(props.sessionId ?? route.sessionId ?? null);
-    const [connection, _modifyConnection] = useDefaultConnection(sessionScripts?.sessionId ?? null);
+    const connections = useSessionConnections(sessionScripts?.sessionId ?? null);
+    // The connections are resolved anew on every render, the link follows their ids
+    const connectionIds = connections?.map(connection => connection.connectionId).join(',') ?? null;
     const [databaseRegistry] = useConnectionRegistry();
     const references = useConnectionReferences();
     const storage = useStorageReader();
@@ -69,11 +71,11 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
 
         async function generateURL() {
             let setupUrl: URL | null = null;
-            if (sessionScripts != null && connection != null) {
+            if (sessionScripts != null && connectionIds != null) {
                 const attached = resolveSessionConnections(databaseRegistry, references, sessionScripts.sessionId);
                 if (attached != null) {
                     const params = new Map();
-                    for (const database of [attached.main, ...attached.attached]) {
+                    for (const database of attached) {
                         const connectionParams = database.params;
                         if (connectionParams != null) params.set(database.connectionId, connectionParams);
                     }
@@ -105,7 +107,7 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
         return () => {
             cancelled = true;
         };
-    }, [databaseRegistry, references, settings, sessionScripts, connection, props.isOpen]);
+    }, [databaseRegistry, references, settings, sessionScripts, connectionIds, props.isOpen]);
 
     // Copy the url to the clipboard
     const copyURL = React.useCallback(
@@ -147,8 +149,8 @@ export const SessionURLShareOverlay: React.FC<Props> = (props: Props) => {
     );
 
     const hasLoginHint = React.useMemo(
-        () => connection != null && connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(connection.details)),
-        [connection],
+        () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(connection.details))),
+        [connections],
     );
 
     const ButtonIcon = state.copyFinishedAt != null && state.uiResetAt == null ? CheckIcon : PaperclipIcon;

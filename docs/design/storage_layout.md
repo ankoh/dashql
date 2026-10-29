@@ -55,7 +55,7 @@ Writers hold the Web Lock of the manifest, which all tabs of the app share.
 ### Sessions
 
 A session folder holds `dashql-session.json` (schema `proto/json/dashql/app_session.json`: `formatVersion`,
-`sessionId`, `name`, `defaultConnectionId`, `connections`, `scripts`, `attachments`, `metadata`, `settings`) and
+`sessionId`, `name`, `connections`, `scripts`, `attachments`, `metadata`, `settings`) and
 the files it lists:
 
 - `scripts/` holds one file per script, named by the script.

@@ -14,9 +14,8 @@ const REMOTE_CONNECTION_ID = '66666666-7777-8888-9999-aaaaaaaaaaaa';
 
 function session(extra: Partial<SessionData> = {}): SessionData {
     return {
-        formatVersion: 7,
+        formatVersion: 8,
         sessionId: UUID,
-        defaultConnectionId: CONNECTION_ID,
         connections: [{ connectionId: CONNECTION_ID, params: { hyper: {} } as any }],
         scripts: [],
         attachments: [],
@@ -25,9 +24,9 @@ function session(extra: Partial<SessionData> = {}): SessionData {
     } as SessionData;
 }
 
-/// A session whose only connection is the default connection
+/// A session with a single connection
 function withDefault(connection: Record<string, unknown>): SessionData {
-    return session({ defaultConnectionId: connection.connectionId as string, connections: [connection as any] });
+    return session({ connections: [connection as any] });
 }
 
 describe('validateSessionData', () => {
@@ -38,7 +37,6 @@ describe('validateSessionData', () => {
     it('accepts each known remote connector after the local database', () => {
         const local = { connectionId: CONNECTION_ID, params: { hyper: { protocol: 'WASM' } } as any };
         const remote = (params: any) => session({
-            defaultConnectionId: REMOTE_CONNECTION_ID,
             connections: [{ connectionId: REMOTE_CONNECTION_ID, params }, local],
         });
         const hyper = remote({ hyper: { protocol: 'V3_HTTP' } });
@@ -84,7 +82,7 @@ describe('validateSessionData', () => {
     });
 
     it('rejects missing, older, and unknown format versions', () => {
-        for (const formatVersion of [undefined, 1, 2, 3, 4, 5, 6, 8]) {
+        for (const formatVersion of [undefined, 1, 2, 3, 4, 5, 6, 7, 9]) {
             expect(validateSessionData(session({ formatVersion } as any))).toEqual({
                 ok: false,
                 error: SessionValidationError.UnsupportedFormatVersion,
@@ -124,13 +122,6 @@ describe('validateSessionData', () => {
             { connectionId: CONNECTION_ID, params: { hyper: {} } as any },
             { connectionId: CONNECTION_ID, params: { trino: {} } as any },
         ] }))).toEqual({ ok: false, error: SessionValidationError.InvalidConnectionId });
-    });
-
-    it('requires the default connection to be a connection of the session', () => {
-        expect(validateSessionData(session({ defaultConnectionId: REMOTE_CONNECTION_ID }))).toEqual({
-            ok: false,
-            error: SessionValidationError.InvalidDefaultConnectionId,
-        });
     });
 
     it('rejects a connection with missing or unknown params', () => {

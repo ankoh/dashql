@@ -14,6 +14,8 @@ import {
     SET_SCRIPT_CONNECTION,
     SET_SCRIPT_TEXT,
     getSelectedScriptRef,
+    newScriptConnection,
+    persistedConnectionId,
     scriptConnectionOf,
     sessionConnectionIds,
     type ScriptConnection,
@@ -188,7 +190,7 @@ async function listScripts(env: AgentCommandEnvironment, state: SessionScripts):
         return {
             name: scriptDisplayName(fileName),
             fileName,
-            connectionId: script?.connection.connectionId ?? state.connectionId,
+            connectionId: script == null ? null : persistedConnectionId(script),
             lines: text.length === 0 ? 0 : text.split('\n').length,
             focused: fileName === focused,
         };
@@ -196,16 +198,16 @@ async function listScripts(env: AgentCommandEnvironment, state: SessionScripts):
     const connections = sessionConnectionIds(state).map(id => describeConnection(env, id));
     const lines = [
         `Session ${JSON.stringify(state.name ?? '')} (${state.sessionId})`,
-        `Default connection: ${connectionLabel(connections[0])}`,
+        `Connections: ${connections.map(connectionLabel).join(', ')}`,
     ];
-    const others = connections.slice(1);
-    if (others.length > 0) lines.push(`Other connections: ${others.map(connectionLabel).join(', ')}`);
     lines.push(scripts.length === 0 ? 'No scripts' : 'Scripts:');
+    // The scripts name their connections when the session uses several
+    const several = connections.length > 1;
     for (const script of scripts) {
-        const connection = script.connectionId === state.connectionId ? '' : `  on ${script.connectionId}`;
+        const connection = several && script.connectionId != null ? `  on ${script.connectionId}` : '';
         lines.push(`  ${script.name}  ${script.lines} line${script.lines === 1 ? '' : 's'}${connection}${script.focused ? '  (focused)' : ''}`);
     }
-    return { text: lines.join('\n'), data: { session: state.sessionId, name: state.name, defaultConnection: state.connectionId, connections, scripts } };
+    return { text: lines.join('\n'), data: { session: state.sessionId, name: state.name, connections, scripts } };
 }
 
 async function editScript(env: AgentCommandEnvironment, sessionId: string, state: SessionScripts, args: Record<string, unknown>): Promise<AgentCommandResult> {
@@ -258,7 +260,7 @@ async function reportEdit(
     const errors = diagnostics.filter(d => d.severity === 'error').length;
     const fileName = scriptDisplayName(checked.fileName);
     const connectionId = checked.connection.connectionId;
-    const on = connectionId === state.connectionId ? '' : ` on ${connectionId}`;
+    const on = sessionConnectionIds(state).length > 1 ? ` on ${connectionId}` : '';
     const lines = [`${verb} ${fileName}${on}: sha256 ${hash}, ${errors} error${errors === 1 ? '' : 's'}, ${diagnostics.length - errors} warning${diagnostics.length - errors === 1 ? '' : 's'}`];
     if (diagnostics.length > 0) lines.push(formatDiagnostics(fileName, diagnostics));
     return { text: lines.join('\n'), data: { script: fileName, ...data, connection: connectionId, sha256: hash, diagnostics } };
@@ -341,7 +343,8 @@ async function editVis(env: AgentCommandEnvironment, sessionId: string, state: S
 }
 
 function describeCatalog(env: AgentCommandEnvironment, state: SessionScripts, args: Record<string, unknown>): AgentCommandResult {
-    const connectionId = typeof args.connection === 'string' ? args.connection : state.connectionId;
+    const connectionId = typeof args.connection === 'string' ? args.connection : newScriptConnection(state, null)?.connectionId;
+    if (connectionId == null) fail('The session has no connection');
     requireSessionConnection(state, connectionId);
     const conn: ConnectionState | null = env.connections().connections.get(connectionId) ?? null;
     const schema = buildSchemaContext(connectionId, conn, state, env.logger);

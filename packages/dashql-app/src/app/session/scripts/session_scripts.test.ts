@@ -6,7 +6,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Logger } from '../../../platform/logger/logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connections/connector_info.js';
 import { SessionTestBackend } from '../../storage/session_test_backend.js';
-import { PATCH_SESSION_CONNECTION, StorageWriter, WRITE_SESSION_DEFAULT_CONNECTION, WRITE_SESSION_PROPERTIES, WRITE_SESSION_SCRIPTS, type StorageWriteTaskVariant } from '../../storage/storage_writer.js';
+import { PATCH_SESSION_CONNECTION, StorageWriter, WRITE_SESSION_PROPERTIES, WRITE_SESSION_SCRIPTS, type StorageWriteTaskVariant } from '../../storage/storage_writer.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
 import {
     ANALYZE_OUTDATED_SCRIPT,
@@ -14,10 +14,10 @@ import {
     CREATE_SCRIPT,
     DELETE_SCRIPT,
     DETACH_CONNECTION,
-    defaultScriptConnection,
     MERGE_CONNECTION,
+    newScriptConnection,
     type ScriptConnection,
-    SET_DEFAULT_CONNECTION,
+    SET_PENDING_CONNECTION,
     SET_SCRIPT_CONNECTION,
     scriptsOnConnection,
     sessionConnectionIds,
@@ -79,11 +79,15 @@ function state(names = ['1_alpha.sql', '2_beta.sql', '3_gamma.sql'], main: Scrip
         refs[name] = createScriptRef(scriptKey, name);
     }
     return {
-        instance: dql, sessionId: crypto.randomUUID(), name: 'Test', connectionId: main.connectionId, settings: { cacheQueryResults: false },
-        sessionMetadata: createEmptyMetadata(), connectorInfo: main.connectorInfo,
-        connectionCatalog: main.catalog, scripts, scriptRefs: refs, scriptOrder: [...names],
+        instance: dql, sessionId: crypto.randomUUID(), name: 'Test', pendingConnection: names.length === 0 ? main : null,
+        settings: { cacheQueryResults: false }, sessionMetadata: createEmptyMetadata(), scripts, scriptRefs: refs, scriptOrder: [...names],
         scriptFocus: { fileName: names[1] ?? names[0] ?? '' }, semanticUserFocus: null,
     };
+}
+
+/// The connection of the first script, the fixtures create every script on it
+function mainConnection(current: SessionScripts): ScriptConnection {
+    return current.scripts[current.scriptRefs[current.scriptOrder[0]].scriptId].connection;
 }
 
 function reduce(current: SessionScripts, action: Parameters<typeof reduceSessionScripts>[1], writer?: RecordingWriter) {
@@ -179,7 +183,7 @@ describe('V2 flat session script mutations', () => {
         await runSessionScript(current, current.scripts[scriptKey], executeQuery,
             modifySessionScripts, logger);
 
-        expect(executeQuery).toHaveBeenCalledWith(current.connectionId, expect.objectContaining({
+        expect(executeQuery).toHaveBeenCalledWith(mainConnection(current).connectionId, expect.objectContaining({
             query: sql,
             cacheable: false,
             cacheSignature: '',
@@ -252,7 +256,7 @@ describe('V2 flat session script mutations', () => {
         expect(writer.records).toEqual([{
             type: WRITE_SESSION_SCRIPTS,
             value: [current.sessionId, {
-                scripts: ['3_gamma.sql', '1_alpha.sql', '2_beta.sql'].map(name => ({ name, connectionId: current.connectionId })),
+                scripts: ['3_gamma.sql', '1_alpha.sql', '2_beta.sql'].map(name => ({ name, connectionId: mainConnection(current).connectionId })),
                 connections: [],
             }],
         }]);
@@ -302,7 +306,7 @@ describe('V2 flat session script mutations', () => {
             type: WRITE_SESSION_SCRIPTS,
             value: [current.sessionId, {
                 scripts: [
-                    { name: '1_alpha.sql', connectionId: current.connectionId },
+                    { name: '1_alpha.sql', connectionId: mainConnection(current).connectionId },
                     { name: '2_beta.sql', connectionId: other.connectionId },
                 ],
                 // The session file takes a copy of the new connection
@@ -312,49 +316,84 @@ describe('V2 flat session script mutations', () => {
         // The same connection changes nothing
         expect(reduce(next, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: other } })).toBe(next);
         // A script moves back under its key
-        const back = reduce(next, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: defaultScriptConnection(next) } });
-        expect(back.scripts[scriptKey].connection.connectionId).toBe(current.connectionId);
+        const back = reduce(next, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: mainConnection(current) } });
+        expect(back.scripts[scriptKey].connection.connectionId).toBe(mainConnection(current).connectionId);
     });
 
-    it('creates new scripts on the default connection that the user picks', () => {
+    it('creates new scripts on the connection of their neighbors', () => {
+        const current = state(['1_alpha.sql', '2_beta.sql']);
+        const other = { ...connection(ConnectorType.TRINO), params: { trino: { endpoint: 'https://trino.example' } } as any };
+        const next = reduce(current, { type: SET_SCRIPT_CONNECTION, value: { fileName: '2_beta.sql', connection: other } });
+        // An appended script takes the connection of the last script
+        expect(newScriptConnection(next, null)?.connectionId).toBe(other.connectionId);
+        // An inserted script takes the connection of the script before it, the first one that of the script after it
+        expect(newScriptConnection(next, 1)?.connectionId).toBe(mainConnection(current).connectionId);
+        expect(newScriptConnection(next, 2)?.connectionId).toBe(other.connectionId);
+        expect(newScriptConnection(next, 0)?.connectionId).toBe(mainConnection(current).connectionId);
+        const inserted = reduce(next, { type: CREATE_SCRIPT, value: { index: 1 } });
+        expect(inserted.scripts[inserted.scriptRefs[inserted.scriptFocus.fileName].scriptId].connection.connectionId).toBe(mainConnection(current).connectionId);
+        expect(sessionConnectionIds(next)).toEqual([mainConnection(current).connectionId, other.connectionId]);
+    });
+
+    it('creates the next script on the connection that the user picks', () => {
         const current = state(['1_alpha.sql']);
         const other = { ...connection(ConnectorType.TRINO), params: { trino: { endpoint: 'https://trino.example' } } as any };
         const writer = new RecordingWriter(logger, new SessionTestBackend());
-        const next = reduce(current, { type: SET_DEFAULT_CONNECTION, value: other }, writer);
-        expect(next.connectionId).toBe(other.connectionId);
-        expect(next.connectorInfo).toBe(other.connectorInfo);
-        expect(next.connectionCatalog).toBe(other.catalog);
-        // The scripts keep their connection
-        expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].connection.connectionId).toBe(current.connectionId);
-        expect(writer.records).toEqual([{
-            type: WRITE_SESSION_DEFAULT_CONNECTION,
-            value: [current.sessionId, { connectionId: other.connectionId, params: other.params }],
-        }]);
+        const next = reduce(current, { type: SET_PENDING_CONNECTION, value: other }, writer);
+        expect(next.pendingConnection).toBe(other);
+        // The scripts keep their connection, a session with scripts doesn't store the pick
+        expect(next.scripts[next.scriptRefs['1_alpha.sql'].scriptId].connection.connectionId).toBe(mainConnection(current).connectionId);
+        expect(writer.records).toEqual([]);
         const created = reduce(next, { type: CREATE_SCRIPT, value: { index: null } });
         expect(created.scripts[created.scriptRefs[created.scriptFocus.fileName].scriptId].connection.connectionId).toBe(other.connectionId);
+        // The script took the pick
+        expect(created.pendingConnection).toBeNull();
         // The same connection changes nothing, a connection without params can't be copied into the session file
-        expect(reduce(next, { type: SET_DEFAULT_CONNECTION, value: other })).toBe(next);
-        expect(reduce(current, { type: SET_DEFAULT_CONNECTION, value: connection() })).toBe(current);
+        expect(reduce(next, { type: SET_PENDING_CONNECTION, value: other })).toBe(next);
+        expect(reduce(current, { type: SET_PENDING_CONNECTION, value: connection() })).toBe(current);
     });
 
-    it('detaches a default connection that no script uses', () => {
-        const current = state(['1_alpha.sql']);
+    it('keeps the connection of a session without scripts in its session file', () => {
+        const embedded = { ...connection(), params: { hyper: { protocol: 'WASM' } } as any };
+        const current = state([], embedded);
+        expect(sessionConnectionIds(current)).toEqual([embedded.connectionId]);
+        const server = { ...connection(ConnectorType.TRINO), params: { trino: { endpoint: 'https://trino.example' } } as any };
+        const writer = new RecordingWriter(logger, new SessionTestBackend());
+        const next = reduce(current, { type: SET_PENDING_CONNECTION, value: server }, writer);
+        expect(sessionConnectionIds(next)).toEqual([server.connectionId]);
+        expect(writer.records).toEqual([{
+            type: WRITE_SESSION_SCRIPTS,
+            value: [current.sessionId, { scripts: [], connections: [{ connectionId: server.connectionId, params: server.params }] }],
+        }]);
+        // The first script runs on it, deleting the last script keeps its connection for the next one
+        const created = reduce(next, { type: CREATE_SCRIPT, value: { index: null } });
+        expect(created.pendingConnection).toBeNull();
+        expect(sessionConnectionIds(created)).toEqual([server.connectionId]);
+        const deleted = reduce(created, { type: DELETE_SCRIPT, value: created.scriptFocus.fileName });
+        expect(deleted.pendingConnection?.connectionId).toBe(server.connectionId);
+    });
+
+    it('detaches a connection that only the next script would use', () => {
         const embedded = { ...connection(), params: { hyper: { protocol: 'WASM' } } as any };
         const server = { ...connection(ConnectorType.HYPER), params: { hyper: { protocol: 'V3_HTTP' } } as any };
-        const onServer = reduce(current, { type: SET_DEFAULT_CONNECTION, value: server });
-        // The scripts keep the session on the previous connection, the server is only the default
-        const detached = reduce(onServer, { type: DETACH_CONNECTION, value: { from: server.connectionId, into: embedded } });
-        expect(detached.connectionId).toBe(embedded.connectionId);
+        // A session without scripts holds the embedded database then
+        const empty = reduce(state([], server), { type: DETACH_CONNECTION, value: { from: server.connectionId, into: embedded } });
+        expect(empty.pendingConnection).toBe(embedded);
+        expect(sessionConnectionIds(empty)).toEqual([embedded.connectionId]);
+        // A session with scripts lets go of the pick
+        const picked = reduce(state(['1_alpha.sql']), { type: SET_PENDING_CONNECTION, value: server });
+        const detached = reduce(picked, { type: DETACH_CONNECTION, value: { from: server.connectionId, into: embedded } });
+        expect(detached.pendingConnection).toBeNull();
         expect(sessionConnectionIds(detached)).not.toContain(server.connectionId);
-        // Another connection than the default changes nothing
+        // Another connection changes nothing
         expect(reduce(detached, { type: DETACH_CONNECTION, value: { from: server.connectionId, into: embedded } })).toBe(detached);
     });
 
-    it('keeps a default connection attached while scripts use it', () => {
+    it('keeps a connection attached while scripts use it', () => {
         const current = state(['1_alpha.sql']);
         const embedded = { ...connection(), params: { hyper: { protocol: 'WASM' } } as any };
         const server = { ...connection(ConnectorType.HYPER), params: { hyper: { protocol: 'V3_HTTP' } } as any };
-        let next = reduce(current, { type: SET_DEFAULT_CONNECTION, value: server });
+        let next = reduce(current, { type: SET_PENDING_CONNECTION, value: server });
         next = reduce(next, { type: SET_SCRIPT_CONNECTION, value: { fileName: '1_alpha.sql', connection: server } });
         expect(scriptsOnConnection(next, server.connectionId)).toBe(1);
         expect(reduce(next, { type: DETACH_CONNECTION, value: { from: server.connectionId, into: embedded } })).toBe(next);
@@ -439,7 +478,7 @@ describe('V2 flat session script mutations', () => {
         expect(current.scripts[scriptKey].editorUpdate?.analysisAvailable).toBe(false);
     });
 
-    it('moves the scripts and the default connection of a merged connection', () => {
+    it('moves the scripts and the pending connection of a merged connection', () => {
         const main = connection();
         const current = state(['1_alpha.sql', '2_beta.sql'], main);
         const kept = connection();
@@ -448,11 +487,10 @@ describe('V2 flat session script mutations', () => {
         const betaKey = next.scriptRefs['2_beta.sql'].scriptId;
         const target = { ...connection(), params: { hyper: { protocol: 'WASM' } } } as unknown as ConnectionState;
         const writer = new RecordingWriter(logger, new SessionTestBackend());
-        const merged = reduce(next, { type: MERGE_CONNECTION, value: { from: main.connectionId, into: target } }, writer);
-        // The default connection and its scripts move to the target
-        expect(merged.connectionId).toBe(target.connectionId);
-        expect(merged.connectorInfo).toBe(target.connectorInfo);
-        expect(merged.connectionCatalog).toBe(target.catalog);
+        const merged = reduce(reduce(next, { type: SET_PENDING_CONNECTION, value: { ...main, params: target.params } }),
+            { type: MERGE_CONNECTION, value: { from: main.connectionId, into: target } }, writer);
+        // The pending connection and the scripts move to the target
+        expect(merged.pendingConnection?.connectionId).toBe(target.connectionId);
         expect(merged.scripts[alphaKey].connection.connectionId).toBe(target.connectionId);
         expect(merged.scripts[alphaKey].scriptSession.getText()).toBe('SELECT 1');
         expect(merged.scripts[alphaKey].analysisOutdated).toBe(true);
@@ -489,7 +527,7 @@ describe('V2 flat session script mutations', () => {
 
     it('matches and replaces native flat-script snapshots with their order and connections', () => {
         const current = state(['1_alpha.sql', '2_beta.sql']);
-        const main = defaultScriptConnection(current);
+        const main = mainConnection(current);
         expect(sessionScriptsMatchStorageSnapshot(current, { scripts: [
             { name: '1_alpha.sql', sql: 'SELECT 1', connection: main },
             { name: '2_beta.sql', sql: 'SELECT 2', connection: main },
@@ -527,7 +565,7 @@ describe('V2 flat session script mutations', () => {
 
     it('keeps the current scripts when the scripts of storage can not be created', () => {
         const current = state(['1_alpha.sql', '2_beta.sql']);
-        const main = defaultScriptConnection(current);
+        const main = mainConnection(current);
         const alpha = current.scripts[current.scriptRefs['1_alpha.sql'].scriptId];
         // The moved script is created, the added one fails
         vi.spyOn(dql, 'createScriptSession').mockImplementation(() => { throw new Error('no session'); });
@@ -552,9 +590,9 @@ describe('V2 flat session script mutations', () => {
 
         // Picking the connection the script runs on replaces the reference
         writer.records.length = 0;
-        const picked = reduce(created, { type: SET_SCRIPT_CONNECTION, value: { fileName: '1_alpha.sql', connection: defaultScriptConnection(created) } }, writer);
+        const picked = reduce(created, { type: SET_SCRIPT_CONNECTION, value: { fileName: '1_alpha.sql', connection: mainConnection(current) } }, writer);
         expect(picked.scripts[scriptKey].unresolvedConnectionId).toBeUndefined();
         expect(picked.scripts[scriptKey].scriptSession).toBe(current.scripts[scriptKey].scriptSession);
-        expect(listOf(writer.records[0])[0]).toEqual({ name: '1_alpha.sql', connectionId: current.connectionId });
+        expect(listOf(writer.records[0])[0]).toEqual({ name: '1_alpha.sql', connectionId: mainConnection(current).connectionId });
     });
 });

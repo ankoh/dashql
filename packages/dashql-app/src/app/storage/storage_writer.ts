@@ -5,7 +5,7 @@ import { VariantKind } from '../../utils/variant.js';
 import type { StorageBackend, SessionData, SessionMetadata as StorageSessionMetadata, SessionSettings, SessionConnection, ConnectionEntry, ConnectionParams, SessionRegistryBackend, SessionScript } from './storage_backend.js';
 import { ExternalScriptChangeError, STORAGE_SCRIPTS_FOLDER, STORAGE_SESSION_FILE, STORAGE_CONNECTIONS_FOLDER, isSessionRegistryBackend } from './storage_backend.js';
 import { SESSION_FORMAT_VERSION } from '../../migration/versions.js';
-import { sessionAttachments, withDefaultConnection, withSessionScripts } from './session_files.js';
+import { sessionAttachments, withSessionScripts } from './session_files.js';
 
 const LOG_CTX = 'storage_writer';
 
@@ -32,7 +32,7 @@ function jsonDeepEqual(a: any, b: any): boolean {
     return aKeys.every(k => Object.prototype.hasOwnProperty.call(b, k) && jsonDeepEqual(a[k], b[k]));
 }
 
-/// Compare the manifest fields the writer owns (formatVersion, sessionId, name, defaultConnectionId, connections, scripts, attachments, metadata).
+/// Compare the manifest fields the writer owns (formatVersion, sessionId, name, connections, scripts, attachments, metadata).
 /// Other fields (storageType/nativePath/sessionPath) are display- or registry-only and are not
 /// written into the session file, so they're deliberately ignored.
 ///
@@ -45,7 +45,6 @@ function sessionManifestEquals(a: SessionData, b: SessionData): boolean {
         sessionId: s.sessionId,
         name: s.name,
         settings: s.settings,
-        defaultConnectionId: s.defaultConnectionId,
         connections: s.connections,
         scripts: s.scripts,
         attachments: s.attachments,
@@ -77,8 +76,8 @@ export interface SessionReplacement {
     /// The script files, their text is read when the write runs. The script list of the session file
     /// is written by `WRITE_SESSION_SCRIPTS` alone, it is the only writer of the list.
     scripts: Array<{ fileName: string; readText: () => string }>;
-    /// The default connection of a session that is not stored yet
-    defaultConnection: SessionConnection;
+    /// A connection of a session that is not stored yet, the script list follows with the others
+    connection: SessionConnection | null;
     /// The file name the session was created from, if any
     originalFileName: string | undefined;
     /// The session settings
@@ -93,7 +92,6 @@ export const WRITE_SCRIPT = Symbol('WRITE_SCRIPT');
 export const DELETE_SCRIPT = Symbol('DELETE_SCRIPT');
 export const RENAME_SCRIPT = Symbol('RENAME_SCRIPT');
 export const WRITE_SESSION_SCRIPTS = Symbol('WRITE_SESSION_SCRIPTS');
-export const WRITE_SESSION_DEFAULT_CONNECTION = Symbol('WRITE_SESSION_DEFAULT_CONNECTION');
 export const REFRESH_SESSION_ATTACHMENTS = Symbol('REFRESH_SESSION_ATTACHMENTS');
 
 /// The script list of a session
@@ -105,7 +103,7 @@ export interface SessionScriptList {
 }
 
 export type StorageWriteTaskVariant =
-    | VariantKind<typeof WRITE_SESSION_MANIFEST, [string, string, SessionConnection[]]>
+    | VariantKind<typeof WRITE_SESSION_MANIFEST, [string, SessionConnection[]]>
     | VariantKind<typeof WRITE_SESSION_PROPERTIES, [string, SessionProperties]>
     | VariantKind<typeof REPLACE_SESSION_SCRIPTS, SessionReplacement>
     | VariantKind<typeof WRITE_CONNECTION_ENTRY, ConnectionEntry>
@@ -116,7 +114,6 @@ export type StorageWriteTaskVariant =
     | VariantKind<typeof DELETE_SCRIPT, [string, string]>
     | VariantKind<typeof RENAME_SCRIPT, [string, string, string]>
     | VariantKind<typeof WRITE_SESSION_SCRIPTS, [string, SessionScriptList]>
-    | VariantKind<typeof WRITE_SESSION_DEFAULT_CONNECTION, [string, SessionConnection]>
     | VariantKind<typeof REFRESH_SESSION_ATTACHMENTS, string>
     ;
 
@@ -147,9 +144,6 @@ export const groupSessionConnectionCopyWrites = (sessionId: string, connectionId
 /// The script list of a session and the connections it uses. It is patched into the session file and
 /// must not coalesce with the other writes of the session file.
 export const groupSessionScriptListWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:scripts`;
-/// The default connection of a session. It is patched into the session file, a later write of the copy
-/// of the connection must not replace it.
-export const groupSessionDefaultConnectionWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:default`;
 /// The attachment list of a session
 export const groupSessionAttachmentListWrites = (sessionId: string) => `${sessionId}/${STORAGE_SESSION_FILE}:attachments`;
 export const groupScriptWrites = (sessionId: string, fileName: string) =>
@@ -262,7 +256,6 @@ export function patchSessionConnection(session: SessionData, copy: SessionConnec
     const references = (id: string) => id === connectionId || replaced.includes(id);
     const next: SessionData = {
         ...session,
-        defaultConnectionId: references(session.defaultConnectionId) ? connectionId : session.defaultConnectionId,
         connections: dedupeConnections(session.connections.map(connection =>
             references(connection.connectionId) ? copy : connection)),
         scripts: session.scripts.map(script => replaced.includes(script.connectionId) ? { ...script, connectionId } : script),
@@ -678,15 +671,11 @@ export class StorageWriter {
     protected async executeTask(key: string, task: StorageWriteTaskVariant) {
         switch (task.type) {
             case WRITE_SESSION_MANIFEST: {
-                const [sessionId, defaultConnectionId, connections] = task.value;
+                const [sessionId, connections] = task.value;
                 this.logger.info("Writing session", {
                     key,
                     sessionId,
                 }, LOG_CTX);
-
-                if (!connections.some(connection => connection.connectionId === defaultConnectionId)) {
-                    throw new Error(`default connection ${defaultConnectionId} is not a connection of session ${sessionId}`);
-                }
 
                 // Load whatever is already on disk so we can (a) preserve the original createdAt
                 // instead of churning a fresh timestamp on every write, and (b) skip the write
@@ -713,13 +702,12 @@ export class StorageWriter {
                     formatVersion: SESSION_FORMAT_VERSION,
                     sessionId,
                     ...(existingSession?.name ? { name: existingSession.name } : {}),
-                    defaultConnectionId,
-                    connections,
+                    connections: [],
                     scripts: [],
                     attachments: existingSession?.attachments ?? [],
                     metadata: sessionMetadata,
                     ...(existingSession?.settings ? { settings: existingSession.settings } : {}),
-                }, existingSession?.scripts ?? [], existingSession?.connections ?? []);
+                }, existingSession?.scripts ?? [], [...connections, ...existingSession?.connections ?? []]);
 
                 // Skip the write if the persisted manifest already matches what we'd write.
                 if (existingSession != null && sessionManifestEquals(existingSession, connData)) {
@@ -758,7 +746,6 @@ export class StorageWriter {
 
                 // Save session last so it never references content that doesn't exist yet.
                 // Preserve the original createdAt across rewrites; only stamp it on the first write.
-                let defaultConnectionId: SessionData['defaultConnectionId'];
                 let connections: SessionData['connections'];
                 let createdAt: string;
                 // Preserve the user-supplied name across a session rewrite: this path rebuilds the
@@ -771,15 +758,13 @@ export class StorageWriter {
                 try {
                     const existingSession = await this.backend.loadSession(sessionId);
                     existingScripts = existingSession.scripts ?? [];
-                    defaultConnectionId = existingSession.defaultConnectionId;
                     connections = existingSession.connections;
                     createdAt = existingSession.metadata?.createdAt ?? new Date().toISOString();
                     existingName = existingSession.name;
                     existingMetadata = existingSession.metadata;
                     existingAttachments = existingSession.attachments ?? [];
                 } catch {
-                    defaultConnectionId = session.defaultConnection.connectionId;
-                    connections = [session.defaultConnection];
+                    connections = session.connection == null ? [] : [session.connection];
                     createdAt = new Date().toISOString();
                 }
 
@@ -793,7 +778,6 @@ export class StorageWriter {
                     formatVersion: SESSION_FORMAT_VERSION,
                     sessionId,
                     ...(session.name ? { name: session.name } : existingName ? { name: existingName } : {}),
-                    defaultConnectionId,
                     connections,
                     scripts: [],
                     attachments: existingAttachments,
@@ -807,11 +791,6 @@ export class StorageWriter {
             case WRITE_SESSION_SCRIPTS: {
                 const [sessionId, list] = task.value;
                 await this.patchSessionFile(key, sessionId, session => withSessionScripts(session, list.scripts, list.connections));
-                break;
-            }
-            case WRITE_SESSION_DEFAULT_CONNECTION: {
-                const [sessionId, copy] = task.value;
-                await this.patchSessionFile(key, sessionId, session => withDefaultConnection(session, copy));
                 break;
             }
             case REFRESH_SESSION_ATTACHMENTS: {

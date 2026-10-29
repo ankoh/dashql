@@ -58,7 +58,7 @@ class Registry extends SessionTestBackend implements SessionRegistryBackend {
 
 const SESSION_ID = '11111111-2222-4333-8444-555555555555';
 const IMPORTED_SESSION_ID = '22222222-3333-4444-8555-666666666666';
-/// The default connection of the session
+/// The embedded database of the session
 const HYPER_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const HYPER_PARAMS = { hyper: {} } as SessionData['connections'][number]['params'];
 /// A second connection of the session
@@ -68,7 +68,7 @@ const TRINO_PARAMS = { trino: { endpoint: 'https://trino.example' } } as Session
 /// A script of a seeded session: file name, connection id and text
 type SeedScript = [string, string, string];
 
-/// Store a session with the hyper connection as default connection and both connections in the manifest
+/// Store a session with both connections in the manifest
 async function seedSession(backend: SessionTestBackend, scripts: SeedScript[], connectionIds: string[] = [HYPER_ID, TRINO_ID]): Promise<void> {
     const params = new Map([[HYPER_ID, HYPER_PARAMS], [TRINO_ID, TRINO_PARAMS]]);
     backend.connections = [HYPER_ID, TRINO_ID].map(id => ({ id, params: params.get(id)! } as ConnectionEntry));
@@ -76,7 +76,6 @@ async function seedSession(backend: SessionTestBackend, scripts: SeedScript[], c
         formatVersion: SESSION_FORMAT_VERSION,
         sessionId: SESSION_ID,
         name: 'Connections',
-        defaultConnectionId: HYPER_ID,
         connections: connectionIds.map(connectionId => ({ connectionId, params: params.get(connectionId)! })),
         scripts: scripts.map(([name, connectionId]) => ({ name, connectionId })),
         attachments: [],
@@ -157,7 +156,8 @@ describe('Session connections', () => {
             const restored = await restore(backend);
 
             expect(scriptOf(sessionOf(restored), 'remote.sql').connection.connectionId).toBe(TRINO_ID);
-            expect(backend.sessions.get(SESSION_ID)!.connections.map(connection => connection.connectionId)).toEqual([HYPER_ID, TRINO_ID]);
+            // The connection that no script uses is left out
+            expect(backend.sessions.get(SESSION_ID)!.connections.map(connection => connection.connectionId)).toEqual([TRINO_ID]);
         });
 
         it('registers a connection that only the session file knows', async () => {
@@ -248,10 +248,8 @@ describe('Session connections', () => {
             await writer.flush();
 
             const stored = backend.sessions.get(SESSION_ID)!;
-            expect(stored.connections).toEqual([
-                { connectionId: HYPER_ID, params: HYPER_PARAMS },
-                { connectionId: TRINO_ID, params: TRINO_PARAMS },
-            ]);
+            // The session holds the connections of its scripts only
+            expect(stored.connections).toEqual([{ connectionId: TRINO_ID, params: TRINO_PARAMS }]);
             expect(stored.scripts).toEqual([{ name: 'query.sql', connectionId: TRINO_ID }]);
         });
 
@@ -315,7 +313,7 @@ describe('Session connections', () => {
                 connections: [{ connectionId: HYPER_ID, params: HYPER_PARAMS }, { connectionId: TRINO_ID, params: TRINO_PARAMS }],
                 scripts: [{ name: 'query.sql', connectionId: HYPER_ID }, { name: 'remote.sql', connectionId: TRINO_ID }],
             };
-            const stored = readStoredSessionScripts(connectionRegistryOf(restored), referencesOf(restored), SESSION_ID, pulled, [
+            const stored = readStoredSessionScripts(connectionRegistryOf(restored), pulled, [
                 { name: 'query.sql', sql: 'select 1' },
                 { name: 'remote.sql', sql: 'select 2' },
             ])!;
@@ -362,7 +360,6 @@ describe('Session connections', () => {
             expect(ids).not.toContain(TRINO_ID);
             // The connector of the connection a script references, the export normalizes the params
             const connectorOf = (connectionId: string) => Object.keys(session.connections.find(connection => connection.connectionId === connectionId)?.params ?? {});
-            expect(connectorOf(session.defaultConnectionId)).toEqual(['hyper']);
             expect(session.scripts.map(script => [script.name, connectorOf(script.connectionId)])).toEqual([
                 ['define.sql', ['hyper']],
                 ['remote.sql', ['trino']],
@@ -373,14 +370,15 @@ describe('Session connections', () => {
             const bundle = await exportAndRead();
             const entries = registry.connections!;
             const plan = planConnectionImport(bundle.session, entries);
-            // Both connections describe connections of the app, the user is asked
-            expect(plan.map(item => item.decision.kind)).toEqual(['ask', 'ask']);
+            // The embedded database is the one of the app, the user is asked about the other connection
+            expect(plan.map(item => item.decision.kind)).toEqual(['link', 'ask']);
             const choices = new Map<string, ConnectionImportChoice>(plan.map(item => [item.ref.connectionId, { kind: 'separate' }]));
             const session = applyConnectionImportPlan(bundle.session, plan, choices, entries).session;
             await writePortableSessionFresh(backend, { ...bundle, session }, IMPORTED_SESSION_ID);
 
             const restored = await restore(backend);
             const imported = sessionOf(restored, IMPORTED_SESSION_ID);
+            expect(scriptOf(imported, 'define.sql').connection.connectionId).toBe(HYPER_ID);
             const remote = scriptOf(imported, 'remote.sql').connection.connectionId;
             expect(remote).not.toBe(TRINO_ID);
             expect(restored.connectionStates.get(remote)?.connectorInfo.connectorType).toBe(ConnectorType.TRINO);

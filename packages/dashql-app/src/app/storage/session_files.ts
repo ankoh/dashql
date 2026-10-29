@@ -102,11 +102,12 @@ export interface ReconciledSessionScripts {
 ///
 /// Entries keep their order. An entry without a file is dropped, the first of several entries for
 /// a file wins and an entry that names a file with a different case or normalization takes the name
-/// of the file. Files without an entry are appended in natural order with the default connection.
+/// of the file. Files without an entry are appended in natural order, they run on the connection of
+/// the script before them or, without scripts, on the given connection.
 export function reconcileSessionScripts(
     scripts: readonly SessionScript[],
     fileNames: readonly string[],
-    defaultConnectionId: string,
+    fallbackConnectionId: string,
 ): ReconciledSessionScripts {
     const filesByName = new Set(fileNames);
     const filesByKey = new Map<string, string>();
@@ -129,7 +130,7 @@ export function reconcileSessionScripts(
     const unlisted = fileNames.filter(name => !listed.has(name)).sort(compareFileNamesNaturally);
     for (const name of unlisted) {
         listed.add(name);
-        result.push({ name, connectionId: defaultConnectionId });
+        result.push({ name, connectionId: result[result.length - 1]?.connectionId ?? fallbackConnectionId });
         changed = true;
     }
     return { scripts: result, changed };
@@ -140,34 +141,36 @@ export function sessionAttachments(fileNames: readonly string[]): SessionAttachm
     return [...fileNames].sort(compareFileNamesNaturally).map(name => ({ name }));
 }
 
-/// The ids of the connections that a session uses: the default connection and the connections of
-/// its scripts, in this order
-export function sessionConnectionIdsOf(defaultConnectionId: string, scripts: readonly SessionScript[]): string[] {
-    return [...new Set([defaultConnectionId, ...scripts.map(script => script.connectionId)])];
+/// The ids of the connections that a session uses: the connections of its scripts in the order the
+/// scripts first use them. A session without scripts uses the connection its first script will run on.
+export function sessionConnectionIdsOf(scripts: readonly SessionScript[], emptyConnectionId: string | null = null): string[] {
+    if (scripts.length === 0) return emptyConnectionId == null ? [] : [emptyConnectionId];
+    return [...new Set(scripts.map(script => script.connectionId))];
+}
+
+/// The connection that the first script of a session without scripts runs on
+export function sessionEmptyConnectionId(session: SessionData): string | null {
+    return session.scripts.length === 0 ? session.connections[0]?.connectionId ?? null : null;
 }
 
 /// The session with a new script list.
 ///
-/// The connections of a session are derived from its scripts: the session holds a copy of the default
-/// connection and of every connection that a script uses, nothing else. A copy that the session holds
-/// wins over a given one, saving a connection patches the copies of the sessions that use it. A
-/// connection without any copy is left out, the loader then runs its scripts on the default connection.
+/// The connections of a session are derived from its scripts: the session holds a copy of every
+/// connection that a script uses, nothing else. A copy that the session holds wins over a given one,
+/// saving a connection patches the copies of the sessions that use it. A connection without any copy
+/// is left out, the loader then runs its scripts on the embedded database.
+///
+/// A session without scripts keeps one connection, the one its first script will run on: the first
+/// given copy, or the first connection the session held.
 export function withSessionScripts(session: SessionData, scripts: SessionScript[], copies: readonly SessionConnection[] = []): SessionData {
     const known = new Map<string, SessionConnection>();
     for (const copy of [...session.connections, ...copies]) {
         if (!known.has(copy.connectionId)) known.set(copy.connectionId, copy);
     }
-    const connections = sessionConnectionIdsOf(session.defaultConnectionId, scripts)
+    const emptyConnectionId = copies[0]?.connectionId ?? session.connections[0]?.connectionId ?? null;
+    const connections = sessionConnectionIdsOf(scripts, emptyConnectionId)
         .flatMap(connectionId => known.get(connectionId) ?? []);
     return { ...session, connections, scripts };
-}
-
-/// The session with another default connection.
-/// The copy of the connection replaces the one the session holds, the previous default connection is
-/// left out unless a script uses it.
-export function withDefaultConnection(session: SessionData, copy: SessionConnection): SessionData {
-    const connections = [copy, ...session.connections.filter(connection => connection.connectionId !== copy.connectionId)];
-    return withSessionScripts({ ...session, defaultConnectionId: copy.connectionId, connections }, session.scripts);
 }
 
 /// Replace the connection ids of the scripts, ids without a replacement are kept

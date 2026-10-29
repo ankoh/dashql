@@ -2,7 +2,8 @@ import * as React from 'react';
 
 import type { AgentBridge } from '../../agent/agent_bridge.js';
 import { AgentConnectionStatus } from '../../../platform/agent/agent_client.js';
-import type { SessionScripts, ScriptData } from '../scripts/session_scripts.js';
+import { newScriptConnection, type SessionScripts, type ScriptData } from '../scripts/session_scripts.js';
+import { ConnectorType } from '../../connections/connector_info.js';
 import { buildCatalogNameIndex, collectMentionedIdentifiers } from './catalog_name_index.js';
 import { buildAgentPrompt, describeSqlDialect } from './agent_prompt.js';
 import { collectReferencedScripts } from './script_references.js';
@@ -132,10 +133,12 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
         working.current.add(questionId);
         setQuestion(questionId, { question, status: WAITING_STATUS, error: null, note: null, scripts: [] });
 
+        // The question is answered on the connection that the next script of the session runs on
+        const connection = newScriptConnection(sessionScripts, null);
         const prompt = buildAgentPrompt({
             question,
-            dialect: describeSqlDialect(sessionScripts.connectorInfo.connectorType),
-            mentionedIdentifiers: collectMentionedIdentifiers(buildCatalogNameIndex(sessionScripts.connectionCatalog), question),
+            dialect: describeSqlDialect(connection?.connectorInfo.connectorType ?? ConnectorType.HYPER),
+            mentionedIdentifiers: connection == null ? [] : collectMentionedIdentifiers(buildCatalogNameIndex(connection.catalog), question),
             referencedScripts: collectReferencedScripts(sessionScripts.scriptOrder.map(scriptDisplayName), question),
         });
         logger.info('Asking the agent', { questionId: String(questionId), characters: String(question.length) }, LOG_CTX);

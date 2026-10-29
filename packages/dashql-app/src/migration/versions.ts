@@ -4,7 +4,7 @@ export const STORAGE_VERSION = 6;
 
 /// The format version of the session metadata, stored as `formatVersion` in `dashql-session.json`.
 /// `SESSION_MIGRATION_STEPS` ends with this version.
-export const SESSION_FORMAT_VERSION = 7;
+export const SESSION_FORMAT_VERSION = 8;
 
 /// Session folders up to this format version hold a copy of the catalog of their default connection,
 /// the next format version removes it.

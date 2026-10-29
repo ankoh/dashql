@@ -20,6 +20,7 @@ describe('bundled V2 sessions', () => {
         expect(manifest).not.toHaveProperty('nativePath');
         expect(scriptNames.length).toBeGreaterThan(0);
         expect(scripts.every(response => response.ok)).toBe(true);
-        expect(manifest.scripts.every(script => script.connectionId === manifest.defaultConnectionId)).toBe(true);
+        const connectionIds = manifest.connections.map(connection => connection.connectionId);
+        expect(manifest.scripts.every(script => connectionIds.includes(script.connectionId))).toBe(true);
     });
 });

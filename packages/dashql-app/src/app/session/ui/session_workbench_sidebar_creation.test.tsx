@@ -75,7 +75,8 @@ const dependencies = {
         connections: state.connections,
     }, vi.fn()],
     useConnectionReferences: () => references,
-    useSessionConnections: () => state.sessionAttachedDatabases,
+    useSessionConnections: () => state.sessionAttachedDatabases == null ? null
+        : [state.sessionAttachedDatabases.main, ...state.sessionAttachedDatabases.attached],
     useDynamicConnectionDispatch: () => [{
         connections: state.connections,
         connectionsByType: connectionsByType(),

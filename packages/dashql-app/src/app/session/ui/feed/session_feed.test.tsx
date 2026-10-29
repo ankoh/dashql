@@ -253,15 +253,17 @@ describe('V2 session feed rows', () => {
         rect.mockRestore();
     });
 
-    it('blocks execution offline and requests attention once per pointer entry without opening settings', () => {
+    it('offers to connect offline and requests attention once per pointer entry without opening settings', () => {
         const props = baseProps();
         const request = vi.fn();
         act(() => root.render(<SessionConnectionAttentionContext.Provider value={{ sessionId: 'session', active: false, request }}>
             <ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />
         </SessionConnectionAttentionContext.Provider>));
         const play = container.querySelector<HTMLButtonElement>('[data-testid="script-execute"]')!;
-        expect(play.disabled).toBe(true);
-        act(() => play.click());
+        // The button connects the script instead of running it, the settings open only on a click
+        expect(play.disabled).toBe(false);
+        expect(play.hasAttribute('data-connect')).toBe(true);
+        expect(play.getAttribute('aria-label')).toMatch(/^Connect to run /);
         expect(props.onExecute).not.toHaveBeenCalled();
         const wrapper = container.querySelector<HTMLElement>('[data-execution-connection-blocked="true"]')!;
         expect(wrapper.contains(play)).toBe(true);
@@ -308,8 +310,8 @@ describe('Session feed composer', () => {
         useStorageWriter: () => storageWriter,
         usePickScriptConnection: () => vi.fn(),
         useAttachScriptConnection: () => vi.fn(),
-        usePickDefaultConnection: () => vi.fn(),
-        useAttachDefaultConnection: () => vi.fn(),
+        usePickPendingConnection: () => vi.fn(),
+        useAttachPendingConnection: () => vi.fn(),
         useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },
         runSessionScript: feedState.runSessionScript as any,
         useAgentBridge: () => feedState.agent,
@@ -348,10 +350,15 @@ describe('Session feed composer', () => {
             scriptRefs[fileName] = { scriptId: i + 1, fileName };
         });
         return {
-            sessionId: 'session', name: null, connectionId: 'database', settings: { cacheQueryResults: false }, instance: {} as any, sessionMetadata: {} as any,
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], connectionCatalog: {} as any,
+            sessionId: 'session', name: null, settings: { cacheQueryResults: false }, instance: {} as any, sessionMetadata: {} as any,
+            pendingConnection: { connectionId: 'database', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: {} as any },
             scripts, scriptRefs, scriptOrder: [...fileNames], scriptFocus: { fileName: fileNames[fileNames.length - 1] ?? '' }, semanticUserFocus: null,
         };
+    }
+
+    /// The session with a catalog for the composer, the composer drafts the next script on the pending connection
+    function withCatalog(current: SessionScripts, catalog: unknown): SessionScripts {
+        return { ...current, pendingConnection: { ...current.pendingConnection!, catalog: catalog as any } };
     }
 
     function fakeView(text: string, hasFocus = true) {
@@ -515,7 +522,7 @@ describe('Session feed composer', () => {
             return Promise.resolve('turn-1');
         });
         const modify = vi.fn();
-        render({ ...session(), connectionCatalog: emptyCatalog as any }, modify);
+        render(withCatalog(session(), emptyCatalog), modify);
 
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         expect(modify).not.toHaveBeenCalled();
@@ -531,7 +538,7 @@ describe('Session feed composer', () => {
         expect(feedState.composerProps?.agent?.turns[0].question.status).toBe('dashql agent catalog');
 
         // The agent creates a script through the dashql command
-        const created = { ...session(['1_alpha.sql']), connectionCatalog: emptyCatalog as any };
+        const created = withCatalog(session(['1_alpha.sql']), emptyCatalog);
         render(created, modify);
         await act(async () => feedState.agentListener!.edited(1));
         await act(async () => feedState.agentListener!.edited(1));
@@ -556,7 +563,7 @@ describe('Session feed composer', () => {
             Object.defineProperty(this, 'scrollTop', { value: top, configurable: true });
         });
         try {
-            render({ ...session(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), connectionCatalog: emptyCatalog as any }, vi.fn());
+            render(withCatalog(session(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), emptyCatalog), vi.fn());
             await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
             scrollTo.mockClear();
 
@@ -596,7 +603,7 @@ describe('Session feed composer', () => {
         });
         const lastTop = () => (scrollTo.mock.lastCall?.[0] as ScrollToOptions | undefined)?.top;
         try {
-            render({ ...session(['1_alpha.sql', '2_beta.sql']), connectionCatalog: emptyCatalog as any }, vi.fn());
+            render(withCatalog(session(['1_alpha.sql', '2_beta.sql']), emptyCatalog), vi.fn());
             await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
             act(() => feedState.rowProps.onRowHeightChange(1, 400));
 
@@ -627,14 +634,14 @@ describe('Session feed composer', () => {
             await act(async () => feedState.agentListener!.done(''));
         };
 
-        // The default connection is online, the connection of the script is not
-        render({ ...onLake, connectionCatalog: emptyCatalog as any }, vi.fn());
+        // The connection of the composer is online, the connection of the script is not
+        render(withCatalog(onLake, emptyCatalog), vi.fn());
         await ask();
         expect(feedState.runSessionScript).not.toHaveBeenCalled();
         expect(attention.request).toHaveBeenCalledWith('session');
 
-        // The connection of the script is online, the default connection is not
-        render({ ...onLake, connectionCatalog: emptyCatalog as any }, vi.fn(), offline, new Map([['database', offline], ['lake', lake]]));
+        // The connection of the script is online, the connection of the composer is not
+        render(withCatalog(onLake, emptyCatalog), vi.fn(), offline, new Map([['database', offline], ['lake', lake]]));
         await ask();
         expect(feedState.runSessionScript).toHaveBeenCalledOnce();
     });
@@ -644,7 +651,7 @@ describe('Session feed composer', () => {
             feedState.agentListener = listener;
             return Promise.resolve('turn-1');
         });
-        render({ ...session(['1_alpha.sql']), connectionCatalog: emptyCatalog as any }, vi.fn());
+        render(withCatalog(session(['1_alpha.sql']), emptyCatalog), vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         await act(async () => feedState.agentListener!.edited(1));
         await act(async () => feedState.agentListener!.ran(1));
@@ -657,7 +664,7 @@ describe('Session feed composer', () => {
             feedState.agentListener = listener;
             return Promise.resolve('turn-1');
         });
-        render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
+        render(withCatalog(session(), emptyCatalog), vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         await act(async () => feedState.agentListener!.done(''));
         expect(feedState.composerProps?.agent?.turns).toEqual([]);
@@ -669,7 +676,7 @@ describe('Session feed composer', () => {
             feedState.agentListener = listener;
             return Promise.resolve('turn-1');
         });
-        render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
+        render(withCatalog(session(), emptyCatalog), vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         await act(async () => feedState.composerProps!.agent!.onStop(1));
         expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session', 'turn-1');
@@ -684,7 +691,7 @@ describe('Session feed composer', () => {
             listeners.push(listener);
             return Promise.resolve(`turn-${listeners.length}`);
         });
-        render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
+        render(withCatalog(session(), emptyCatalog), vi.fn());
         await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
         await act(async () => feedState.composerProps!.onSend('how many columns', ComposerInputMode.Ai));
         await act(async () => feedState.composerProps!.agent!.onStop(1));
@@ -696,7 +703,7 @@ describe('Session feed composer', () => {
     it('stops a question before the agent server queued its turn', async () => {
         let queued: (turnId: string) => void = () => {};
         feedState.agent = connectedAgent(() => new Promise<string>(resolve => { queued = resolve; }));
-        render({ ...session(), connectionCatalog: emptyCatalog as any }, vi.fn());
+        render(withCatalog(session(), emptyCatalog), vi.fn());
         act(() => { void feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai); });
         await vi.waitFor(() => expect(feedState.agent.request).toHaveBeenCalledOnce());
         await act(async () => feedState.composerProps!.agent!.onStop(1));
@@ -720,7 +727,7 @@ describe('Session feed composer', () => {
     it('keeps the question with the error when the agent fails', async () => {
         feedState.agent = connectedAgent(() => Promise.reject(new Error('The agent server is not connected')));
         const modify = vi.fn();
-        render({ ...session(), connectionCatalog: emptyCatalog as any }, modify);
+        render(withCatalog(session(), emptyCatalog), modify);
         await act(async () => feedState.composerProps!.onSend('anything', ComposerInputMode.Ai));
         await vi.waitFor(() => expect(feedState.composerProps?.agent?.turns[0].question.error).toBe('The agent server is not connected'));
         expect(modify).not.toHaveBeenCalled();

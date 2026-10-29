@@ -76,7 +76,6 @@ export function SessionConnectionImportDialog(props: Props): React.ReactElement 
                             <fieldset key={item.ref.connectionId} className={ownStyles.connection} disabled={props.busy}>
                                 <legend className={ownStyles.connection_label}>
                                     {connectionParamsLabel(item.ref.params)}
-                                    {item.ref.role === 'main' ? '' : ' (attached)'}
                                 </legend>
                                 {options.map(option => (
                                     <label key={choiceValue(option.choice)} className={ownStyles.option}>

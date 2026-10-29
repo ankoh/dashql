@@ -2,9 +2,9 @@ import * as React from 'react';
 import * as styles from './session_page.module.css';
 
 import { useSessionScripts } from '../scripts/session_scripts_registry.js';
-import { useConnectionRegistry, useDefaultConnection } from '../../connections/connection_registry.js';
+import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
-import { sessionConnectionIds } from '../scripts/session_scripts.js';
+import { newScriptConnection, sessionConnectionIds } from '../scripts/session_scripts.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useRouteContext } from '../../router/router.js';
 
@@ -17,7 +17,6 @@ const LOG_CTX = 'session_page';
 
 export interface SessionPageDependencies {
     useSessionScripts: typeof useSessionScripts;
-    useDefaultConnection: typeof useDefaultConnection;
     useConnectionRegistry: typeof useConnectionRegistry;
     useLogger: typeof useLogger;
     useRouteContext: typeof useRouteContext;
@@ -28,7 +27,6 @@ export interface SessionPageDependencies {
 
 const DEFAULT_DEPENDENCIES: SessionPageDependencies = {
     useSessionScripts,
-    useDefaultConnection,
     useConnectionRegistry,
     useLogger,
     useRouteContext,
@@ -46,9 +44,10 @@ export const SessionPage: React.FC<Props> = (props: Props) => {
     const route = dependencies.useRouteContext();
     const logger = dependencies.useLogger();
     const [sessionScripts, modifySessionScripts] = dependencies.useSessionScripts(route.sessionId ?? null);
-    const [conn] = dependencies.useDefaultConnection(sessionScripts?.sessionId ?? null);
-    // The connections that the scripts of the session run on
+    // The connections that the scripts of the session run on, and the one the next script runs on
     const [connectionRegistry] = dependencies.useConnectionRegistry();
+    const nextConnectionId = sessionScripts == null ? null : newScriptConnection(sessionScripts, null)?.connectionId ?? null;
+    const conn = nextConnectionId == null ? null : connectionRegistry.connections.get(nextConnectionId) ?? null;
     const scriptConnections = new Map<string, ConnectionState>();
     for (const connectionId of sessionScripts == null ? [] : sessionConnectionIds(sessionScripts)) {
         const connection = connectionRegistry.connections.get(connectionId);
@@ -56,7 +55,7 @@ export const SessionPage: React.FC<Props> = (props: Props) => {
     }
     const { mode: sessionMode } = dependencies.useSessionViewMode();
     const sessionPageVisible = sessionMode !== SessionViewMode.Shell;
-    // The connection of the visible shell, the default connection until another one is picked.
+    // The connection of the visible shell, the connection of the next script until another one is picked.
     // Kept while the shell is closed, the shell reopens on the picked connection of the session.
     const [shellPick, setShellPick] = React.useState<{ sessionId: string; connectionId: string } | null>(null);
     const shellConnectionId = shellPick != null && shellPick.sessionId === route.sessionId ? shellPick.connectionId : null;

@@ -4,7 +4,6 @@ import { connectionLabel, connectionLabelParts, connectionOrdinals } from './con
 import type { ConnectionRegistry } from '../connection_registry.js';
 import { fixedConnectionReferences } from '../../../tests/mocks/connection_references.js';
 import {
-    connectionDisplayOrder,
     connectionTreeRowHeight,
     flattenCatalogRows,
     listedConnections,
@@ -54,7 +53,7 @@ describe('connection labels', () => {
         expect(connectionLabelParts(database, 2)).toEqual({ name: 'Production', connector: 'Hyper', detail: 'Http' });
     });
 
-    it('renders Memory first and initially collapses it only when another database exists', () => {
+    it('initially collapses Memory only when another database exists', () => {
         const memory = {
             connectionId: 'memory',
             connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
@@ -66,8 +65,6 @@ describe('connection labels', () => {
             details: { type: TRINO_CONNECTOR, value: { proto: { setupParams: {} } } },
         } as ConnectionState;
 
-        expect(connectionDisplayOrder({ main: remote, attached: [memory] }).map(database => database.connectionId))
-            .toEqual(['remote', 'memory']);
         expect(isConnectionInitiallyExpanded(memory, 1)).toBe(true);
         expect(isConnectionInitiallyExpanded(memory, 2)).toBe(false);
         expect(isConnectionInitiallyExpanded(remote, 2)).toBe(true);

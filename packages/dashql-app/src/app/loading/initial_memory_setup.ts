@@ -18,9 +18,11 @@ export function cancelInitialMemorySetup(connectionId: string): boolean {
     return true;
 }
 
+/// Set up the embedded database and the Hyper of a link once for the session the app opens with.
+/// Every connection of the session is considered, other connections are connected by the user.
 export function useInitialMemorySetup(
     sessionId: string | null,
-    database: ConnectionState | null,
+    connections: readonly ConnectionState[] | null,
     setup: HyperSetupApi | null,
     dispatch: DynamicConnectionDispatch,
     logger: Logger,
@@ -28,8 +30,7 @@ export function useInitialMemorySetup(
     const hyperLinks = useHyperLinkTabState();
     const considered = React.useRef(new Set<string>());
     const attempts = React.useRef(new Map<string, AbortController>());
-    React.useEffect(() => {
-        if (sessionId == null || database == null || setup == null) return;
+    const considerConnection = (database: ConnectionState, setup: HyperSetupApi) => {
         const params = database.params;
         // The connection to the Hyper of a link connects once per link, without the token of a link it waits for one
         const linked = isHyperLinkParams(params);
@@ -67,7 +68,13 @@ export function useInitialMemorySetup(
             attempts.current.delete(database.connectionId);
             if (startupAttempts.get(database.connectionId) === abort) startupAttempts.delete(database.connectionId);
         });
-    }, [database, dispatch, hyperLinks, logger, sessionId, setup]);
+    };
+    React.useEffect(() => {
+        if (sessionId == null || connections == null || setup == null) return;
+        for (const database of connections) {
+            considerConnection(database, setup);
+        }
+    }, [connections, dispatch, hyperLinks, logger, sessionId, setup]);
     React.useEffect(() => () => {
         for (const [connectionId, abort] of attempts.current) {
             abort.abort(new DOMException('App loader unmounted', 'AbortError'));

@@ -10,7 +10,7 @@ describe('session connection attention', () => {
     let root: Root;
     let signal: ReturnType<typeof useSessionConnectionAttention>;
     function Probe(props: { sessionId: string; health: ConnectionHealth; databaseId?: string }) {
-        signal = useSessionConnectionAttention(props.sessionId, props.databaseId ?? 'main', props.health);
+        signal = useSessionConnectionAttention(props.sessionId, `${props.databaseId ?? 'main'}:${props.health}`);
         return <SessionConnectionAttentionContext.Provider value={signal}><Child /></SessionConnectionAttentionContext.Provider>;
     }
     function Child() {

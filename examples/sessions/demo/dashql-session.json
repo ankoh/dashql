@@ -1,8 +1,7 @@
 {
-  "formatVersion": 7,
+  "formatVersion": 8,
   "sessionId": "92a09cb7-5f7d-4f8e-8c78-0dc39d8fff36",
   "name": "Demo",
-  "defaultConnectionId": "22bdfa32-af01-4a1f-bcb6-36753fb83a33",
   "connections": [
     {
       "connectionId": "22bdfa32-af01-4a1f-bcb6-36753fb83a33",

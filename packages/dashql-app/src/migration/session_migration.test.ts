@@ -5,6 +5,7 @@ import { migrateSessionFolder, SESSION_MIGRATION_STEPS, SessionMigrationResult, 
 import { SESSION_FORMAT_VERSION } from './versions.js';
 import { scriptsInSessionFile } from './session/v5_scripts_in_session_file.js';
 import { sessionConnections } from './session/v6_session_connections.js';
+import { connectionsOfScripts } from './session/v8_connections_of_scripts.js';
 
 const SESSION_ID = '11111111-2222-4333-8444-555555555555';
 
@@ -32,10 +33,10 @@ describe('session migration', () => {
         const metadata = JSON.parse(folder.files.get('dashql-session.json')!);
         expect(metadata).toEqual({
             formatVersion: SESSION_FORMAT_VERSION, sessionId: SESSION_ID, sessionPath: 'opfs://notebooks/x', name: 'n',
-            scripts: [], attachments: [], defaultConnectionId: null, connections: [],
+            scripts: [], attachments: [], connections: [],
         });
         expect(Object.keys(metadata)).toEqual([
-            'formatVersion', 'sessionId', 'sessionPath', 'name', 'scripts', 'attachments', 'defaultConnectionId', 'connections',
+            'formatVersion', 'sessionId', 'sessionPath', 'name', 'scripts', 'attachments', 'connections',
         ]);
 
         // A migrated folder stays as it is
@@ -92,17 +93,14 @@ describe('session migration', () => {
         ]);
         expect(await migrateSessionFolder(folder)).toBe(SessionMigrationResult.Migrated);
         const metadata = JSON.parse(folder.files.get('dashql-session.json')!);
+        // A session without scripts keeps the main database, its first script runs on it
         expect(metadata).toEqual({
             formatVersion: SESSION_FORMAT_VERSION, sessionId: SESSION_ID, name: 'n',
-            defaultConnectionId: main.databaseId,
-            connections: [
-                { connectionId: main.databaseId, params: main.params },
-                { connectionId: attached.databaseId, params: attached.params, paramsDraft: attached.paramsDraft },
-            ],
+            connections: [{ connectionId: main.databaseId, params: main.params }],
             metadata: {}, scripts: [], attachments: [],
         });
         expect(Object.keys(metadata)).toEqual([
-            'formatVersion', 'sessionId', 'name', 'defaultConnectionId', 'connections', 'metadata', 'scripts', 'attachments',
+            'formatVersion', 'sessionId', 'name', 'connections', 'metadata', 'scripts', 'attachments',
         ]);
     });
 
@@ -120,18 +118,34 @@ describe('session migration', () => {
         const metadata = JSON.parse(folder.files.get('dashql-session.json')!);
         expect(metadata).toEqual({
             formatVersion: SESSION_FORMAT_VERSION, sessionId: SESSION_ID,
-            defaultConnectionId: main.databaseId,
             connections: [
-                { connectionId: main.databaseId, params: main.params },
                 { connectionId: attached.databaseId, params: attached.params },
+                { connectionId: main.databaseId, params: main.params },
             ],
             scripts: [{ name: 'b.sql', connectionId: attached.databaseId }, { name: 'a.sql', connectionId: main.databaseId }],
             attachments: [], metadata: {},
         });
-        // Repeating the step changes nothing
+        // Repeating the steps changes nothing
         const before = folder.files.get('dashql-session.json');
         await sessionConnections.migrate(folder);
+        await connectionsOfScripts.migrate(folder);
         expect(folder.files.get('dashql-session.json')).toBe(before);
+    });
+
+    it('drops the default connection and the connections that no script uses', async () => {
+        const wasm = { connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: { protocol: 'WASM' } } };
+        const trino = { connectionId: 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff', params: { trino: {} } };
+        const folder = new MemoryFolder([
+            ['dashql-session.json', JSON.stringify({
+                formatVersion: 7, sessionId: SESSION_ID, defaultConnectionId: wasm.connectionId, connections: [wasm, trino],
+                scripts: [{ name: 'a.sql', connectionId: trino.connectionId }], attachments: [], metadata: {},
+            })],
+        ]);
+        expect(await migrateSessionFolder(folder)).toBe(SessionMigrationResult.Migrated);
+        expect(JSON.parse(folder.files.get('dashql-session.json')!)).toEqual({
+            formatVersion: SESSION_FORMAT_VERSION, sessionId: SESSION_ID, connections: [trino],
+            scripts: [{ name: 'a.sql', connectionId: trino.connectionId }], attachments: [], metadata: {},
+        });
     });
 
     it('moves the index into the session metadata with the default connection', async () => {
@@ -185,7 +199,7 @@ describe('session migration', () => {
             ['dashql-catalog-functions.sql', 'functions'],
             ['dashql-catalog-changes.sql', 'changes'],
         ]);
-        expect(await migrateSessionFolder(folder)).toBe(SessionMigrationResult.Migrated);
+        expect(await migrateSessionFolder(folder, 7)).toBe(SessionMigrationResult.Migrated);
         expect([...folder.files.keys()]).toEqual(['dashql-session.json']);
         expect(JSON.parse(folder.files.get('dashql-session.json')!).formatVersion).toBe(7);
     });

@@ -91,7 +91,7 @@ import { useAppFlavor } from '../../flavor/flavor_provider.js';
 import { SessionURLShareOverlay } from './session_url_share_overlay.js';
 import { SessionFileSaveOverlay } from './session_file_save_overlay.js';
 import * as styles from './session_workbench_sidebar.module.css';
-import { ConnectionTree, connectionDisplayOrder, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../../connections/ui/connection_tree.js';
+import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../../connections/ui/connection_tree.js';
 import * as actionMenuStyles from '../../ui/action_menu.module.css';
 import { useDashQLCoreSetup } from '../../providers/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
@@ -99,8 +99,7 @@ import { PlatformType, usePlatformType } from '../../../platform/platform_type.j
 
 interface SessionItem {
     sessionId: string;
-    database: ConnectionState;
-    /// The connections of the session, the default connection first
+    /// The connections of the session, in the order its scripts use them
     connections: ConnectionState[];
     scripts: SessionScripts;
     label: string;
@@ -296,7 +295,6 @@ const SessionRowMenu: React.FC<SessionRowMenuProps> = ({ item, onRename, onDupli
                                 <dependencies.SessionFileSaveOverlay
                                     isOpen={exportOpen}
                                     setIsOpen={setExportOpen}
-                                    conn={item.database}
                                     sessionScripts={item.scripts}
                                     fileName={item.scripts.name ?? item.scripts.sessionMetadata.originalFileName ?? 'session'}
                                 />
@@ -441,10 +439,7 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
     const { invalidSessions, deleteInvalidSession } = dependencies.useInvalidSessions();
     const attached = dependencies.useSessionConnections(props.sessionScripts.sessionId);
     const connectionAttention = React.useContext(SessionConnectionAttentionContext);
-    const sessionConnectionRows = React.useMemo(
-        () => attached == null ? [] : connectionDisplayOrder(attached),
-        [attached?.main, attached?.attached],
-    );
+    const sessionConnectionRows = React.useMemo(() => attached ?? [], [attached]);
     const [connectionOverlayDatabaseId, setConnectionOverlayDatabaseId] = React.useState<string | null>(null);
     const [createConnectionOpen, setCreateConnectionOpen] = React.useState(false);
     const createConnectionButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -473,18 +468,14 @@ export const SessionWorkbenchSidebar: React.FC<Props> = (props) => {
         const rank = new Map(sessionOrder.map((sessionId, index) => [sessionId, index]));
         const items: SessionItem[] = [];
         for (const [sessionId, scripts] of scriptsRegistry.sessionScriptsMap) {
-            const [defaultConnectionId, ...otherConnectionIds] = references.connectionsOf(sessionId);
-            const database = defaultConnectionId == null ? null : databaseRegistry.connections.get(defaultConnectionId);
-            if (database == null) continue;
-            const attachedDatabases = otherConnectionIds
+            const connections = references.connectionsOf(sessionId)
                 .map(id => databaseRegistry.connections.get(id))
                 .filter((connection): connection is ConnectionState => connection != null);
             const location = storageReader.getSessionLocation(sessionId);
             const path = displayPath(sessionId, location);
             items.push({
                 sessionId,
-                database,
-                connections: [database, ...attachedDatabases],
+                connections,
                 scripts,
                 path,
                 label: scripts.name?.trim() || path,

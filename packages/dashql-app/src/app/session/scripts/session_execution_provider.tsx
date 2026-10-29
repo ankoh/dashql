@@ -6,7 +6,7 @@ import { useConnectionRegistry } from '../../connections/connection_registry.js'
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
 import { useSessionScriptsRegistry, type ModifySessionScripts } from './session_scripts_registry.js';
 import { runSessionExecution, type SessionExecutionState } from './session_execution.js';
-import { sessionConnectionIds } from './session_scripts.js';
+import { scriptConnectionIds } from './session_scripts.js';
 
 interface ExecutionContext {
     states: Map<string, SessionExecutionState>;
@@ -57,7 +57,7 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
     React.useEffect(() => {
         for (const [id, controller] of runs.current) {
             const session = registry.sessionScriptsMap.get(id);
-            if (!session || sessionConnectionIds(session).some(connectionId =>
+            if (!session || scriptConnectionIds(session).some(connectionId =>
                 connections.connections.get(connectionId)?.connectionHealth !== ConnectionHealth.ONLINE)) {
                 controller.abort();
             }
@@ -74,7 +74,7 @@ export function SessionExecutionProvider(props: React.PropsWithChildren) {
         const session = registry.sessionScriptsMap.get(sessionId);
         if (!session || runs.current.has(sessionId) || session.scriptOrder.length === 0) return;
         // A run takes every connection of the session, all of them must be idle
-        const connectionIds = sessionConnectionIds(session);
+        const connectionIds = scriptConnectionIds(session);
         const idle = connectionIds.every(connectionId => {
             const connection = connections.connections.get(connectionId);
             return !runningDatabases.current.has(connectionId)

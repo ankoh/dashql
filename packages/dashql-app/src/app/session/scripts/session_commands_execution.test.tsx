@@ -27,7 +27,7 @@ describe('global session execution feedback', () => {
     };
     const dependencies = {
         useSessionScripts: () => [sessionScripts, vi.fn()],
-        useDefaultConnection: (sessionId: string) => { resolveMain(sessionId); return [connection, vi.fn()]; },
+        useSessionConnections: (sessionId: string) => { resolveMain(sessionId); return connection == null ? null : [connection]; },
         useConnectionRegistryStore: () => ({ get current() { return { connections: new Map(connection == null ? [] : [['main', connection]]) }; } }),
         useQueryExecutor: () => execute,
         useCatalogLoaderQueue: () => vi.fn(),
@@ -52,7 +52,7 @@ describe('global session execution feedback', () => {
     });
     afterEach(() => { act(() => root.unmount()); container.remove(); });
 
-    it('handles a missing main connection safely and pulses the descendant header signal', () => {
+    it('handles a missing script connection safely and pulses the descendant header signal', () => {
         render();
         const focused = document.activeElement;
         shortcut();
@@ -65,7 +65,7 @@ describe('global session execution feedback', () => {
         expect(attention?.active).toBe(false);
     });
 
-    it('executes against the main database rather than a script database identity', () => {
+    it('executes on the connection of the selected script', () => {
         connection = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE };
         render();
         shortcut();

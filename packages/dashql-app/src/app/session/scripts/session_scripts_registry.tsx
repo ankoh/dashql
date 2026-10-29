@@ -1,9 +1,8 @@
 import * as React from 'react';
 
-import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptData, destroySessionScripts, reduceSessionScripts, sessionConnectionIds, sessionScriptListWrite } from './session_scripts.js';
+import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptData, destroySessionScripts, newScriptConnection, reduceSessionScripts, sessionConnectionIds, sessionScriptListWrite } from './session_scripts.js';
 import { Dispatch } from '../../../utils/variant.js';
 import { UpdateQueue, useStore, useStoreState, useUpdateQueue } from '../../../utils/store.js';
-import { createDefaultConnectionParamsForConnector } from '../../connections/connection_params.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
 import { ConnectionReferencesProvider, type ConnectionReferences } from '../../connections/connection_registry.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
@@ -142,8 +141,9 @@ export function useSessionScriptsAllocator(): SessionScriptsAllocator {
 
         // Modify the registry
         setReg((reg) => {
-            if (scripts.sessionMetadata.originalFileName == "") {
-                scripts.sessionMetadata.originalFileName = `${scripts.connectorInfo.names.fileShort}`;
+            const connectorInfo = newScriptConnection(scripts, null)?.connectorInfo;
+            if (scripts.sessionMetadata.originalFileName == "" && connectorInfo != null) {
+                scripts.sessionMetadata.originalFileName = `${connectorInfo.names.fileShort}`;
             }
 
             for (const connectionId of sessionConnectionIds(scripts)) {
@@ -178,10 +178,7 @@ export function sessionReplacement(scripts: SessionScripts): SessionReplacement 
                 readText: () => script.scriptSession.getText(),
             }];
         }),
-        defaultConnection: {
-            connectionId: scripts.connectionId,
-            params: createDefaultConnectionParamsForConnector(scripts.connectorInfo),
-        },
+        connection: sessionScriptListWrite(scripts).connections[0] ?? null,
         originalFileName: scripts.sessionMetadata.originalFileName,
         settings: scripts.settings,
     };
@@ -197,7 +194,7 @@ export function addSessionScriptsForConnection(reg: SessionScriptsRegistry, conn
 
 /// Follow the connections of a session's scripts in the connection index (mutates the registry)
 export function reindexSessionScriptConnections(reg: SessionScriptsRegistry, prev: SessionScripts, next: SessionScripts): void {
-    if (prev.scripts === next.scripts && prev.connectionId === next.connectionId) return;
+    if (prev.scripts === next.scripts && prev.pendingConnection === next.pendingConnection) return;
     const prevIds = new Set(sessionConnectionIds(prev));
     const nextIds = new Set(sessionConnectionIds(next));
     for (const connectionId of prevIds) {

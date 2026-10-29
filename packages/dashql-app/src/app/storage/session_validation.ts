@@ -30,8 +30,6 @@ export enum SessionValidationError {
     InvalidConnections = 'invalid_connections',
     /// A connection has no valid UUID `connectionId`, or the id is listed twice.
     InvalidConnectionId = 'invalid_connection_id',
-    /// The default connection id does not reference a connection of the session.
-    InvalidDefaultConnectionId = 'invalid_default_connection_id',
     /// A connection has no `params`.
     MissingConnectionParams = 'missing_connection_params',
     /// The connection `params` do not match any known connector.
@@ -57,8 +55,6 @@ export function describeSessionValidationError(error: SessionValidationError): s
             return 'Session must list at least one connection';
         case SessionValidationError.InvalidConnectionId:
             return 'Invalid connection id';
-        case SessionValidationError.InvalidDefaultConnectionId:
-            return 'Default connection must reference a connection of the session';
         case SessionValidationError.MissingConnectionParams:
             return 'Missing connection parameters';
         case SessionValidationError.UnknownConnector:
@@ -112,9 +108,6 @@ export function validateSessionData(data: SessionData): SessionValidationResult 
             return { ok: false, error: SessionValidationError.UnknownConnector };
         }
     }
-    if (!connectionIds.has(data.defaultConnectionId)) {
-        return { ok: false, error: SessionValidationError.InvalidDefaultConnectionId };
-    }
     return { ok: true };
 }
 
@@ -152,9 +145,7 @@ export function describeInvalidSession(
     // must be handed to evict the session — not `data.sessionId`, which is exactly the field that
     // may be missing or malformed on an invalid session.
     const sessionId = entry.path;
-    const params = Array.isArray(data?.connections)
-        ? data.connections.find(connection => connection?.connectionId === data.defaultConnectionId)?.params
-        : undefined;
+    const params = Array.isArray(data?.connections) ? data.connections[0]?.params : undefined;
     const connectorInfo = params
         ? getConnectorInfoForParams(params as any)
         : null;

@@ -1,0 +1,39 @@
+.buttons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+}
+
+/* The look and the hover outline are the ones of the other buttons of the bar, the dot is placed on top */
+.button {
+    position: relative;
+}
+
+/* The health dot sits on the bottom right corner of the connector logo */
+.health {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px white;
+}
+
+.button[data-attention] {
+    animation: connection_attention 450ms ease-in-out 2;
+}
+
+@keyframes connection_attention {
+    35%, 55% {
+        background-color: hsl(212, 70%, 96%);
+        box-shadow: inset 0 0 0 1px hsl(212, 50%, 60%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button[data-attention] {
+        animation: none;
+        background-color: hsl(212, 85%, 94%);
+        box-shadow: inset 0 0 0 1px hsl(212, 65%, 45%);
+    }
+}

@@ -112,7 +112,7 @@ describe('V2 app state loader', () => {
         const scripts = result.sessionScripts.get(TEST_SESSION_ID)!;
         expect(scripts.scriptOrder).toEqual(['10_last.sql', '2_first.sql']);
         expect(scripts.scripts[scripts.scriptRefs['10_last.sql'].scriptId].connection.connectionId).toBe(remoteId);
-        // An unknown connection runs on the default connection, the session file keeps the reference
+        // An unknown connection runs on the embedded database, the session file keeps the reference
         const first = scripts.scripts[scripts.scriptRefs['2_first.sql'].scriptId];
         expect(first.connection.connectionId).toBe(TEST_CONNECTION_ID);
         expect(first.unresolvedConnectionId).toBe('99999999-9999-4999-8999-999999999999');
@@ -130,9 +130,10 @@ describe('V2 app state loader', () => {
             scripts: [{ name: '2_first.sql', connectionId: TEST_CONNECTION_ID }],
         }));
         const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
-        expect(sessionConnectionIds(result.sessionScripts.get(TEST_SESSION_ID)!)).toEqual([remoteId, TEST_CONNECTION_ID]);
-        expect(result.connectionStates.size).toBe(2);
-        expect(result.sessionScripts.get(TEST_SESSION_ID)?.connectionId).toBe(remoteId);
+        // The session uses the connections of its scripts, a copy that no script uses is not registered
+        expect(sessionConnectionIds(result.sessionScripts.get(TEST_SESSION_ID)!)).toEqual([TEST_CONNECTION_ID]);
+        expect([...result.connectionStates.keys()]).toEqual([TEST_CONNECTION_ID]);
+        expect(result.sessionScripts.get(TEST_SESSION_ID)?.pendingConnection).toBeNull();
     });
 
     it('restores invalid drafts separately from committed settings without runtime OAuth state', async () => {
@@ -162,13 +163,15 @@ describe('V2 app state loader', () => {
         expect(result.connectionStates.get(TEST_CONNECTION_ID)?.params).toEqual(manifest.connections[0].params);
     });
 
-    it('keeps the local database as main when a remote is attached', async () => {
+    it('runs the unlisted script files of a session without scripts on its first connection', async () => {
         const remoteId = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
         vi.mocked(backend.loadSession).mockResolvedValue(testSession({
             ...testConnections({ connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'WASM' } } as any } as any, { connectionId: remoteId, params: { trino: { endpoint: 'https://trino.example' } } as any }),
         }));
         const result = await restoreAppState(core, backend, new NullLogger(), () => {}, processor);
-        expect(result.sessionScripts.get(TEST_SESSION_ID)?.connectionId).toBe(TEST_CONNECTION_ID);
+        const session = result.sessionScripts.get(TEST_SESSION_ID)!;
+        expect(Object.values(session.scripts).map(script => script.connection.connectionId)).toEqual([TEST_CONNECTION_ID, TEST_CONNECTION_ID]);
+        expect(sessionConnectionIds(session)).toEqual([TEST_CONNECTION_ID]);
     });
 
     it('restores saved Salesforce relations and functions into the main catalog on reopen', async () => {
@@ -355,8 +358,7 @@ describe('real-core startup catalog restoration', () => {
         expect(main.catalogRelationScript.toString()).toBe(schema);
         expect(main.catalogFunctionScript.toString()).toBe(functions);
         expect(processor).toHaveBeenCalledTimes(1);
-        expect(session.connectionCatalog).toBe(main.catalog);
-        expect(session.connectionId).toBe(remoteId);
+        expect(session.scripts[session.scriptRefs['01_query.sql'].scriptId].connection.catalog).toBe(main.catalog);
         const entries = main.catalog.describeEntries().unpackAndDestroy().entries as dashql.buffers.catalog.CatalogEntryT[];
         expect(entries.map(entry => entry.catalogEntryId).sort((a, b) => a - b)).toEqual([
             main.catalogRelationScript.catalog_entry_id, main.catalogFunctionScript.catalog_entry_id,
@@ -413,7 +415,6 @@ describe('global connections', () => {
         expect(restored.connectionStates.get(TEST_CONNECTION_ID)!.params).toEqual(trino('https://saved'));
         for (const sessionId of [TEST_SESSION_ID, OTHER_SESSION_ID]) {
             expect(backend.sessions.get(sessionId)!.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params: trino('https://saved') }]);
-            expect(backend.sessions.get(sessionId)!.defaultConnectionId).toBe(TEST_CONNECTION_ID);
         }
         for (const session of restored.sessionScripts.values()) destroySessionScripts(session);
     });

@@ -16,7 +16,9 @@ const SECOND_RUN = { endpoint: 'http://127.0.0.1:2222', token: 'second' };
 
 describe('the session that a link opens', () => {
     const sessions = new Map(Object.entries({ first: 'embedded', second: 'linked', third: 'linked' })
-        .map(([sessionId, connectionId]) => [sessionId, { sessionId, connectionId } as SessionScripts]));
+        .map(([sessionId, connectionId]) => [sessionId, {
+            sessionId, scripts: {}, scriptRefs: {}, scriptOrder: [], pendingConnection: { connectionId },
+        } as unknown as SessionScripts]));
 
     it('stays in the open session on the connection of the link', () => {
         expect(sessionOnConnection(sessions, 'third', 'linked')).toBe('third');

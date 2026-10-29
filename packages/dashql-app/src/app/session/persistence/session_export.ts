@@ -15,6 +15,7 @@ import { BASE64URL_CODEC } from '../../../utils/base64.js';
 import { sanitizeConnectionParamsForSharing } from '../../connections/connection_params.js';
 import {
     bundleCatalogPath,
+    pruneBundleConnections,
     readSessionBundle,
     rebaseSessionAttachmentPaths,
     regenerateBundleConnectionIds,
@@ -99,15 +100,15 @@ export async function createSessionZip(
 
 /// Exports a session as a ZIP file by loading from storage backend.
 ///
-/// Scripts are always exported exactly as they exist on disk. Pass `options.transformBundle` to
-/// adjust the session metadata on the way out (e.g. sanitize connection secrets or drop the login
-/// hint when sharing).
+/// Scripts are always exported exactly as they exist on disk. The export carries only the connections
+/// that the scripts use. Pass `options.transformBundle` to adjust the session metadata on the way out
+/// (e.g. sanitize connection secrets or drop the login hint when sharing).
 export async function exportSessionAsZip(
     sessionId: string,
     backend: StorageBackend,
     options: SessionExportOptions = {}
 ): Promise<Blob> {
-    const bundle = await readSessionBundle(sessionId, backend, options.withCatalog ?? false);
+    const bundle = pruneBundleConnections(await readSessionBundle(sessionId, backend, options.withCatalog ?? false));
 
     // Apply the caller's transform (sharing sanitization, name override, ...)
     const out = options.transformBundle ? options.transformBundle(bundle) : bundle;

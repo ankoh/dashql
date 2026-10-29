@@ -18,6 +18,7 @@ import { restoreSingleSession } from './app_state_loader.js';
 import { mergeRestoredSessionIntoConnections, mergeRestoredSessionIntoScripts } from './app_state_loader.js';
 import { connectionEntryFromState, findSessionQueries, useConnectionReferences, useConnectionRegistrySetter, useConnectionRegistryStore } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
+import { isHyperWasmConnection } from '../../connections/ui/connection_label.js';
 import { useSessionScriptsRegistrySetter } from '../scripts/session_scripts_registry.js';
 import { useDashQLCoreSetup } from '../../providers/core_provider.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
@@ -120,8 +121,10 @@ export function SessionImportProvider(props: React.PropsWithChildren) {
         const live = connectionStore.current;
         const entries: ConnectionEntry[] = ((await backend.loadManifest()).connections ?? [])
             .map(entry => ({ ...entry, params: live.connections.get(entry.id)?.params ?? entry.params }));
+        // The embedded database always takes the embedded databases of the imported session
         for (const [connectionId, connection] of live.connections) {
-            if (!entries.some(entry => entry.id === connectionId) && references.sessionsOf(connectionId).length > 0) {
+            if (!entries.some(entry => entry.id === connectionId)
+                && (references.sessionsOf(connectionId).length > 0 || isHyperWasmConnection(connection))) {
                 entries.push(connectionEntryFromState({ ...connection, paramsDraft: undefined }));
             }
         }
@@ -400,7 +403,6 @@ async function writeNativeConnectionRefs(backend: CompositeStorageBackend, sessi
     const existing = await backend.loadSession(sessionId);
     await backend.saveSessionManifest(sessionId, {
         ...existing,
-        defaultConnectionId: bundle.session.defaultConnectionId,
         connections: bundle.session.connections,
         scripts: bundle.session.scripts,
     });

@@ -73,15 +73,6 @@ export type SessionAttachment = app_session.SessionAttachment;
 export type SessionConnection = app_session.SessionConnection;
 export type ConnectionParams = SessionConnection['params'];
 
-/// The default connection of a validated session
-export function defaultSessionConnection(session: SessionData): SessionConnection {
-    const connection = session.connections.find(entry => entry.connectionId === session.defaultConnectionId);
-    if (connection == null) {
-        throw new Error(`Default connection ${session.defaultConnectionId} is missing in session ${session.sessionId}`);
-    }
-    return connection;
-}
-
 /// The kind of filesystem backend
 export enum StorageBackendType {
     /// Origin Private File System (browser-only)

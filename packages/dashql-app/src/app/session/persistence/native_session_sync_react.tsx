@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { connectionEntryFromState, registerConnection, resolveDefaultConnection, useConnectionReferences, useConnectionRegistry, type ConnectionReferences, type ConnectionRegistry } from '../../connections/connection_registry.js';
+import { connectionEntryFromState, registerConnection, useConnectionRegistry, type ConnectionRegistry } from '../../connections/connection_registry.js';
 import { reindexSessionScriptConnections, useSessionScriptsRegistry } from '../scripts/session_scripts_registry.js';
 import { sessionScriptsMatchStorageSnapshot, replaceSessionScriptsFromStorage, scriptConnectionOf } from '../scripts/session_scripts.js';
 import { isDesktopHost } from '../../../platform/native_globals.js';
@@ -13,6 +13,8 @@ import type { NamedFileStamp } from '../../storage/native_storage_backend.js';
 import { connectionStateFromStorage, destroyUnregisteredConnection } from '../../connections/connection_restore.js';
 import { resolveSessionScripts, sessionScriptsResolutionChanged } from './session_script_connections.js';
 import type { ConnectionState } from '../../connections/connection_state.js';
+import { findEmbeddedConnection } from '../../connections/embedded_connection.js';
+import { isLocalHyperWasmParams } from '../../storage/session_validation.js';
 import {
     DEBOUNCE_DURATION_SCRIPT_WRITE,
     DEBOUNCE_DURATION_SESSION_WRITE,
@@ -49,18 +51,18 @@ export interface StoredSessionScripts {
 
 export function readStoredSessionScripts(
     registry: ConnectionRegistry,
-    references: ConnectionReferences,
-    sessionId: string,
     session: SessionData,
     scripts: ScriptData[],
 ): StoredSessionScripts | null {
-    const main = resolveDefaultConnection(registry, references, sessionId);
-    if (main == null) return null;
+    // Scripts on unknown connections run on the embedded database
+    const embedded = findEmbeddedConnection(registry.connections.values());
+    if (embedded == null) return null;
     const created: ConnectionState[] = [];
-    const resolved = resolveSessionScripts(session, scripts.map(script => script.name), main, (connectionId, copy) => {
-        const known = registry.connections.get(connectionId);
+    const resolved = resolveSessionScripts(session, scripts.map(script => script.name), () => embedded, (connectionId, copy) => {
+        const known = registry.connections.get(connectionId)
+            ?? (copy != null && isLocalHyperWasmParams(copy.params) ? embedded : null);
         if (known != null || copy == null) return known ?? null;
-        const connection = connectionStateFromStorage(main.instance, connectionId, copy);
+        const connection = connectionStateFromStorage(embedded.instance, connectionId, copy);
         created.push(connection);
         return connection;
     });
@@ -130,7 +132,6 @@ export const NativeSessionSync: React.FC = () => {
     const [reader, writer] = useStorage();
     const [connectionRegistry, setConnectionRegistry] = useConnectionRegistry();
     const [sessionScriptsRegistry, setSessionScriptsRegistry] = useSessionScriptsRegistry();
-    const references = useConnectionReferences();
     const connectionRegistryRef = React.useRef(connectionRegistry);
     const sessionScriptsRegistryRef = React.useRef(sessionScriptsRegistry);
     connectionRegistryRef.current = connectionRegistry;
@@ -180,7 +181,7 @@ export const NativeSessionSync: React.FC = () => {
             // newer stamp than the acknowledged one and is checked again.
             const scripts = await reader.backend.loadScripts(sessionId);
             sessionFile ??= await reader.backend.loadSession(sessionId);
-            stored = readStoredSessionScripts(connectionRegistryRef.current, references, sessionId, sessionFile, scripts);
+            stored = readStoredSessionScripts(connectionRegistryRef.current, sessionFile, scripts);
             if (stored == null) {
                 return;
             }

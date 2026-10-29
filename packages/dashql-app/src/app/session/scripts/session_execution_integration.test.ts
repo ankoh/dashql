@@ -50,8 +50,7 @@ function fixture(entries: Array<[string, string]>) {
     }
     let live: SessionScripts = {
         instance: dql, sessionId: crypto.randomUUID(), name: 'Execution integration', settings: { cacheQueryResults: false },
-        connectionId: connection.connectionId, sessionMetadata: createEmptyMetadata(),
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], connectionCatalog: catalog,
+        pendingConnection: entries.length === 0 ? connection : null, sessionMetadata: createEmptyMetadata(),
         scripts, scriptRefs, scriptOrder: entries.map(([fileName]) => fileName).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), scriptFocus: { fileName: entries[0]?.[0] ?? '' }, semanticUserFocus: null,
     };
     const writer = new StorageWriter(logger, new SessionTestBackend());
@@ -106,7 +105,7 @@ describe('session execution with real core planning', () => {
         expect(f.script('2_remote.sql').scriptKey).toBe(remoteKey);
         await f.run();
         expect(f.lastState()?.error).toBeNull();
-        const main = f.getSession().connectionId;
+        const main = f.script('1_create.sql').connection.connectionId;
         expect(f.plan.mock.calls.map(([input]) => input.map(session => session.getCatalogEntryId()))).toEqual([
             [f.script('1_create.sql').scriptKey], [remoteKey], [f.script('3_query.sql').scriptKey],
         ]);
@@ -135,9 +134,9 @@ describe('session execution with real core planning', () => {
             f.script('10_query.sql').scriptSession,
         ]);
         expect(f.calls).toEqual([
-            { databaseId: f.getSession().connectionId, queryId: 1, sql: 'create table items (id int)' },
-            { databaseId: f.getSession().connectionId, queryId: 2, sql: 'insert into items values (7)' },
-            { databaseId: f.getSession().connectionId, queryId: 3, sql: 'select id from items' },
+            { databaseId: f.script('1_create.sql').connection.connectionId, queryId: 1, sql: 'create table items (id int)' },
+            { databaseId: f.script('1_create.sql').connection.connectionId, queryId: 2, sql: 'insert into items values (7)' },
+            { databaseId: f.script('1_create.sql').connection.connectionId, queryId: 3, sql: 'select id from items' },
         ]);
         const graph = f.graphs[0];
         expect(graph.valid).toBe(true);

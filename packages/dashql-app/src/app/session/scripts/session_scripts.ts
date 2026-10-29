@@ -10,7 +10,6 @@ import {
     DEBOUNCE_DURATION_SESSION_WRITE,
     DELETE_SCRIPT as STORAGE_DELETE_SCRIPT,
     groupSessionConnectionCopyWrites,
-    groupSessionDefaultConnectionWrites,
     groupSessionManifestWrites,
     groupSessionScriptListWrites,
     groupScriptDeletes,
@@ -19,7 +18,6 @@ import {
     RENAME_SCRIPT as STORAGE_RENAME_SCRIPT,
     PATCH_SESSION_CONNECTION,
     StorageWriter,
-    WRITE_SESSION_DEFAULT_CONNECTION,
     WRITE_SESSION_PROPERTIES,
     WRITE_SESSION_SCRIPTS,
     WRITE_SCRIPT,
@@ -56,14 +54,12 @@ export interface SessionScripts {
     name: string | null;
     /// The session settings.
     settings: SessionSettings;
-    /// The default connection of the session, the main database. New scripts use it.
-    connectionId: string;
+    /// The connection that the next appended script runs on when no script determines it: the
+    /// connection of a session without scripts, or the connection picked for the next script.
+    /// A session has no default connection, its scripts name their connections.
+    pendingConnection: ScriptConnection | null;
     /// The session metadata
     sessionMetadata: SessionMetadataType;
-    /// The connector info of the default connection
-    connectorInfo: ConnectorInfo;
-    /// The catalog of the default connection
-    connectionCatalog: core.DashQLCatalog;
     /// The scripts
     scripts: ScriptDataMap;
     /// Committed cells keyed by their file name.
@@ -94,24 +90,42 @@ export function scriptConnectionOf(connection: ConnectionState): ScriptConnectio
     return { connectionId: connection.connectionId, connectorInfo: connection.connectorInfo, catalog: connection.catalog, params: connection.params };
 }
 
-/// The default connection of a session
-export function defaultScriptConnection(state: SessionScripts): ScriptConnection {
-    return { connectionId: state.connectionId, connectorInfo: state.connectorInfo, catalog: state.connectionCatalog };
+/// The scripts of a session in feed order
+function scriptsInFeedOrder(state: SessionScripts): ScriptData[] {
+    return state.scriptOrder.flatMap(name => state.scripts[state.scriptRefs[name]?.scriptId] ?? []);
 }
 
-/// The ids of the connections that a session uses: the default connection and the connections of
-/// its scripts, in this order. Everything else that knows the connections of a session derives
-/// them from here.
+/// The ids of the connections that the scripts of a session run on, in the order the scripts first
+/// use them. A session run takes exactly these connections.
+export function scriptConnectionIds(state: SessionScripts): string[] {
+    return [...new Set(scriptsInFeedOrder(state).map(script => script.connection.connectionId))];
+}
+
+/// The ids of the connections that a session uses: the connections of its scripts and the pending
+/// connection. Everything else that knows the connections of a session derives them from here.
 export function sessionConnectionIds(state: SessionScripts): string[] {
-    const ids = new Set([state.connectionId]);
-    for (const script of Object.values(state.scripts)) {
-        ids.add(script.connection.connectionId);
+    const ids = scriptConnectionIds(state);
+    if (state.pendingConnection != null && !ids.includes(state.pendingConnection.connectionId)) {
+        ids.push(state.pendingConnection.connectionId);
     }
-    return [...ids];
+    return ids;
+}
+
+/// The connection that a new script runs on, null when the session has neither scripts nor a pending
+/// connection. A script inserted at an index takes the connection of the script before it, the first
+/// script that of the script after it. An appended script takes the pending connection, otherwise the
+/// connection of the last script.
+export function newScriptConnection(state: SessionScripts, index: number | null): ScriptConnection | null {
+    const scripts = scriptsInFeedOrder(state);
+    if (index == null || scripts.length === 0) {
+        return state.pendingConnection ?? scripts[scripts.length - 1]?.connection ?? null;
+    }
+    const neighbor = scripts[Math.max(0, Math.min(Math.trunc(index), scripts.length) - 1)];
+    return neighbor.connection;
 }
 
 /// The number of scripts of a session that run on a connection.
-/// The scripts keep the connection in the session, the default connection alone does not.
+/// The scripts keep the connection in the session, the pending connection alone does not.
 export function scriptsOnConnection(state: SessionScripts, connectionId: string): number {
     let count = 0;
     for (const script of Object.values(state.scripts)) {
@@ -188,7 +202,7 @@ export interface ScriptData {
     /// The connection the script is analyzed and executed with
     connection: ScriptConnection;
     /// The connection that the session file names for the script while the app doesn't know it, e.g.
-    /// after a hand edit. The script runs on the default connection meanwhile and the session file
+    /// after a hand edit. The script runs on the embedded database meanwhile and the session file
     /// keeps the reference until another connection is picked.
     unresolvedConnectionId?: string;
 }
@@ -213,7 +227,7 @@ export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
 export const RENAME_SESSION = Symbol('RENAME_SESSION');
 export const UPDATE_SESSION_SETTINGS = Symbol('UPDATE_SESSION_SETTINGS');
 export const SET_SCRIPT_CONNECTION = Symbol('SET_SCRIPT_CONNECTION');
-export const SET_DEFAULT_CONNECTION = Symbol('SET_DEFAULT_CONNECTION');
+export const SET_PENDING_CONNECTION = Symbol('SET_PENDING_CONNECTION');
 export const MERGE_CONNECTION = Symbol('MERGE_CONNECTION');
 export const DETACH_CONNECTION = Symbol('DETACH_CONNECTION');
 
@@ -238,7 +252,7 @@ export type SessionScriptsAction =
     | VariantKind<typeof RENAME_SESSION, string | null>
     | VariantKind<typeof UPDATE_SESSION_SETTINGS, Partial<SessionSettings>>
     | VariantKind<typeof SET_SCRIPT_CONNECTION, { fileName: string, connection: ScriptConnection }>
-    | VariantKind<typeof SET_DEFAULT_CONNECTION, ScriptConnection>
+    | VariantKind<typeof SET_PENDING_CONNECTION, ScriptConnection>
     | VariantKind<typeof MERGE_CONNECTION, { from: string, into: ConnectionState }>
     | VariantKind<typeof DETACH_CONNECTION, { from: string, into: ScriptConnection }>
     ;
@@ -306,9 +320,14 @@ export function sessionConnectionCopies(state: SessionScripts): SessionConnectio
     return [...copies.values()];
 }
 
-/// The script list of a session as the session file stores it
+/// The script list of a session as the session file stores it.
+/// A session without scripts holds the pending connection, the given copies list it first.
 export function sessionScriptListWrite(state: SessionScripts): SessionScriptList {
-    return { scripts: sessionScriptList(state), connections: sessionConnectionCopies(state) };
+    const pending = state.pendingConnection;
+    const pendingCopy = state.scriptOrder.length === 0 && pending?.params != null
+        ? [{ connectionId: pending.connectionId, params: pending.params }]
+        : [];
+    return { scripts: sessionScriptList(state), connections: [...pendingCopy, ...sessionConnectionCopies(state)] };
 }
 
 /// Persist the order and the connections of the cells, the session file follows with its connections
@@ -650,8 +669,14 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                 newFile = remainingFiles[Math.max(0, oldIdx - 1)] ?? remainingFiles[0] ?? '';
             }
 
+            // A session without scripts keeps the connection of its last script for the next one
+            const deletedScript = state.scripts[deletedEntry.scriptId];
+            const pendingConnection = remainingFiles.length === 0
+                ? state.pendingConnection ?? deletedScript?.connection ?? null
+                : state.pendingConnection;
             const next = destroyDeadScripts({
                 ...clearSemanticUserFocus(state),
+                pendingConnection,
                 scriptRefs,
                 scriptOrder: remainingFiles,
                 scriptFocus: { ...state.scriptFocus, fileName: newFile },
@@ -670,8 +695,13 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             const { index, text, connection } = action.value;
             const fileName = generateScriptFileName(state.scriptRefs);
 
-            // Create a new script on the given connection, otherwise on the default connection
-            let [scriptKey, scriptData] = createEmptyScriptData(state.instance, connection ?? defaultScriptConnection(state), fileName);
+            // Create a new script on the given connection, otherwise on the connection of its neighbors
+            const scriptConnection = connection ?? newScriptConnection(state, index);
+            if (scriptConnection == null) {
+                logger.warn("CREATE_SCRIPT misses a connection", { sessionId: state.sessionId }, LOG_CTX);
+                return state;
+            }
+            let [scriptKey, scriptData] = createEmptyScriptData(state.instance, scriptConnection, fileName);
             const scripts: ScriptDataMap = { ...state.scripts };
             if (text) {
                 // Analyze right away so the script can be executed without waiting for an editor,
@@ -688,6 +718,8 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
 
             const next: SessionScripts = {
                 ...clearSemanticUserFocus(state),
+                // The pending connection is taken by the script that runs on it
+                pendingConnection: state.pendingConnection?.connectionId === scriptConnection.connectionId ? null : state.pendingConnection,
                 scripts,
                 scriptRefs: { ...state.scriptRefs, [fileName]: createScriptRef(scriptKey, fileName) },
                 scriptOrder,
@@ -848,32 +880,27 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             return next;
         }
 
-        case SET_DEFAULT_CONNECTION: {
-            // New scripts use the default connection, the scripts keep theirs
+        case SET_PENDING_CONNECTION: {
+            // The next appended script runs on the connection, the scripts keep theirs
             const connection = action.value;
-            if (connection.connectionId === state.connectionId) return state;
+            if (connection.connectionId === state.pendingConnection?.connectionId) return state;
             if (connection.params == null) {
-                logger.warn("SET_DEFAULT_CONNECTION misses the params of the connection", { connectionId: connection.connectionId }, LOG_CTX);
+                logger.warn("SET_PENDING_CONNECTION misses the params of the connection", { connectionId: connection.connectionId }, LOG_CTX);
                 return state;
             }
-            void storage.write(
-                groupSessionDefaultConnectionWrites(state.sessionId),
-                { type: WRITE_SESSION_DEFAULT_CONNECTION, value: [state.sessionId, { connectionId: connection.connectionId, params: connection.params }] },
-                DEBOUNCE_DURATION_SESSION_WRITE,
-            );
-            return {
-                ...state,
-                connectionId: connection.connectionId,
-                connectorInfo: connection.connectorInfo,
-                connectionCatalog: connection.catalog,
-            };
+            const next: SessionScripts = { ...state, pendingConnection: connection };
+            // A session without scripts holds the connection in its session file
+            if (state.scriptOrder.length === 0) writeSessionScriptList(next, storage);
+            return next;
         }
 
         case DETACH_CONNECTION: {
-            // A session lets go of a connection that only its new scripts use, they use the other connection then
+            // A session lets go of a connection that only its next script would use. A session without
+            // scripts then holds the other connection.
             const { from, into } = action.value;
-            if (state.connectionId !== from || scriptsOnConnection(state, from) > 0) return state;
-            return reduceSessionScripts(state, { type: SET_DEFAULT_CONNECTION, value: into }, storage, logger);
+            if (state.pendingConnection?.connectionId !== from || scriptsOnConnection(state, from) > 0) return state;
+            if (state.scriptOrder.length > 0) return { ...state, pendingConnection: null };
+            return reduceSessionScripts({ ...state, pendingConnection: null }, { type: SET_PENDING_CONNECTION, value: into }, storage, logger);
         }
 
         case MERGE_CONNECTION: {
@@ -892,8 +919,8 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                     logger.warn("Failed to move script to the merged connection", { fileName: prev.fileName, error: stringifyError(e) }, LOG_CTX);
                 }
             }
-            const movesDefault = state.connectionId === from;
-            if (moved === 0 && !movesDefault) return state;
+            const movesPending = state.pendingConnection?.connectionId === from;
+            if (moved === 0 && !movesPending) return state;
             // The moved scripts analyze lazily, the scripts of the target catalog may reference them
             for (const key in scripts) {
                 const script = scripts[key];
@@ -902,7 +929,7 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             }
             const next: SessionScripts = {
                 ...clearSemanticUserFocus(state),
-                ...(movesDefault ? { connectionId: target.connectionId, connectorInfo: target.connectorInfo, connectionCatalog: target.catalog } : {}),
+                ...(movesPending ? { pendingConnection: target } : {}),
                 scripts,
             };
             // The references of the session file follow. The script list is written as well, it replaces

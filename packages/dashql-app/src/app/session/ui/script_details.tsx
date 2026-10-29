@@ -48,6 +48,7 @@ export { ScriptDetailsTab as TabKey };
 export interface ScriptDetailsProps {
     sessionScripts: SessionScripts;
     modifySessionScripts: ModifySessionScripts;
+    /// The connection that the next script of the session runs on
     connection: ConnectionState | null;
     /// The connections that the scripts of the session run on
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
@@ -136,7 +137,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const keywordCase = getKeywordCase(config?.settings);
     // A script is formatted in the dialect of its own connection
-    const formattingDialect = formattingDialectForConnector(scriptData?.connection.connectorInfo.connectorType ?? props.sessionScripts.connectorInfo?.connectorType);
+    const formattingDialect = formattingDialectForConnector(scriptData?.connection.connectorInfo.connectorType ?? props.connection?.connectorInfo.connectorType);
     const isFormattable = React.useMemo(
         () => dependencies.isScriptFormattable(scriptData, formattingDialect),
         [scriptData?.scriptSession, scriptData?.editorUpdate?.textVersion, formattingDialect],
@@ -324,7 +325,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             onPickConnection={connectionId => pickConnection(scriptFileName, connectionId)}
                             onAttachConnection={connector => attachConnection(scriptFileName, connector)}
                             isFormattable={isFormattable}
-                            connectorType={scriptData?.connection.connectorInfo.connectorType ?? props.sessionScripts.connectorInfo?.connectorType}
+                            connectorType={scriptData?.connection.connectorInfo.connectorType ?? props.connection?.connectorInfo.connectorType}
                             hasPendingDiff={hasPendingDiff}
                             CheckIcon={CheckIcon}
                             CancelIcon={FormatXIcon}

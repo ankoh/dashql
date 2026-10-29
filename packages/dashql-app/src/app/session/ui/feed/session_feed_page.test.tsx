@@ -23,6 +23,8 @@ const state = {
     exportProps: null as any,
     sidebarProps: null as any,
     attention: null as any,
+    connectionButtonsProps: null as any,
+    settingsProps: null as any,
     execution: { state: null, busy: false, start: vi.fn(), stop: vi.fn() } as any,
 };
 const dependencies = {
@@ -53,6 +55,14 @@ const dependencies = {
         state.dashboardProps = props;
         return <div data-testid="dashboard" />;
     },
+    SessionConnectionButtons: (props: any) => {
+        state.connectionButtonsProps = props;
+        return null;
+    },
+    ConnectionSettingsOverlay: (props: any) => {
+        state.settingsProps = props;
+        return null;
+    },
     useSessionViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
     useAppConfig: () => ({ settings: { experimental_dashboards: state.dashboardsEnabled } }),
     SegmentedControl,
@@ -69,7 +79,7 @@ function scripts() {
         },
         scriptOrder: ['01_alpha.sql'],
         scripts: {
-            1: { scriptKey: 1, fileName: '01_alpha.sql' },
+            1: { scriptKey: 1, fileName: '01_alpha.sql', connection: { connectionId: 'main' } },
         },
     } as any;
 }
@@ -86,6 +96,8 @@ describe('SessionFeedPage', () => {
         state.dashboardProps = null;
         state.shareProps = null;
         state.exportProps = null;
+        state.connectionButtonsProps = null;
+        state.settingsProps = null;
         state.execution = { state: null, busy: false, start: vi.fn(), stop: vi.fn() };
         container = document.createElement('div');
         document.body.appendChild(container);
@@ -116,11 +128,40 @@ describe('SessionFeedPage', () => {
             sessionScripts={scripts()} modifySessionScripts={modify} connection={connection} active dependencies={dependencies} />));
         render(null);
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
-        render({ connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map() });
+        render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map() });
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!.click());
         expect(state.execution.start).toHaveBeenCalledWith(modify);
-        render({ connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map([[1, {}]]) });
+        render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map([[1, {}]]) });
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
+    });
+
+    it('asks to connect the connections of the scripts instead of running', () => {
+        const modify = vi.fn();
+        const main = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActive: new Map() } as any;
+        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActive: new Map() } as any;
+        const unused = { connectionId: 'unused', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActive: new Map() } as any;
+        const session = scripts();
+        session.scripts[1].connection = { connectionId: 'lake' };
+        const render = (connections: any[]) => act(() => root.render(<SessionFeedPage
+            sessionScripts={session} modifySessionScripts={modify} connection={main}
+            scriptConnections={new Map(connections.map(connection => [connection.connectionId, connection]))} active dependencies={dependencies} />));
+        // The connection of the composer is online, the script runs on another one
+        render([main, lake, unused]);
+        const button = container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!;
+        expect(button.disabled).toBe(false);
+        expect(button.getAttribute('aria-label')).toBe('Connect to run');
+        // The top bar shows the connections of the scripts only
+        expect(state.connectionButtonsProps.connections).toEqual([lake]);
+        act(() => button.click());
+        expect(state.execution.start).not.toHaveBeenCalled();
+        expect(state.settingsProps.connectionId).toBe('lake');
+        // Once connected the session runs
+        const online = { ...lake, connectionHealth: ConnectionHealth.ONLINE };
+        render([main, online, unused]);
+        expect(state.connectionButtonsProps.connections).toEqual([online]);
+        expect(button.getAttribute('aria-label')).toBe('Execute All');
+        act(() => button.click());
+        expect(state.execution.start).toHaveBeenCalledWith(modify);
     });
 
     it('requests connection attention on blocked execution hover and clears on main health or session changes', async () => {
@@ -287,7 +328,7 @@ describe('SessionFeedPage', () => {
         expect(shareButton.getAttribute('aria-expanded')).toBe('true');
 
         act(() => exportButton.click());
-        expect(state.exportProps).toMatchObject({ sessionScripts, conn: connection, isOpen: true });
+        expect(state.exportProps).toMatchObject({ sessionScripts, isOpen: true });
         expect(state.exportProps.anchorRef.current).toBe(exportButton);
         expect(exportButton.getAttribute('aria-expanded')).toBe('true');
         // Storage lives in the session row menu of the workbench

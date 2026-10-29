@@ -5,7 +5,9 @@ import { useSessionExecution } from '../../scripts/session_execution_provider.js
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '../../../../ui/foundations/symbol_icon.js';
-import { PaperAirplaneIcon, PlusIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { PaperAirplaneIcon, PlugIcon, PlusIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { AnchorSide } from '../../../../ui/foundations/anchored_position.js';
+import { ConnectionSettingsOverlay } from '../../../connections/ui/connection_settings_overlay.js';
 import type { RowComponentProps } from 'react-window';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -225,6 +227,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
         }
     }, [cancelQuery, entryStatus?.kind, props.connectionId, props.scriptData?.latestQueryId, sessionExecution.busy, sessionExecution.stop]);
 
+    // A script on a connection that is not connected opens the settings of the connection instead of running
+    const needsConnection = !queryActive && props.connectionId != null && props.connectionHealth !== ConnectionHealth.ONLINE;
+    const executeRef = React.useRef<HTMLButtonElement>(null);
+    const [connectOpen, setConnectOpen] = React.useState(false);
+
     const acceptDiff = React.useCallback(() => {
         if (scriptKey != null) props.onAcceptDiff(scriptKey);
     }, [scriptKey, props.onAcceptDiff]);
@@ -288,25 +295,39 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                 <div className={styles.feed_entry_action_bar}>
                     <ExecuteConnectionGuard sessionId={props.sessionId} blocked={!queryActive && props.connectionHealth !== ConnectionHealth.ONLINE}>
                     <IconButton
+                        ref={executeRef}
                         className={props.isFocused ? styles.feed_entry_execute_focused : styles.feed_entry_execute_unfocused}
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
-                        aria-label={queryActive ? `Stop ${displayName} query` : `Execute ${displayName} query`}
+                        aria-label={queryActive ? `Stop ${displayName} query` : needsConnection ? `Connect to run ${displayName}` : `Execute ${displayName} query`}
                         data-testid="script-execute"
+                        data-connect={needsConnection ? '' : undefined}
                         aria-current={props.isFocused ? 'true' : undefined}
-                        disabled={!queryActive && (!props.canExecute || sessionExecution.busy || props.connectionHealth !== ConnectionHealth.ONLINE)}
+                        disabled={!queryActive && (sessionExecution.busy || (needsConnection ? props.scriptData == null : !props.canExecute))}
                         onClick={() => {
                             if (queryActive && props.scriptData?.latestQueryId != null) {
                                 if (sessionExecution.busy) sessionExecution.stop();
                                 else if (props.connectionId != null) cancelQuery(props.connectionId, props.scriptData.latestQueryId);
+                            } else if (needsConnection) {
+                                setConnectOpen(true);
                             } else {
                                 props.onExecute(props.scriptFileName);
                             }
                         }}
                     >
-                        {queryActive ? <SquareFillIcon size={14} /> : <PaperAirplaneIcon size={16} />}
+                        {queryActive ? <SquareFillIcon size={14} /> : needsConnection ? <PlugIcon size={16} /> : <PaperAirplaneIcon size={16} />}
                     </IconButton>
                     </ExecuteConnectionGuard>
+                    {/* Mounted only while open, the overlay subscribes to the connection */}
+                    {connectOpen && props.connectionId != null && (
+                        <ConnectionSettingsOverlay
+                            connectionId={props.connectionId}
+                            isOpen
+                            onClose={() => setConnectOpen(false)}
+                            anchorRef={executeRef}
+                            side={AnchorSide.OutsideBottom}
+                        />
+                    )}
                     <span className={styles.feed_entry_action_separator} aria-hidden="true" />
                     <div className={styles.feed_entry_file_name}>
                         <ScriptConnectionPicker

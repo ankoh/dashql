@@ -17,7 +17,7 @@ import { useStorageReader } from '../../storage/storage_provider.js';
 import { StorageBackend } from '../../storage/storage_backend.js';
 import { IconButton } from '../../../ui/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../../globals.js';
-import { resolveSessionConnections, useConnectionReferences, useConnectionRegistry } from '../../connections/connection_registry.js';
+import { resolveSessionConnections, useConnectionReferences, useConnectionRegistry, useSessionConnections } from '../../connections/connection_registry.js';
 
 async function packAndCompressFile(
     backend: StorageBackend,
@@ -41,7 +41,6 @@ interface Props {
     setIsOpen: (v: boolean) => void;
     anchorRef?: React.RefObject<HTMLButtonElement | null>;
     sessionScripts: SessionScripts | null;
-    conn: ConnectionState | null;
     fileName?: string;
 }
 
@@ -65,9 +64,8 @@ export const SessionFileSaveOverlay: React.FC<Props> = (props: Props) => {
         if (!props.isOpen) {
             return;
         }
-        const conn = props.conn;
         const sessionScripts = props.sessionScripts;
-        if (conn == null || sessionScripts == null) {
+        if (sessionScripts == null) {
             return;
         }
         const cancellation = new AbortController();
@@ -77,7 +75,7 @@ export const SessionFileSaveOverlay: React.FC<Props> = (props: Props) => {
             if (attached == null) return;
             const fileBytes = await packAndCompressFile(
                 storage.backend,
-                [attached.main, ...attached.attached],
+                attached,
                 sessionScripts,
                 settings,
             );
@@ -89,11 +87,12 @@ export const SessionFileSaveOverlay: React.FC<Props> = (props: Props) => {
             if (!cancellation.signal.aborted) setFileBytes(new Uint8Array());
         });
         return () => cancellation.abort();
-    }, [databaseRegistry, references, settings, props.conn, props.sessionScripts, props.isOpen, storage.backend]);
+    }, [databaseRegistry, references, settings, props.sessionScripts, props.isOpen, storage.backend]);
 
+    const connections = useSessionConnections(props.sessionScripts?.sessionId ?? null);
     const hasLoginHint = React.useMemo(
-        () => props.conn != null && connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(props.conn.details)),
-        [props.conn],
+        () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionParamsFromStateDetails(connection.details))),
+        [connections],
     );
 
     const downloadFile = React.useCallback(async () => {

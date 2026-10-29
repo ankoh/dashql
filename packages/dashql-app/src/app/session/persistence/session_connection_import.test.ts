@@ -14,6 +14,7 @@ const KNOWN = 'aaaaaaaa-0000-4000-8000-00000000000a';
 const OTHER = 'aaaaaaaa-0000-4000-8000-00000000000b';
 const IMPORTED = 'bbbbbbbb-0000-4000-8000-00000000000b';
 const FRESH = 'cccccccc-0000-4000-8000-00000000000c';
+const EMBEDDED = 'dddddddd-0000-4000-8000-00000000000d';
 const trino = (endpoint: string, secret = ''): ConnectionParams => ({
     trino: { endpoint, auth: { authType: 'AUTH_BASIC', basic: { username: 'user', secret } } },
 }) as ConnectionParams;
@@ -25,7 +26,6 @@ const ENTRIES: ConnectionEntry[] = [
 
 function imported(connectionId: string, params: ConnectionParams) {
     return testSession({
-        defaultConnectionId: connectionId,
         connections: [{ connectionId, params }],
         scripts: [{ name: 'query.sql', connectionId }],
     });
@@ -48,7 +48,7 @@ describe('session connection import', () => {
         const linkedImport = applyConnectionImportPlan(session, plan, new Map([[IMPORTED, { kind: 'link', connectionId: KNOWN }]]), ENTRIES);
         expect(linkedImport.connectionIds).toEqual(new Map([[IMPORTED, KNOWN]]));
         const linked = linkedImport.session;
-        expect(linked.defaultConnectionId).toBe(KNOWN);
+        expect(linked.connections.map(connection => connection.connectionId)).toEqual([KNOWN]);
         // The scripts follow their connection
         expect(linked.scripts).toEqual([{ name: 'query.sql', connectionId: KNOWN }]);
         expect(connectionRefsChanged(session, linked)).toBe(true);
@@ -66,23 +66,29 @@ describe('session connection import', () => {
         expect(result.connectionIds).toEqual(new Map([[KNOWN, FRESH]]));
         const separate = result.session;
         expect(separate.connections).toEqual([{ connectionId: FRESH, params: trino('https://elsewhere') }]);
-        expect(separate.defaultConnectionId).toBe(FRESH);
         expect(separate.scripts).toEqual([{ name: 'query.sql', connectionId: FRESH }]);
     });
 
-    it('asks when a session brings the embedded database with empty lists', () => {
-        const embedded: ConnectionEntry = { id: KNOWN, params: { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as ConnectionParams };
+    it('links the embedded database silently, the app holds a single connection to it', () => {
+        const embedded: ConnectionEntry = { id: EMBEDDED, params: { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as ConnectionParams };
         const session = imported(IMPORTED, { hyper: {
             protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
             attachedDatabases: [], metadata: {}, queryParameters: {},
         } } as ConnectionParams);
-        expect(planConnectionImport(session, [embedded])[0].decision).toEqual({ kind: 'ask', candidates: [embedded] });
-        // An attached database still tells embedded databases apart
+        const plan = planConnectionImport(session, [...ENTRIES, embedded]);
+        expect(plan[0].decision).toEqual({ kind: 'link', connectionId: EMBEDDED });
+        expect(connectionImportQuestions(plan)).toEqual([]);
+        const linked = applyConnectionImportPlan(session, plan, new Map(), [...ENTRIES, embedded]).session;
+        expect(linked.connections).toEqual([{ connectionId: EMBEDDED, params: embedded.params }]);
+        expect(linked.scripts).toEqual([{ name: 'query.sql', connectionId: EMBEDDED }]);
+        // Other attached databases don't make another embedded database
         const attached = imported(IMPORTED, { hyper: {
             protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
             attachedDatabases: [{ path: 'tpch.hyper', alias: 'tpch' }],
         } } as ConnectionParams);
-        expect(planConnectionImport(attached, [embedded])[0].decision).toEqual({ kind: 'register' });
+        expect(planConnectionImport(attached, [embedded])[0].decision).toEqual({ kind: 'link', connectionId: EMBEDDED });
+        // Without an embedded database the app registers the imported one
+        expect(planConnectionImport(session, ENTRIES)[0].decision).toEqual({ kind: 'register' });
     });
 
     it('registers unknown connections with their ids', () => {

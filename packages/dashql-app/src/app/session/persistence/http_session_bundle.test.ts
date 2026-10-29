@@ -18,7 +18,7 @@ function response(text: string, status = 200): HttpFetchResult {
 
 /// A session file of format version 4, it references a main database and lists no scripts
 function v4Session(overrides: Record<string, unknown> = {}) {
-    const { scripts: _scripts, attachments: _attachments, defaultConnectionId: _default, connections, ...session } = testSession();
+    const { scripts: _scripts, attachments: _attachments, connections, ...session } = testSession();
     const { connectionId, ...database } = connections[0];
     return { ...session, formatVersion: 4, mainDatabase: { databaseId: connectionId, ...database }, attachedDatabases: [], ...overrides };
 }

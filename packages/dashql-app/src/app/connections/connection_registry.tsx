@@ -61,7 +61,7 @@ export interface ConnectionRegistry {
 export interface ConnectionReferences {
     /// The sessions with scripts on a connection, in registration order
     sessionsOf(connectionId: string): readonly string[];
-    /// The connections that the scripts of a session use, the default connection first
+    /// The connections that the scripts of a session use in feed order, then the pending connection
     connectionsOf(sessionId: string): readonly string[];
     /// Subscribe to changes of the references
     subscribe(listener: () => void): () => void;
@@ -90,35 +90,17 @@ export function useConnectionReferencesSelector<T>(select: (references: Connecti
     return React.useSyncExternalStore(references.subscribe, () => select(references));
 }
 
-/// The default connection and the other connections of a session
-export interface ResolvedSessionConnections {
-    /// The default connection
-    main: ConnectionState;
-    /// The other connections that scripts of the session use
-    attached: ConnectionState[];
-}
-
+/// The connections of a session, null while a connection is not registered
 export function resolveSessionConnections(
     registry: Pick<ConnectionRegistry, 'connections'>,
     references: ConnectionReferences,
     sessionId: string | null,
-): ResolvedSessionConnections | null {
+): ConnectionState[] | null {
     if (sessionId == null) return null;
     const connections = references.connectionsOf(sessionId)
         .map(connectionId => registry.connections.get(connectionId));
     if (connections.length === 0 || connections.some(database => database == null)) return null;
-    const [main, ...attached] = connections as ConnectionState[];
-    return { main, attached };
-}
-
-/// The default connection of a session
-export function resolveDefaultConnection(
-    registry: Pick<ConnectionRegistry, 'connections'>,
-    references: ConnectionReferences,
-    sessionId: string | null,
-): ConnectionState | null {
-    const connectionId = sessionId == null ? undefined : references.connectionsOf(sessionId)[0];
-    return connectionId == null ? null : registry.connections.get(connectionId) ?? null;
+    return connections as ConnectionState[];
 }
 
 /// Is a connection listed next to the sessions?
@@ -406,21 +388,19 @@ export function useConnectionDispatch(): DynamicConnectionDispatch {
     }, [queue, references, storageWriter, logger]);
 }
 
-/// The default connection of a session, new scripts of the session use it
-export function useDefaultConnection(sessionId: string | null): [ConnectionState | null, ConnectionDispatch] {
-    const [registry, dispatch] = useDynamicConnectionDispatch();
-    const connectionId = useConnectionReferencesSelector(references => sessionId == null ? null : references.connectionsOf(sessionId)[0] ?? null);
-    const capturingDispatch = React.useCallback((action: ConnectionAction) => dispatch(connectionId, action), [connectionId, dispatch]);
-    return [connectionId == null ? null : (registry.connections.get(connectionId) ?? null), capturingDispatch]
-}
-
 /// The connections that the scripts of a session use
-export function useSessionConnections(sessionId: string | null): ResolvedSessionConnections | null {
+export function useSessionConnections(sessionId: string | null): ConnectionState[] | null {
     const [registry] = useConnectionRegistry();
     const references = useConnectionReferences();
     // Re-render when the session uses other connections
     useConnectionReferencesSelector(references => sessionId == null ? '' : references.connectionsOf(sessionId).join('\n'));
-    return resolveSessionConnections(registry, references, sessionId);
+    // The list keeps its identity while the connections are unchanged, consumers depend on it in effects
+    const resolved = resolveSessionConnections(registry, references, sessionId);
+    const latest = React.useRef(resolved);
+    const same = latest.current === resolved || (latest.current != null && resolved != null
+        && latest.current.length === resolved.length && latest.current.every((connection, i) => connection === resolved[i]));
+    if (!same) latest.current = resolved;
+    return latest.current;
 }
 
 export function useConnectionById(connectionId: string | null): [ConnectionState | null, ConnectionDispatch] {

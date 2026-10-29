@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { SELECT_SESSION, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { useConnectionDispatch, useDefaultConnection } from '../connections/connection_registry.js';
+import { useConnectionDispatch, useSessionConnections } from '../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { AppLoadingPage } from '../ui/app_loading_page.js';
 import { canShowSession } from './app_loading_logic.js';
@@ -25,7 +25,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const logger = useLogger();
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
-    const [defaultConnection] = useDefaultConnection(routeContext.sessionId ?? null);
+    const sessionConnections = useSessionConnections(routeContext.sessionId ?? null);
     const dispatchDatabase = useConnectionDispatch();
     const hyperSetup = useHyperSetup();
 
@@ -43,7 +43,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
     useInitialMemorySetup(
         routeContext.sessionId,
-        defaultConnection,
+        sessionConnections,
         hyperSetup,
         dispatchDatabase,
         logger,

@@ -18,7 +18,7 @@ import {
     SessionValidationError,
     validateSessionData,
 } from './session_validation.js';
-import { reconcileSessionScripts, remapSessionScripts, sanitizeSessionFiles, sessionAttachments } from './session_files.js';
+import { reconcileSessionScripts, remapSessionScripts, sanitizeSessionFiles, sessionAttachments, sessionConnectionIdsOf } from './session_files.js';
 import { hyperOPFSRoot } from '../../platform/opfs_root.js';
 
 /// The durable, portable subset of a session. Derived cache files and storage-location metadata
@@ -54,11 +54,16 @@ export function bundleCatalogPath(connectionId: string, fileName: string): strin
 
 /// The format version of the session file of a folder, null if it has none
 async function readFormatVersion(folder: MigrationFolder): Promise<unknown> {
+    return (await readSessionField(folder, 'formatVersion')) ?? null;
+}
+
+/// Read a top-level field of the session file, undefined when the file is unreadable
+async function readSessionField(folder: MigrationFolder, field: string): Promise<unknown> {
     try {
         const text = await folder.readText(STORAGE_SESSION_FILE);
-        return text == null ? null : (JSON.parse(text) as { formatVersion?: unknown })?.formatVersion ?? null;
+        return text == null ? undefined : (JSON.parse(text) as Record<string, unknown>)?.[field];
     } catch {
-        return null;
+        return undefined;
     }
 }
 
@@ -78,13 +83,13 @@ export interface SessionBundleHead extends Pick<SessionBundle, 'session' | 'cata
 /// Complete a bundle from its top-level files and the files of its folders.
 ///
 /// The file lists of the session file are reconciled with the files: scripts without a file are
-/// dropped and script files without an entry are appended with the main database.
+/// dropped and script files without an entry are appended on the connection of the script before them.
 export function assembleSessionBundle(
     head: Pick<SessionBundle, 'session' | 'catalogs'>,
     scripts: ScriptData[],
     data: DataFileData[] = [],
 ): SessionBundle {
-    const reconciled = reconcileSessionScripts(head.session.scripts, scripts.map(script => script.name), head.session.defaultConnectionId);
+    const reconciled = reconcileSessionScripts(head.session.scripts, scripts.map(script => script.name), firstConnectionId(head.session));
     return {
         session: {
             ...head.session,
@@ -106,13 +111,18 @@ export async function reconcileStoredSessionFiles(backend: StorageBackend, sessi
         backend.listDataFiles(sessionId),
     ]);
     const sanitized = sanitizeSessionFiles(session);
-    const reconciled = reconcileSessionScripts(sanitized.scripts, scripts.map(script => script.name), session.defaultConnectionId);
+    const reconciled = reconcileSessionScripts(sanitized.scripts, scripts.map(script => script.name), firstConnectionId(session));
     const attachments = sessionAttachments(dataFiles.map(file => file.name));
     const next: SessionData = { ...session, scripts: reconciled.scripts, attachments };
     if (!sanitized.valid || reconciled.changed || !sessionAttachmentsEqual(session.attachments, attachments)) {
         await backend.saveSessionManifest(sessionId, next);
     }
     return next;
+}
+
+/// The first connection of a session, script files without an entry run on it when no script precedes them
+function firstConnectionId(session: SessionData): string {
+    return session.connections[0]?.connectionId ?? '';
 }
 
 /// Do two attachment lists name the same files in the same order?
@@ -127,13 +137,14 @@ function sessionAttachmentsEqual(a: SessionData['attachments'] | undefined, b: S
 /// folder that must stay untouched. Errors start with `errorPrefix`, e.g. "Invalid ZIP".
 export async function readSessionBundleHead(folder: MigrationFolder, errorPrefix: string): Promise<SessionBundleHead> {
     // Older sessions copied the catalog of their default connection into the top level of the
-    // folder. It is read before the migration removes the copy.
+    // folder. It is read before the migration removes the copy and the default connection.
     const migration = await migrateSessionFolder(folder, SESSION_CATALOG_COPY_FORMAT_VERSION);
     const hasCatalogCopy = migration !== SessionMigrationResult.Missing
         && await readFormatVersion(folder) === SESSION_CATALOG_COPY_FORMAT_VERSION;
-    const [legacyRelations, legacyFunctions] = !hasCatalogCopy ? [null, null] : await Promise.all([
+    const [legacyRelations, legacyFunctions, legacyConnectionId] = !hasCatalogCopy ? [null, null, null] : await Promise.all([
         folder.readText(STORAGE_CATALOG_RELATIONS),
         folder.readText(STORAGE_CATALOG_FUNCTIONS),
+        readSessionField(folder, 'defaultConnectionId'),
     ]);
     await migrateSessionFolder(folder);
     if (migration === SessionMigrationResult.Missing) {
@@ -168,7 +179,8 @@ export async function readSessionBundleHead(folder: MigrationFolder, errorPrefix
         ]);
         if (relations != null || functions != null) {
             catalogs.push({ connectionId, relations, functions });
-        } else if (connectionId === session.defaultConnectionId && (legacyRelations != null || legacyFunctions != null)) {
+        } else if (connectionId === (typeof legacyConnectionId === 'string' ? legacyConnectionId : session.connections[0].connectionId)
+            && (legacyRelations != null || legacyFunctions != null)) {
             catalogs.push({ connectionId, relations: legacyRelations, functions: legacyFunctions });
         }
     }
@@ -182,7 +194,7 @@ export interface SessionCatalogValidationResult {
     invalidFiles: string[];
 }
 
-/// Give the connections of a bundle fresh ids, the default connection, the scripts and the catalogs follow them
+/// Give the connections of a bundle fresh ids, the scripts and the catalogs follow them
 export function regenerateBundleConnectionIds<B extends Pick<SessionBundle, 'session' | 'catalogs'>>(bundle: B): B {
     const { session } = bundle;
     const connectionIds = new Map(session.connections.map(connection => [connection.connectionId, crypto.randomUUID()]));
@@ -190,11 +202,24 @@ export function regenerateBundleConnectionIds<B extends Pick<SessionBundle, 'ses
         ...bundle,
         session: {
             ...session,
-            defaultConnectionId: connectionIds.get(session.defaultConnectionId) ?? session.defaultConnectionId,
             connections: session.connections.map(connection => ({ ...connection, connectionId: connectionIds.get(connection.connectionId)! })),
             scripts: remapSessionScripts(session.scripts, connectionIds),
         },
         catalogs: renameBundleCatalogs(bundle.catalogs, connectionIds),
+    };
+}
+
+/// Keep only the connections of a bundle that its scripts use, in the order the scripts first use them,
+/// and their catalogs.
+/// A session without scripts keeps the connection its first script will run on.
+export function pruneBundleConnections<B extends Pick<SessionBundle, 'session' | 'catalogs'>>(bundle: B): B {
+    const { session } = bundle;
+    const used = sessionConnectionIdsOf(session.scripts, session.connections[0]?.connectionId ?? null);
+    const copies = new Map(session.connections.map(connection => [connection.connectionId, connection]));
+    return {
+        ...bundle,
+        session: { ...session, connections: used.flatMap(connectionId => copies.get(connectionId) ?? []) },
+        catalogs: bundle.catalogs.filter(catalog => used.includes(catalog.connectionId)),
     };
 }
 
@@ -323,7 +348,7 @@ export async function writeSessionBundle(
         ...bundle.session,
         sessionId,
         scripts: reconcileSessionScripts(bundle.session.scripts ?? [], bundle.scripts.map(script => script.name),
-            bundle.session.defaultConnectionId).scripts,
+            firstConnectionId(bundle.session)).scripts,
         attachments: sessionAttachments((bundle.data ?? []).map(file => file.name)),
     };
     if (backend.getBackendType() === StorageBackendType.OPFS) {

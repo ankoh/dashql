@@ -16,10 +16,9 @@ const dependencies: SessionImportCardDependencies = {
 const RESULT: HttpSessionLoadResult = {
     bundle: {
         session: {
-            formatVersion: 7,
+            formatVersion: 8,
             sessionId: '11111111-2222-4333-8444-555555555555',
             name: 'Flat session',
-            defaultConnectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
             connections: [{ connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: {} } as any }],
             scripts: [{ name: '01_query.sql', connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' }],
             attachments: [],

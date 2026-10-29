@@ -80,17 +80,17 @@ describe('V2 storage writer flat mutations', () => {
         await Promise.all(tasks);
         const session = await backend.loadSession(TEST_SESSION_ID);
         expect(session.name).toBe('renamed');
-        expect(session.connections).toEqual([testSession().connections[0], remote]);
-        expect(session.defaultConnectionId).toBe(TEST_CONNECTION_ID);
+        // The connections follow the scripts in the order the scripts use them
+        expect(session.connections).toEqual([remote, testSession().connections[0]]);
         expect(session.scripts).toEqual(scripts);
 
         // A manifest rewrite keeps the script list and the connections of its scripts
         await writer.write(groupSessionManifestWrites(TEST_SESSION_ID), {
-            type: WRITE_SESSION_MANIFEST, value: [TEST_SESSION_ID, TEST_CONNECTION_ID, [testSession().connections[0]]],
+            type: WRITE_SESSION_MANIFEST, value: [TEST_SESSION_ID, [testSession().connections[0]]],
         }, 0);
         await writer.flush();
         expect((await backend.loadSession(TEST_SESSION_ID)).scripts).toEqual(scripts);
-        expect((await backend.loadSession(TEST_SESSION_ID)).connections).toEqual([testSession().connections[0], remote]);
+        expect((await backend.loadSession(TEST_SESSION_ID)).connections).toEqual([remote, testSession().connections[0]]);
 
         // Once no script uses the remote connection, the session drops its copy
         await writer.write(groupSessionScriptListWrites(TEST_SESSION_ID), {
@@ -113,7 +113,7 @@ describe('V2 storage writer flat mutations', () => {
                 type: REPLACE_SESSION_SCRIPTS,
                 value: {
                     sessionId: TEST_SESSION_ID, name: null, scripts: [{ fileName: 'a.sql', readText: () => 'SELECT 1' }],
-                    defaultConnection: testSession().connections[0], originalFileName: undefined, settings: { cacheQueryResults: false },
+                    connection: testSession().connections[0], originalFileName: undefined, settings: { cacheQueryResults: false },
                 },
             }, 10_000),
             writer.write(groupSessionScriptListWrites(TEST_SESSION_ID), { type: WRITE_SESSION_SCRIPTS, value: [TEST_SESSION_ID, list(['b.sql', 'a.sql'])] }, 10_000),
@@ -161,12 +161,12 @@ describe('V2 storage writer flat mutations', () => {
                 oauthState: { accessToken: { accessToken: 'runtime-secret' } },
             } } },
         } as unknown as ConnectionState;
-        await writer.write(sessionId, { type: WRITE_SESSION_MANIFEST, value: [sessionId, connectionId, [sessionConnectionFromState(state)]] });
+        await writer.write(sessionId, { type: WRITE_SESSION_MANIFEST, value: [sessionId, [sessionConnectionFromState(state)]] });
         const saved = await backend.loadSession(sessionId);
         expect(saved.connections).toEqual([{ connectionId, params: state.params }]);
         expect(JSON.stringify(saved)).not.toContain('runtime-secret');
     });
-    it('round-trips local and remote connections with an explicit default connection', async () => {
+    it('keeps the connections of the scripts when the manifest is written', async () => {
         const backend = new SessionTestBackend();
         const writer = new StorageWriter(new NullLogger(), backend);
         const sessionId = '11111111-2222-4333-8444-555555555555';
@@ -183,18 +183,16 @@ describe('V2 storage writer flat mutations', () => {
 
         await writer.write(sessionId, {
             type: WRITE_SESSION_MANIFEST,
-            value: [sessionId, 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb', [
+            value: [sessionId, [
                 state('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', ConnectorType.HYPER, { protocol: 'WASM' }),
                 state('ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb', ConnectorType.TRINO, { endpoint: 'https://trino.example' }),
             ].map(sessionConnectionFromState)],
         });
 
-        // The default connection comes first, then the connections of the scripts
+        // A connection that no script uses is left out, the given copy of the used one wins
         expect((await backend.loadSession(sessionId)).connections).toEqual([
-            { connectionId: 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb', params: { trino: { endpoint: 'https://trino.example' } } },
             { connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: { protocol: 'WASM' } } },
         ]);
-        expect((await backend.loadSession(sessionId)).defaultConnectionId).toBe('ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb');
     });
 
     it('keeps rename, write, and delete in distinct ordered keyspaces', async () => {
@@ -332,7 +330,6 @@ describe('storage writer outcomes', () => {
         expect(result).toEqual({ status: 'written' });
         const session = await backend.loadSession(TEST_SESSION_ID);
         expect(session.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params: next }]);
-        expect(session.defaultConnectionId).toBe(TEST_CONNECTION_ID);
         // An up-to-date copy is not written again
         await writer.writeDurable(groupSessionConnectionCopyWrites(TEST_SESSION_ID, TEST_CONNECTION_ID), {
             type: PATCH_SESSION_CONNECTION, value: [TEST_SESSION_ID, { connectionId: TEST_CONNECTION_ID, params: next }],
@@ -379,7 +376,7 @@ describe('storage writer external changes', () => {
 
         // Other sessions keep writing while the session is held
         expect(await writer.writeDurable(groupSessionManifestWrites('other'), {
-            type: WRITE_SESSION_MANIFEST, value: ['other', TEST_CONNECTION_ID, [{ connectionId: TEST_CONNECTION_ID, params: {} as any }]],
+            type: WRITE_SESSION_MANIFEST, value: ['other', [{ connectionId: TEST_CONNECTION_ID, params: {} as any }]],
         })).toEqual({ status: 'written' });
 
         backend.changed = false;

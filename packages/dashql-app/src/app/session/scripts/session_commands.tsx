@@ -2,32 +2,31 @@ import * as React from 'react';
 
 import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
 import { KeyEventHandler, useKeyEvents } from '../../../utils/key_events.js';
-import { getSelectedScriptRef, SELECT_NEXT_SCRIPT, SELECT_PREV_SCRIPT, type ScriptData, type SessionScripts } from './session_scripts.js';
+import { getSelectedScriptRef, newScriptConnection, SELECT_NEXT_SCRIPT, SELECT_PREV_SCRIPT, type ScriptData, type SessionScripts } from './session_scripts.js';
 import type { ScriptRef } from './script_types.js';
 import { useCatalogLoaderQueue } from '../../connections/catalog_loader.js';
-import { useConnectionRegistryStore, useDefaultConnection, type ConnectionRegistry } from '../../connections/connection_registry.js';
+import { useConnectionRegistryStore, useSessionConnections, type ConnectionRegistry } from '../../connections/connection_registry.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../../connections/query_executor.js';
 import { useRouteContext } from '../../router/router.js';
 import { useSessionScripts } from './session_scripts_registry.js';
 import { isCatalogRefreshRunning } from '../../connections/catalog_update_state.js';
 import { runSessionScript } from '../ui/rerun_query.js';
-import { SessionConnectionAttentionContext, useSessionConnectionAttention } from '../ui/session_connection_attention.js';
+import { connectionHealthKey, SessionConnectionAttentionContext, useSessionConnectionAttention } from '../ui/session_connection_attention.js';
 import { SessionViewMode, useSessionViewMode } from '../ui/session_view_mode.js';
 
 const LOG_CTX = "session_commands";
 
-/// The selected script and the connection it runs on, the default connection without a selected script
-function selectedScriptConnection(sessionScripts: SessionScripts, registry: ConnectionRegistry, defaultConnection: ConnectionState | null): {
+/// The selected script and the connection it runs on, the connection of the next script without a selected script
+function selectedScriptConnection(sessionScripts: SessionScripts, registry: ConnectionRegistry): {
     entry: ScriptRef | undefined;
     scriptData: ScriptData | undefined;
     scriptConnection: ConnectionState | null;
 } {
     const entry = getSelectedScriptRef(sessionScripts);
     const scriptData = entry != null ? sessionScripts.scripts[entry.scriptId] : undefined;
-    const scriptConnection = scriptData != null
-        ? registry.connections.get(scriptData.connection.connectionId) ?? null
-        : defaultConnection;
+    const connectionId = scriptData?.connection.connectionId ?? newScriptConnection(sessionScripts, null)?.connectionId;
+    const scriptConnection = connectionId == null ? null : registry.connections.get(connectionId) ?? null;
     return { entry, scriptData, scriptConnection };
 }
 
@@ -47,7 +46,7 @@ interface Props {
 
 export interface SessionCommandsDependencies {
     useSessionScripts: typeof useSessionScripts;
-    useDefaultConnection: typeof useDefaultConnection;
+    useSessionConnections: typeof useSessionConnections;
     useConnectionRegistryStore: typeof useConnectionRegistryStore;
     useQueryExecutor: typeof useQueryExecutor;
     useCatalogLoaderQueue: typeof useCatalogLoaderQueue;
@@ -56,7 +55,7 @@ export interface SessionCommandsDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: SessionCommandsDependencies = {
-    useSessionScripts, useDefaultConnection, useConnectionRegistryStore,
+    useSessionScripts, useSessionConnections, useConnectionRegistryStore,
     useQueryExecutor, useCatalogLoaderQueue, useLogger, useSessionViewMode,
 };
 
@@ -70,20 +69,20 @@ export const SessionCommands: React.FC<Props> = (props: Props) => {
     const viewMode = dependencies.useSessionViewMode().mode;
 
     const [sessionScripts, modifySessionScripts] = dependencies.useSessionScripts(route.sessionId ?? null);
-    const [connection, _dispatchConnection] = dependencies.useDefaultConnection(sessionScripts?.sessionId ?? null);
+    const connections = dependencies.useSessionConnections(sessionScripts?.sessionId ?? null);
     const connectionRegistryStore = dependencies.useConnectionRegistryStore();
-    const connectionAttention = useSessionConnectionAttention(sessionScripts?.sessionId ?? null, connection?.connectionId ?? null, connection?.connectionHealth);
+    const connectionAttention = useSessionConnectionAttention(sessionScripts?.sessionId ?? null, connectionHealthKey(connections));
     const executeQuery = dependencies.useQueryExecutor();
     const refreshCatalog = dependencies.useCatalogLoaderQueue();
 
     // Setup command dispatch logic.
     // The session scripts change with every keystroke and the connection with every query event.
     // Read them through a ref to keep the dispatch (and the context value) stable.
-    const latest = React.useRef({ sessionScripts, modifySessionScripts, connection, connectionAttention, executeQuery, refreshCatalog, viewMode, sessionId: route.sessionId });
-    latest.current = { sessionScripts, modifySessionScripts, connection, connectionAttention, executeQuery, refreshCatalog, viewMode, sessionId: route.sessionId };
+    const latest = React.useRef({ sessionScripts, modifySessionScripts, connectionAttention, executeQuery, refreshCatalog, viewMode, sessionId: route.sessionId });
+    latest.current = { sessionScripts, modifySessionScripts, connectionAttention, executeQuery, refreshCatalog, viewMode, sessionId: route.sessionId };
     const commandDispatch = React.useCallback(
         async (command: SessionCommandType) => {
-            const { sessionScripts, modifySessionScripts, connection, connectionAttention, executeQuery, refreshCatalog, viewMode, sessionId } = latest.current;
+            const { sessionScripts, modifySessionScripts, connectionAttention, executeQuery, refreshCatalog, viewMode, sessionId } = latest.current;
             if (sessionScripts == null) {
                 logger.warn("Session is null", {});
                 return;
@@ -94,7 +93,6 @@ export const SessionCommands: React.FC<Props> = (props: Props) => {
                     logger.info("Ctrl+E session command received", {
                         sessionId,
                         viewMode: viewMode.toString(),
-                        connectionHealth: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED),
                         focusedFile: sessionScripts.scriptFocus.fileName,
                     }, LOG_CTX);
                     if (viewMode !== SessionViewMode.Session) {
@@ -102,7 +100,7 @@ export const SessionCommands: React.FC<Props> = (props: Props) => {
                         break;
                     }
                     {
-                        const { entry, scriptData, scriptConnection } = selectedScriptConnection(sessionScripts, connectionRegistryStore.current, connection);
+                        const { entry, scriptData, scriptConnection } = selectedScriptConnection(sessionScripts, connectionRegistryStore.current);
                         if (scriptConnection == null || scriptConnection.connectionHealth !== ConnectionHealth.ONLINE) {
                             connectionAttention.request(sessionScripts.sessionId);
                             logger.warn("Cannot execute query command with an unhealthy connection", {
@@ -132,7 +130,7 @@ export const SessionCommands: React.FC<Props> = (props: Props) => {
                     break;
                 case SessionCommandType.RefreshCatalog: {
                     // The catalog of the connection that the selected script runs on is refreshed
-                    const { scriptConnection } = selectedScriptConnection(sessionScripts, connectionRegistryStore.current, connection);
+                    const { scriptConnection } = selectedScriptConnection(sessionScripts, connectionRegistryStore.current);
                     if (scriptConnection?.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.warn("Cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
                     } else if (isCatalogRefreshRunning(scriptConnection)) {

@@ -188,7 +188,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
             scripts: [],
         };
         await expect(writePortableSessionFresh(backend, source)).resolves.toBe(OTHER_SESSION_ID);
-        expect((await backend.loadSession(OTHER_SESSION_ID)).defaultConnectionId).toBe(TEST_CONNECTION_ID);
+        expect((await backend.loadSession(OTHER_SESSION_ID)).connections.map(connection => connection.connectionId)).toEqual([TEST_CONNECTION_ID]);
 
         await expect(replaceSessionWithPortableBundle(backend, { ...source, session: testSession({ sessionId: OTHER_SESSION_ID, name: 'Replaced' }) }, {
             sessionId: OTHER_SESSION_ID,

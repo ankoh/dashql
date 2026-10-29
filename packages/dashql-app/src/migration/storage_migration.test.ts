@@ -103,7 +103,6 @@ describe('storage migration', () => {
         const sessionB = JSON.parse(fsStore.files.get(`${NATIVE_DIR}/dashql-session.json`)!);
         expect(sessionB.formatVersion).toBe(SESSION_FORMAT_VERSION);
         expect(sessionB.sessionId).toBe(SESSION_B);
-        expect(sessionB.defaultConnectionId).toBe(DB_A);
         expect(sessionB.connections.map((connection: { connectionId: string }) => connection.connectionId)).toEqual([DB_A]);
 
         // A migrated storage stays as it is

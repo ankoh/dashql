@@ -26,7 +26,7 @@ import {
 } from '../../../ui/foundations/symbol_icon.js';
 import { classNames } from '../../../utils/classnames.js';
 import { ConnectionHealth, type ConnectionState } from '../connection_state.js';
-import { isListedConnection, type ConnectionReferences, type ConnectionRegistry, type ResolvedSessionConnections } from '../connection_registry.js';
+import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from '../connection_registry.js';
 import { useCatalogLoaderQueue } from '../catalog_loader.js';
 import { isCatalogRefreshRunning } from '../catalog_update_state.js';
 import { canRefreshConnection } from './connection_refresh.js';
@@ -720,10 +720,6 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         </div>
     );
 };
-
-export function connectionDisplayOrder(attached: ResolvedSessionConnections): ConnectionState[] {
-    return [attached.main, ...attached.attached];
-}
 
 /// The connections shown next to the sessions.
 /// The connections of the current session come first, followed by the connections of other

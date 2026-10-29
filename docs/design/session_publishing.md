@@ -26,9 +26,8 @@ Static HTTP servers cannot enumerate folders, so `dashql-session.json` lists the
 
 ```json
 {
-  "formatVersion": 7,
+  "formatVersion": 8,
   "sessionId": "…",
-  "defaultConnectionId": "22bdfa32-…",
   "connections": [
     { "connectionId": "22bdfa32-…", "params": { "…": "…" } },
     { "connectionId": "9f0c6e1a-…", "params": { "…": "…" } }
@@ -42,8 +41,12 @@ Static HTTP servers cannot enumerate folders, so `dashql-session.json` lists the
 }
 ```
 
-- `connections` holds a copy of every connection the scripts use, so the tree is self-contained.
-  `defaultConnectionId` names the connection of new and unlisted scripts.
+- `connections` holds a copy of every connection the scripts use and nothing else, in the order the scripts
+  first use them, so the tree is self-contained. A session without scripts holds the one connection its first
+  script will run on. Unlisted script files run on the connection of the script before them. Exports drop the
+  connections that no script uses.
+- An embedded database (`"protocol": "WASM"`) is never a choice on import: the app holds a single connection
+  to its embedded Hyper, every embedded database of an imported session uses it.
 - The script list is authoritative for the order of the scripts and for the connection each script is
   analyzed and executed with. File names carry no meaning: a numeric prefix like `01_` is an ordinary part
   of the name, and reordering scripts only rewrites the list.
@@ -51,7 +54,7 @@ Static HTTP servers cannot enumerate folders, so `dashql-session.json` lists the
 - `connections/<id>/` carries the relation and function catalogs of each connection of the session
   (`bundleCatalogPath`, `packages/dashql-app/src/app/storage/session_bundle.ts`). The catalog changes of
   executed statements are not published. Bundles of format 6 and older carry top-level catalog files, which
-  are read for the default connection.
+  are read for the default connection of that format.
 
 ## Reconciling Lists and Files
 
@@ -129,6 +132,27 @@ Remote trees use the portable import path of `.dashql` files and inline ZIP link
 - Close: no storage changes.
 
 OPFS and registered native sessions both participate in the UUID check.
+
+## Imported Connections
+
+Exports give every connection a fresh id, so an import finds the connections of the app by their params
+(`planConnectionImport`, `packages/dashql-app/src/app/session/persistence/session_connection_import.ts`):
+
+- A connection that the app knows under the same id and the same params (ignoring secrets) is used silently.
+- A server connection whose params match connections of the app asks the user whether to use one of them or
+  keep a connection of its own. Unknown connections are registered.
+- An embedded database (`"protocol": "WASM"`) always uses the embedded database of the app, without a question.
+  Its id is rewritten in `connections`, in the `connectionId` of every script and in the names of its catalogs.
+  The restoration of the app does the same for an embedded database with an unknown id
+  (`resolveSessionConnection`, `packages/dashql-app/src/app/session/persistence/app_state_loader.ts`).
+
+**Open problem: attached databases of the embedded database.** The params of an embedded database may list
+`attachedDatabases` (e.g. `tpch.hyper`). An imported session takes the params of the embedded database of the
+app, so the databases that the session attached are dropped and scripts that read from them fail until the user
+attaches them again. Before the app held a single embedded database, such a session registered an embedded
+database of its own. A solution could merge the attached databases into the embedded database of the app or
+attach them per session; it has to settle what happens when two sessions attach different files under the
+same alias.
 
 ## Bundled Examples
 

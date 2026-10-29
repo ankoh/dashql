@@ -28,12 +28,10 @@ function session(scripts: any[]): SessionScripts {
     return {
         sessionId: 's1',
         name: 'Revenue',
-        connectionId: 'db',
+        pendingConnection: scripts.length === 0 ? { connectionId: 'db', connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER], catalog: {} as any } : null,
         settings: { cacheQueryResults: false },
         instance: {} as any,
         sessionMetadata: {} as any,
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-        connectionCatalog: {} as any,
         scripts: Object.fromEntries(scripts.map(s => [s.scriptKey, s])),
         scriptRefs: Object.fromEntries(scripts.map(s => [s.fileName, { scriptId: s.scriptKey, fileName: s.fileName }])),
         scriptOrder: scripts.map(s => s.fileName),
@@ -83,7 +81,7 @@ describe('agent commands', () => {
         const result = await run('scripts');
         expect(result.text).toBe([
             'Session "Revenue" (s1)',
-            'Default connection: db (Hyper, read-write, online)',
+            'Connections: db (Hyper, read-write, online)',
             'Scripts:',
             '  orders  1 line  (focused)',
             '  Customers  2 lines',
@@ -108,7 +106,7 @@ describe('agent commands', () => {
     it('marks read-only connections', async () => {
         useLake();
         const result = await run('scripts');
-        expect(result.text).toContain('Default connection: db (Hyper, read-write, online)\nOther connections: lake (Trino, read-only, online)');
+        expect(result.text).toContain('Connections: db (Hyper, read-write, online), lake (Trino, read-only, online)');
         expect(result.text).toContain('  events  1 line  on lake');
         expect((result.data as any).connections).toEqual([
             { id: 'db', connector: 'Hyper', readOnly: false, online: true },

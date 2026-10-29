@@ -17,7 +17,7 @@ describe('initial Memory setup', () => {
     const logger = { warn: vi.fn() } as unknown as Logger;
 
     function Consumer(props: { sessionId: string | null; database: ConnectionState | null }) {
-        useInitialMemorySetup(props.sessionId, props.database, setup, dispatch, logger);
+        useInitialMemorySetup(props.sessionId, props.database == null ? null : [props.database], setup, dispatch, logger);
         return <div>Session visible</div>;
     }
 

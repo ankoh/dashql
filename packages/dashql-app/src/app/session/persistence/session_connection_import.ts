@@ -1,9 +1,7 @@
 import { connectionParamsShareEqual, type ConnectionParams } from '../../connections/connection_params.js';
 import type { ConnectionEntry, SessionConnection, SessionData } from '../../storage/storage_backend.js';
 import { dedupeConnections } from '../../storage/storage_writer.js';
-
-/// How a session uses a connection, as its default connection or for some of its scripts
-export type SessionConnectionRole = 'main' | 'attached';
+import { isLocalHyperWasmParams } from '../../storage/session_validation.js';
 
 /// A connection that a session brings along
 export interface ImportedConnectionRef {
@@ -11,8 +9,6 @@ export interface ImportedConnectionRef {
     connectionId: string;
     /// The params of the connection in the session, shared sessions carry them without secrets
     params: ConnectionParams;
-    /// How the session uses the connection
-    role: SessionConnectionRole;
 }
 
 /// How an imported connection relates to the connections of the app
@@ -51,13 +47,19 @@ function findEntry(entries: readonly ConnectionEntry[], connectionId: string): C
 /// describes the same database, or shares the id but not the params, is a candidate for
 /// consolidation that the user decides on. Exports usually regenerate the ids, so the candidates are
 /// found by params.
+///
+/// The embedded database is not a choice: the app holds a single connection to it, every embedded
+/// database of a session uses that one. It is registered only when the app doesn't have one.
 export function planConnectionImport(session: SessionData, entries: readonly ConnectionEntry[]): ConnectionImportPlanItem[] {
     const refs: ImportedConnectionRef[] = session.connections.map(connection => ({
         connectionId: connection.connectionId,
         params: connection.params,
-        role: connection.connectionId === session.defaultConnectionId ? 'main' : 'attached',
     }));
+    const embedded = entries.find(entry => isLocalHyperWasmParams(entry.params)) ?? null;
     return refs.map(ref => {
+        if (isLocalHyperWasmParams(ref.params)) {
+            return { ref, decision: embedded == null ? { kind: 'register' } : { kind: 'link', connectionId: embedded.id } };
+        }
         const sameId = findEntry(entries, ref.connectionId);
         if (sameId != null && connectionParamsShareEqual(sameId.params, ref.params)) {
             return { ref, decision: { kind: 'link', connectionId: sameId.id } };
@@ -128,11 +130,10 @@ export function applyConnectionImportPlan(
         const resolved = resolve(connection.connectionId);
         return { connectionId: resolved.connectionId, params: resolved.entry?.params ?? connection.params };
     };
-    // The default connection and the scripts follow their connections
+    // The scripts follow their connections
     return {
         session: {
             ...session,
-            defaultConnectionId: resolve(session.defaultConnectionId).connectionId,
             connections: dedupeConnections(session.connections.map(rewrite)),
             scripts: session.scripts.map(script => ({ ...script, connectionId: resolve(script.connectionId).connectionId })),
         },
@@ -143,7 +144,6 @@ export function applyConnectionImportPlan(
 /// Did resolving the connections change the references of the session?
 export function connectionRefsChanged(before: SessionData, after: SessionData): boolean {
     const refs = (session: SessionData) => JSON.stringify([
-        session.defaultConnectionId,
         ...session.connections.flatMap(connection => [connection.connectionId, connection.params]),
         ...session.scripts.map(script => script.connectionId),
     ]);

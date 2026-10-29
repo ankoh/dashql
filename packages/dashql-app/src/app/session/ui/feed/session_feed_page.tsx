@@ -1,10 +1,11 @@
 import * as React from 'react';
 import * as styles from './session_feed_page.module.css';
 
-import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { LinkIcon, PaperAirplaneIcon, PlugIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../../../ui/foundations/symbol_icon.js';
 
 import { ConnectionHealth, type ConnectionState } from '../../../connections/connection_state.js';
 import {
+    scriptConnectionIds,
     SELECT_SCRIPT,
     type SessionScripts,
 } from '../../scripts/session_scripts.js';
@@ -24,7 +25,9 @@ import { useSessionExecution } from '../../scripts/session_execution_provider.js
 import { IndicatorStatus, StatusIndicator } from '../../../../ui/foundations/status_indicator.js';
 import { AnchoredOverlay } from '../../../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../../../ui/foundations/anchored_position.js';
-import { ExecuteConnectionGuard, SessionConnectionAttentionContext, useSessionConnectionAttention } from '../session_connection_attention.js';
+import { connectionHealthKey, connectionsToConnect, ExecuteConnectionGuard, SessionConnectionAttentionContext, useSessionConnectionAttention } from '../session_connection_attention.js';
+import { SessionConnectionButtons } from './session_connection_buttons.js';
+import { ConnectionSettingsOverlay } from '../../../connections/ui/connection_settings_overlay.js';
 import { useAppFlavor } from '../../../flavor/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../../connections/ui/connection_overview_page.js';
 import { AgentSessionMenu } from '../../../agent/agent_session_menu.js';
@@ -44,6 +47,8 @@ export interface SessionFeedPageDependencies {
     Dashboard: typeof Dashboard;
     SessionURLShareOverlay: typeof SessionURLShareOverlay;
     SessionFileSaveOverlay: typeof SessionFileSaveOverlay;
+    SessionConnectionButtons: typeof SessionConnectionButtons;
+    ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
     useSessionViewMode: typeof useSessionViewMode;
     useAppConfig: typeof useAppConfig;
     SegmentedControl: typeof SegmentedControl;
@@ -62,6 +67,8 @@ const DEFAULT_DEPENDENCIES: SessionFeedPageDependencies = {
     Dashboard,
     SessionURLShareOverlay,
     SessionFileSaveOverlay,
+    SessionConnectionButtons,
+    ConnectionSettingsOverlay,
     useSessionViewMode,
     useAppConfig,
     SegmentedControl,
@@ -71,6 +78,7 @@ const DEFAULT_DEPENDENCIES: SessionFeedPageDependencies = {
 interface Props {
     sessionScripts: SessionScripts;
     modifySessionScripts: ModifySessionScripts;
+    /// The connection that the next script of the session runs on
     connection: ConnectionState | null;
     /// The connections that the scripts of the session run on
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
@@ -93,13 +101,17 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
     const [shareOpen, setShareOpen] = React.useState(false);
     const [exportOpen, setExportOpen] = React.useState(false);
     const archiveExport = useAppFlavor().features.sessionArchiveExport;
-    const connectionHealth = props.connection?.connectionHealth;
-    const disconnected = connectionHealth !== ConnectionHealth.ONLINE;
-    const connectionAttention = useSessionConnectionAttention(props.sessionScripts.sessionId, props.connection?.connectionId ?? null, connectionHealth);
-    // A session run takes every connection that a script runs on
+    // A session run takes every connection that a script runs on, they have to be connected first
     const scriptConnections = props.scriptConnections ?? new Map(props.connection == null ? [] : [[props.connection.connectionId, props.connection]]);
-    const scriptConnectionsIdle = scriptConnections.size > 0 && [...scriptConnections.values()].every(connection =>
+    const runConnections = scriptConnectionIds(props.sessionScripts).flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
+    const toConnect = connectionsToConnect(runConnections);
+    const disconnected = toConnect.length > 0;
+    const connectionAttention = useSessionConnectionAttention(props.sessionScripts.sessionId, connectionHealthKey(runConnections));
+    const scriptConnectionsIdle = runConnections.length > 0 && runConnections.every(connection =>
         connection.connectionHealth === ConnectionHealth.ONLINE && (connection.queriesActive?.size ?? 0) === 0);
+    // "Connect to run" opens the settings of the first connection that is not connected
+    const [connectConnectionId, setConnectConnectionId] = React.useState<string | null>(null);
+    React.useEffect(() => setConnectConnectionId(null), [props.sessionScripts.sessionId]);
     const execution = dependencies.useSessionExecution(props.sessionScripts.sessionId);
     const run = execution.state;
     const [executionDetailsOpen, setExecutionDetailsOpen] = React.useState(false);
@@ -161,15 +173,28 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                     <div className={styles.execution_controls}>
                         <ExecuteConnectionGuard sessionId={props.sessionScripts.sessionId} blocked={disconnected && !execution.busy}>
                         <dependencies.Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                            leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
-                            aria-label={execution.busy ? 'Stop session execution' : 'Execute All'}
+                            leadingVisual={execution.busy ? SquareFillIcon : disconnected ? PlugIcon : PaperAirplaneIcon}
+                            aria-label={execution.busy ? 'Stop session execution' : disconnected ? 'Connect to run' : 'Execute All'}
                             data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
-                            disabled={execution.busy ? run?.phase === 'stopping' : !scriptConnectionsIdle
-                                || props.sessionScripts.scriptOrder.length === 0}
-                            onClick={() => execution.busy ? execution.stop() : !disconnected && execution.start(props.modifySessionScripts)}>
-                            <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
+                            data-connect={!execution.busy && disconnected ? '' : undefined}
+                            disabled={execution.busy ? run?.phase === 'stopping' : !disconnected && (!scriptConnectionsIdle
+                                || props.sessionScripts.scriptOrder.length === 0)}
+                            onClick={() => execution.busy ? execution.stop()
+                                : disconnected ? setConnectConnectionId(toConnect[0].connectionId)
+                                : execution.start(props.modifySessionScripts)}>
+                            <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : disconnected ? 'Connect to run' : 'Execute All'}</span>
                         </dependencies.Button>
                         </ExecuteConnectionGuard>
+                        {/* Mounted only while open, the overlay subscribes to the connection */}
+                        {connectConnectionId != null && (
+                            <dependencies.ConnectionSettingsOverlay
+                                connectionId={connectConnectionId}
+                                isOpen
+                                onClose={() => setConnectConnectionId(null)}
+                                anchorRef={executeRef}
+                                side={AnchorSide.OutsideBottom}
+                            />
+                        )}
                         <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
                             title={run?.error ?? undefined} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
                             {run && <>
@@ -223,12 +248,13 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                     isOpen={exportOpen}
                                     setIsOpen={setExportOpen}
                                     anchorRef={exportTriggerRef}
-                                    conn={props.connection}
                                     sessionScripts={props.sessionScripts}
                                     fileName={props.sessionScripts.name ?? props.sessionScripts.sessionMetadata.originalFileName ?? 'session'}
                                 />
                             </>
                         )}
+                        {/* The connections of the scripts at the right end of the bar, the user sees which one is not connected */}
+                        <dependencies.SessionConnectionButtons connections={runConnections} attention={connectionAttention.active} />
                     </div>
                 </>}
             </header>

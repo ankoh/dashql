@@ -5,7 +5,7 @@ import { SessionScripts } from './session_scripts.js';
 // removeSessionScriptsFromRegistry only reads sessionScriptsMap and the connections of the scripts,
 // so a tiny stand-in SessionScripts is enough — no Wasm needed.
 function scripts(sessionId: string, connectionId: string = `connection-${sessionId}`): SessionScripts {
-    return { sessionId, connectionId, scripts: {} } as unknown as SessionScripts;
+    return { sessionId, pendingConnection: { connectionId }, scripts: {}, scriptRefs: {}, scriptOrder: [] } as unknown as SessionScripts;
 }
 
 function registry(sessionIds: string[]): SessionScriptsRegistry {

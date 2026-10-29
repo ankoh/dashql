@@ -59,7 +59,6 @@ describe('session creation', () => {
             expect(registry.sessionScriptsByConnection.get(TEST_CONNECTION_ID)).toEqual([sessionId, firstId, secondId]);
             await writer.flush();
             const session = backend.sessions.get(sessionId)!;
-            expect(session.defaultConnectionId).toBe(TEST_CONNECTION_ID);
             expect(session.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params }]);
         } finally {
             act(() => root.unmount());

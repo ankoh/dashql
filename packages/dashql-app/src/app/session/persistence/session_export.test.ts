@@ -162,7 +162,13 @@ describe('V2 session export', () => {
         const otherConnectionId = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
         await backend.saveSessionManifest(TEST_SESSION_ID, testSession({
             ...testConnections(testSession().connections[0], { connectionId: otherConnectionId, params: { hyper: {} } as any }),
+            scripts: [
+                { name: '01_main.sql', connectionId: TEST_CONNECTION_ID },
+                { name: '02_other.sql', connectionId: otherConnectionId },
+            ],
         }));
+        await backend.saveScript(TEST_SESSION_ID, '01_main.sql', 'SELECT 1');
+        await backend.saveScript(TEST_SESSION_ID, '02_other.sql', 'SELECT 2');
         await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', 'schema');
         await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-functions.sql', 'functions');
         await backend.saveConnectionFile(otherConnectionId, 'dashql-catalog-relations.sql', 'other');
@@ -181,6 +187,24 @@ describe('V2 session export', () => {
         expect(await archive.file(`connections/${main}/dashql-catalog-functions.sql`)!.async('text')).toBe('functions');
         expect(await archive.file(`connections/${other}/dashql-catalog-relations.sql`)!.async('text')).toBe('other');
         expect(archive.file(/^connections\//)).toHaveLength(3);
+    });
+
+    it('carries only the connections that the scripts use', async () => {
+        const backend = new SessionTestBackend();
+        const otherConnectionId = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
+        await backend.saveSessionManifest(TEST_SESSION_ID, testSession({
+            ...testConnections(testSession().connections[0], { connectionId: otherConnectionId, params: { trino: { endpoint: 'https://trino.example' } } as any }),
+            scripts: [{ name: '01_remote.sql', connectionId: otherConnectionId }],
+        }));
+        await backend.saveScript(TEST_SESSION_ID, '01_remote.sql', 'SELECT 1');
+        await backend.saveConnectionFile(TEST_CONNECTION_ID, 'dashql-catalog-relations.sql', 'embedded');
+        await backend.saveConnectionFile(otherConnectionId, 'dashql-catalog-relations.sql', 'remote');
+
+        const archive = await JSZip.loadAsync(await exportSessionAsSharedZip(backend, TEST_SESSION_ID, new Map(), { preserveUUIDs: true }));
+        const exported = JSON.parse(await archive.file('dashql-session.json')!.async('text')) as SessionData;
+        // The embedded database that no script uses stays behind with its catalog
+        expect(exported.connections.map(connection => connection.connectionId)).toEqual([otherConnectionId]);
+        expect(archive.file(/^connections\//).map(file => file.name)).toEqual([`connections/${otherConnectionId}/dashql-catalog-relations.sql`]);
     });
 
     it('generates new session and connection UUIDs for shared exports by default', async () => {
@@ -207,13 +231,16 @@ describe('V2 session export', () => {
             `${hyperOPFSRoot()}/sessions/${exported.sessionId}/attachments/payload.bin`);
 
         expect(exported.sessionId).not.toBe(TEST_SESSION_ID);
-        expect(exported.defaultConnectionId).not.toBe(TEST_CONNECTION_ID);
-        expect(exported.connections[0].connectionId).toBe(exported.defaultConnectionId);
-        expect(exported.connections[1].connectionId).not.toBe(otherConnectionId);
+        expect(exported).not.toHaveProperty('defaultConnectionId');
+        // The connections follow the scripts in the order the scripts use them
+        expect(exported.connections.map((connection: { connectionId: string }) => connection.connectionId))
+            .toEqual(exported.scripts.map((script: { connectionId: string }) => script.connectionId));
+        expect(exported.connections[0].connectionId).not.toBe(otherConnectionId);
+        expect(exported.connections[1].connectionId).not.toBe(TEST_CONNECTION_ID);
         // The scripts keep their order and follow their connections to the new ids
         expect(exported.scripts).toEqual([
-            { name: '02_attached.sql', connectionId: exported.connections[1].connectionId },
-            { name: '01_attachment.sql', connectionId: exported.defaultConnectionId },
+            { name: '02_attached.sql', connectionId: exported.connections[0].connectionId },
+            { name: '01_attachment.sql', connectionId: exported.connections[1].connectionId },
         ]);
     });
 
@@ -230,7 +257,6 @@ describe('V2 session export', () => {
         const exported = JSON.parse(await archive.file('dashql-session.json')!.async('text'));
 
         expect(exported.sessionId).toBe(TEST_SESSION_ID);
-        expect(exported.defaultConnectionId).toBe(TEST_CONNECTION_ID);
         expect(exported.connections[0].connectionId).toBe(TEST_CONNECTION_ID);
     });
 
