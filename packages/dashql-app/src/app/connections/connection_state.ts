@@ -486,7 +486,10 @@ function stopConnection(state: ConnectionState, action: ConnectionAction, reason
     for (const task of state.catalogUpdates.tasksRunning.values()) {
         task.cancellation.abort(new DOMException(`Connection was ${reason}`, 'AbortError'));
     }
-    // XXX Cancel currently running queries
+    // The queries run on the channel of the stopped connection, the executor stops them at the backend
+    for (const query of state.queriesActive.values()) {
+        query.cancellation.abort(new DOMException(`Connection was ${reason}`, 'AbortError'));
+    }
     const cleaned: ConnectionState = {
         ...state,
         connectionStatus: ConnectionStatus.NOT_STARTED,
@@ -502,7 +505,10 @@ function stopConnection(state: ConnectionState, action: ConnectionAction, reason
             restoredAt: null,
         },
         queriesActive: new Map(),
+        queriesActiveOrdered: [],
         queriesFinished: new Map(),
+        queriesFinishedOrdered: [],
+        snapshotQueriesActiveFinished: state.snapshotQueriesActiveFinished + 1,
     };
     // Cleaning up the details is best-effort, the connector may ignore the action
     return reduceConnectorDetails(cleaned, action) ?? cleaned;

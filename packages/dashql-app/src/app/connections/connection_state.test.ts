@@ -16,6 +16,7 @@ import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
 import { createConnectionStateDetails } from './connection_state_details.js';
 import { beginCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from './catalog_batch.js';
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
+import { createQueryExecutionState, QueryType } from '../../query/query_execution_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
@@ -78,6 +79,19 @@ describe('attached database descriptor catalogs', () => {
             for (let i = 0; i < 10; ++i) await Promise.resolve();
             return 'still pending';
         })()])).toBe('AbortError');
+    });
+
+    it.each([RESET_CONNECTION, DELETE_CONNECTION] as const)('cancels the running queries on %s', type => {
+        const database = state();
+        const cancellation = new AbortController();
+        const query = createQueryExecutionState(1, 1, 'SELECT 1', { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true }, cancellation);
+        database.queriesActive.set(1, query);
+        database.queriesActiveOrdered.push(1);
+        const next = reduceConnectionState(database, { type, value: null }, {} as any);
+        expect(cancellation.signal.aborted).toBe(true);
+        expect(cancellation.signal.reason.name).toBe('AbortError');
+        expect(next.queriesActive.size).toBe(0);
+        expect(next.queriesActiveOrdered).toEqual([]);
     });
 
     it('drops both descriptors before destroying their text-only source scripts', () => {

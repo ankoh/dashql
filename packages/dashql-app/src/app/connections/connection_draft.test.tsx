@@ -39,7 +39,7 @@ function database(type: ConnectorType): ConnectionState {
         connectionId: TEST_CONNECTION_ID, connectorInfo, params, active: false,
         connectionStatus: ConnectionStatus.NOT_STARTED, connectionHealth: ConnectionHealth.NOT_STARTED,
         details: getConnectionStateDetailsFromParams(params),
-        catalog: { clear: vi.fn() }, catalogUpdates: { tasksRunning: new Map() },
+        catalog: { clear: vi.fn() }, catalogUpdates: { tasksRunning: new Map() }, queriesActive: new Map(),
     } as unknown as ConnectionState;
 }
 function reduce(state: ConnectionState, action: ConnectionAction) {
