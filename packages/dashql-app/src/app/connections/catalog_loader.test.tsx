@@ -142,6 +142,20 @@ describe('CatalogLoaderProvider queue', () => {
         expect(scriptsDispatch).toHaveBeenCalledTimes(1);
     });
 
+    it('refreshes again when executed statements superseded a running refresh', async () => {
+        await render();
+        await act(async () => enqueue('database', false));
+        expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
+        // A statement changed the catalog while the metadata was fetched
+        const connection = registry.connections.get('database')!;
+        registry.connections.set('database', { ...connection, catalogChangesSql: 'CREATE TABLE created(a int);' });
+        await settleUpdate(() => updates[0].reject(new DOMException('Catalog refresh was cancelled or superseded', 'AbortError')), true);
+        expect(dispatch.mock.calls.some(([, action]) => action.type === CATALOG_UPDATE_CANCELLED)).toBe(true);
+        await vi.waitFor(() => expect(updateHyperCatalog).toHaveBeenCalledTimes(2));
+        await settleUpdate(() => updates[1].resolve());
+        expect(scriptsDispatch).toHaveBeenCalledTimes(1);
+    });
+
     it('drains an auto request after failure without a registry rerender or another enqueue', async () => {
         await render();
         await act(async () => enqueue('database', true));

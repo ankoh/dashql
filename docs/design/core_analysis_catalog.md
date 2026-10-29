@@ -425,6 +425,10 @@ persisting them needs the analyzer and scripts and lives in `dashql-core-session
 `ScriptExecution` derives the change of every compiled statement up front and emits it with the
 statement's successful result.
 
+An applied change supersedes a running refresh of the connection (`invalidateCatalogBatch`): the
+refresh may have read the metadata before the statement ran, and publishing it would undo the change.
+The catalog loader starts the refresh again.
+
 ## Wasm boundary and app
 
 **Ownership** (`packages/dashql-core-wasm/src/lib.rs`)

@@ -14,7 +14,7 @@ import {
 import { TestLogger } from '../../platform/logger/test_logger.js';
 import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
 import { createConnectionStateDetails } from './connection_state_details.js';
-import { publishCatalogBatch, publishCatalogBatchSync } from './catalog_batch.js';
+import { beginCatalogBatch, publishCatalogBatch, publishCatalogBatchSync } from './catalog_batch.js';
 import { CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -131,6 +131,17 @@ describe('catalog changes of executed statements', () => {
         expect(next.catalogChangesSql).toContain('CREATE TABLE "hyper"."other"."created"');
         // The source script stays as the database reported it
         expect(next.catalogRelationScript.toString()).toContain('stored');
+    });
+
+    it('supersede a running catalog refresh', () => {
+        const database = state();
+        const validate = beginCatalogBatch(database.catalog);
+        validate();
+        reduceConnectionState(database, {
+            type: APPLY_CATALOG_CHANGES,
+            value: [change(CREATE, '', 'created', ['a'])],
+        }, new TestLogger());
+        expect(validate).toThrow('superseded');
     });
 
     it('are cleared by a catalog refresh', () => {

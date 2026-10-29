@@ -519,6 +519,8 @@ function applyCatalogChanges(state: ConnectionState, changes: core.buffers.catal
     try {
         const qualified = state.instance.qualifyCatalogChanges(changes, catalogNameDefaults(state.details));
         state.catalog.applyCatalogChanges(state.catalogRelationScript.catalog_entry_id, core.buffers.catalog.CatalogLayer.CONNECTION, qualified);
+        // A running refresh may have read the metadata before the statements ran, publishing it would undo the changes
+        invalidateCatalogBatch(state.catalog);
         const catalogChangesSql = state.instance.appendCatalogChangesSql(state.catalogChangesSql, qualified);
         logger.info('Applied catalog changes of executed statements', {
             connectionId: state.connectionId,

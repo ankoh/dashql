@@ -96,6 +96,12 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
         }
     }, [connReg, connMap]);
 
+    // Maintain a queue
+    const [queueState, setQueueState] = React.useState<CatalogLoaderQueue>(() => ({ queue: new Map() }));
+    const enqueue = React.useCallback<RefreshCatalogFn>((connectionId: string, force: boolean) => {
+        setQueueState(s => ({ queue: new Map(s.queue).set(connectionId, force || s.queue.get(connectionId) === true) }));
+    }, []);
+
     // Execute a query with pre-allocated query id
     const updateImpl = React.useCallback(async (connectionId: string, _args: CatalogLoaderArgs, updateId: number): Promise<void> => {
         // Each catalog update gets its own trace so failures don't borrow
@@ -231,6 +237,11 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                     type: CATALOG_UPDATE_CANCELLED,
                     value: [updateId, e],
                 });
+                // Executed statements changed the catalog during the refresh and superseded it, refresh again
+                const current = connMap.get(connectionId);
+                if (!abortController.signal.aborted && current?.catalog === conn.catalog && current.catalogChangesSql !== conn.catalogChangesSql) {
+                    enqueue(connectionId, true);
+                }
             } else {
                 traced.error("Failed to update catalog", { connectionId, "error": e?.message ?? String(e) }, LOG_CTX);
                 connDispatch(connectionId, {
@@ -247,7 +258,7 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                 "durationMs": totalMs.toFixed(0),
             }, LOG_CTX);
         }
-    }, [connMap, sfapi, executor, dependencies.updateHyperCatalog]);
+    }, [connMap, sfapi, executor, dependencies.updateHyperCatalog, enqueue]);
 
     // Allocate the next query id and start the execution
     const update = React.useCallback<CatalogLoader>((connectionId: string, args: CatalogLoaderArgs): [number, Promise<void>] => {
@@ -255,12 +266,6 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
         const execution = updateImpl(connectionId, args, updateId);
         return [updateId, execution];
     }, [updateImpl]);
-
-    // Maintain a queue
-    const [queueState, setQueueState] = React.useState<CatalogLoaderQueue>(() => ({ queue: new Map() }));
-    const enqueue = React.useCallback<RefreshCatalogFn>((connectionId: string, force: boolean) => {
-        setQueueState(s => ({ queue: new Map(s.queue).set(connectionId, force || s.queue.get(connectionId) === true) }));
-    }, []);
 
     // The catalog of a connection whose database doesn't outlive the app is not restored from
     // storage, it is described by a refresh whenever the connection comes online. A connection that
