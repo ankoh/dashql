@@ -336,7 +336,46 @@ export function sessionScriptListWrite(state: SessionScripts): SessionScriptList
 }
 
 /// Persist the order and the connections of the cells, the session file follows with its connections
-function writeSessionScriptList(state: SessionScripts, storage: StorageWriter) {
+/// The storage of the session reducer. The registry defers the effects of a reduction until it returned: a
+/// reducer that throws leaves the storage and the native objects of the previous state untouched.
+export interface SessionScriptsStorage {
+    /// Schedule a write
+    write: StorageWriter['write'];
+    /// Free native objects that the previous state still references, right away without a registry
+    release?(free: () => void): void;
+}
+
+/// The effects of a session reduction, applied once it returned
+export class SessionScriptsEffects implements SessionScriptsStorage {
+    private readonly writes: Array<() => void> = [];
+    private readonly frees: Array<() => void> = [];
+
+    constructor(private readonly storage: StorageWriter) { }
+
+    write(...args: Parameters<StorageWriter['write']>): Promise<boolean> {
+        return new Promise<boolean>((resolve, reject) => {
+            this.writes.push(() => this.storage.write(...args).then(resolve, reject));
+        });
+    }
+    release(free: () => void): void {
+        this.frees.push(free);
+    }
+    /// Apply the effects, in the order of the reduction
+    commit(): void {
+        for (const write of this.writes) write();
+        for (const free of this.frees) free();
+        this.writes.length = 0;
+        this.frees.length = 0;
+    }
+}
+
+/// Free native objects of the previous state once the reduction returned
+function release(storage: SessionScriptsStorage, free: () => void) {
+    if (storage.release) storage.release(free);
+    else free();
+}
+
+function writeSessionScriptList(state: SessionScripts, storage: SessionScriptsStorage) {
     void storage.write(
         groupSessionScriptListWrites(state.sessionId),
         { type: WRITE_SESSION_SCRIPTS, value: [state.sessionId, sessionScriptListWrite(state)] },
@@ -344,7 +383,7 @@ function writeSessionScriptList(state: SessionScripts, storage: StorageWriter) {
     );
 }
 
-function writeSessionProperties(state: SessionScripts, storage: StorageWriter) {
+function writeSessionProperties(state: SessionScripts, storage: SessionScriptsStorage) {
     void storage.write(
         groupSessionManifestWrites(state.sessionId),
         { type: WRITE_SESSION_PROPERTIES, value: [state.sessionId, { name: state.name, settings: state.settings }] },
@@ -352,7 +391,7 @@ function writeSessionProperties(state: SessionScripts, storage: StorageWriter) {
     );
 }
 
-export function reduceSessionScripts(state: SessionScripts, action: SessionScriptsAction, storage: StorageWriter, logger: Logger): SessionScripts {
+export function reduceSessionScripts(state: SessionScripts, action: SessionScriptsAction, storage: SessionScriptsStorage, logger: Logger): SessionScripts {
     switch (action.type) {
         case RENAME_SESSION: {
             const trimmed = action.value?.trim() ?? '';
@@ -662,7 +701,7 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             const pendingConnection = remainingFiles.length === 0
                 ? state.pendingConnection ?? deletedScript?.connection ?? null
                 : state.pendingConnection;
-            const next = destroyDeadScripts({
+            const next = destroyDeadScripts(storage, {
                 ...clearSemanticUserFocus(state),
                 pendingConnection,
                 scriptRefs,
@@ -848,7 +887,7 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             // its key. The new session is created first, a failure leaves the script untouched.
             let moved: [number, ScriptData];
             try {
-                moved = moveScriptData(state.instance, prev, connection);
+                moved = moveScriptData(storage, state.instance, prev, connection);
             } catch (e: any) {
                 logger.warn("Failed to move script to another connection", { fileName, error: stringifyError(e) }, LOG_CTX);
                 return state;
@@ -899,7 +938,7 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             for (const prev of Object.values(state.scripts)) {
                 if (prev.connection.connectionId !== from) continue;
                 try {
-                    const [scriptKey, scriptData] = moveScriptData(state.instance, prev, target);
+                    const [scriptKey, scriptData] = moveScriptData(storage, state.instance, prev, target);
                     scripts[scriptKey] = scriptData;
                     moved += 1;
                 } catch (e: any) {
@@ -1070,11 +1109,11 @@ function dropScriptData(data: ScriptData) {
     destroyScriptData(data);
 }
 
-/// Move a script to another connection, the previous script data is dropped.
+/// Move a script to another connection, the previous script data is dropped once the reduction returned.
 /// A failure leaves the previous script data untouched.
-function moveScriptData(instance: core.DashQL, prev: ScriptData, connection: ScriptConnection): [number, ScriptData] {
+function moveScriptData(storage: SessionScriptsStorage, instance: core.DashQL, prev: ScriptData, connection: ScriptConnection): [number, ScriptData] {
     const moved = createMovedScriptData(instance, prev, connection);
-    dropScriptData(prev);
+    release(storage, () => dropScriptData(prev));
     return moved;
 }
 
@@ -1210,7 +1249,8 @@ export function replaceSessionScriptsFromStorage(
     return next;
 }
 
-function destroyDeadScripts(state: SessionScripts): SessionScripts {
+/// Drop the scripts that no file refers to anymore, once the reduction returned
+function destroyDeadScripts(storage: SessionScriptsStorage, state: SessionScripts): SessionScripts {
     // Determine script liveness from the committed cell collection.
     let deadScripts = new Map<number, ScriptData>();
     for (const key in state.scripts) {
@@ -1227,8 +1267,10 @@ function destroyDeadScripts(state: SessionScripts): SessionScripts {
     const cleanedScripts: ScriptDataMap = { ...state.scripts };
     // Delete scripts
     for (const [k, v] of deadScripts) {
-        v.scriptSession.dropFromCatalog();
-        destroyScriptData(v);
+        release(storage, () => {
+            v.scriptSession.dropFromCatalog();
+            destroyScriptData(v);
+        });
         delete cleanedScripts[k];
     }
     // The remaining scripts of their catalogs may have referenced their declarations

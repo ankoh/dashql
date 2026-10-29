@@ -24,6 +24,7 @@ import {
     sessionScriptsMatchStorageSnapshot,
     type SessionScripts,
     reduceSessionScripts,
+    SessionScriptsEffects,
     RENAME_SCRIPT,
     RENAME_SESSION,
     UPDATE_FROM_PROCESSOR,
@@ -114,6 +115,22 @@ describe('V2 flat session script mutations', () => {
         expect(writer.records.some(task => task.type.description === 'RENAME_SCRIPT')).toBe(true);
         expect(writer.records.some(task => task.type.description === 'WRITE_SESSION_SCRIPTS')).toBe(true);
         expect(writer.records.some(task => task.type.description === 'DELETE_SCRIPT')).toBe(true);
+    });
+
+    it('defers the writes and frees of a reduction until its effects are committed', () => {
+        const writer = new RecordingWriter(logger, new SessionTestBackend());
+        const current = state(['1_alpha.sql', '2_beta.sql']);
+        const deleted = current.scripts[current.scriptRefs['1_alpha.sql'].scriptId];
+        const effects = new SessionScriptsEffects(writer);
+        const next = reduceSessionScripts(current, { type: DELETE_SCRIPT, value: '1_alpha.sql' }, effects, logger);
+        expect(next.scriptOrder).toEqual(['2_beta.sql']);
+        // A reduction that throws would leave the previous state intact, its effects are never committed
+        expect(writer.records).toEqual([]);
+        expect(deleted.scriptSession.ptr.isNull()).toBe(false);
+
+        effects.commit();
+        expect(writer.records.some(task => task.type.description === 'DELETE_SCRIPT')).toBe(true);
+        expect(deleted.scriptSession.ptr.isNull()).toBe(true);
     });
 
     it('persists settings together with the name and skips unchanged settings', () => {

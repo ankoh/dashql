@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptData, destroySessionScripts, newScriptConnection, reduceSessionScripts, sessionConnectionIds, sessionScriptListWrite } from './session_scripts.js';
+import { ANALYZE_OUTDATED_SCRIPT, SessionScripts, SessionScriptsAction, ScriptData, destroySessionScripts, newScriptConnection, reduceSessionScripts, SessionScriptsEffects, sessionConnectionIds, sessionScriptListWrite } from './session_scripts.js';
 import { Dispatch } from '../../../utils/variant.js';
 import { UpdateQueue, useStore, useStoreState, useUpdateQueue } from '../../../utils/store.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
@@ -296,8 +296,9 @@ function dispatchSessionScriptsAction(
                 return reg;
             }
             let next: SessionScripts;
+            const effects = new SessionScriptsEffects(storageWriter);
             try {
-                next = reduceSessionScripts(prev, action, storageWriter, logger);
+                next = reduceSessionScripts(prev, action, effects, logger);
             } catch (e: unknown) {
                 // Drop the action, a throw would also drop the other updates of the queue flush
                 logger.error('Session script action failed', {
@@ -308,6 +309,7 @@ function dispatchSessionScriptsAction(
                 resolve(prev);
                 return reg;
             }
+            effects.commit();
             resolve(next);
             // Keep the registry identity for no-ops (e.g. re-selecting the hovered script)
             if (next === prev) return reg;
@@ -370,8 +372,9 @@ export function useConnectionScriptsDispatch(): ModifyConnectionSessionScripts {
                 const prev = reg.sessionScriptsMap.get(sessionId);
                 if (prev) {
                     let next: SessionScripts;
+                    const effects = new SessionScriptsEffects(storage);
                     try {
-                        next = reduceSessionScripts(prev, action, storage, logger);
+                        next = reduceSessionScripts(prev, action, effects, logger);
                     } catch (e: unknown) {
                         // Skip the session, the other sessions of the connection still receive the action
                         logger.error('Connection script action failed', {
@@ -382,6 +385,7 @@ export function useConnectionScriptsDispatch(): ModifyConnectionSessionScripts {
                         }, LOG_CTX);
                         continue;
                     }
+                    effects.commit();
                     if (next !== prev) reg = replaceSessionScriptsInRegistry(reg, prev, next);
                 }
             }
