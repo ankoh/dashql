@@ -2,6 +2,7 @@ import type { ConnectorDescriptor } from '../connector_descriptor.js';
 import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR, SIDB_CONNECTOR } from '../connector_info.js';
 import { SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA } from './salesforce_catalog_update.js';
 import { createSalesforceConnectionStateDetails, reduceSalesforceConnectionState } from './salesforce_connection_state.js';
+import { queryParam, requireChannel } from '../query_channel.js';
 
 /// Salesforce Data Cloud connections
 export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> = {
@@ -22,6 +23,11 @@ export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> 
         login: params.login,
     }),
     catalogNameDefaults: () => ({ databaseName: SALESFORCE_CATALOG_DATABASE, schemaName: SALESFORCE_CATALOG_SCHEMA }),
+    executeQuery: (details, args, abort) => requireChannel(args.channelOverride?.type === 'salesforce' ? args.channelOverride.channel : details.channel, 'Salesforce')
+        .executeQuery(queryParam(args), abort),
+    maxConcurrentQueries: () => 1,
+    catalogIsDurable: () => true,
+    readsAttachments: () => false,
 };
 
 /// SIDB connections, they behave like Salesforce Data Cloud connections for now
@@ -31,4 +37,6 @@ export const SIDB_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'sidb'> = {
     paramsKey: 'sidb',
     detailsType: SIDB_CONNECTOR,
     cacheSignature: params => ({ ...SALESFORCE_CONNECTOR_DESCRIPTOR.cacheSignature(params) as object, case: "sidb" }),
+    executeQuery: (details, args, abort) => requireChannel(args.channelOverride?.type === 'salesforce' ? args.channelOverride.channel : details.channel, 'SIDB')
+        .executeQuery(queryParam(args), abort),
 };

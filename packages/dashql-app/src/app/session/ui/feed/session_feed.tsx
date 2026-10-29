@@ -53,7 +53,7 @@ import {
 import { useConnectionLabeler } from '../connection_labels.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../../../../ui/foundations/symbol_icon.js';
-import { HYPER_CONNECTOR } from '../../../connections/connector_info.js';
+import { connectionReadsAttachments } from '../../../connections/connector_descriptor.js';
 import { SessionConnectionAttentionContext } from '../session_connection_attention.js';
 import { SessionComposer, SessionComposerVariant } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
@@ -219,8 +219,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         return () => cancel.abort();
     }, [sessionId, storageReader.backend, dataFilesVersion, logger]);
     const pinnedDataFiles = dataFiles?.sessionId === sessionId ? dataFiles.files : [];
-    const attachmentsEnabled = props.conn?.details.type === HYPER_CONNECTOR
-        && props.conn.details.value.proto.setupParams?.protocol === 'WASM';
+    const attachmentsEnabled = connectionReadsAttachments(props.conn?.details);
     const saveAttachments = React.useCallback(async (files: Iterable<File>) => {
         setAttachmentError(null);
         try {

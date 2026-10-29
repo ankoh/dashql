@@ -1,6 +1,7 @@
 import type { ConnectorDescriptor } from '../connector_descriptor.js';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '../connector_info.js';
 import { createTrinoConnectionStateDetails, reduceTrinoConnectorState } from './trino_connection_state.js';
+import { queryParam, requireChannel } from '../query_channel.js';
 
 /// Trino connections
 export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
@@ -43,4 +44,9 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
     }),
     // Queries name the catalog but no schema, the server rejects relations without a schema
     catalogNameDefaults: details => ({ databaseName: details.proto.setupParams?.catalogName ?? '', schemaName: '' }),
+    executeQuery: (details, args, abort) => requireChannel(args.channelOverride?.type === 'trino' ? args.channelOverride.channel : details.channel, 'Trino')
+        .executeQuery(queryParam(args), abort),
+    maxConcurrentQueries: () => 1,
+    catalogIsDurable: () => true,
+    readsAttachments: () => false,
 };

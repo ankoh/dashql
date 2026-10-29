@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { ConnectionHealth, type ConnectionState } from '../../connections/connection_state.js';
-import { ConnectorType, HYPER_CONNECTOR } from '../../connections/connector_info.js';
+import { connectorOfDetails } from '../../connections/connector_descriptor.js';
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { useCancelQuery, useQueryExecutor } from '../../connections/query_executor.js';
 import { useSessionScriptsRegistry, type ModifySessionScripts } from './session_scripts_registry.js';
@@ -18,11 +18,7 @@ const CONTEXT = React.createContext<ExecutionContext | null>(null);
 
 /// The number of statements of a session run that a connection executes at once
 function maxConcurrentQueries(connection: ConnectionState | undefined): number {
-    return connection != null
-        && connection.connectorInfo.connectorType === ConnectorType.HYPER
-        && connection.details.type === HYPER_CONNECTOR
-        && connection.details.value.proto?.setupParams?.protocol != null
-        && connection.details.value.proto.setupParams.protocol !== 'WASM' ? 4 : 1;
+    return connection == null ? 1 : connectorOfDetails(connection.details).maxConcurrentQueries(connection.details.value);
 }
 
 export function sessionExecutionIsBusy(state: SessionExecutionState | null | undefined): boolean {

@@ -7,6 +7,8 @@ import type { HyperConnectionDetails } from './hyper/hyper_connection_state.js';
 import type { SalesforceConnectionStateDetails } from './salesforce/salesforce_connection_state.js';
 import type { TrinoConnectionStateDetails } from './trino/trino_connection_state.js';
 import { ConnectorType, type ConnectorInfo } from './connector_info.js';
+import type { QueryExecutionArgs } from './query_execution_args.js';
+import type { QueryExecutionResponseStream } from '../../query/query_execution_state.js';
 import { HYPER_CONNECTOR_DESCRIPTOR } from './hyper/hyper_connector_descriptor.js';
 import { SALESFORCE_CONNECTOR_DESCRIPTOR, SIDB_CONNECTOR_DESCRIPTOR } from './salesforce/salesforce_connector_descriptor.js';
 import { TRINO_CONNECTOR_DESCRIPTOR } from './trino/trino_connector_descriptor.js';
@@ -65,6 +67,15 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     /// The database and schema of the relations that unqualified statements create or drop.
     /// They match the names that the catalog loader gives the relations of the connection.
     catalogNameDefaults(details: ConnectorDetailsMap[K]): CatalogNameDefaults;
+    /// Execute a query on the channel of a connection, a channel override of the connector wins
+    executeQuery(details: ConnectorDetailsMap[K], args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream>;
+    /// The number of statements of a session run that a connection executes at once
+    maxConcurrentQueries(details: ConnectorDetailsMap[K]): number;
+    /// Does the catalog of a connection outlive the page? The relations of a database that is created anew with
+    /// every page load and the catalog changes of its statements are neither persisted nor restored.
+    catalogIsDurable(params: ConnectorParamsMap[K]): boolean;
+    /// Can the queries of a connection read the data files that are attached to a session?
+    readsAttachments(details: ConnectorDetailsMap[K]): boolean;
 }
 
 /// The connectors by connector type
@@ -104,4 +115,9 @@ export function connectionStateDetailsOf(connector: ConnectorDescriptor, params:
 /// The database and schema of the relations that unqualified statements create or drop on a connection
 export function catalogNameDefaults(details: ConnectionStateDetailsVariant): CatalogNameDefaults {
     return connectorOfDetails(details).catalogNameDefaults(details.value);
+}
+
+/// Can the queries of a connection read the data files that are attached to a session?
+export function connectionReadsAttachments(details: ConnectionStateDetailsVariant | null | undefined): boolean {
+    return details != null && connectorOfDetails(details).readsAttachments(details.value);
 }

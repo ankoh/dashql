@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './session_feed.module.css';
 import type { ConnectionState } from '../../../connections/connection_state.js';
-import { HYPER_CONNECTOR } from '../../../connections/connector_info.js';
+import { connectionReadsAttachments } from '../../../connections/connector_descriptor.js';
 import type { DataFile } from '../../../storage/storage_backend.js';
 import type { StorageReader } from '../../../storage/storage_provider.js';
 import { useFileDownloader } from '../../../../platform/file/file_downloader_hook.js';
@@ -26,8 +26,7 @@ export const SessionDataCard: React.FC<SessionDataCardProps> = (props) => {
     const logger = useLogger();
     const [busy, setBusy] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
-    const enabled = props.conn?.details.type === HYPER_CONNECTOR
-        && props.conn.details.value.proto.setupParams?.protocol === 'WASM';
+    const enabled = connectionReadsAttachments(props.conn?.details);
     const disabled = !enabled || busy;
     const path = `${hyperOPFSRoot()}/sessions/${props.sessionId}/attachments/${props.file.name}`;
     const extension = props.file.name.split('.').pop()?.toUpperCase() ?? 'FILE';
