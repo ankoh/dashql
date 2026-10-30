@@ -61,6 +61,8 @@ export interface AgentQuestions {
     dismiss: (questionId: number) => void;
 }
 
+const NO_QUESTIONS: ReadonlyMap<number, AgentQuestion> = new Map();
+
 /// The status line of a request that waits for the agent
 const WAITING_STATUS = 'waiting for agent...';
 
@@ -73,41 +75,20 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
     const logger = useLogger();
     const latest = React.useRef(args);
     latest.current = args;
-    const mounted = React.useRef(true);
-    React.useEffect(() => {
-        mounted.current = true;
-        return () => { mounted.current = false; };
-    }, []);
 
-    const [questions, setQuestions] = React.useState<ReadonlyMap<number, AgentQuestion>>(() => new Map());
-    const setQuestion = React.useCallback((questionId: number, question: AgentQuestion | null) => {
-        setQuestions(prev => {
-            const next = new Map(prev);
-            if (question == null) next.delete(questionId);
-            else next.set(questionId, question);
-            return next;
-        });
-    }, []);
-    /// Update a question, null drops it
-    const updateQuestion = React.useCallback((questionId: number, update: (prev: AgentQuestion) => AgentQuestion | null) => {
-        setQuestions(prev => {
-            const current = prev.get(questionId);
-            if (current == null) return prev;
-            const next = new Map(prev);
-            const updated = update(current);
-            if (updated == null) next.delete(questionId);
-            else next.set(questionId, updated);
-            return next;
-        });
-    }, []);
-
-    // The questions that the agent works on, notifications of other requests are dropped
-    const working = React.useRef(new Set<number>());
-    // The turns of the questions, once the server queued them
-    const turnIds = React.useRef(new Map<number, string>());
-    const nextQuestionId = React.useRef(1);
-
+    // The bridge keeps the questions of the session, its turns finish while the user is in another session
     const sessionId = args.sessionScripts.sessionId;
+    const store = args.agent?.questions ?? null;
+    const subscribe = React.useCallback((listener: () => void) => store?.subscribe(listener) ?? (() => { }), [store]);
+    const questions = React.useSyncExternalStore(subscribe, () => store?.questions(sessionId) ?? NO_QUESTIONS);
+
+    // The feed runs and follows the scripts of the agent while it shows the session
+    React.useEffect(() => store?.attach(sessionId, {
+        sessionScripts: () => latest.current.sessionScripts,
+        runScript: (next, scriptData) => latest.current.runScript(next, scriptData),
+        followScript: (scriptKey, target) => latest.current.followScript?.(scriptKey, target),
+    }), [store, sessionId]);
+
     const cancelTurn = React.useCallback((questionId: number, turnId: string) => {
         logger.info('Stopping the agent', { questionId: String(questionId), turnId }, LOG_CTX);
         latest.current.agent?.cancel(sessionId, turnId).catch(e => {
@@ -115,13 +96,14 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
         });
     }, [logger, sessionId]);
     const stop = React.useCallback((questionId: number) => {
-        if (!working.current.delete(questionId)) return;
-        setQuestion(questionId, null);
+        if (store == null) return;
         // A question without a turn id is stopped once the request returns it
-        const turnId = turnIds.current.get(questionId);
+        const turnId = store.turnId(sessionId, questionId);
+        if (!store.finish(sessionId, questionId)) return;
+        store.remove(sessionId, questionId);
         if (turnId != null) cancelTurn(questionId, turnId);
-    }, [setQuestion, cancelTurn]);
-    const dismiss = React.useCallback((questionId: number) => setQuestion(questionId, null), [setQuestion]);
+    }, [store, sessionId, cancelTurn]);
+    const dismiss = React.useCallback((questionId: number) => store?.remove(sessionId, questionId), [store, sessionId]);
 
     const ask = React.useCallback(async (question: string) => {
         const { agent, sessionScripts } = latest.current;
@@ -129,9 +111,8 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
             logger.error('Cannot ask a question without agent access', {}, LOG_CTX);
             return;
         }
-        const questionId = nextQuestionId.current++;
-        working.current.add(questionId);
-        setQuestion(questionId, { question, status: WAITING_STATUS, error: null, note: null, scripts: [] });
+        const store = agent.questions;
+        const questionId = store.add(sessionId, { question, status: WAITING_STATUS, error: null, note: null, scripts: [] });
 
         // The question is answered on the connection that the next script of the session runs on
         const connection = newScriptConnection(sessionScripts, null);
@@ -142,57 +123,55 @@ export function useAgentQuestions(args: AgentQuestionsArgs): AgentQuestions {
             referencedScripts: collectReferencedScripts(sessionScripts.scriptOrder.map(scriptDisplayName), question),
         });
         logger.info('Asking the agent', { questionId: String(questionId), characters: String(question.length) }, LOG_CTX);
-        const active = () => working.current.has(questionId);
+        const active = () => store.isWorking(sessionId, questionId);
+        const update = (fn: (prev: AgentQuestion) => AgentQuestion | null) => store.update(sessionId, questionId, fn);
         // The scripts that the agent edited, and whether it ran them after the last edit
         const edits = new Map<number, boolean>();
-        const finish = () => {
-            turnIds.current.delete(questionId);
-            return working.current.delete(questionId);
-        };
         try {
             const turnId = await agent.request(sessionId, prompt, {
                 status: (_state, text) => {
-                    if (active()) updateQuestion(questionId, q => ({ ...q, status: text }));
+                    if (active()) update(q => ({ ...q, status: text }));
                 },
                 edited: scriptKey => {
                     if (!active()) return;
                     edits.set(scriptKey, false);
-                    updateQuestion(questionId, q => (q.scripts.includes(scriptKey) ? q : { ...q, scripts: [...q.scripts, scriptKey] }));
-                    latest.current.followScript?.(scriptKey, 'script');
+                    update(q => (q.scripts.includes(scriptKey) ? q : { ...q, scripts: [...q.scripts, scriptKey] }));
+                    store.feed(sessionId)?.followScript(scriptKey, 'script');
                 },
                 ran: scriptKey => {
                     if (!active()) return;
                     if (edits.has(scriptKey)) edits.set(scriptKey, true);
-                    latest.current.followScript?.(scriptKey, 'result');
+                    store.feed(sessionId)?.followScript(scriptKey, 'result');
                 },
                 done: message => {
-                    if (!finish()) return;
+                    if (!store.finish(sessionId, questionId)) return;
                     const note = message.trim();
                     // Without an answer and without scripts, nothing is left to show
-                    updateQuestion(questionId, q => (note.length > 0 || q.scripts.length > 0 ? { ...q, status: null, note: note.length > 0 ? note : null } : null));
-                    if (!mounted.current) return;
-                    // Run the first script that the agent wrote but did not run
-                    const current = latest.current.sessionScripts;
+                    update(q => (note.length > 0 || q.scripts.length > 0 ? { ...q, status: null, note: note.length > 0 ? note : null } : null));
+                    // Run the first script that the agent wrote but did not run, while a feed shows the session
+                    const feed = store.feed(sessionId);
+                    if (feed == null) return;
+                    const current = feed.sessionScripts();
                     const unrun = [...edits].find(([, ran]) => !ran);
                     const scriptData = unrun != null ? current.scripts[unrun[0]] : undefined;
                     if (scriptData == null) return;
-                    latest.current.followScript?.(scriptData.scriptKey, 'result');
-                    latest.current.runScript(current, scriptData);
+                    feed.followScript(scriptData.scriptKey, 'result');
+                    feed.runScript(current, scriptData);
                 },
                 failed: (error, cancelled) => {
-                    if (!finish()) return;
-                    if (cancelled) setQuestion(questionId, null);
-                    else updateQuestion(questionId, q => ({ ...q, status: null, error }));
+                    if (!store.finish(sessionId, questionId)) return;
+                    if (cancelled) store.remove(sessionId, questionId);
+                    else update(q => ({ ...q, status: null, error }));
                 },
             });
-            if (active()) turnIds.current.set(questionId, turnId);
+            if (active()) store.setTurnId(sessionId, questionId, turnId);
             else cancelTurn(questionId, turnId);
         } catch (e: unknown) {
-            if (!finish()) return;
+            if (!store.finish(sessionId, questionId)) return;
             logger.error('Asking the agent failed', { questionId: String(questionId), error: stringifyError(e) }, LOG_CTX);
-            updateQuestion(questionId, q => ({ ...q, status: null, error: stringifyError(e) }));
+            update(q => ({ ...q, status: null, error: stringifyError(e) }));
         }
-    }, [logger, setQuestion, updateQuestion, cancelTurn, sessionId]);
+    }, [logger, cancelTurn, sessionId]);
 
     const available = args.agent != null
         && args.agent.hasAccess(sessionId)

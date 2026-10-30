@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentSessionMenu } from './agent_session_menu.js';
 import { AgentBridgeContext, type AgentBridge } from './agent_bridge.js';
+import { AgentQuestionStore } from '../session/ai/agent_question_store.js';
 import { AgentConnectionStatus } from '../../platform/agent/agent_client.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 
@@ -29,6 +30,7 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
         context: vi.fn(),
         info: vi.fn(),
         hold: vi.fn(() => () => { }),
+        questions: new AgentQuestionStore(),
         ...overrides,
     };
 }

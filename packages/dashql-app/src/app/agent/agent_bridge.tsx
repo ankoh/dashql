@@ -15,6 +15,7 @@ import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
 import { useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { useQueryExecutor } from '../connections/query_executor.js';
 import { useRouteContext } from '../router/router.js';
+import { AgentQuestionStore } from '../session/ai/agent_question_store.js';
 import { useSessionScriptsDispatch, useSessionScriptsRegistry, useSessionScriptsRegistryReader } from '../session/scripts/session_scripts_registry.js';
 import { runAgentCommand, type AgentCommandEnvironment } from './agent_commands.js';
 
@@ -74,6 +75,8 @@ export interface AgentBridge {
     info: () => Promise<AgentServerInfo>;
     /// Stay connected while no session has agent access, returns the release
     hold: () => () => void;
+    /// The questions that the agent answers in the sessions
+    questions: AgentQuestionStore;
 }
 
 const AGENT_BRIDGE_CTX = React.createContext<AgentBridge | null>(null);
@@ -114,6 +117,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     // The listeners of the turns by turn id, and the turn ids of the requests of a session
     const turns = React.useRef(new Map<string, AgentTurnListener>());
     const turnsBySession = React.useRef(new Map<string, Set<string>>());
+    const [questions] = React.useState(() => new AgentQuestionStore());
 
     const commandEnv = React.useRef<AgentCommandEnvironment | null>(null);
     commandEnv.current = {
@@ -341,7 +345,8 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         context,
         info,
         hold,
-    }), [status, supported, port, setPort, harness, setHarness, model, setModel, effort, setEffort, stableAccessSessions, hasAccess, setAccess, request, cancel, reset, context, info, hold]);
+        questions,
+    }), [status, supported, port, setPort, harness, setHarness, model, setModel, effort, setEffort, stableAccessSessions, hasAccess, setAccess, request, cancel, reset, context, info, hold, questions]);
 
     return <AGENT_BRIDGE_CTX.Provider value={bridge}>{props.children}</AGENT_BRIDGE_CTX.Provider>;
 };

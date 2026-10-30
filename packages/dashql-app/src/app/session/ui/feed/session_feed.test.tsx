@@ -16,6 +16,7 @@ import { SessionFeed, type SessionFeedDependencies } from './session_feed.js';
 import { SessionComposerVariant, type SessionComposerProps } from './session_composer.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import type { AgentTurnListener } from '../../../agent/agent_bridge.js';
+import { AgentQuestionStore } from '../../ai/agent_question_store.js';
 import { AgentConnectionStatus } from '../../../../platform/agent/agent_client.js';
 import { CREATE_SCRIPT, SET_SCRIPT_TEXT, type SessionScripts } from '../../scripts/session_scripts.js';
 import { CONNECTOR_INFOS } from '../../../connections/connector_info.js';
@@ -479,6 +480,7 @@ describe('Session feed composer', () => {
             cancel: vi.fn(() => Promise.resolve()),
             reset: vi.fn(() => Promise.resolve()),
             context: vi.fn(() => Promise.resolve({ folder: '/agent', harness: 'claude', harnessSession: null, terminalCommand: null })),
+            questions: new AgentQuestionStore(),
         };
     }
 
@@ -707,6 +709,46 @@ describe('Session feed composer', () => {
         expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session', 'turn-1');
         await act(async () => listeners[0].failed('Stopped', true));
         expect(feedState.composerProps?.agent?.turns.map(t => t.question.question)).toEqual(['how many columns']);
+    });
+
+    it('keeps the questions of a session while the feed shows another session', async () => {
+        feedState.agent = connectedAgent((_sessionId, _prompt, listener) => {
+            feedState.agentListener = listener;
+            return Promise.resolve('turn-1');
+        });
+        const first = withCatalog(session(['1_alpha.sql']), emptyCatalog);
+        const other = { ...withCatalog(session(['1_beta.sql']), emptyCatalog), sessionId: 'other' };
+        render(first, vi.fn());
+        await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+        expect(feedState.composerProps?.agent?.turns.map(t => t.question.question)).toEqual(['how many rows']);
+
+        // The other session shows none of the questions, and the agent runs no script in it
+        render(other, vi.fn());
+        expect(feedState.composerProps?.agent?.turns).toEqual([]);
+        await act(async () => feedState.agentListener!.edited(1));
+        await act(async () => feedState.agentListener!.done('There are 3 rows'));
+        expect(feedState.composerProps?.agent?.turns).toEqual([]);
+        expect(feedState.runSessionScript).not.toHaveBeenCalled();
+
+        // Back in the session, the question shows with its answer
+        render(first, vi.fn());
+        expect(feedState.composerProps?.agent?.turns).toEqual([{
+            questionId: 1,
+            question: { question: 'how many rows', status: null, error: null, note: 'There are 3 rows', scripts: [1] },
+            scripts: [{ scriptKey: 1, scriptName: '1_alpha' }],
+        }]);
+    });
+
+    it('stops a question of a session after the feed showed another session', async () => {
+        feedState.agent = connectedAgent(() => Promise.resolve('turn-1'));
+        const first = withCatalog(session(), emptyCatalog);
+        render(first, vi.fn());
+        await act(async () => feedState.composerProps!.onSend('how many rows', ComposerInputMode.Ai));
+        render({ ...first, sessionId: 'other' }, vi.fn());
+        render(first, vi.fn());
+        await act(async () => feedState.composerProps!.agent!.onStop(1));
+        expect(feedState.agent.cancel).toHaveBeenCalledExactlyOnceWith('session', 'turn-1');
+        expect(feedState.composerProps?.agent?.turns).toEqual([]);
     });
 
     it('stops a question before the agent server queued its turn', async () => {
