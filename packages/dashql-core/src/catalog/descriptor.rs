@@ -4,6 +4,7 @@ use super::entry::*;
 use super::ids::*;
 use super::Catalog;
 use crate::error::{Error, Result};
+use crate::utils::quote_identifier;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::catalog::CatalogDescriptor;
 use std::collections::BTreeSet;
@@ -42,6 +43,12 @@ fn invalid(message: &str) -> Error {
     Error::invalid_argument(message)
 }
 
+/// Render a qualified name, skipping its empty leading parts
+fn qualified_name(parts: &[&str]) -> String {
+    let first = parts.iter().position(|p| !p.is_empty()).unwrap_or(parts.len() - 1);
+    parts[first..].iter().map(|p| quote_identifier(p)).collect::<Vec<_>>().join(".")
+}
+
 /// Validate a name or type text
 fn validate_text(text: Option<&str>, required: bool) -> Result<()> {
     let value = text.unwrap_or("");
@@ -71,14 +78,18 @@ pub fn validate_descriptor(data: &[u8]) -> Result<CatalogDescriptor<'_>> {
                 name.table_name().unwrap_or(""),
             );
             if !table_names.insert(key) {
-                return Err(invalid("duplicate descriptor table name"));
+                let table = qualified_name(&[key.0, key.1, key.2]);
+                return Err(invalid(&format!("duplicate descriptor table name {table}")));
             }
             let mut columns = BTreeSet::new();
             if let Some(values) = table.table_columns() {
                 for column in values {
                     validate_text(column.column_name(), true)?;
-                    if !columns.insert(column.column_name().unwrap_or("")) {
-                        return Err(invalid("duplicate descriptor column name"));
+                    let column_name = column.column_name().unwrap_or("");
+                    if !columns.insert(column_name) {
+                        let table = qualified_name(&[key.0, key.1, key.2]);
+                        let column = quote_identifier(column_name);
+                        return Err(invalid(&format!("duplicate descriptor column name {column} in table {table}")));
                     }
                 }
             }
@@ -86,10 +97,11 @@ pub fn validate_descriptor(data: &[u8]) -> Result<CatalogDescriptor<'_>> {
     }
     if let Some(functions) = descriptor.function_declarations() {
         for function in functions {
-            let name = function.function_name().ok_or_else(|| invalid("missing descriptor function name"))?;
-            validate_text(name.database_name(), false)?;
-            validate_text(name.schema_name(), false)?;
-            validate_text(name.function_name(), true)?;
+            let function_name =
+                function.function_name().ok_or_else(|| invalid("missing descriptor function name"))?;
+            validate_text(function_name.database_name(), false)?;
+            validate_text(function_name.schema_name(), false)?;
+            validate_text(function_name.function_name(), true)?;
             validate_text(function.return_type(), true)?;
             let mut params = BTreeSet::new();
             if let Some(values) = function.params() {
@@ -98,7 +110,13 @@ pub fn validate_descriptor(data: &[u8]) -> Result<CatalogDescriptor<'_>> {
                     validate_text(param.param_type(), true)?;
                     let name = param.param_name().unwrap_or("");
                     if !name.is_empty() && !params.insert(name) {
-                        return Err(invalid("duplicate descriptor parameter name"));
+                        let qualified = qualified_name(&[
+                            function_name.database_name().unwrap_or(""),
+                            function_name.schema_name().unwrap_or(""),
+                            function_name.function_name().unwrap_or(""),
+                        ]);
+                        let param = quote_identifier(name);
+                        return Err(invalid(&format!("duplicate descriptor parameter name {param} in function {qualified}")));
                     }
                 }
             }

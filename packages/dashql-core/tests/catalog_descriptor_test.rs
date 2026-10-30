@@ -130,9 +130,13 @@ fn validation_rejects_bad_tables() {
     assert_eq!(validation_error(&tables_only(vec![table("", "s\0", "t", &[])])), "invalid catalog descriptor name or type");
     assert_eq!(
         validation_error(&tables_only(vec![table("", "s", "t", &[]), table("", "s", "t", &[])])),
-        "duplicate descriptor table name"
+        "duplicate descriptor table name s.t"
     );
-    assert_eq!(validation_error(&tables_only(vec![table("", "s", "t", &["a", "a"])])), "duplicate descriptor column name");
+    assert_eq!(validation_error(&tables_only(vec![table("", "s", "t", &["a", "a"])])), "duplicate descriptor column name a in table s.t");
+    assert_eq!(
+        validation_error(&tables_only(vec![table("db", "S", "t", &["Id", "x", "Id"])])),
+        "duplicate descriptor column name \"Id\" in table db.\"S\".t"
+    );
     assert_eq!(validation_error(&tables_only(vec![table("", "s", "t", &[""])])), "invalid catalog descriptor name or type");
     let mut nameless = table("", "", "t", &[]);
     nameless.table_name = None;
@@ -147,7 +151,7 @@ fn validation_rejects_bad_functions() {
     assert_eq!(functions(function("s", "", &[], "int", false)), "invalid catalog descriptor name or type");
     assert_eq!(functions(function("s", "f", &[], "", false)), "invalid catalog descriptor name or type");
     assert_eq!(functions(function("s", "f", &[("x", "")], "int", false)), "invalid catalog descriptor name or type");
-    assert_eq!(functions(function("s", "f", &[("x", "int"), ("x", "int")], "int", false)), "duplicate descriptor parameter name");
+    assert_eq!(functions(function("s", "f", &[("x", "int"), ("x", "int")], "int", false)), "duplicate descriptor parameter name x in function s.f");
     let mut nameless = function("s", "f", &[], "int", false);
     nameless.function_name = None;
     assert_eq!(functions(nameless), "missing descriptor function name");
