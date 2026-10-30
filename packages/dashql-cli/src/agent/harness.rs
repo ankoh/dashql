@@ -50,14 +50,36 @@ pub trait HarnessReader: Send {
     fn finish(&self, exit_code: Option<i32>, stderr: &str) -> HarnessOutcome;
 }
 
+/// The model and the effort that a request picked among the ones of its harness, None for the harness's default
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct HarnessPicks {
+    pub model: Option<String>,
+    pub effort: Option<String>,
+}
+
 /// The arguments of a harness run
-pub fn build_harness_args(config: &HarnessConfig, prompt: &str, harness_session: Option<&str>) -> Vec<String> {
+pub fn build_harness_args(
+    config: &HarnessConfig,
+    prompt: &str,
+    harness_session: Option<&str>,
+    picks: &HarnessPicks,
+) -> Vec<String> {
     let mut args = Vec::new();
     for arg in &config.command {
         match arg.as_str() {
             "{resume}" => {
                 if let Some(session) = harness_session {
                     args.extend(config.resume_args.iter().map(|a| a.replace("{harnessSession}", session)));
+                }
+            }
+            "{model}" => {
+                if let Some(model) = &picks.model {
+                    args.extend(config.model.args.iter().map(|a| a.replace("{model}", model)));
+                }
+            }
+            "{effort}" => {
+                if let Some(effort) = &picks.effort {
+                    args.extend(config.effort.args.iter().map(|a| a.replace("{effort}", effort)));
                 }
             }
             "{prompt}" => args.push(prompt.to_string()),
@@ -338,6 +360,7 @@ pub struct HarnessSpawnArgs {
     pub config: HarnessConfig,
     pub prompt: String,
     pub harness_session: Option<String>,
+    pub picks: HarnessPicks,
     pub cwd: PathBuf,
     pub env: BTreeMap<OsString, OsString>,
     pub events: mpsc::UnboundedSender<HarnessEvent>,
@@ -362,7 +385,7 @@ pub fn spawn_harness(args: HarnessSpawnArgs) -> HarnessProcess {
 }
 
 async fn run_harness(args: HarnessSpawnArgs, kill: Arc<Notify>) -> HarnessOutcome {
-    let argv = build_harness_args(&args.config, &args.prompt, args.harness_session.as_deref());
+    let argv = build_harness_args(&args.config, &args.prompt, args.harness_session.as_deref(), &args.picks);
     let Some((program, rest)) = argv.split_first() else {
         return HarnessOutcome::failed("The harness command is empty");
     };
@@ -571,12 +594,12 @@ mod tests {
     #[test]
     fn passes_the_prompt_as_one_argument() {
         assert_eq!(
-            build_harness_args(&harness("codex"), "say \"hi\"; rm -rf /", None),
+            build_harness_args(&harness("codex"), "say \"hi\"; rm -rf /", None, &HarnessPicks::default()),
             ["codex", "exec", "--json", "--skip-git-repo-check", "--", "say \"hi\"; rm -rf /"]
         );
         // A prompt that looks like an option stays the prompt
         assert_eq!(
-            build_harness_args(&harness("opencode"), "--help", None),
+            build_harness_args(&harness("opencode"), "--help", None, &HarnessPicks::default()),
             ["opencode", "run", "--format", "json", "--", "--help"]
         );
     }
@@ -584,11 +607,11 @@ mod tests {
     #[test]
     fn resumes_a_harness_session() {
         assert_eq!(
-            build_harness_args(&harness("codex"), "next", Some("t-1")),
+            build_harness_args(&harness("codex"), "next", Some("t-1"), &HarnessPicks::default()),
             ["codex", "exec", "--json", "--skip-git-repo-check", "resume", "t-1", "--", "next"]
         );
         assert_eq!(
-            build_harness_args(&harness("claude"), "next", Some("c-1")),
+            build_harness_args(&harness("claude"), "next", Some("c-1"), &HarnessPicks::default()),
             [
                 "claude",
                 "-p",
@@ -607,9 +630,41 @@ mod tests {
             ]
         );
         assert_eq!(
-            build_harness_args(&harness("opencode"), "next", Some("ses_1")),
+            build_harness_args(&harness("opencode"), "next", Some("ses_1"), &HarnessPicks::default()),
             ["opencode", "run", "--format", "json", "--session", "ses_1", "--", "next"]
         );
+    }
+
+    #[test]
+    fn passes_the_picked_model_and_effort() {
+        let picks = HarnessPicks { model: Some("opus".into()), effort: Some("high".into()) };
+        let args = build_harness_args(&harness("claude"), "next", Some("c-1"), &picks);
+        assert_eq!(args[10..], ["--model", "opus", "--effort", "high", "--resume", "c-1", "--", "next"]);
+        assert_eq!(
+            build_harness_args(&harness("codex"), "next", Some("t-1"), &picks),
+            [
+                "codex",
+                "exec",
+                "--json",
+                "--skip-git-repo-check",
+                "-m",
+                "opus",
+                "-c",
+                "model_reasoning_effort=high",
+                "resume",
+                "t-1",
+                "--",
+                "next"
+            ]
+        );
+        // A harness without efforts drops the effort
+        assert_eq!(
+            build_harness_args(&harness("opencode"), "next", None, &picks),
+            ["opencode", "run", "--format", "json", "--model", "opus", "--", "next"]
+        );
+        let effort = HarnessPicks { model: None, effort: Some("low".into()) };
+        let args = build_harness_args(&harness("claude"), "next", None, &effort);
+        assert_eq!(args[10..], ["--effort", "low", "--", "next"]);
     }
 
     #[test]
@@ -771,6 +826,8 @@ mod tests {
         let config = |command: &[&str]| HarnessConfig {
             command: command.iter().map(|s| s.to_string()).collect(),
             resume_args: Vec::new(),
+            model: Default::default(),
+            effort: Default::default(),
             terminal_command: None,
             adapter: HarnessAdapter::Text,
         };
@@ -779,6 +836,7 @@ mod tests {
             config: config(&["sh", "-c", "echo hello; echo oops >&2; exit 3"]),
             prompt: String::new(),
             harness_session: None,
+            picks: HarnessPicks::default(),
             cwd: cwd.clone(),
             env: env.clone(),
             events: events.clone(),
@@ -798,6 +856,7 @@ mod tests {
             config: config(&["sh", "-c", "sleep 30 & wait"]),
             prompt: String::new(),
             harness_session: None,
+            picks: HarnessPicks::default(),
             cwd,
             env,
             events,
@@ -810,6 +869,7 @@ mod tests {
             config: config(&["/nonexistent/harness"]),
             prompt: String::new(),
             harness_session: None,
+            picks: HarnessPicks::default(),
             cwd: PathBuf::from("/"),
             env: BTreeMap::new(),
             events: mpsc::unbounded_channel().0,

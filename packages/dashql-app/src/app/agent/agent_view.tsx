@@ -35,10 +35,36 @@ function parsePort(text: string): number | null {
     return Number.isInteger(port) && port > 0 && port < 65536 ? port : null;
 }
 
+/// A setting of the picked harness: its default and the values of the config.json of the agent server
+function HarnessChoice(props: { label: string; values: string[]; picked: string | null; onPick: (value: string | null) => void }) {
+    if (props.values.length === 0) return null;
+    const options = [null, ...props.values];
+    return (
+        <div className={styles.row}>
+            <div className={styles.row_label}>{props.label}</div>
+            <div className={styles.row_value}>
+                <SegmentedControl aria-label={props.label} size={SegmentedControlSize.Small} onChange={index => props.onPick(options[index])}>
+                    {options.map(value => (
+                        <SegmentedControl.Button
+                            key={value ?? ''}
+                            selected={value === props.picked}
+                            data-testid={`agent-settings-${props.label.toLowerCase()}`}
+                            data-value={value ?? ''}
+                        >
+                            {value ?? 'Default'}
+                        </SegmentedControl.Button>
+                    ))}
+                </SegmentedControl>
+            </div>
+        </div>
+    );
+}
+
 /// The agent bridge: the agent server with its port and harness, the sessions with agent access, the turns and
 /// the clients of the server.
 /// The harness commands live in the config.json of the agent server, a page only picks among them and must
-/// not be able to choose the programs that run on the machine. The pick is a setting of the app.
+/// not be able to choose the programs that run on the machine. The same holds for the models and efforts of a harness.
+/// The picks are settings of the app.
 export function AgentView(props: { onClose: () => void }) {
     const bridge = useAgentBridge();
     const [info, setInfo] = React.useState<AgentServerInfo | null>(null);
@@ -66,6 +92,7 @@ export function AgentView(props: { onClose: () => void }) {
     const [status, text] = statusText(bridge);
     const portValue = parsePort(portDraft);
     const pickedHarness = bridge.harness ?? info?.defaultHarness;
+    const pickedHarnessInfo = info?.harnesses.find(h => h.name === pickedHarness) ?? null;
 
     return (
         <div className={styles.settings_root}>
@@ -146,6 +173,12 @@ export function AgentView(props: { onClose: () => void }) {
                             </ButtonGroup>
                         </div>
                     </div>
+                    {pickedHarnessInfo != null && (
+                        <>
+                            <HarnessChoice label="Model" values={pickedHarnessInfo.models} picked={bridge.model} onPick={bridge.setModel} />
+                            <HarnessChoice label="Effort" values={pickedHarnessInfo.efforts} picked={bridge.effort} onPick={bridge.setEffort} />
+                        </>
+                    )}
                     {error != null && <div className={styles.error}>{error}</div>}
                     {info == null && bridge.supported && (
                         <div className={styles.hint}>
@@ -176,7 +209,7 @@ export function AgentView(props: { onClose: () => void }) {
                         {info.turns.map(turn => (
                             <div key={turn.turnId} className={styles.row}>
                                 <div className={styles.row_label}>
-                                    {turn.harness} · {turn.status}
+                                    {[turn.harness, turn.model, turn.effort].filter(part => part != null).join(' ')} · {turn.status}
                                     <span className={styles.row_detail}>{turn.state}</span>
                                 </div>
                                 <div className={styles.row_value}>

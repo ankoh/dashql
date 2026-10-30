@@ -158,6 +158,8 @@
       "properties": {
         "session": { "type": "string" },
         "harness": { "type": "string", "description": "The name of the harness, the server's default if omitted" },
+        "model": { "type": "string", "description": "One of the models of the harness, the harness's own default if omitted" },
+        "effort": { "type": "string", "description": "One of the efforts of the harness, the harness's own default if omitted" },
         "prompt": { "type": "string" }
       },
       "required": ["session", "prompt"],
@@ -240,9 +242,19 @@
         "program": {
           "type": ["string", "null"],
           "description": "The file that the program resolves to, null if it is not installed"
+        },
+        "models": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The models that requests may pick, changed in config.json only"
+        },
+        "efforts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The efforts that requests may pick, changed in config.json only"
         }
       },
-      "required": ["name", "command", "adapter", "program"],
+      "required": ["name", "command", "adapter", "program", "models", "efforts"],
       "additionalProperties": false
     },
     "AgentServerClient": {
@@ -270,10 +282,12 @@
         "turnId": { "type": "string" },
         "session": { "type": "string" },
         "harness": { "type": "string" },
+        "model": { "type": ["string", "null"], "description": "The model of the request, null for the harness's default" },
+        "effort": { "type": ["string", "null"], "description": "The effort of the request, null for the harness's default" },
         "state": { "$ref": "#/definitions/AgentTurnState" },
         "status": { "type": "string", "description": "The latest status line" }
       },
-      "required": ["turnId", "session", "harness", "state", "status"],
+      "required": ["turnId", "session", "harness", "model", "effort", "state", "status"],
       "additionalProperties": false
     },
     "AgentServerStatus": {

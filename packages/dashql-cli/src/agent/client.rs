@@ -178,7 +178,9 @@ pub fn format_status(status: &Value) -> String {
     }
     for turn in status["turns"].as_array().into_iter().flatten() {
         let [harness, session, state, status] = ["harness", "session", "state", "status"].map(|k| text(&turn[k]));
-        lines.push(format!("Turn of {harness} in {session}: {state}, {status}"));
+        let picks: Vec<_> = ["model", "effort"].iter().filter_map(|k| turn[*k].as_str()).collect();
+        let picks = if picks.is_empty() { String::new() } else { format!(" ({})", picks.join(", ")) };
+        lines.push(format!("Turn of {harness}{picks} in {session}: {state}, {status}"));
     }
     lines.join("\n")
 }
@@ -506,11 +508,14 @@ mod tests {
         let status = json!({
             "port": 47100,
             "clients": [{ "id": "c", "kind": "web", "origin": "https://dashql.app", "sessions": [{ "id": "s1", "name": "Revenue" }], "focused": "s1" }],
-            "turns": [{ "turnId": "t", "session": "s1", "harness": "codex", "state": "running", "status": "dashql agent catalog" }],
+            "turns": [
+                { "turnId": "t", "session": "s1", "harness": "codex", "model": null, "effort": null, "state": "running", "status": "dashql agent catalog" },
+                { "turnId": "u", "session": "s1", "harness": "claude", "model": "opus", "effort": "high", "state": "queued", "status": "waiting for agent..." },
+            ],
         });
         assert_eq!(
             format_status(&status),
-            "Agent server on 127.0.0.1:47100\nClient web (https://dashql.app), 1 session\n  s1  \"Revenue\" (focused)\nTurn of codex in s1: running, dashql agent catalog"
+            "Agent server on 127.0.0.1:47100\nClient web (https://dashql.app), 1 session\n  s1  \"Revenue\" (focused)\nTurn of codex in s1: running, dashql agent catalog\nTurn of claude (opus, high) in s1: queued, waiting for agent..."
         );
         assert_eq!(
             format_status(&json!({ "port": 1, "clients": [], "turns": [] })),

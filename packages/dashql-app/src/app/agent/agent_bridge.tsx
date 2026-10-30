@@ -48,6 +48,14 @@ export interface AgentBridge {
     harness: string | null;
     /// Pick the harness that runs requests among the configured harnesses, null restores the server's default
     setHarness: (harness: string | null) => void;
+    /// The model of the harness that runs requests, null for the harness's own default
+    model: string | null;
+    /// Pick among the models of the harness, null restores the harness's default
+    setModel: (model: string | null) => void;
+    /// The effort of the harness that runs requests, null for the harness's own default
+    effort: string | null;
+    /// Pick among the efforts of the harness, null restores the harness's default
+    setEffort: (effort: string | null) => void;
     /// The sessions with agent access, the name is null while a session is not loaded
     accessSessions: { id: string; name: string | null }[];
     /// Does a session have agent access?
@@ -100,6 +108,8 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     const accessSessions = config?.settings?.agentSessions ?? NO_SESSIONS;
     const port = config?.settings?.agentPort ?? DASHQL_AGENT_PORT;
     const harness = config?.settings?.agentHarness ?? null;
+    const model = config?.settings?.agentModel ?? null;
+    const effort = config?.settings?.agentEffort ?? null;
 
     // The listeners of the turns by turn id, and the turn ids of the requests of a session
     const turns = React.useRef(new Map<string, AgentTurnListener>());
@@ -231,7 +241,24 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
     }, [reconfigure, logger]);
     const setHarness = React.useCallback((next: string | null) => {
         logger.info('Changed the harness of the agent', { harness: next ?? 'default' }, LOG_CTX);
-        reconfigure(c => c == null ? c : { ...c, settings: { ...(c.settings ?? {}), agentHarness: next ?? undefined } });
+        reconfigure(c => {
+            if (c == null) return c;
+            // The models and efforts are the ones of a harness, another harness starts with its defaults
+            const settings = { ...(c.settings ?? {}), agentHarness: next ?? undefined };
+            if ((c.settings?.agentHarness ?? null) !== next) {
+                settings.agentModel = undefined;
+                settings.agentEffort = undefined;
+            }
+            return { ...c, settings };
+        });
+    }, [reconfigure, logger]);
+    const setModel = React.useCallback((next: string | null) => {
+        logger.info('Changed the model of the agent', { model: next ?? 'default' }, LOG_CTX);
+        reconfigure(c => c == null ? c : { ...c, settings: { ...(c.settings ?? {}), agentModel: next ?? undefined } });
+    }, [reconfigure, logger]);
+    const setEffort = React.useCallback((next: string | null) => {
+        logger.info('Changed the effort of the agent', { effort: next ?? 'default' }, LOG_CTX);
+        reconfigure(c => c == null ? c : { ...c, settings: { ...(c.settings ?? {}), agentEffort: next ?? undefined } });
     }, [reconfigure, logger]);
 
     const accessSessionList = React.useMemo(
@@ -257,8 +284,15 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
 
     const request = React.useCallback(async (sessionId: string, prompt: string, listener: AgentTurnListener) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
-        logger.info('Sending a request to the agent', { session: sessionId, harness: harness ?? 'default', promptLength: String(prompt.length) }, LOG_CTX);
-        const result = await client.request('agent/request', { session: sessionId, prompt, ...(harness != null ? { harness } : {}) }).catch((e: unknown) => {
+        logger.info('Sending a request to the agent', { session: sessionId, harness: harness ?? 'default', model: model ?? 'default', effort: effort ?? 'default', promptLength: String(prompt.length) }, LOG_CTX);
+        const params = {
+            session: sessionId,
+            prompt,
+            ...(harness != null ? { harness } : {}),
+            ...(model != null ? { model } : {}),
+            ...(effort != null ? { effort } : {}),
+        };
+        const result = await client.request('agent/request', params).catch((e: unknown) => {
             logger.warn('The agent server refused a request', { session: sessionId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
             throw e;
         });
@@ -268,7 +302,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         turnsBySession.current.set(sessionId, sessionTurns);
         logger.info('Sent a request to the agent', { session: sessionId, turnId: result.turnId, harness: result.harness }, LOG_CTX);
         return result.turnId;
-    }, [client, harness, logger]);
+    }, [client, harness, model, effort, logger]);
     const cancel = React.useCallback(async (sessionId: string, turnId?: string) => {
         logger.info('Stopping agent turns', { session: sessionId, turnId: turnId ?? 'all' }, LOG_CTX);
         await client?.request('agent/cancel', turnId == null ? { session: sessionId } : { session: sessionId, turnId });
@@ -294,6 +328,10 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         setPort,
         harness,
         setHarness,
+        model,
+        setModel,
+        effort,
+        setEffort,
         accessSessions: stableAccessSessions,
         hasAccess,
         setAccess,
@@ -303,7 +341,7 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         context,
         info,
         hold,
-    }), [status, supported, port, setPort, harness, setHarness, stableAccessSessions, hasAccess, setAccess, request, cancel, reset, context, info, hold]);
+    }), [status, supported, port, setPort, harness, setHarness, model, setModel, effort, setEffort, stableAccessSessions, hasAccess, setAccess, request, cancel, reset, context, info, hold]);
 
     return <AGENT_BRIDGE_CTX.Provider value={bridge}>{props.children}</AGENT_BRIDGE_CTX.Provider>;
 };

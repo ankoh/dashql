@@ -15,12 +15,12 @@ const INFO: AgentServerInfo = {
     configPath: '/home/u/.dashql/agent/config.json',
     defaultHarness: 'claude',
     harnesses: [
-        { name: 'claude', command: ['claude', '-p', '{prompt}'], adapter: 'claude', program: '/usr/local/bin/claude' },
-        { name: 'codex', command: ['codex', 'exec', '{prompt}'], adapter: 'codex', program: '/usr/local/bin/codex' },
-        { name: 'opencode', command: ['opencode', 'run', '{prompt}'], adapter: 'opencode', program: null },
+        { name: 'claude', command: ['claude', '-p', '{prompt}'], adapter: 'claude', program: '/usr/local/bin/claude', models: ['opus', 'sonnet'], efforts: ['low', 'high'] },
+        { name: 'codex', command: ['codex', 'exec', '{prompt}'], adapter: 'codex', program: '/usr/local/bin/codex', models: [], efforts: ['low', 'medium', 'high'] },
+        { name: 'opencode', command: ['opencode', 'run', '{prompt}'], adapter: 'opencode', program: null, models: [], efforts: [] },
     ],
     clients: [{ id: 'c', kind: 'web', origin: 'https://dashql.app', sessions: [{ id: 's1', name: 'Revenue' }], focused: 's1' }],
-    turns: [{ turnId: 't', session: 's1', harness: 'claude', state: 'running', status: 'dashql agent catalog' }],
+    turns: [{ turnId: 't', session: 's1', harness: 'claude', model: 'opus', effort: null, state: 'running', status: 'dashql agent catalog' }],
 };
 
 function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
@@ -31,6 +31,10 @@ function fakeBridge(overrides: Partial<AgentBridge> = {}): AgentBridge {
         setPort: vi.fn(),
         harness: null,
         setHarness: vi.fn(),
+        model: null,
+        setModel: vi.fn(),
+        effort: null,
+        setEffort: vi.fn(),
         accessSessions: [{ id: 's1', name: 'Revenue' }],
         hasAccess: () => true,
         setAccess: vi.fn(),
@@ -87,6 +91,26 @@ describe('Agent view', () => {
         expect([...harnesses].map(b => b.getAttribute('aria-current'))).toEqual(['false', 'true', 'false']);
         await act(async () => harnesses[0].click());
         expect(bridge.setHarness).toHaveBeenCalledExactlyOnceWith(null);
+    });
+
+    it('picks the model and the effort of the harness', async () => {
+        const bridge = fakeBridge({ effort: 'high' });
+        await render(bridge);
+        expect(container.textContent).toContain('claude opus · dashql agent catalog');
+        const picks = (name: string) => [...container.querySelectorAll<HTMLButtonElement>(`[data-testid="agent-settings-${name}"]`)];
+        expect(picks('model').map(b => [b.textContent, b.getAttribute('aria-current')])).toEqual([['Default', 'true'], ['opus', 'false'], ['sonnet', 'false']]);
+        expect(picks('effort').map(b => [b.textContent, b.getAttribute('aria-current')])).toEqual([['Default', 'false'], ['low', 'false'], ['high', 'true']]);
+        await act(async () => picks('model')[2].click());
+        expect(bridge.setModel).toHaveBeenCalledExactlyOnceWith('sonnet');
+        await act(async () => picks('effort')[0].click());
+        expect(bridge.setEffort).toHaveBeenCalledExactlyOnceWith(null);
+    });
+
+    it('offers only the choices of the picked harness', async () => {
+        const bridge = fakeBridge({ harness: 'codex' });
+        await render(bridge);
+        expect(container.querySelector('[data-testid="agent-settings-model"]')).toBeNull();
+        expect(container.querySelectorAll('[data-testid="agent-settings-effort"]').length).toBe(4);
     });
 
     it('turns off agent access of a session', async () => {

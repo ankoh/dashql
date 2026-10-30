@@ -2,11 +2,11 @@
 
 use crate::agent::commands::is_session_command;
 use crate::agent::config::{
-    create_private_dir, random_bytes, to_json_text, write_private_file, AgentConfig, ORIGINS,
+    create_private_dir, random_bytes, to_json_text, write_private_file, AgentConfig, HarnessChoice, ORIGINS,
 };
 use crate::agent::harness::{
     build_harness_args, resolve_login_shell_path, resolve_program, spawn_harness, HarnessEvent, HarnessOutcome,
-    HarnessProcess, HarnessSpawnArgs, Kill, KILL_GRACE,
+    HarnessPicks, HarnessProcess, HarnessSpawnArgs, Kill, KILL_GRACE,
 };
 use crate::agent::http::{self, Request};
 use crate::agent::instructions::{claude_instructions, session_instructions, INPUT_FOLDER, OPENCODE_CONFIG};
@@ -182,6 +182,7 @@ struct Turn {
     turn_id: String,
     session: String,
     harness: String,
+    picks: HarnessPicks,
     prompt: String,
     state: TurnState,
     status: String,
@@ -243,6 +244,21 @@ fn pick_harness(config: &AgentConfig, params: &Value) -> Result<String, RpcError
         Some(_) => Ok(harness.to_string()),
         None => Err(RpcError::new(ErrorCode::Failed, format!("unknown harness: {harness}"))),
     }
+}
+
+/// The model and the effort of a request, among the ones of its harness in config.json.
+/// Like the harness, a page may only pick a value: the values become arguments of the harness.
+fn pick_choices(config: &AgentConfig, harness: &str, params: &Value) -> Result<HarnessPicks, RpcError> {
+    let Some(harness_config) = config.harness(harness) else {
+        return Err(RpcError::new(ErrorCode::Failed, format!("unknown harness: {harness}")));
+    };
+    let pick = |key: &str, choice: &HarnessChoice| match &params[key] {
+        Value::Null => Ok(None),
+        Value::String(value) if choice.values.contains(value) => Ok(Some(value.clone())),
+        Value::String(value) => Err(RpcError::new(ErrorCode::Failed, format!("unknown {key} of {harness}: {value}"))),
+        _ => Err(RpcError::new(ErrorCode::Usage, format!("the {key} must be a string"))),
+    };
+    Ok(HarnessPicks { model: pick("model", &harness_config.model)?, effort: pick("effort", &harness_config.effort)? })
 }
 
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
@@ -377,6 +393,8 @@ impl Shared {
                 "turnId": turn.turn_id,
                 "session": turn.session,
                 "harness": turn.harness,
+                "model": turn.picks.model,
+                "effort": turn.picks.effort,
                 "state": turn.state.name(),
                 "status": turn.status,
             })).collect::<Vec<_>>(),
@@ -673,6 +691,8 @@ impl Shared {
                     "command": harness.command,
                     "adapter": harness.adapter.name(),
                     "program": program.map(|p| p.display().to_string()),
+                    "models": harness.model.values,
+                    "efforts": harness.effort.values,
                 })
             })
             .collect();
@@ -740,6 +760,7 @@ impl Shared {
             return Err(RpcError::new(ErrorCode::Usage, "the session has no agent access"));
         }
         let harness = pick_harness(&state.config, params)?;
+        let picks = pick_choices(&state.config, &harness, params)?;
         let prompt = params["prompt"].as_str().unwrap_or_default();
         if prompt.trim().is_empty() {
             return Err(RpcError::new(ErrorCode::Failed, "the prompt is empty"));
@@ -747,13 +768,16 @@ impl Shared {
         let turn_id = random_uuid();
         let ahead = state.turns.iter().filter(|turn| turn.session == session).count();
         self.log(&format!(
-            "Turn {turn_id}: queued for session {session} with {harness}, {ahead} turns ahead, prompt: {}",
+            "Turn {turn_id}: queued for session {session} with {harness} (model {}, effort {}), {ahead} turns ahead, prompt: {}",
+            picks.model.as_deref().unwrap_or("default"),
+            picks.effort.as_deref().unwrap_or("default"),
             clip(prompt)
         ));
         state.turns.push(Turn {
             turn_id: turn_id.clone(),
             session: session.to_string(),
             harness: harness.clone(),
+            picks,
             prompt: prompt.to_string(),
             state: TurnState::Queued,
             status: "waiting for agent...".into(),
@@ -800,14 +824,14 @@ impl Shared {
 
     /// Prepare the working folder and start the harness, the outcome once the harness exited
     async fn run_harness(self: &Arc<Self>, turn_id: &str) -> Result<HarnessOutcome, String> {
-        let (session, config, prompt) = {
+        let (session, config, prompt, picks) = {
             let state = self.lock();
             let Some(turn) = state.turns.iter().find(|turn| turn.turn_id == turn_id) else {
                 return Ok(HarnessOutcome::failed("Stopped"));
             };
             let config =
                 state.config.harness(&turn.harness).cloned().ok_or(format!("unknown harness: {}", turn.harness))?;
-            (turn.session.clone(), config, turn.prompt.clone())
+            (turn.session.clone(), config, turn.prompt.clone(), turn.picks.clone())
         };
         let cwd = self.session_dir(&session);
         create_private_dir(&cwd)?;
@@ -844,7 +868,7 @@ impl Shared {
         };
         let harness_session =
             self.read_session_state(&session).harness_sessions.get(&harness_name).and_then(Value::as_str).map(str::to_string);
-        let argv = build_harness_args(&config, &prompt, harness_session.as_deref());
+        let argv = build_harness_args(&config, &prompt, harness_session.as_deref(), &picks);
         self.log(&format!(
             "Turn {turn_id}: starting {harness_name} for session {session} in {}, {}, command: {}",
             cwd.display(),
@@ -856,7 +880,7 @@ impl Shared {
         self.log(&format!("Turn {turn_id}: PATH={}", env[&OsString::from("PATH")].to_string_lossy()));
         let (events, mut received) = mpsc::unbounded_channel();
         let process =
-            (self.options.spawn_harness)(HarnessSpawnArgs { config, prompt, harness_session, cwd, env, events });
+            (self.options.spawn_harness)(HarnessSpawnArgs { config, prompt, harness_session, picks, cwd, env, events });
         {
             let mut state = self.lock();
             state.harnesses += 1;
@@ -1758,6 +1782,52 @@ mod tests {
         assert!(std::fs::read_to_string(cwd.join("opencode.json")).unwrap().contains("\"dashql agent *\": \"allow\""));
         // The server never writes the configuration, the fixture removed it after loading
         assert!(!fixture.home.join("config.json").exists());
+    }
+
+    #[tokio::test]
+    async fn runs_the_picked_model_and_effort() {
+        let fixture = Fixture::start(json!({})).await;
+        let mut client = fixture.connect("https://dashql.app").await;
+        client.send(json!({ "id": 1, "method": "agent/info", "params": {} })).await;
+        let info = client.next(|m| m["id"] == 1).await.unwrap()["result"].clone();
+        assert_eq!(info["harnesses"][0]["models"], json!(["fable", "opus", "sonnet", "haiku"]));
+        assert_eq!(info["harnesses"][1]["models"], json!([]));
+
+        client.announce(&["s1"], Some("s1")).await;
+        // Only the values of config.json reach the harness
+        for (id, params, error) in [
+            (
+                2,
+                json!({ "harness": "claude", "model": "--dangerously-skip-permissions" }),
+                "unknown model of claude: --dangerously-skip-permissions",
+            ),
+            (3, json!({ "harness": "codex", "model": "opus" }), "unknown model of codex: opus"),
+            (4, json!({ "harness": "claude", "effort": "ultra" }), "unknown effort of claude: ultra"),
+        ] {
+            let mut params = params;
+            params["session"] = "s1".into();
+            params["prompt"] = "hi".into();
+            client.send(json!({ "id": id, "method": "agent/request", "params": params })).await;
+            assert_eq!(client.next(|m| m["id"] == id).await.unwrap()["error"]["message"], error);
+        }
+        let params = json!({ "session": "s1", "harness": "claude", "model": "opus", "effort": "high", "prompt": "hi" });
+        client.send(json!({ "id": 5, "method": "agent/request", "params": params })).await;
+        client.next(|m| m["id"] == 5).await.unwrap();
+        fixture.wait_for_runs(1).await;
+        let picks = fixture.run(0, |run| run.args.picks.clone());
+        assert_eq!(picks, HarnessPicks { model: Some("opus".into()), effort: Some("high".into()) });
+        client.send(json!({ "id": 6, "method": "agent/info", "params": {} })).await;
+        let turn = client.next(|m| m["id"] == 6).await.unwrap()["result"]["turns"][0].clone();
+        assert_eq!((turn["model"].clone(), turn["effort"].clone()), (json!("opus"), json!("high")));
+        fixture.run(0, |run| run.finish("done", None));
+        client.next(|m| m["method"] == "agent/done").await.unwrap();
+
+        // A request without picks leaves the defaults to the harness
+        let params = json!({ "session": "s1", "harness": "claude", "prompt": "hi" });
+        client.send(json!({ "id": 7, "method": "agent/request", "params": params })).await;
+        client.next(|m| m["id"] == 7).await.unwrap();
+        fixture.wait_for_runs(2).await;
+        assert_eq!(fixture.run(1, |run| run.args.picks.clone()), HarnessPicks::default());
     }
 
     #[tokio::test]

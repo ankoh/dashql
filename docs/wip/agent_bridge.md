@@ -339,8 +339,9 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
 ### App → agent
 
 1. The user asks in the composer, uses an inline edit, or clicks "Fix with agent".
-2. The client sends `agent/request {session, harness, prompt}`. `harness` is a name
-   such as `codex`; the prompt carries the request, the target script and selection,
+2. The client sends `agent/request {session, harness, model, effort, prompt}`. `harness` is a name
+   such as `codex`, `model` and `effort` are values of the harness's `models` and `efforts` in `config.json`, the
+   harness's own defaults if omitted; the prompt carries the request, the target script and selection,
    and a short summary of what changed since the previous request.
 3. The server runs the command template for that harness from `config.json` in
    `~/.dashql/agent/sessions/<id>/`, with `DASHQL_SESSION` set and the resolved `PATH`.
@@ -349,10 +350,15 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
 
    ```sh
    claude -p --output-format stream-json --verbose --allowedTools "Bash(dashql agent:*)" "Edit(./input/*)" \
-       --disallowedTools "Bash(dashql agent serve:*)" [--resume <id>] -- "<prompt>"
-   codex exec --json --skip-git-repo-check [resume <id>] -- "<prompt>"
-   opencode run --format json [--session <id>] -- "<prompt>"
+       --disallowedTools "Bash(dashql agent serve:*)" [--model <m>] [--effort <e>] [--resume <id>] -- "<prompt>"
+   codex exec --json --skip-git-repo-check [-m <m>] [-c model_reasoning_effort=<e>] [resume <id>] -- "<prompt>"
+   opencode run --format json [--model <m>] [--session <id>] -- "<prompt>"
    ```
+
+   The built-in models of Claude Code are its aliases (`fable`, `opus`, `sonnet`, `haiku`), which follow its latest
+   models, and its efforts are `low` to `max`. Codex has the efforts `low`, `medium` and `high`; Codex and opencode
+   name models by provider, so they list none and `config.json` adds them. The Codex flags are not yet run against a
+   real Codex.
 
    `--` ends the options: Claude Code's tool lists take every following argument, so without it the prompt
    is swallowed, and a prompt that starts with `-` would be read as an option.
@@ -391,9 +397,11 @@ registry and the provider wrap app state, so they live in `packages/dashql-app/s
 - One turn at a time per DashQL session; further requests queue in the server.
 - Stop (in the composer or the menu) sends `agent/cancel`; the server kills the process tree
   of the turn's harness.
-- **Security rule:** clients never send commands, only a harness name and a prompt.
+- **Security rule:** clients never send commands, only a harness name, a model, an effort and a prompt.
   Command templates exist only in the local `config.json`. The app may pick a harness among them
-  (`harness` of `agent/request` and `agent/context`) but never change a template, and the server never writes
+  (`harness` of `agent/request` and `agent/context`), and a model and an effort among the ones of the harness, but
+  never change a template or pass a value that `config.json` does not list (it would become an argument, e.g.
+  `--model --dangerously-skip-permissions`), and the server never writes
   `config.json` after creating it. Otherwise a bug in dashql.app (XSS, for example) could run arbitrary commands
   on the user's machine.
 
@@ -408,6 +416,9 @@ context, Continue in terminal copies the command that continues the harness sess
 - **Harness:** picks among the configured harnesses (`agent/info`), an app setting (`agentHarness`); the
   `defaultHarness` of `config.json` otherwise. A harness whose binary is not on the `PATH` of harness runs is
   disabled. Templates are edited in `config.json`.
+- **Model** and **effort:** pick among the `models` and `efforts` of the harness (`agent/info`), or Default for the
+  harness's own, app settings (`agentModel`, `agentEffort`). Picking another harness restores both defaults. Turns show
+  their model and effort.
 - **Sessions** with agent access, each with "Disconnect".
 - **Turns** of the server, each with "Stop", and the **clients** of the server.
 

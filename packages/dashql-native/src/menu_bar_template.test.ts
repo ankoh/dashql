@@ -14,8 +14,8 @@ const busy: AgentServerStatus = {
         {id: "c2", kind: "desktop", origin: "app://bundle", sessions: [{id: "s3", name: "Scratch"}], focused: null},
     ],
     turns: [
-        {turnId: "t1", session: "s1", harness: "codex", state: "running", status: "Writing q1"},
-        {turnId: "t2", session: "s3", harness: "claude", state: "queued", status: ""},
+        {turnId: "t1", session: "s1", harness: "codex", model: null, effort: null, state: "running", status: "Writing q1"},
+        {turnId: "t2", session: "s3", harness: "claude", model: null, effort: null, state: "queued", status: ""},
     ],
 };
 

@@ -31,10 +31,22 @@ the built-in ones, and further page origins to accept (`origins`):
     "token": "…",
     "defaultHarness": "claude",
     "harnesses": {
-        "mine": { "command": ["mine", "{resume}", "{prompt}"], "resumeArgs": ["--continue", "{harnessSession}"], "adapter": "text" }
+        "mine": {
+            "command": ["mine", "{model}", "{effort}", "{resume}", "{prompt}"],
+            "resumeArgs": ["--continue", "{harnessSession}"],
+            "models": ["large", "small"],
+            "modelArgs": ["--model", "{model}"],
+            "efforts": ["low", "high"],
+            "effortArgs": ["--effort", "{effort}"],
+            "adapter": "text"
+        }
     }
 }
 ```
+
+The app picks the model and the effort of requests among `models` and `efforts`, `{model}` and `{effort}` are dropped
+while it picks the harness's default. A harness in `harnesses` replaces the built-in one of its name as a whole, so
+listing models of Codex or opencode means copying their built-in template and adding `models`.
 
 The agent commands exit with 0 when they succeed, 1 when the command failed and 2 when DashQL is not connected or the
 call is malformed.

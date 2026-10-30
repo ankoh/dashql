@@ -38,6 +38,10 @@ export interface AppSettings {
     agentPort?: number;
     /// The harness that runs the requests of the agent, the default harness of the agent server if unset
     agentHarness?: string;
+    /// The model of the harness's requests, one of the models of the harness, the harness's own default if unset
+    agentModel?: string;
+    /// The effort of the harness's requests, one of the efforts of the harness, the harness's own default if unset
+    agentEffort?: string;
 }
 
 export interface AppConfig {

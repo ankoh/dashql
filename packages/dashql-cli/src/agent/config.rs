@@ -43,17 +43,32 @@ impl HarnessAdapter {
     }
 }
 
+/// A setting of harness runs that requests may pick, the model or the effort
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct HarnessChoice {
+    /// The values that requests may pick, no request can pass another value
+    pub values: Vec<String>,
+    /// The arguments that pass a picked value
+    pub args: Vec<String>,
+}
+
 /// How the agent server runs a harness headless.
 ///
 /// Arguments are passed to the process as they are, never through a shell.
 /// `{prompt}` is replaced by the prompt, `{resume}` by `resumeArgs` once the DashQL session has a harness
 /// session, and is dropped otherwise. `{harnessSession}` in `resumeArgs` is the stored harness session id.
+/// `{model}` and `{effort}` are replaced by `modelArgs` and `effortArgs` once a request picks one of `models` or
+/// `efforts`, and are dropped otherwise. In `modelArgs` and `effortArgs`, they are the picked value.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HarnessConfig {
     /// The program and its arguments
     pub command: Vec<String>,
     /// The arguments that resume a harness session
     pub resume_args: Vec<String>,
+    /// The models that requests may pick
+    pub model: HarnessChoice,
+    /// The efforts that requests may pick
+    pub effort: HarnessChoice,
     /// The command that continues the harness session in a terminal, shown by the app
     pub terminal_command: Option<Vec<String>>,
     /// How the output is read
@@ -88,6 +103,8 @@ impl AgentConfig {
 /// starting with `-` would be read as an option.
 /// Run against Claude Code 2.1, opencode 1.18 and Codex 0.162.
 /// Claude Code denies heredocs with JSON, so its runs may write the inputs of `--file` into the input folder.
+/// The models of Claude Code are aliases of its latest models. Codex and opencode name their models by provider,
+/// config.json lists the ones to pick.
 fn default_harnesses() -> Value {
     json!({
         "claude": {
@@ -95,22 +112,32 @@ fn default_harnesses() -> Value {
                 "claude", "-p", "--output-format", "stream-json", "--verbose",
                 "--allowedTools", "Bash(dashql agent:*)", "Edit(./input/*)",
                 "--disallowedTools", "Bash(dashql agent serve:*)",
-                "{resume}", "--", "{prompt}",
+                "{model}", "{effort}", "{resume}", "--", "{prompt}",
             ],
             "resumeArgs": ["--resume", "{harnessSession}"],
+            "models": ["fable", "opus", "sonnet", "haiku"],
+            "modelArgs": ["--model", "{model}"],
+            "efforts": ["low", "medium", "high", "xhigh", "max"],
+            "effortArgs": ["--effort", "{effort}"],
             "terminalCommand": ["claude", "--resume", "{harnessSession}"],
             "adapter": "claude",
         },
         "codex": {
-            "command": ["codex", "exec", "--json", "--skip-git-repo-check", "{resume}", "--", "{prompt}"],
+            "command": [
+                "codex", "exec", "--json", "--skip-git-repo-check", "{model}", "{effort}", "{resume}", "--", "{prompt}",
+            ],
             "resumeArgs": ["resume", "{harnessSession}"],
+            "modelArgs": ["-m", "{model}"],
+            "efforts": ["low", "medium", "high"],
+            "effortArgs": ["-c", "model_reasoning_effort={effort}"],
             "terminalCommand": ["codex", "resume", "{harnessSession}"],
             "adapter": "codex",
         },
         // The permissions of opencode runs come from the opencode.json of the working folder
         "opencode": {
-            "command": ["opencode", "run", "--format", "json", "{resume}", "--", "{prompt}"],
+            "command": ["opencode", "run", "--format", "json", "{model}", "{resume}", "--", "{prompt}"],
             "resumeArgs": ["--session", "{harnessSession}"],
+            "modelArgs": ["--model", "{model}"],
             "terminalCommand": ["opencode", "--session", "{harnessSession}"],
             "adapter": "opencode",
         },
@@ -191,9 +218,28 @@ fn parse_config(stored: &Map<String, Value>) -> Result<AgentConfig, String> {
             }
             let optional =
                 |key: &str| (!harness[key].is_null()).then(|| strings(&harness[key], &what(key))).transpose();
+            // A value to pick needs its place in the command
+            let choice = |name: &str, values_key: &str, args_key: &str| -> Result<HarnessChoice, String> {
+                let choice = HarnessChoice {
+                    values: optional(values_key)?.unwrap_or_default(),
+                    args: optional(args_key)?.unwrap_or_default(),
+                };
+                let placeholder = format!("{{{name}}}");
+                if !choice.values.is_empty() {
+                    if !command.contains(&placeholder) {
+                        return Err(format!("{} needs {placeholder} in {}", what(values_key), what("command")));
+                    }
+                    if !choice.args.iter().any(|arg| arg.contains(&placeholder)) {
+                        return Err(format!("{} needs {placeholder} in {}", what(values_key), what(args_key)));
+                    }
+                }
+                Ok(choice)
+            };
             let config = HarnessConfig {
-                command,
                 resume_args: optional("resumeArgs")?.unwrap_or_default(),
+                model: choice("model", "models", "modelArgs")?,
+                effort: choice("effort", "efforts", "effortArgs")?,
+                command,
                 terminal_command: optional("terminalCommand")?,
                 adapter: HarnessAdapter::parse(harness["adapter"].as_str().unwrap_or("text")),
             };
@@ -331,6 +377,38 @@ mod tests {
         let home = temp_dir("dashql-config");
         std::fs::write(home.join("config.json"), r#"{"token": "t", "harnesses": {"x": {"command": "x"}}}"#).unwrap();
         assert_eq!(load_config(&home, &no_env).unwrap_err(), "harnesses.x.command must be a list of strings");
+    }
+
+    #[test]
+    fn reads_the_models_and_efforts_of_harnesses() {
+        let home = temp_dir("dashql-config");
+        let stored = json!({
+            "token": "t",
+            "harnesses": { "codex": { "command": ["codex", "{model}", "{prompt}"], "models": ["gpt-a"], "modelArgs": ["-m", "{model}"] } },
+        });
+        std::fs::write(home.join("config.json"), stored.to_string()).unwrap();
+        let config = load_config(&home, &no_env).unwrap();
+        let claude = config.harness("claude").unwrap();
+        assert_eq!(claude.model.values, ["fable", "opus", "sonnet", "haiku"]);
+        assert_eq!(claude.effort.args, ["--effort", "{effort}"]);
+        // An override replaces the built-in harness with its choices
+        let codex = config.harness("codex").unwrap();
+        assert_eq!(codex.model.values, ["gpt-a"]);
+        assert_eq!(codex.model.args, ["-m", "{model}"]);
+        assert_eq!(codex.effort, HarnessChoice::default());
+        assert!(config.harness("opencode").unwrap().model.values.is_empty());
+    }
+
+    #[test]
+    fn rejects_choices_without_their_place_in_the_command() {
+        let home = temp_dir("dashql-config");
+        let stored = json!({ "token": "t", "harnesses": { "x": { "command": ["x", "{prompt}"], "models": ["m"], "modelArgs": ["-m", "{model}"] } } });
+        std::fs::write(home.join("config.json"), stored.to_string()).unwrap();
+        assert_eq!(load_config(&home, &no_env).unwrap_err(), "harnesses.x.models needs {model} in harnesses.x.command");
+        let stored = json!({ "token": "t", "harnesses": { "x": { "command": ["x", "{effort}", "{prompt}"], "efforts": ["high"], "effortArgs": ["--effort"] } } });
+        std::fs::write(home.join("config.json"), stored.to_string()).unwrap();
+        let error = load_config(&home, &no_env).unwrap_err();
+        assert_eq!(error, "harnesses.x.efforts needs {effort} in harnesses.x.effortArgs");
     }
 
     #[test]
