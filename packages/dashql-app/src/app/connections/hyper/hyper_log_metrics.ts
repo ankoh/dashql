@@ -215,11 +215,13 @@ export function lastExtractRow(table: arrow.Table): number {
     return last;
 }
 
-/// Read the finished queries of a result of queryEndsQuery(), ordered by their end
+/// Read the finished queries of a result of queryEndsQuery(), ordered by their end.
+/// The log times of Hyper in Wasm have millisecond resolution, the request number orders the queries of a session that
+/// end within the same millisecond.
 export function readQueryEnds(table: arrow.Table): HyperQueryEnd[] {
-    const queries: HyperQueryEnd[] = [];
+    const queries: { query: HyperQueryEnd, request: number }[] = [];
     for (const row of table) {
-        queries.push({
+        queries.push({ request: Number(row.req ?? 0), query: {
             sessionId: String(row.sess),
             endedAt: Number(row.epoch_ms),
             succeeded: Boolean(row.succeeded),
@@ -237,9 +239,11 @@ export function readQueryEnds(table: arrow.Table): HyperQueryEnd[] {
             processedRows: Number(row.processed_rows ?? 0),
             queryType: nullableString(row.client_query_type),
             sentByApp: Boolean(row.sent_by_app),
-        });
+        } });
     }
-    return queries.sort((l, r) => l.endedAt - r.endedAt);
+    return queries
+        .sort((l, r) => l.query.endedAt - r.query.endedAt || l.request - r.request)
+        .map(({ query }) => query);
 }
 
 /// Read the resource samples of a result of resourceSamplesQuery(), ordered by time
