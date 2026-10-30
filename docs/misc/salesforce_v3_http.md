@@ -73,9 +73,9 @@ Executes a SQL query. Returns results inline for fast queries, or a query ID for
 
 Body is raw binary Arrow IPC stream bytes.
 
-#### `status` Response Header
+#### `x-hyperdb-status` Response Header
 
-Both JSON and Arrow responses include a `status` header containing a JSON-serialized QueryStatus:
+Both JSON and Arrow responses include an `x-hyperdb-status` header containing a JSON-serialized QueryStatus:
 
 ```typescript
 {
@@ -298,7 +298,7 @@ Uncaught exceptions: `500` with `{ error: "INTERNAL_ERROR", message: "..." }`.
 
 ## Client Implementation Notes
 
-1. **`status` header** — POST `/api/v3/query` and GET `/chunk/{chunkId}` include a `status` response header containing JSON-serialized `QueryStatus`. Parse with `JSON.parse(response.headers.get("status"))`.
+1. **`x-hyperdb-status` header** — POST `/api/v3/query` and GET `/chunk/{chunkId}` include an `x-hyperdb-status` response header containing JSON-serialized `QueryStatus`. Parse with `JSON.parse(response.headers.get("x-hyperdb-status"))`.
 
 2. **Async query flow** — POST returns inline results for fast queries. If `completionStatus` is `RUNNING_OR_UNSPECIFIED`, poll `GET /api/v3/query/{queryId}` (with `waitTimeMs` for long-polling) until `FINISHED` or `RESULTS_PRODUCED`, then fetch chunks via `/chunk/{chunkId}`.
 
