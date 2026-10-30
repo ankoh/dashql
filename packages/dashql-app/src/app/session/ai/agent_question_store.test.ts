@@ -15,4 +15,26 @@ describe('AgentQuestionStore', () => {
         expect(store.finish('b', second)).toBe(true);
         expect(store.finish('b', second)).toBe(false);
     });
+
+    it('forgets a deleted session', () => {
+        const store = new AgentQuestionStore();
+        const listener = vi.fn();
+        store.subscribe(listener);
+        const questionId = store.add('a', question);
+        store.setTurnId('a', questionId, 'turn-1');
+        store.attach('a', { sessionScripts: vi.fn(), runScript: vi.fn(), followScript: vi.fn() });
+        listener.mockClear();
+
+        store.drop('a');
+        expect(listener).toHaveBeenCalledOnce();
+        expect(store.questions('a').size).toBe(0);
+        expect(store.isWorking('a', questionId)).toBe(false);
+        expect(store.turnId('a', questionId)).toBeNull();
+        expect(store.feed('a')).toBeNull();
+        // The turn of the deleted session finishes without bringing it back
+        expect(store.finish('a', questionId)).toBe(false);
+        store.update('a', questionId, q => ({ ...q, status: null }));
+        store.remove('a', questionId);
+        expect(store.questions('a').size).toBe(0);
+    });
 });

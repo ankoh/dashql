@@ -25,6 +25,12 @@
           "required": ["params", "result"],
           "additionalProperties": false
         },
+        "agent/forget": {
+          "type": "object",
+          "properties": { "params": { "$ref": "#/definitions/AgentSessionParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
+          "required": ["params", "result"],
+          "additionalProperties": false
+        },
         "agent/reset": {
           "type": "object",
           "properties": { "params": { "$ref": "#/definitions/AgentSessionParams" }, "result": { "$ref": "#/definitions/AgentEmptyMessage" } },
@@ -44,7 +50,7 @@
           "additionalProperties": false
         }
       },
-      "required": ["client/sessions", "agent/request", "agent/cancel", "agent/reset", "agent/context", "agent/info"],
+      "required": ["client/sessions", "agent/request", "agent/cancel", "agent/forget", "agent/reset", "agent/context", "agent/info"],
       "additionalProperties": false
     },
     "AgentClientMethods": {
@@ -187,7 +193,7 @@
     },
     "AgentSessionParams": {
       "type": "object",
-      "description": "agent/reset, client → server: the session to forget",
+      "description": "agent/reset and agent/forget, client → server: the session whose harness sessions or whose folder go",
       "properties": {
         "session": { "type": "string" }
       },

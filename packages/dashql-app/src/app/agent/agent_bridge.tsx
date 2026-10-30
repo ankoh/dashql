@@ -286,6 +286,28 @@ export const AgentBridgeProvider: React.FC<React.PropsWithChildren> = (props: Re
         });
     }, [reconfigure, logger]);
 
+    // A deleted session takes its agent state along: the server stops its turns and removes its folder, its questions
+    // and its agent access go. Only a deletion drops a session from the registry. A session deleted while the agent
+    // server is not connected leaves its folder, the server removes the folders of unused sessions after a while.
+    const knownSessions = React.useRef<ReadonlySet<string>>(new Set());
+    const latestAccessSessions = React.useRef(accessSessions);
+    latestAccessSessions.current = accessSessions;
+    React.useEffect(() => {
+        const sessions = new Set(registry.sessionScriptsMap.keys());
+        for (const sessionId of knownSessions.current) {
+            if (sessions.has(sessionId)) continue;
+            logger.info('Forgetting the agent state of a deleted session', { sessionId }, LOG_CTX);
+            if (client?.status === AgentConnectionStatus.Connected) {
+                client.request('agent/forget', { session: sessionId }).catch((e: unknown) => {
+                    logger.warn('Forgetting a deleted session in the agent server failed', { sessionId, error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
+                });
+            }
+            questions.drop(sessionId);
+            if (latestAccessSessions.current.includes(sessionId)) setAccess(sessionId, false);
+        }
+        knownSessions.current = sessions;
+    }, [registry.sessionScriptsMap, client, questions, setAccess, logger]);
+
     const request = React.useCallback(async (sessionId: string, prompt: string, listener: AgentTurnListener) => {
         if (client == null) throw new Error('This browser cannot reach the agent server');
         logger.info('Sending a request to the agent', { session: sessionId, harness: harness ?? 'default', model: model ?? 'default', effort: effort ?? 'default', promptLength: String(prompt.length) }, LOG_CTX);

@@ -40,6 +40,10 @@ const SERVER_STOPPED_MESSAGE: &str = "The agent server stopped";
 const CLOSE_GRACE: Duration = Duration::from_secs(1);
 /// Set in the environment of harness runs
 pub const AGENT_RUN_ENV: &str = "DASHQL_AGENT_RUN";
+/// How long the folder of an unused session stays
+const SESSION_RETENTION: Duration = Duration::from_secs(30 * 24 * 60 * 60);
+/// How often the server removes the folders of unused sessions
+const SESSION_SWEEP_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// Messages and output lines are cut after this many bytes in the log
 const LOG_TEXT_LIMIT: usize = 64 * 1024;
@@ -205,6 +209,8 @@ struct State {
     busy: HashSet<String>,
     /// The turns in the order of their requests, the first turn of a session runs, the others wait
     turns: Vec<Turn>,
+    /// The deleted sessions whose folders go once their running turns finish
+    forgotten: HashSet<String>,
     /// The harness processes that did not exit yet
     harnesses: usize,
     next_call_id: u64,
@@ -269,6 +275,7 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
 pub struct AgentServer {
     shared: Arc<Shared>,
     accept: tokio::task::JoinHandle<()>,
+    sweep: tokio::task::JoinHandle<()>,
 }
 
 impl AgentServer {
@@ -285,6 +292,7 @@ impl AgentServer {
                 next_client: 0,
                 busy: HashSet::new(),
                 turns: Vec::new(),
+                forgotten: HashSet::new(),
                 harnesses: 0,
                 next_call_id: 1,
                 clock: 0,
@@ -309,7 +317,20 @@ impl AgentServer {
                 }
             }
         });
-        Ok(AgentServer { shared, accept })
+        // The folders of unused sessions go at the start and then once a day
+        shared.sweep_sessions();
+        let sweep = tokio::spawn({
+            let shared = shared.clone();
+            async move {
+                let start = tokio::time::Instant::now() + SESSION_SWEEP_INTERVAL;
+                let mut interval = tokio::time::interval_at(start, SESSION_SWEEP_INTERVAL);
+                loop {
+                    interval.tick().await;
+                    shared.sweep_sessions();
+                }
+            }
+        });
+        Ok(AgentServer { shared, accept, sweep })
     }
 
     /// The port the server listens on
@@ -324,10 +345,17 @@ impl AgentServer {
         self.shared.status(&self.shared.lock())
     }
 
+    /// Remove the folders of unused sessions now
+    #[cfg(test)]
+    pub fn sweep_sessions(&self) {
+        self.shared.sweep_sessions();
+    }
+
     /// Stop listening, fail the turns and kill their harnesses, disconnect the clients.
     /// Returns once the harness processes exited, the runtime would otherwise drop them while they run.
     pub async fn close(self) {
         self.accept.abort();
+        self.sweep.abort();
         {
             let mut state = self.shared.lock();
             let state = &mut *state;
@@ -619,6 +647,10 @@ impl Shared {
                 self.cancel_turns(&session, turn_id);
                 Ok(json!({}))
             })),
+            "agent/forget" => reply(session().and_then(|session| {
+                self.forget_session(&session).map_err(|e| RpcError::new(ErrorCode::Failed, e))?;
+                Ok(json!({}))
+            })),
             "agent/reset" => reply(session().and_then(|session| {
                 self.log(&format!("Forgetting the harness sessions of session {session}"));
                 let state = SessionState::default();
@@ -669,6 +701,12 @@ impl Shared {
                 client.focused_at = now;
             }
             client.focused = focused;
+        }
+        // A session that a client shows is in use, its folder stays
+        for session in params["sessions"].as_array().into_iter().flatten().filter_map(|s| s["id"].as_str()) {
+            if self.session_dir(session).is_dir() {
+                self.mark_session_used(session);
+            }
         }
         self.sessions_changed.notify_waiters();
         true
@@ -733,6 +771,89 @@ impl Shared {
         write_private_file(&dir.join("state.json"), &(to_json_text(&state) + "\n"))
     }
 
+    /// Mark a session as used: the time of its state.json is the last use, the sweep keeps the folders of used
+    /// sessions
+    fn mark_session_used(&self, session: &str) {
+        let path = self.session_dir(session).join("state.json");
+        let marked = match std::fs::File::options().write(true).open(&path) {
+            Ok(file) => file.set_modified(SystemTime::now()).map_err(|e| e.to_string()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                self.write_session_state(session, &SessionState::default())
+            }
+            Err(e) => Err(e.to_string()),
+        };
+        if let Err(e) = marked {
+            self.log(&format!("Cannot mark session {session} as used: {e}"));
+        }
+    }
+
+    /// Remove the folder of a session
+    fn remove_session_dir(&self, session: &str) -> Result<(), String> {
+        let dir = self.session_dir(session);
+        match std::fs::remove_dir_all(&dir) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("{}: {e}", dir.display())),
+            _ => Ok(()),
+        }
+    }
+
+    /// Forget a deleted session: stop its turns and remove its folder, once a running turn finished
+    fn forget_session(self: &Arc<Self>, session: &str) -> Result<(), String> {
+        // An empty session id would name the folder of all sessions
+        if session_folder_name(session).is_empty() {
+            return Err("the session is empty".into());
+        }
+        self.cancel_turns(session, None);
+        let mut state = self.lock();
+        if state.turns.iter().any(|turn| turn.session == session) {
+            self.log(&format!("Forgetting session {session} once its running turn stopped"));
+            state.forgotten.insert(session.to_string());
+            return Ok(());
+        }
+        self.log(&format!("Forgetting session {session}"));
+        self.remove_session_dir(session)
+    }
+
+    /// Remove the folders of the sessions that were not used within the retention.
+    /// A client may hold sessions that no other client knows, so only the age tells that a folder is no longer needed.
+    fn sweep_sessions(&self) {
+        let root = self.options.home.join("sessions");
+        let Ok(entries) = std::fs::read_dir(&root) else { return };
+        // The lock keeps new turns from starting in a folder while it is removed
+        let state = self.lock();
+        let in_use: HashSet<String> = state
+            .turns
+            .iter()
+            .map(|turn| turn.session.as_str())
+            .chain(state.busy.iter().map(String::as_str))
+            .chain(state.clients.values().flat_map(|client| client.sessions.iter().map(|s| s.id.as_str())))
+            .map(session_folder_name)
+            .collect();
+        let now = SystemTime::now();
+        let mut removed = 0;
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if in_use.contains(&name) || !entry.file_type().is_ok_and(|t| t.is_dir()) {
+                continue;
+            }
+            // A folder without state.json is as old as the folder itself, an unknown time keeps it
+            let dir = entry.path();
+            let used = std::fs::metadata(dir.join("state.json")).or_else(|_| std::fs::metadata(&dir));
+            let Ok(used) = used.and_then(|m| m.modified()) else { continue };
+            if now.duration_since(used).unwrap_or_default() < SESSION_RETENTION {
+                continue;
+            }
+            match std::fs::remove_dir_all(&dir) {
+                Ok(()) => removed += 1,
+                Err(e) => self.log(&format!("Cannot remove the folder of an unused session {}: {e}", dir.display())),
+            }
+        }
+        drop(state);
+        if removed > 0 {
+            let days = SESSION_RETENTION.as_secs() / 86400;
+            self.log(&format!("Removed the folders of {removed} sessions unused for {days} days"));
+        }
+    }
+
     fn session_context(&self, session: &str, params: &Value) -> Result<Value, RpcError> {
         let state = self.lock();
         let harness = pick_harness(&state.config, params)?;
@@ -765,6 +886,8 @@ impl Shared {
         if prompt.trim().is_empty() {
             return Err(RpcError::new(ErrorCode::Failed, "the prompt is empty"));
         }
+        // A new turn keeps the folder of a session that was forgotten while a turn ran
+        state.forgotten.remove(session);
         let turn_id = random_uuid();
         let ahead = state.turns.iter().filter(|turn| turn.session == session).count();
         self.log(&format!(
@@ -835,6 +958,7 @@ impl Shared {
         };
         let cwd = self.session_dir(&session);
         create_private_dir(&cwd)?;
+        self.mark_session_used(&session);
         for (name, text) in [
             ("AGENTS.md", session_instructions()),
             ("CLAUDE.md", claude_instructions()),
@@ -927,6 +1051,9 @@ impl Shared {
                 notify_status(&state.clients, turn);
             }
             HarnessEvent::Session(id) => {
+                if self.lock().forgotten.contains(session) {
+                    return;
+                }
                 let mut state = self.read_session_state(session);
                 if state.harness_sessions.get(harness).and_then(Value::as_str) == Some(&id) {
                     return;
@@ -963,6 +1090,11 @@ impl Shared {
         let next = state.turns.iter().find(|next| next.session == turn.session);
         if let Some(next) = next.filter(|next| next.state == TurnState::Queued) {
             tokio::spawn(start_turn(self.clone(), next.turn_id.clone()));
+        } else if next.is_none() && state.forgotten.remove(&turn.session) {
+            self.log(&format!("Forgetting session {}", turn.session));
+            if let Err(e) = self.remove_session_dir(&turn.session) {
+                self.log(&format!("Cannot remove the folder of session {}: {e}", turn.session));
+            }
         }
     }
 }
@@ -1665,6 +1797,87 @@ mod tests {
         assert!(fixture.run(0, |run| run.killed.load(Ordering::SeqCst)));
         assert_eq!(fixture.runs.lock().unwrap().len(), 1);
         assert_eq!(fixture.server.status()["turns"], json!([]));
+    }
+
+    #[tokio::test]
+    async fn forgets_a_deleted_session() {
+        let fixture = Fixture::start(json!({})).await;
+        let mut client = fixture.connect("https://dashql.app").await;
+        client.announce(&["s1", "s2"], Some("s1")).await;
+        for (id, session) in [(2, "s1"), (3, "s2")] {
+            let params = json!({ "session": session, "prompt": "count the orders" });
+            client.send(json!({ "id": id, "method": "agent/request", "params": params })).await;
+            client.next(|m| m["id"] == id).await.unwrap();
+        }
+        fixture.wait_for_runs(2).await;
+        let s1 = fixture.home.join("sessions").join("s1");
+        let s2 = fixture.home.join("sessions").join("s2");
+        fixture.run(1, |run| run.finish("42", None));
+        client.next(|m| m["method"] == "agent/done").await.unwrap();
+
+        // A session without turns goes right away
+        client.send(json!({ "id": 4, "method": "agent/forget", "params": { "session": "s2" } })).await;
+        client.next(|m| m["id"] == 4).await.unwrap();
+        assert!(!s2.exists());
+
+        // A running turn stops, the folder goes once the harness exited
+        assert!(s1.exists());
+        client.send(json!({ "id": 5, "method": "agent/forget", "params": { "session": "s1" } })).await;
+        client.next(|m| m["id"] == 5).await.unwrap();
+        let failed = client.next(|m| m["method"] == "agent/failed").await.unwrap();
+        assert_eq!(failed["params"]["cancelled"], true);
+        assert!(fixture.run(0, |run| run.killed.load(Ordering::SeqCst)));
+        for _ in 0..200 {
+            if !s1.exists() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert!(!s1.exists());
+
+        client.send(json!({ "id": 6, "method": "agent/forget", "params": { "session": "" } })).await;
+        let error = client.next(|m| m["id"] == 6).await.unwrap();
+        assert_eq!(error["error"]["message"], "the session is empty");
+        assert!(fixture.home.join("sessions").exists());
+    }
+
+    #[tokio::test]
+    async fn removes_the_folders_of_unused_sessions() {
+        let fixture = Fixture::start(json!({})).await;
+        let sessions = fixture.home.join("sessions");
+        let long_ago = SystemTime::now() - SESSION_RETENTION - Duration::from_secs(60);
+        let folder = |name: &str, used: Option<SystemTime>| {
+            let dir = sessions.join(name);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("state.json"), "{}").unwrap();
+            if let Some(used) = used {
+                std::fs::File::options().write(true).open(dir.join("state.json")).unwrap().set_modified(used).unwrap();
+            }
+            dir
+        };
+        let unused = folder("unused", Some(long_ago));
+        let recent = folder("recent", None);
+        let shown = folder("shown", Some(long_ago));
+
+        // Announcing a session marks it as used
+        let mut client = fixture.connect("https://dashql.app").await;
+        client.announce(&["shown"], Some("shown")).await;
+        let marked = std::fs::metadata(shown.join("state.json")).unwrap().modified().unwrap();
+        assert!(marked > long_ago);
+
+        // A session that a client shows stays while its last use is long ago
+        std::fs::File::options().write(true).open(shown.join("state.json")).unwrap().set_modified(long_ago).unwrap();
+        fixture.server.sweep_sessions();
+        assert!(!unused.exists());
+        assert!(recent.exists());
+        assert!(shown.exists());
+
+        // A turn marks its session as used
+        client.send(json!({ "id": 2, "method": "agent/request", "params": { "session": "shown", "prompt": "hi" } })).await;
+        client.next(|m| m["id"] == 2).await.unwrap();
+        fixture.wait_for_runs(1).await;
+        let marked = std::fs::metadata(shown.join("state.json")).unwrap().modified().unwrap();
+        assert!(marked > long_ago);
     }
 
     #[tokio::test]

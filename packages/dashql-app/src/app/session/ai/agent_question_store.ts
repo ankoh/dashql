@@ -103,6 +103,12 @@ export class AgentQuestionStore {
         return session.working.delete(questionId);
     }
 
+    /// Forget the questions of a deleted session
+    drop(sessionId: string) {
+        if (!this.sessions.delete(sessionId)) return;
+        for (const listener of this.listeners) listener();
+    }
+
     /// Show a session in a feed, returns the detach
     attach(sessionId: string, feed: AgentQuestionFeed): () => void {
         this.session(sessionId).feed = feed;

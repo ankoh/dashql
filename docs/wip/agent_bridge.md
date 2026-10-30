@@ -189,6 +189,13 @@ Configuration and state live in `~/.dashql/agent/` (readable by the user only):
 `config.json` (port, CLI token, harness commands) and `sessions/<id>/` (working folder
 and harness session id per DashQL session).
 
+Deleting a session in the app sends `agent/forget`: the server stops the session's turns and removes its folder,
+once a running harness exited. A session deleted while the app is not connected leaves its folder behind, and no
+client can tell that a folder is unused: every client (the desktop app, dashql.app in each browser profile)
+announces only its own sessions with agent access. So the server also removes, at the start and then once a day,
+the folders of sessions unused for 30 days. The time of `state.json` is the last use: every turn and every
+announcement of the session marks it, and the folders of sessions with turns or announced by a client stay.
+
 ### Menu bar app
 
 DashQL.app gains a menu bar mode. One process covers both states: menu bar only, and
