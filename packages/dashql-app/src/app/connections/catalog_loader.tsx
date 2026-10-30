@@ -12,7 +12,7 @@ import {
     CATALOG_UPDATE_SUCCEEDED,
     UPDATE_CATALOG,
 } from './connection_state.js';
-import { updateSalesforceCatalog } from './salesforce/salesforce_catalog_update.js';
+import { getSidbAttachedDatabase, updateSalesforceCatalog } from './salesforce/salesforce_catalog_update.js';
 import { useQueryExecutor } from './query_executor.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
@@ -197,9 +197,26 @@ export function CatalogLoaderProvider(props: CatalogLoaderProviderProps) {
                     }
                     break;
                 }
+                // Update the catalog by querying the _hyper_catalog of the attached Hyper Cloud database
+                case SIDB_CONNECTOR:
+                    await dependencies.updateHyperCatalog(
+                        traced,
+                        connectionId,
+                        connDispatch,
+                        updateId,
+                        [getSidbAttachedDatabase(conn.details.value.proto.setupParams)],
+                        executor,
+                        conn.catalog,
+                        conn.instance,
+                        conn.catalogRelationScript,
+                        conn.catalogFunctionScript,
+                        false,
+                        abortController.signal,
+                        batchOptions,
+                    );
+                    break;
                 // Update the catalog by querying the Salesforce Metadata Service
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                case SIDB_CONNECTOR:
                     await updateSalesforceCatalog(
                         traced,
                         conn.details.value,

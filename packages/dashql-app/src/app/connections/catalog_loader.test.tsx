@@ -7,7 +7,7 @@ import { CatalogLoaderProvider, useCatalogLoaderQueue, type CatalogLoaderDepende
 import { type ConnectionRegistry, type DynamicConnectionDispatch } from './connection_registry.js';
 import { CATALOG_UPDATE_CANCELLED, CATALOG_UPDATE_FAILED, CATALOG_UPDATE_SUCCEEDED, ConnectionHealth, type ConnectionState, type CatalogAction } from './connection_state.js';
 import { reduceCatalogAction } from './catalog_update_state.js';
-import { HYPER_CONNECTOR } from './connector_info.js';
+import { HYPER_CONNECTOR, SIDB_CONNECTOR } from './connector_info.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -140,6 +140,21 @@ describe('CatalogLoaderProvider queue', () => {
         expect(updateHyperCatalog).toHaveBeenCalledTimes(2);
         await settleUpdate(() => updates[1].resolve());
         expect(scriptsDispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('describes an SIDB connection with the Hyper catalog of its attached database', async () => {
+        const connection = registry.connections.get('database')!;
+        registry.connections.set('database', {
+            ...connection,
+            details: { type: SIDB_CONNECTOR, value: { proto: { setupParams: { databaseName: 'sales' } } } },
+        } as unknown as ConnectionState);
+        await render();
+        await act(async () => enqueue('database', true));
+        expect(updateHyperCatalog).toHaveBeenCalledTimes(1);
+        expect(updateHyperCatalog.mock.calls[0][4]).toEqual([{ path: 'hyper.cloud:sales', alias: 'lakehouse' }]);
+        expect(updateHyperCatalog.mock.calls[0][10]).toBe(false);
+        await settleUpdate(() => updates[0].resolve());
+        expect(dispatch.mock.calls.some(([, action]) => action.type === CATALOG_UPDATE_SUCCEEDED)).toBe(true);
     });
 
     it('refreshes again when executed statements superseded a running refresh', async () => {

@@ -8,11 +8,18 @@ import { generateSchemaSQL, generateCatalogScriptHeader, CatalogSource, type Col
 import { LoggerLike } from '../../../platform/logger/logger.js';
 import { fetchPrefetchedHyperFunctions } from '../prefetched_hyper_functions.js';
 import { beginCatalogBatch, publishCatalogBatch, type CatalogBatchOptions } from '../catalog_batch.js';
+import type { AttachedDatabase } from '../hyper/hyperdb_grpc_client.js';
 
 export const SALESFORCE_CATALOG_DATABASE = 'lakehouse';
 export const SALESFORCE_CATALOG_SCHEMA = 'public';
 /// The Hyper Cloud database of SIDB connections that don't name one
 export const SIDB_DEFAULT_DATABASE_NAME = 'default';
+
+/// The Hyper Cloud database that SIDB connections attach as the catalog database
+export function getSidbAttachedDatabase(params: connection.SalesforceConnectionParams | undefined): AttachedDatabase {
+    const databaseName = params?.databaseName || SIDB_DEFAULT_DATABASE_NAME;
+    return { path: `hyper.cloud:${databaseName}`, alias: SALESFORCE_CATALOG_DATABASE };
+}
 
 export interface ResolvedSalesforceCatalog {
     tables: Map<string, ColumnMetadata[]>;
