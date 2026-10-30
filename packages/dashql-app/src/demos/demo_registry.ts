@@ -17,7 +17,7 @@ export const DEMOS: readonly DemoEntry[] = [
     {
         id: 'stock_analysis',
         title: 'Stock Analysis',
-        description: 'A live board of trades. HyperDB WASM ingests a generated or the public Coinbase feed, or the board reads a remote Hyper.',
+        description: 'A live board of trades, fed by a generator or the public feeds of Coinbase or Binance.',
         load: () => import('./stock_analysis/stock_analysis_page.js'),
     },
 ];

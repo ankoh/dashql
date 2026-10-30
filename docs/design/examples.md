@@ -15,8 +15,7 @@ packages/dashql-app/
     demos.tsx                    # providers, the index and the route of every demo
     demo_registry.ts             # the demos: id, title, description, load()
     shared/                      # what the demos share
-      data_source.ts             # HyperDB WASM of the page or a remote Hyper
-      data_source_picker.tsx     # picks the source, takes the link of `hyperd run --ui`
+      data_source.ts             # the HyperDB WASM of the page
       use_live_query.ts          # runs a query again and again, never two at a time
       sql_template.ts            # `:name` placeholders in the SQL files
     stock_analysis/              # one folder per demo
@@ -47,15 +46,8 @@ of the app.
 
 ### Data sources
 
-`shared/data_source.ts` hides the Hyper behind `HyperDBSourceDatabase` (`connect()` →
-`query`/`execute`/`close`).
-
-- **This browser**: the HyperDB WASM of the page, attached as `hyper`. The demo creates and fills its own
-  tables.
-- **Remote Hyper**: an HTTP v3 endpoint with a bearer token, e.g. `hyperd run --ui`. The picker accepts the
-  printed link, and the same rules apply as for Hyper links (`hyper_links.md`): `http:` is only allowed on
-  loopback, and the token is kept in memory only. A remote Hyper is read-only for the demos. Something
-  else fills its tables.
+`shared/data_source.ts` hides the HyperDB WASM of the page behind `HyperDBSourceDatabase` (`connect()` →
+`query`/`execute`/`close`), attached as `hyper`. The demo creates and fills its own tables.
 
 A HyperDB WASM connection runs one statement at a time, so a page that writes and reads uses separate
 connections. `useLiveQuery` opens one connection per query.
@@ -66,7 +58,7 @@ connections. `useLiveQuery` opens one connection per query.
 
 - **Table**: `ticks(symbol, ts, price, size, bid, ask)`, one row per trade (`sql/schema.sql`). Hyper has no
   materialized views, so the board aggregates the raw trades with `max_by`/`min_by` on every refresh.
-- **Feeds** (HyperDB WASM only):
+- **Feeds**:
   - a seeded random walk of 24 stocks at 100 to 10,000 trades per second, with 5 minutes of history at the
     start;
   - the public ticker channel of Coinbase Exchange (`wss://ws-feed.exchange.coinbase.com`), 22 USD pairs;
@@ -79,8 +71,6 @@ connections. `useLiveQuery` opens one connection per query.
 - **Layout**: two cards above the table of tickers. One card shows the trades per second, the other one the
   selected ticker (the busiest one until a row is clicked) with its price per second.
 - **Queries**:
-  - the tickers every 500ms (`live_board.sql`, last 24 hours; in HyperDB WASM the retention cuts this to 30
-    minutes);
+  - the tickers every 500ms (`live_board.sql`, last 24 hours; the retention cuts this to 30 minutes);
   - the price of the selected symbol per second, and the trades per second, every 1s.
   - Each card and the table show the time of their latest query.
-- **Remote**: the page expects the table of `schema.sql` and only reads it.

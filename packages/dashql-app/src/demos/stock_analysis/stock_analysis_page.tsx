@@ -1,13 +1,12 @@
 import * as React from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { stringifyError } from '../../platform/logger/logger.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { VegaLiteChart } from '../../ui/vegalite/vegalite_chart.js';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
-import { useDemoDataSource, type DemoDataSource, type DemoDataSourceParams } from '../shared/data_source.js';
-import { DataSourcePicker } from '../shared/data_source_picker.js';
+import { useDemoDataSource, type DemoDataSource } from '../shared/data_source.js';
 import { bindSqlTemplate } from '../shared/sql_template.js';
 import { useLiveQuery, type LiveQueryState } from '../shared/use_live_query.js';
 import { BinanceFeed } from './binance_feed.js';
@@ -42,9 +41,6 @@ const FEEDS: { kind: FeedKind; label: string }[] = [
 /// The rates of the synthetic feed in ticks per second
 const RATES = [100, 1000, 10000];
 
-/// The source of a page that is opened without one
-const WASM_SOURCE: DemoDataSourceParams = { kind: 'wasm' };
-
 /// The ingest of a feed into the HyperDB WASM of the page
 interface IngestState {
     /// Does the table exist?
@@ -59,7 +55,7 @@ interface IngestState {
 
 const NO_INGEST: IngestState = { ready: false, status: null, ticksPerSecond: 0, error: null };
 
-/// Feed ticks into the table of the HyperDB WASM of the page. A remote Hyper is filled by someone else.
+/// Feed ticks into the table of the HyperDB WASM of the page
 function useTickIngest(source: DemoDataSource | null, feedKind: FeedKind, rate: number): IngestState {
     const logger = useLogger();
     const [state, setState] = React.useState<IngestState>(NO_INGEST);
@@ -72,7 +68,7 @@ function useTickIngest(source: DemoDataSource | null, feedKind: FeedKind, rate: 
 
     React.useEffect(() => {
         setState(NO_INGEST);
-        if (source?.embedded == null) return;
+        if (source == null) return;
         let stopped = false;
         let writer: TickWriter | null = null;
         let rateTimer: ReturnType<typeof setInterval> | null = null;
@@ -220,18 +216,15 @@ function cardDirection(value: number | null): string | undefined {
 }
 
 /// Stock Analysis on Hyper: a live board of trades with charts of a symbol.
-/// The HyperDB WASM of the page is fed by a generator or the public feeds of Coinbase or Binance, a remote Hyper is only read.
+/// The HyperDB WASM of the page is fed by a generator or the public feeds of Coinbase or Binance.
 export const StockAnalysisPage: React.FC = () => {
-    const [searchParams] = useSearchParams();
-    const initialKind = searchParams.get('source') === 'remote' ? 'remote' : 'wasm';
-    const [sourceParams, setSourceParams] = React.useState<DemoDataSourceParams | null>(initialKind === 'wasm' ? WASM_SOURCE : null);
-    const { source, error: sourceError } = useDemoDataSource(sourceParams);
+    const { source, error: sourceError } = useDemoDataSource();
     const [feedKind, setFeedKind] = React.useState<FeedKind>('synthetic');
     const [rate, setRate] = React.useState(1000);
     const ingest = useTickIngest(source, feedKind, rate);
 
     // The queries of the page wait for the table of the HyperDB WASM
-    const database = source == null || (source.embedded != null && !ingest.ready) ? null : source.database;
+    const database = source == null || !ingest.ready ? null : source.database;
     const board = useLiveQuery(database, LIVE_BOARD_SQL, 500);
     const throughput = useLiveQuery(database, THROUGHPUT_SQL, 1000);
     const stats = useLiveQuery(database, STATS_SQL, 1000);
@@ -261,7 +254,6 @@ export const StockAnalysisPage: React.FC = () => {
     }, [throughputData, throughput.table]);
 
     const statsRow = stats.table?.get(0);
-    const local = sourceParams?.kind !== 'remote';
     const selectedRow = rows.find(row => row.symbol === symbol) ?? null;
 
     return (
@@ -270,26 +262,21 @@ export const StockAnalysisPage: React.FC = () => {
                 <div className={styles.title_row}>
                     <Link className={styles.back} to="/">Demos</Link>
                     <h1 className={styles.title}>Stock Analysis</h1>
-                    <DataSourcePicker value={sourceParams} onChange={setSourceParams} initialKind={initialKind} />
-                    {local && (
-                        <>
-                            <SegmentedControl aria-label="Feed" data-testid="feed-kind" size={SegmentedControlSize.Small} onChange={i => setFeedKind(FEEDS[i].kind)}>
-                                {FEEDS.map(f => <SegmentedControl.Button key={f.kind} selected={f.kind === feedKind}>{f.label}</SegmentedControl.Button>)}
-                            </SegmentedControl>
-                            {feedKind === 'synthetic' && (
-                                <SegmentedControl aria-label="Ticks per second" data-testid="feed-rate" size={SegmentedControlSize.Small} onChange={i => setRate(RATES[i])}>
-                                    {RATES.map(r => <SegmentedControl.Button key={r} selected={r === rate}>{`${COUNT.format(r)}/s`}</SegmentedControl.Button>)}
-                                </SegmentedControl>
-                            )}
-                        </>
+                    <SegmentedControl aria-label="Feed" data-testid="feed-kind" size={SegmentedControlSize.Small} onChange={i => setFeedKind(FEEDS[i].kind)}>
+                        {FEEDS.map(f => <SegmentedControl.Button key={f.kind} selected={f.kind === feedKind}>{f.label}</SegmentedControl.Button>)}
+                    </SegmentedControl>
+                    {feedKind === 'synthetic' && (
+                        <SegmentedControl aria-label="Ticks per second" data-testid="feed-rate" size={SegmentedControlSize.Small} onChange={i => setRate(RATES[i])}>
+                            {RATES.map(r => <SegmentedControl.Button key={r} selected={r === rate}>{`${COUNT.format(r)}/s`}</SegmentedControl.Button>)}
+                        </SegmentedControl>
                     )}
                 </div>
                 <div className={styles.stats}>
                     <Stat label="Hyper" value={source?.version ?? '–'} />
                     <Stat label="Rows" value={statsRow == null ? '–' : COUNT.format(Number(statsRow['rows']))} data-testid="stat-rows" />
                     <Stat label="Symbols" value={statsRow == null ? '–' : COUNT.format(Number(statsRow['symbols']))} />
-                    {local && <Stat label="Ingest" value={`${COUNT.format(ingest.ticksPerSecond)}/s`} data-testid="stat-ingest" />}
-                    {local && <Stat label="Feed" value={ingest.status == null ? '–' : `${ingest.status.state}${ingest.status.detail ? ` (${ingest.status.detail})` : ''}`} />}
+                    <Stat label="Ingest" value={`${COUNT.format(ingest.ticksPerSecond)}/s`} data-testid="stat-ingest" />
+                    <Stat label="Feed" value={ingest.status == null ? '–' : `${ingest.status.state}${ingest.status.detail ? ` (${ingest.status.detail})` : ''}`} />
                 </div>
                 {(sourceError ?? ingest.error) != null && <p className={styles.error} role="alert">{sourceError ?? ingest.error}</p>}
             </header>
@@ -319,7 +306,7 @@ export const StockAnalysisPage: React.FC = () => {
                         <VegaLiteChart className={styles.card_chart} spec={priceChartSpec} datasets={priceData} signals={priceSignals} />
                     </Card>
                 </div>
-                <Panel className={styles.table_panel} title={local ? 'Tickers, last 30 minutes' : 'Tickers, last 24 hours'} query={board} data-testid="board-panel">
+                <Panel className={styles.table_panel} title="Tickers, last 30 minutes" query={board} data-testid="board-panel">
                     <LiveBoard rows={rows} selected={symbol} onSelect={setSelected} now={now} />
                 </Panel>
             </main>
