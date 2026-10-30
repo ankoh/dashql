@@ -33,6 +33,62 @@ export interface QueryStatus {
     executionStats: ExecutionStats | null;
 }
 
+/// The order in which a query advances through the completion states
+const COMPLETION_STATUS_RANK: Record<CompletionStatus, number> = {
+    RUNNING_OR_UNSPECIFIED: 0,
+    RESULTS_PRODUCED: 1,
+    FINISHED: 2,
+};
+
+/// Read a number that the server may serialize as a JSON string
+function readNumber(value: unknown): number | null {
+    const n = typeof value === "string" ? Number(value) : value;
+    return typeof n === "number" && Number.isFinite(n) ? n : null;
+}
+
+/// Read a query status from a status header or a status response.
+/// The status response serializes chunkCount and rowCount as strings.
+export function readQueryStatus(raw: any): QueryStatus {
+    const stats = raw.executionStats;
+    return {
+        queryId: raw.queryId,
+        completionStatus: raw.completionStatus ?? "RUNNING_OR_UNSPECIFIED",
+        chunkCount: readNumber(raw.chunkCount),
+        rowCount: readNumber(raw.rowCount),
+        progress: readNumber(raw.progress),
+        expirationTime: raw.expirationTime ?? null,
+        executionStats: stats ? {
+            wallClockTime: readNumber(stats.wallClockTime) ?? 0,
+            rowsProcessed: readNumber(stats.rowsProcessed) ?? 0,
+        } : null,
+    };
+}
+
+function maxOrNull(a: number | null, b: number | null): number | null {
+    return a == null ? b : b == null ? a : Math.max(a, b);
+}
+
+/// Merge a status into the current one.
+/// Responses of parallel requests arrive in any order, an older status must not roll back a newer one.
+export function mergeQueryStatus(current: QueryStatus, update: QueryStatus): QueryStatus {
+    const currentRank = COMPLETION_STATUS_RANK[current.completionStatus] ?? 0;
+    const updateRank = COMPLETION_STATUS_RANK[update.completionStatus] ?? 0;
+    const a = current.executionStats;
+    const b = update.executionStats;
+    return {
+        queryId: current.queryId,
+        completionStatus: updateRank >= currentRank ? update.completionStatus : current.completionStatus,
+        chunkCount: maxOrNull(current.chunkCount, update.chunkCount),
+        rowCount: maxOrNull(current.rowCount, update.rowCount),
+        progress: maxOrNull(current.progress, update.progress),
+        expirationTime: update.expirationTime ?? current.expirationTime,
+        executionStats: a && b ? {
+            wallClockTime: Math.max(a.wallClockTime, b.wallClockTime),
+            rowsProcessed: Math.max(a.rowsProcessed, b.rowsProcessed),
+        } : (b ?? a),
+    };
+}
+
 // ---------------------------------------------------------------------------
 // Request types
 // ---------------------------------------------------------------------------
@@ -159,7 +215,7 @@ export class HyperDatabaseHttpClient {
     private parseStatusHeader(response: HttpFetchResult): QueryStatus | null {
         const raw = response.headers.get("x-hyperdb-status");
         if (!raw) return null;
-        return JSON.parse(raw) as QueryStatus;
+        return readQueryStatus(JSON.parse(raw));
     }
 
     private async throwIfError(response: HttpFetchResult): Promise<void> {
@@ -231,7 +287,7 @@ export class HyperDatabaseHttpClient {
             signal: abort,
         });
         await this.throwIfError(response);
-        return await response.json() as QueryStatus;
+        return readQueryStatus(await response.json());
     }
 
     /// DELETE /api/v3/query/{queryId}

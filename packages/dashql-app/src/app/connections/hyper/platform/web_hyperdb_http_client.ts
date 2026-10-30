@@ -12,6 +12,7 @@ import {
     HyperDatabaseHttpClient,
     HyperHttpAuthProvider,
     HyperHttpError,
+    mergeQueryStatus,
     QueryStatus,
 } from '../hyperdb_http_client.js';
 import { fromHttpErrorResponse, HyperQueryError } from '../hyper_error_info.js';
@@ -98,6 +99,11 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
         });
     }
 
+    private updateStatus(status: QueryStatus): void {
+        this.status = mergeQueryStatus(this.status, status);
+        this.emitProgress();
+    }
+
     private isCompleted(): boolean {
         return this.status.completionStatus === "RESULTS_PRODUCED" || this.status.completionStatus === "FINISHED";
     }
@@ -119,8 +125,7 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
             omitSchema,
         }, undefined, this.abort).catch(rethrowAsHyperQueryError);
         if (status) {
-            this.status = status;
-            this.emitProgress();
+            this.updateStatus(status);
         }
         const body = await response.arrayBuffer();
         return new Uint8Array(body);
@@ -154,11 +159,10 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
             }
 
             // No chunks available yet and query is still running — poll for progress.
-            this.status = await this.httpClient.getQueryStatus({
+            this.updateStatus(await this.httpClient.getQueryStatus({
                 queryId: this.queryId,
                 waitTimeMs: CHUNK_POLL_DELAY_MS,
-            }, this.abort).catch(rethrowAsHyperQueryError);
-            this.emitProgress();
+            }, this.abort).catch(rethrowAsHyperQueryError));
         }
     }
 
