@@ -174,9 +174,10 @@ export function AgentView(props: { onClose: () => void }) {
                         </div>
                     </div>
                     {pickedHarnessInfo != null && (
+                        // Agent servers that predate models and efforts omit them
                         <>
-                            <HarnessChoice label="Model" values={pickedHarnessInfo.models} picked={bridge.model} onPick={bridge.setModel} />
-                            <HarnessChoice label="Effort" values={pickedHarnessInfo.efforts} picked={bridge.effort} onPick={bridge.setEffort} />
+                            <HarnessChoice label="Model" values={pickedHarnessInfo.models ?? []} picked={bridge.model} onPick={bridge.setModel} />
+                            <HarnessChoice label="Effort" values={pickedHarnessInfo.efforts ?? []} picked={bridge.effort} onPick={bridge.setEffort} />
                         </>
                     )}
                     {error != null && <div className={styles.error}>{error}</div>}

@@ -113,6 +113,16 @@ describe('Agent view', () => {
         expect(container.querySelectorAll('[data-testid="agent-settings-effort"]').length).toBe(4);
     });
 
+    it('offers no choices of an agent server without models and efforts', async () => {
+        const harnesses = INFO.harnesses.map(({ models: _m, efforts: _e, ...h }) => h) as AgentServerInfo['harnesses'];
+        const turns = [{ turnId: 't', session: 's1', harness: 'claude', state: 'running', status: 'dashql agent catalog' }] as AgentServerInfo['turns'];
+        const bridge = fakeBridge({ info: vi.fn(() => Promise.resolve({ ...INFO, harnesses, turns })) });
+        await render(bridge);
+        expect(container.textContent).toContain('claude · dashql agent catalog');
+        expect(container.querySelector('[data-testid="agent-settings-model"]')).toBeNull();
+        expect(container.querySelector('[data-testid="agent-settings-effort"]')).toBeNull();
+    });
+
     it('turns off agent access of a session', async () => {
         const bridge = fakeBridge();
         await render(bridge);
