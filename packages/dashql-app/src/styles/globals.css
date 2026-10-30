@@ -33,6 +33,8 @@
 
     --button_primary_bg: #1f883d;
     --button_primary_bg_hover: #1a7f37;
+    /* Pressed or with an open menu */
+    --button_primary_bg_active: hsl(137, 66%, 28%);
     --button_primary_bg_disabled: #94d3a2;
 
     /* The colors of status indicators, like the status icons of scripts and the health dots of connections */

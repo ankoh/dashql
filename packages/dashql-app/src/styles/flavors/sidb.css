@@ -30,6 +30,7 @@
 
     --button_primary_bg: var(--sidb_si_on_light);
     --button_primary_bg_hover: hsl(173, 85%, 22%);
+    --button_primary_bg_active: hsl(173, 85%, 19%);
     --button_primary_bg_disabled: hsl(172, 30%, 74%);
 
     --focus_outline_color: var(--sidb_si_on_light);
