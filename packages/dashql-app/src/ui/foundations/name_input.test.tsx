@@ -53,7 +53,8 @@ describe('NameInput', () => {
 
         expect(commitName).not.toHaveBeenCalled();
 
-        act(() => input.blur());
+        // Dispatch the focusout directly, blur() fires no event while the test frame lacks window focus
+        act(() => input.dispatchEvent(new FocusEvent('focusout', { bubbles: true })));
         expect(commitName).toHaveBeenCalledOnce();
         expect(commitName).toHaveBeenCalledWith('Updated name');
     });
