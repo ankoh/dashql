@@ -190,7 +190,7 @@ interface CardProps {
     value: string;
     /// The values next to the headline
     detail?: React.ReactNode;
-    /// The query of the chart, its time is shown next to the title
+    /// The query of the chart, its error is shown in place of the chart
     query: LiveQueryState;
     /// The chart
     children: React.ReactElement;
@@ -202,7 +202,6 @@ const Card: React.FC<CardProps> = (props: CardProps) => (
     <section className={styles.card} aria-label={props.title} data-testid={props['data-testid']}>
         <header className={styles.card_header}>
             <h2 className={styles.card_title}>{props.title}</h2>
-            <span className={styles.panel_latency} title="Time of the latest query">{formatLatency(props.query)}</span>
         </header>
         <div className={styles.card_values}>
             <span className={styles.card_value} data-testid="card-value">{props.value}</span>
