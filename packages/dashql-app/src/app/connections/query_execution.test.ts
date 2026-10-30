@@ -32,7 +32,7 @@ function createStream(table: arrow.Table): QueryExecutionResponseStream {
         getStatus: () => QueryExecutionStatus.SUCCEEDED,
         getSchema: async () => table.schema,
         produce: async (batches, progress) => {
-            progress.resolve(null!, { isQueued: false, metrics });
+            progress.resolve(null!, { isQueued: false, progressPercent: null, resultRows: null, rowsProcessed: null, executionTimeMs: null, metrics });
             for (const batch of table.batches) batches.resolve(null!, batch);
         },
     };

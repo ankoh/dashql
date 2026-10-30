@@ -349,6 +349,10 @@ function translateTrinoSchema(result: TrinoQueryResult, logger: Logger): arrow.S
 function deriveProgress(stats: TrinoQueryStatistics | null, metrics: QueryExecutionMetrics): QueryExecutionProgress {
     return {
         isQueued: stats?.queued ?? null,
+        progressPercent: stats?.progressPercentage ?? null,
+        resultRows: null,
+        rowsProcessed: stats?.processedRows ?? null,
+        executionTimeMs: stats?.elapsedTimeMillis ?? null,
         metrics: { ...metrics }
     };
 }

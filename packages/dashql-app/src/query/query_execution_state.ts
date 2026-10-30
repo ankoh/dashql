@@ -57,6 +57,14 @@ export interface QueryExecutionMetrics {
 export interface QueryExecutionProgress {
     /// Is queued?
     isQueued: boolean | null;
+    /// The progress in percent, as reported by the server
+    progressPercent: number | null;
+    /// The number of result rows, as reported by the server
+    resultRows: number | null;
+    /// The number of rows the server processed
+    rowsProcessed: number | null;
+    /// The execution time on the server in milliseconds
+    executionTimeMs: number | null;
     /// The query execution metrics
     metrics: QueryExecutionMetrics;
 }

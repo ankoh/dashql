@@ -8,6 +8,7 @@ import { HyperHttpClientMock } from '../hyperdb_http_client_mock.js';
 import { HttpClient, HttpFetchResult } from '../../../../platform/http/http_client.js';
 import { TestLogger } from '../../../../platform/logger/test_logger.js';
 import { HyperDatabaseConnectionContext, AttachedDatabase } from '../hyperdb_grpc_client.js';
+import { QueryExecutionProgress } from '../../../../query/query_execution_state.js';
 
 const ENDPOINT = 'https://hyper.mock.local';
 
@@ -277,6 +278,30 @@ describe('WebHyperDatabaseClient', () => {
             expect(batches[0].numRows).toBe(3);
             expect(Array.from(batches[0].getChildAt(0)!.toArray() as Int32Array)).toEqual([1, 2, 3]);
             expect(stream.getMetrics().totalDataBytesReceived).toBe(arrowBytes.byteLength);
+        });
+
+        it('reports the server status as progress', async () => {
+            mock.setHandler(() => ({
+                queryId: 'q-progress',
+                completionStatus: 'RESULTS_PRODUCED',
+                arrowBytes: encodeIntTable('n', [1]),
+            }));
+
+            const channel = await client.connect(makeHyperArgs(), noopContext);
+            const stream = await channel.executeQuery({ query: 'select 1 as n' } as any);
+            const updates: QueryExecutionProgress[] = [];
+            await stream.produce(
+                { resolve: () => { }, reject: () => { } },
+                { resolve: (_, update) => { updates.push(update); }, reject: () => { } },
+            );
+
+            expect(updates.length).toBeGreaterThan(0);
+            expect(updates[0]).toMatchObject({
+                progressPercent: 100,
+                resultRows: 0,
+                rowsProcessed: 0,
+                executionTimeMs: 1,
+            });
         });
 
         it('throws when the server response is missing a status header', async () => {

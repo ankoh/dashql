@@ -91,10 +91,15 @@ class WebHyperResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<U
         }
     }
 
-    private emitProgress(): void {
+    emitProgress(): void {
         if (!this.progressCallback) return;
+        const stats = this.status.executionStats;
         this.progressCallback({
             isQueued: null,
+            progressPercent: this.status.progress,
+            resultRows: this.status.rowCount,
+            rowsProcessed: stats?.rowsProcessed ?? null,
+            executionTimeMs: stats?.wallClockTime ?? null,
             metrics: { ...this.metrics },
         });
     }
@@ -203,6 +208,8 @@ export class WebHyperQueryResultStream implements QueryExecutionResponseStream {
         this.reader.progressCallback = (update: QueryExecutionProgress) => {
             progress.resolve(this, update);
         };
+        // Report the status of the query response
+        this.reader.emitProgress();
         const arrowReader = await arrow.AsyncRecordBatchStreamReader.from(this.reader);
         abort?.throwIfAborted();
 
