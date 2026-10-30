@@ -92,8 +92,11 @@ export function buildHyperCloudCatalogQuery(databaseAlias: string): string {
     `;
 }
 
-export function generateCatalogSQLFromHyperCloud(result: HyperCloudCatalogTable, connectionName: string): string {
+export function generateCatalogSQLFromHyperCloud(result: HyperCloudCatalogTable, connectionName: string, logger?: LoggerLike): string {
     const schemas = new Map<string, Map<string, ColumnMetadata[]>>();
+    const seenColumns = new Set<string>();
+    let duplicateColumns = 0;
+    let firstDuplicate: Record<string, string> | null = null;
     for (const batch of result.batches) {
         const schemaNames = batch.getChild('schema_name')!;
         const tableNames = batch.getChild('table_name')!;
@@ -111,12 +114,28 @@ export function generateCatalogSQLFromHyperCloud(result: HyperCloudCatalogTable,
             if (!tables) schemas.set(schemaName, tables = new Map());
             let columns = tables.get(tableName);
             if (!columns) tables.set(tableName, columns = []);
+            // The catalog can list a column more than once, a table declares it once
+            const columnKey = JSON.stringify([schemaName, tableName, columnName]);
+            if (seenColumns.has(columnKey)) {
+                firstDuplicate ??= {
+                    schema: schemaName, table: tableName, column: columnName,
+                    ordinalPosition: String(ordinalPositions.at(i)), dataType: String(dataTypes.at(i)),
+                };
+                ++duplicateColumns;
+                continue;
+            }
+            seenColumns.add(columnKey);
             columns.push({
                 name: columnName,
                 ordinalPosition: ordinalPositions.at(i) ?? columns.length,
                 dataType: dataTypes.at(i) ?? null,
             });
         }
+    }
+    if (firstDuplicate != null) {
+        logger?.warn('Skipping duplicate Hyper Cloud catalog columns', {
+            database: connectionName, duplicates: duplicateColumns.toString(), ...firstDuplicate,
+        }, LOG_CTX);
     }
 
     const statements: string[] = [];
@@ -231,7 +250,7 @@ export async function updateHyperCatalog(
                     executor,
                     abortSignal,
                 );
-                sql = generateCatalogSQLFromHyperCloud(result, target.databaseName);
+                sql = generateCatalogSQLFromHyperCloud(result, target.databaseName, logger);
             } else {
                 const result = await queryPgAttribute(
                     connectionId,

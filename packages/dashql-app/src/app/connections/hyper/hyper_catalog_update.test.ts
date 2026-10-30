@@ -75,6 +75,23 @@ describe('Hyper catalog query generation', () => {
         expect(sql).not.toContain('CREATE TABLE "Cloud Database"');
         expect(sql.indexOf('"id" INTEGER')).toBeLessThan(sql.indexOf('"name" VARCHAR'));
     });
+
+    it('declares a column once when the Hyper Cloud metadata lists it twice', () => {
+        const result = arrow.tableFromArrays({
+            schema_name: ['sales', 'sales', 'sales', 'sales'],
+            table_name: ['orders', 'orders', 'orders', 'orders'],
+            column_name: ['id', 'name', 'id', 'name'],
+            ordinal_position: [0, 1, 0, 1],
+            data_type: ['bigint', 'text', 'bigint', 'text'],
+        });
+        const logger = { warn: vi.fn() };
+        const sql = generateCatalogSQLFromHyperCloud(result as any, 'lakehouse', logger as any);
+
+        expect(sql.match(/"id" INTEGER/g)).toHaveLength(1);
+        expect(sql.match(/"name" VARCHAR/g)).toHaveLength(1);
+        expect(logger.warn).toHaveBeenCalledTimes(1);
+        expect(logger.warn.mock.calls[0][1]).toMatchObject({ database: 'lakehouse', duplicates: '2', schema: 'sales', table: 'orders', column: 'id' });
+    });
 });
 
 describe('updateHyperCatalog', () => {
@@ -120,6 +137,34 @@ describe('updateHyperCatalog', () => {
         expect(script.toString()).not.toContain('CREATE TABLE "Cloud Database"');
         expect(catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(2);
         expect(functionScript.toString()).toContain('CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;');
+    });
+
+    it('publishes a Hyper Cloud catalog that lists a column twice', async () => {
+        const catalog = dql.createCatalog();
+        const script = dql.createScript(catalog);
+        const functionScript = dql.createScript(catalog);
+        const rows = cloudResult();
+        const executor = vi.fn<QueryExecutor>(() => [1, Promise.resolve(rows.concat(rows))]);
+
+        const result = await updateHyperCatalog(
+            { info: vi.fn(), warn: vi.fn() } as any,
+            'connection',
+            vi.fn(),
+            7,
+            [{ path: 'hyper.cloud:sales', alias: 'lakehouse' }],
+            executor,
+            catalog,
+            dql,
+            script,
+            functionScript,
+            false,
+            new AbortController().signal,
+            { processor: async request => dql.processBatch(request) },
+        );
+
+        expect(result.failures).toEqual([]);
+        expect(script.toString().match(/"id" INTEGER/g)).toHaveLength(1);
+        expect(catalog.createSnapshot().read().catalogReader.tablesLength()).toBe(1);
     });
 
     it('uses the unqualified default database and live function catalog for Hyper WASM', async () => {
