@@ -141,15 +141,18 @@ const BrandIdentity = () => {
 /// The height of a wordmark in the stripe at the top, a bit smaller than in the compact navbar
 const TOP_BAR_WORDMARK_HEIGHT = 14;
 
-/// The brand in the stripe at the top, only the logo without the name.
+/// The brand in the stripe at the top, the logo and, next to the wide rail, the name without the tagline.
 /// A square logo is a bit larger without the traffic lights of macOS next to it.
-const TopBarBrand = (props: { mac: boolean }) => {
+const TopBarBrand = (props: { mac: boolean, showName: boolean }) => {
     const flavor = useAppFlavor();
     return (
         <div className={styles.brand_identity} data-electron-drag-region>
             {flavor.logo.wordmark
                 ? <FlavorLogo height={TOP_BAR_WORDMARK_HEIGHT} ariaHidden />
-                : <FlavorLogo height={props.mac ? 22 : 24} ariaHidden />}
+                : <>
+                    <FlavorLogo height={props.mac ? 22 : 24} ariaHidden />
+                    {props.showName && <span>{flavor.displayName}</span>}
+                </>}
         </div>
     );
 };
@@ -197,7 +200,7 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
     return (
         <div className={railWide ? `${styles.container} ${styles.container_wide}` : styles.container}>
             <header key={2} className={isMac ? `${styles.top_bar} ${styles.top_bar_mac}` : styles.top_bar} data-electron-drag-region>
-                <TopBarBrand mac={isMac} />
+                <TopBarBrand mac={isMac} showName={railWide} />
                 <div className={styles.top_bar_actions}>
                     <AgentButton />
                     <InternalsButton sessionId={route.sessionId} />
