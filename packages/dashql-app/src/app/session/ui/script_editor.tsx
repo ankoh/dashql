@@ -12,6 +12,9 @@ import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ModifySessionScripts, useSessionScripts } from '../scripts/session_scripts_registry.js';
 import { Logger } from '../../../platform/logger/logger.js';
 import { getKeywordCase } from './script_format.js';
+import { checkSessionScriptReferences } from '../scripts/script_reference_reports.js';
+import { applyScriptTextChanges } from '../scripts/script_reference_check.js';
+import { DashQLScriptReferencesEffect, shownScriptReferences } from '../scripts/editor/dashql_script_references.js';
 
 const LOG_CTX = "session_editor";
 /// Typing in one script marks all other scripts outdated.
@@ -106,6 +109,16 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         scriptData?.connection.catalog,
         props.onNavigateToScript,
     ]);
+    // The checked script references of the script, the check covers every script of the session
+    const references = React.useMemo(
+        () => scripts == null || scriptData == null ? null : checkSessionScriptReferences(scripts).get(scriptData.scriptKey) ?? null,
+        [scripts],
+    );
+    // After the effect above, which may replace the editor state
+    React.useEffect(() => {
+        if (view == null || shownScriptReferences(view.state) === references) return;
+        view.dispatch({ effects: DashQLScriptReferencesEffect.of(references) });
+    }, [view, references, scriptData?.editorUpdate, scriptData?.scriptSession]);
     // Forward the view ref, if requested
     React.useEffect(() => {
         if (props.setView && view != null) {
@@ -160,10 +173,19 @@ function updateEditor(view: EditorView, scripts: SessionScripts, scriptData: Scr
     // Then we reset everything to make sure the script is ok.
     // Only replace if the doc content actually differs — the editor may already have the
     // correct text from its own transaction (e.g. autoclose inserting brackets).
+    let mapsSelection = false;
     if (state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision) {
         const scriptText = scriptData.scriptSession.getText();
         const editorText = view.state.doc.toString();
-        if (scriptText !== editorText) {
+        const external = scriptData.externalChanges;
+        // The changes apply only to the text they were made for and only if they yield the text of the session
+        if (scriptText !== editorText && external != null && external.fromText === editorText
+            && applyScriptTextChanges(editorText, external.changes) === scriptText) {
+            // A change of the app that the editor did not see, e.g. a renamed script reference.
+            // Applied as changes, the editor keeps the cursor and can undo them.
+            changes.push(...external.changes);
+            mapsSelection = true;
+        } else if (scriptText !== editorText) {
             logger.warn("Replacing CodeMirror text from native editor session", {
                 sessionId: scripts.sessionId,
                 scriptKey: scriptData.scriptKey.toString(),
@@ -185,7 +207,7 @@ function updateEditor(view: EditorView, scripts: SessionScripts, scriptData: Scr
     // Never override when the cursor update originated from the editor's own selection changes,
     // as that would collapse an in-progress text selection.
     let selection: EditorSelection | null = null;
-    if (state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision && state.scriptSession === scriptData.scriptSession) {
+    if (!mapsSelection && state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision && state.scriptSession === scriptData.scriptSession) {
         const mainSel = view.state.selection.main;
         if (mainSel.empty) {
             const nextCursorOffset = scriptData.editorUpdate?.primaryCursorState?.textOffset == null

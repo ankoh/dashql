@@ -5,6 +5,7 @@ import * as styles from './script_diagnostics.module.css';
 import { AlertIcon, XCircleFillIcon, XIcon } from '../../../ui/foundations/symbol_icon.js';
 
 import type { ScriptData } from '../scripts/session_scripts.js';
+import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
 import { formattingDialectForConnector } from './script_format.js';
 import type { ConnectorType } from '../../connections/connector_info.js';
 import { AnchorAlignment, AnchorSide } from '../../../ui/foundations/anchored_position.js';
@@ -50,7 +51,8 @@ function formattingDetails(scriptData: ScriptData, connectorType?: ConnectorType
 }
 
 export function collectScriptDiagnostics(scriptData: ScriptData, isFormattable: boolean,
-    connectorType?: ConnectorType, formatting: Record<string, unknown> | null = null): ScriptDiagnostic[] {
+    connectorType?: ConnectorType, formatting: Record<string, unknown> | null = null,
+    references: ScriptReferenceReport | null = null): ScriptDiagnostic[] {
     const diagnostics: ScriptDiagnostic[] = (scriptData.editorUpdate?.diagnostics ?? []).map(diagnostic => {
         const severity = diagnostic.severity === dashql.buffers.editor.EditorDiagnosticSeverity.WARNING
             ? 'warning'
@@ -70,6 +72,20 @@ export function collectScriptDiagnostics(scriptData: ScriptData, isFormattable: 
         };
     });
 
+    // The errors of the script references, of the analyzed text
+    if (references != null && references.textVersion === scriptData.editorUpdate?.textVersion) {
+        for (const mark of references.marks) {
+            for (const message of mark.errors) {
+                const textSpan = { offset: mark.from, length: mark.to - mark.from, end: mark.to };
+                diagnostics.push({
+                    severity: 'error',
+                    message,
+                    details: { source: 'script references', severity: 'error', message, scriptKey: scriptData.scriptKey, textSpan },
+                });
+            }
+        }
+    }
+
     if (!isFormattable) {
         diagnostics.push({
             severity: 'warning',
@@ -86,7 +102,9 @@ export const ScriptDiagnosticsButton: React.FC<{
     connectorType?: ConnectorType;
     /// The size of the icon of the trigger, 16 by default
     iconSize?: number;
-}> = ({ scriptData, isFormattable, connectorType, iconSize = 16 }) => {
+    /// The checked script references of the script
+    references?: ScriptReferenceReport | null;
+}> = ({ scriptData, isFormattable, connectorType, iconSize = 16, references = null }) => {
     const [isOpen, setIsOpen] = React.useState(false);
     const [selectedDiagnostic, setSelectedDiagnostic] = React.useState<ScriptDiagnostic | null>(null);
     const triggerRef = React.useRef<HTMLButtonElement | null>(null);
@@ -96,8 +114,8 @@ export const ScriptDiagnosticsButton: React.FC<{
         [scriptData.scriptSession, scriptData.editorUpdate?.textVersion, isFormattable, connectorType],
     );
     const diagnostics = React.useMemo(
-        () => collectScriptDiagnostics(scriptData, isFormattable, connectorType, formatting),
-        [scriptData.editorUpdate, isFormattable, connectorType, formatting],
+        () => collectScriptDiagnostics(scriptData, isFormattable, connectorType, formatting, references),
+        [scriptData.editorUpdate, isFormattable, connectorType, formatting, references],
     );
     React.useEffect(() => {
         if (diagnostics.length === 0) {

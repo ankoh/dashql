@@ -6,6 +6,7 @@ use dashql_buffers::execution::{ExecutionGraphEntityType, ExecutionGraphT};
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
 use dashql_core::utils::quote_identifier;
+use dashql_core_session::script_references::{CheckedReferenceKind, CheckedScript};
 use dashql_parser::keywords::Keyword;
 use yaml_rust2::Yaml;
 
@@ -173,7 +174,7 @@ pub fn encode_planner_fixture(fixture: &Fixture) -> Result<Node, String> {
     let inputs: Vec<&Script> = planned.scripts.iter().collect();
     let connection_names: Vec<String> = planned.connections.iter().map(|c| c.name.clone()).collect();
     let declared = !fixture.connections.is_empty();
-    Ok(encode_graph(&planned.graph, &inputs, &planned.names, declared.then_some(&connection_names[..]), fixture.targets.is_some()))
+    Ok(encode_graph(&planned.graph, &planned.checks, &inputs, &planned.names, declared.then_some(&connection_names[..]), fixture.targets.is_some()))
 }
 
 /// A planned fixture
@@ -186,11 +187,14 @@ pub struct PlannedFixture {
     pub names: Vec<String>,
     /// The planned scripts
     pub scripts: Vec<Script>,
+    /// The checked script references of the scripts
+    pub checks: Vec<CheckedScript>,
 }
 
 /// Plan a fixture
 pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
     use dashql_core_session::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
+    use dashql_core_session::script_references::check_script_references;
     // The connections and their catalogs, an implicit connection without connections
     let declared = !fixture.connections.is_empty();
     let connections: Vec<FixtureConnection> = if declared {
@@ -260,7 +264,7 @@ pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
         .collect();
     let planner_scripts: Vec<PlannerScript> =
         scripts.iter().zip(&names).map(|((script, _, connection), name)| PlannerScript { script, name, connection: *connection as u32, materialization_file: None }).collect();
-    let graph = plan_session(&SessionPlanRequest {
+    let request = SessionPlanRequest {
         connections: &planner_connections,
         scripts: &planner_scripts,
         scope: match &targets {
@@ -269,16 +273,18 @@ pub fn plan_fixture(fixture: &Fixture) -> Result<PlannedFixture, String> {
         },
         materialized: &materialized,
         mount_prefix: PLANNER_MOUNT_PREFIX,
-    });
+    };
+    let graph = plan_session(&request);
+    let checks = check_script_references(&request);
     drop(planner_scripts);
     drop(planner_connections);
     drop(catalog_scripts);
-    Ok(PlannedFixture { graph, connections, names, scripts: scripts.into_iter().map(|(s, _, _)| s).collect() })
+    Ok(PlannedFixture { graph, connections, names, scripts: scripts.into_iter().map(|(s, _, _)| s).collect(), checks })
 }
 
 /// Encode an execution graph. `connections` are the names of the declared connections, a fixture without them
 /// leaves the connections out.
-fn encode_graph(graph: &ExecutionGraphT, inputs: &[&Script], names: &[String], connections: Option<&[String]>, targets: bool) -> Node {
+fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Script], names: &[String], connections: Option<&[String]>, targets: bool) -> Node {
     let none = u32::MAX;
     let mut out = Map::new();
     out.boolean("valid", graph.valid);
@@ -530,5 +536,50 @@ fn encode_graph(graph: &ExecutionGraphT, inputs: &[&Script], names: &[String], c
         })
         .collect();
     out.insert("diagnostics", Node::seq(diagnostics));
+    // The check of the script references, of fixtures with table parameters
+    let checked: Vec<Node> = checks
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| !c.checked || !c.references.is_empty())
+        .map(|(i, c)| {
+            let mut m = Map::new();
+            m.plain("script", &names[i]);
+            if !c.checked {
+                m.boolean("checked", false);
+            }
+            let references = c
+                .references
+                .iter()
+                .map(|r| {
+                    let mut rm = Map::new();
+                    if let Some(text) = inputs[i].scanned.as_ref().map(|s| super::location_text(&s.text, r.text_span.offset, r.text_span.length)) {
+                        rm.quoted("text", &text);
+                    }
+                    if let Some(target) = r.script {
+                        rm.plain("target", &names[target as usize]);
+                    }
+                    rm.plain(
+                        "kind",
+                        match r.kind {
+                            CheckedReferenceKind::Fused => "fused",
+                            CheckedReferenceKind::Materialized => "materialized",
+                            CheckedReferenceKind::Invalid => "invalid",
+                        },
+                    );
+                    if !r.errors.is_empty() {
+                        rm.insert("errors", Node::seq(r.errors.iter().map(|e| plain(e)).collect()));
+                    }
+                    rm.into_node()
+                })
+                .collect();
+            if !c.references.is_empty() {
+                m.insert("references", Node::seq(references));
+            }
+            m.into_node()
+        })
+        .collect();
+    if !checked.is_empty() {
+        out.insert("checked-references", Node::seq(checked));
+    }
     out.into_node()
 }

@@ -9,9 +9,10 @@ import { SegmentedControl, SegmentedControlSize } from '../../../../ui/foundatio
 import { CodeIcon, PaperAirplaneIcon, SymbolIcon } from '../../../../ui/foundations/symbol_icon.js';
 import { PromptEditor } from '../../scripts/editor/prompt_editor.js';
 import { DashQLCompletionAbortEffect } from '../../scripts/editor/dashql_processor.js';
+import { insertMentionAtCursor } from '../../scripts/editor/editor_focus.js';
 import { ComposerInputMode } from '../../ai/input_mode.js';
 import { useComposerInputMode } from '../../ai/use_composer_input_mode.js';
-import { findScriptReferences, renderScriptReference } from '../../ai/script_references.js';
+import { findScriptReferences, renderScriptReference, SCRIPT_REFERENCE_PREFIX } from '../../ai/script_references.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { AgentPromptPanel, isAgentWorking, type ComposerAgent } from '../../ai/ui/agent_prompt_panel.js';
 import { ExecuteConnectionGuard, SessionConnectionAttentionContext } from '../session_connection_attention.js';
@@ -56,6 +57,10 @@ export interface SessionComposerProps {
     scriptNames?: readonly string[];
     /// Receives the function that references a session script in a question, by its display name
     targetScriptRef?: React.RefObject<((name: string) => void) | null>;
+    /// The results of the session scripts, the table parameters of the draft read them
+    scriptResults?: core.DashQLScriptResults | null;
+    /// Receives the function that renames the references to a session script in the draft, by display names
+    renameScriptRef?: React.RefObject<((from: string, to: string) => void) | null>;
     /// Picks the connection that the draft runs on
     connectionPicker?: React.ReactNode;
     /// The session of the draft, set while the connection of the draft is not connected.
@@ -65,6 +70,27 @@ export interface SessionComposerProps {
     snippetConnector?: ConnectorType;
     /// The snippets to browse, the bundled ones by default
     snippetRegistry?: SnippetRegistry;
+}
+
+/// A change of the text of a draft
+type DraftChange = { from: number; to: number; insert: string };
+
+/// The changes that rename the references to a script in a SQL draft: the table parameters of its analysis that find
+/// the script among the names before the rename, like the planner does. String literals and comments keep their text.
+/// `names` are the display names of the session scripts, before or after the rename.
+export function renameSqlDraftReferences(session: core.DashQLScriptSession, names: readonly string[], from: string, to: string, instance: core.DashQL): DraftChange[] {
+    const before = names.map(name => name === to ? from : name);
+    if (!before.includes(from)) before.push(from);
+    const renamed = before.indexOf(from);
+    const insert = `${SCRIPT_REFERENCE_PREFIX}${instance.quoteIdentifier(to)}`;
+    return session.findScriptReferences(before)
+        .filter(reference => reference.script === renamed)
+        .map(reference => ({ from: reference.from, to: reference.to, insert }));
+}
+
+/// The changes that rename the references to a script in a question, `:from` becomes `:to`
+export function renameQuestionReferences(text: string, from: string, to: string): DraftChange[] {
+    return findScriptReferences([from], text).map(reference => ({ from: reference.from, to: reference.to, insert: renderScriptReference(to) }));
 }
 
 /// Takes the draft out of a composer editor and clears it, returns null when the draft is blank
@@ -93,6 +119,11 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     // before the effect below destroys the previous one.
     const scriptSession = React.useMemo(() => props.instance.createScriptSession(props.catalog), [props.instance, props.catalog]);
     React.useEffect(() => () => scriptSession.destroy(), [scriptSession]);
+    // The draft reads the results of the session scripts, its next analysis completes their names after `:`.
+    // Attaching the current results is cheap, the results change with any session script.
+    React.useEffect(() => {
+        props.scriptResults?.attach(scriptSession);
+    });
 
     const [view, setView] = React.useState<EditorView | null>(null);
     const [empty, setEmpty] = React.useState(true);
@@ -145,27 +176,36 @@ export const SessionComposer: React.FC<SessionComposerProps> = (props) => {
     if (props.submitRef) {
         props.submitRef.current = send;
     }
-    // A script reference turns the draft into a question, a script that the draft references already is not repeated
+    // A script reference turns the draft into a question if the agent is available, a script that the question
+    // references already is not repeated. Without the agent, the reference goes into the SQL of the draft.
     const targetScript = React.useCallback((name: string) => {
-        if (view == null || !props.aiAvailable) return;
-        input.pick(ComposerInputMode.Ai);
-        const text = view.state.doc.toString();
-        if (findScriptReferences([name], text).length === 0) {
-            const cursor = view.state.selection.main.head;
-            const before = cursor > 0 && !/\s/.test(text[cursor - 1]) ? ' ' : '';
-            const after = cursor < text.length && /\s/.test(text[cursor]) ? '' : ' ';
-            const insert = `${before}${renderScriptReference(name)}${after}`;
-            view.dispatch({
-                changes: { from: cursor, insert },
-                selection: { anchor: cursor + insert.length },
-                effects: DashQLCompletionAbortEffect.of(null),
-                userEvent: 'input',
-            });
+        if (view == null) return;
+        if (props.aiAvailable) {
+            input.pick(ComposerInputMode.Ai);
+            if (findScriptReferences([name], view.state.doc.toString()).length === 0) {
+                insertMentionAtCursor(view, renderScriptReference(name));
+            }
+        } else {
+            insertMentionAtCursor(view, `:${props.instance.quoteIdentifier(name)}`);
         }
         view.focus();
-    }, [view, props.aiAvailable, input.pick]);
+    }, [view, props.aiAvailable, props.instance, input.pick]);
     if (props.targetScriptRef) {
         props.targetScriptRef.current = targetScript;
+    }
+    // The references of the draft follow a renamed script. A question has no syntax tree, SQL is renamed through its
+    // analysis.
+    const renameScript = React.useCallback((from: string, to: string) => {
+        if (view == null) return;
+        const changes = input.mode === ComposerInputMode.Ai
+            ? renameQuestionReferences(view.state.doc.toString(), from, to)
+            : renameSqlDraftReferences(scriptSession, scriptNames, from, to, props.instance);
+        if (changes.length > 0) {
+            view.dispatch({ changes, effects: DashQLCompletionAbortEffect.of(null), userEvent: 'input' });
+        }
+    }, [view, input.mode, scriptSession, scriptNames, props.instance]);
+    if (props.renameScriptRef) {
+        props.renameScriptRef.current = renameScript;
     }
 
     // The landing view is all about the prompt, focus it right away

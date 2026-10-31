@@ -67,9 +67,13 @@ describe('Natural language identifiers', () => {
         expect(scripts()).toEqual([':orders', ':revenue']);
     });
 
-    it('hints no catalog names in a script reference', () => {
+    it('hints the names of scripts in a script reference, not catalog names', () => {
         type(':orde');
+        expect(hint()).toEqual({ cursor: 5, insert: 'rs' });
+        type(' and :cust');
         expect(hint()).toBeNull();
+        type(' :r');
+        expect(hint()).toEqual({ cursor: 18, insert: 'evenue' });
     });
 
     it('never highlights function words', () => {

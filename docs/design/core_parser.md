@@ -356,8 +356,10 @@ insert into :target select 1;                   -- INSERT { TARGET: TABLEREF { T
 
 The analyzer reports every parameter (`AnalyzedScript::parameters`): its node, statement, location,
 name without the prefix and quotes, and whether it is a `TABLE` (the table of a table reference) or a
-`SCALAR` parameter. A table parameter adds no table reference and no FROM source, its columns stay
-unresolved like the columns of a table function.
+`SCALAR` parameter. A table parameter adds no table reference. With the results of the scripts of a
+session (`script_results::ScriptResults`), a named table parameter that reads a script with a result is a
+FROM source whose columns are the output columns of the script, see `script_references.md`. Every other
+table parameter adds no FROM source, its columns stay unresolved like the columns of a table function.
 
 ## Location Tracking
 

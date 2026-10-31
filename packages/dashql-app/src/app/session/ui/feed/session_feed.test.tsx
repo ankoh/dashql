@@ -243,7 +243,7 @@ describe('V2 session feed rows', () => {
         expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe(':report');
     });
 
-    it('renames the script in the tag on double click and from the action menu', async () => {
+    it('renames the script in the tag with the edit button and from the action menu', async () => {
         const props = baseProps();
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
         const setInputValue = (input: HTMLInputElement, value: string) => {
@@ -251,15 +251,25 @@ describe('V2 session feed rows', () => {
             input.dispatchEvent(new Event('input', { bubbles: true }));
         };
         const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve(null)));
+        const rename = () => container.querySelector<HTMLButtonElement>('[data-testid="script-rename"]')!;
 
-        // A double click edits the name, the second click does not mention the script again
+        // The edit button sits left of the chart button
+        const chart = container.querySelector('[data-testid="script-chart"]')!;
+        const mentionTag = container.querySelector('[data-testid="script-mention"]')!;
+        expect(mentionTag.compareDocumentPosition(rename()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(rename().compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        // A double click on the tag mentions the script twice and edits nothing
         const mention = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
         act(() => {
             mention.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
             mention.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
             mention.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, detail: 2 }));
         });
-        expect(props.onTarget).toHaveBeenCalledTimes(1);
+        expect(props.onTarget).toHaveBeenCalledTimes(2);
+        expect(container.querySelector('[data-testid="script-name-input"]')).toBeNull();
+
+        // The edit button edits the name
+        act(() => rename().click());
         let input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
         expect(input.value).toBe('01_alpha');
         await act(nextFrame);
@@ -270,7 +280,7 @@ describe('V2 session feed rows', () => {
         expect(container.querySelector('[data-testid="script-name-input"]')).toBeNull();
 
         // Escape abandons the edit
-        act(() => container.querySelector('[data-testid="script-mention"]')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+        act(() => rename().click());
         input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
         act(() => setInputValue(input, 'other'));
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));

@@ -250,6 +250,22 @@ describe('V2 flat session script mutations', () => {
         expect(next.scriptOrder[0]).not.toMatch(/^\d+_/);
     });
 
+    it('renames the references to a renamed script in the other scripts', () => {
+        let current = state(['foo.sql', 'bar.sql', 'baz.sql']);
+        const key = (file: string) => current.scriptRefs[file].scriptId;
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey: key('foo.sql'), text: 'select 1 as a' } });
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey: key('bar.sql'), text: "select 'é', f.a from :foo f join :FOO g on true" } });
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey: key('baz.sql'), text: 'select * from :bar, :foo_other' } });
+        const writer = new RecordingWriter(logger, new SessionTestBackend());
+        const next = reduce(current, { type: RENAME_SCRIPT, value: { fileName: 'foo.sql', newFileName: 'foo 2' } }, writer);
+        const bar = next.scripts[key('bar.sql')];
+        expect(bar.scriptSession.getText()).toBe(`select 'é', f.a from :"foo 2" f join :"foo 2" g on true`);
+        expect(bar.externalChanges?.fromText).toBe("select 'é', f.a from :foo f join :FOO g on true");
+        // Other references keep their names
+        expect(next.scripts[key('baz.sql')].scriptSession.getText()).toBe('select * from :bar, :foo_other');
+        expect(writer.records).toContainEqual(expect.objectContaining({ value: [current.sessionId, 'bar.sql', bar.scriptSession.getText()] }));
+    });
+
     it('renames in place without keeping the ordering prefix', () => {
         const current = state(['1_alpha.sql', '2_beta.sql']);
         const writer = new RecordingWriter(logger, new SessionTestBackend());

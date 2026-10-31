@@ -90,6 +90,12 @@ planner-snapshots:
           cte: foo
           materialization: 0
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized
 
   - name: MaterializeProducerOfTable
     connections:
@@ -222,6 +228,12 @@ planner-snapshots:
           cte: foo
           materialization: 0
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized
 
   - name: SharedMaterialization
     connections:
@@ -348,6 +360,17 @@ planner-snapshots:
           cte: foo
           materialization: 0
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized
+        - script: baz
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized
 
   - name: FusedScanOfMaterialization
     connections:
@@ -477,6 +500,17 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: foo
+          references:
+            - text: ":baz"
+              target: baz
+              kind: materialized
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: MaterializeFusedProducer
     connections:
@@ -603,6 +637,17 @@ planner-snapshots:
           cte: foo
           materialization: 0
       diagnostics: []
+      checked-references:
+        - script: foo
+          references:
+            - text: ":base"
+              target: base
+              kind: fused
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized
 
   - name: MaterializeIntoTable
     connections:
@@ -698,6 +743,12 @@ planner-snapshots:
           cte: foo
           materialization: 0
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized
 
   - name: RemoteReadsRemote
     connections:
@@ -748,6 +799,14 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: bar.sql runs on the connection salesforce and cannot read foo.sql of the connection trino
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - bar.sql runs on the connection salesforce and cannot read foo.sql of the connection trino
 
   - name: RemoteReadsLocal
     connections:
@@ -798,6 +857,14 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: bar.sql runs on the connection trino and cannot read foo.sql of the connection local
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - bar.sql runs on the connection trino and cannot read foo.sql of the connection local
 
   - name: ViewOfMaterialization
     connections:
@@ -848,6 +915,14 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: 'a view cannot read foo.sql of another connection, its result exists only while the statement runs'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - 'a view cannot read foo.sql of another connection, its result exists only while the statement runs'
 
   - name: ViewOfFusedMaterialization
     connections:
@@ -911,6 +986,19 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: 'a view cannot read baz.sql of another connection through foo.sql, its result exists only while the statement runs'
+      checked-references:
+        - script: foo
+          references:
+            - text: ":baz"
+              target: baz
+              kind: materialized
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - 'a view cannot read baz.sql of another connection through foo.sql, its result exists only while the statement runs'
 
   - name: MaterializedProducerBelow
     connections:
@@ -996,3 +1084,9 @@ planner-snapshots:
           script: bar
           error: true
           message: 'bar.sql references foo.sql, which runs later; move foo.sql above bar.sql'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized

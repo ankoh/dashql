@@ -90,3 +90,56 @@ plan scans the newest file of its key. Every other materialized script runs and 
 its key if the key is reusable, as a transient file otherwise (`ExecutionMounts.fileName`). A refresh of a script
 (`ScriptRunOptions.refresh`) reads no cached results: the script and every script of its plan run, their results
 with reusable keys become the newest files of their keys. A run of the session runs every script anew too.
+
+## Editing
+
+The editor checks, completes and renames script references while the scripts change, with the rules of the planner.
+
+### Checking
+
+`check_script_references` (`script_references.rs`, `DashQL.checkScriptReferences`) checks the references of every
+script whose analysis is current with its text, like a plan of the session would: the name lookup, the connections,
+a referenced script that is no single SELECT, a reference outside of a query, the common table expressions of a
+fused query, a view that reads a materialized result and cycles. Other scripts may be broken or stale meanwhile, a
+referenced script without a current analysis is read as a single SELECT. It reports every table parameter with what
+it reads, `FUSED`, `MATERIALIZED` or `INVALID`, the referenced script and the messages of the planner, the text
+spans in the offset unit of the session of the script (`ScriptReferenceCheck` in `execution_graph.fbs`). The
+planner snapshots list the check under `checked-references`.
+
+The app checks the session whenever a name, a connection or an analysis of a script changes
+(`checkSessionScriptReferences`). The editor underlines the errors, shows them at the cursor and in the diagnostics
+of the script (`dashql_script_references.ts`). A table parameter that reads a script with a result is a table
+reference of the analysis that resolves to the result: the cursor on it, on its alias or on a column of it highlights
+the reference and the columns like those of a table. The planner and the check of the script references skip these
+table references, they read the script through the script reference.
+
+### Results and Completion
+
+`ScriptResults` (`dashql-core/src/script_results.rs`) holds the output columns of every script of a session that is
+a single SELECT, as table declarations of the reserved catalog entry `SCRIPT_RESULTS_ENTRY_ID`. Scripts on a cycle
+of references have no result. Every script session of the session holds the same results
+(`DashQLScriptResults.publish`): the analyzer resolves a named table parameter that reads a script with a result
+as a FROM source with the columns of the result, named by its alias or the parameter name. The source yields its
+name to the other FROM items, like the planner renames its common table expression. A table parameter that is the
+target of a write, positional or names no script with a result resolves nothing. An analysis that reads table
+parameters is current only with the results it was analyzed with: the app publishes the results after every change
+of the scripts and analyzes the scripts again whose analysis they outdate. The results of a script follow the
+results of the scripts it reads, they converge along the references.
+
+Completion offers the names of the scripts with a result after the `:` of a table parameter in table position,
+where the parser takes a join after the parameter: `from :|` and `from :fo|`, not `where x = :|`. The columns of a
+result complete like the columns of a table, `from :foo f where f.|`. The prompt of the composer reads the results
+too. In natural language, the prompt hints the rest of the name of a script after `:`.
+
+### Mentions and Renames
+
+A click on the `:name` tag of a script inserts the reference at the cursor of the editor that had the focus last,
+another script or the prompt of the composer (`useLastFocusedEditor`). SQL reads `:name` quoted if it has to be,
+`:"foo-2"` (`DashQL.quoteIdentifier`). A question in natural language reads `:foo-2`.
+
+A rename of a script rewrites the references to it in the other scripts of the session: the references of the check
+that read the script, with the names before the rename. A mounted editor applies the rewrite as changes, it keeps its
+cursor and undoes the rewrite as one step (`ScriptData.externalChanges`). Once the rename is applied, the feed asks the
+composer to rename the references in its draft. The SQL draft follows the rename through its own analysis: the table parameters that find the script among the names before the rename
+(`DashQLScriptSession.findScriptReferences`), never the text of string literals or comments. A question in natural
+language has no syntax tree, its `:foo` mentions follow by name.

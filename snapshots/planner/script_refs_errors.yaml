@@ -24,6 +24,13 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: 'unknown script :foo'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              kind: invalid
+              errors:
+                - 'unknown script :foo'
 
   - name: AmbiguousScriptName
     scripts:
@@ -69,6 +76,13 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: 'the script reference :foo matches several scripts'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              kind: invalid
+              errors:
+                - 'the script reference :foo matches several scripts'
 
   - name: PositionalTableParameter
     scripts:
@@ -99,6 +113,17 @@ planner-snapshots:
           text: "?"
           error: true
           message: the positional table parameter ? cannot reference a script
+      checked-references:
+        - script: bar
+          references:
+            - text: "$1"
+              kind: invalid
+              errors:
+                - the positional table parameter $1 cannot reference a script
+            - text: "?"
+              kind: invalid
+              errors:
+                - the positional table parameter ? cannot reference a script
 
   - name: WriteTarget
     scripts:
@@ -139,6 +164,17 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: 'the script reference :foo cannot be written'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              kind: invalid
+              errors:
+                - 'the script reference :foo cannot be written'
+            - text: ":foo"
+              kind: invalid
+              errors:
+                - 'the script reference :foo cannot be written'
 
   - name: ReferenceOutsideOfQuery
     catalog: |
@@ -177,6 +213,14 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: a script reference must be part of a query
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - a script reference must be part of a query
 
   - name: ProducerWithoutQuery
     catalog: |
@@ -256,6 +300,29 @@ planner-snapshots:
           text: ":empty"
           error: true
           message: empty.sql is no single SELECT that bar.sql could read
+      checked-references:
+        - script: bar
+          references:
+            - text: ":inserts"
+              target: inserts
+              kind: invalid
+              errors:
+                - inserts.sql is no single SELECT that bar.sql could read
+            - text: ":creates"
+              target: creates
+              kind: invalid
+              errors:
+                - creates.sql is no single SELECT that bar.sql could read
+            - text: ":explains"
+              target: explains
+              kind: invalid
+              errors:
+                - explains.sql is no single SELECT that bar.sql could read
+            - text: ":empty"
+              target: empty
+              kind: invalid
+              errors:
+                - empty.sql is no single SELECT that bar.sql could read
 
   - name: ProducerWithSyntaxErrors
     scripts:
@@ -292,6 +359,14 @@ planner-snapshots:
         - script: foo
           error: true
           message: 'unsupported SQL: parser produced no statements'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - foo.sql is no single SELECT that bar.sql could read
 
   - name: SelfReference
     scripts:
@@ -318,6 +393,14 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: 'cyclic script reference: foo.sql -> foo.sql'
+      checked-references:
+        - script: foo
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - 'cyclic script reference: foo.sql -> foo.sql'
 
   - name: Cycles
     scripts:
@@ -392,6 +475,36 @@ planner-snapshots:
           text: ":c"
           error: true
           message: 'cyclic script reference: c.sql -> d.sql -> e.sql -> c.sql'
+      checked-references:
+        - script: a
+          references:
+            - text: ":b"
+              target: b
+              kind: fused
+        - script: b
+          references:
+            - text: ":a"
+              target: a
+              kind: invalid
+              errors:
+                - 'cyclic script reference: a.sql -> b.sql -> a.sql'
+        - script: c
+          references:
+            - text: ":d"
+              target: d
+              kind: fused
+        - script: d
+          references:
+            - text: ":e"
+              target: e
+              kind: fused
+        - script: e
+          references:
+            - text: ":c"
+              target: c
+              kind: invalid
+              errors:
+                - 'cyclic script reference: c.sql -> d.sql -> e.sql -> c.sql'
 
   - name: ProducerOfSeveralStatements
     scripts:
@@ -444,3 +557,16 @@ planner-snapshots:
           text: ":two"
           error: true
           message: two.sql is no single SELECT that bar.sql could read
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - foo.sql is no single SELECT that bar.sql could read
+            - text: ":two"
+              target: two
+              kind: invalid
+              errors:
+                - two.sql is no single SELECT that bar.sql could read

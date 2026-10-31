@@ -141,6 +141,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: TargetMaterializes
     connections:
@@ -259,6 +265,17 @@ planner-snapshots:
           cte: foo
           materialization: 0
       diagnostics: []
+      checked-references:
+        - script: foo
+          references:
+            - text: ":base"
+              target: base
+              kind: fused
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized
 
   - name: TargetReusesMaterialization
     connections:
@@ -335,6 +352,12 @@ planner-snapshots:
           cte: foo
           materialization: 0
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized
 
   - name: TargetReusesMaterializationWithReferences
     connections:
@@ -425,6 +448,17 @@ planner-snapshots:
           cte: foo
           materialization: 0
       diagnostics: []
+      checked-references:
+        - script: foo
+          references:
+            - text: ":base"
+              target: base
+              kind: fused
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: materialized
 
   - name: TargetWithSyntaxErrors
     scripts:
@@ -552,6 +586,9 @@ planner-snapshots:
           accesses: []
       edges: []
       diagnostics: []
+      checked-references:
+        - script: stale
+          checked: false
 
   - name: TargetWithStaleProducer
     scripts:
@@ -589,6 +626,14 @@ planner-snapshots:
         - script: foo
           error: true
           message: missing or stale script analysis
+      checked-references:
+        - script: foo
+          checked: false
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: TargetCacheability
     scripts:
@@ -698,3 +743,14 @@ planner-snapshots:
           target: reads
           cte: reads
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":reads"
+              target: reads
+              kind: fused
+        - script: baz
+          references:
+            - text: ":reads"
+              target: reads
+              kind: fused

@@ -5,6 +5,7 @@ import { Transaction, StateField, RangeSetBuilder } from '@codemirror/state';
 import { DashQLProcessorPlugin, DashQLScriptKey } from './dashql_processor.js';
 import { createScannerHighlightPlugin } from './dashql_decorations_standalone.js';
 import { FocusType, SemanticUserFocus } from '../focus.js';
+import { editorDiagnostics } from './dashql_script_references.js';
 
 import './dashql_decorations.css';
 
@@ -43,11 +44,11 @@ const WarningDecoration = Decoration.mark({
 });
 
 function buildDecorationsFromErrors(
-    update: dashql.buffers.editor.EditorUpdateT | null | undefined,
+    diagnostics: dashql.buffers.editor.EditorDiagnosticT[] | null,
 ): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>();
     const decorations: DecorationInfo[] = [];
-    for (const diagnostic of update?.diagnostics ?? []) {
+    for (const diagnostic of diagnostics ?? []) {
         const span = diagnostic.textSpan;
         if (span == null) continue;
         decorations.push({
@@ -211,15 +212,14 @@ const ErrorDecorationField: StateField<ScriptDecorationState> = StateField.defin
     },
     update: (state: ScriptDecorationState, transaction: Transaction) => {
         // Spans untouched?
-        const processor = transaction.state.field(DashQLProcessorPlugin);
-        const spans = processor.editorUpdate?.diagnostics ?? null;
+        const spans = editorDiagnostics(transaction.state);
         if (spans === state.spans) {
             return state;
         }
         // Rebuild decorations
         const s = { ...state };
         s.spans = spans;
-        s.decorations = buildDecorationsFromErrors(processor.editorUpdate);
+        s.decorations = buildDecorationsFromErrors(spans);
         return s;
     },
 });

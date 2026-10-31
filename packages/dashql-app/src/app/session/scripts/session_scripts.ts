@@ -29,6 +29,8 @@ import { Logger, LoggerLike, stringifyError } from '../../../platform/logger/log
 import { ScriptAnnotations, ScriptRef, SessionMetadata as SessionMetadataType, ResolvedVisualizeQuery, createEmptyAnnotations, createScriptRef, generateScriptFileName, scriptDisplayName, uniqueScriptBase } from './script_types.js';
 
 import { chartStatementId, compileVisualizeQuery } from './script_compilation.js';
+import { dropSessionScriptResults, publishScriptResults } from './script_results_publisher.js';
+import { applyScriptTextChanges, computeScriptReferenceReports, renameScriptReferenceChanges, type ScriptTextChange } from './script_reference_check.js';
 
 const LOG_CTX = 'session_scripts';
 
@@ -195,6 +197,9 @@ export interface ScriptData {
     /// Set by SET_SCRIPT_TEXT; cleared once the user accepts/rejects it in the
     /// editor (which round-trips back through UPDATE_FROM_PROCESSOR).
     pendingDiff: DashQLPendingDiff | null;
+    /// The last text change that the app made to the script, e.g. the rename of a script it references. An editor
+    /// that shows `fromText` applies the changes instead of replacing its text, it keeps its cursor and history.
+    externalChanges?: { fromText: string; changes: ScriptTextChange[] } | null;
     /// The latest query id
     latestQueryId: number | null;
     /// The retained result/computation id, independent of later commands or failures.
@@ -389,6 +394,11 @@ function writeSessionProperties(state: SessionScripts, storage: SessionScriptsSt
 }
 
 export function reduceSessionScripts(state: SessionScripts, action: SessionScriptsAction, storage: SessionScriptsStorage, logger: Logger): SessionScripts {
+    // The table parameters of the scripts read the results of the scripts, which follow every change
+    return publishScriptResults(state, reduceScripts(state, action, storage, logger));
+}
+
+function reduceScripts(state: SessionScripts, action: SessionScriptsAction, storage: SessionScriptsStorage, logger: Logger): SessionScripts {
     switch (action.type) {
         case RENAME_SESSION: {
             const trimmed = action.value?.trim() ?? '';
@@ -780,14 +790,45 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             const scriptId = entry.scriptId;
             const updatedScriptData = state.scripts[scriptId];
             const newScripts = { ...state.scripts };
-            if (updatedScriptData) {
-                const renamedScriptData: ScriptData = { ...updatedScriptData, fileName: newFileName };
+            // The scripts that reference the script read the new name. The references are those of a plan, the
+            // scripts are analyzed first if their analysis lags behind their text.
+            const rewritten: ScriptData[] = [];
+            if (renamed) {
+                for (const [key, script] of Object.entries(newScripts)) {
+                    if (script.editorUpdate?.textVersion !== script.scriptSession.getTextVersion()) {
+                        newScripts[Number(key)] = analyzeScriptData(script, logger);
+                    }
+                }
+                let changes = new Map<number, ScriptTextChange[]>();
+                try {
+                    const reports = computeScriptReferenceReports({ ...state, scripts: newScripts }, () => false);
+                    changes = renameScriptReferenceChanges(reports, oldFileName, `:${state.instance.quoteIdentifier(cleanBase)}`);
+                } catch (e: any) {
+                    logger.error("Failed to find the references of a renamed script", { fileName: oldFileName, error: stringifyError(e) }, LOG_CTX);
+                }
+                for (const [key, scriptChanges] of changes) {
+                    const script = newScripts[key];
+                    // A script that references itself is a cycle, it keeps the name
+                    if (script == null || key === scriptId) continue;
+                    const fromText = script.scriptSession.getText();
+                    replaceScriptSessionText(script.scriptSession, applyScriptTextChanges(fromText, scriptChanges));
+                    const next = analyzeScriptData({ ...script, pendingDiff: null }, logger);
+                    next.externalChanges = { fromText, changes: scriptChanges };
+                    newScripts[key] = next;
+                    rewritten.push(next);
+                }
+            }
+            if (newScripts[scriptId]) {
+                const renamedScriptData: ScriptData = { ...newScripts[scriptId], fileName: newFileName };
                 if (renamed) {
                     newScripts[scriptId] = analyzeScriptData(renamedScriptData, logger);
                     markOtherScriptsOutdatedInPlace(newScripts, renamedScriptData);
                 } else {
                     newScripts[scriptId] = renamedScriptData;
                 }
+            }
+            for (const script of rewritten) {
+                markOtherScriptsOutdatedInPlace(newScripts, script);
             }
 
             // Keep focus on this script across the rename
@@ -802,6 +843,14 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                 scripts: newScripts,
                 scriptFocus: { ...state.scriptFocus, fileName: focusFile },
             };
+            // The scripts whose references were renamed
+            for (const script of rewritten) {
+                storage.write(
+                    groupScriptWrites(next.sessionId, script.fileName),
+                    { type: WRITE_SCRIPT, value: [next.sessionId, script.fileName, script.scriptSession.getText()] },
+                    DEBOUNCE_DURATION_SCRIPT_WRITE
+                );
+            }
             if (renamed) {
                 // Rename the file in place: its SQL is unchanged, so move it rather than delete-old +
                 // rewrite-new. The new clean base is disambiguated unique within the page, so the
@@ -1170,6 +1219,7 @@ export function destroySessionScripts(state: SessionScripts): SessionScripts {
         const script = state.scripts[key];
         destroyScriptData(script);
     }
+    dropSessionScriptResults(state.sessionId);
     return state;
 }
 

@@ -2095,6 +2095,9 @@ planner-snapshots:
         - script: stale
           error: true
           message: missing or stale script analysis
+      checked-references:
+        - script: stale
+          checked: false
 
   - name: NormalizedIdentifiers
     catalog: |

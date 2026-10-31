@@ -1258,3 +1258,75 @@ fn cursor_context_points_into_the_catalog_script_that_declares_the_table() {
     let table = session.set_primary_cursor(session.text_version(), text.find("items").unwrap() as u64 + 1);
     assert_eq!(declared(table.primary_cursor_context.as_ref().unwrap()), "items");
 }
+
+#[test]
+fn script_results_resolve_columns_of_table_parameters() {
+    use dashql_core::script_results::ScriptResults;
+    use std::sync::Arc;
+    let catalog = Catalog::new();
+    let mut foo = ScriptSession::new(&catalog, EditorOffsetUnit::UTF16_CODE_UNITS).unwrap();
+    foo.replace_text(&catalog, 0, "select 1 as amount");
+    foo.analyze(&catalog);
+    let mut bar = ScriptSession::new(&catalog, EditorOffsetUnit::UTF16_CODE_UNITS).unwrap();
+    bar.replace_text(&catalog, 0, "select f.amount from :foo f");
+    bar.analyze(&catalog);
+    let inputs = [("foo", foo.script().analyzed.as_deref()), ("bar", bar.script().analyzed.as_deref())];
+    let results = Arc::new(ScriptResults::derive(&inputs, None));
+    bar.set_script_results(Some(results.clone()));
+    let update = bar.analyze(&catalog);
+    assert!(update.analysis_updated, "{:?} {:?}", update.status, update.status_message);
+}
+
+#[test]
+fn script_references_are_table_parameters_of_the_analysis() {
+    let catalog = Catalog::new();
+    let mut session = ScriptSession::new(&catalog, EditorOffsetUnit::UTF16_CODE_UNITS).unwrap();
+    let text = "/* :foo */ select 'é :foo', * from :FOO f, :bar where 1 = :foo; insert into :foo values (1)";
+    session.replace_text(&catalog, 0, text);
+    session.analyze(&catalog);
+    let names = vec!["foo".to_string(), "Bar".to_string()];
+    let found: Vec<(u64, u64, Option<usize>)> = session.script_references(&names).into_iter().map(|(s, i)| (s.offset, s.length, i)).collect();
+    // The UTF-16 offset of `:FOO` and `:bar` behind the `é` of the literal, not the comment, the literal, the scalar or the write target
+    let utf16 = |needle: &str| text[..text.find(needle).unwrap()].encode_utf16().count() as u64;
+    assert_eq!(found, [(utf16(":FOO"), 4, Some(0)), (utf16(":bar"), 4, Some(1))]);
+    // A stale analysis finds nothing
+    session.script_mut().insert_text_at(0, " ");
+    assert!(session.script_references(&names).is_empty());
+}
+
+#[test]
+fn the_cursor_relates_table_parameters_like_tables() {
+    use dashql_core::script_results::ScriptResults;
+    use std::sync::Arc;
+    let catalog = new_catalog();
+    let _schema = load_schema(&catalog, "create table foo (a int)");
+    let mut producer = session(&catalog, UTF8);
+    analyze(&mut producer, "select 1 as a");
+    let results = Arc::new(ScriptResults::derive(&[("patient_fox", producer.script().analyzed.as_deref())], None));
+    let mut consumer = session(&catalog, UTF8);
+    consumer.set_script_results(Some(results));
+    let text = "select * from :patient_fox f, foo b where f.a = b.a";
+    let update = analyze(&mut consumer, text);
+    assert_eq!(update.status, EditorUpdateStatus::OK);
+    // The parameter is a resolved table reference
+    let span = find_semantic_span(&update, text, EditorSemanticReferenceKind::TABLE, ":patient_fox f").expect("table span");
+    assert_eq!(span.resolution, EditorSemanticResolution::RESOLVED);
+    let mut related = |offset: usize| {
+        let update = consumer.set_primary_cursor(consumer.text_version(), offset as u64);
+        let context = update.primary_cursor_context.as_ref().unwrap().clone();
+        (context.kind, context.related_table_reference_ids.unwrap_or_default(), context.related_column_reference_ids.unwrap_or_default().len())
+    };
+    let table_ref = |source: &str| find_semantic_span(&update, text, EditorSemanticReferenceKind::TABLE, source).unwrap().reference_id;
+    // f of f.a relates :patient_fox f, b of b.a relates foo b
+    let (kind, tables, columns) = related(text.find("f.a").unwrap());
+    assert_eq!(kind, EditorCursorSemanticKind::COLUMN_REFERENCE);
+    assert_eq!(tables, [table_ref(":patient_fox f")]);
+    assert_eq!(columns, 1);
+    let (_, tables, _) = related(text.find("b.a").unwrap());
+    assert_eq!(tables, [table_ref("foo b")]);
+    // The cursor on the parameter is on a table reference
+    let (kind, tables, columns) = related(text.find("patient_fox").unwrap() + 2);
+    assert_eq!(kind, EditorCursorSemanticKind::TABLE_REFERENCE);
+    assert_eq!(tables, [table_ref(":patient_fox f")]);
+    assert_eq!(columns, 1);
+}

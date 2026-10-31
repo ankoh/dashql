@@ -31,6 +31,7 @@ import { SessionConnectionButtons } from './session_connection_buttons.js';
 import { useAppFlavor } from '../../../flavor/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../../connections/ui/connection_overview_page.js';
 import { AgentSessionMenu } from '../../../agent/agent_session_menu.js';
+import type { RenameDraftReferences } from '../../scripts/script_rename.js';
 
 const FileZipIcon = SymbolIcon('file_zip_16');
 const CloseIcon = SymbolIcon('x_16');
@@ -87,6 +88,8 @@ interface Props {
 export const SessionFeedPage: React.FC<Props> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     // The details belong to the session they were opened in, another session shows its feed
+    // The composer of the feed renames the references in its draft, also for renames in the details
+    const draftRenameRef = React.useRef<RenameDraftReferences | null>(null);
     const [details, setDetails] = React.useState<{ sessionId: string; scriptId?: number; initialTab?: DetailsTabKey } | null>(null);
     const showDetails = details != null && details.sessionId === props.sessionScripts.sessionId;
     const [feedShadowContainer, setFeedShadowContainer] = React.useState<HTMLDivElement | null>(null);
@@ -255,6 +258,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                         <dependencies.SessionFeed
                             sessionScripts={props.sessionScripts}
                             modifySessionScripts={props.modifySessionScripts}
+                            draftRenameRef={draftRenameRef}
                             active={feedActive}
                             scrollShadowContainer={feedShadowContainer}
                             showDetails={openDetails}
@@ -266,6 +270,7 @@ export const SessionFeedPage: React.FC<Props> = (props) => {
                                 ? <dependencies.ScriptDetails
                                     sessionScripts={props.sessionScripts}
                                     modifySessionScripts={props.modifySessionScripts}
+                                    draftRenameRef={draftRenameRef}
                                     connection={props.connection}
                                     scriptConnections={props.scriptConnections}
                                     hideDetails={() => setDetails(null)}

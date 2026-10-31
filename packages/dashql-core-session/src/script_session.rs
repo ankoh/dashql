@@ -28,6 +28,7 @@ use dashql_core::annotation::Annotation;
 use dashql_core::vis_rewrite::{VisCard, VisRenderer};
 use dashql_core::pack::{pack_completion, pack_tokens};
 use dashql_core::script::{Script, TextVersion};
+use dashql_core::script_results::ScriptResults;
 use dashql_core::script_diff::ScriptDiff;
 use dashql_core::utils::rope::{resolve_byte_boundary, resolve_utf16_boundary, TextPosition, Utf16Projector};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
@@ -338,6 +339,53 @@ impl ScriptSession {
         }
     }
 
+    /// Set the results of the scripts of the session that the table parameters read. An analysis with other results
+    /// is not current.
+    pub fn set_script_results(&mut self, results: Option<Arc<ScriptResults>>) {
+        self.script.script_results = results;
+    }
+
+    /// The named table parameters of the analysis that reference scripts, `:foo`, with the script that each finds among
+    /// `names` (`find_script`), in text order and in the offset unit of the session. Positional parameters and the
+    /// targets of writes reference no script. Empty if the analysis lags behind the text.
+    pub fn script_references(&self, names: &[String]) -> Vec<(EditorTextSpanT, Option<usize>)> {
+        use dashql_buffers::parser::AttributeKey;
+        use dashql_core::analyzer::ParameterKind;
+        use dashql_core::script_results::{find_script, ScriptLookup};
+        let (Some(scanned), Some(parsed), Some(analyzed)) = (&self.script.scanned, &self.script.parsed, &self.script.analyzed) else {
+            return Vec::new();
+        };
+        if !Arc::ptr_eq(&analyzed.parsed, parsed) || !Arc::ptr_eq(&parsed.scanned, scanned) || scanned.text_version != self.text_version() {
+            return Vec::new();
+        }
+        let mut found = Vec::new();
+        for parameter in analyzed.parameters.iter().filter(|p| p.kind == ParameterKind::Table) {
+            let Some(name) = parameter.name.as_deref() else { continue };
+            let span = resolve_text_span(&scanned.text, &scanned.symbols, parameter.location);
+            if scanned.text.as_bytes().get(span.offset as usize) != Some(&b':') {
+                continue;
+            }
+            let tableref = &parsed.nodes[parsed.nodes[parameter.ast_node_id as usize].parent() as usize];
+            if matches!(tableref.attribute_key(), AttributeKey::SQL_INSERT_TARGET | AttributeKey::SQL_DELETE_TARGET) {
+                continue;
+            }
+            let script = match find_script(names.iter().map(String::as_str), name) {
+                ScriptLookup::Found(i) => Some(i),
+                _ => None,
+            };
+            found.push((span, script));
+        }
+        let spans = self.project_text_spans(found.iter().map(|(span, _)| *span));
+        found.into_iter().zip(spans).filter_map(|((_, script), span)| Some((span?, script))).collect()
+    }
+
+    /// Project byte spans of the current text into the offset unit of the session, None for a span that does not lie
+    /// on code point boundaries
+    pub fn project_text_spans(&self, spans: impl IntoIterator<Item = TextSpan>) -> Vec<Option<EditorTextSpanT>> {
+        let mut projector = self.projector(None);
+        spans.into_iter().map(|span| projector.span(span)).collect()
+    }
+
     /// Project a byte offset into the current text or fail
     fn project_byte_offset(projector: &mut Projector, offset: u64) -> Result<u64> {
         projector
@@ -354,6 +402,7 @@ impl ScriptSession {
             return false;
         };
         catalog.is_current(&analyzed.snapshot)
+            && self.script.script_results_current()
             && self.script.parsed.as_ref().is_some_and(|p| Arc::ptr_eq(p, &analyzed.parsed))
             && self.script.scanned.as_ref().is_some_and(|s| Arc::ptr_eq(s, &analyzed.parsed.scanned))
             && analyzed.parsed.scanned.text_version == self.text_version()
@@ -682,7 +731,8 @@ impl ScriptSession {
         }
         let mut projector = self.projector(Some(&parsed.scanned.text));
         // A current analysis is identified by the text version and the catalog version
-        let omitted = known.is_some_and(|k| {
+        // A new analysis of the results of other scripts has the versions of the previous one
+        let omitted = !update.analysis_updated && known.is_some_and(|k| {
             k.text_version == self.text_version() && k.catalog_revision == catalog.version() as u64
         });
         if omitted {

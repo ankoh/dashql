@@ -6,9 +6,9 @@ import { renderScriptReference, SCRIPT_REFERENCE_PREFIX } from '../../ai/script_
 interface Props {
     /// The display name of the script
     scriptName: string;
-    /// Can a question of the composer target the script?
+    /// Can the script be mentioned?
     canTarget: boolean;
-    /// Reference the script in the question of the composer
+    /// Mention the script at the cursor of the last focused editor, a script or the prompt
     onTarget: () => void;
     /// Is the name being edited?
     renaming: boolean;
@@ -19,7 +19,8 @@ interface Props {
 }
 
 /// The ":<script>" tag of a script card.
-/// A click mentions the script in the prompt, a double click edits the name in place.
+/// A click mentions the script at the cursor of the editor that had the focus last, another script or the prompt.
+/// While the name is being edited, the tag is an input.
 export const ScriptMentionTag: React.FC<Props> = (props) => {
     if (props.renaming) {
         return <ScriptNameInput {...props} />;
@@ -28,17 +29,15 @@ export const ScriptMentionTag: React.FC<Props> = (props) => {
         <button
             type="button"
             className={styles.feed_entry_mention}
+            // The editor keeps the focus and its cursor
+            onMouseDown={(event) => event.preventDefault()}
             onClick={(event) => {
                 event.stopPropagation();
-                // The second click of a double click renames, it does not mention again
-                if (props.canTarget && event.detail < 2) props.onTarget();
+                if (props.canTarget) props.onTarget();
             }}
-            onDoubleClick={(event) => { event.stopPropagation(); props.onRenamingChange(true); }}
-            aria-label={`Mention ${props.scriptName} in the prompt`}
+            aria-label={`Mention ${props.scriptName} at the cursor`}
             aria-disabled={props.canTarget ? undefined : 'true'}
-            title={props.canTarget
-                ? `${renderScriptReference(props.scriptName)} (double-click to rename)`
-                : 'Start an agent session in the header and connect the agent server to mention scripts in questions'}
+            title={`Insert ${renderScriptReference(props.scriptName)} at the cursor`}
             data-testid="script-mention"
         >
             {renderScriptReference(props.scriptName)}

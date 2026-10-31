@@ -5,7 +5,7 @@ import { useSessionExecution } from '../../scripts/session_execution_provider.js
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '../../../../ui/foundations/symbol_icon.js';
-import { GraphIcon, PaperAirplaneIcon, PlusIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { GraphIcon, PaperAirplaneIcon, PencilIcon, PlusIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
 import type { RowComponentProps } from 'react-window';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -37,6 +37,7 @@ import { ScriptConnectionPicker, type ScriptConnectionView } from '../script_con
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
+import type { ScriptReferenceReport } from '../../scripts/script_reference_check.js';
 
 const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
 
@@ -85,6 +86,8 @@ export interface ScriptCardProps {
     onSetVisSpec: (scriptKey: number, spec: string) => void;
     /// Can a question of the composer target the script?
     canTarget: boolean;
+    /// The checked script references of the script
+    scriptReferences?: ScriptReferenceReport | null;
     /// Reference the script in the question of the composer
     onTarget: (fileName: string) => void;
     onAcceptDiff: (scriptKey: number) => void;
@@ -338,6 +341,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             isFormattable={isFormattable}
                             connectorType={props.connectorType}
                             iconSize={14}
+                            references={props.scriptReferences ?? null}
                         />
                     )}
                     <ScriptMentionTag
@@ -348,6 +352,18 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         onRenamingChange={setRenaming}
                         onRename={name => props.onRename(props.scriptFileName, name)}
                     />
+                    <IconButton
+                        variant={renaming ? ButtonVariant.Default : ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        // The input takes the focus, a click while it is open keeps the edit
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={(event) => { event.stopPropagation(); setRenaming(true); }}
+                        aria-label={`Rename ${displayName} script`}
+                        data-testid="script-rename"
+                        disabled={props.scriptData == null}
+                    >
+                        <PencilIcon size={14} />
+                    </IconButton>
                     <IconButton
                         variant={chartBuilderOpen ? ButtonVariant.Default : ButtonVariant.Invisible}
                         size={ButtonSize.Small}
@@ -542,6 +558,8 @@ export interface ScriptFeedRowProps {
     /// Write a Vega-Lite spec of the chart builder into the `@vis vegalite` tag of a script
     onSetVisSpec: (scriptKey: number, spec: string) => void;
     /// Can a question of the composer target the scripts?
+    /// The checked script references of the scripts, by script key
+    scriptReferences?: ReadonlyMap<number, ScriptReferenceReport>;
     canTarget: boolean;
     /// Reference a script in the question of the composer
     onTarget: (fileName: string) => void;
@@ -708,6 +726,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onApplySnippet={props.onApplySnippet}
                     onSetVisSpec={props.onSetVisSpec}
                     canTarget={props.canTarget}
+                    scriptReferences={scriptData != null ? props.scriptReferences?.get(scriptData.scriptKey) ?? null : null}
                     onTarget={props.onTarget}
                     onAcceptDiff={props.onAcceptDiff}
                     onRejectDiff={props.onRejectDiff}

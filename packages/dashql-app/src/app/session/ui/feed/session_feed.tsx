@@ -23,10 +23,15 @@ import {
 } from '@dnd-kit/sortable';
 
 import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '../../../connections/connection_state.js';
-import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/session_scripts.js';
+import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/session_scripts.js';
 import { useQueryExecutor } from '../../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';
+import { checkSessionScriptReferences } from '../../scripts/script_reference_reports.js';
+import { sessionScriptResults } from '../../scripts/script_results_publisher.js';
+import { insertMentionAtCursor, useLastFocusedEditor } from '../../scripts/editor/editor_focus.js';
+import { DashQLProcessorPlugin } from '../../scripts/editor/dashql_processor.js';
+import { renameScript, type RenameDraftReferences } from '../../scripts/script_rename.js';
 import { type KeyEventHandler, useKeyEvents } from '../../../../utils/key_events.js';
 import { TabKey as DetailsTabKey } from '../script_details.js';
 import { runSessionScript } from '../rerun_query.js';
@@ -66,6 +71,8 @@ import { useComposerAgent } from '../../ai/use_composer_agent.js';
 export interface SessionFeedProps {
     sessionScripts: SessionScripts;
     modifySessionScripts: ModifySessionScripts;
+    /// Receives the function that renames the references in the draft of the composer, for renames of other views
+    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     showDetails: (fileName?: string, initialTab?: DetailsTabKey) => void;
     /// The connection that the next script runs on
     conn: ConnectionState | null;
@@ -327,9 +334,12 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         props.modifySessionScripts({ type: DELETE_SCRIPT, value: fileName });
     }, [props.modifySessionScripts]);
 
+    // A rename rewrites the references in the other scripts and in the draft of the composer
+    const ownDraftRenameRef = React.useRef<RenameDraftReferences | null>(null);
+    const composerRenameScriptRef = props.draftRenameRef ?? ownDraftRenameRef;
     const handleRename = React.useCallback((oldFileName: string, newFileName: string) => {
-        props.modifySessionScripts({ type: RENAME_SCRIPT, value: { fileName: oldFileName, newFileName } });
-    }, [props.modifySessionScripts]);
+        void renameScript(props.sessionScripts, props.modifySessionScripts, oldFileName, newFileName, composerRenameScriptRef.current);
+    }, [props.sessionScripts, props.modifySessionScripts, composerRenameScriptRef]);
 
     // Move a script one position up/down within the session by swapping it with its neighbour in the
     // feed order and dispatching the new full order to REORDER_SCRIPTS.
@@ -425,9 +435,22 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
     const composerSubmitRef = React.useRef<(() => void) | null>(null);
     // The mention button of a script references it in the question of the composer
     const composerTargetScriptRef = React.useRef<((name: string) => void) | null>(null);
+    // A mention of a script goes to the cursor of the script editor that had the focus last, other than the editor of
+    // the script itself, or into the composer
+    const lastFocusedEditor = useLastFocusedEditor();
     const handleTargetScript = React.useCallback((fileName: string) => {
-        composerTargetScriptRef.current?.(scriptDisplayName(fileName));
-    }, []);
+        const name = scriptDisplayName(fileName);
+        const view = lastFocusedEditor();
+        if (view != null && view !== composerView) {
+            const scriptKey = view.state.field(DashQLProcessorPlugin, false)?.scriptKey;
+            const target = scriptKey != null ? props.sessionScripts.scripts[scriptKey] : undefined;
+            if (target != null && target.fileName !== fileName) {
+                insertMentionAtCursor(view, `:${props.sessionScripts.instance.quoteIdentifier(name)}`);
+                return;
+            }
+        }
+        composerTargetScriptRef.current?.(name);
+    }, [lastFocusedEditor, composerView, props.sessionScripts.scripts, props.sessionScripts.instance]);
     const scriptNames = React.useMemo(() => props.sessionScripts.scriptOrder.map(scriptDisplayName), [props.sessionScripts.scriptOrder]);
 
     // The feed stays mounted (just hidden) while the catalog/details overlay is open, so its global
@@ -643,8 +666,11 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         feedLayout.listRef.current?.scrollToRow({ index: entries.length * 2 - 1, align: 'end' });
     }, [entries.length]);
 
+    // The checked script references of every script, the check runs again only when a script changes
+    const scriptReferences = React.useMemo(() => checkSessionScriptReferences(props.sessionScripts), [props.sessionScripts]);
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         sessionId: props.sessionScripts.sessionId,
+        scriptReferences,
         connections: scriptConnections,
         computeCacheKey,
         hasCachedResult,
@@ -671,7 +697,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onFormat: handleFormat,
         onApplySnippet: handleApplySnippet,
         onSetVisSpec: handleSetVisSpec,
-        canTarget: composerAgent.available,
+        canTarget: true,
         onTarget: handleTargetScript,
         onAcceptDiff: handleAcceptDiff,
         onRejectDiff: handleRejectDiff,
@@ -684,7 +710,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, composerAgent.available, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, scriptReferences, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, computeCacheKey, hasCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.
@@ -791,6 +817,8 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
                         submitRef={composerSubmitRef}
                         scriptNames={scriptNames}
                         targetScriptRef={composerTargetScriptRef}
+                        renameScriptRef={composerRenameScriptRef}
+                        scriptResults={sessionScriptResults(props.sessionScripts)}
                         snippetConnector={composerConnection.connectorInfo.connectorType}
                         offlineSessionId={scriptConnections.get(composerConnection.connectionId)?.connectionHealth === ConnectionHealth.ONLINE
                             ? null : props.sessionScripts.sessionId}
