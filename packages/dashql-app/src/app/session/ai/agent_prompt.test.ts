@@ -22,11 +22,11 @@ describe('Agent prompt', () => {
 
     it('names the scripts that the question targets', () => {
         const prompt = buildAgentPrompt({
-            question: 'filter @revenue to 2024',
+            question: 'filter :revenue to 2024',
             dialect: describeSqlDialect(ConnectorType.HYPER),
             mentionedIdentifiers: [],
             referencedScripts: ['revenue'],
         });
-        expect(prompt).toContain('The question targets these scripts, referenced as @<script>: revenue. Work on them instead of writing a new script.');
+        expect(prompt).toContain('The question targets these scripts, referenced as :<script>: revenue. Work on them instead of writing a new script.');
     });
 });

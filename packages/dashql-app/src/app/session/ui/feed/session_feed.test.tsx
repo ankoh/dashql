@@ -233,7 +233,7 @@ describe('V2 session feed rows', () => {
         const props = baseProps();
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
         const mention = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
-        expect(mention.textContent).toBe('@01_alpha');
+        expect(mention.textContent).toBe(':01_alpha');
         act(() => mention.click());
         expect(props.onTarget).toHaveBeenCalledWith('01_alpha.sql');
 
@@ -241,7 +241,7 @@ describe('V2 session feed rows', () => {
         props.entries[0] = { scriptId: 1, fileName: 'report.sql' };
         props.scripts[1] = script(1, 'report.sql');
         act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
-        expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe('@report');
+        expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe(':report');
     });
 
     it('renames the script in the tag on double click and from the action menu', async () => {
@@ -276,7 +276,7 @@ describe('V2 session feed rows', () => {
         act(() => setInputValue(input, 'other'));
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
         expect(props.onRename).toHaveBeenCalledTimes(1);
-        expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe('@01_alpha');
+        expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe(':01_alpha');
 
         // The action menu edits the name in the tag, the input keeps the focus after the menu closes
         act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());

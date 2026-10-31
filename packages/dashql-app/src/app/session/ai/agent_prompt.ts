@@ -1,4 +1,5 @@
 import { ConnectorType } from '../../connections/connector_info.js';
+import { renderScriptReference } from './script_references.js';
 
 /// Describe the SQL dialect of a connector for the agent
 export function describeSqlDialect(connectorType: ConnectorType): string {
@@ -41,7 +42,7 @@ export function buildAgentPrompt(input: AgentPromptInput): string {
             + ' already answer it.',
     ];
     if (input.referencedScripts.length > 0) {
-        lines.push(`The question targets these scripts, referenced as @<script>: ${input.referencedScripts.join(', ')}.`
+        lines.push(`The question targets these scripts, referenced as ${renderScriptReference('<script>')}: ${input.referencedScripts.join(', ')}.`
             + ' Work on them instead of writing a new script.');
     }
     if (input.mentionedIdentifiers.length > 0) {

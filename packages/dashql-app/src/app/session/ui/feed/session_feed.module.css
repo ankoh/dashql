@@ -429,7 +429,7 @@
     min-width: 0;
 }
 
-/* The "@<script>" tag that mentions the script in the prompt, in the purple of script references in the composer */
+/* The ":<script>" tag that mentions the script in the prompt, in the purple of script references in the composer */
 .feed_entry_mention {
     display: inline-flex;
     align-items: center;

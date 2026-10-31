@@ -268,14 +268,14 @@ describe('Session composer', () => {
             act(() => modeButton('sql').click());
             act(() => type(editor, 'filter'));
             act(() => targetScript.current!('revenue-2'));
-            expect(editor.state.doc.toString()).toBe('filter @revenue-2 ');
+            expect(editor.state.doc.toString()).toBe('filter :revenue-2 ');
             expect(editor.state.selection.main.head).toBe(editor.state.doc.length);
             expect(selectedMode()).toBe('ai');
-            expect(highlightedScripts()).toEqual(['@revenue-2']);
+            expect(highlightedScripts()).toEqual([':revenue-2']);
             act(() => targetScript.current!('revenue-2'));
             act(() => targetScript.current!('revenue'));
-            expect(editor.state.doc.toString()).toBe('filter @revenue-2 @revenue ');
-            expect(highlightedScripts()).toEqual(['@revenue-2', '@revenue']);
+            expect(editor.state.doc.toString()).toBe('filter :revenue-2 :revenue ');
+            expect(highlightedScripts()).toEqual([':revenue-2', ':revenue']);
         });
 
         it('sends a question and clears it right away', async () => {

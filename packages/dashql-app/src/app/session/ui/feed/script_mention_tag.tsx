@@ -18,7 +18,7 @@ interface Props {
     onRename: (name: string) => void;
 }
 
-/// The "@<script>" tag of a script card.
+/// The ":<script>" tag of a script card.
 /// A click mentions the script in the prompt, a double click edits the name in place.
 export const ScriptMentionTag: React.FC<Props> = (props) => {
     if (props.renaming) {

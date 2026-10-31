@@ -60,15 +60,15 @@ describe('Natural language identifiers', () => {
 
     it('highlights finished script references instead of the catalog names they contain', () => {
         const scripts = () => Array.from(view.contentDOM.querySelectorAll(`.${styles.identifier_script}`)).map(element => element.textContent);
-        type('amount of @orders in @revenue');
-        expect(scripts()).toEqual(['@orders']);
+        type('amount of :orders in :revenue');
+        expect(scripts()).toEqual([':orders']);
         expect(highlighted()).toEqual(['amount']);
         type(' ');
-        expect(scripts()).toEqual(['@orders', '@revenue']);
+        expect(scripts()).toEqual([':orders', ':revenue']);
     });
 
     it('hints no catalog names in a script reference', () => {
-        type('@orde');
+        type(':orde');
         expect(hint()).toBeNull();
     });
 

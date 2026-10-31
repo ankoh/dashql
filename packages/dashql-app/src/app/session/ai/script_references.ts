@@ -1,5 +1,6 @@
-/// The character that starts a script reference in natural language, e.g. "@revenue"
-export const SCRIPT_REFERENCE_PREFIX = '@';
+/// The character that starts a script reference in natural language, e.g. ":revenue".
+/// It follows the named parameters of Hyper, ":name".
+export const SCRIPT_REFERENCE_PREFIX = ':';
 
 /// A character that continues a script name, a reference must not be followed by one
 const NAME_CHAR = /[\p{L}\p{N}_$-]/u;
@@ -21,7 +22,7 @@ export function renderScriptReference(name: string): string {
 
 /// Find the references to session scripts in a text.
 /// A reference is the prefix followed by the display name of a script, the longest name wins.
-/// Names compare case-insensitively, the prefix must not be part of a word (an email address).
+/// Names compare case-insensitively, the prefix must not be part of a word ("12:30", "http://") or a cast ("x::text").
 export function findScriptReferences(names: readonly string[], text: string): ScriptReference[] {
     const references: ScriptReference[] = [];
     if (names.length === 0) {
@@ -32,7 +33,7 @@ export function findScriptReferences(names: readonly string[], text: string): Sc
         .map(name => ({ name, lower: name.toLowerCase() }))
         .sort((l, r) => r.lower.length - l.lower.length);
     for (let at = text.indexOf(SCRIPT_REFERENCE_PREFIX); at >= 0; at = text.indexOf(SCRIPT_REFERENCE_PREFIX, at + 1)) {
-        if (at > 0 && NAME_CHAR.test(text[at - 1])) {
+        if (at > 0 && (NAME_CHAR.test(text[at - 1]) || text[at - 1] === SCRIPT_REFERENCE_PREFIX)) {
             continue;
         }
         const begin = at + SCRIPT_REFERENCE_PREFIX.length;
