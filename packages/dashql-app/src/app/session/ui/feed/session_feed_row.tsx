@@ -382,15 +382,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         onApply={applySnippet}
                         iconSize={14}
                     />
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        onClick={(event) => { event.stopPropagation(); props.onDelete(props.scriptFileName); }}
-                        aria-label={`Delete ${displayName} script`}
-                        data-testid="script-delete"
-                    >
-                        <TrashIcon size={14} />
-                    </IconButton>
                     <ScriptActionMenu
                         scriptName={displayName}
                         formatDisabled={!isFormattable || hasPendingDiff || editorView == null}
@@ -401,6 +392,15 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         iconSize={14}
                     />
                     <span className={styles.feed_entry_action_separator} aria-hidden="true" />
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        onClick={(event) => { event.stopPropagation(); props.onDelete(props.scriptFileName); }}
+                        aria-label={`Delete ${displayName} script`}
+                        data-testid="script-delete"
+                    >
+                        <TrashIcon size={14} />
+                    </IconButton>
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         onClick={(event) => { event.stopPropagation(); props.onMoveUp(props.scriptFileName); }}
