@@ -34,7 +34,7 @@
     --site_header_bg: hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 21%, 0.35);
     /* The band of the content below the hero: a faint dark wash in the hue of the backdrop. The gradient of the backdrop
        keeps running through it, only a touch darker than behind the hero. */
-    --site_content_bg: hsla(var(--neutral_hue), calc(12% * var(--neutral_tint)), 8%, 0.14);
+    --site_content_bg: hsla(var(--neutral_hue), calc(12% * var(--neutral_tint)), 8%, 0.06);
     --site_header_fg: white;
     --site_header_fg_muted: var(--base_color_neutral_2);
     --site_header_border: hsla(0, 0%, 100%, 0.1);
