@@ -68,8 +68,12 @@ describe('Agent view', () => {
                 </AgentBridgeContext.Provider>
             </LoggerProvider>,
         ));
-        // The info of the agent server arrives after the first render
-        await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+        // The info of the agent server arrives after the first render.
+        // The browser tests run production React, there act only flushes sync work and the scheduler renders
+        // the info in a task of its own. Wait for the harnesses instead of racing that task with a timeout.
+        if (bridge.status === AgentConnectionStatus.Connected) {
+            await vi.waitFor(() => expect(container.querySelector('[data-testid="agent-settings-harness"]')).not.toBeNull());
+        }
     }
 
     it('shows the harnesses and picks one', async () => {
