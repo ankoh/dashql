@@ -158,7 +158,6 @@
     flex-direction: column;
     min-height: 0;
     overflow-y: auto;
-    padding-top: 4px;
 }
 
 .builder > * {
@@ -203,6 +202,12 @@
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
+}
+
+/* A collapsed section is a single row */
+.builder_section_collapsed {
+    padding-top: 4px;
+    padding-bottom: 4px;
 }
 
 /* A heading that opens and closes its section, the caret sits on the right */
@@ -342,12 +347,11 @@
     color: #0969da;
 }
 
-/* The mark and the encoding of the selected layer, the grey sets them apart from what the layers share */
+/* The mark and the encoding of the selected layer */
 .layer_panel {
     flex-grow: 1;
     padding-bottom: 12px;
     border-top: 1px solid var(--border_color_primary);
-    background: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 98%);
 }
 
 /* The marks */

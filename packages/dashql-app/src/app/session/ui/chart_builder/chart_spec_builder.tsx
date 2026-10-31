@@ -564,7 +564,10 @@ function ViewSection(props: { spec: ChartSpec; onChange: (spec: ChartSpec) => vo
     const [open, setOpen] = React.useState(false);
     const title = chartTitle(props.spec);
     return (
-        <section className={styles.builder_section} aria-labelledby="chart-builder-view">
+        <section
+            className={classNames(styles.builder_section, { [styles.builder_section_collapsed]: !open })}
+            aria-labelledby="chart-builder-view"
+        >
             <h3 className={styles.builder_heading_toggle}>
                 <button
                     type="button"
