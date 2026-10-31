@@ -213,7 +213,9 @@
                 "prost",
                 "prost-build",
                 "tonic",
-                "tonic-build"
+                "tonic-build",
+                "tonic-prost",
+                "tonic-prost-build"
             ]
         },
         {
