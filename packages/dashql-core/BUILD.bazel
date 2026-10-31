@@ -81,7 +81,7 @@ rust_test(
         ":dashql_core",
         "//packages/dashql-parser:dashql_parser",
         "//packages/dashql-snapshots:dashql_snapshots",
-        "//packages/hyper-api:hyper_ffi",
+        "//packages/hyper-api:hyper_ffi_rs",
     ],
 )
 
