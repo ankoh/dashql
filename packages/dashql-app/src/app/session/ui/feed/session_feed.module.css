@@ -406,7 +406,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 4px 0 28px;
-    gap: 8px;
+    gap: 6px;
     color: var(--card_control_color);
 }
 
@@ -418,6 +418,8 @@
     flex-shrink: 0;
     width: 1px;
     height: 16px;
+    /* The separators keep apart the groups of buttons */
+    margin: 0 2px;
     background-color: var(--log_border_color);
 }
 

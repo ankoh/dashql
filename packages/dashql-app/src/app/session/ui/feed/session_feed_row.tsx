@@ -403,6 +403,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     </IconButton>
                     <IconButton
                         variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
                         onClick={(event) => { event.stopPropagation(); props.onMoveUp(props.scriptFileName); }}
                         aria-label="Move script up"
                         data-testid="script-move-up"
@@ -412,6 +413,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     </IconButton>
                     <IconButton
                         variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
                         onClick={(event) => { event.stopPropagation(); props.onMoveDown(props.scriptFileName); }}
                         aria-label="Move script down"
                         data-testid="script-move-down"
