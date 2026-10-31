@@ -20,11 +20,11 @@ The planner gets the connection of every script and its kind from the host: LOCA
 
 | bar.sql runs on | foo.sql runs on | `:foo` in bar.sql |
 |---|---|---|
-| the connection of foo.sql | | **fused**: the query of foo.sql becomes a common table expression of the statement |
-| LOCAL | another connection | **materialized**: the query of foo.sql runs first, its result is written as Parquet file and scanned |
+| the connection of foo.sql | | **inline**: the query of foo.sql becomes a common table expression of the statement |
+| LOCAL | another connection | **scan**: the query of foo.sql runs first, its result is written as Parquet file and scanned |
 | REMOTE | another connection | an error, a remote database cannot read the results of other connections |
 
-A fused reference runs as one query:
+An inline reference runs as one query:
 
 ```sql
 -- foo.sql: select id, amount from orders where amount > 10
@@ -35,7 +35,7 @@ select id, amount from orders where amount > 10
 select count(*) from foo
 ```
 
-A materialized reference scans a Parquet file of the query result cache, which the host names and mounts:
+A scan reference scans a Parquet file of the query result cache, which the host names and mounts:
 
 ```sql
 with foo as (select * from external('/mnt/external/cache/<key>.<uuid>.parquet', format => 'parquet'))
@@ -50,7 +50,7 @@ result cache that is mounted read-write at `/mnt/external/cache`, not as a path 
 The planner (`planner.md`, Script References) resolves the references, splices the common table expressions
 into the SQL of the nodes and orders the statements across connections. A run of the whole session plans every
 script. A run of one script plans the script and the queries of the scripts it materializes, unless the host
-already has their results; the queries it fuses are part of its statements.
+already has their results; the queries it inlines are part of its statements.
 
 ## Running a Session
 
@@ -72,7 +72,7 @@ file of its key, the run reads no cached results.
 
 A run of one script (`runSessionScript`, `runPlannedScript` in `script_run.ts`) analyzes every script, publishes the
 declarations and plans the script as the target: the plan holds the statements of the script, with the queries it
-fuses spliced in, and the queries of the scripts it materializes. The scripts that write the relations these queries
+inlines spliced in, and the queries of the scripts it materializes. The scripts that write the relations these queries
 read are no part of the plan, the run reads the relations as the backend has them. A script that references no
 script is a plan of its own statements. The statements run in their order and keep their SQL whatever their kind,
 the last output of the script is its result and a query with `@vis` tags runs as written. An invalid plan fails the
@@ -100,9 +100,9 @@ The editor checks, completes and renames script references while the scripts cha
 `check_script_references` (`script_references.rs`, `DashQL.checkScriptReferences`) checks the references of every
 script whose analysis is current with its text, like a plan of the session would: the name lookup, the connections,
 a referenced script that is no single SELECT, a reference outside of a query, the common table expressions of a
-fused query, a view that reads a materialized result and cycles. Other scripts may be broken or stale meanwhile, a
+inlined query, a view that reads a materialized result and cycles. Other scripts may be broken or stale meanwhile, a
 referenced script without a current analysis is read as a single SELECT. It reports every table parameter with what
-it reads, `FUSED`, `MATERIALIZED` or `INVALID`, the referenced script and the messages of the planner, the text
+it reads, `INLINE`, `SCAN` or `INVALID`, the referenced script and the messages of the planner, the text
 spans in the offset unit of the session of the script (`ScriptReferenceCheck` in `execution_graph.fbs`). The
 planner snapshots list the check under `checked-references`.
 

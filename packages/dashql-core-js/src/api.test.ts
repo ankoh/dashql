@@ -135,7 +135,7 @@ describe('DashQL planner', () => {
             }).unpack() as execution.ScriptReferenceCheckT;
             expect(check.scripts.map(s => s.checked)).toEqual([true, true, true]);
             const [reference] = check.scripts[1].references;
-            expect(reference.kind).toBe(execution.ScriptReferenceKind.MATERIALIZED);
+            expect(reference.kind).toBe(execution.ScriptReferenceKind.SCAN);
             expect(reference.script).toBe(0);
             expect(reference.textSpan!.offset).toBe("select 'é', * from ".length);
             expect(reference.textSpan!.length).toBe(4);

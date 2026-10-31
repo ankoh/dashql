@@ -172,7 +172,7 @@ describe('script runs', () => {
         });
     });
 
-    it('fuses the query of a referenced script without running the scripts that write its relations', async () => {
+    it('inlines the query of a referenced script without running the scripts that write its relations', async () => {
         const f = fixture([['setup.sql', 'create table t (a int);'], ['foo.sql', 'select a from t;'], ['bar.sql', 'select count(*) from :foo;']]);
         const table = await f.run('bar.sql');
         expect(table?.numRows).toBe(1);
@@ -347,27 +347,27 @@ describe('script runs', () => {
         const logger = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), exception: vi.fn() };
         await f.run('bar.sql', { logger });
         const metadata = f.executeQuery.mock.calls.map(([, args]) => args.metadata);
-        // base runs remotely and is materialized, bar fuses the query of foo, which scans the result of base
+        // base runs remotely and is materialized, bar inlines the query of foo, which scans the result of base
         expect(metadata[0]).toMatchObject({
             title: 'base.sql 1/1 · materialized', issuer: 'Run of bar.sql',
-            planned: { run: 'script', target: 'bar.sql', node: 0, script: 'base.sql', result: true, fused: [], materializes: expect.stringMatching(/^\/mnt\/external\/cache\//) },
+            planned: { run: 'script', target: 'bar.sql', node: 0, script: 'base.sql', result: true, inlined: [], materializes: expect.stringMatching(/^\/mnt\/external\/cache\//) },
         });
         expect(metadata[1]).toMatchObject({
-            title: 'bar.sql 1/1 · fuses foo.sql · scans base.sql', issuer: 'Run of bar.sql',
+            title: 'bar.sql 1/1 · inlines foo.sql · scans base.sql', issuer: 'Run of bar.sql',
             planned: {
-                node: 1, script: 'bar.sql', statementType: 'SELECT', result: true, fused: ['foo.sql'],
+                node: 1, script: 'bar.sql', statementType: 'SELECT', result: true, inlined: ['foo.sql'],
                 scans: [{ script: 'base.sql', path: metadata[0].planned!.materializes, cached: false }],
                 after: [{ node: 0, reason: 'MATERIALIZATION' }], materializes: null,
             },
             resultOwner: scriptResultOwner(f.session().sessionId, f.script('bar.sql').scriptKey),
         });
-        expect(metadata[1].description).toContain('fuses the queries of foo.sql');
+        expect(metadata[1].description).toContain('inlines the queries of foo.sql');
         const statements = logger.info.mock.calls.filter(([message]) => message === 'Running a planned statement').map(([, fields]) => fields);
         expect(statements).toEqual([
-            expect.objectContaining({ query: '1', script: 'base.sql', statement: '1/1', fused: '', materializes: metadata[0].planned!.materializes }),
-            expect.objectContaining({ query: '2', script: 'bar.sql', fused: 'foo.sql', after: '0 MATERIALIZATION', cacheable: 'true' }),
+            expect.objectContaining({ query: '1', script: 'base.sql', statement: '1/1', inlined: '', materializes: metadata[0].planned!.materializes }),
+            expect.objectContaining({ query: '2', script: 'bar.sql', inlined: 'foo.sql', after: '0 MATERIALIZATION', cacheable: 'true' }),
         ]);
-        expect(logger.info).toHaveBeenCalledWith('Running a plan of session scripts', expect.objectContaining({ run: 'script bar.sql', nodes: '2', fused: '1 bar.sql fuses foo.sql' }), 'session_execution');
+        expect(logger.info).toHaveBeenCalledWith('Running a plan of session scripts', expect.objectContaining({ run: 'script bar.sql', nodes: '2', inlined: '1 bar.sql inlines foo.sql' }), 'session_execution');
         expect(logger.info).toHaveBeenCalledWith('Wrote a materialized script result', expect.objectContaining({ script: 'base.sql', rows: '1' }), 'session_execution');
     });
 

@@ -1,6 +1,6 @@
 planner-snapshots:
   # A query reads the result of a script of the same connection as common table expression
-  - name: FusePlain
+  - name: InlinePlain
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -12,7 +12,7 @@ planner-snapshots:
           select count(*) from :foo;
 
   # The alias of the table parameter names the common table expression
-  - name: FuseAlias
+  - name: InlineAlias
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -24,7 +24,7 @@ planner-snapshots:
           select f.id from :foo f where f.amount > 1;
 
   # Without alias, columns are qualified with the script name
-  - name: FuseQualifiedColumns
+  - name: InlineQualifiedColumns
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -36,7 +36,7 @@ planner-snapshots:
           select foo.id from :foo where foo.amount > 1;
 
   # The script goes before the common table expressions of the statement
-  - name: FuseIntoWith
+  - name: InlineIntoWith
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -48,7 +48,7 @@ planner-snapshots:
           with big as (select * from :foo where amount > 10) select count(*) from big;
 
   # A recursive WITH takes the script as first, non-recursive common table expression
-  - name: FuseIntoWithRecursive
+  - name: InlineIntoWithRecursive
     scripts:
       - name: seeds
         input: |
@@ -58,7 +58,7 @@ planner-snapshots:
           with recursive r(n) as (select n from :seeds union all select n + 1 from r where n < 3) select * from r;
 
   # INSERT ... SELECT takes the common table expression in its query
-  - name: FuseInsertSelect
+  - name: InlineInsertSelect
     catalog: |
       create table orders (id int, amount int);
       create table archive (id int, amount int);
@@ -71,7 +71,7 @@ planner-snapshots:
           insert into archive select * from :foo;
 
   # CREATE TABLE AS takes the common table expression in its query
-  - name: FuseCreateTableAs
+  - name: InlineCreateTableAs
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -83,7 +83,7 @@ planner-snapshots:
           create table snapshot as select * from :foo;
 
   # SELECT INTO takes the common table expression in front of the statement. Hyper rejects SELECT INTO as deprecated.
-  - name: FuseSelectInto
+  - name: InlineSelectInto
     hyper: skip
     catalog: |
       create table orders (id int, amount int);
@@ -96,7 +96,7 @@ planner-snapshots:
           select * into snapshot from :foo;
 
   # EXPLAIN takes the common table expression in its query
-  - name: FuseExplain
+  - name: InlineExplain
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -108,7 +108,7 @@ planner-snapshots:
           explain select * from :foo;
 
   # References in subqueries take the common table expression in the outermost query
-  - name: FuseSubqueries
+  - name: InlineSubqueries
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -120,7 +120,7 @@ planner-snapshots:
           select * from orders where id in (select id from :foo) and exists (select 1 from :foo f where f.id = orders.id) and (select count(*) from :foo) > 0;
 
   # A reference in a subquery of a DELETE takes the common table expression in the subquery
-  - name: FuseDeleteSubquery
+  - name: InlineDeleteSubquery
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -132,7 +132,7 @@ planner-snapshots:
           delete from orders where id in (select id from :foo);
 
   # Two statements with references have a common table expression each
-  - name: FuseTwoStatements
+  - name: InlineTwoStatements
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -144,8 +144,8 @@ planner-snapshots:
           select count(*) from :foo;
           select sum(amount) from :foo;
 
-  # A chain: the references of a fused query become common table expressions of the statement
-  - name: FuseChain
+  # A chain: the references of an inlined query become common table expressions of the statement
+  - name: InlineChain
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -160,7 +160,7 @@ planner-snapshots:
           select count(*) from :b;
 
   # A diamond: every script is one common table expression, after the scripts it references
-  - name: FuseDiamond
+  - name: InlineDiamond
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -178,7 +178,7 @@ planner-snapshots:
           select (select count(*) from :small) as s, (select count(*) from :large) as l;
 
   # A script with its own common table expressions stays one query
-  - name: FuseProducerWithCtes
+  - name: InlineProducerWithCtes
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -190,7 +190,7 @@ planner-snapshots:
           select * from :foo;
 
   # A line comment at the end of the referenced query does not swallow the closing parenthesis
-  - name: FuseProducerTrailingComment
+  - name: InlineProducerTrailingComment
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -202,8 +202,8 @@ planner-snapshots:
         input: |
           select * from :foo;
 
-  # The statement reads the relations of the fused query, it runs after the script that writes them
-  - name: FuseProducerOfTable
+  # The statement reads the relations of the inlined query, it runs after the script that writes them
+  - name: InlineProducerOfTable
     scripts:
       - name: setup
         input: |
@@ -216,8 +216,8 @@ planner-snapshots:
         input: |
           select * from :foo;
 
-  # A query of a script below its reference is fused all the same
-  - name: FuseProducerBelow
+  # A query of a script below its reference is inlined all the same
+  - name: InlineProducerBelow
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -229,7 +229,7 @@ planner-snapshots:
           select id from orders;
 
   # Script names that are no plain identifiers are quoted
-  - name: FuseQuotedNames
+  - name: InlineQuotedNames
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -244,7 +244,7 @@ planner-snapshots:
           select * from :"brave_otter-2" a, :"Mixed Case" b where a.id = b.id;
 
   # A name that differs in case only references the script
-  - name: FuseCaseInsensitiveName
+  - name: InlineCaseInsensitiveName
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -256,7 +256,7 @@ planner-snapshots:
           select * from :foo f;
 
   # A relation or common table expression of the same name is not shadowed, the script gets another name
-  - name: FuseNameCollisions
+  - name: InlineNameCollisions
     catalog: |
       create table foo (id int);
       create table orders (id int, amount int);
@@ -275,7 +275,7 @@ planner-snapshots:
           select * from :foo;
 
   # A renamed common table expression keeps no alias that the statement reads as relation
-  - name: FuseRenamedWithoutAlias
+  - name: InlineRenamedWithoutAlias
     catalog: |
       create table foo (id int);
       create table orders (id int, amount int);
@@ -287,8 +287,8 @@ planner-snapshots:
         input: |
           select * from :foo join foo using (id);
 
-  # A relation of a fused query must not resolve to a common table expression that the statement defines there
-  - name: FuseShadowedByCte
+  # A relation of an inlined query must not resolve to a common table expression that the statement defines there
+  - name: InlineShadowedByCte
     catalog: |
       create table orders (id int, amount int);
       create table t (id int);
@@ -296,21 +296,21 @@ planner-snapshots:
       - name: foo
         input: |
           select id from orders;
-      # A WITH that is not recursive comes after the fused query, the fused query reads the table
+      # A WITH that is not recursive comes after the inlined query, the inlined query reads the table
       - name: plain
         input: |
           with orders as (select 1 as id) select * from orders, :foo f;
-      # The fused query would see a recursive common table expression of the same name
+      # The inlined query would see a recursive common table expression of the same name
       - name: recursive
         input: |
           with recursive orders(id) as (select 1 union all select id + 1 from orders where id < 3) select * from orders, :foo f;
-      # The fused query would see the common table expressions of an INSERT around it
+      # The inlined query would see the common table expressions of an INSERT around it
       - name: inserts
         input: |
           with orders as (select 1 as id) insert into t select id from :foo;
 
   # A query with @vis tags keeps its visualization
-  - name: FuseVisualization
+  - name: InlineVisualization
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -322,8 +322,8 @@ planner-snapshots:
           /* @vis table */
           select * from :foo;
 
-  # The statement reads the relations of the fused query, it runs after their writers
-  - name: FuseAccesses
+  # The statement reads the relations of the inlined query, it runs after their writers
+  - name: InlineAccesses
     catalog: |
       create table orders (id int, amount int);
     scripts:

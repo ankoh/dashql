@@ -902,8 +902,8 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
                         t.parameter = Some(r.parameter);
                         t.script = r.script.unwrap_or(u32::MAX);
                         t.kind = match r.kind {
-                            CheckedReferenceKind::Fused => ScriptReferenceKind::FUSED,
-                            CheckedReferenceKind::Materialized => ScriptReferenceKind::MATERIALIZED,
+                            CheckedReferenceKind::Inline => ScriptReferenceKind::INLINE,
+                            CheckedReferenceKind::Scan => ScriptReferenceKind::SCAN,
                             CheckedReferenceKind::Invalid => ScriptReferenceKind::INVALID,
                         };
                         t.errors = (!r.errors.is_empty()).then_some(r.errors);

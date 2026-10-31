@@ -9,7 +9,7 @@ Scripts run on connections, and every connection has its own catalog. Relations 
 different connections never conflict and barriers order the statements of their own
 connection only. A script references the result of another script with a table
 parameter, `select * from :foo` reads the single SELECT of `foo.sql`; the planner
-fuses or materializes such references (see Script References and
+inlines the referenced query or scans its result (see Script References and
 `script_references.md`).
 
 `planner_dependencies.md` describes the nodes and edges precisely and what a run of the session and a run of one
@@ -137,28 +137,28 @@ name or the only name that differs in case (`script_results::find_script`, which
 
 | Statement | Referenced script | Reference |
 |---|---|---|
-| same connection | | fused: `with foo as (<query of foo>)` |
-| LOCAL connection | other connection | materialized: the node of `foo` writes its result to `<mount_prefix>/<file>`, MATERIALIZATION edge, `with foo as (select * from external('<path>', format => 'parquet'))` |
+| same connection | | inline: `with foo as (<query of foo>)` |
+| LOCAL connection | other connection | scan: the node of `foo` writes its result to `<mount_prefix>/<file>`, MATERIALIZATION edge, `with foo as (select * from external('<path>', format => 'parquet'))` |
 | REMOTE connection | other connection | error |
 
 A referenced script is a single SELECT, so a reference never runs commands of the referenced script. The common
-table expressions of a statement are flattened: the references of a fused query are resolved in
+table expressions of a statement are flattened: the references of an inlined query are resolved in
 the context of the statement, every script appears once after the scripts it references. They go into the
 outermost SELECT around the references, inside the parentheses of a subquery, and before the common table
 expressions the SELECT already has, also under WITH RECURSIVE: at the statement start, before the query of
 INSERT, CREATE TABLE AS and EXPLAIN, and into the subquery of a DELETE. The CTE is named after the script and
 quoted where needed (`"brave_otter-2"`); a name that a relation or common table expression of the statement or
-of a fused query uses gets a suffix (`foo_2`), and the reference keeps the script name as alias
-(`foo_2 as foo`) unless the statement reads a relation of that name. A fused statement reads the relations of the fused queries, so it is ordered after their
+of an inlined query uses gets a suffix (`foo_2`), and the reference keeps the script name as alias
+(`foo_2 as foo`) unless the statement reads a relation of that name. A statement with inline references reads the relations of the inlined queries, so it is ordered after their
 writers.
 
 Errors, each with the text of the parameter except the one of a script that runs later: an unknown or ambiguous script name, a positional table
 parameter, a script as the target of INSERT or DELETE, a reference outside of a query (`delete ... using
 :foo`), a referenced script that is no single SELECT or does not parse ("foo.sql is no single SELECT that bar.sql
 could read"), a cycle, a REMOTE statement that reads another connection, a view over a materialized result, also
-through a fused query, a fused query that reads a relation that the statement defines as common table expression
+through an inlined query, an inlined query that reads a relation that the statement defines as common table expression
 where the query goes (a recursive WITH, the WITH of an INSERT around it), and a materialized script that runs later in the session than the statement that scans it ("move foo.sql above bar.sql").
-A fused script may be below its consumer.
+An inlined script may be below its consumer.
 
 ## Conflicts
 

@@ -308,7 +308,7 @@ export function describePlannedStatements(graph: core.buffers.execution.Executio
             statementType: core.buffers.parser.StatementType[node.statementType] ?? String(node.statementType),
             result: node.scriptResult,
             cached: false,
-            fused: (node.fusedScripts ?? []).map(script => files[script] ?? `script ${script}`),
+            inlined: (node.inlinedScripts ?? []).map(script => files[script] ?? `script ${script}`),
             scans: (node.inputs ?? []).map(m => materializations[m]).filter(m => m != null).map(m => ({
                 script: files[m.script] ?? `script ${m.script}`, path: String(m.path ?? ''), cached: m.node === NONE,
             })),
@@ -318,11 +318,11 @@ export function describePlannedStatements(graph: core.buffers.execution.Executio
     });
 }
 
-/// The title of a planned statement in the query history, e.g. `bar.sql 2/3 · fuses foo.sql`
+/// The title of a planned statement in the query history, e.g. `bar.sql 2/3 · inlines foo.sql`
 export function plannedStatementTitle(statement: PlannedStatement): string {
     const parts = [`${statement.script} ${statement.statement}/${statement.statements}`];
     if (statement.cached) parts.push('cached result');
-    if (statement.fused.length > 0) parts.push(`fuses ${statement.fused.join(', ')}`);
+    if (statement.inlined.length > 0) parts.push(`inlines ${statement.inlined.join(', ')}`);
     if (statement.scans.length > 0) parts.push(`scans ${statement.scans.map(scan => scan.cached ? `${scan.script} (cached)` : scan.script).join(', ')}`);
     if (statement.materializes != null) parts.push('materialized');
     return parts.join(' · ');
@@ -334,7 +334,7 @@ export function plannedStatementDescription(statement: PlannedStatement): string
         + (statement.result ? ', the result of the script' : '')
         + (statement.run === 'session' ? ', run of the session' : `, run of ${statement.target}`)];
     if (statement.cached) parts.push('served from the query result cache');
-    if (statement.fused.length > 0) parts.push(`fuses the queries of ${statement.fused.join(', ')}`);
+    if (statement.inlined.length > 0) parts.push(`inlines the queries of ${statement.inlined.join(', ')}`);
     for (const scan of statement.scans) parts.push(`scans the ${scan.cached ? 'cached' : 'materialized'} result of ${scan.script} at ${scan.path}`);
     if (statement.materializes != null) parts.push(`writes its result to ${statement.materializes}`);
     if (statement.after.length > 0) parts.push(`runs after ${statement.after.map(e => `node ${e.node} (${e.reason})`).join(', ')}`);
@@ -351,7 +351,7 @@ export function plannedStatementLogFields(statement: PlannedStatement): Record<s
         statementType: statement.statementType,
         result: String(statement.result),
         cached: String(statement.cached),
-        fused: statement.fused.join(', '),
+        inlined: statement.inlined.join(', '),
         scans: statement.scans.map(scan => `${scan.script}${scan.cached ? ' (cached)' : ''}: ${scan.path}`).join(', '),
         materializes: statement.materializes ?? '',
         after: statement.after.map(e => `${e.node} ${e.reason}`).join(', '),
@@ -379,7 +379,7 @@ function logPlan(logger: LoggerLike | undefined, sessionId: string, graph: core.
         nodes: graph.nodes.length.toString(),
         edges: graph.edges.length.toString(),
         materializations: materializations.map(m => `${files[m.script]}: ${m.node === NONE ? 'cached' : `node ${m.node}`} -> ${m.path}`).join(', '),
-        fused: statements.filter(s => s.fused.length > 0).map(s => `${s.node} ${s.script} fuses ${s.fused.join(' ')}`).join(', '),
+        inlined: statements.filter(s => s.inlined.length > 0).map(s => `${s.node} ${s.script} inlines ${s.inlined.join(' ')}`).join(', '),
     }, LOG_CTX);
 }
 

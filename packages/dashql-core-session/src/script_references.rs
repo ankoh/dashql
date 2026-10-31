@@ -5,14 +5,14 @@
 //!
 //! A referenced script is a single SELECT, a reference never runs commands.
 //!
-//! - Within one connection the query is fused into the statement as a common table expression,
+//! - Within one connection the query is inlined into the statement as a common table expression,
 //!   `with foo as (<query of foo>) select * from foo`.
 //! - A statement of the LOCAL connection (the embedded Hyper) scans the result of a script of another
 //!   connection, which the host writes to a Parquet file and mounts:
 //!   `with foo as (select * from external('<path>', format => 'parquet')) select * from foo`.
 //! - A statement of a REMOTE connection cannot read a script of another connection.
 //!
-//! The common table expressions of a statement are flattened: the references of a fused query are resolved
+//! The common table expressions of a statement are flattened: the references of an inlined query are resolved
 //! in the context of the statement, every script appears once, after the scripts it references. They go into
 //! the outermost SELECT around the references, before the common table expressions the statement already has.
 
@@ -38,10 +38,10 @@ pub(crate) trait ReferenceErrors {
 /// What a script reference becomes
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ReferenceKind {
-    /// The terminal query of the referenced script is fused into the statement
-    Fuse,
+    /// The terminal query of the referenced script is inlined into the statement
+    Inline,
     /// The statement scans the materialized result of the referenced script
-    Materialize,
+    Scan,
     /// The reference cannot be planned, an error was reported
     Invalid,
 }
@@ -139,9 +139,9 @@ impl ScriptReferences {
             reference.producer = Some(producer as u32);
             let producer_connection = request.scripts[producer].connection;
             reference.kind = if producer_connection == consumer.connection {
-                ReferenceKind::Fuse
+                ReferenceKind::Inline
             } else if request.connections[consumer.connection as usize].kind == ConnectionKind::Local {
-                ReferenceKind::Materialize
+                ReferenceKind::Scan
             } else {
                 let connection = |c: u32| request.connections[c as usize].id;
                 reporter.error(
@@ -162,20 +162,20 @@ impl ScriptReferences {
         self.by_script[script as usize] = out;
     }
 
-    /// The first materialized script that a fused reference scans through the queries it fuses, none for a
-    /// materialized reference itself
-    fn fused_materialization(&self, prepared: &[Option<Prepared>], reference: &Reference) -> Option<u32> {
+    /// The first materialized script that an inline reference scans through the queries it inlines, none for a
+    /// scan reference itself
+    fn scan_through_inlined(&self, prepared: &[Option<Prepared>], reference: &Reference) -> Option<u32> {
         let mut visited = BTreeSet::new();
         let mut pending = vec![reference];
         while let Some(r) = pending.pop() {
             let Some(producer) = r.producer else { continue };
-            if r.kind != ReferenceKind::Fuse || !visited.insert(producer) {
+            if r.kind != ReferenceKind::Inline || !visited.insert(producer) {
                 continue;
             }
             let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
             for nested in self.of(producer).iter().filter(|n| Some(n.statement_id) == terminal) {
                 match (nested.kind, nested.producer) {
-                    (ReferenceKind::Materialize, Some(materialized)) => return Some(materialized),
+                    (ReferenceKind::Scan, Some(materialized)) => return Some(materialized),
                     _ => pending.push(nested),
                 }
             }
@@ -183,15 +183,15 @@ impl ScriptReferences {
         None
     }
 
-    /// The relations that a fused reference reads unqualified through the queries it fuses, lower-cased, with the
+    /// The relations that an inline reference reads unqualified through the queries it inlines, lower-cased, with the
     /// script whose query reads them
-    fn fused_relations(&self, prepared: &[Option<Prepared>], reference: &Reference) -> Vec<(u32, String)> {
+    fn inlined_relations(&self, prepared: &[Option<Prepared>], reference: &Reference) -> Vec<(u32, String)> {
         let mut out = Vec::new();
         let mut visited = BTreeSet::new();
         let mut pending = vec![reference];
         while let Some(r) = pending.pop() {
             let Some(producer) = r.producer else { continue };
-            if r.kind != ReferenceKind::Fuse || !visited.insert(producer) {
+            if r.kind != ReferenceKind::Inline || !visited.insert(producer) {
                 continue;
             }
             let Some(p) = prepared[producer as usize].as_ref() else { continue };
@@ -208,7 +208,7 @@ impl ScriptReferences {
     }
 
     /// Check the referenced scripts: they are a single query, references form no cycle, and a view does not scan a
-    /// materialized result, neither directly nor through the queries it fuses
+    /// materialized result, neither directly nor through the queries it inlines
     pub(crate) fn check(&self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, prepared: &[Option<Prepared>]) {
         for (script, references) in self.by_script.iter().enumerate() {
             let Some(consumer) = prepared[script].as_ref() else { continue };
@@ -227,16 +227,16 @@ impl ScriptReferences {
                 if anchor.is_none() {
                     reporter.error(script as u32, Some(r.text_span), "a script reference must be part of a query".into());
                 }
-                // A relation of a fused query must not resolve to a common table expression of the statement
-                if let (Some(anchor), ReferenceKind::Fuse) = (anchor, r.kind) {
+                // A relation of an inlined query must not resolve to a common table expression of the statement
+                if let (Some(anchor), ReferenceKind::Inline) = (anchor, r.kind) {
                     let visible = visible_ctes(consumer, r.statement_id, anchor);
-                    if let Some((fused, relation)) = self.fused_relations(prepared, r).into_iter().find(|(_, name)| visible.contains(name)) {
+                    if let Some((inlined, relation)) = self.inlined_relations(prepared, r).into_iter().find(|(_, name)| visible.contains(name)) {
                         reporter.error(
                             script as u32,
                             Some(r.text_span),
                             format!(
                                 "the query of {} reads {relation}, which {} defines as a common table expression there",
-                                script_label(request, fused),
+                                script_label(request, inlined),
                                 script_label(request, script as u32)
                             ),
                         );
@@ -244,12 +244,12 @@ impl ScriptReferences {
                 }
                 let statement_type = consumer.parsed.statements[r.statement_id as usize].statement_type;
                 if statement_type == StatementType::CREATE_VIEW {
-                    // The view scans what the queries it fuses scan
+                    // The view scans what the queries it inlines scan
                     let message = |materialized: u32| format!("a view cannot read {} of another connection", script_label(request, materialized));
                     let lifetime = "its result exists only while the statement runs";
-                    if r.kind == ReferenceKind::Materialize {
+                    if r.kind == ReferenceKind::Scan {
                         reporter.error(script as u32, Some(r.text_span), format!("{}, {lifetime}", message(producer)));
-                    } else if let Some(materialized) = self.fused_materialization(prepared, r) {
+                    } else if let Some(materialized) = self.scan_through_inlined(prepared, r) {
                         reporter.error(
                             script as u32,
                             Some(r.text_span),
@@ -297,10 +297,10 @@ impl ScriptReferences {
 /// What a checked script reference reads
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CheckedReferenceKind {
-    /// The query of the referenced script is fused into the statement
-    Fused,
+    /// The query of the referenced script is inlined into the statement
+    Inline,
     /// The statement scans the materialized result of the referenced script
-    Materialized,
+    Scan,
     /// The reference has errors
     Invalid,
 }
@@ -374,8 +374,8 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScrip
                 let errors = errors.errors.remove(&(i as u32, r.text_span.offset, r.text_span.length)).unwrap_or_default();
                 let kind = match r.kind {
                     _ if !errors.is_empty() => CheckedReferenceKind::Invalid,
-                    ReferenceKind::Fuse => CheckedReferenceKind::Fused,
-                    ReferenceKind::Materialize => CheckedReferenceKind::Materialized,
+                    ReferenceKind::Inline => CheckedReferenceKind::Inline,
+                    ReferenceKind::Scan => CheckedReferenceKind::Scan,
                     ReferenceKind::Invalid => CheckedReferenceKind::Invalid,
                 };
                 CheckedReference { text_span: r.text_span, parameter: r.name.clone(), script: r.producer, kind, errors }
@@ -416,7 +416,7 @@ pub(crate) struct SplicedStatement {
     pub edits: Vec<(TextSpan, String)>,
     /// The references of the statement
     pub references: Vec<SplicedReference>,
-    /// The queries of the fused scripts: (script, statement)
+    /// The queries of the inlined scripts: (script, statement)
     pub inlined: Vec<(u32, u32)>,
     /// The materializations that the statement scans
     pub inputs: Vec<u32>,
@@ -476,7 +476,7 @@ fn used_names(prepared: &Prepared, statement_id: u32, out: &mut BTreeSet<String>
     cte_names(prepared, statement_id, out);
 }
 
-/// The names of the common table expressions of a statement that the common table expressions of the fused queries
+/// The names of the common table expressions of a statement that the common table expressions of the inlined queries
 /// see at an anchor, lower-cased: those of an enclosing WITH, e.g. the one of an INSERT, and those of the WITH of the
 /// anchor if it is recursive. The common table expressions go before the ones of a WITH that is not recursive.
 fn visible_ctes(prepared: &Prepared, statement_id: u32, anchor: u32) -> BTreeSet<String> {
@@ -613,7 +613,7 @@ pub(crate) fn splice_statement(
         if order.contains(&producer) || depth > prepared.len() {
             return;
         }
-        if r.kind == ReferenceKind::Fuse {
+        if r.kind == ReferenceKind::Inline {
             let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
             for nested in references.of(producer).iter().filter(|n| Some(n.statement_id) == terminal) {
                 visit(references, prepared, nested, order, depth + 1);
@@ -627,18 +627,18 @@ pub(crate) fn splice_statement(
         visit(references, prepared, r, &mut order, 0);
     }
 
-    // The names of the common table expressions, distinct from the names the statement and the fused queries use
+    // The names of the common table expressions, distinct from the names the statement and the inlined queries use
     let mut used = BTreeSet::new();
     used_names(consumer, statement_id, &mut used);
     let kind_of = |producer: u32| -> ReferenceKind {
         if request.scripts[producer as usize].connection == request.scripts[script as usize].connection {
-            ReferenceKind::Fuse
+            ReferenceKind::Inline
         } else {
-            ReferenceKind::Materialize
+            ReferenceKind::Scan
         }
     };
     for &producer in &order {
-        if kind_of(producer) == ReferenceKind::Fuse {
+        if kind_of(producer) == ReferenceKind::Inline {
             let p = prepared[producer as usize].as_ref().unwrap();
             if let Some(terminal) = p.terminal() {
                 used_names(p, terminal, &mut used);
@@ -691,7 +691,7 @@ pub(crate) fn splice_statement(
     for &producer in &order {
         let cte = identifier(&cte_names[&producer]);
         match kind_of(producer) {
-            ReferenceKind::Fuse => {
+            ReferenceKind::Inline => {
                 let p = prepared[producer as usize].as_ref().unwrap();
                 let Some(terminal) = p.terminal() else { continue };
                 let span = p.parsed.associate_descriptions()[terminal as usize].statement_span;
@@ -741,7 +741,7 @@ pub(crate) fn splice_statement(
         out.references.push(SplicedReference {
             reference: r.clone(),
             cte_name: cte_names[&producer].clone(),
-            materialization: if kind_of(producer) == ReferenceKind::Materialize { materialization_of.get(&producer).copied() } else { None },
+            materialization: if kind_of(producer) == ReferenceKind::Scan { materialization_of.get(&producer).copied() } else { None },
         });
     }
     out

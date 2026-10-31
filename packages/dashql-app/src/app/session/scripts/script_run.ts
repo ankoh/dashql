@@ -93,7 +93,7 @@ export interface ScriptRunOptions {
 /// rejects if the plan is invalid, a statement fails or another run holds the session. A failed statement cancels the
 /// other statements of the run.
 ///
-/// The plan of the script includes the statements before the terminal queries of the scripts it fuses and the
+/// The plan of the script includes the statements before the terminal queries of the scripts it inlines and the
 /// scripts it materializes (docs/design/script_references.md). The result of the script is cached if its key is
 /// reusable, the key covers the referenced scripts. A cached result of the script is served without running anything
 /// else, a materialized script with a reusable cached result is scanned from the cache instead of running. A refresh

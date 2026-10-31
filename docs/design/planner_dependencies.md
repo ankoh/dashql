@@ -28,9 +28,9 @@ A node records:
 - `materialization`: set on the `script_result` node of a script whose result an included statement of another
   connection scans; the node writes its result to the path of the materialization.
 - `inputs`: the materializations the statement scans, through its own references and through the queries
-  of the scripts it fuses.
-- `fused_scripts`: the scripts whose queries the statement fuses as common table expressions, also those that
-  fused queries reference, in the order of the common table expressions.
+  of the scripts it inlines.
+- `inlined_scripts`: the scripts whose queries the statement inlines as common table expressions, also those that
+  inlined queries reference, in the order of the common table expressions.
 - `accesses`: the relations the statement reads (READ), writes (WRITE) or defines and drops (DDL), one access per
   entity or unresolved reference with the strongest mode, READ < WRITE < DDL.
 - `barrier`: the node is ordered against every node of its connection (Barriers).
@@ -41,8 +41,8 @@ is not necessarily the `script_result` node.
 
 Every query of a node carries where the statement comes from (`QueryMetadata.planned`, `describePlannedStatements`):
 the run, the node, the script and the position of the statement among the statements of the script in the plan, the
-fused scripts, the materialized results it scans, the file it writes and the edges it runs after. The query history
-shows it as title, e.g. `bar.sql 1/1 · fuses foo.sql · scans base.sql`, and description. The log target
+inlined scripts, the materialized results it scans, the file it writes and the edges it runs after. The query history
+shows it as title, e.g. `bar.sql 1/1 · inlines foo.sql · scans base.sql`, and description. The log target
 `session_execution` records the plan before it runs, every statement with its query id, the materialized results
 that are written, the cached results that a run reads instead of running a script, and the statements that fail.
 
@@ -61,9 +61,9 @@ A plan of targets (`PlanScope::Targets`) decides per script how much it includes
 | `Inlined` | none, the query of the script is inlined into its consumers |
 | `None` | none |
 
-The targets are `All`. A script that is `Inlined` or `All` passes its references on: a fused reference makes the
-referenced script at least `Inlined`, a materialized reference makes it `All` unless the host provides its result. A
-referenced script is a single SELECT, so `All` adds one node to the plan. Levels only grow, so a script that is fused
+The targets are `All`. A script that is `Inlined` or `All` passes its references on: an inline reference makes the
+referenced script at least `Inlined`, a scan reference makes it `All` unless the host provides its result. A
+referenced script is a single SELECT, so `All` adds one node to the plan. Levels only grow, so a script that is inlined
 by one script and materialized by another is `All`. Every other script is `None`: it has no node, even if it writes
 relations that an included statement reads.
 
@@ -141,11 +141,11 @@ statement of another kind or a syntax error is the error "foo.sql is no single S
 reference thus never runs a command of the referenced script.
 
 `splice_statement` resolves the references of a statement into the scripts it reads, every script after the scripts
-its query references. Fused references are followed into the query of the fused script, so a statement also reads
-the scripts that the fused queries reference. For every fused script the statement records its query (`inlined`),
+its query references. Inline references are followed into the query of the inlined script, so a statement also reads
+the scripts that the inlined queries reference. For every inlined script the statement records its query (`inlined`),
 for every materialized script the materialization (`inputs`).
 
-A fused query gets no node and no edge of its own, it is part of the statement and takes part in the conflicts
+An inlined query gets no node and no edge of its own, it is part of the statement and takes part in the conflicts
 through the reads the statement inherits. A materialized query is the node of its script, MATERIALIZATION is an edge
 from it to the statement, if the plan computes the result. A result that the host provides has no node
 (`ExecutionGraphMaterialization.node` is absent) and no edge; `runExecutionGraph` pins its file before the run.
@@ -153,11 +153,11 @@ from it to the statement, if the plan computes the result. A result that the hos
 A MATERIALIZATION edge whose producer has a higher node id than the statement is not added, it is the error "bar.sql
 references foo.sql, which runs later; move foo.sql above bar.sql", also in a plan of targets. Since node ids follow
 session order, this happens when a materialized script is below its consumer and the plan computes its result. A
-fused script may be anywhere in the session.
+inlined script may be anywhere in the session.
 
 ### Inherited Reads
 
-A statement that fuses a script reads the relations of the inlined query, and of every query that query fuses in
+A statement that inlines a script reads the relations of the inlined query, and of every query that query inlines in
 turn (`plan_session`, the loop over `inlined`). Each table reference of the query that is no
 reference to a common table expression (`is_cte_reference`) becomes a READ access of the consumer, merged with the
 consumer's own accesses, and takes part in the conflict timeline like a direct read. An unresolved name in the query
@@ -174,8 +174,8 @@ The other checks of direct reads do not apply to inherited reads:
 - The access binds to the live declaration of its name only if a planned statement created that name.
 - Every access is READ.
 
-In a plan of the session the node of the fused script runs these checks itself. In a plan of targets the query of a
-fused script is no node, so nothing checks them.
+In a plan of the session the node of the inlined script runs these checks itself. In a plan of targets the query of a
+inlined script is no node, so nothing checks them.
 
 ### Sequence
 
@@ -186,8 +186,8 @@ statements of one script may run side by side.
 
 ## Session Order
 
-A fused reference evaluates the query of the referenced script at the position of the consumer, against the
-relations as the session order leaves them there. A materialized reference reads the result that the node of the
+An inline reference evaluates the query of the referenced script at the position of the consumer, against the
+relations as the session order leaves them there. A scan reference reads the result that the node of the
 referenced script computed at its own position.
 
 ```sql
@@ -202,10 +202,10 @@ In the order foo, bar, baz, the statement of bar reads `orders` before baz write
 count includes it. In the order bar, baz, foo, bar runs before the insert and foo after it, so `:foo` in bar and the
 result of foo differ. All three plans are valid.
 
-A fused script below its consumer is allowed. A materialized script below its consumer is the "move foo.sql above
+An inlined script below its consumer is allowed. A materialized script below its consumer is the "move foo.sql above
 bar.sql" error unless the host provides its result.
 
-A table that the fused query reads and that a script between consumer and referenced script creates is not
+A table that the inlined query reads and that a script between consumer and referenced script creates is not
 diagnosed:
 
 ```sql
@@ -221,7 +221,7 @@ invalid barrier "relation resolves to a later producer in input order".
 ## Runs of One Script
 
 A run of one script plans the script as the target (`runPlannedScript`): the statements of the target with the
-queries it fuses spliced in, and the query of every script it materializes unless the host provides the result, all
+queries it inlines spliced in, and the query of every script it materializes unless the host provides the result, all
 transitively. The statements of other scripts are not part of the plan, also those that write relations a
 referenced query reads. A run of one script reads the current backend state for those relations; their producers
 are outside the plan, so a read of them is never a read of a later producer.

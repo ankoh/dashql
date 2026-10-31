@@ -95,9 +95,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: materialized
+              kind: scan
 
-  - name: MaterializeProducerOfTable
+  - name: ScanProducerOfTable
     connections:
       - name: trino
         kind: REMOTE
@@ -233,7 +233,7 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: materialized
+              kind: scan
 
   - name: SharedMaterialization
     connections:
@@ -365,14 +365,14 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: materialized
+              kind: scan
         - script: baz
           references:
             - text: ":foo"
               target: foo
-              kind: materialized
+              kind: scan
 
-  - name: FusedScanOfMaterialization
+  - name: InlinedScanOfMaterialization
     connections:
       - name: trino
         kind: REMOTE
@@ -474,7 +474,7 @@ planner-snapshots:
           barrier: false
           script-result: true
           inputs: [0]
-          fused-scripts: [1]
+          inlined-scripts: [1]
           accesses: []
       edges:
         - from: 0
@@ -505,14 +505,14 @@ planner-snapshots:
           references:
             - text: ":baz"
               target: baz
-              kind: materialized
+              kind: scan
         - script: bar
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: MaterializeFusedProducer
+  - name: ScanProducerWithInlined
     connections:
       - name: trino
         kind: REMOTE
@@ -599,7 +599,7 @@ planner-snapshots:
           barrier: false
           script-result: true
           materialization: 0
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: 'trino/256.65536.4294967296'
               mode: READ
@@ -642,14 +642,14 @@ planner-snapshots:
           references:
             - text: ":base"
               target: base
-              kind: fused
+              kind: inline
         - script: bar
           references:
             - text: ":foo"
               target: foo
-              kind: materialized
+              kind: scan
 
-  - name: MaterializeIntoTable
+  - name: ScanIntoTable
     connections:
       - name: trino
         kind: REMOTE
@@ -748,7 +748,7 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: materialized
+              kind: scan
 
   - name: RemoteReadsRemote
     connections:
@@ -924,7 +924,7 @@ planner-snapshots:
               errors:
                 - 'a view cannot read foo.sql of another connection, its result exists only while the statement runs'
 
-  - name: ViewOfFusedMaterialization
+  - name: ViewOfInlinedMaterialization
     connections:
       - name: trino
         kind: REMOTE
@@ -991,7 +991,7 @@ planner-snapshots:
           references:
             - text: ":baz"
               target: baz
-              kind: materialized
+              kind: scan
         - script: bar
           references:
             - text: ":foo"
@@ -1000,7 +1000,7 @@ planner-snapshots:
               errors:
                 - 'a view cannot read baz.sql of another connection through foo.sql, its result exists only while the statement runs'
 
-  - name: MaterializedProducerBelow
+  - name: ScannedProducerBelow
     connections:
       - name: trino
         kind: REMOTE
@@ -1089,4 +1089,4 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: materialized
+              kind: scan

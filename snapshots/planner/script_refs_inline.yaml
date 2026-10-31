@@ -1,6 +1,6 @@
 planner-snapshots:
 
-  - name: FusePlain
+  - name: InlinePlain
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -57,7 +57,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -74,9 +74,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseAlias
+  - name: InlineAlias
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -133,7 +133,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -150,9 +150,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseQualifiedColumns
+  - name: InlineQualifiedColumns
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -209,7 +209,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -226,9 +226,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseIntoWith
+  - name: InlineIntoWith
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -285,7 +285,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -302,9 +302,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseIntoWithRecursive
+  - name: InlineIntoWithRecursive
     scripts:
       - name: seeds
         input: |
@@ -354,7 +354,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses: []
       edges: []
       references:
@@ -369,9 +369,9 @@ planner-snapshots:
           references:
             - text: ":seeds"
               target: seeds
-              kind: fused
+              kind: inline
 
-  - name: FuseInsertSelect
+  - name: InlineInsertSelect
     catalog: |
       create table orders (id int, amount int);
       create table archive (id int, amount int);
@@ -431,7 +431,7 @@ planner-snapshots:
             select * from foo
           produces-output: false
           barrier: false
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -450,9 +450,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseCreateTableAs
+  - name: InlineCreateTableAs
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -511,7 +511,7 @@ planner-snapshots:
             select * from foo
           produces-output: false
           barrier: false
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -530,9 +530,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseSelectInto
+  - name: InlineSelectInto
     hyper: skip
     catalog: |
       create table orders (id int, amount int);
@@ -592,7 +592,7 @@ planner-snapshots:
             select * into snapshot from foo
           produces-output: false
           barrier: false
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -611,9 +611,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseExplain
+  - name: InlineExplain
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -670,7 +670,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -687,9 +687,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseSubqueries
+  - name: InlineSubqueries
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -746,7 +746,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -773,15 +773,15 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseDeleteSubquery
+  - name: InlineDeleteSubquery
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -837,7 +837,7 @@ planner-snapshots:
             select id from foo)
           produces-output: false
           barrier: false
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: WRITE
@@ -858,9 +858,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseTwoStatements
+  - name: InlineTwoStatements
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -917,7 +917,7 @@ planner-snapshots:
             select count(*) from foo
           produces-output: true
           barrier: false
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -933,7 +933,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -955,12 +955,12 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseChain
+  - name: InlineChain
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -1028,7 +1028,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1047,7 +1047,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0,1]
+          inlined-scripts: [0,1]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1069,14 +1069,14 @@ planner-snapshots:
           references:
             - text: ":a"
               target: a
-              kind: fused
+              kind: inline
         - script: c
           references:
             - text: ":b"
               target: b
-              kind: fused
+              kind: inline
 
-  - name: FuseDiamond
+  - name: InlineDiamond
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -1155,7 +1155,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1171,7 +1171,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1193,7 +1193,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0,1,2]
+          inlined-scripts: [0,1,2]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1225,22 +1225,22 @@ planner-snapshots:
           references:
             - text: ":base"
               target: base
-              kind: fused
+              kind: inline
         - script: large
           references:
             - text: ":base"
               target: base
-              kind: fused
+              kind: inline
         - script: report
           references:
             - text: ":small"
               target: small
-              kind: fused
+              kind: inline
             - text: ":large"
               target: large
-              kind: fused
+              kind: inline
 
-  - name: FuseProducerWithCtes
+  - name: InlineProducerWithCtes
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -1297,7 +1297,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1314,9 +1314,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseProducerTrailingComment
+  - name: InlineProducerTrailingComment
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -1377,7 +1377,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1394,9 +1394,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseProducerOfTable
+  - name: InlineProducerOfTable
     scripts:
       - name: setup
         input: |
@@ -1482,7 +1482,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [1]
+          inlined-scripts: [1]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1511,9 +1511,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseProducerBelow
+  - name: InlineProducerBelow
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -1559,7 +1559,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [1]
+          inlined-scripts: [1]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1587,9 +1587,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseQuotedNames
+  - name: InlineQuotedNames
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -1670,7 +1670,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0,1]
+          inlined-scripts: [0,1]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1692,12 +1692,12 @@ planner-snapshots:
           references:
             - text: ":\"brave_otter-2\""
               target: brave_otter-2
-              kind: fused
+              kind: inline
             - text: ":\"Mixed Case\""
               target: Mixed Case
-              kind: fused
+              kind: inline
 
-  - name: FuseCaseInsensitiveName
+  - name: InlineCaseInsensitiveName
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -1754,7 +1754,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -1771,9 +1771,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: Foo
-              kind: fused
+              kind: inline
 
-  - name: FuseNameCollisions
+  - name: InlineNameCollisions
     catalog: |
       create table foo (id int);
       create table orders (id int, amount int);
@@ -1856,7 +1856,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967297'
               mode: READ
@@ -1874,7 +1874,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967297'
               mode: READ
@@ -1890,7 +1890,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967297'
               mode: READ
@@ -1917,19 +1917,19 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
         - script: baz
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
         - script: qux
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseRenamedWithoutAlias
+  - name: InlineRenamedWithoutAlias
     catalog: |
       create table foo (id int);
       create table orders (id int, amount int);
@@ -1990,7 +1990,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967297'
               mode: READ
@@ -2009,9 +2009,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseShadowedByCte
+  - name: InlineShadowedByCte
     catalog: |
       create table orders (id int, amount int);
       create table t (id int);
@@ -2080,7 +2080,7 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
         - script: recursive
           references:
             - text: ":foo"
@@ -2096,7 +2096,7 @@ planner-snapshots:
               errors:
                 - 'the query of foo.sql reads orders, which inserts.sql defines as a common table expression there'
 
-  - name: FuseVisualization
+  - name: InlineVisualization
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -2154,7 +2154,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [0]
+          inlined-scripts: [0]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -2171,9 +2171,9 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
-  - name: FuseAccesses
+  - name: InlineAccesses
     catalog: |
       create table orders (id int, amount int);
     scripts:
@@ -2250,7 +2250,7 @@ planner-snapshots:
           produces-output: true
           barrier: false
           script-result: true
-          fused-scripts: [1]
+          inlined-scripts: [1]
           accesses:
             - entity: '256.65536.4294967296'
               mode: READ
@@ -2275,7 +2275,7 @@ planner-snapshots:
           references:
             - text: ":foo"
               target: foo
-              kind: fused
+              kind: inline
 
   - name: ScalarParameter
     catalog: |

@@ -175,8 +175,8 @@ export interface PlannedStatement {
     result: boolean;
     /// Is the statement the cached result of its script? The executor reads the file instead of running it.
     cached: boolean;
-    /// The scripts whose queries the statement fuses as common table expressions
-    fused: string[];
+    /// The scripts whose queries the statement inlines as common table expressions
+    inlined: string[];
     /// The materialized results of the scripts of other connections that the statement scans, cached if the host
     /// provides the file of an earlier run
     scans: Array<{ script: string; path: string; cached: boolean }>;

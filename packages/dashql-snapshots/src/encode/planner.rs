@@ -433,9 +433,9 @@ fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Sc
             if !inputs.is_empty() {
                 m.insert("inputs", Node::flow_seq(inputs));
             }
-            let fused: Vec<Node> = n.fused_scripts.iter().flatten().map(|&s| Node::int(s)).collect();
-            if !fused.is_empty() {
-                m.insert("fused-scripts", Node::flow_seq(fused));
+            let inlined: Vec<Node> = n.inlined_scripts.iter().flatten().map(|&s| Node::int(s)).collect();
+            if !inlined.is_empty() {
+                m.insert("inlined-scripts", Node::flow_seq(inlined));
             }
             let accesses = n
                 .accesses
@@ -561,8 +561,8 @@ fn encode_graph(graph: &ExecutionGraphT, checks: &[CheckedScript], inputs: &[&Sc
                     rm.plain(
                         "kind",
                         match r.kind {
-                            CheckedReferenceKind::Fused => "fused",
-                            CheckedReferenceKind::Materialized => "materialized",
+                            CheckedReferenceKind::Inline => "inline",
+                            CheckedReferenceKind::Scan => "scan",
                             CheckedReferenceKind::Invalid => "invalid",
                         },
                     );
