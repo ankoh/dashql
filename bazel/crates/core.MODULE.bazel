@@ -40,7 +40,7 @@ crate_core.spec(package = "serde_json", features = ["preserve_order"], version =
 
 # Display widths and grapheme clusters for the shell (dashql_core_shell)
 crate_core.spec(package = "unicode-segmentation", version = "=1.13.3")
-crate_core.spec(package = "unicode-width", version = "=0.2.2")
+crate_core.spec(package = "unicode-width", version = "=0.2.3")
 
 # Must match the wasm-bindgen-cli bundled with rules_rust_wasm_bindgen (MODULE.bazel).
 crate_core.spec(package = "wasm-bindgen", version = "=0.2.105")
