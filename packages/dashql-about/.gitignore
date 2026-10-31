@@ -1,0 +1,4 @@
+/astro.config.dev.ts
+/.astro/
+/dist/
+/node_modules/

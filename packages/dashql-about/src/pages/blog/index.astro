@@ -1,0 +1,19 @@
+---
+import Card from '../../components/card.astro';
+import PostList from '../../components/post_list.astro';
+import SiteLayout from '../../layouts/site_layout.astro';
+import { getPosts } from '../../lib/posts';
+import styles from '../page.module.css';
+
+const posts = await getPosts();
+---
+
+<SiteLayout title="Blog" description="Everything we write about DashQL.">
+    <div class:list={[styles.section, styles.narrow]}>
+        <Card title="Blog" as="h1">
+            <a slot="actions" href="/rss.xml">RSS</a>
+            <p class={styles.lead}>Everything we write about DashQL: the SQL core, the editor, Hyper in the browser and more.</p>
+            <PostList posts={posts} />
+        </Card>
+    </div>
+</SiteLayout>

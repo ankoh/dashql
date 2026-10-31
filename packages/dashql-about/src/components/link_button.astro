@@ -1,0 +1,15 @@
+---
+import symbols from '@dashql/svg-symbols';
+import styles from './link_button.module.css';
+
+interface Props {
+    href: string;
+}
+
+const { href } = Astro.props;
+---
+
+<a class={styles.button} href={href}>
+    <slot />
+    <svg class={styles.arrow} aria-hidden="true"><use href={`${symbols}#arrow_right_16`} /></svg>
+</a>

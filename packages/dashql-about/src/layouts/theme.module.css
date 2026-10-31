@@ -1,0 +1,84 @@
+/* The tokens of the website, derived from the shared tokens of @ankoh/dashql-ui.
+   Like the banner pages of the app, every page sits on the dark gradient backdrop and the content lives in white
+   cards with rounded borders and greyish header bars. */
+.root {
+    color-scheme: light;
+    scroll-padding-top: 5rem;
+
+    --content_width: 1120px;
+    --header_height: 3.75rem;
+
+    /* The backdrop and the text on it */
+    --site_bg: var(--background_color_100);
+    --site_backdrop: var(--background);
+    --site_fg: white;
+    --site_fg_muted: var(--base_color_neutral_2);
+    --site_fg_subtle: var(--base_color_neutral_3);
+    --site_link: var(--base_color_blue_2);
+    --site_border: hsla(0, 0%, 100%, 0.1);
+    --site_surface: hsla(0, 0%, 100%, 0.06);
+    --site_surface_hover: hsla(0, 0%, 100%, 0.12);
+    --site_border_strong: hsla(0, 0%, 100%, 0.18);
+    /* The buttons on the backdrop, styled like the segmented control in the header */
+    --site_button_bg: var(--site_header_segment_bg);
+    --site_button_bg_hover: var(--site_header_segment_bg_hover);
+    --site_button_fg: var(--site_header_fg);
+    --site_button_fg_muted: var(--site_header_fg_muted);
+    --site_button_border: var(--site_header_segment_border);
+
+    /* The accent of SQL in the hero headline. The backdrop is a desaturated blue grey (hue 210),
+       coral sits next to its complement (orange, hue ~25), a warm contrast on the cool backdrop. */
+    --hero_accent: var(--base_color_coral_3);
+
+    /* The header, the backdrop color of the hero, only slightly darker and translucent */
+    --site_header_bg: hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 21%, 0.35);
+    --site_header_fg: white;
+    --site_header_fg_muted: var(--base_color_neutral_2);
+    --site_header_border: hsla(0, 0%, 100%, 0.1);
+    --site_header_segment_bg: hsla(0, 0%, 100%, 0.04);
+    --site_header_segment_bg_hover: hsla(0, 0%, 100%, 0.1);
+    --site_header_segment_border: hsla(0, 0%, 100%, 0.16);
+
+    /* The cards, like the cards of the app */
+    --card_bg: white;
+    --card_header_bg: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
+    --card_border: var(--border_color_primary);
+    --card_radius: var(--border_radius);
+    --card_shadow: var(--shadow_large);
+    --card_fg: var(--base_color);
+    --card_fg_muted: var(--base_color_neutral_6);
+    --card_fg_subtle: var(--base_color_neutral_5);
+    --card_link: var(--base_color_blue_5);
+    --card_row_hover: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 98.5%);
+    --card_code_bg: var(--card_header_bg);
+
+    background: var(--site_bg);
+}
+
+:where(.root) :global(body) {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font_family);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--site_fg);
+    background: var(--site_backdrop);
+    background-color: var(--site_bg);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+}
+
+:where(.root) :global(*),
+:where(.root) :global(*::before),
+:where(.root) :global(*::after) {
+    box-sizing: border-box;
+}
+
+:where(.root) :global(a) {
+    color: var(--site_link);
+}
+
+:where(.root) :global(code),
+:where(.root) :global(pre) {
+    font-family: var(--font_family_mono);
+}

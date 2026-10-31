@@ -1,0 +1,30 @@
+---
+import Card from '../components/card.astro';
+import LinkButton from '../components/link_button.astro';
+import ParticleHero from '../components/particle_hero.astro';
+import PostList from '../components/post_list.astro';
+import SiteLayout from '../layouts/site_layout.astro';
+import { getPosts } from '../lib/posts';
+import styles from './page.module.css';
+
+const posts = (await getPosts()).slice(0, 3);
+---
+
+<SiteLayout title="DashQL" description="DashQL, notes and progress from building a SQL workbench." underHeader>
+    <ParticleHero>
+        <h1 class={styles.headline}>
+            <span class={styles.headline_setup}>It's all <span class={styles.headline_sql}>SQL</span>...</span>
+            <span class={styles.headline_punchline}>always has been<span class={styles.caret} aria-hidden="true"></span></span>
+        </h1>
+        <div class={styles.actions}>
+            <LinkButton href="https://dashql.app">Try it out</LinkButton>
+            <span class={styles.note}>No signup required</span>
+        </div>
+    </ParticleHero>
+    <div class:list={[styles.section, styles.after_hero]}>
+        <Card title="Latest posts" dark>
+            <a slot="actions" href="/blog/">All posts →</a>
+            <PostList posts={posts} />
+        </Card>
+    </div>
+</SiteLayout>

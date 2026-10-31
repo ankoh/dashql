@@ -1,0 +1,149 @@
+/* The header stays at the top while scrolling. It is translucent and blurs the page behind it. */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    height: var(--header_height);
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 0 max(1.5rem, calc((100% - var(--content_width)) / 2));
+    background: var(--site_header_bg);
+    border-bottom: 1px solid var(--site_header_border);
+    /* A light blur, the thin lines of the particle flow still shine through */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--site_header_fg);
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+}
+
+.logo_mark {
+    width: 1.6rem;
+    height: 1.6rem;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+.nav_link {
+    color: var(--site_header_fg_muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 120ms ease;
+}
+
+.nav_link:hover,
+.nav_link[aria-current='page'] {
+    color: var(--site_header_fg);
+}
+
+/* The links to the apps, a segmented control */
+.segments {
+    display: flex;
+    overflow: hidden;
+    border: 1px solid var(--site_header_segment_border);
+    border-radius: var(--border_radius);
+    background: var(--site_header_segment_bg);
+}
+
+.segment {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    height: 2.125rem;
+    padding: 0 0.85rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--site_header_fg);
+    text-decoration: none;
+    transition: background 80ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.segment + .segment {
+    border-left: 1px solid var(--site_header_segment_border);
+}
+
+.segment:hover {
+    background: var(--site_header_segment_bg_hover);
+}
+
+.segment_icon {
+    width: 1rem;
+    height: 1rem;
+    color: var(--site_header_fg_muted);
+}
+
+.main {
+    min-height: calc(100vh - var(--header_height));
+}
+
+/* Pages with a full-bleed opener, like the particle hero, run under the translucent header */
+.under_header {
+    display: grid;
+}
+
+.under_header .header {
+    grid-area: 1 / 1;
+    align-self: start;
+}
+
+.under_header .main {
+    grid-area: 1 / 1;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 2rem max(1.5rem, calc((100% - var(--content_width)) / 2));
+    color: var(--site_fg_subtle);
+    font-size: 0.85rem;
+}
+
+.footer a {
+    color: var(--site_fg_muted);
+    text-decoration: none;
+}
+
+.footer a:hover {
+    color: var(--site_fg);
+}
+
+.footer_links {
+    display: flex;
+    gap: 1.25rem;
+}
+
+@media (max-width: 40rem) {
+    .header {
+        gap: 1rem;
+    }
+
+    .nav {
+        gap: 1rem;
+    }
+
+    .segment {
+        padding: 0 0.65rem;
+    }
+
+    .segment_label {
+        display: none;
+    }
+}

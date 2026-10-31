@@ -1,0 +1,23 @@
+{
+  "name": "@ankoh/dashql-about",
+  "version": "0.0.0",
+  "description": "The DashQL website and blog at about.dashql.app",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "dependencies": {
+    "@astrojs/mdx": "^8.1.2",
+    "@astrojs/react": "^7.1.2",
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.4.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^6.0.3"
+  }
+}

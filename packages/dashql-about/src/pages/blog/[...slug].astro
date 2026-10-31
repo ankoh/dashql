@@ -1,0 +1,39 @@
+---
+import { render } from 'astro:content';
+import Card from '../../components/card.astro';
+import SiteLayout from '../../layouts/site_layout.astro';
+import { formatDate, getPosts, type Post } from '../../lib/posts';
+import pageStyles from '../page.module.css';
+import styles from './post.module.css';
+
+export async function getStaticPaths() {
+    const posts = await getPosts();
+    return posts.map(post => ({ params: { slug: post.id }, props: { post } }));
+}
+
+interface Props {
+    post: Post;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<SiteLayout title={post.data.title} description={post.data.description}>
+    <meta slot="head" property="og:type" content="article" />
+    <div class:list={[pageStyles.section, pageStyles.narrow]}>
+        <Card>
+            <a slot="header" class={styles.back} href="/blog/">← Blog</a>
+            <time slot="actions" class={styles.date} datetime={post.data.date.toISOString()}>
+                {formatDate(post.data.date)}
+            </time>
+            <article class={styles.post}>
+                <h1 class={styles.title}>{post.data.title}</h1>
+                <p class={styles.description}>{post.data.description}</p>
+                <div class={styles.body}>
+                    <Content />
+                </div>
+            </article>
+        </Card>
+    </div>
+</SiteLayout>

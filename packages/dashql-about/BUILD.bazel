@@ -1,0 +1,119 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@npm//packages/dashql-about:astro/package_json.bzl", astro_bin = "bin")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+# The website and blog at about.dashql.app, a static Astro site.
+# Code, tokens and fonts shared with the app come from //packages/dashql-ui, the brand assets from //packages/dashql-app.
+
+npm_link_all_packages(name = "node_modules")
+
+copy_to_bin(
+    name = "srcs",
+    srcs = glob(["src/**", "public/**"]) + ["tsconfig.json", "package.json"],
+)
+
+# The icons of the app the website uses
+_SVG_ICONS = [
+    "arrow_right_16",
+    "device_desktop_24",
+]
+
+# One SVG with a <symbol> per logo and icon, like //packages/dashql-app:dep_svg_symbols
+genrule(
+    name = "svg_symbols",
+    srcs = [
+        "//packages/dashql-app:svg_icon_files",
+        "//packages/dashql-app:svg_logo_files",
+    ],
+    outs = ["dependencies/svg-symbols/symbols.generated.svg"],
+    cmd = """
+        ICONS=""
+        for f in $(locations //packages/dashql-app:svg_icon_files); do
+            case " {icons} " in
+                *" $$(basename "$$f" .svg) "*) ICONS="$$ICONS $$f" ;;
+            esac
+        done
+        python3 $(location //packages/dashql-app:utils/generate_svg_symbols.py) --output $@ \
+            $(locations //packages/dashql-app:svg_logo_files) $$ICONS
+    """.format(icons = " ".join(_SVG_ICONS)),
+    tools = ["//packages/dashql-app:utils/generate_svg_symbols.py"],
+)
+
+genrule(
+    name = "astro_config",
+    srcs = ["astro.config.tpl.ts"],
+    outs = ["astro.config.generated.ts"],
+    cmd = """
+        sed -e "s|__UI_PATH__|../../node_modules/@ankoh/dashql-ui|g" \\
+            -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
+            $(location astro.config.tpl.ts) > $@
+    """,
+)
+
+genrule(
+    name = "dev_config",
+    srcs = ["astro.config.tpl.ts"],
+    outs = ["astro.config.dev.ts"],
+    cmd = """
+        sed -e "s|__UI_PATH__|../../bazel-bin/node_modules/@ankoh/dashql-ui|g" \\
+            -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-about/dependencies/svg-symbols/symbols.generated.svg|g" \\
+            $(location astro.config.tpl.ts) > $@
+    """,
+)
+
+_astro_deps = [
+    ":srcs",
+    ":astro_config",
+    ":node_modules",
+    ":svg_symbols",
+    "//:node_modules/@ankoh/dashql-ui",
+    "//:node_modules/three",
+    "//packages/dashql-app:favicons",
+]
+
+astro_bin.astro(
+    name = "pages",
+    srcs = _astro_deps,
+    args = ["build", "--config", "astro.config.generated.ts", "--outDir", "pages"],
+    chdir = "packages/dashql-about",
+    env = {"ASTRO_TELEMETRY_DISABLED": "1"},
+    out_dirs = ["pages"],
+)
+
+# The Cloudflare Pages deployment of about.dashql.app
+copy_to_directory(
+    name = "pages_deploy",
+    srcs = [
+        ":pages",
+        "//:NOTICE",
+    ],
+    out = "pages_deploy",
+    replace_prefixes = {
+        "pages": "",
+        "NOTICE": "NOTICE",
+    },
+    visibility = ["//visibility:public"],
+)
+
+astro_bin.astro_test(
+    name = "check",
+    data = _astro_deps,
+    args = ["check", "--config", "astro.config.generated.ts"],
+    size = "small",
+    chdir = "packages/dashql-about",
+    env = {"ASTRO_TELEMETRY_DISABLED": "1"},
+)
+
+sh_binary(
+    name = "dev",
+    srcs = ["dev.sh"],
+    args = ["$(location :dev_config)"],
+    data = [
+        ":dev_config",
+        ":svg_symbols",
+        "//:node_modules/@ankoh/dashql-ui",
+        "//:node_modules/three",
+    ],
+)

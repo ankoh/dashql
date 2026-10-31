@@ -1,0 +1,18 @@
+---
+title: Hello, world
+description: The first post on about.dashql.app, the home for everything we write about DashQL.
+date: 2026-10-31
+---
+
+This is the start of the DashQL blog. We will write here about what we build, why we build it, and what we
+learn on the way: the SQL core, the editor, Hyper in the browser and the agents that work alongside you.
+
+```sql
+select l_returnflag, l_linestatus, sum(l_quantity) as sum_qty
+from lineitem
+group by l_returnflag, l_linestatus
+order by l_returnflag, l_linestatus;
+```
+
+The site is built with [Astro](https://astro.build) and shares its fonts, tokens and particle flow with the
+[DashQL app](https://dashql.app).

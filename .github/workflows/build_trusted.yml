@@ -194,6 +194,12 @@ jobs:
                 path: ./bazel-bin/packages/dashql-app/pages_deploy/
                 retention-days: 1
 
+            - uses: actions/upload-artifact@v7
+              with:
+                name: dashql_about_pages
+                path: ./bazel-bin/packages/dashql-about/pages_deploy/
+                retention-days: 1
+
     core_npm_release:
         name: Core NPM Bundle
         runs-on: ubuntu-26.04

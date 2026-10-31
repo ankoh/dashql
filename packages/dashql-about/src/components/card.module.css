@@ -1,0 +1,58 @@
+/* A white card with rounded borders and a greyish header bar, like the cards of the app */
+.card {
+    overflow: hidden;
+    border: 1px solid var(--card_border);
+    border-radius: var(--card_radius);
+    color: var(--card_fg);
+    background: var(--card_bg);
+    box-shadow: var(--card_shadow);
+}
+
+/* A dark card that sits quietly on the backdrop, it redefines the card tokens. Its colors are the two colors of the
+   backdrop gradient: the body is the darker --background_color_100, the header the lighter --background_color_80. */
+.dark {
+    --card_bg: color-mix(in srgb, var(--background_color_100) 75%, transparent);
+    --card_header_bg: color-mix(in srgb, var(--background_color_80) 70%, transparent);
+    --card_border: color-mix(in srgb, var(--background_color_80) 50%, var(--base_color_neutral_5));
+    --card_fg: white;
+    --card_fg_muted: var(--base_color_neutral_2);
+    --card_fg_subtle: var(--base_color_neutral_4);
+    --card_link: var(--hero_accent);
+    --card_row_hover: hsla(var(--neutral_hue), calc(12% * var(--neutral_tint)), 60%, 0.05);
+    --card_shadow: none;
+
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.card :where(a) {
+    color: var(--card_link);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2.75rem;
+    padding: 0.4rem 1.25rem;
+    border-bottom: 1px solid var(--card_border);
+    background: var(--card_header_bg);
+}
+
+.title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+}
+
+.actions a {
+    text-decoration: none;
+}

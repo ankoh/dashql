@@ -1,0 +1,30 @@
+---
+import { formatDate, type Post } from '../lib/posts';
+import styles from './post_list.module.css';
+
+interface Props {
+    posts: Post[];
+}
+
+const { posts } = Astro.props;
+---
+
+{
+    posts.length === 0 ? (
+        <p class={styles.empty}>No posts yet.</p>
+    ) : (
+        <ul class={styles.list}>
+            {posts.map(post => (
+                <li>
+                    <a class={styles.post} href={`/blog/${post.id}/`}>
+                        <time class={styles.date} datetime={post.data.date.toISOString()}>
+                            {formatDate(post.data.date)}
+                        </time>
+                        <h3 class={styles.title}>{post.data.title}</h3>
+                        <p class={styles.description}>{post.data.description}</p>
+                    </a>
+                </li>
+            ))}
+        </ul>
+    )
+}

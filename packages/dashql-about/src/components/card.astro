@@ -1,0 +1,30 @@
+---
+import styles from './card.module.css';
+
+interface Props {
+    /// The title in the header bar, the header is left out without title and actions
+    title?: string;
+    /// The heading level of the title
+    as?: 'h1' | 'h2' | 'h3';
+    /// A dark card on the backdrop instead of a white one
+    dark?: boolean;
+    class?: string;
+}
+
+const { title, as: Heading = 'h2', dark = false, class: className } = Astro.props;
+const hasHeader = title != null || Astro.slots.has('header') || Astro.slots.has('actions');
+---
+
+<section class:list={[styles.card, dark && styles.dark, className]}>
+    {
+        hasHeader && (
+            <header class={styles.header}>
+                <slot name="header">{title && <Heading class={styles.title}>{title}</Heading>}</slot>
+                <div class={styles.actions}>
+                    <slot name="actions" />
+                </div>
+            </header>
+        )
+    }
+    <slot />
+</section>

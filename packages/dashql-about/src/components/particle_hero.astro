@@ -1,0 +1,18 @@
+---
+import styles from './particle_hero.module.css';
+---
+
+<section class={styles.hero}>
+    <div class={styles.particles} data-particle-flow aria-hidden="true"></div>
+    <div class={styles.content}>
+        <slot />
+    </div>
+</section>
+
+<script>
+    import { attachParticleFlow } from '@ankoh/dashql-ui/particle_flow';
+
+    for (const container of document.querySelectorAll<HTMLElement>('[data-particle-flow]')) {
+        attachParticleFlow(container);
+    }
+</script>

@@ -1,0 +1,87 @@
+---
+import '@ankoh/dashql-ui/fonts/fonts.css';
+import '@ankoh/dashql-ui/styles/colors.css';
+import '@ankoh/dashql-ui/styles/tokens.css';
+
+import symbols from '@dashql/svg-symbols';
+import appleTouchIcon from '@dashql/favicons/apple-touch-icon.png?url';
+import favicon16 from '@dashql/favicons/favicon-16x16.png?url';
+import favicon32 from '@dashql/favicons/favicon-32x32.png?url';
+import faviconIco from '@dashql/favicons/favicon.ico?url';
+import sharingImage from '@dashql/favicons/sharing-dashql.png?url';
+
+import theme from './theme.module.css';
+import styles from './site_layout.module.css';
+
+interface Props {
+    title: string;
+    description: string;
+    /// Let the first section of the page run under the translucent header
+    underHeader?: boolean;
+}
+
+const { title, description, underHeader = false } = Astro.props;
+const pageTitle = title === 'DashQL' ? title : `${title} · DashQL`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const path = Astro.url.pathname;
+const isBlog = path.startsWith('/blog');
+---
+
+<!doctype html>
+<html lang="en" class={theme.root}>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{pageTitle}</title>
+        <meta name="description" content={description} />
+        <link rel="canonical" href={canonical} />
+        <link rel="alternate" type="application/rss+xml" title="DashQL Blog" href="/rss.xml" />
+        <link rel="sitemap" href="/sitemap-index.xml" />
+        <link rel="apple-touch-icon" sizes="180x180" href={appleTouchIcon} />
+        <link rel="icon" type="image/png" sizes="32x32" href={favicon32} />
+        <link rel="icon" type="image/png" sizes="16x16" href={favicon16} />
+        <link rel="shortcut icon" href={faviconIco} />
+        <meta name="theme-color" content="#24292e" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={description} />
+        <meta property="og:url" content={canonical} />
+        <meta property="og:image" content={new URL(sharingImage, Astro.site)} />
+        <slot name="head" />
+    </head>
+    <body>
+        <div class:list={[underHeader && styles.under_header]}>
+            <header class={styles.header}>
+                <a class={styles.logo} href="/" aria-label="DashQL home">
+                    <svg class={styles.logo_mark} aria-hidden="true"><use href={`${symbols}#dashql`} /></svg>
+                    <span>DashQL</span>
+                </a>
+                <nav class={styles.nav} aria-label="Main navigation">
+                    <a class={styles.nav_link} href="/blog/" aria-current={isBlog ? 'page' : undefined}>Blog</a>
+                </nav>
+                <nav class={styles.segments} aria-label="DashQL apps">
+                    <a class={styles.segment} href="https://dashql.app" aria-label="DashQL app">
+                        <svg class={styles.segment_icon} aria-hidden="true"><use href={`${symbols}#device_desktop_24`} /></svg>
+                        <span class={styles.segment_label}>App</span>
+                    </a>
+                    <a class={styles.segment} href="https://github.com/ankoh/dashql" aria-label="GitHub">
+                        <svg class={styles.segment_icon} aria-hidden="true"><use href={`${symbols}#github`} /></svg>
+                        <span class={styles.segment_label}>GitHub</span>
+                    </a>
+                </nav>
+            </header>
+            <main class={styles.main}>
+                <slot />
+            </main>
+        </div>
+        <footer class={styles.footer}>
+            <span>© {new Date().getFullYear()} DashQL</span>
+            <div class={styles.footer_links}>
+                <a href="/blog/">Blog</a>
+                <a href="/rss.xml">RSS</a>
+                <a href="https://github.com/ankoh/dashql">GitHub</a>
+                <a href="https://dashql.app">App</a>
+            </div>
+        </footer>
+    </body>
+</html>

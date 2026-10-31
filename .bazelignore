@@ -2,6 +2,9 @@ packages/dashql-app/node_modules
 packages/dashql-native/node_modules
 packages/dashql-cli/node_modules
 packages/dashql-core-js/node_modules
+packages/dashql-about/node_modules
+packages/dashql-about/.astro
+packages/dashql-about/dist
 packages/dashql-ui/node_modules
 packages/vite-example/node_modules
 node_modules

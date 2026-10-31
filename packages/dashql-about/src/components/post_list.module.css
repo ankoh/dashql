@@ -1,0 +1,54 @@
+/* The posts as rows of a card */
+.list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.list li + li {
+    border-top: 1px solid var(--card_border);
+}
+
+.post {
+    display: block;
+    padding: 1.1rem 1.25rem;
+    text-decoration: none;
+    transition: background 120ms ease;
+}
+
+/* Wins over the link color of the card */
+.list .post {
+    color: inherit;
+}
+
+.post:hover {
+    background: var(--card_row_hover);
+}
+
+.date {
+    font-size: 0.8rem;
+    color: var(--card_fg_subtle);
+}
+
+.title {
+    margin: 0.15rem 0 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--card_fg);
+}
+
+.post:hover .title {
+    color: var(--card_link);
+}
+
+.description {
+    margin: 0.3rem 0 0;
+    font-size: 0.95rem;
+    color: var(--card_fg_muted);
+}
+
+.empty {
+    margin: 0;
+    padding: 1.1rem 1.25rem;
+    color: var(--card_fg_muted);
+}

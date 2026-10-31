@@ -1,0 +1,65 @@
+.back {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.date {
+    color: var(--card_fg_subtle);
+}
+
+.post {
+    padding: 2.5rem clamp(1.25rem, 5vw, 3rem) 3rem;
+}
+
+.title {
+    margin: 0;
+    font-size: clamp(1.9rem, 4vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+.description {
+    margin: 0.9rem 0 0;
+    font-size: 1.1rem;
+    color: var(--card_fg_muted);
+}
+
+.body {
+    margin-top: 2rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--card_border);
+}
+
+.body :global(h2),
+.body :global(h3) {
+    margin: 2.25rem 0 0.75rem;
+    letter-spacing: -0.01em;
+}
+
+.body :global(p),
+.body :global(ul),
+.body :global(ol) {
+    margin: 1rem 0;
+}
+
+.body :global(:not(pre) > code) {
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    background: var(--card_code_bg);
+}
+
+.body :global(pre) {
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--card_border);
+    border-radius: var(--border_radius);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    overflow-x: auto;
+}
+
+.body :global(pre.astro-code) {
+    background: var(--card_code_bg) !important;
+}

@@ -115,3 +115,34 @@ jobs:
                   packageManager: npm
                   command: pages deploy ${{ runner.temp }}/artifacts/pages --project-name=dashql --branch=main --commit-hash=${{ inputs.commit }}
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+    about_pages_deploy:
+        name: Cloudflare Pages (about.dashql.app)
+        if: inputs.publish_pages
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: read
+            deployments: write
+        environment:
+            name: cloudflare-pages-about
+            url: ${{ steps.deployment.outputs.deployment-url }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: dashql_about_pages
+                  path: ${{ runner.temp }}/artifacts/about_pages
+
+            - name: Deploy prebuilt website
+              id: deployment
+              uses: cloudflare/wrangler-action@v4
+              with:
+                  apiToken: ${{ secrets.PAGES_DASHQL_API_TOKEN }}
+                  accountId: ${{ secrets.PAGES_DASHQL_ACCOUNT_ID }}
+                  workingDirectory: ${{ runner.temp }}
+                  packageManager: npm
+                  command: pages deploy ${{ runner.temp }}/artifacts/about_pages --project-name=dashql-about --branch=main --commit-hash=${{ inputs.commit }}
+                  gitHubToken: ${{ secrets.GITHUB_TOKEN }}
