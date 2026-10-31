@@ -23,12 +23,15 @@ interface Props {
     formatDisabled: boolean;
     onFormat: (mode: dashql.buffers.formatting.FormattingMode) => void;
     onDelete: () => void;
+    /// Edit the name of the script in place, the menu offers a rename action
+    onRename?: () => void;
     /// The storage of the script, the menu offers its storage view
     storage?: ScriptStorage;
 }
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const FormatIcon = SymbolIcon('pencil_ai_16');
+const RenameIcon = SymbolIcon('pencil_16');
 const TrashIcon = SymbolIcon('trash_16');
 const StorageIcon = SymbolIcon('file_directory_16');
 const CloseIcon = SymbolIcon('x_16');
@@ -89,7 +92,13 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
                         <ActionList.Leading><FormatIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Format Compact</ActionList.ItemText>
                     </ActionList.ListItem>
-                    {/* The list takes elements only, the fragment wraps the optional item */}
+                    {/* The list takes elements only, the fragments wrap the optional items */}
+                    <>{props.onRename != null && (
+                        <ActionList.ListItem data-testid="script-menu-item" data-action="rename" onClick={() => run(props.onRename!)}>
+                            <ActionList.Leading><RenameIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>Rename</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
                     <>{props.storage != null && (
                         <ActionList.ListItem data-testid="script-menu-item" data-action="storage" onClick={() => setView('storage')}>
                             <ActionList.Leading><StorageIcon size={16} /></ActionList.Leading>

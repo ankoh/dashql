@@ -36,9 +36,9 @@ import { displayPath } from '../../../storage/session_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '../../../storage/storage_backend.js';
 import { ScriptConnectionPicker, type ScriptConnectionView } from '../script_connection_picker.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
+import { ScriptMentionTag } from './script_mention_tag.js';
 
 const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
-const MentionIcon: Icon = SymbolIcon('mention_16');
 
 export interface ScriptCardProps {
     sessionId: string;
@@ -266,6 +266,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     }, [scriptKey, props.onApplySnippet]);
 
     const displayName = scriptDisplayName(props.scriptFileName);
+    // Is the name being edited in the tag of the card?
+    const [renaming, setRenaming] = React.useState(false);
     const storage = React.useMemo<ScriptStorage>(() => ({
         fileName: props.scriptFileName,
         resolvePath: () => `${displayPath(props.sessionId, props.storageReader.getSessionLocation(props.sessionId))}/${STORAGE_SCRIPTS_FOLDER}/${props.scriptFileName}`,
@@ -333,17 +335,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             connectorType={props.connectorType}
                         />
                     )}
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        onClick={(event) => { event.stopPropagation(); props.onTarget(props.scriptFileName); }}
-                        aria-label={`Mention ${displayName} in the prompt`}
-                        title={props.canTarget ? undefined : 'Start an agent session in the header and connect the agent server to mention scripts in questions'}
-                        data-testid="script-mention"
-                        disabled={!props.canTarget}
-                    >
-                        <MentionIcon size={16} />
-                    </IconButton>
+                    <ScriptMentionTag
+                        scriptName={displayName}
+                        canTarget={props.canTarget}
+                        onTarget={() => props.onTarget(props.scriptFileName)}
+                        renaming={renaming}
+                        onRenamingChange={setRenaming}
+                        onRename={name => props.onRename(props.scriptFileName, name)}
+                    />
                     <SnippetsOverlay
                         scriptName={displayName}
                         connectorType={props.connectorType}
@@ -364,6 +363,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         formatDisabled={!isFormattable || hasPendingDiff || editorView == null}
                         onFormat={handleFormat}
                         onDelete={() => props.onDelete(props.scriptFileName)}
+                        onRename={() => setRenaming(true)}
                         storage={storage}
                     />
                     <span className={styles.feed_entry_action_separator} aria-hidden="true" />

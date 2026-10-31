@@ -229,6 +229,63 @@ describe('V2 session feed rows', () => {
         expect(props.onRename).toHaveBeenCalledWith('01_alpha.sql', 'report');
     });
 
+    it('mentions the script with a tag that shows its current name', () => {
+        const props = baseProps();
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        const mention = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
+        expect(mention.textContent).toBe('@01_alpha');
+        act(() => mention.click());
+        expect(props.onTarget).toHaveBeenCalledWith('01_alpha.sql');
+
+        // A rename shows the new name right away
+        props.entries[0] = { scriptId: 1, fileName: 'report.sql' };
+        props.scripts[1] = script(1, 'report.sql');
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe('@report');
+    });
+
+    it('renames the script in the tag on double click and from the action menu', async () => {
+        const props = baseProps();
+        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 1, style: {} } as any)} />));
+        const setInputValue = (input: HTMLInputElement, value: string) => {
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve(null)));
+
+        // A double click edits the name, the second click does not mention the script again
+        const mention = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
+        act(() => {
+            mention.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+            mention.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+            mention.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, detail: 2 }));
+        });
+        expect(props.onTarget).toHaveBeenCalledTimes(1);
+        let input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
+        expect(input.value).toBe('01_alpha');
+        await act(nextFrame);
+        expect(document.activeElement).toBe(input);
+        act(() => setInputValue(input, 'report'));
+        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+        expect(props.onRename).toHaveBeenCalledWith('01_alpha.sql', 'report');
+        expect(container.querySelector('[data-testid="script-name-input"]')).toBeNull();
+
+        // Escape abandons the edit
+        act(() => container.querySelector('[data-testid="script-mention"]')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+        input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
+        act(() => setInputValue(input, 'other'));
+        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+        expect(props.onRename).toHaveBeenCalledTimes(1);
+        expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe('@01_alpha');
+
+        // The action menu edits the name in the tag, the input keeps the focus after the menu closes
+        act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());
+        act(() => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="rename"]')!.click());
+        await act(nextFrame);
+        input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
+        expect(document.activeElement).toBe(input);
+    });
+
     it('keeps Play available for SQL with parser diagnostics', () => {
         const props = baseProps();
         Object.assign(props, { connections: new Map([['database', {

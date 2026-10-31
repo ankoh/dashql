@@ -429,6 +429,75 @@
     min-width: 0;
 }
 
+/* The "@<script>" tag that mentions the script in the prompt, in the purple of script references in the composer */
+.feed_entry_mention {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 1;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 180px;
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid color-mix(in srgb, #6f42c1 35%, transparent);
+    border-radius: 6px;
+    background-color: color-mix(in srgb, #6f42c1 10%, transparent);
+    color: #6f42c1;
+    font-family: var(--font_family);
+    font-size: var(--font_size_caption);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* A button does not ellipsize as a flex container, its text is a plain inline run */
+button.feed_entry_mention {
+    display: inline-block;
+}
+
+.feed_entry_mention:hover:not([aria-disabled="true"]):not([data-editing]) {
+    background-color: color-mix(in srgb, #6f42c1 16%, transparent);
+}
+
+.feed_entry_mention:active:not([aria-disabled="true"]):not([data-editing]) {
+    background-color: color-mix(in srgb, #6f42c1 22%, transparent);
+}
+
+.feed_entry_mention:focus-visible {
+    outline: 2px solid color-mix(in srgb, #6f42c1 60%, transparent);
+    outline-offset: 1px;
+}
+
+/* Without an agent the tag can not mention the script, a double click still renames it */
+.feed_entry_mention[aria-disabled="true"] {
+    border-color: var(--base_color_neutral_2);
+    background-color: var(--base_color_neutral_1);
+    color: var(--base_color_neutral_6);
+    cursor: default;
+}
+
+/* While editing, the tag keeps its single border, only a darker one */
+.feed_entry_mention[data-editing] {
+    border-color: color-mix(in srgb, #6f42c1 65%, transparent);
+    cursor: text;
+}
+
+.feed_entry_mention_input {
+    min-width: 2ch;
+    max-width: 100%;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+}
+
 /* The run button of the focused card keeps the full text color, the one strong action in the muted header */
 .feed_entry_execute_focused {
     color: var(--base_color);
