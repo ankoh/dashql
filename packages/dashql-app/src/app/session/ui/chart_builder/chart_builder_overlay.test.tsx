@@ -129,8 +129,50 @@ describe('ChartBuilderOverlay', () => {
         expect(document.activeElement).toBe(byTestId('chart-builder-overlay'));
     });
 
+    it('edits the selected layer of a layered chart', () => {
+        const onChange = vi.fn();
+        render({ onChange, visualizeQuery: vegaLite({ title: 't', layer: [{ mark: 'bar' }, { mark: 'rule', encoding: { y: { field: 'v', type: 'quantitative' } } }] }) });
+        expect(byTestId('chart-builder-unsupported')).toBeNull();
+        expect(byTestId('chart-layer-0')?.getAttribute('aria-pressed')).toBe('true');
+        expect(byTestId('chart-mark-bar')?.getAttribute('aria-pressed')).toBe('true');
+
+        // The mark and the encoding show the selected layer
+        act(() => byTestId('chart-layer-1')!.click());
+        expect(byTestId('chart-mark-rule')?.getAttribute('aria-pressed')).toBe('true');
+        expect(byTestId('chart-channel-y-field')?.textContent).toContain('v');
+        act(() => byTestId('chart-mark-line')!.click());
+        expect(JSON.parse(onChange.mock.lastCall![0])).toEqual({
+            title: 't',
+            layer: [{ mark: 'bar' }, { mark: 'line', encoding: { y: { field: 'v', type: 'quantitative' } } }],
+        });
+        expect(byTestId('chart-layer-1')?.textContent).toContain('line');
+    });
+
+    it('adds and removes layers', () => {
+        const onChange = vi.fn();
+        render({ onChange, visualizeQuery: vegaLite({ mark: 'bar', encoding: { x: { field: 'region', type: 'nominal' } } }) });
+        expect(byTestId('chart-layer-remove')).toBeNull();
+
+        // A new layer shares x and is selected
+        act(() => byTestId('chart-layer-add')!.click());
+        expect(JSON.parse(onChange.mock.lastCall![0])).toEqual({
+            layer: [
+                { mark: 'bar', encoding: { x: { field: 'region', type: 'nominal' } } },
+                { mark: 'line', encoding: { x: { field: 'region', type: 'nominal' } } },
+            ],
+        });
+        expect(byTestId('chart-layer-1')?.getAttribute('aria-pressed')).toBe('true');
+        expect(byTestId('chart-mark-line')?.getAttribute('aria-pressed')).toBe('true');
+
+        // Removing the layer restores the single view
+        act(() => byTestId('chart-layer-remove')!.click());
+        expect(JSON.parse(onChange.mock.lastCall![0])).toEqual({ mark: 'bar', encoding: { x: { field: 'region', type: 'nominal' } } });
+        expect(byTestId('chart-layer-1')).toBeNull();
+        expect(byTestId('chart-mark-bar')?.getAttribute('aria-pressed')).toBe('true');
+    });
+
     it('sends composed views to the JSON', () => {
-        render({ onChange: vi.fn(), visualizeQuery: vegaLite({ layer: [{ mark: 'bar' }, { mark: 'rule' }] }) });
+        render({ onChange: vi.fn(), visualizeQuery: vegaLite({ hconcat: [{ mark: 'bar' }, { mark: 'rule' }] }) });
         expect(byTestId('chart-builder-unsupported')).not.toBeNull();
         act(() => (byTestId('chart-builder-unsupported')!.querySelector('button') as HTMLButtonElement).click());
         expect(byTestId('chart-json-editor')).not.toBeNull();

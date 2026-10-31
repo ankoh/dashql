@@ -27,16 +27,107 @@ export const SORTS = ['ascending', 'descending'] as const;
 /// The keys of a channel that the builder edits. Clearing a field removes these and keeps the others.
 const OWNED_CHANNEL_KEYS = ['field', 'type', 'aggregate', 'bin', 'timeUnit', 'sort', 'title', 'stack'];
 
-/// The keys that compose views, the builder only edits single views
-const COMPOSITION_KEYS = ['layer', 'concat', 'hconcat', 'vconcat', 'repeat', 'spec'];
+/// The keys that compose views. The builder edits single views and layers of single views.
+const COMPOSITION_KEYS = ['layer', 'concat', 'hconcat', 'vconcat', 'repeat', 'spec', 'facet'];
+/// The keys of a single view that move into the first layer when a second layer is added
+const LAYER_KEYS = ['mark', 'encoding'];
 
 function isObject(value: unknown): value is Record<string, unknown> {
     return value != null && typeof value === 'object' && !Array.isArray(value);
 }
 
-/// Can the builder edit the spec? Composed views are edited as JSON.
-export function isBuilderEditable(spec: ChartSpec): boolean {
+function isSingleView(spec: ChartSpec): boolean {
     return COMPOSITION_KEYS.every(key => !(key in spec));
+}
+
+/// The layers of a layered spec, null for a single view
+export function getLayers(spec: ChartSpec): ChartSpec[] | null {
+    return Array.isArray(spec.layer) ? spec.layer as ChartSpec[] : null;
+}
+
+/// Can the builder edit the spec? A layer of single views is edited one layer at a time. Other compositions, nested
+/// layers and an encoding that the layers share are edited as JSON.
+export function isBuilderEditable(spec: ChartSpec): boolean {
+    if (isSingleView(spec)) return true;
+    const layers = getLayers(spec);
+    if (layers == null || layers.length === 0 || 'encoding' in spec || 'mark' in spec) return false;
+    if (COMPOSITION_KEYS.some(key => key !== 'layer' && key in spec)) return false;
+    return layers.every(layer => isObject(layer) && isSingleView(layer));
+}
+
+/// The number of views that the builder edits, a single view is one layer
+export function layerCount(spec: ChartSpec): number {
+    return getLayers(spec)?.length ?? 1;
+}
+
+/// The view of a layer, the spec itself for a single view
+export function getLayer(spec: ChartSpec, index: number): ChartSpec {
+    return getLayers(spec)?.[index] ?? spec;
+}
+
+/// Replace the view of a layer, the spec itself for a single view
+export function setLayer(spec: ChartSpec, index: number, view: ChartSpec): ChartSpec {
+    const layers = getLayers(spec);
+    if (layers == null) return view;
+    return { ...spec, layer: layers.map((layer, i) => i === index ? view : layer) };
+}
+
+/// Add a layer. A single view moves its mark and encoding into the first layer, the other keys stay on top, e.g. the
+/// title, the size, the data and the transforms that the layers share.
+export function addLayer(spec: ChartSpec, view: ChartSpec): ChartSpec {
+    const layers = getLayers(spec);
+    if (layers != null) return { ...spec, layer: [...layers, view] };
+    const top: ChartSpec = {};
+    const first: ChartSpec = {};
+    for (const [key, value] of Object.entries(spec)) {
+        if (LAYER_KEYS.includes(key)) first[key] = value;
+        else top[key] = value;
+    }
+    return { ...top, layer: [first, view] };
+}
+
+/// The view of a new line layer that shares x with the given layer. A dropped column goes on y and aggregates a measure
+/// like the y of the given layer, e.g. a line of the mean revenue over the bars of the summed revenue per region.
+export function newLayerView(from: ChartSpec, column?: { field: string; type: FieldType }): ChartSpec {
+    const encoding: Record<string, unknown> = {};
+    const x = getChannel(from, 'x');
+    if (x != null) encoding.x = x;
+    if (column != null) {
+        const y = getChannel(from, 'y');
+        const aggregate = isObject(y) && typeof y.aggregate === 'string' && y.aggregate !== 'count' ? y.aggregate : undefined;
+        encoding.y = column.type === 'quantitative' && aggregate != null
+            ? { field: column.field, type: column.type, aggregate }
+            : { field: column.field, type: column.type };
+    }
+    return Object.keys(encoding).length === 0 ? { mark: 'line' } : { mark: 'line', encoding };
+}
+
+/// Add a layer that shows a dropped column, see `newLayerView`. The layers that have no color yet get the label of
+/// their y as a color datum: each gets a color of the palette, and the legend tells them apart.
+export function addColumnLayer(spec: ChartSpec, from: number, column: { field: string; type: FieldType }): ChartSpec {
+    let next = addLayer(spec, newLayerView(getLayer(spec, from), column));
+    const fromIndex = getLayers(spec) == null ? 0 : from;
+    for (const index of [fromIndex, layerCount(next) - 1]) {
+        const view = getLayer(next, index);
+        const label = channelSummary(getChannel(view, 'y'));
+        if (label != null && getChannel(view, 'color') == null) {
+            next = setLayer(next, index, patchChannel(view, 'color', { datum: label }));
+        }
+    }
+    return next;
+}
+
+/// Remove a layer. The last layer becomes a single view again unless its keys clash with the keys on top.
+export function removeLayer(spec: ChartSpec, index: number): ChartSpec {
+    const layers = getLayers(spec);
+    if (layers == null || layers.length <= 1) return spec;
+    const rest = layers.filter((_, i) => i !== index);
+    const top = { ...spec };
+    delete top.layer;
+    if (rest.length === 1 && Object.keys(rest[0]).every(key => !(key in top))) {
+        return { ...top, ...rest[0] };
+    }
+    return { ...top, layer: rest };
 }
 
 /// The type of the mark, a string or the type of a mark object
@@ -189,7 +280,9 @@ export function encodedFields(spec: ChartSpec): string[] {
             fields.add(def.field);
         }
     };
-    for (const def of Object.values(getEncoding(spec))) visit(def);
+    for (const view of [spec, ...(getLayers(spec) ?? [])]) {
+        for (const def of Object.values(getEncoding(view))) visit(def);
+    }
     return [...fields];
 }
 

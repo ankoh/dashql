@@ -13,7 +13,7 @@ import {
 } from '@dnd-kit/core';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
-import { SymbolIcon, XIcon, type Icon } from '../../../../ui/foundations/symbol_icon.js';
+import { PlusIcon, SymbolIcon, XIcon, type Icon } from '../../../../ui/foundations/symbol_icon.js';
 import { TextInput } from '../../../../ui/foundations/text_input.js';
 import { classNames } from '../../../../utils/classnames.js';
 import type { ChartColumn } from './chart_columns.js';
@@ -28,19 +28,26 @@ import {
     SECONDARY_MARKS,
     SORTS,
     TIME_UNITS,
+    addColumnLayer,
+    addLayer,
     channelSummary,
     clearChannelField,
     encodedChannels,
     getChannel,
+    getLayer,
     getMarkType,
     isBuilderEditable,
     isCountChannel,
     isCustomChannel,
+    layerCount,
+    newLayerView,
     patchChannel,
     removeChannel,
+    removeLayer,
     setChannelCount,
     setChannelField,
     setChannelType,
+    setLayer,
     setMarkType,
     setTopLevel,
     type ChartSpec,
@@ -49,6 +56,7 @@ import {
 import * as styles from './chart_builder.module.css';
 
 const MoreIcon: Icon = SymbolIcon('kebab_horizontal');
+const TrashIcon: Icon = SymbolIcon('trash_16');
 
 /// The value of the count option of a field dropdown, no column can have this name
 const COUNT_OPTION = '\u001fcount';
@@ -56,6 +64,7 @@ const NONE_OPTION = '\u001fnone';
 
 /// The marks with a monochrome example icon each
 const MARKS: { mark: string; icon: Icon }[] = [...PRIMARY_MARKS, ...SECONDARY_MARKS].map(mark => ({ mark, icon: SymbolIcon(`mark_${mark}_16`) }));
+const MARK_ICONS = new Map(MARKS.map(({ mark, icon }) => [mark, icon]));
 const TYPE_OPTIONS: ChartSelectOption[] = FIELD_TYPES.map(type => ({ value: type, label: FIELD_TYPE_SHORT[type], description: type }));
 const AGGREGATE_OPTIONS: ChartSelectOption[] = [{ value: NONE_OPTION, label: 'none' }, ...AGGREGATES.map(a => ({ value: a, label: a }))];
 const TIME_UNIT_OPTIONS: ChartSelectOption[] = [{ value: NONE_OPTION, label: 'none' }, ...TIME_UNITS.map(u => ({ value: u, label: u }))];
@@ -71,6 +80,7 @@ const STACK_OPTIONS: ChartSelectOption[] = [
 /// The prefixes of the drag and drop ids
 const COLUMN_DRAG_PREFIX = 'column:';
 const CHANNEL_DROP_PREFIX = 'channel:';
+const LAYER_DROP_ID = 'layer:new';
 
 interface Props {
     spec: ChartSpec;
@@ -80,12 +90,30 @@ interface Props {
     onEditJson: () => void;
 }
 
-/// The visual editor of a Vega-Lite spec: a mark, the columns of the result, a row per encoding channel and the view.
-/// The columns can be dragged onto a channel, or picked in the dropdown of the channel.
+/// The visual editor of a Vega-Lite spec: the columns of the result, the layers of the chart with a mark and a row per
+/// encoding channel each, and the view. The columns can be dragged onto a channel, or picked in the dropdown of the
+/// channel. Dropping a column onto the layers adds a layer that shows the column.
 export function ChartSpecBuilder(props: Props): React.ReactElement {
     const { spec, onChange } = props;
-    // Channels that the user added and that have no field yet
+    // The layer that the mark and the encoding edit, a single view is one layer
+    const [layerIndex, setLayerIndex] = React.useState(0);
+    const layers = layerCount(spec);
+    const selectedLayer = Math.min(layerIndex, layers - 1);
+    const view = getLayer(spec, selectedLayer);
+    const onViewChange = React.useCallback(
+        (next: ChartSpec) => onChange(setLayer(spec, selectedLayer, next)),
+        [spec, selectedLayer, onChange],
+    );
+    // Channels that the user added to the selected layer and that have no field yet
     const [addedChannels, setAddedChannels] = React.useState<string[]>([]);
+    const selectLayer = React.useCallback((index: number) => {
+        setLayerIndex(index);
+        setAddedChannels([]);
+    }, []);
+    const appendLayer = React.useCallback((next: ChartSpec) => {
+        onChange(next);
+        selectLayer(layerCount(next) - 1);
+    }, [onChange, selectLayer]);
     const [dragColumn, setDragColumn] = React.useState<ChartColumn | null>(null);
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -93,12 +121,12 @@ export function ChartSpecBuilder(props: Props): React.ReactElement {
     );
 
     const visibleChannels = React.useMemo(() => {
-        const visible = new Set<string>([...DEFAULT_CHANNELS, ...encodedChannels(spec), ...addedChannels]);
+        const visible = new Set<string>([...DEFAULT_CHANNELS, ...encodedChannels(view), ...addedChannels]);
         const known: string[] = CHANNELS.filter(channel => visible.has(channel));
         // Channels that the builder does not list, e.g. `fill`, are shown after the known ones
         const unknown = [...visible].filter(channel => !(CHANNELS as readonly string[]).includes(channel));
         return [...known, ...unknown];
-    }, [spec, addedChannels]);
+    }, [view, addedChannels]);
     const addableChannels = React.useMemo<ChartSelectOption[]>(
         () => CHANNELS.filter(channel => !visibleChannels.includes(channel)).map(channel => ({ value: channel, label: channel })),
         [visibleChannels],
@@ -111,42 +139,27 @@ export function ChartSpecBuilder(props: Props): React.ReactElement {
         setDragColumn(null);
         const column = event.active.data.current?.column as ChartColumn | undefined;
         const target = event.over?.id;
-        if (column == null || typeof target !== 'string' || !target.startsWith(CHANNEL_DROP_PREFIX)) return;
-        onChange(setChannelField(spec, target.slice(CHANNEL_DROP_PREFIX.length), column.name, column.type));
-    }, [spec, onChange]);
+        if (column == null || typeof target !== 'string') return;
+        if (target === LAYER_DROP_ID) {
+            appendLayer(addColumnLayer(spec, selectedLayer, { field: column.name, type: column.type }));
+        } else if (target.startsWith(CHANNEL_DROP_PREFIX)) {
+            onViewChange(setChannelField(view, target.slice(CHANNEL_DROP_PREFIX.length), column.name, column.type));
+        }
+    }, [spec, view, selectedLayer, appendLayer, onViewChange]);
 
     if (!isBuilderEditable(spec)) {
         return (
             <div className={styles.builder_unsupported} data-testid="chart-builder-unsupported">
-                <p>This spec composes several views. The builder edits single views only.</p>
+                <p>This spec composes several views. The builder edits single views and their layers only.</p>
                 <Button size={ButtonSize.Small} onClick={props.onEditJson}>Edit the JSON</Button>
             </div>
         );
     }
 
-    const markType = getMarkType(spec);
+    const markType = getMarkType(view);
     return (
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragColumn(null)}>
             <div className={styles.builder} data-testid="chart-builder">
-                <section className={styles.builder_section} aria-labelledby="chart-builder-mark">
-                    <h3 id="chart-builder-mark" className={styles.builder_heading}>Mark</h3>
-                    <div className={styles.mark_list} role="group" aria-labelledby="chart-builder-mark" data-testid="chart-mark">
-                        {MARKS.map(({ mark, icon: MarkIcon }) => (
-                            <IconButton
-                                key={mark}
-                                className={styles.mark_button}
-                                variant={mark === markType ? ButtonVariant.Default : ButtonVariant.Invisible}
-                                size={ButtonSize.Small}
-                                aria-label={mark}
-                                aria-pressed={mark === markType}
-                                data-testid={`chart-mark-${mark}`}
-                                onClick={() => { if (mark !== markType) onChange(setMarkType(spec, mark)); }}
-                            >
-                                <MarkIcon size={16} />
-                            </IconButton>
-                        ))}
-                    </div>
-                </section>
                 <section className={styles.builder_section} aria-labelledby="chart-builder-columns">
                     <h3 id="chart-builder-columns" className={styles.builder_heading}>Columns</h3>
                     {props.columns.length === 0 ? (
@@ -157,37 +170,68 @@ export function ChartSpecBuilder(props: Props): React.ReactElement {
                         </ul>
                     )}
                 </section>
-                <section className={styles.builder_section} aria-labelledby="chart-builder-encoding">
-                    <div className={styles.builder_heading_row}>
-                        <h3 id="chart-builder-encoding" className={styles.builder_heading}>Encoding</h3>
-                        {addableChannels.length > 0 && (
-                            <ChartSelect
-                                aria-label="Add channel"
-                                data-testid="chart-add-channel"
-                                variant={ButtonVariant.Invisible}
-                                value={null}
-                                placeholder="Add channel"
-                                options={addableChannels}
-                                onChange={channel => setAddedChannels(current => [...current, channel])}
-                            />
-                        )}
-                    </div>
-                    <div className={styles.channel_list}>
-                        {visibleChannels.map(channel => (
-                            <ChannelRow
-                                key={channel}
-                                channel={channel}
-                                spec={spec}
-                                columns={props.columns}
-                                onChange={onChange}
-                                onRemove={() => {
-                                    setAddedChannels(current => current.filter(c => c !== channel));
-                                    onChange(removeChannel(spec, channel));
-                                }}
-                            />
-                        ))}
-                    </div>
-                </section>
+                <LayerBar
+                    spec={spec}
+                    selected={selectedLayer}
+                    onSelect={selectLayer}
+                    onAdd={() => appendLayer(addLayer(spec, newLayerView(view)))}
+                    onRemove={() => {
+                        onChange(removeLayer(spec, selectedLayer));
+                        selectLayer(Math.max(0, selectedLayer - 1));
+                    }}
+                />
+                <div className={styles.layer_panel} data-testid="chart-layer-panel">
+                    <section className={styles.builder_section} aria-labelledby="chart-builder-mark">
+                        <h3 id="chart-builder-mark" className={styles.builder_heading}>Mark</h3>
+                        <div className={styles.mark_list} role="group" aria-labelledby="chart-builder-mark" data-testid="chart-mark">
+                            {MARKS.map(({ mark, icon: MarkIcon }) => (
+                                <IconButton
+                                    key={mark}
+                                    className={styles.mark_button}
+                                    variant={mark === markType ? ButtonVariant.Default : ButtonVariant.Invisible}
+                                    size={ButtonSize.Small}
+                                    aria-label={mark}
+                                    aria-pressed={mark === markType}
+                                    data-testid={`chart-mark-${mark}`}
+                                    onClick={() => { if (mark !== markType) onViewChange(setMarkType(view, mark)); }}
+                                >
+                                    <MarkIcon size={16} />
+                                </IconButton>
+                            ))}
+                        </div>
+                    </section>
+                    <section className={styles.builder_section} aria-labelledby="chart-builder-encoding">
+                        <div className={styles.builder_heading_row}>
+                            <h3 id="chart-builder-encoding" className={styles.builder_heading}>Encoding</h3>
+                            {addableChannels.length > 0 && (
+                                <ChartSelect
+                                    aria-label="Add channel"
+                                    data-testid="chart-add-channel"
+                                    variant={ButtonVariant.Invisible}
+                                    value={null}
+                                    placeholder="Add channel"
+                                    options={addableChannels}
+                                    onChange={channel => setAddedChannels(current => [...current, channel])}
+                                />
+                            )}
+                        </div>
+                        <div className={styles.channel_list}>
+                            {visibleChannels.map(channel => (
+                                <ChannelRow
+                                    key={`${selectedLayer}:${channel}`}
+                                    channel={channel}
+                                    spec={view}
+                                    columns={props.columns}
+                                    onChange={onViewChange}
+                                    onRemove={() => {
+                                        setAddedChannels(current => current.filter(c => c !== channel));
+                                        onViewChange(removeChannel(view, channel));
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </section>
+                </div>
                 <section className={styles.builder_section} aria-labelledby="chart-builder-view">
                     <h3 id="chart-builder-view" className={styles.builder_heading}>View</h3>
                     <ViewSettings spec={spec} onChange={onChange} />
@@ -197,6 +241,76 @@ export function ChartSpecBuilder(props: Props): React.ReactElement {
                 {dragColumn != null ? <ColumnChip column={dragColumn} dragging /> : null}
             </DragOverlay>
         </DndContext>
+    );
+}
+
+interface LayerBarProps {
+    spec: ChartSpec;
+    selected: number;
+    onSelect: (index: number) => void;
+    onAdd: () => void;
+    onRemove: () => void;
+}
+
+/// The layers of the chart, one button per layer and a target that adds a layer for a dropped column
+function LayerBar(props: LayerBarProps) {
+    const count = layerCount(props.spec);
+    return (
+        <div className={styles.layer_bar}>
+            <div className={styles.layer_list} role="group" aria-label="Layers" data-testid="chart-layers">
+                {Array.from({ length: count }, (_, index) => {
+                    const mark = getMarkType(getLayer(props.spec, index));
+                    const MarkIcon = mark != null ? MARK_ICONS.get(mark) : undefined;
+                    return (
+                        <button
+                            key={index}
+                            type="button"
+                            className={styles.layer_button}
+                            aria-pressed={index === props.selected}
+                            aria-label={`Layer ${index + 1}: ${mark ?? 'no mark'}`}
+                            data-testid={`chart-layer-${index}`}
+                            onClick={() => props.onSelect(index)}
+                        >
+                            {MarkIcon != null && <MarkIcon size={16} aria-hidden="true" />}
+                            <span className={styles.layer_name}>{mark ?? 'layer'}</span>
+                        </button>
+                    );
+                })}
+                <AddLayerTarget onAdd={props.onAdd} />
+            </div>
+            {count > 1 && (
+                <IconButton
+                    variant={ButtonVariant.Invisible}
+                    size={ButtonSize.Small}
+                    aria-label={`Remove layer ${props.selected + 1}`}
+                    data-testid="chart-layer-remove"
+                    onClick={props.onRemove}
+                >
+                    <TrashIcon size={16} />
+                </IconButton>
+            )}
+        </div>
+    );
+}
+
+/// Add a layer on click, or a layer that shows a column dropped onto it
+function AddLayerTarget(props: { onAdd: () => void }) {
+    const { setNodeRef, isOver, active } = useDroppable({ id: LAYER_DROP_ID });
+    return (
+        <button
+            ref={setNodeRef}
+            type="button"
+            className={styles.layer_add}
+            data-dragging={active != null || undefined}
+            data-over={isOver || undefined}
+            aria-label="Add a layer"
+            title="Add a layer, or drop a column to show it in a new layer"
+            data-testid="chart-layer-add"
+            onClick={props.onAdd}
+        >
+            <PlusIcon size={16} aria-hidden="true" />
+            {active != null && <span>Drop to add a layer</span>}
+        </button>
     );
 }
 

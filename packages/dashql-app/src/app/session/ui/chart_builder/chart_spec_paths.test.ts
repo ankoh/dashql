@@ -1,16 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    addColumnLayer,
+    addLayer,
     channelSummary,
     clearChannelField,
     encodedFields,
+    getLayer,
     getMarkType,
     isBuilderEditable,
+    layerCount,
+    newLayerView,
     patchChannel,
     removeChannel,
+    removeLayer,
     setChannelCount,
     setChannelField,
     setChannelType,
+    setLayer,
     setMarkType,
     setTopLevel,
 } from './chart_spec_paths.js';
@@ -76,9 +83,91 @@ describe('chart spec paths', () => {
 
     it('detects composed views and lists the encoded fields', () => {
         expect(isBuilderEditable({ mark: 'bar' })).toBe(true);
-        expect(isBuilderEditable({ layer: [] })).toBe(false);
         expect(isBuilderEditable({ hconcat: [] })).toBe(false);
+        expect(isBuilderEditable({ facet: { row: { field: 'a' } }, spec: { mark: 'bar' } })).toBe(false);
         expect(encodedFields({ encoding: { x: { field: 'a' }, tooltip: [{ field: 'b' }, { field: 'a' }], color: { value: 'red' } } })).toEqual(['a', 'b']);
+        expect(encodedFields({ layer: [{ encoding: { x: { field: 'a' } } }, { encoding: { y: { field: 'b' } } }] })).toEqual(['a', 'b']);
+    });
+
+    it('edits layers of single views', () => {
+        expect(isBuilderEditable({ layer: [{ mark: 'bar' }, { mark: 'rule' }], title: 't' })).toBe(true);
+        // No layers, nested compositions and an encoding that the layers share are edited as JSON
+        expect(isBuilderEditable({ layer: [] })).toBe(false);
+        expect(isBuilderEditable({ layer: [{ layer: [{ mark: 'bar' }] }] })).toBe(false);
+        expect(isBuilderEditable({ layer: [{ mark: 'bar' }], encoding: { x: { field: 'a' } } })).toBe(false);
+
+        const layered = { title: 't', layer: [{ mark: 'bar' }, { mark: 'rule' }] };
+        expect(layerCount(layered)).toBe(2);
+        expect(getLayer(layered, 1)).toEqual({ mark: 'rule' });
+        expect(setLayer(layered, 1, { mark: 'line' })).toEqual({ title: 't', layer: [{ mark: 'bar' }, { mark: 'line' }] });
+        // A single view is its only layer
+        expect(layerCount({ mark: 'bar' })).toBe(1);
+        expect(getLayer({ mark: 'bar' }, 0)).toEqual({ mark: 'bar' });
+        expect(setLayer({ mark: 'bar' }, 0, { mark: 'line' })).toEqual({ mark: 'line' });
+    });
+
+    it('moves the mark and the encoding of a single view into the first layer', () => {
+        const single = {
+            title: 'Revenue',
+            width: 300,
+            transform: [{ filter: 'datum.revenue > 0' }],
+            mark: { type: 'bar', tooltip: true },
+            encoding: { x: { field: 'region', type: 'nominal' }, y: { field: 'revenue', type: 'quantitative', aggregate: 'sum' } },
+        };
+        const layered = addLayer(single, { mark: 'rule' });
+        expect(layered).toEqual({
+            title: 'Revenue',
+            width: 300,
+            transform: [{ filter: 'datum.revenue > 0' }],
+            layer: [{ mark: single.mark, encoding: single.encoding }, { mark: 'rule' }],
+        });
+        expect(addLayer(layered, { mark: 'text' }).layer).toHaveLength(3);
+
+        // Removing down to one layer restores the single view
+        expect(removeLayer(layered, 1)).toEqual(single);
+        // A layer whose keys clash with the keys on top stays a layer
+        const clash = { transform: [{ filter: 'true' }], layer: [{ mark: 'bar', transform: [] }, { mark: 'rule' }] };
+        expect(removeLayer(clash, 1)).toEqual({ transform: [{ filter: 'true' }], layer: [{ mark: 'bar', transform: [] }] });
+        // The last layer is not removed
+        expect(removeLayer({ layer: [{ mark: 'bar' }] }, 0)).toEqual({ layer: [{ mark: 'bar' }] });
+    });
+
+    it('shares x with a new layer and aggregates a dropped measure like the layer', () => {
+        const bars = {
+            mark: 'bar',
+            encoding: { x: { field: 'region', type: 'nominal' }, y: { field: 'revenue', type: 'quantitative', aggregate: 'sum' } },
+        };
+        expect(newLayerView(bars, { field: 'cost', type: 'quantitative' })).toEqual({
+            mark: 'line',
+            encoding: { x: { field: 'region', type: 'nominal' }, y: { field: 'cost', type: 'quantitative', aggregate: 'sum' } },
+        });
+        // A dimension is not aggregated, a count is no aggregate of a field
+        expect(newLayerView(bars, { field: 'segment', type: 'nominal' }).encoding).toMatchObject({ y: { field: 'segment', type: 'nominal' } });
+        expect(newLayerView({ encoding: { y: { aggregate: 'count', type: 'quantitative' } } }, { field: 'cost', type: 'quantitative' }))
+            .toEqual({ mark: 'line', encoding: { y: { field: 'cost', type: 'quantitative' } } });
+        // Without a column, the new layer only shares x
+        expect(newLayerView(bars)).toEqual({ mark: 'line', encoding: { x: { field: 'region', type: 'nominal' } } });
+        expect(newLayerView({ mark: 'bar' })).toEqual({ mark: 'line' });
+    });
+
+    it('tells the layers of a dropped column apart by a color datum', () => {
+        const x = { field: 'region', type: 'nominal' };
+        const bars = { title: 't', mark: 'bar', encoding: { x, y: { field: 'revenue', type: 'quantitative', aggregate: 'sum' } } };
+        const layered = addColumnLayer(bars, 0, { field: 'cost', type: 'quantitative' });
+        expect(layered).toEqual({
+            title: 't',
+            layer: [
+                { mark: 'bar', encoding: { ...bars.encoding, color: { datum: 'sum(revenue)' } } },
+                { mark: 'line', encoding: { x, y: { field: 'cost', type: 'quantitative', aggregate: 'sum' }, color: { datum: 'sum(cost)' } } },
+            ],
+        });
+        // A layer with a color keeps it, the new layer shares x with the selected layer
+        const colored = { layer: [{ mark: 'bar', encoding: { x, color: { field: 'segment', type: 'nominal' } } }, { mark: 'rule' }] };
+        expect(addColumnLayer(colored, 0, { field: 'cost', type: 'quantitative' }).layer).toEqual([
+            colored.layer[0],
+            { mark: 'rule' },
+            { mark: 'line', encoding: { x, y: { field: 'cost', type: 'quantitative' }, color: { datum: 'cost' } } },
+        ]);
     });
 
     it('summarizes channels', () => {

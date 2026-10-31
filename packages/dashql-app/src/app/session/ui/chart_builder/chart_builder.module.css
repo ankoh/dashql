@@ -205,6 +205,100 @@
     font-size: var(--font_size_compact);
 }
 
+/* The layers, the mark and the encoding below edit the selected layer */
+
+.layer_bar {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    padding: 6px 12px;
+    gap: 8px;
+    border-top: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--border_color_primary);
+    background: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 98%);
+}
+
+.layer_list {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0;
+    gap: 4px;
+}
+
+.layer_button {
+    display: inline-flex;
+    align-items: center;
+    max-width: 140px;
+    height: 28px;
+    padding: 0 10px 0 8px;
+    gap: 6px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: none;
+    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 35%);
+    font-size: var(--font_size_compact);
+    cursor: pointer;
+}
+
+.layer_button:hover {
+    background: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 94%);
+}
+
+.layer_button[aria-pressed='true'] {
+    border-color: var(--border_color_primary);
+    background: #ffffff;
+    color: #0969da;
+    font-weight: 600;
+}
+
+.layer_button:focus-visible,
+.layer_add:focus-visible {
+    outline: 2px solid var(--focus_outline_color, #0969da);
+    outline-offset: 1px;
+}
+
+.layer_name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* A dragged column can be dropped here to show it in a new layer */
+.layer_add {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 7px;
+    gap: 6px;
+    border: 1px dashed transparent;
+    border-radius: 6px;
+    background: none;
+    color: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 40%);
+    font-size: var(--font_size_compact);
+    cursor: pointer;
+}
+
+.layer_add:hover {
+    background: hsl(var(--neutral_hue), calc(10% * var(--neutral_tint)), 94%);
+}
+
+.layer_add[data-dragging] {
+    border-color: var(--border_color_primary);
+}
+
+.layer_add[data-over] {
+    border-color: #0969da;
+    border-style: solid;
+    background: #ddf4ff;
+    color: #0969da;
+}
+
+.layer_panel + .builder_section {
+    border-top: 1px solid var(--border_color_primary);
+}
+
 /* The marks */
 
 .mark_list {
