@@ -38,28 +38,18 @@
     min-width: 0;
 }
 
-/* The brand sits a bit right of the left edge of the page card next to the narrow rail */
+/* The brand sits in the top left corner, where a square logo is centered over the icons of the rail, whatever the width of the rail.
+ * It spans both columns to overflow the narrow rail. */
 .top_bar .brand_identity {
     grid-row: 1;
-    grid-column: 2;
+    grid-column: 1 / -1;
     justify-self: start;
-    margin-left: 24px;
+    margin-left: 12px;
     padding-left: 0;
 }
 
-/* The brand follows the traffic lights of the desktop app on macOS, see trafficLightPosition in dashql-native.
- * They end at 76px, right of the page card of the narrow rail of 48px. */
+/* The brand follows the traffic lights of the desktop app on macOS, see trafficLightPosition in dashql-native */
 .top_bar_mac .brand_identity {
-    margin-left: 36px;
-}
-
-/* The wide rail has room for the brand, which then sits in the top left corner centered over the icons of the rail */
-.container_wide .top_bar .brand_identity {
-    grid-column: 1;
-    margin-left: 12px;
-}
-
-.container_wide .top_bar_mac .brand_identity {
     margin-left: 84px;
 }
 
