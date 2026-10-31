@@ -55,8 +55,8 @@ formatter-snapshots:
           - mode: compact
             width: 20
 
-  # An unterminated tagged region is an ordinary comment
-  - name: comment_unterminated_region
+  # A tagged region of line comments ends with the run, it needs no end line
+  - name: comment_region_without_end
     input: |-
       -- @description
       -- Text that is not closed and wraps because it is quite long.
@@ -98,7 +98,7 @@ formatter-snapshots:
     dialects:
       hyper:
 
-  # The next tag line closes a region, only the last region needs the end line
+  # The next tag line closes a region, an end line of an older script is accepted
   - name: comment_regions_one_end_line
     input: |-
       -- @description Revenue per region, which is long enough to be wrapped.
@@ -108,7 +108,7 @@ formatter-snapshots:
     dialects:
       hyper:
 
-  # A @vis region of line comments is printed as a block comment
+  # A tagged region of line comments is printed as a Javadoc-style comment
   - name: vis_line_comments_to_block
     input: |-
       -- @vis vegalite
@@ -118,7 +118,7 @@ formatter-snapshots:
     dialects:
       hyper:
 
-  # Several tags of a line comment run become one block comment, text before the tags stays a line comment
+  # Several tags of a line comment run become one comment, text before the tags stays a line comment
   - name: vis_line_comments_several_tags
     input: |-
       -- Revenue dashboard.
@@ -186,6 +186,31 @@ formatter-snapshots:
       -- @vis markdown
       -- see */ here
       -- @end
+      select 1
+    dialects:
+      hyper:
+
+  # The tagged comments of a statement are merged into one comment, blank lines between them go
+  - name: annotation_comments_are_merged
+    input: |-
+      -- @description
+      -- Add to and subtract from timestamps and measure the distance between them.
+      -- @end
+
+      /* @vis vegalite
+         {"mark": "bar"}
+      */
+      /* @vis card width=6 */
+      select 1
+    dialects:
+      hyper:
+
+  # Ordinary comments between tagged comments keep them apart
+  - name: annotation_comments_with_ordinary_comments
+    input: |-
+      /* @description Revenue. */
+      -- a note
+      /* @vis table */
       select 1
     dialects:
       hyper:

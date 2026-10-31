@@ -78,8 +78,8 @@ describe('DashQL scripts', () => {
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, '/* @vis table */ select 1 as a');
 
-        expect(script.rewriteVegaLite('{"mark": "bar"}')).toEqual({ offset: 8, length: 27 });
-        expect(script.toString()).toBe('/* @vis vegalite\n   {"mark": "bar"} */ select 1 as a');
+        expect(script.rewriteVegaLite('{"mark": "bar"}')).toEqual({ offset: 7, length: 32 });
+        expect(script.toString()).toBe('/**\n * @vis vegalite\n * {"mark": "bar"}\n */ select 1 as a');
         expect(() => script.rewriteVegaLite('[]')).toThrow('the Vega-Lite spec is no JSON object');
 
         // The analyzer warns about fields that are no output columns

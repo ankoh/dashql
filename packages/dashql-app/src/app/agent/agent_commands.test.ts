@@ -312,14 +312,16 @@ describe('agent vis edit command', () => {
         const result = await visualize({ mark: 'bar', encoding: { x: { field: 'region', type: 'nominal' }, y: { field: 'revenue', type: 'quantitative' } } });
         expect(modify).toHaveBeenCalledExactlyOnceWith('s1', { type: SET_SCRIPT_TEXT, value: { scriptKey: 1, text: expect.any(String) } });
         expect(modify.mock.calls[0][1].value.text).toBe([
-            '/* @vis vegalite',
-            '   {',
-            '     "mark": "bar",',
-            '     "encoding": {',
-            '       "x": {"field": "region", "type": "nominal"},',
-            '       "y": {"field": "revenue", "type": "quantitative"}',
-            '     }',
-            '   } */',
+            '/**',
+            ' * @vis vegalite',
+            ' * {',
+            ' *   "mark": "bar",',
+            ' *   "encoding": {',
+            ' *     "x": {"field": "region", "type": "nominal"},',
+            ' *     "y": {"field": "revenue", "type": "quantitative"}',
+            ' *   }',
+            ' * }',
+            ' */',
             'select 1 as region, 2 as revenue',
         ].join('\n'));
         expect(result.text).toMatch(/^Visualized orders: sha256 [0-9a-f]{64}, 0 errors, 0 warnings$/);

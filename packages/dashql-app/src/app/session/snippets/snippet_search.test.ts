@@ -11,7 +11,7 @@ import { SnippetSearch, snippetSearchPattern } from './snippet_search.js';
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 function file(description: string, body: string): string {
-    return `${dashql.renderCommentTag('description', description)}\n${body}`;
+    return `/**\n * @description\n * ${description}\n */\n${body}`;
 }
 
 describe('Snippet search', () => {

@@ -3,6 +3,7 @@
 //! Builds on `dashql_parser` (scanner and parser) and the FlatBuffers bindings `dashql_buffers`.
 
 pub mod analyzer;
+pub mod annotation;
 pub mod catalog;
 pub mod compact_json;
 pub mod completion;

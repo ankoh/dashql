@@ -229,28 +229,65 @@ fn vegalite(json: &str) -> VisRenderer {
 
 #[test]
 fn rewrite_vis_card_replaces_or_inserts_the_card() {
-    // A new card goes after the renderer, in the same comment
+    // A new card goes after the renderer, the comment becomes Javadoc-style
     let mut script = parsed_script("/* @vis table */\nselect 1");
     assert_eq!(
         script.rewrite_vis_card(0, Some(&card(Some(2), Some(3), 4, 5)), false).unwrap(),
-        "/* @vis table\n   @vis card row=2 column=3 width=4 height=5 */\nselect 1"
+        "/**\n * @vis table\n * @vis card row=2 column=3 width=4 height=5\n */\nselect 1"
     );
-    // The card is replaced, the other tags stay as written
+    // The card is replaced, the content of the other tags stays as written
     let mut script = parsed_script("/* @vis vegalite {\"mark\":   \"bar\"}\n   @vis card row=9 width=1 */\nselect 1");
     assert_eq!(
         script.rewrite_vis_card(0, Some(&card(None, None, 6, 3)), false).unwrap(),
-        "/* @vis vegalite {\"mark\":   \"bar\"}\n   @vis card width=6 height=3 */\nselect 1"
+        "/**\n * @vis vegalite {\"mark\":   \"bar\"}\n * @vis card width=6 height=3\n */\nselect 1"
     );
-    // Line comments and gutters are continued
-    let mut script = parsed_script("-- @vis table\n-- @end\nselect 1");
-    assert_eq!(
-        script.rewrite_vis_card(0, Some(&card(Some(0), None, 12, 1)), false).unwrap(),
-        "-- @vis table\n-- @vis card row=0 width=12 height=1\n-- @end\nselect 1"
-    );
+    // Line comments and other layouts become the canonical comment
+    for before in ["-- @vis table\n-- @end\n", "-- @vis table\n", "/*\n   @vis table\n*/\n"] {
+        let mut script = parsed_script(&format!("{before}select 1"));
+        assert_eq!(
+            script.rewrite_vis_card(0, Some(&card(Some(0), None, 12, 1)), false).unwrap(),
+            "/**\n * @vis table\n * @vis card row=0 width=12 height=1\n */\nselect 1"
+        );
+    }
     let mut script = parsed_script("/**\n * @description Sales.\n * @vis table\n */\nselect 1");
     assert_eq!(
         script.rewrite_vis_card(0, Some(&card(None, None, 6, 3)), false).unwrap(),
         "/**\n * @description Sales.\n * @vis table\n * @vis card width=6 height=3\n */\nselect 1"
+    );
+}
+
+#[test]
+fn rewrite_vis_tags_consolidate_the_annotation() {
+    // The tagged comments of a query become one comment in place of the first one
+    let text = "-- @description\n-- Add to timestamps.\n-- No `date_sub`.\n-- @end\n\n/* @vis vegalite\n   {\"mark\": \"bar\"}\n*/\nselect 1 as a";
+    let mut script = parsed_script(text);
+    assert_eq!(
+        script.rewrite_vis_card(0, Some(&card(None, None, 6, 3)), false).unwrap(),
+        "/**\n * @description\n * Add to timestamps.\n * No `date_sub`.\n * @vis vegalite\n * {\"mark\": \"bar\"}\n * @vis card width=6 height=3\n */\nselect 1 as a"
+    );
+    // A new renderer goes after the description and the metadata
+    let mut script = parsed_script("/* @description Sales. */\n-- @metadata {\"a\": 1}\nselect 1 as a");
+    assert_eq!(
+        script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
+        "/**\n * @description Sales.\n * @metadata {\"a\": 1}\n * @vis table\n */\nselect 1 as a"
+    );
+    // Ordinary comments stay where they are, the text before the first tag of a block comment stays in front
+    let mut script = parsed_script("-- Note\n/* Revenue.\n   @vis table */\n-- More\n\n/* @description Sales. */\nselect 1 as a");
+    assert_eq!(
+        script.rewrite_vis_card(0, Some(&card(None, None, 6, 3)), false).unwrap(),
+        "-- Note\n/**\n * Revenue.\n * @vis table\n * @vis card width=6 height=3\n * @description Sales.\n */\n-- More\n\nselect 1 as a"
+    );
+    // The text before the first tag of a later block comment goes in front of all tags
+    let mut script = parsed_script("/* @description Sales. */\n/* Note.\n   @vis table */\nselect 1 as a");
+    assert_eq!(
+        script.rewrite_vis_card(0, Some(&card(None, None, 6, 3)), false).unwrap(),
+        "/**\n * Note.\n * @description Sales.\n * @vis table\n * @vis card width=6 height=3\n */\nselect 1 as a"
+    );
+    // The comment keeps its indentation
+    let mut script = parsed_script("  /* @vis table */\n  /* @vis card width=4 */\n  select 1 as a");
+    assert_eq!(
+        script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
+        "  /**\n   * @vis table\n   * @vis card width=4\n   */\n  select 1 as a"
     );
 }
 
@@ -260,11 +297,11 @@ fn rewrite_vis_card_targets_a_statement() {
     let mut script = parsed_script(text);
     assert_eq!(
         script.rewrite_vis_card(0, Some(&card(None, None, 6, 3)), false).unwrap(),
-        "/* @vis table\n   @vis card width=6 height=3 */\nselect 1;\ndelete from t;\n/* @vis table */\nselect 2"
+        "/**\n * @vis table\n * @vis card width=6 height=3\n */\nselect 1;\ndelete from t;\n/* @vis table */\nselect 2"
     );
     assert_eq!(
         script.rewrite_vis_card(2, Some(&card(None, None, 6, 3)), false).unwrap(),
-        "/* @vis table */\nselect 1;\ndelete from t;\n/* @vis table\n   @vis card width=6 height=3 */\nselect 2"
+        "/* @vis table */\nselect 1;\ndelete from t;\n/**\n * @vis table\n * @vis card width=6 height=3\n */\nselect 2"
     );
 }
 
@@ -279,41 +316,54 @@ fn rewrite_vis_card_clamps_the_grid() {
     ] {
         assert_eq!(
             script.rewrite_vis_card(0, Some(&input), false).unwrap(),
-            format!("/* @vis table\n   @vis card {expected} */ select 1")
+            format!("/**\n * @vis table\n * @vis card {expected}\n */ select 1")
         );
     }
 }
 
 #[test]
 fn rewrite_vis_renderer_replaces_inserts_and_removes() {
-    // The renderer keeps its place, the comment closes on a line of its own
+    // The renderer keeps its place
     let mut script = parsed_script("/* @vis table\n   @vis card width=4 */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&vegalite("{\"mark\": \"bar\"}")), false).unwrap(),
-        "/* @vis vegalite\n   {\"mark\": \"bar\"}\n   @vis card width=4 */\nselect 1 as a"
+        "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n * @vis card width=4\n */\nselect 1 as a"
     );
     let mut script = parsed_script("/* @vis table */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&vegalite("{\"mark\": \"bar\"}")), false).unwrap(),
-        "/* @vis vegalite\n   {\"mark\": \"bar\"}\n*/\nselect 1 as a"
+        "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */\nselect 1 as a"
     );
-    // Markdown templates keep their lines
-    let mut script = parsed_script("-- @vis table\n-- @end\nselect 1 as a");
-    let markdown = VisRenderer::from_parts("markdown", "### {{a}}\n\n- item").unwrap();
-    assert_eq!(
-        script.rewrite_vis_renderer(0, Some(&markdown), false).unwrap(),
-        "-- @vis markdown\n-- ### {{a}}\n--\n-- - item\n-- @end\nselect 1 as a"
-    );
+    // Markdown templates keep their lines, also lines that start with `*`
+    let mut script = parsed_script("-- @vis table\nselect 1 as a");
+    let markdown = VisRenderer::from_parts("markdown", "### {{a}}\n\n* item").unwrap();
+    let text = script.rewrite_vis_renderer(0, Some(&markdown), false).unwrap();
+    assert_eq!(text, "/**\n * @vis markdown\n * ### {{a}}\n *\n * * item\n */\nselect 1 as a");
+    let catalog = Catalog::new();
+    let mut written = Script::new(&catalog);
+    written.replace_text(&text);
+    written.analyze(&catalog, true).unwrap();
+    assert_eq!(written.analyzed.as_ref().unwrap().visualization_specs[0].markdown.as_ref().unwrap().row_template, "### {{a}}\n\n* item");
     // A query without tags gets a comment, a renderer goes before a card
     let mut script = parsed_script("-- Sales\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
-        "-- Sales\n/* @vis table */\nselect 1 as a"
+        "-- Sales\n/** @vis table */\nselect 1 as a"
+    );
+    let mut script = parsed_script("select 0;\n  select 1 as a");
+    assert_eq!(
+        script.rewrite_vis_renderer(1, Some(&VisRenderer::Table), false).unwrap(),
+        "select 0;\n  /** @vis table */\n  select 1 as a"
+    );
+    let mut script = parsed_script("select 0; select 1 as a");
+    assert_eq!(
+        script.rewrite_vis_renderer(1, Some(&VisRenderer::Table), false).unwrap(),
+        "select 0;\n/** @vis table */\nselect 1 as a"
     );
     let mut script = parsed_script("/* @vis card width=4 */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
-        "/* @vis table\n   @vis card width=4 */\nselect 1 as a"
+        "/**\n * @vis table\n * @vis card width=4\n */\nselect 1 as a"
     );
     // Removing the only tag removes the comment
     let mut script = parsed_script("/* @vis table */\nselect 1 as a");
@@ -322,20 +372,25 @@ fn rewrite_vis_renderer_replaces_inserts_and_removes() {
 
 #[test]
 fn rewrite_vis_tags_removes_tags() {
-    // The first tag of a comment, the next tag moves up
     let mut script = parsed_script("/* @vis table\n   @vis card width=4 */\nselect 1");
-    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/* @vis card width=4 */\nselect 1");
-    // The last tag, the comment closes after the previous line
+    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/** @vis card width=4 */\nselect 1");
     let mut script = parsed_script("/* @vis table\n   @vis card width=4 */\nselect 1");
-    assert_eq!(script.rewrite_vis_card(0, None, false).unwrap(), "/* @vis table */\nselect 1");
-    // A tag on a line of its own
+    assert_eq!(script.rewrite_vis_card(0, None, false).unwrap(), "/** @vis table */\nselect 1");
     let mut script = parsed_script("/* Sales\n   @vis table\n   @vis card width=4\n*/\nselect 1");
-    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/* Sales\n   @vis card width=4\n*/\nselect 1");
-    // Line comments keep the end line for the region before
-    let mut script = parsed_script("-- @description Sales\n-- @vis table\n-- @end\nselect 1");
-    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "-- @description Sales\n-- @end\nselect 1");
-    let mut script = parsed_script("-- @vis table\n-- @end\nselect 1");
-    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "select 1");
+    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/**\n * Sales\n * @vis card width=4\n */\nselect 1");
+    // The text before the first tag stays an ordinary comment
+    let mut script = parsed_script("/* Sales\n   @vis table\n*/\nselect 1");
+    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/** Sales */\nselect 1");
+    let mut script = parsed_script("-- @description Sales\n-- @vis table\nselect 1");
+    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/** @description Sales */\nselect 1");
+    // The comments of the annotation and the blank lines between them are replaced
+    let mut script = parsed_script("-- @description Sales\n-- @end\n\n/* @vis table */\nselect 1");
+    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/** @description Sales */\nselect 1");
+    let mut script = parsed_script("-- @description Sales\n/* @vis table */ select 1");
+    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/** @description Sales */ select 1");
+    for text in ["-- @vis table\n-- @end\nselect 1", "-- @vis table\nselect 1"] {
+        assert_eq!(parsed_script(text).rewrite_vis_renderer(0, None, false).unwrap(), "select 1");
+    }
     // Nothing to remove
     let mut script = parsed_script("select 1");
     assert_eq!(script.rewrite_vis_card(0, None, false).unwrap(), "select 1");
@@ -346,7 +401,7 @@ fn rewrite_vis_tags_escape_comment_delimiters() {
     let mut script = parsed_script("/* @vis table */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&vegalite("{\"title\": \"/* a */\"}")), false).unwrap(),
-        "/* @vis vegalite\n   {\"title\": \"/\\u002a a *\\/\"}\n*/\nselect 1 as a"
+        "/**\n * @vis vegalite\n * {\"title\": \"/\\u002a a *\\/\"}\n */\nselect 1 as a"
     );
     // The escaped spec reads back unchanged
     let catalog = Catalog::new();
@@ -356,14 +411,12 @@ fn rewrite_vis_tags_escape_comment_delimiters() {
     let analyzed = escaped.analyzed.as_ref().unwrap();
     assert!(analyzed.parsed.scanned.errors.is_empty() && analyzed.errors.is_empty());
     assert_eq!(analyzed.visualization_specs[0].vegalite.as_ref().unwrap()["title"], "/* a */");
-    // A Markdown template cannot be escaped in a block comment, line comments take it
+    // A Markdown template or a description cannot be escaped
     let markdown = VisRenderer::from_parts("markdown", "a */ b").unwrap();
-    assert!(script.rewrite_vis_renderer(0, Some(&markdown), false).is_err());
-    let mut script = parsed_script("-- @vis table\n-- @end\nselect 1 as a");
-    assert_eq!(
-        script.rewrite_vis_renderer(0, Some(&markdown), false).unwrap(),
-        "-- @vis markdown\n-- a */ b\n-- @end\nselect 1 as a"
-    );
+    let error = script.rewrite_vis_renderer(0, Some(&markdown), false).unwrap_err();
+    assert_eq!(error.message, "a comment tag cannot contain /* or */");
+    let mut script = parsed_script("-- @description see */ here\n/* @vis table */\nselect 1 as a");
+    assert!(script.rewrite_vis_card(0, Some(&card(None, None, 6, 3)), false).is_err());
 }
 
 #[test]
@@ -405,7 +458,7 @@ fn rewrite_vis_tags_apply_spans_to_the_current_text() {
     script.replace_text("/* @vis table */ select 2");
     assert_eq!(
         script.rewrite_vis_card(0, Some(&card(None, None, 6, 3)), false).unwrap(),
-        "/* @vis table\n   @vis card width=6 height=3 */ select 2"
+        "/**\n * @vis table\n * @vis card width=6 height=3\n */ select 2"
     );
     script.replace_text("x");
     assert!(script.rewrite_vis_card(0, Some(&card(None, None, 6, 3)), false).is_err());
@@ -413,63 +466,58 @@ fn rewrite_vis_tags_apply_spans_to_the_current_text() {
 
 #[test]
 fn rewrite_vegalite_inserts_a_comment() {
-    let mut script = parsed_script("/* @description Revenue. */\nselect 1 as a");
+    let mut script = parsed_script("select 1 as a");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark":"bar","encoding":{"x":{"field":"a"}}}"#, false).unwrap().0,
-        "/* @description Revenue. */\n/* @vis vegalite\n   {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n*/\nselect 1 as a"
+        "/**\n * @vis vegalite\n * {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n */\nselect 1 as a"
+    );
+    // The description joins the comment
+    let mut script = parsed_script("/* @description Revenue. */\nselect 1 as a");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"mark":"bar"}"#, false).unwrap().0,
+        "/**\n * @description Revenue.\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */\nselect 1 as a"
     );
 }
 
 #[test]
 fn rewrite_vegalite_replaces_the_renderer() {
-    // The JSON is aligned with the tag, the card stays
+    // The JSON goes on the line after the tag, the card stays
     let mut script = parsed_script("/* @vis vegalite {\"mark\": \"line\"}\n   @vis card width=6 */\nselect 1");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "/* @vis vegalite\n   {\"mark\": \"bar\"}\n   @vis card width=6 */\nselect 1"
+        "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n * @vis card width=6\n */\nselect 1"
     );
     // A multi-line spec and other renderers are replaced
     let mut script = parsed_script("/* @vis card width=6\n   @vis vegalite\n   {\n     \"mark\": \"line\"\n   }\n*/\nselect 1");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "/* @vis card width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/\nselect 1"
+        "/**\n * @vis card width=6\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */\nselect 1"
     );
     let mut script = parsed_script("/* @vis table */ select 1");
-    assert_eq!(
-        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "/* @vis vegalite\n   {\"mark\": \"bar\"} */ select 1"
-    );
-    // Line comments and gutters prefix the lines of the spec
-    let mut script = parsed_script("-- @vis markdown\n-- **{{a}}**\n-- @vis card width=2\n-- @end\nselect 1");
-    assert_eq!(
-        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @vis card width=2\n-- @end\nselect 1"
-    );
-    let mut script = parsed_script("/*\n * @vis table\n * @vis card width=2\n */\nselect 1");
-    assert_eq!(
-        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "/*\n * @vis vegalite\n * {\"mark\": \"bar\"}\n * @vis card width=2\n */\nselect 1"
-    );
-    let mut script = parsed_script("/** @vis table\n  * @vis card width=2 */\nselect 1");
-    assert_eq!(
-        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
-        "/** @vis vegalite\n  * {\"mark\": \"bar\"}\n  * @vis card width=2 */\nselect 1"
-    );
+    assert_eq!(script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0, "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */ select 1");
+    // Line comments and gutters become the canonical comment
+    for before in ["-- @vis markdown\n-- **{{a}}**\n-- @vis card width=2\n-- @end\n", "/*\n * @vis table\n * @vis card width=2\n */\n", "/** @vis table\n  * @vis card width=2 */\n"] {
+        let mut script = parsed_script(&format!("{before}select 1"));
+        assert_eq!(
+            script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
+            "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n * @vis card width=2\n */\nselect 1"
+        );
+    }
 }
 
 #[test]
 fn rewrite_vegalite_returns_the_span_of_the_tag() {
-    let (text, span) = parsed_script("/* @vis table\n   @vis card width=6 */\nselect 1").rewrite_vegalite("{}", false).unwrap();
-    assert_eq!(&text[span.offset as usize..span.end() as usize], "vegalite\n   {}");
+    let (text, span) = parsed_script("/* @description Sales.\n   @vis table\n   @vis card width=6 */\nselect 1").rewrite_vegalite("{}", false).unwrap();
+    assert_eq!(&text[span.offset as usize..span.end() as usize], "@vis vegalite\n * {}");
     let (text, span) = parsed_script("select 1").rewrite_vegalite("{}", false).unwrap();
-    assert_eq!(&text[span.offset as usize..span.end() as usize], "/* @vis vegalite\n   {}\n*/\n");
+    assert_eq!(&text[span.offset as usize..span.end() as usize], "@vis vegalite\n * {}");
 }
 
 #[test]
 fn rewrite_vegalite_escapes_comment_delimiters() {
     let mut script = parsed_script("select 1");
     let (text, _) = script.rewrite_vegalite(r#"{"title": "a */ b /* c"}"#, false).unwrap();
-    assert_eq!(text, "/* @vis vegalite\n   {\"title\": \"a *\\/ b /\\u002a c\"}\n*/\nselect 1");
+    assert_eq!(text, "/**\n * @vis vegalite\n * {\"title\": \"a *\\/ b /\\u002a c\"}\n */\nselect 1");
     // The comment neither nests nor ends early, the spec reads back unchanged
     let catalog = Catalog::new();
     let mut written = Script::new(&catalog);

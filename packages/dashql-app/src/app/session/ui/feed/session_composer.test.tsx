@@ -58,7 +58,7 @@ describe('Session composer', () => {
 
     // The view is created by a chain of effects, wait until the composer hands it out
     async function render(variant = SessionComposerVariant.Docked, aiAvailable = false, offlineSessionId: string | null = null) {
-        const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `${core.renderCommentTag('description', 'Text.')}\nselect 42;` });
+        const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `/**\n * @description\n * Text.\n */\nselect 42;` });
         act(() => root.render(<LoggerProvider>
             <SessionConnectionAttentionContext.Provider value={attention as any}>
                 <SessionComposer instance={dql} catalog={catalog} variant={variant} aiAvailable={aiAvailable}

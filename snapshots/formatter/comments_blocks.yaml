@@ -120,7 +120,7 @@ formatter-snapshots:
               -- ab cdefghijklmnopqrstuvwxyz
               select 1;
 
-  - name: comment_unterminated_region
+  - name: comment_region_without_end
     input: |-
       -- @description
       -- Text that is not closed and wraps because it is quite long.
@@ -134,13 +134,17 @@ formatter-snapshots:
           - mode: compact
             width: 30
             expected: |-
-              -- @description Text that is
-              -- not closed and wraps
-              -- because it is quite long.
+              /**
+               * @description
+               * Text that is not closed and wraps because it is quite long.
+               */
               select 1;
           - mode: pretty
             expected: |-
-              -- @description Text that is not closed and wraps because it is quite long.
+              /**
+               * @description
+               * Text that is not closed and wraps because it is quite long.
+               */
               select 1;
 
   - name: comment_region_after_comments
@@ -165,23 +169,23 @@ formatter-snapshots:
             expected: |-
               -- Leading text that wraps
               -- because it is quite long.
-              -- @description extra
-              -- content inside the region
-              -- @end
-              -- @metadata
-              -- { "a": 1 }
-              -- @end
+              /**
+               * @description extra
+               * content inside the region
+               * @metadata
+               * { "a": 1 }
+               */
               -- trailing text
               select 1;
           - mode: pretty
             expected: |-
               -- Leading text that wraps because it is quite long.
-              -- @description extra
-              -- content inside the region
-              -- @end
-              -- @metadata
-              -- { "a": 1 }
-              -- @end
+              /**
+               * @description extra
+               * content inside the region
+               * @metadata
+               * { "a": 1 }
+               */
               -- trailing text
               select 1;
 
@@ -202,21 +206,21 @@ formatter-snapshots:
               select 1;
           - mode: compact
             expected: |-
-              -- @description
-              -- one
-              -- @end
-              -- @metadata
-              -- two
-              -- @end
+              /**
+               * @description
+               * one
+               * @metadata
+               * two
+               */
               select 1;
           - mode: pretty
             expected: |-
-              -- @description
-              -- one
-              -- @end
-              -- @metadata
-              -- two
-              -- @end
+              /**
+               * @description
+               * one
+               * @metadata
+               * two
+               */
               select 1;
 
   - name: comment_regions_one_end_line
@@ -233,15 +237,17 @@ formatter-snapshots:
               select 1;
           - mode: compact
             expected: |-
-              /* @description Revenue per region, which is long enough to be wrapped.
-                 @vis table
-              */
+              /**
+               * @description Revenue per region, which is long enough to be wrapped.
+               * @vis table
+               */
               select 1;
           - mode: pretty
             expected: |-
-              /* @description Revenue per region, which is long enough to be wrapped.
-                 @vis table
-              */
+              /**
+               * @description Revenue per region, which is long enough to be wrapped.
+               * @vis table
+               */
               select 1;
 
   - name: vis_line_comments_to_block
@@ -258,15 +264,17 @@ formatter-snapshots:
               select region from sales;
           - mode: compact
             expected: |-
-              /* @vis vegalite
-                 {"mark": "bar", "encoding": {"x": {"field": "region"}}}
-              */
+              /**
+               * @vis vegalite
+               * {"mark": "bar", "encoding": {"x": {"field": "region"}}}
+               */
               select region from sales;
           - mode: pretty
             expected: |-
-              /* @vis vegalite
-                 {"mark": "bar", "encoding": {"x": {"field": "region"}}}
-              */
+              /**
+               * @vis vegalite
+               * {"mark": "bar", "encoding": {"x": {"field": "region"}}}
+               */
               select region
               from sales;
 
@@ -287,18 +295,20 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               -- Revenue dashboard.
-              /* @description Revenue per region.
-                 @vis card width=6 height=3
-                 @vis table
-              */
+              /**
+               * @description Revenue per region.
+               * @vis card width=6 height=3
+               * @vis table
+               */
               select 1;
           - mode: pretty
             expected: |-
               -- Revenue dashboard.
-              /* @description Revenue per region.
-                 @vis card width=6 height=3
-                 @vis table
-              */
+              /**
+               * @description Revenue per region.
+               * @vis card width=6 height=3
+               * @vis table
+               */
               select 1;
 
   - name: vis_block_comment_several_tags
@@ -317,21 +327,23 @@ formatter-snapshots:
               select 1;
           - mode: compact
             expected: |-
-              /* Revenue dashboard.
-                 @description Revenue per region.
-                 @vis card width=6 height=3
-                 @vis vegalite
-                 {"mark": "bar"}
-              */
+              /**
+               * Revenue dashboard.
+               * @description Revenue per region.
+               * @vis card width=6 height=3
+               * @vis vegalite
+               * {"mark": "bar"}
+               */
               select 1;
           - mode: pretty
             expected: |-
-              /* Revenue dashboard.
-                 @description Revenue per region.
-                 @vis card width=6 height=3
-                 @vis vegalite
-                 {"mark": "bar"}
-              */
+              /**
+               * Revenue dashboard.
+               * @description Revenue per region.
+               * @vis card width=6 height=3
+               * @vis vegalite
+               * {"mark": "bar"}
+               */
               select 1;
 
   - name: vis_inline_json
@@ -347,23 +359,25 @@ formatter-snapshots:
               select date, revenue from sales;
           - mode: compact
             expected: |-
-              /* @vis vegalite
-                 {
-                   "mark": {"type": "line", "point": true},
-                   "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}
-                 }
-              */
-              /* @vis card width=12 */
+              /**
+               * @vis vegalite
+               * {
+               *   "mark": {"type": "line", "point": true},
+               *   "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}
+               * }
+               * @vis card width=12
+               */
               select date, revenue from sales;
           - mode: pretty
             expected: |-
-              /* @vis vegalite
-                 {
-                   "mark": {"type": "line", "point": true},
-                   "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}
-                 }
-              */
-              /* @vis card width=12 */
+              /**
+               * @vis vegalite
+               * {
+               *   "mark": {"type": "line", "point": true},
+               *   "encoding": {"x": {"field": "date", "type": "temporal"}, "y": {"field": "revenue", "aggregate": "sum"}}
+               * }
+               * @vis card width=12
+               */
               select date, revenue
               from sales;
 
@@ -380,44 +394,46 @@ formatter-snapshots:
           - mode: compact
             width: 80
             expected: |-
-              /* @vis vegalite
-                 {
-                   "layer": [
-                     {
-                       "mark": {"type": "bar", "tooltip": true},
-                       "encoding": {
-                         "x": {"field": "region", "type": "nominal", "sort": "-y"},
-                         "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}
-                       }
-                     },
-                     {
-                       "mark": {"type": "rule", "color": "red"},
-                       "encoding": {"y": {"datum": 1000}}
-                     }
-                   ]
-                 }
-              */
+              /**
+               * @vis vegalite
+               * {
+               *   "layer": [
+               *     {
+               *       "mark": {"type": "bar", "tooltip": true},
+               *       "encoding": {
+               *         "x": {"field": "region", "type": "nominal", "sort": "-y"},
+               *         "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}
+               *       }
+               *     },
+               *     {
+               *       "mark": {"type": "rule", "color": "red"},
+               *       "encoding": {"y": {"datum": 1000}}
+               *     }
+               *   ]
+               * }
+               */
               select region, revenue from sales;
           - mode: pretty
             width: 80
             expected: |-
-              /* @vis vegalite
-                 {
-                   "layer": [
-                     {
-                       "mark": {"type": "bar", "tooltip": true},
-                       "encoding": {
-                         "x": {"field": "region", "type": "nominal", "sort": "-y"},
-                         "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}
-                       }
-                     },
-                     {
-                       "mark": {"type": "rule", "color": "red"},
-                       "encoding": {"y": {"datum": 1000}}
-                     }
-                   ]
-                 }
-              */
+              /**
+               * @vis vegalite
+               * {
+               *   "layer": [
+               *     {
+               *       "mark": {"type": "bar", "tooltip": true},
+               *       "encoding": {
+               *         "x": {"field": "region", "type": "nominal", "sort": "-y"},
+               *         "y": {"field": "revenue", "type": "quantitative", "aggregate": "sum"}
+               *       }
+               *     },
+               *     {
+               *       "mark": {"type": "rule", "color": "red"},
+               *       "encoding": {"y": {"datum": 1000}}
+               *     }
+               *   ]
+               * }
+               */
               select region, revenue
               from sales;
 
@@ -443,29 +459,33 @@ formatter-snapshots:
               select 'a' as metric, 1 as value, 'x' as detail;
           - mode: compact
             expected: |-
-              /* @vis vegalite
-                 {"mark": "bar",
-              */
+              /**
+               * @vis vegalite
+               * {"mark": "bar",
+               */
               select 1;
 
-              /* @vis markdown
-                 ### {{metric}}
-                 - {{value}}
-                   - {{detail}}
-              */
+              /**
+               * @vis markdown
+               * ### {{metric}}
+               * - {{value}}
+               *   - {{detail}}
+               */
               select 'a' as metric, 1 as value, 'x' as detail;
           - mode: pretty
             expected: |-
-              /* @vis vegalite
-                 {"mark": "bar",
-              */
+              /**
+               * @vis vegalite
+               * {"mark": "bar",
+               */
               select 1;
 
-              /* @vis markdown
-                 ### {{metric}}
-                 - {{value}}
-                   - {{detail}}
-              */
+              /**
+               * @vis markdown
+               * ### {{metric}}
+               * - {{value}}
+               *   - {{detail}}
+               */
               select 'a' as metric, 1 as value, 'x' as detail;
 
   - name: vis_line_comments_with_comment_end
@@ -491,6 +511,69 @@ formatter-snapshots:
               -- @vis markdown
               -- see */ here
               -- @end
+              select 1;
+
+  - name: annotation_comments_are_merged
+    input: |-
+      -- @description
+      -- Add to and subtract from timestamps and measure the distance between them.
+      -- @end
+
+      /* @vis vegalite
+         {"mark": "bar"}
+      */
+      /* @vis card width=6 */
+      select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              /**
+               * @description
+               * Add to and subtract from timestamps and measure the distance between them.
+               * @vis vegalite
+               * {"mark": "bar"}
+               * @vis card width=6
+               */
+              select 1;
+          - mode: pretty
+            expected: |-
+              /**
+               * @description
+               * Add to and subtract from timestamps and measure the distance between them.
+               * @vis vegalite
+               * {"mark": "bar"}
+               * @vis card width=6
+               */
+              select 1;
+
+  - name: annotation_comments_with_ordinary_comments
+    input: |-
+      /* @description Revenue. */
+      -- a note
+      /* @vis table */
+      select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              /** @description Revenue. */
+              -- a note
+              /** @vis table */
+              select 1;
+          - mode: pretty
+            expected: |-
+              /** @description Revenue. */
+              -- a note
+              /** @vis table */
               select 1;
 
   - name: comment_tag_without_name

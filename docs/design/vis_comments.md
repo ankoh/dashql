@@ -4,24 +4,26 @@ A query is visualized by `@vis` tags in the comments directly before it. The scr
 every engine and tool runs it unmodified, and only DashQL reads the tags.
 
 ```sql
-/* @vis vegalite
-   {
-     "mark": "bar",
-     "encoding": {
-       "x": {"field": "region", "type": "nominal"},
-       "y": {"field": "revenue", "aggregate": "sum"}
-     }
-   }
-*/
-/* @vis card width=6 height=3 */
+/**
+ * @description Revenue per region.
+ * @vis vegalite
+ * {
+ *   "mark": "bar",
+ *   "encoding": {
+ *     "x": {"field": "region", "type": "nominal"},
+ *     "y": {"field": "revenue", "aggregate": "sum"}
+ *   }
+ * }
+ * @vis card width=6 height=3
+ */
 SELECT region, revenue FROM sales;
 ```
 
 ## Tags
 
 The tags are comment tags (see `core_parser.md`): a line whose first text is `@vis` starts a tag that
-runs to the next tag line or the end of the comment, so one comment can hold several tags. A tag starts
-with its kind, what follows depends on the kind:
+runs to the next tag line or the end of the comment, like the block tags of Javadoc, so one comment can
+hold several tags. A tag starts with its kind, what follows depends on the kind:
 
 | Kind | After the kind |
 |---|---|
@@ -31,27 +33,31 @@ with its kind, what follows depends on the kind:
 | `card` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. |
 
 ```sql
-/* @description Revenue per region.
-   @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "region"}, "y": {"field": "revenue"}}}
-   @vis card row=0 column=6 width=6 height=4 */
+/**
+ * @description Revenue per region.
+ * @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "region"}, "y": {"field": "revenue"}}}
+ * @vis card row=0 column=6 width=6 height=4
+ */
 SELECT region, sum(revenue) AS revenue FROM sales GROUP BY region;
 
-/* @vis markdown
-   ### {{metric}}
-   **{{value}}** · {{status}}
-*/
+/**
+ * @vis markdown
+ * ### {{metric}}
+ * **{{value}}** · {{status}}
+ */
 SELECT metric, value, status FROM metrics;
 ```
 
 A statement has at most one renderer tag (`vegalite`, `markdown` or `table`) and at most one `card`.
 The first one wins, the others are warnings. Only queries (`SELECT`) are visualized.
 
-The line comment form works too, the last tag of a run closes with `-- @end`:
+DashQL writes the Javadoc-style form, but any block comment and runs of line comments work too. The last
+tag of a run of line comments ends with the run; older scripts close it with `-- @end`, which is still
+accepted:
 
 ```sql
 -- @vis table
 -- @vis card width=12
--- @end
 SELECT * FROM orders;
 ```
 
@@ -72,20 +78,47 @@ it as an edit of the script (`rewriteVisRenderer` and `rewriteVisCard` of the sc
 visualization of a script in the app carries the statement id, from the compiler for the terminal query
 and from the planner for any visualized query, so a card moves also when a statement follows the query.
 
-An edit touches only its tag. Other tags, prose and hand-written layout stay as written:
+The tags are edited in the annotation of the statement (`annotation.rs`): its comment tags
+(`@description`, `@metadata`, `@vis`) as one list, the `Annotation` with the text before the first tag
+(`preamble`) and the tags, each a name and content lines whose first line is the text on the line of
+the tag. `Script::read_annotation` reads it, `Script::rewrite_annotation` replaces it; the app and
+core-js reach both as `readAnnotation` and `rewriteAnnotation` of a script or script session, with the
+annotation as JSON (`{"preamble": [...], "tags": [{"name": ..., "lines": [...]}]}`). The `@vis` rewrites
+are small edits of the annotation, any other tag, e.g. a description or metadata, is written the same
+way. The annotation printer is shared with the formatter, so an edit and a formatting print the same
+comment.
 
-- A replaced tag keeps its place. Its continuation lines take the prefix of the tag line (`-- `, ` * ` or
-  the indentation after `/* `), and a block comment that now ends after a tag of several lines closes
-  with `*/` on a line of its own.
-- A new renderer goes before the other `@vis` tags of the statement, a new card after its renderer, in the
-  same comment. A statement without tags gets a new block comment in front of it. A card needs a renderer.
-- Removing the only tag of a comment removes the comment. In a run of line comments, the `-- @end` line
-  stays for the region before.
+Writing an annotation consolidates it. The comments with tags in front of the statement become one
+comment, in place of the first of them:
 
-Tags are printed like the formatter prints them. `/*` would nest and `*/` would end a block comment:
-in Vega-Lite JSON they can only be part of strings and are escaped as `/\u002a` and `*\/`, which keeps
-the value. A Markdown template with `/*` or `*/` cannot go into a block comment and is an error there,
-line comments take it as written.
+```sql
+-- @description                          /**
+-- Revenue per region.                    * @description
+-- @end                           =>      * Revenue per region.
+/* @vis vegalite {"mark": "bar"} */       * @vis vegalite
+SELECT region, revenue FROM sales;        * {"mark": "bar"}
+                                          * @vis card width=6 height=3
+                                          */
+                                         SELECT region, revenue FROM sales;
+```
+
+- The comment is printed like the formatter prints tagged comments (see Formatting), with the
+  indentation of the comment it replaces.
+- The edited tag is printed anew, the other tags keep their content as written. Text that followed a tag
+  on its line stays there.
+- Text before the first tag of a block comment goes in front of the tags, after a tag it would read as
+  the content of the tag. Ordinary comments stay where they are. Blank lines between the comments of the
+  annotation are removed.
+- A new renderer goes before the other `@vis` tags, after a description or metadata. A new card goes
+  after the renderer. A statement without tags gets a new comment on the line before it. A card needs a
+  renderer.
+- Removing the last tag removes the comment.
+- An annotation that would not read back unchanged is an error: an unknown tag name, a line with a line
+  break, a continuation line that starts with a tag.
+
+`/*` would nest and `*/` would end the comment: in Vega-Lite JSON they can only be part of strings and
+are escaped as `/\u002a` and `*\/`, which keeps the value. A Markdown template or a description with
+`/*` or `*/` is an error.
 
 ## Analysis
 
@@ -132,9 +165,8 @@ Agents write charts with `dashql agent vis edit <script>`, which takes a Vega-Li
 `--file`. The app checks the spec before it touches the script: it must be a JSON object that Vega-Lite
 compiles without errors or warnings (with empty data), and the analyzer must not warn about the new tag,
 e.g. about a `field` that is no output column or about `data`. `Script::rewrite_vegalite` then replaces
-the renderer tag of the terminal query (`vegalite`, `markdown` or `table`) or inserts a
-`/* @vis vegalite ... */` comment; the spec is printed compactly (see Formatting), its lines take the
-`-- ` of line comments, the ` * ` gutter or the indentation of block comments.
+the renderer tag of the terminal query (`vegalite`, `markdown` or `table`) or adds one, and consolidates
+the annotation like the other rewrites (see Rewriting tags); the spec is printed compactly (see Formatting).
 
 The editor highlights `@vis` tags like code (`vis_highlight.rs`): the syntax spans of such a comment are
 split into the tag and kind (keywords), JSON keys and `card` keys (identifiers), JSON strings, numbers
@@ -149,16 +181,21 @@ at the `field` value, not at the same text elsewhere. `serde_json` builds the va
 
 ## Formatting
 
-The formatter prints every comment with a `@vis` tag as a canonical block comment
-(`formatter/comments.rs`): `table` and `card` tags on one line, the JSON of `vegalite` printed
-compactly with the key order kept (`compact_json.rs`), Markdown verbatim. A JSON value that fits in the
-rest of its line stays on one line, objects and arrays that don't fit put each entry on a line of its
-own with 2-space indentation, so a spec reads like the Vega editor prints it instead of one key per
-line. The JSON fills the formatting width behind the comment indentation; `@vis` rewrites, which have
-no formatting width, use 80 columns. The lines after the first are
-aligned after `/* `, and a run of line comments with a `@vis` tag becomes one block comment. Malformed
-JSON stays as written, and a body that contains `/*` or `*/` keeps its original form, since it would
-end or nest the block comment.
+The formatter prints comments with tags as one canonical comment (`formatter/comments.rs`), in the
+style of Javadoc, JSDoc and Doxygen: a single line stays on the line of `/**` (`/** @vis table */`),
+otherwise `/**` and `*/` are on lines of their own and every line has a ` * ` gutter. The gutter keeps
+lines that start with `*`, e.g. Markdown emphasis or lists. Tagged comments that follow each other with
+nothing but whitespace between them (block comments and tagged regions of line comments) are merged into
+one, so the annotation of a statement reads as one block, the same comment that a rewrite prints.
+Ordinary comments between them keep them apart.
+
+`table` and `card` tags are printed on one line, the JSON of `vegalite` compactly with the key order kept
+(`compact_json.rs`), descriptions, metadata and Markdown verbatim. A JSON value that fits in the rest of
+its line stays on one line, objects and arrays that don't fit put each entry on a line of its own with
+2-space indentation, so a spec reads like the Vega editor prints it instead of one key per line. The
+JSON fills the formatting width behind the gutter; rewrites, which have no formatting width, use 80
+columns. Malformed JSON stays as written, and comments whose content contains `/*` or `*/` keep their
+original form, since it would end or nest the comment.
 
 ## Why comments
 

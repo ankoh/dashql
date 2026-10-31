@@ -244,7 +244,7 @@ describe('session execution with real core planning', () => {
         // The card of the captured statement can be moved although a DELETE follows it
         expect(f.script('1_visualize.sql').scriptSession.rewriteVisCard(2, 0, 0, 6, 3)).toBe(
             'create table items (id int);\n/* @vis table */\nselect id from items;\n'
-            + '/* @vis table\n   @vis card row=0 column=0 width=6 height=3 */\nselect 2 as value;\n'
+            + '/**\n * @vis table\n * @vis card row=0 column=0 width=6 height=3\n */\nselect 2 as value;\n'
             + 'delete from items;');
         const actions = f.modifySessionScripts.mock.calls.map(([action]) => action);
         const captured = actions.findIndex(action => action.type === SET_SCRIPT_EXECUTION_VISUALIZATION);

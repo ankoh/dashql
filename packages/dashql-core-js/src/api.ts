@@ -4,6 +4,7 @@ import * as flatbuffers from 'flatbuffers';
 import * as glue from './wasm/dashql_core.js';
 import { decodeBatchResult, encodeBatchRequest } from './batch.js';
 import type { BatchRequest, BatchResult } from './batch.js';
+import type { ScriptAnnotation } from './comment_tags.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
 /// Every module that re-exports the core bindings (e.g. the shell module) satisfies this interface.
@@ -523,6 +524,17 @@ export class DashQLScriptSession {
         return new DashQLScript(new Ptr(SCRIPT_TYPE, this.ptr.api, native));
     }
 
+    /// The annotation of a statement: the comment tags in front of it.
+    public readAnnotation(statementId: number, parseIfOutdated: boolean = true): ScriptAnnotation {
+        return JSON.parse(this.ptr.assertNotNull().readAnnotation(statementId, parseIfOutdated)) as ScriptAnnotation;
+    }
+
+    /// Replace the annotation of a statement, printed as one comment in place of its tagged comments. An empty
+    /// annotation removes them. Returns the new text, the session is not changed.
+    public rewriteAnnotation(statementId: number, annotation: ScriptAnnotation, parseIfOutdated: boolean = true): string {
+        return this.ptr.assertNotNull().rewriteAnnotation(statementId, JSON.stringify(annotation), parseIfOutdated);
+    }
+
     /// Set the dashboard placement of a query, its `@vis card` tag. Returns the new text, the script is not changed.
     public rewriteVisCard(
         statementId: number,
@@ -655,6 +667,15 @@ export class DashQLScript {
     /// Return the first parsed statement without its separator or surrounding trivia.
     public getStatementText(parseIfOutdated: boolean = true): string {
         return this.ptr.assertNotNull().getStatementText(parseIfOutdated);
+    }
+    /// The annotation of a statement: the comment tags in front of it.
+    public readAnnotation(statementId: number, parseIfOutdated: boolean = true): ScriptAnnotation {
+        return JSON.parse(this.ptr.assertNotNull().readAnnotation(statementId, parseIfOutdated)) as ScriptAnnotation;
+    }
+    /// Replace the annotation of a statement, printed as one comment in place of its tagged comments. An empty
+    /// annotation removes them. Returns the new text, the script is not changed.
+    public rewriteAnnotation(statementId: number, annotation: ScriptAnnotation, parseIfOutdated: boolean = true): string {
+        return this.ptr.assertNotNull().rewriteAnnotation(statementId, JSON.stringify(annotation), parseIfOutdated);
     }
     /// Visualize the terminal query with a Vega-Lite spec, a JSON object: replace its `@vis vegalite`,
     /// `markdown` or `table` tag in the text, or insert a `@vis vegalite` comment. Returns the UTF-8 byte

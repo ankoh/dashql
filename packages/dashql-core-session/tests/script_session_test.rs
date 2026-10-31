@@ -947,11 +947,11 @@ fn rewrites_the_card_through_the_parsed_comments() {
 
     assert_eq!(
         session.rewrite_vis_card(0, Some(&VisCard { row: Some(2), column: Some(5), width: 6, height: 4 }), true).unwrap(),
-        "/* \u{1F4CA} @vis card is text here\n   @vis table\n   @vis card row=2 column=5 width=6 height=4 */\nselect '\u{1F4CA}' as label"
+        "/**\n * \u{1F4CA} @vis card is text here\n * @vis table\n * @vis card row=2 column=5 width=6 height=4\n */\nselect '\u{1F4CA}' as label"
     );
     assert_eq!(
         session.rewrite_vis_card(0, Some(&VisCard { row: None, column: None, width: 6, height: 3 }), true).unwrap(),
-        "/* \u{1F4CA} @vis card is text here\n   @vis table\n   @vis card width=6 height=3 */\nselect '\u{1F4CA}' as label"
+        "/**\n * \u{1F4CA} @vis card is text here\n * @vis table\n * @vis card width=6 height=3\n */\nselect '\u{1F4CA}' as label"
     );
 }
 
@@ -962,7 +962,7 @@ fn inserts_a_card_into_a_visualization() {
     assert_eq!(session.replace_text(0, "/* @vis table */\nselect 1").status, EditorUpdateStatus::OK);
     assert_eq!(
         session.rewrite_vis_card(0, Some(&VisCard { row: Some(0), column: Some(0), width: 6, height: 3 }), true).unwrap(),
-        "/* @vis table\n   @vis card row=0 column=0 width=6 height=3 */\nselect 1"
+        "/**\n * @vis table\n * @vis card row=0 column=0 width=6 height=3\n */\nselect 1"
     );
 }
 
@@ -1068,7 +1068,7 @@ fn rejects_cards_without_a_renderer() {
     script.replace_text("/* @vis vegalite {\"mark\": \"bar\"} */\nselect 1");
     assert_eq!(
         script.rewrite_vis_card(0, Some(&card), true).unwrap(),
-        "/* @vis vegalite {\"mark\": \"bar\"}\n   @vis card column=0 width=12 height=1 */\nselect 1"
+        "/**\n * @vis vegalite {\"mark\": \"bar\"}\n * @vis card column=0 width=12 height=1\n */\nselect 1"
     );
 }
 

@@ -303,7 +303,8 @@ first text is a known tag, `@<tag>`. The known tags are `metadata`, `description
 line or to the end of the comment, like the block tags of Javadoc: in a block comment the comment end
 closes the last tag, in a run of line comments the end of the run. Text before the first tag of a block
 comment is an ordinary block. Older scripts close the last region of line comments with `-- @end`, the
-line is still accepted and ends the region, comments after it are ordinary comments.
+line is still accepted and ends the region, comments after it are ordinary comments. DashQL writes
+Javadoc-style comments (see `vis_comments.md`).
 
 ```sql
 /**
@@ -330,8 +331,8 @@ content line. The blocks of one block comment share the comment and cover it wit
 `parseCommentTagObject` in `dashql-core-js/src/comment_tags.ts`, e.g. `readMetadata` reads the first
 `metadata` tag as a JSON object. A statement points to the blocks of its description comments
 (`description_blocks_begin` / `description_blocks_count`). Only structural problems are warnings
-(`MALFORMED_COMMENT_TAG`): an `@end` without an opening tag. The formatter keeps tagged regions of line
-comments verbatim.
+(`MALFORMED_COMMENT_TAG`): an `@end` without an opening tag. The formatter prints tagged comments as one
+Javadoc-style comment (see `vis_comments.md`).
 
 ## Parameters
 

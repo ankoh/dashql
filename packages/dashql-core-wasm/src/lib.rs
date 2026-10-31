@@ -14,6 +14,7 @@ use dashql_core::catalog::changes::CatalogChange;
 use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer, EntryIdSource};
 use dashql_core::completion::Completion;
 use dashql_core::error::Error;
+use dashql_core::annotation::Annotation;
 use dashql_core::vis_rewrite::{VisCard, VisRenderer};
 use dashql_core::script::Script as CoreScript;
 use dashql_core_session::script_execution::ScriptExecution as CoreScriptExecution;
@@ -47,6 +48,11 @@ pub fn install_panic_hook() {
 /// Convert a core error into a JS exception
 fn js_error(error: Error) -> JsError {
     JsError::new(&error.message)
+}
+
+/// Read an annotation from its JSON
+fn parse_annotation(json: &str) -> Result<Annotation, JsError> {
+    serde_json::from_str(json).map_err(|e| JsError::new(&format!("invalid annotation: {e}")))
 }
 
 /// Finish a FlatBuffers object API value into bytes
@@ -441,6 +447,21 @@ impl Script {
         Ok(vec![tag.offset, tag.length])
     }
 
+    /// The annotation of a statement as JSON, `{"preamble": [...], "tags": [{"name": ..., "lines": [...]}]}`
+    #[wasm_bindgen(js_name = readAnnotation)]
+    pub fn read_annotation(&mut self, statement_id: u32, parse_if_outdated: bool) -> Result<String, JsError> {
+        let annotation = self.inner.read_annotation(statement_id as usize, parse_if_outdated).map_err(js_error)?;
+        serde_json::to_string(&annotation).map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Replace the annotation of a statement, given as JSON like `readAnnotation` returns it. Returns the new
+    /// text, the script is not changed.
+    #[wasm_bindgen(js_name = rewriteAnnotation)]
+    pub fn rewrite_annotation(&mut self, statement_id: u32, annotation: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+        let annotation = parse_annotation(annotation)?;
+        self.inner.rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated).map_err(js_error)
+    }
+
     /// The packed `ScriptStatistics`
     #[wasm_bindgen(js_name = getStatistics)]
     pub fn get_statistics(&self) -> Vec<u8> {
@@ -653,6 +674,20 @@ impl ScriptSession {
     ) -> Result<Script, JsError> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case);
         self.format_with(catalog.inner.clone(), config, parse_if_outdated)
+    }
+
+    /// The annotation of a statement as JSON, like `Script.readAnnotation`
+    #[wasm_bindgen(js_name = readAnnotation)]
+    pub fn read_annotation(&self, statement_id: u32, parse_if_outdated: bool) -> Result<String, JsError> {
+        let annotation = self.inner.borrow_mut().read_annotation(statement_id as usize, parse_if_outdated).map_err(js_error)?;
+        serde_json::to_string(&annotation).map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Replace the annotation of a statement, given as JSON. Returns the new text.
+    #[wasm_bindgen(js_name = rewriteAnnotation)]
+    pub fn rewrite_annotation(&self, statement_id: u32, annotation: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+        let annotation = parse_annotation(annotation)?;
+        self.inner.borrow_mut().rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated).map_err(js_error)
     }
 
     /// Set the `@vis card` tag of a query, negative rows and columns are absent. Returns the new text.

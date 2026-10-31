@@ -16,7 +16,7 @@ beforeAll(async () => {
 
 /// A snippet file with a description
 function file(body = 'select 1;', description = 'Selects one.'): string {
-    return `${dashql.renderCommentTag('description', description)}\n${body}`;
+    return `/**\n * @description\n * ${description}\n */\n${body}`;
 }
 
 /// The scanner and parser errors of a text
@@ -112,7 +112,7 @@ describe('Snippet registry', () => {
             'json/no-engine.sql': file(),
             'oracle/json/unknown-engine.sql': file(),
             'hyper/json/metadata.sql': `-- @metadata\n-- {"tags": []}\n-- @end\n${file()}`,
-            'hyper/json/no-body.sql': dashql.renderCommentTag('description', 'Nothing.'),
+            'hyper/json/no-body.sql': '/**\n * @description\n * Nothing.\n */',
             'hyper/json/inline-comment.sql': file('select 1\n-- one\nwhere true;'),
             'hyper/json/no-description.sql': 'select 1;',
             'hyper/json/fine.sql': file(),

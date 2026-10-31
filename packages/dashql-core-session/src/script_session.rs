@@ -24,6 +24,7 @@ use crate::compiler::{compile, CompilationOptions};
 use dashql_core::completion::is_symbol_kind_completable;
 use dashql_core::cursor::CursorContext;
 use dashql_core::error::{Error, Result};
+use dashql_core::annotation::Annotation;
 use dashql_core::vis_rewrite::{VisCard, VisRenderer};
 use dashql_core::pack::{pack_completion, pack_tokens};
 use dashql_core::script::{Script, TextVersion};
@@ -1070,6 +1071,16 @@ impl ScriptSession {
             .map_err(|_| Error::invalid_argument("invalid UTF-8 while computing rope text statistics"))?;
         result.replace_text(&text);
         Ok(result)
+    }
+
+    /// The annotation of a statement: the comment tags in front of it
+    pub fn read_annotation(&mut self, statement_id: usize, parse_if_outdated: bool) -> Result<Annotation> {
+        self.script.read_annotation(statement_id, parse_if_outdated)
+    }
+
+    /// Replace the annotation of a statement, returns the new text
+    pub fn rewrite_annotation(&mut self, statement_id: usize, annotation: &Annotation, parse_if_outdated: bool) -> Result<String> {
+        self.script.rewrite_annotation(statement_id, annotation, parse_if_outdated)
     }
 
     /// Set or remove the renderer of a query, its `@vis` renderer tag, returns the new text

@@ -24,7 +24,7 @@ const LONG_PATH = 'hyper/window-functions/running-total-of-the-revenue-per-custo
 const LONG_ID = LONG_PATH.slice(LONG_PATH.indexOf('/') + 1, -'.sql'.length);
 
 function file(body: string): string {
-    return `${dashql.renderCommentTag('description', 'Text.')}\n${body}`;
+    return `/**\n * @description\n * Text.\n */\n${body}`;
 }
 
 function setInputValue(input: HTMLInputElement, value: string) {

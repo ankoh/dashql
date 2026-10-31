@@ -80,7 +80,7 @@ formatter-snapshots:
         validation:
           setup: ""
 
-  - name: tagged_comment_regions_are_kept
+  - name: tagged_comment_regions_are_merged
     input: |-
       -- @metadata
       -- {

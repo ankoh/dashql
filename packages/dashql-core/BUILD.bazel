@@ -22,6 +22,7 @@ rust_library(
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
         "@core_crates//:ropey",
+        "@core_crates//:serde",
         "@core_crates//:serde_json",
     ],
 )

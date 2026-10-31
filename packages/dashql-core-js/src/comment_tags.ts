@@ -2,7 +2,7 @@ import * as buffers from './buffers.js';
 
 /// The prefix of comment tags, e.g. `@description`
 export const COMMENT_TAG_PREFIX = '@';
-/// The tag that closes a tagged region of line comments
+/// The tag that may close a tagged region of line comments, accepted for older scripts and never needed
 export const COMMENT_TAG_END = `${COMMENT_TAG_PREFIX}end`;
 /// The tag of the metadata of a script, a JSON object
 export const METADATA_TAG = 'metadata';
@@ -88,15 +88,34 @@ export function readMetadata(parsed: buffers.parser.ParsedScript, bytes: Uint8Ar
     return tag == null ? null : parseCommentTagObject(tag);
 }
 
-/// Render a tagged region of line comments, without a trailing line break
-export function renderCommentTag(name: string, text: string, eol = '\n'): string {
-    const lines = [`${COMMENT_TAG_PREFIX}${name}`, ...text.split(/\r?\n/), COMMENT_TAG_END];
-    return lines.map(l => `-- ${l}`).join(eol);
+/// A tag of the annotation of a statement. The first line is the text on the line of the tag and may be empty.
+export interface AnnotationTag {
+    name: string;
+    lines: string[];
 }
 
-/// Render a metadata block as line comments, without a trailing line break.
-/// The metadata is pretty-printed JSON. JSON strings never contain raw line breaks, so no value can close the
-/// block early. The line form is used since a `*/` within a string would end a block comment.
-export function renderMetadataBlock(metadata: ScriptMetadata, eol = '\n'): string {
-    return renderCommentTag(METADATA_TAG, JSON.stringify(metadata, null, 2), eol);
+/// The annotation of a statement: the comment tags in front of it, read and written as one comment by
+/// `readAnnotation` and `rewriteAnnotation` of a script or script session
+export interface ScriptAnnotation {
+    /// The text before the first tag of a block comment
+    preamble: string[];
+    /// The tags in their order
+    tags: AnnotationTag[];
+}
+
+/// A tag with a text that starts on the line after the tag
+export function annotationTag(name: string, text: string): AnnotationTag {
+    return { name, lines: ['', ...text.split(/\r?\n/)] };
+}
+
+/// The text of a tag: its lines joined with line breaks, without an empty first line
+export function annotationTagText(tag: AnnotationTag): string {
+    return (tag.lines[0] === '' ? tag.lines.slice(1) : tag.lines).join('\n');
+}
+
+/// A `@metadata` tag with pretty-printed JSON. `/*` and `*/` can only be part of JSON strings, they are escaped
+/// as `/\u002a` and `*\/`, which keeps the value, since they would nest or end the comment.
+export function metadataTag(metadata: ScriptMetadata): AnnotationTag {
+    const json = JSON.stringify(metadata, null, 2).replaceAll('/*', '/\\u002a').replaceAll('*/', '*\\/');
+    return annotationTag(METADATA_TAG, json);
 }

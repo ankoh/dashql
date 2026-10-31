@@ -310,6 +310,27 @@ impl Script {
         self.parsed.clone().ok_or_else(|| Error::status(StatusCode::SCRIPT_NOT_PARSED))
     }
 
+    /// The annotation of a statement: the comment tags in front of it (see `annotation`)
+    pub fn read_annotation(&mut self, statement_id: usize, parse_if_outdated: bool) -> Result<crate::annotation::Annotation> {
+        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        crate::annotation::read_annotation(&parsed, statement_id)
+    }
+
+    /// Replace the annotation of a statement, printed as one comment in place of its tagged comments. An
+    /// empty annotation removes them. Returns the new text, the script is not changed.
+    ///
+    /// The spans of the parsed script are applied to the current text, which differs from the parsed
+    /// text if the script was edited and `parse_if_outdated` is false (see docs/design/core_quirks.md).
+    pub fn rewrite_annotation(
+        &mut self,
+        statement_id: usize,
+        annotation: &crate::annotation::Annotation,
+        parse_if_outdated: bool,
+    ) -> Result<String> {
+        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        crate::annotation::write_annotation(&self.text.to_string(), &parsed, statement_id, annotation)
+    }
+
     /// Set or remove the renderer of a query, its `@vis vegalite`, `markdown` or `table` tag (see
     /// `vis_rewrite`). Returns the new text, the script is not changed.
     ///
@@ -333,22 +354,20 @@ impl Script {
     }
 
     /// Visualize the terminal query with a Vega-Lite spec: replace its renderer tag (`@vis vegalite`,
-    /// `markdown` or `table`) by `@vis vegalite <spec>`. A query without a renderer gets a
-    /// `/* @vis vegalite ... */` comment in front of it.
+    /// `markdown` or `table`) by `@vis vegalite <spec>`, or add one. The annotation of the query is
+    /// consolidated into one comment (see `vis_rewrite`).
     ///
     /// The spec must be a JSON object, it is written compactly with its key order kept (`compact_json`).
-    /// Its lines take the prefix of the tag: `-- ` in line comments, the ` * ` gutter or the indentation
-    /// after `/* ` in block comments. `/*` and `*/` in its strings are escaped as `/\u002a` and `*\/`,
-    /// they would nest or end a block comment.
+    /// `/*` and `*/` in its strings are escaped as `/\u002a` and `*\/`, they would nest or end a block comment.
     /// The spans of the parsed script are applied to the current text, as in `rewrite_vis_card`.
     ///
-    /// Returns the rewritten text and the span of the written tag or comment in it.
+    /// Returns the rewritten text and the span of the written tag in it, from `@vis` to the end of the spec.
     pub fn rewrite_vegalite(&mut self, spec: &str, parse_if_outdated: bool) -> Result<(String, TextSpan)> {
         if parse_if_outdated {
             self.parse_if_text_outdated();
         }
         let not_parsed = || Error::status(StatusCode::SCRIPT_NOT_PARSED);
-        let parsed = self.parsed.as_ref().ok_or_else(not_parsed)?;
+        let parsed = self.parsed.clone().ok_or_else(not_parsed)?;
         if !parsed.errors.is_empty() || parsed.statements.is_empty() {
             return Err(not_parsed());
         }
@@ -356,49 +375,14 @@ impl Script {
         if parsed.statements[statement_id].statement_type != StatementType::SELECT {
             return Err(Error::invalid_argument("the last statement of the script is no query"));
         }
-        let spec: serde_json::Value = serde_json::from_str(spec)
-            .map_err(|e| Error::invalid_argument(format!("the Vega-Lite spec is no valid JSON: {e}")))?;
-        if !spec.is_object() {
-            return Err(Error::invalid_argument("the Vega-Lite spec is no JSON object"));
-        }
-        let escape = |json: String| json.replace("/*", "/\\u002a").replace("*/", "*\\/");
-        let json = escape(crate::compact_json::to_string_compact(&spec, crate::vis_rewrite::VIS_JSON_WIDTH));
-
-        let text = parsed.scanned.text.as_str();
-        let (begin, end, replacement) = match crate::analyzer::vis_renderer_tag(parsed, statement_id) {
-            Some(block) => {
-                let lines = &parsed.comment_blocks.lines[block.lines_begin as usize..][..block.lines_count as usize];
-                let (first, last) = (lines[0], lines[lines.len() - 1]);
-                let at = block.tag_span.offset as usize - 1;
-                let line_start = text[..at].rfind('\n').map_or(0, |i| i + 1);
-                let comment = parsed.scanned.comments[block.comments_begin as usize];
-                let comment_text = &text[comment.offset as usize..comment.end() as usize];
-                // The parser strips a gutter only if every line after the first has one
-                let gutter = comment_text.lines().skip(1).find_map(|l| {
-                    let star = l.len() - l.trim_start().len();
-                    (l[star..].starts_with('*') && !l[star..].starts_with("*/")).then(|| format!("{}* ", &l[..star]))
-                });
-                let prefix = match gutter {
-                    _ if comment_text.starts_with("--") => text[line_start..at].to_string(),
-                    Some(gutter) => gutter,
-                    // Align the JSON with the tag, `/* ` becomes spaces
-                    None => text[line_start..at].chars().map(|c| if c.is_whitespace() { c } else { ' ' }).collect(),
-                };
-                let body: String = json.lines().map(|l| format!("\n{prefix}{l}")).collect();
-                (first.offset as usize, last.end() as usize, format!("vegalite{body}"))
-            }
-            None => {
-                let at = parsed.associate_descriptions()[statement_id].statement_span.offset as usize;
-                let json: Vec<String> = json.lines().map(|l| format!("   {l}")).collect();
-                (at, at, format!("/* @vis vegalite\n{}\n*/\n", json.join("\n")))
-            }
+        let spec = match serde_json::from_str(spec) {
+            Ok(serde_json::Value::Object(spec)) => spec,
+            Ok(_) => return Err(Error::invalid_argument("the Vega-Lite spec is no JSON object")),
+            Err(e) => return Err(Error::invalid_argument(format!("the Vega-Lite spec is no valid JSON: {e}"))),
         };
-        let mut source = self.text.to_string().into_bytes();
-        if begin > source.len() {
-            return Err(Error::invalid_argument("the parsed script is outdated"));
-        }
-        source.splice(begin..end.min(source.len()), replacement.bytes());
-        Ok((String::from_utf8_lossy(&source).into_owned(), TextSpan::new(begin as u32, replacement.len() as u32)))
+        let renderer = VisRenderer::VegaLite(spec);
+        let (text, span) = crate::vis_rewrite::rewrite_vis_renderer_tag(&self.text.to_string(), &parsed, statement_id, Some(&renderer))?;
+        Ok((text, span.expect("a written tag has a span")))
     }
 
     /// Scan and parse if requested and outdated, then return the parsed script to format

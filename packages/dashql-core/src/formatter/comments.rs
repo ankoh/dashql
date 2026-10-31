@@ -3,6 +3,7 @@
 //! Comments work on bytes: wrapping splits long words at byte offsets, which can split UTF-8
 //! sequences (see docs/design/core_quirks.md).
 
+use crate::annotation::{Annotation, ANNOTATION_GUTTER};
 use dashql_parser::comment_blocks::{
     group_comment_bytes, is_comment_tag, CommentBlockType, COMMENT_TAG_END, COMMENT_TAG_PREFIX,
 };
@@ -201,213 +202,151 @@ fn read_comment_tag<'a>(input: &'a [u8], comment: &TextSpan) -> Option<CommentTa
     Some(CommentTag { name, alone })
 }
 
-/// Format a run of line comments. Regions from `-- @<tag>` to the next tag line or `-- @end` are kept
-/// as written, since their content is structured (e.g. JSON) and rewrapping it would break it. Other
-/// comments are rewrapped. Only the last region of consecutive regions needs the end line. A blank line that follows a region is kept, `following` is the offset of
-/// the text after the comment block.
-fn append_line_comment_block(
-    output: &mut Vec<u8>,
-    input: &[u8],
-    comments: &[TextSpan],
-    max_width: usize,
-    following: Option<usize>,
-) {
-    let mut pending = 0;
-    let mut i = 0;
-    while i < comments.len() {
-        match read_comment_tag(input, &comments[i]) {
-            Some(tag) if tag.name != COMMENT_TAG_END.as_bytes() => {}
-            _ => {
-                i += 1;
-                continue;
-            }
-        }
-        // Consecutive regions are kept as one, up to the end line of the last region. Without an end
-        // line, the next tag line still closes a region.
-        let mut close = i + 1;
-        let mut next_tag = None;
-        while close < comments.len() {
-            if let Some(tag) = read_comment_tag(input, &comments[close]) {
-                if tag.name != COMMENT_TAG_END.as_bytes() {
-                    next_tag = next_tag.or(Some(close));
-                } else if tag.alone {
-                    break;
-                }
-            }
-            close += 1;
-        }
-        let region_end = match (close < comments.len(), next_tag) {
-            (true, _) => close + 1,
-            (false, Some(next)) => next,
-            // An unterminated region is an ordinary comment
-            (false, None) => {
-                i += 1;
-                continue;
-            }
-        };
-        if pending < i {
-            append_wrapped_line_comments(output, input, &comments[pending..i], max_width);
-        }
-        let region = &comments[i..region_end];
-        let has_vis = region.iter().any(|c| read_comment_tag(input, c).is_some_and(|t| t.name == VIS_TAG));
-        if let Some(block) = has_vis.then(|| print_vis_comment(input, region, max_width)).flatten() {
-            if !output.is_empty() && !ends_with_line_break(output) {
-                output.push(b'\n');
-            }
-            output.extend_from_slice(&block);
-        } else {
-            for comment in region {
-                if !output.is_empty() && !ends_with_line_break(output) {
-                    output.push(b'\n');
-                }
-                let mut text = comment_text(input, comment);
-                while let [rest @ .., last] = text {
-                    if !is_space(*last) {
-                        break;
-                    }
-                    text = rest;
-                }
-                output.extend_from_slice(text);
-            }
-        }
-        let region_text_end = comments[region_end - 1].end() as usize;
-        let next = if region_end < comments.len() { Some(comments[region_end].offset as usize) } else { following };
-        if let Some(next) = next {
-            if next >= region_text_end {
-                let gap = substr(input, region_text_end, next - region_text_end);
-                if count_line_breaks(gap) > 1 {
-                    output.extend_from_slice(b"\n\n");
-                }
-            }
-        }
-        pending = region_end;
-        i = region_end;
-    }
-    if pending < comments.len() {
-        append_wrapped_line_comments(output, input, &comments[pending..], max_width);
-    }
-}
-
 /// The tag of visualizations, `@vis <kind> ...`
-const VIS_TAG: &[u8] = b"vis";
-/// The indentation of the lines after the first in a canonical block comment, aligned after `/* `
-const VIS_COMMENT_INDENT: &[u8] = b"   ";
+const VIS_TAG: &str = "vis";
 
 /// Split a line at its first whitespace, the rest is trimmed
-fn split_word(line: &[u8]) -> (&[u8], &[u8]) {
-    let end = find_first_of(line, b" \t\r\x0c\x0b").unwrap_or(line.len());
-    (&line[..end], trim_whitespace(&line[end..]))
+fn split_word(line: &str) -> (&str, &str) {
+    let end = line.find([' ', '\t', '\r', '\x0c', '\x0b']).unwrap_or(line.len());
+    (&line[..end], line[end..].trim())
 }
 
-/// The canonical lines of a `@vis` tag, `lines` are its content lines and `max_width` is the width of
-/// the comment lines
-fn vis_tag_lines(lines: &[&[u8]], max_width: usize) -> Vec<Vec<u8>> {
-    let tag = |rest: &[u8]| {
-        let mut line = b"@vis".to_vec();
-        if !rest.is_empty() {
-            line.push(b' ');
-            line.extend_from_slice(rest);
-        }
-        line
-    };
-    let Some((header, body)) = lines.split_first() else { return vec![tag(b"")] };
+/// The canonical content lines of a `@vis` tag, the first line is the text on the line of the tag.
+/// `max_width` is the width of the comment lines.
+fn vis_tag_lines(lines: &[String], max_width: usize) -> Vec<String> {
+    let Some((header, body)) = lines.split_first() else { return Vec::new() };
     let (kind, rest) = split_word(header);
-    let verbatim = || std::iter::once(tag(header)).chain(body.iter().map(|l| l.to_vec())).collect();
     match kind {
-        b"vegalite" => {
+        "vegalite" => {
             // The JSON is printed compactly with the key order kept, malformed JSON stays as written
-            let json = std::iter::once(rest).chain(body.iter().copied()).collect::<Vec<_>>().join(&b'\n');
-            let Ok(value) = serde_json::from_slice::<serde_json::Value>(&json) else { return verbatim() };
-            let width = max_width.saturating_sub(VIS_COMMENT_INDENT.len());
+            let json = std::iter::once(rest).chain(body.iter().map(String::as_str)).collect::<Vec<_>>().join("\n");
+            let Ok(value) = serde_json::from_str::<serde_json::Value>(&json) else { return lines.to_vec() };
+            let width = max_width.saturating_sub(ANNOTATION_GUTTER.len());
             let compact = crate::compact_json::to_string_compact(&value, width);
-            std::iter::once(tag(kind)).chain(compact.lines().map(|l| l.as_bytes().to_vec())).collect()
+            std::iter::once(kind.to_string()).chain(compact.lines().map(str::to_string)).collect()
         }
-        b"table" | b"card" => {
+        "table" | "card" => {
             // Args are separated by single spaces
-            let mut header = kind.to_vec();
-            let mut rest = rest;
-            while !rest.is_empty() {
-                let (arg, next) = split_word(rest);
-                header.push(b' ');
-                header.extend_from_slice(arg);
-                rest = next;
-            }
-            std::iter::once(tag(&header)).chain(body.iter().map(|l| l.to_vec())).collect()
+            let header = std::iter::once(kind).chain(rest.split_whitespace()).collect::<Vec<_>>().join(" ");
+            std::iter::once(header).chain(body.iter().cloned()).collect()
         }
-        _ => verbatim(),
+        _ => lines.to_vec(),
     }
 }
 
-/// Print comments that hold a `@vis` tag as one canonical block comment. The tags keep their order,
-/// text before the first tag stays in front of them. Returns None if the comments stay as written:
-/// without a `@vis` tag, with malformed tags, or with text that would end or nest a block comment.
-fn print_vis_comment(input: &[u8], comments: &[TextSpan], max_width: usize) -> Option<Vec<u8>> {
+/// Print comments that hold tags as one canonical tagged comment, like an annotation (see `annotation`):
+/// the tags keep their order, `@vis` tags are normalized, the text before the first tag of a block comment
+/// goes in front of them. Returns None if the comments stay as written: without a tag, with malformed tags,
+/// or with text that would end or nest a block comment.
+fn print_tagged_comment(input: &[u8], comments: &[TextSpan], max_width: usize) -> Option<Vec<u8>> {
     let blocks = group_comment_bytes(input, comments);
-    if !blocks.warnings.is_empty() {
+    if !blocks.warnings.is_empty() || !blocks.blocks.iter().any(|b| b.block_type == CommentBlockType::DASHQL_TAG) {
         return None;
     }
-    let span_text = |span: TextSpan| substr(input, span.offset as usize, span.length as usize);
-    let block_lines = |block: &dashql_parser::comment_blocks::CommentBlock| {
-        let lines = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
-        lines.iter().map(|&l| span_text(l)).collect::<Vec<_>>()
-    };
-    let mut lines: Vec<Vec<u8>> = Vec::new();
-    let mut has_vis = false;
-    for (i, block) in blocks.blocks.iter().enumerate() {
-        let content = block_lines(block);
-        if block.block_type == CommentBlockType::COMMENT {
-            // Only text before the first tag is allowed
-            if i > 0 {
-                return None;
-            }
-            lines.extend(content.iter().map(|l| l.to_vec()));
-            continue;
-        }
-        let name = span_text(block.tag_span);
-        if name == VIS_TAG {
-            has_vis = true;
-            lines.extend(vis_tag_lines(&content, max_width));
-            continue;
-        }
-        // Other tags are kept, text that followed the tag on its line stays there
-        let mut tag = COMMENT_TAG_PREFIX.as_bytes().to_vec();
-        tag.extend_from_slice(name);
-        let tag_end = block.tag_span.end() as usize;
-        let inline = block.lines_count > 0
-            && !substr(input, tag_end, (blocks.lines[block.lines_begin as usize].offset as usize).saturating_sub(tag_end))
-                .contains(&b'\n');
-        let mut rest = content.iter();
-        if inline {
-            tag.push(b' ');
-            tag.extend_from_slice(rest.next().unwrap());
-        }
-        lines.push(tag);
-        lines.extend(rest.map(|l| l.to_vec()));
+    let mut annotation = Annotation::from_blocks(input, &blocks, blocks.blocks.iter());
+    for tag in annotation.tags.iter_mut().filter(|t| t.name == VIS_TAG) {
+        tag.lines = vis_tag_lines(&tag.lines, max_width);
     }
-    if !has_vis || lines.iter().any(|l| l.windows(2).any(|w| w == b"/*" || w == b"*/")) {
-        return None;
-    }
-    let mut out = b"/* ".to_vec();
-    if let [line] = &lines[..] {
-        out.extend_from_slice(line);
-        out.extend_from_slice(b" */");
-        return Some(out);
-    }
-    for (i, line) in lines.iter().enumerate() {
-        if i > 0 {
-            out.push(b'\n');
-            if !line.is_empty() {
-                out.extend_from_slice(VIS_COMMENT_INDENT);
-            }
-        }
-        out.extend_from_slice(line);
-    }
-    out.extend_from_slice(b"\n*/");
-    Some(out)
+    annotation.print("").ok().map(|(comment, _)| comment.into_bytes())
 }
 
-/// Append comments: block comments verbatim, runs of line comments rewrapped. Comments with a `@vis`
-/// tag are printed as canonical block comments.
+/// Is a comment a block comment?
+fn is_block_comment(input: &[u8], comment: &TextSpan) -> bool {
+    comment_text(input, comment).starts_with(b"/*")
+}
+
+/// Does a block comment hold a tag?
+fn block_comment_has_tag(input: &[u8], comment: TextSpan) -> bool {
+    find_subslice(comment_text(input, &comment), COMMENT_TAG_PREFIX.as_bytes()).is_some()
+        && group_comment_bytes(input, &[comment]).blocks.iter().any(|b| b.block_type == CommentBlockType::DASHQL_TAG)
+}
+
+/// The text between two comments
+fn gap_between<'a>(input: &'a [u8], previous: &TextSpan, next: &TextSpan) -> &'a [u8] {
+    let end = previous.end() as usize;
+    substr(input, end, (next.offset as usize).saturating_sub(end))
+}
+
+/// A slice of the comments: ordinary comments, or comments with tags
+struct Unit {
+    /// The comments of the unit
+    comments: std::ops::Range<usize>,
+    /// Does the unit hold tags?
+    tagged: bool,
+}
+
+/// Split comments into units. A block comment is a unit. A run of line comments on consecutive lines is
+/// split into tagged regions, from a `-- @<tag>` line to the end of the run or to an `-- @end` line that
+/// older scripts close it with, and the ordinary comments between them.
+fn comment_units(input: &[u8], comments: &[TextSpan]) -> Vec<Unit> {
+    let opens = |c: &TextSpan| read_comment_tag(input, c).is_some_and(|t| t.name != COMMENT_TAG_END.as_bytes());
+    let closes = |c: &TextSpan| read_comment_tag(input, c).is_some_and(|t| t.name == COMMENT_TAG_END.as_bytes() && t.alone);
+    let mut units = Vec::new();
+    let mut i = 0;
+    while i < comments.len() {
+        if is_block_comment(input, &comments[i]) {
+            units.push(Unit { comments: i..i + 1, tagged: block_comment_has_tag(input, comments[i]) });
+            i += 1;
+            continue;
+        }
+        let mut run_end = i + 1;
+        while run_end < comments.len() && !is_block_comment(input, &comments[run_end]) {
+            let gap = gap_between(input, &comments[run_end - 1], &comments[run_end]);
+            if !is_whitespace(gap) || count_line_breaks(gap) > 1 {
+                break;
+            }
+            run_end += 1;
+        }
+        let mut pending = i;
+        let mut j = i;
+        while j < run_end {
+            if !opens(&comments[j]) {
+                j += 1;
+                continue;
+            }
+            let mut close = j + 1;
+            while close < run_end && !closes(&comments[close]) {
+                close += 1;
+            }
+            let end = (close + 1).min(run_end);
+            if pending < j {
+                units.push(Unit { comments: pending..j, tagged: false });
+            }
+            units.push(Unit { comments: j..end, tagged: true });
+            pending = end;
+            j = end;
+        }
+        if pending < run_end {
+            units.push(Unit { comments: pending..run_end, tagged: false });
+        }
+        i = run_end;
+    }
+    units
+}
+
+/// Append comments as written, without trailing whitespace
+fn append_verbatim(output: &mut Vec<u8>, input: &[u8], comments: &[TextSpan]) {
+    for comment in comments {
+        if !output.is_empty() && !ends_with_line_break(output) {
+            output.push(b'\n');
+        }
+        let mut text = comment_text(input, comment);
+        while let [rest @ .., last] = text {
+            if !is_space(*last) {
+                break;
+            }
+            text = rest;
+        }
+        output.extend_from_slice(text);
+    }
+}
+
+/// Append comments: block comments verbatim, runs of line comments rewrapped. Comments with tags that
+/// follow each other with nothing but whitespace between them are merged into one canonical tagged
+/// comment, so an annotation reads as one block. Comments with tags that cannot be printed canonically
+/// are kept as written, since their content is structured (e.g. JSON) and rewrapping it would break it.
+/// A blank line that follows tagged comments is kept, `following` is the offset of the text after the
+/// comments.
 pub(super) fn append_comments(
     output: &mut Vec<u8>,
     input: &[u8],
@@ -415,37 +354,56 @@ pub(super) fn append_comments(
     max_width: usize,
     following: Option<usize>,
 ) {
-    let mut block_begin = 0;
-    for i in 0..=comments.len() {
-        let mut end_block = i == comments.len();
-        let mut is_block_comment = false;
-        if !end_block {
-            is_block_comment = comment_text(input, &comments[i]).starts_with(b"/*");
-            end_block = is_block_comment;
-        }
-        if !end_block && !is_block_comment && i > block_begin {
-            let previous_end = comments[i - 1].end() as usize;
-            let gap = substr(input, previous_end, (comments[i].offset as usize).wrapping_sub(previous_end));
-            end_block = !is_whitespace(gap) || count_line_breaks(gap) > 1;
-        }
-        if end_block {
-            if i > block_begin {
-                let next = if i < comments.len() { Some(comments[i].offset as usize) } else { following };
-                append_line_comment_block(output, input, &comments[block_begin..i], max_width, next);
+    let units = comment_units(input, comments);
+    let mut u = 0;
+    while u < units.len() {
+        let unit = &units[u];
+        if !unit.tagged {
+            let slice = &comments[unit.comments.clone()];
+            if is_block_comment(input, &slice[0]) {
+                append_verbatim(output, input, slice);
+            } else {
+                append_wrapped_line_comments(output, input, slice, max_width);
             }
-            block_begin = i;
+            u += 1;
+            continue;
         }
-        if is_block_comment {
-            if !output.is_empty() && !ends_with_line_break(output) {
-                output.push(b'\n');
-            }
-            let text = comment_text(input, &comments[i]);
-            match find_subslice(text, b"@vis").and_then(|_| print_vis_comment(input, &comments[i..=i], max_width)) {
-                Some(block) => output.extend_from_slice(&block),
-                None => output.extend_from_slice(text),
-            }
-            block_begin = i + 1;
+        // The tagged units that follow after whitespace only
+        let mut last = u;
+        while last + 1 < units.len()
+            && units[last + 1].tagged
+            && is_whitespace(gap_between(input, &comments[units[last].comments.end - 1], &comments[units[last + 1].comments.start]))
+        {
+            last += 1;
         }
+        let range = unit.comments.start..units[last].comments.end;
+        if !output.is_empty() && !ends_with_line_break(output) {
+            output.push(b'\n');
+        }
+        match print_tagged_comment(input, &comments[range.clone()], max_width) {
+            Some(block) => output.extend_from_slice(&block),
+            // Units that cannot be merged are printed one by one
+            None => {
+                for unit in &units[u..=last] {
+                    let slice = &comments[unit.comments.clone()];
+                    if !output.is_empty() && !ends_with_line_break(output) {
+                        output.push(b'\n');
+                    }
+                    match print_tagged_comment(input, slice, max_width) {
+                        Some(block) => output.extend_from_slice(&block),
+                        None => append_verbatim(output, input, slice),
+                    }
+                }
+            }
+        }
+        let text_end = comments[range.end - 1].end() as usize;
+        let next = comments.get(range.end).map(|c| c.offset as usize).or(following);
+        if let Some(next) = next.filter(|&next| next >= text_end) {
+            if count_line_breaks(substr(input, text_end, next - text_end)) > 1 {
+                output.extend_from_slice(b"\n\n");
+            }
+        }
+        u = last + 1;
     }
 }
 
@@ -490,10 +448,13 @@ mod tests {
     }
 
     #[test]
-    fn keeps_tagged_regions() {
+    fn prints_tagged_regions() {
+        // A tagged region ends with the run or with an end line, comments after it are rewrapped
         let input = "-- @metadata\n-- {\"a\":   1}\n-- @end\n\n-- x   y";
         let out = format(input, &["-- @metadata", "-- {\"a\":   1}", "-- @end", "-- x   y"], 120);
-        assert_eq!(out, "-- @metadata\n-- {\"a\":   1}\n-- @end\n\n-- x y");
+        assert_eq!(out, "/**\n * @metadata\n * {\"a\":   1}\n */\n\n-- x y");
+        let input = "-- @description Sales.\n-- @end\n-- x   y";
+        assert_eq!(format(input, &["-- @description Sales.", "-- @end", "-- x   y"], 120), "/** @description Sales. */\n-- x y");
     }
 
     /// Format a script that consists of comments, every comment is found by the scanner
@@ -510,14 +471,14 @@ mod tests {
 
     #[test]
     fn prints_vis_block_comments() {
-        assert_eq!(format_comments("/*   @vis   card  width=6   height=3 */"), "/* @vis card width=6 height=3 */");
-        assert_eq!(format_comments("/* @vis table */"), "/* @vis table */");
+        assert_eq!(format_comments("/*   @vis   card  width=6   height=3 */"), "/** @vis card width=6 height=3 */");
+        assert_eq!(format_comments("/* @vis table */"), "/** @vis table */");
         let input = "/* @vis vegalite {\"mark\":\"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}} */";
-        assert_eq!(format_comments(input), "/* @vis vegalite\n   {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n*/");
+        assert_eq!(format_comments(input), "/**\n * @vis vegalite\n * {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n */");
         // The JSON breaks where it does not fit in the comment lines
         assert_eq!(
             format_comments_within(input, 40),
-            "/* @vis vegalite\n   {\n     \"mark\": \"bar\",\n     \"encoding\": {\"x\": {\"field\": \"a\"}}\n   }\n*/"
+            "/**\n * @vis vegalite\n * {\n *   \"mark\": \"bar\",\n *   \"encoding\": {\"x\": {\"field\": \"a\"}}\n * }\n */"
         );
         // Formatting twice gives the same output
         let once = format_comments("/* @vis vegalite\n{\"mark\":\"bar\"}\n*/");
@@ -525,35 +486,59 @@ mod tests {
     }
 
     #[test]
-    fn prints_vis_line_comments_as_block_comment() {
-        let input = "-- @description Revenue.\n-- @vis card width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @end";
-        let expected = "/* @description Revenue.\n   @vis card width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
-        assert_eq!(format_comments(input), expected);
+    fn prints_tagged_line_comments_as_block_comment() {
+        let expected = "/**\n * @description Revenue.\n * @vis card width=6\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */";
+        for input in [
+            "-- @description Revenue.\n-- @vis card width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}",
+            "-- @description Revenue.\n-- @vis card width=6\n-- @vis vegalite\n-- {\"mark\": \"bar\"}\n-- @end",
+            "/* @description Revenue.\n   @vis card width=6\n   @vis vegalite\n   {\"mark\": \"bar\"}\n*/",
+        ] {
+            assert_eq!(format_comments(input), expected, "{input}");
+        }
         assert_eq!(format_comments(expected), expected);
-        // Regions without a @vis tag stay line comments
-        let input = "-- @description Revenue.\n-- @end";
-        assert_eq!(format_comments(input), input);
+        // Descriptions keep their lines, an empty line keeps its gutter
+        let input = "-- @description\n-- Revenue.\n--\n-- * per region\n-- @end";
+        assert_eq!(format_comments(input), "/**\n * @description\n * Revenue.\n *\n * * per region\n */");
+        assert_eq!(format_comments("/* @description Revenue. */"), "/** @description Revenue. */");
     }
 
     #[test]
-    fn keeps_text_before_the_first_vis_tag() {
+    fn merges_tagged_comments() {
+        let input = "-- @description\n-- Add to timestamps.\n-- @end\n\n/* @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
+        assert_eq!(format_comments(input), "/**\n * @description\n * Add to timestamps.\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */");
+        // Ordinary comments between them keep them apart
+        let input = "/* @description Sales. */\n-- note\n/* @vis table */";
+        assert_eq!(format_comments(input), "/** @description Sales. */\n-- note\n/** @vis table */");
+        // The text before the first tag of a block comment goes in front of all tags
+        let input = "/* @description Sales. */\n/* Note.\n   @vis table */";
+        assert_eq!(format_comments(input), "/**\n * Note.\n * @description Sales.\n * @vis table\n */");
+        // Comments that cannot be printed canonically stay apart
+        let input = "/* @description Sales. */\n-- @vis markdown\n-- see */ here";
+        assert_eq!(format_comments(input), "/** @description Sales. */\n-- @vis markdown\n-- see */ here");
+    }
+
+    #[test]
+    fn keeps_text_before_the_first_tag() {
         let input = "/* Revenue dashboard.\n      @vis table\n*/";
-        assert_eq!(format_comments(input), "/* Revenue dashboard.\n   @vis table\n*/");
+        assert_eq!(format_comments(input), "/**\n * Revenue dashboard.\n * @vis table\n */");
+        // Comments without tags stay as written
+        let input = "/* Revenue dashboard.\n      @param x\n*/";
+        assert_eq!(format_comments(input), input);
     }
 
     #[test]
     fn keeps_markdown_and_malformed_json() {
-        let input = "/* @vis markdown\n   - {{a}}\n     - {{b}}\n*/";
+        let input = "/**\n * @vis markdown\n * - {{a}}\n *   - {{b}}\n */";
         assert_eq!(format_comments(input), input);
         let input = "/* @vis vegalite {\"mark\": */";
-        assert_eq!(format_comments(input), "/* @vis vegalite {\"mark\": */");
+        assert_eq!(format_comments(input), "/** @vis vegalite {\"mark\": */");
         let input = "/* @vis vegalite\n     {\"mark\":\n  */";
-        assert_eq!(format_comments(input), "/* @vis vegalite\n   {\"mark\":\n*/");
+        assert_eq!(format_comments(input), "/**\n * @vis vegalite\n * {\"mark\":\n */");
     }
 
     #[test]
-    fn keeps_vis_line_comments_that_cannot_be_block_comments() {
-        let input = "-- @vis markdown\n-- see */ here\n-- @end";
+    fn keeps_tagged_line_comments_that_cannot_be_block_comments() {
+        let input = "-- @vis markdown\n-- see */ here";
         assert_eq!(format_comments(input), input);
     }
 
