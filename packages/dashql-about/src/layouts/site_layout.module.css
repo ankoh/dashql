@@ -113,6 +113,8 @@
     gap: 1rem;
     padding: 2rem max(1.5rem, calc((100% - var(--content_width)) / 2));
     color: var(--site_fg_subtle);
+    /* Continues the band of the content */
+    background: var(--site_content_bg);
     font-size: 0.85rem;
 }
 

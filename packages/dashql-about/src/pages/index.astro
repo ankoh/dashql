@@ -18,19 +18,21 @@ import styles from './page.module.css';
         </div>
     </ParticleHero>
 
-    <FeatureSection id="editor" eyebrow="Editor" title="An editor that understands SQL">
-        <p>DashQL parses and analyzes your scripts while you type. It completes names, resolves tables and columns, and points out what doesn't fit.</p>
-    </FeatureSection>
+    <div class={styles.content}>
+        <FeatureSection id="editor" eyebrow="Editor" title="An editor that understands SQL">
+            <p>DashQL parses and analyzes your scripts while you type. It completes names, resolves tables and columns, and points out what doesn't fit.</p>
+        </FeatureSection>
 
-    <FeatureSection id="hyper" eyebrow="Engine" title="Hyper, right in your browser">
-        <p>Queries run on Hyper, compiled to WebAssembly. Your data stays on your machine and results come back in milliseconds.</p>
-    </FeatureSection>
+        <FeatureSection id="hyper" eyebrow="Engine" title="Hyper, right in your browser">
+            <p>Queries run on Hyper, compiled to WebAssembly. Your data stays on your machine and results come back in milliseconds.</p>
+        </FeatureSection>
 
-    <FeatureSection id="visualize" eyebrow="Visualize" title="Charts that live in SQL comments">
-        <p>Describe a chart next to the query that feeds it. The visualization travels with the script and updates with every run.</p>
-    </FeatureSection>
+        <FeatureSection id="visualize" eyebrow="Visualize" title="Charts that live in SQL comments">
+            <p>Describe a chart next to the query that feeds it. The visualization travels with the script and updates with every run.</p>
+        </FeatureSection>
 
-    <FeatureSection id="agents" eyebrow="Agents" title="Work alongside agents">
-        <p>Agents read and edit your scripts through DashQL, and you keep the overview of every change they make.</p>
-    </FeatureSection>
+        <FeatureSection id="agents" eyebrow="Agents" title="Work alongside agents">
+            <p>Agents read and edit your scripts through DashQL, and you keep the overview of every change they make.</p>
+        </FeatureSection>
+    </div>
 </SiteLayout>

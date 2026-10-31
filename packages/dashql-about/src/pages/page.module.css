@@ -84,3 +84,8 @@
         animation: none;
     }
 }
+
+/* The content below the hero */
+.content {
+    background: var(--site_content_bg);
+}
