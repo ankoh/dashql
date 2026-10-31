@@ -52,7 +52,6 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
     const triggerRef = React.useRef<HTMLElement | null>(null);
     const tooltipElRef = React.useRef<HTMLDivElement | null>(null)
     const [calculatedDirection, setCalculatedDirection] = React.useState<TooltipDirection | undefined>(props.direction)
-    const isPopOverOpen = React.useRef(false);
 
     const child = props.children as React.ReactElement<TriggerPropsType | null> | undefined;
 
@@ -76,7 +75,6 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
             const tooltip = tooltipElRef.current
             const trigger = triggerRef.current
             tooltip.showPopover()
-            isPopOverOpen.current = true;
 
             const settings = props.direction ? directionToPosition[props.direction] : undefined;
             const { top, left, anchorAlign, anchorSide } = getAnchoredPosition(tooltip, trigger, settings)
@@ -95,7 +93,6 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
             tooltipElRef.current.matches(':popover-open')
         ) {
             tooltipElRef.current.hidePopover()
-            isPopOverOpen.current = false;
         }
     }
     // context value
@@ -109,12 +106,14 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
     }, [tooltipElRef, triggerRef, props.direction, props.type])
 
 
-    // Setup handler to close the tooltip with escape
+    // Setup handler to close the tooltip with escape.
+    // The browser also closes the auto popover, e.g. when another one opens, so ask the popover whether it is open.
+    // A stale flag swallowed every Escape of the page, e.g. the one that closes an overlay.
     const keyEvents = React.useMemo<KeyEventHandler[]>(() => ([{
         key: "Escape",
         ctrlKey: false,
         callback: (event: KeyboardEvent) => {
-            if (isPopOverOpen.current) {
+            if (tooltipElRef.current?.matches(':popover-open')) {
                 event.stopImmediatePropagation()
                 event.preventDefault()
                 closeTooltip()

@@ -45,4 +45,29 @@ describe('Tooltip accessible naming', () => {
             container.querySelector('[id]')!.id,
         );
     });
+
+    it('leaves Escape to others once the browser closed the tooltip', () => {
+        act(() => root.render(
+            <Tooltip text="Build a chart" type="label">
+                <button />
+            </Tooltip>,
+        ));
+        const trigger = container.querySelector('button')!;
+        const tooltip = container.querySelector('[aria-hidden="true"]') as HTMLElement;
+        act(() => { trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: null })); });
+        expect(tooltip.matches(':popover-open')).toBe(true);
+        // The browser closes an auto popover on its own, e.g. when another popover opens
+        tooltip.hidePopover();
+
+        // An overlay listens for Escape after the tooltip
+        let escapes = 0;
+        const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') escapes += 1; };
+        document.addEventListener('keydown', onKeyDown);
+        try {
+            document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        } finally {
+            document.removeEventListener('keydown', onKeyDown);
+        }
+        expect(escapes).toBe(1);
+    });
 });
