@@ -9,17 +9,34 @@
     overflow: hidden;
     background: #ffffff;
     outline: none;
+    /* The header and the body share the columns, the editor switch ends where the builder content ends */
+    --chart_builder_columns: minmax(300px, 380px) minmax(0, 1fr);
 }
 
 .header {
-    display: flex;
+    display: grid;
     flex: 0 0 auto;
-    align-items: center;
+    grid-template-columns: var(--chart_builder_columns);
     min-width: 0;
     height: 44px;
-    padding: 0 8px 0 12px;
-    gap: 8px;
     border-bottom: 1px solid var(--border_color_primary);
+}
+
+.header_editor,
+.header_preview {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 8px;
+}
+
+/* The padding of the builder sections, and the border of the editor pane on the right */
+.header_editor {
+    padding: 0 13px 0 12px;
+}
+
+.header_preview {
+    padding: 0 8px 0 12px;
 }
 
 .title {
@@ -60,7 +77,7 @@
 .body {
     display: grid;
     flex: 1 1 auto;
-    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    grid-template-columns: var(--chart_builder_columns);
     min-width: 0;
     min-height: 0;
     overflow: hidden;
@@ -411,6 +428,11 @@
 }
 
 @media (max-width: 720px) {
+    /* The editor is above the preview, the header keeps the controls of both in one row */
+    .header {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
     .body {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: minmax(0, 1fr) minmax(200px, 40%);

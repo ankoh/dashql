@@ -122,50 +122,55 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                 data-testid="chart-builder-overlay"
             >
                 <header className={styles.header}>
-                    <h2 className={styles.title}>Visualize as Chart</h2>
-                    <div className={styles.spacer} />
-                    {problems.length > 0 && (
-                        <div className={styles.diagnostic} role="status" title={problems.join('\n')} data-testid="chart-problems">
-                            <AlertIcon size={16} aria-hidden="true" />
-                            <span className={styles.diagnostic_text}>{problems[0]}</span>
-                        </div>
-                    )}
-                    <SegmentedControl
-                        aria-label="Chart editor"
-                        size={SegmentedControlSize.Small}
-                        onChange={index => setMode(index as ChartBuilderMode)}
-                    >
-                        <SegmentedControl.IconButton
-                            icon={ToolsIcon}
-                            aria-label="Builder"
-                            selected={mode === ChartBuilderMode.Builder}
-                            data-testid="chart-mode-builder"
-                        />
-                        <SegmentedControl.IconButton
-                            icon={BracesIcon}
-                            aria-label="JSON"
-                            selected={mode === ChartBuilderMode.Json}
-                            data-testid="chart-mode-json"
-                        />
-                    </SegmentedControl>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        aria-label={expanded ? 'Restore size' : 'Expand'}
-                        aria-pressed={expanded}
-                        onClick={() => setExpanded(e => !e)}
-                    >
-                        {expanded ? <ScreenNormalIcon size={16} /> : <ScreenFullIcon size={16} />}
-                    </IconButton>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        aria-label="Close chart builder"
-                        data-testid="chart-builder-close"
-                        onClick={props.onClose}
-                    >
-                        <XIcon size={16} />
-                    </IconButton>
+                    <div className={styles.header_editor}>
+                        <h2 className={styles.title}>Visualize as Chart</h2>
+                        <div className={styles.spacer} />
+                        <SegmentedControl
+                            aria-label="Chart editor"
+                            size={SegmentedControlSize.Small}
+                            onChange={index => setMode(index as ChartBuilderMode)}
+                        >
+                            <SegmentedControl.IconButton
+                                icon={ToolsIcon}
+                                aria-label="Builder"
+                                selected={mode === ChartBuilderMode.Builder}
+                                data-testid="chart-mode-builder"
+                            />
+                            <SegmentedControl.IconButton
+                                icon={BracesIcon}
+                                aria-label="JSON"
+                                selected={mode === ChartBuilderMode.Json}
+                                data-testid="chart-mode-json"
+                            />
+                        </SegmentedControl>
+                    </div>
+                    <div className={styles.header_preview}>
+                        {problems.length > 0 && (
+                            <div className={styles.diagnostic} role="status" title={problems.join('\n')} data-testid="chart-problems">
+                                <AlertIcon size={16} aria-hidden="true" />
+                                <span className={styles.diagnostic_text}>{problems[0]}</span>
+                            </div>
+                        )}
+                        <div className={styles.spacer} />
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            size={ButtonSize.Small}
+                            aria-label={expanded ? 'Restore size' : 'Expand'}
+                            aria-pressed={expanded}
+                            onClick={() => setExpanded(e => !e)}
+                        >
+                            {expanded ? <ScreenNormalIcon size={16} /> : <ScreenFullIcon size={16} />}
+                        </IconButton>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            size={ButtonSize.Small}
+                            aria-label="Close chart builder"
+                            data-testid="chart-builder-close"
+                            onClick={props.onClose}
+                        >
+                            <XIcon size={16} />
+                        </IconButton>
+                    </div>
                 </header>
                 <div className={styles.body}>
                     <div className={styles.editor_pane}>
