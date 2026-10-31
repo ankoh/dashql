@@ -517,7 +517,7 @@ describe('V2 flat session script mutations', () => {
         expect(column?.resolution).toBe(core.buffers.editor.EditorSemanticResolution.RESOLVED);
     });
 
-    it('proposes the chart spec of the builder for the @vis vegalite tag of the last statement', () => {
+    it('stages the chart spec of the builder for the @vis vegalite tag of the last statement', () => {
         const writer = new RecordingWriter(logger, new SessionTestBackend());
         let current = state(['1_alpha.sql']);
         const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
@@ -540,18 +540,28 @@ describe('V2 flat session script mutations', () => {
         expect(current.scripts[scriptKey].scriptSession.getText()).toBe('create table t (a int);\nselect 2 as x, 3 as y');
 
         // A card tag survives a rewrite of the renderer
-        current = reduce(current, {
-            type: SET_SCRIPT_TEXT,
-            value: { scriptKey, text: '/* @vis vegalite {"mark":"bar"}\n   @vis card width=4 height=2 */\nselect 2 as x, 3 as y' },
-        });
+        const cardText = '/* @vis vegalite {"mark":"bar"}\n   @vis card width=4 height=2 */\nselect 2 as x, 3 as y';
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: cardText } });
         current = reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"line","encoding":{"x":{"field":"x"}}}' } });
         text = current.scripts[scriptKey].scriptSession.getText();
         expect(text).toContain('@vis card width=4 height=2');
         expect(text).not.toContain('"bar"');
         expect(specOf()).toMatchObject({ mark: 'line', encoding: { x: { field: 'x' } } });
 
+        // Every edit of the builder restages the diff against the text before the first edit
+        current = reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"point"}' } });
+        text = current.scripts[scriptKey].scriptSession.getText();
+        expect(text).toContain('@vis card width=4 height=2');
+        expect(specOf()).toEqual(expect.objectContaining({ mark: 'point' }));
+        expect(current.scripts[scriptKey].pendingDiff?.priorText).toBe(cardText);
+
         // An unchanged spec leaves the state alone
-        expect(reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"line","encoding":{"x":{"field":"x"}}}' } })).toBe(current);
+        expect(reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"point"}' } })).toBe(current);
+        expect(current.scripts[scriptKey].scriptSession.getText()).toBe(text);
+
+        // Rejecting the diff restores the text before the first edit
+        current = reduce(current, { type: REJECT_PENDING_DIFF, value: scriptKey });
+        expect(current.scripts[scriptKey].scriptSession.getText()).toBe(cardText);
     });
 
     it('keeps a failed analysis on the script instead of throwing', () => {

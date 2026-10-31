@@ -110,17 +110,6 @@
     font-size: var(--font_size_compact);
 }
 
-/* Applying proposes the chart as a change of the script */
-.footer {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 8px 12px;
-    gap: 8px;
-    border-top: 1px solid var(--border_color_primary);
-}
-
 /* The JSON */
 
 .json_pane {

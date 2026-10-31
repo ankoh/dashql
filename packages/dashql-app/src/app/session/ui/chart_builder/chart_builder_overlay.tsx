@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../../../../ui/foundations/button.js';
 import { useFocusTrap } from '../../../../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../../../../ui/foundations/overlay.js';
 import { SegmentedControl, SegmentedControlSize } from '../../../../ui/foundations/segmented_control.js';
@@ -44,9 +44,8 @@ export interface ChartBuilderOverlayProps {
     visualizeQuery: ResolvedVisualizeQuery | null;
     /// The latest query of the script, the preview shows its result
     queryState: QueryExecutionState | null;
-    /// Propose the spec for the `@vis vegalite` tag of the script, the overlay closes afterwards
-    onApply: (spec: string) => void;
-    /// Close the overlay and drop the edits
+    /// Stage the spec for the `@vis vegalite` tag of the script as a diff to accept or reject
+    onChange: (spec: string) => void;
     onClose: () => void;
     dependencies?: ChartBuilderOverlayDependencies;
 }
@@ -58,33 +57,22 @@ export interface ChartBuilderOverlayDependencies {
 const DEFAULT_DEPENDENCIES: ChartBuilderOverlayDependencies = { VegaLiteView };
 
 /// Build the chart of a script: a builder or the JSON of the Vega-Lite spec on the left, the chart on the right.
-/// Edits only update the preview. Applying them proposes the spec as a rewrite of the script that the user accepts
-/// or rejects, like a formatting. Closing the overlay drops them.
+/// Every edit updates the chart and the diff of the script, the user accepts or rejects the diff in the script.
 export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const dialogRef = React.useRef<HTMLElement | null>(null);
     const [expanded, setExpanded] = React.useState(false);
     const [mode, setMode] = React.useState<ChartBuilderMode>(ChartBuilderMode.Builder);
-    // The overlay owns the spec while it is open, the script keeps its chart until the user applies the edits
+    // The overlay owns the spec while it is open, the diff of the script follows it
     const [spec, setSpec] = React.useState<ChartSpec>(() => authoredChartSpec(props.visualizeQuery));
-    // The spec in the script, null if the script has no Vega-Lite chart yet
-    const [scriptSpec] = React.useState<string | null>(() =>
-        props.visualizeQuery?.renderer === 'vegalite' ? JSON.stringify(authoredChartSpec(props.visualizeQuery)) : null);
-    const [jsonError, setJsonError] = React.useState(false);
     const [problems, setProblems] = React.useState<string[]>([]);
 
-    // The JSON editor opens with the text of a valid spec
-    const switchMode = (next: ChartBuilderMode) => {
-        setMode(next);
-        setJsonError(false);
-    };
-    const specText = React.useMemo(() => JSON.stringify(spec), [spec]);
-    // Applying an invalid JSON text would apply the last valid spec instead, which the user does not see
-    const canApply = specText !== scriptSpec && !jsonError;
-    const apply = () => {
-        props.onApply(specText);
-        props.onClose();
-    };
+    const onChangeRef = React.useRef(props.onChange);
+    onChangeRef.current = props.onChange;
+    const updateSpec = React.useCallback((next: ChartSpec) => {
+        setSpec(next);
+        onChangeRef.current(JSON.stringify(next));
+    }, []);
 
     // Check the spec once the user pauses, the problems show in the header
     React.useEffect(() => {
@@ -151,7 +139,7 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
-                        aria-label="Close chart builder without applying"
+                        aria-label="Close chart builder"
                         data-testid="chart-builder-close"
                         onClick={props.onClose}
                     >
@@ -164,7 +152,7 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                             <SegmentedControl
                                 aria-label="Chart editor"
                                 size={SegmentedControlSize.Small}
-                                onChange={index => switchMode(index as ChartBuilderMode)}
+                                onChange={index => setMode(index as ChartBuilderMode)}
                             >
                                 <SegmentedControl.IconButton
                                     icon={ToolsIcon}
@@ -185,11 +173,11 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                                 <ChartSpecBuilder
                                     spec={spec}
                                     columns={columns}
-                                    onChange={setSpec}
-                                    onEditJson={() => switchMode(ChartBuilderMode.Json)}
+                                    onChange={updateSpec}
+                                    onEditJson={() => setMode(ChartBuilderMode.Json)}
                                 />
                             ) : (
-                                <ChartSpecJsonEditor initialSpec={spec} onChange={setSpec} onErrorChange={setJsonError} />
+                                <ChartSpecJsonEditor initialSpec={spec} onChange={updateSpec} />
                             )}
                         </div>
                     </div>
@@ -201,22 +189,6 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                         )}
                     </div>
                 </div>
-                <footer className={styles.footer}>
-                    <Button
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        onClick={props.onClose}
-                        data-testid="chart-builder-cancel"
-                    >Cancel</Button>
-                    <Button
-                        variant={ButtonVariant.Primary}
-                        size={ButtonSize.Small}
-                        title="Propose the chart as a change of the script to accept or reject"
-                        disabled={!canApply}
-                        onClick={apply}
-                        data-testid="chart-builder-apply"
-                    >Apply</Button>
-                </footer>
             </section>
         </Overlay>
     );

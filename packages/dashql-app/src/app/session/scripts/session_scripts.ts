@@ -1018,29 +1018,42 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
         }
 
         case SET_SCRIPT_VIS_SPEC: {
-            // Rewrite the `@vis vegalite` tag of the charted statement against the current script session.
-            // The rewrite keeps the other tags, e.g. `@vis card`, and is staged as a diff to accept or reject like a formatting.
+            // Rewrite the `@vis vegalite` tag of the charted statement and stage the rewrite as a diff to accept or
+            // reject, like a formatting. The rewrite keeps the other tags, e.g. `@vis card`.
+            // The chart builder sends every edit, each one restages the diff against the text before the first edit,
+            // so the script shows the whole chart edit as one diff. The builder only opens without a staged diff.
             const { scriptKey, spec } = action.value;
             const scriptData = state.scripts[scriptKey];
             if (!scriptData) {
                 logger.warn("SET_SCRIPT_VIS_SPEC references invalid script", { scriptKey: scriptKey.toString() }, LOG_CTX);
                 return state;
             }
-            let text: string;
+            const scriptSession = scriptData.scriptSession;
+            const currentText = scriptSession.getText();
+            const priorText = scriptData.pendingDiff?.priorText ?? currentText;
+            let text: string | null = null;
             try {
-                const statementId = chartStatementId(scriptData.scriptSession);
+                // The diff is computed against the text of the session, rewrite the text before the first edit
+                if (priorText !== currentText) {
+                    replaceScriptSessionText(scriptSession, priorText);
+                }
+                const statementId = chartStatementId(scriptSession);
                 if (statementId == null) {
                     logger.warn("SET_SCRIPT_VIS_SPEC found no statement to chart", { scriptKey: scriptKey.toString() }, LOG_CTX);
-                    return state;
+                } else {
+                    text = scriptSession.rewriteVisRenderer(statementId, 'vegalite', spec);
                 }
-                text = scriptData.scriptSession.rewriteVisRenderer(statementId, 'vegalite', spec);
             } catch (e: unknown) {
                 logger.warn("SET_SCRIPT_VIS_SPEC failed to rewrite the chart tag", { scriptKey: scriptKey.toString(), error: String(e) }, LOG_CTX);
+            }
+            if (text == null || text === currentText) {
+                // Leave the script as it is
+                if (scriptSession.getText() !== currentText) {
+                    replaceScriptSessionText(scriptSession, currentText);
+                }
                 return state;
             }
-            if (text === scriptData.scriptSession.getText()) {
-                return state;
-            }
+            // A spec that restores the chart before the first edit drops the diff
             return reduceSessionScripts(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text, withDiff: true } }, storage, logger);
         }
 
