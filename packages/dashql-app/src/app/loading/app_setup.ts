@@ -24,8 +24,8 @@ const LOG_CTX = "app_loader";
 async function loadFonts(): Promise<void> {
     // The font families are theme tokens that the app flavor may override
     const style = getComputedStyle(document.documentElement);
-    const family = style.getPropertyValue('--font_family').trim() || "'Instrument Sans'";
-    const familyMono = style.getPropertyValue('--font_family_mono').trim() || "'JetBrains Mono'";
+    const family = style.getPropertyValue('--font_family').trim() || "'Geist'";
+    const familyMono = style.getPropertyValue('--font_family_mono').trim() || "'Geist Mono'";
     await Promise.all([
         document.fonts.load(`300 16px ${family}`),
         document.fonts.load(`400 16px ${family}`),
