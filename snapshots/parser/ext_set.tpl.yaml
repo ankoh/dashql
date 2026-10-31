@@ -19,5 +19,5 @@ parser-snapshots:
     input: |
       SET variable = (
         'some' = 42,
-        'func' = somefunction($someparam),
+        'func' = somefunction(:someparam),
       );

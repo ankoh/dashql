@@ -610,6 +610,30 @@ pub struct InferredTableSchema {
     pub columns_by_name: HashMap<Arc<str>, usize>,
 }
 
+/// What a parameter stands for
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ParameterKind {
+    /// A scalar value, e.g. `where x > :min`
+    Scalar,
+    /// A table, e.g. `from :source`
+    Table,
+}
+
+/// A parameter of the script: a named `:name` (also `:"name"`, `:'name'`), a positional `$1` or an unnamed `?`
+#[derive(Clone, Debug)]
+pub struct Parameter {
+    /// The parameter ref node
+    pub ast_node_id: u32,
+    /// The statement of the parameter
+    pub ast_statement_id: Option<u32>,
+    /// The location, with the prefix
+    pub location: SymbolSpan,
+    /// What the parameter stands for
+    pub kind: ParameterKind,
+    /// The name without the prefix, `1` for `$1`, None for an unnamed `?`
+    pub name: Option<Arc<str>>,
+}
+
 /// A constant expression root
 #[derive(Clone, Copy, Debug)]
 pub struct ConstantExpression {

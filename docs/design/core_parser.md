@@ -327,6 +327,31 @@ content line. The blocks of one block comment share the comment and cover it wit
 (`MALFORMED_COMMENT_TAG`): a last region of line comments without `-- @end`, or an `@end` without an
 opening tag. The formatter keeps tagged regions of line comments verbatim.
 
+## Parameters
+
+Parameters follow Hyper: named parameters `:name` (also `:"name"` and `:'name'`), positional
+parameters `$0`, `$1`, ... and the unnamed `?`. Every form is an `OBJECT_SQL_PARAMETER_REF` with the
+prefix (`SQL_PARAMETER_PREFIX`) and, except for `?`, the name (`SQL_PARAMETER_NAME`). A `?` glued to a
+name or a number (`?name`, `?1`) and `$name` are not parameters of Hyper and are syntax errors. The `:` forms are kept out of `sql_param_ref`
+so that they cannot follow type and function names in casts, which would be ambiguous with array
+slices such as `a[x:y]`.
+
+A parameter can stand for a scalar value, anywhere an expression goes, or for a table, wherever a
+table reference goes: FROM and JOIN items, `TABLE :t`, the targets of INSERT and DELETE, and the
+vertex and edge tables of a property graph. A table parameter is the `SQL_TABLEREF_TABLE` of its
+`OBJECT_SQL_TABLEREF`, like a derived table or a table function, so the tree has no node type or
+attribute key of its own for it, and a table reference still holds either a name or a table:
+
+```sql
+select * from :source s where s.amount > :min;  -- TABLEREF { TABLE: PARAMETER_REF, ALIAS }
+insert into :target select 1;                   -- INSERT { TARGET: TABLEREF { TABLE: PARAMETER_REF } }
+```
+
+The analyzer reports every parameter (`AnalyzedScript::parameters`): its node, statement, location,
+name without the prefix and quotes, and whether it is a `TABLE` (the table of a table reference) or a
+`SCALAR` parameter. A table parameter adds no table reference and no FROM source, its columns stay
+unresolved like the columns of a table function.
+
 ## Location Tracking
 
 ### SymbolSpan

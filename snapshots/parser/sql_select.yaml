@@ -3736,7 +3736,7 @@ parser-snapshots:
   - name: select_column_ref_expr_1
     input: |-
       select 1 into b;
-                  select c from b where c = $a + 1
+                  select c from b where c = :a + 1
     expected:
       statements:
         - type: SELECT_INTO
@@ -3777,12 +3777,12 @@ parser-snapshots:
           ast-begin: 8
           ast-size: 24
           description:
-            text: "select c f..c = $a + 1"
+            text: "select c f..c = :a + 1"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
-            text: "select c f..c = $a + 1"
+            text: "select c f..c = :a + 1"
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
@@ -3816,14 +3816,14 @@ parser-snapshots:
                             text: "b"
               - key: SQL_SELECT_WHERE
                 type: OBJECT_SQL_NARY_EXPRESSION
-                text: "c = $a + 1"
+                text: "c = :a + 1"
                 children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
-                    text: "c = $a + 1"
+                    text: "c = :a + 1"
                     children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "c"
@@ -3835,21 +3835,21 @@ parser-snapshots:
                               - type: NAME
                                 text: "c"
                       - type: OBJECT_SQL_NARY_EXPRESSION
-                        text: "$a + 1"
+                        text: ":a + 1"
                         children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: PLUS
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
-                            text: "$a + 1"
+                            text: ":a + 1"
                             children:
                               - type: OBJECT_SQL_PARAMETER_REF
-                                text: "$a"
+                                text: ":a"
                                 children:
                                   - key: SQL_PARAMETER_PREFIX
                                     type: OPERATOR
-                                    text: "$"
+                                    text: ":"
                                   - key: SQL_PARAMETER_NAME
                                     type: ARRAY
                                     text: "a"
@@ -3868,19 +3868,19 @@ parser-snapshots:
 
   - name: select_column_ref_expr_2
     input: |-
-      select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = $month
+      select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = :month
     expected:
       statements:
         - type: SELECT_INTO
           ast-begin: 0
           ast-size: 42
           description:
-            text: "select * i..h = $month"
+            text: "select * i..h = :month"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
-            text: "select * i..h = $month"
+            text: "select * i..h = :month"
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
@@ -3935,14 +3935,14 @@ parser-snapshots:
                         text: "c2"
               - key: SQL_SELECT_WHERE
                 type: OBJECT_SQL_NARY_EXPRESSION
-                text: "c1.month =..h = $month"
+                text: "c1.month =..h = :month"
                 children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: AND
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
-                    text: "c1.month =..h = $month"
+                    text: "c1.month =..h = :month"
                     children:
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "c1.month = c2.month"
@@ -3977,14 +3977,14 @@ parser-snapshots:
                                       - type: NAME
                                         text: "month"
                       - type: OBJECT_SQL_NARY_EXPRESSION
-                        text: "c2.month = $month"
+                        text: "c2.month = :month"
                         children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: EQUAL
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
-                            text: "c2.month = $month"
+                            text: "c2.month = :month"
                             children:
                               - type: OBJECT_SQL_COLUMN_REF
                                 text: "c2.month"
@@ -3998,11 +3998,11 @@ parser-snapshots:
                                       - type: NAME
                                         text: "month"
                               - type: OBJECT_SQL_PARAMETER_REF
-                                text: "$month"
+                                text: ":month"
                                 children:
                                   - key: SQL_PARAMETER_PREFIX
                                     type: OPERATOR
-                                    text: "$"
+                                    text: ":"
                                   - key: SQL_PARAMETER_NAME
                                     type: ARRAY
                                     text: "month"
@@ -4194,7 +4194,7 @@ parser-snapshots:
 
   - name: select_functable_table_argument
     input: |-
-      select * from hybrid_search(TABLE("search_index__dlm"), $"_SEARCH_STRING", $"_PREFILTER_EXPRESSION") as v;
+      select * from hybrid_search(TABLE("search_index__dlm"), :"_SEARCH_STRING", :"_PREFILTER_EXPRESSION") as v;
     expected:
       statements:
         - type: SELECT
@@ -4260,15 +4260,15 @@ parser-snapshots:
                                               - type: NAME
                                                 text: "\"search_index__dlm\""
                                   - type: OBJECT_SQL_FUNCTION_ARG
-                                    text: "$\"_SEARCH_STRING\""
+                                    text: ":\"_SEARCH_STRING\""
                                     children:
                                       - key: SQL_FUNCTION_ARG_VALUE
                                         type: OBJECT_SQL_PARAMETER_REF
-                                        text: "$\"_SEARCH_STRING\""
+                                        text: ":\"_SEARCH_STRING\""
                                         children:
                                           - key: SQL_PARAMETER_PREFIX
                                             type: OPERATOR
-                                            text: "$"
+                                            text: ":"
                                           - key: SQL_PARAMETER_NAME
                                             type: ARRAY
                                             text: "\"_SEARCH_STRING\""
@@ -4276,15 +4276,15 @@ parser-snapshots:
                                               - type: NAME
                                                 text: "\"_SEARCH_STRING\""
                                   - type: OBJECT_SQL_FUNCTION_ARG
-                                    text: "$\"_PREFILT..XPRESSION\""
+                                    text: ":\"_PREFILT..XPRESSION\""
                                     children:
                                       - key: SQL_FUNCTION_ARG_VALUE
                                         type: OBJECT_SQL_PARAMETER_REF
-                                        text: "$\"_PREFILT..XPRESSION\""
+                                        text: ":\"_PREFILT..XPRESSION\""
                                         children:
                                           - key: SQL_PARAMETER_PREFIX
                                             type: OPERATOR
-                                            text: "$"
+                                            text: ":"
                                           - key: SQL_PARAMETER_NAME
                                             type: ARRAY
                                             text: "\"_PREFILTE..XPRESSION\""
@@ -4313,8 +4313,8 @@ parser-snapshots:
       FROM
           hybrid_search(
               TABLE("KnowledgeArticle_index__dlm"),
-                  $"_SEARCH_STRING",
-                  $"_PREFILTER_EXPRESSION",
+                  :"_SEARCH_STRING",
+                  :"_PREFILTER_EXPRESSION",
                   /*Integer(EED3)*/
           ) AS "v"
               INNER JOIN "KnowledgeArticle_chunk__dlm" AS "c" ON "c"."RecordId__c" = "v"."RecordId__c"
@@ -4322,7 +4322,7 @@ parser-snapshots:
               AND "c"."SourceRecordId__c" IN (
                   SELECT DISTINCT "kds"."ParentId__c"
                   FROM "DataCategorySelectionCustom__dlm" AS "kds"
-                  WHERE ARRAY_CONTAINS($"CATEGORY_IDS", "kds"."DataCategoryId__c")
+                  WHERE ARRAY_CONTAINS(:"CATEGORY_IDS", "kds"."DataCategoryId__c")
               )
       ORDER BY "Score" DESC
           LIMIT /*Integer(7776)*/
@@ -4584,18 +4584,18 @@ parser-snapshots:
                                                             text: "ARRAY_CONTAINS"
                                                       - key: SQL_FUNCTION_ARGUMENTS
                                                         type: ARRAY
-                                                        text: "$\"CATEGORY..goryId__c\""
+                                                        text: ":\"CATEGORY..goryId__c\""
                                                         children:
                                                           - type: OBJECT_SQL_FUNCTION_ARG
-                                                            text: "$\"CATEGORY_IDS\""
+                                                            text: ":\"CATEGORY_IDS\""
                                                             children:
                                                               - key: SQL_FUNCTION_ARG_VALUE
                                                                 type: OBJECT_SQL_PARAMETER_REF
-                                                                text: "$\"CATEGORY_IDS\""
+                                                                text: ":\"CATEGORY_IDS\""
                                                                 children:
                                                                   - key: SQL_PARAMETER_PREFIX
                                                                     type: OPERATOR
-                                                                    text: "$"
+                                                                    text: ":"
                                                                   - key: SQL_PARAMETER_NAME
                                                                     type: ARRAY
                                                                     text: "\"CATEGORY_IDS\""
@@ -4709,15 +4709,15 @@ parser-snapshots:
                                                                       - type: NAME
                                                                         text: "\"Knowledge..ndex__dlm\""
                                                           - type: OBJECT_SQL_FUNCTION_ARG
-                                                            text: "$\"_SEARCH_STRING\""
+                                                            text: ":\"_SEARCH_STRING\""
                                                             children:
                                                               - key: SQL_FUNCTION_ARG_VALUE
                                                                 type: OBJECT_SQL_PARAMETER_REF
-                                                                text: "$\"_SEARCH_STRING\""
+                                                                text: ":\"_SEARCH_STRING\""
                                                                 children:
                                                                   - key: SQL_PARAMETER_PREFIX
                                                                     type: OPERATOR
-                                                                    text: "$"
+                                                                    text: ":"
                                                                   - key: SQL_PARAMETER_NAME
                                                                     type: ARRAY
                                                                     text: "\"_SEARCH_STRING\""
@@ -4725,15 +4725,15 @@ parser-snapshots:
                                                                       - type: NAME
                                                                         text: "\"_SEARCH_STRING\""
                                                           - type: OBJECT_SQL_FUNCTION_ARG
-                                                            text: "$\"_PREFILT..XPRESSION\""
+                                                            text: ":\"_PREFILT..XPRESSION\""
                                                             children:
                                                               - key: SQL_FUNCTION_ARG_VALUE
                                                                 type: OBJECT_SQL_PARAMETER_REF
-                                                                text: "$\"_PREFILT..XPRESSION\""
+                                                                text: ":\"_PREFILT..XPRESSION\""
                                                                 children:
                                                                   - key: SQL_PARAMETER_PREFIX
                                                                     type: OPERATOR
-                                                                    text: "$"
+                                                                    text: ":"
                                                                   - key: SQL_PARAMETER_NAME
                                                                     type: ARRAY
                                                                     text: "\"_PREFILTE..XPRESSION\""
@@ -14182,50 +14182,50 @@ parser-snapshots:
 
   - name: select_named_and_positional_params
     input: |-
-      select ?foo, ?1, ? from t where x in (?, ?)
+      select $0, $1, ? from t where x in (?, ?)
     expected:
       statements:
         - type: SELECT
           ast-begin: 0
           ast-size: 30
           description:
-            text: "select ?fo.. in (?, ?)"
+            text: "select $0,.. in (?, ?)"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
-            text: "select ?fo.. in (?, ?)"
+            text: "select $0,.. in (?, ?)"
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
-                text: "?foo, ?1, ?"
+                text: "$0, $1, ?"
                 children:
                   - type: OBJECT_SQL_RESULT_TARGET
-                    text: "?foo"
+                    text: "$0"
                     children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_PARAMETER_REF
-                        text: "?foo"
+                        text: "$0"
                         children:
                           - key: SQL_PARAMETER_PREFIX
                             type: OPERATOR
-                            text: "?"
+                            text: "$"
                           - key: SQL_PARAMETER_NAME
                             type: ARRAY
-                            text: "foo"
+                            text: "0"
                             children:
                               - type: NAME
-                                text: "foo"
+                                text: "0"
                   - type: OBJECT_SQL_RESULT_TARGET
-                    text: "?1"
+                    text: "$1"
                     children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_PARAMETER_REF
-                        text: "?1"
+                        text: "$1"
                         children:
                           - key: SQL_PARAMETER_PREFIX
                             type: OPERATOR
-                            text: "?"
+                            text: "$"
                           - key: SQL_PARAMETER_NAME
                             type: ARRAY
                             text: "1"
@@ -14290,6 +14290,163 @@ parser-snapshots:
                               - key: SQL_PARAMETER_PREFIX
                                 type: OPERATOR
                                 text: "?"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_question_mark_name_is_error
+    input: |-
+      select ?foo from t
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected QUESTION_MARK'
+          text: "?"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_question_mark_number_is_error
+    input: |-
+      select ?1 from t
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected QUESTION_MARK'
+          text: "?"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_dollar_name_is_error
+    input: |-
+      select $foo from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 5
+          description:
+            text: "select $foo from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select $foo from t"
+            children:
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected identifier literal, expecting ICONST'
+          text: "foo"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_dollar_quoted_name_is_error
+    input: |-
+      select $"foo" from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 5
+          description:
+            text: "select $\"f..oo\" from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select $\"f..oo\" from t"
+            children:
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected identifier literal, expecting ICONST'
+          text: "\"foo\""
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_unnamed_param_alias
+    input: |-
+      select ? foo from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 10
+          description:
+            text: "select ? foo from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select ? foo from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "? foo"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "? foo"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_PARAMETER_REF
+                        text: "?"
+                        children:
+                          - key: SQL_PARAMETER_PREFIX
+                            type: OPERATOR
+                            text: "?"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "foo"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -14686,6 +14843,247 @@ parser-snapshots:
                             children:
                               - type: NAME
                                 text: "p"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_table_params
+    input: |-
+      select * from :source s join :"other" o on s.id = o.id, $3, ? as f, :'fifth' where s.x > :min
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 57
+          description:
+            text: "select * f..s.x > :min"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..s.x > :min"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from :sour.., :'fifth'"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: ":source s ...id = o.id"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: ":source s ...id = o.id"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "s.id = o.id"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "s.id = o.id"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "s.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "s.id"
+                                        children:
+                                          - type: NAME
+                                            text: "s"
+                                          - type: NAME
+                                            text: "id"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "o.id"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "o.id"
+                                        children:
+                                          - type: NAME
+                                            text: "o"
+                                          - type: NAME
+                                            text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: INNER
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: ":source s ...id = o.id"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: ":source s"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_PARAMETER_REF
+                                    text: ":source"
+                                    children:
+                                      - key: SQL_PARAMETER_PREFIX
+                                        type: OPERATOR
+                                        text: ":"
+                                      - key: SQL_PARAMETER_NAME
+                                        type: ARRAY
+                                        text: "source"
+                                        children:
+                                          - type: NAME
+                                            text: "source"
+                                  - key: SQL_TABLEREF_ALIAS
+                                    type: NAME
+                                    text: "s"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: ":\"other\" o"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_PARAMETER_REF
+                                    text: ":\"other\""
+                                    children:
+                                      - key: SQL_PARAMETER_PREFIX
+                                        type: OPERATOR
+                                        text: ":"
+                                      - key: SQL_PARAMETER_NAME
+                                        type: ARRAY
+                                        text: "\"other\""
+                                        children:
+                                          - type: NAME
+                                            text: "\"other\""
+                                  - key: SQL_TABLEREF_ALIAS
+                                    type: NAME
+                                    text: "o"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "$3"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_PARAMETER_REF
+                        text: "$3"
+                        children:
+                          - key: SQL_PARAMETER_PREFIX
+                            type: OPERATOR
+                            text: "$"
+                          - key: SQL_PARAMETER_NAME
+                            type: ARRAY
+                            text: "3"
+                            children:
+                              - type: NAME
+                                text: "3"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "? as f"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_PARAMETER_REF
+                        text: "?"
+                        children:
+                          - key: SQL_PARAMETER_PREFIX
+                            type: OPERATOR
+                            text: "?"
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "f"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: ":'fifth'"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_PARAMETER_REF
+                        text: ":'fifth'"
+                        children:
+                          - key: SQL_PARAMETER_PREFIX
+                            type: OPERATOR
+                            text: ":"
+                          - key: SQL_PARAMETER_NAME
+                            type: ARRAY
+                            text: "'fifth'"
+                            children:
+                              - type: NAME
+                                text: "'fifth'"
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "s.x > :min"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: GREATER_THAN
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "s.x > :min"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "s.x"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "s.x"
+                            children:
+                              - type: NAME
+                                text: "s"
+                              - type: NAME
+                                text: "x"
+                      - type: OBJECT_SQL_PARAMETER_REF
+                        text: ":min"
+                        children:
+                          - key: SQL_PARAMETER_PREFIX
+                            type: OPERATOR
+                            text: ":"
+                          - key: SQL_PARAMETER_NAME
+                            type: ARRAY
+                            text: "min"
+                            children:
+                              - type: NAME
+                                text: "min"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_table_statement_param
+    input: |-
+      table :source
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "table :source"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "table :source"
+            children:
+              - key: SQL_SELECT_TABLE
+                type: OBJECT_SQL_TABLEREF
+                text: "table :source"
+                children:
+                  - key: SQL_TABLEREF_TABLE
+                    type: OBJECT_SQL_PARAMETER_REF
+                    text: ":source"
+                    children:
+                      - key: SQL_PARAMETER_PREFIX
+                        type: OPERATOR
+                        text: ":"
+                      - key: SQL_PARAMETER_NAME
+                        type: ARRAY
+                        text: "source"
+                        children:
+                          - type: NAME
+                            text: "source"
       scanner-errors: []
       parser-errors: []
       line-breaks: []

@@ -33,6 +33,7 @@
 %type<Node> sql_graph_where_clause;
 %type<Node> sql_opt_graph_columns_clause;
 %type<Node> sql_opt_graph_element_table_alias;
+%type<Node> sql_graph_element_table_ref;
 %type<Node> sql_opt_graph_element_table_key_clause;
 %type<Node> sql_opt_graph_except_clause;
 %type<Node> sql_opt_graph_label_expression;

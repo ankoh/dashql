@@ -199,6 +199,28 @@ table FunctionReference {
     function_name: QualifiedFunctionName;
 }
 
+/// What a parameter stands for
+enum ParameterKind: uint8 {
+    /// A scalar value, e.g. `where x > :min`
+    SCALAR = 0,
+    /// A table, e.g. `from :source`
+    TABLE = 1,
+}
+
+/// A parameter of the script: a named `:name` (also `:"name"`, `:'name'`), a positional `$1` or an unnamed `?`
+table Parameter {
+    // The id of the parameter ref node
+    ast_node_id: uint32;
+    // The id of the statement that contains the parameter
+    ast_statement_id: uint32;
+    // The location, with the prefix
+    symbol_span: parser.SymbolSpan;
+    /// What the parameter stands for
+    kind: ParameterKind = SCALAR;
+    /// The name without the prefix, "1" for `$1`, null for an unnamed `?`
+    name: string;
+}
+
 struct ConstantExpression {
     // The id of the AST node that created this constant expression
     ast_node_id: uint32;
@@ -398,4 +420,7 @@ table AnalyzedScript {
 
     /// INSERT statements and their resolved write targets
     insert_statements: [InsertStatement];
+
+    /// The parameters, in the order of the script
+    parameters: [Parameter];
 }

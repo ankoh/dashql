@@ -62,6 +62,7 @@ impl<'a> AnalysisState<'a> {
             name_scopes: Vec::new(),
             name_scopes_by_root_node: Default::default(),
             constant_expressions: Vec::new(),
+            parameters: Vec::new(),
             visualization_specs: Vec::new(),
             inference_constraints: Vec::new(),
             inferred_table_schemas: Vec::new(),

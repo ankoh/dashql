@@ -15,6 +15,7 @@ use dashql_buffers::algebra::{
 use dashql_buffers::analyzer::{
     AnalyzedScriptT, AnalyzerErrorT, ConstantExpressionT, FunctionDeclarationT, FunctionParamT, IndexedColumnReferenceT,
     IndexedTableReferenceT, InferredColumnT, InferredTableSchemaT, InsertStatementT, InsertTargetColumnT, NameScopeT,
+    ParameterKind as PackedParameterKind, ParameterT,
     QualifiedColumnNameT, QualifiedFunctionNameT, QualifiedTableNameT, ResolvedTableT, TableColumnT,
     TableReferenceRole, TableReferenceT, TableT, VisualizationSpecT,
 };
@@ -644,6 +645,22 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
             })
         })
         .collect();
+    let parameters = script
+        .parameters
+        .iter()
+        .map(|p| {
+            build!(ParameterT {
+                ast_node_id: p.ast_node_id,
+                ast_statement_id: p.ast_statement_id.unwrap_or(PROTO_NULL_U32),
+                symbol_span: Some(symbol_span(p.location)),
+                kind: match p.kind {
+                    ParameterKind::Scalar => PackedParameterKind::SCALAR,
+                    ParameterKind::Table => PackedParameterKind::TABLE,
+                },
+                name: p.name.as_deref().map(str::to_string),
+            })
+        })
+        .collect();
     let function_declarations = entry.function_declarations.iter().map(pack_function_declaration).collect();
     let visualization_specs = script
         .visualization_specs
@@ -717,6 +734,7 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
         function_declarations: Some(function_declarations),
         visualization_specs: Some(visualization_specs),
         inferred_table_schemas: Some(inferred_table_schemas),
+        parameters: non_empty(parameters),
     })
 }
 

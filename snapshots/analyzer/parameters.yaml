@@ -1,0 +1,149 @@
+analyzer-snapshots:
+
+  - name: parameters_scalar_and_table
+    script:
+      input: select * from :source s where s.amount > :min and s.region = :region
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "s.amount"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "s.region"
+      parameters:
+        - kind: table
+          name: source
+          statement-id: 0
+          text: ":source"
+        - kind: scalar
+          name: min
+          statement-id: 0
+          text: ":min"
+        - kind: scalar
+          name: region
+          statement-id: 0
+          text: ":region"
+
+  - name: parameters_forms
+    script:
+      input: select :a, :"b", :'c', $0, $1, ? from t where x in (?, ?)
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "x"
+      parameters:
+        - kind: scalar
+          name: a
+          statement-id: 0
+          text: ":a"
+        - kind: scalar
+          name: b
+          statement-id: 0
+          text: ":\"b\""
+        - kind: scalar
+          name: c
+          statement-id: 0
+          text: ":'c'"
+        - kind: scalar
+          name: 0
+          statement-id: 0
+          text: "$0"
+        - kind: scalar
+          name: 1
+          statement-id: 0
+          text: "$1"
+        - kind: scalar
+          statement-id: 0
+          text: "?"
+        - kind: scalar
+          statement-id: 0
+          text: "?"
+        - kind: scalar
+          statement-id: 0
+          text: "?"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: unresolved
+              name: t
+              text: "t"
+          columns:
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+            - name: '?'
+              computed: true
+          text: "select :a,.. in (?, ?)"
+      inferred-tables:
+        - name: t
+          confidence: confident
+          columns:
+            - name: x
+              confidence: confident
+
+  - name: parameters_tables
+    script:
+      input: |-
+        insert into :target select * from :source join (select * from $0 where y = :y) o on true;
+        delete from $1 where id = ?
+      catalog-id: 1
+      errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "y"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 1
+          text: "id"
+      parameters:
+        - kind: table
+          name: target
+          statement-id: 0
+          text: ":target"
+        - kind: table
+          name: source
+          statement-id: 0
+          text: ":source"
+        - kind: table
+          name: 0
+          statement-id: 0
+          text: "$0"
+        - kind: scalar
+          name: y
+          statement-id: 0
+          text: ":y"
+        - kind: table
+          name: 1
+          statement-id: 1
+          text: "$1"
+        - kind: scalar
+          statement-id: 1
+          text: "?"
+      name-scopes:
+        - scope-id: 1
+          sources:
+            - type: subquery
+              name: o
+              scope: 0
+              text: "(select * .. y = :y) o"
+          text: "select * f.. o on true"

@@ -1,3 +1,4 @@
 %type<Node> sql_insert_stmt;
+%type<Node> sql_insert_target;
 %type<NodeList> sql_insert_rest;
 %type<Node> sql_insert_returning_clause;

@@ -334,6 +334,30 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
         out.insert("constants", Node::seq(items));
     }
 
+    // Parameters, scalar values and tables
+    if !script.parameters.is_empty() {
+        let items = script
+            .parameters
+            .iter()
+            .map(|parameter| {
+                let mut m = Map::new();
+                m.plain("kind", match parameter.kind {
+                    ParameterKind::Scalar => "scalar",
+                    ParameterKind::Table => "table",
+                });
+                if let Some(name) = &parameter.name {
+                    m.plain("name", name);
+                }
+                if let Some(statement) = parameter.ast_statement_id {
+                    m.int("statement-id", statement as i64);
+                }
+                e.location(&mut m, parameter.ast_node_id, "text");
+                m.into_node()
+            })
+            .collect();
+        out.insert("parameters", Node::seq(items));
+    }
+
     // Name scopes, the FROM items and output columns that column refs resolve against
     if let Some(catalog) = scope_catalog {
         let items: Vec<Node> =
@@ -517,7 +541,7 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
 
 
 /// The keys the analyzer snapshot test compares
-pub const COMPARED_KEYS: [&str; 9] = [
+pub const COMPARED_KEYS: [&str; 10] = [
     "errors",
     "tables",
     "catalog-changes",
@@ -525,6 +549,7 @@ pub const COMPARED_KEYS: [&str; 9] = [
     "inserts",
     "expressions",
     "constants",
+    "parameters",
     "name-scopes",
     "inferred-tables",
 ];

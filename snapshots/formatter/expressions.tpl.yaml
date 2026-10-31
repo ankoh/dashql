@@ -460,7 +460,7 @@ formatter-snapshots:
       hyper:
 
   - name: expr_positional_params
-    input: select ?foo, ? from t where a = ? and b in (?, ?) fetch next 3 rows only
+    input: select $0, ? from t where a = ? and b in (?, ?) fetch next 3 rows only
     dialects:
       hyper:
 

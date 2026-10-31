@@ -365,6 +365,182 @@ parser-snapshots:
       comment-blocks: []
       comment-warnings: []
 
+  - name: pgq_table_params
+    input: |-
+      WITH pg AS PROPERTY GRAPH (
+        VERTEX TABLES (:people AS person KEY (id))
+        EDGE TABLES (
+          :knows KEY (src, dst) SOURCE person DESTINATION person
+        )
+      )
+      SELECT 1
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 43
+          description:
+            text: "WITH pg AS..)\nSELECT 1"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "WITH pg AS..)\nSELECT 1"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "pg AS PROP..rson\n  )\n)"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "pg AS PROP..rson\n  )\n)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "pg"
+                      - key: SQL_CTE_PROPERTY_GRAPH
+                        type: OBJECT_SQL_PROPERTY_GRAPH
+                        text: "pg AS PROP..rson\n  )\n)"
+                        children:
+                          - key: SQL_PROPERTY_GRAPH_VERTEX_TABLES
+                            type: ARRAY
+                            text: "VERTEX TAB.. KEY (id))"
+                            children:
+                              - type: OBJECT_SQL_GRAPH_ELEMENT_TABLE
+                                text: ":people AS..n KEY (id)"
+                                children:
+                                  - key: SQL_GRAPH_ELEMENT_TABLE_TABLE
+                                    type: OBJECT_SQL_TABLEREF
+                                    text: ":people"
+                                    children:
+                                      - key: SQL_TABLEREF_TABLE
+                                        type: OBJECT_SQL_PARAMETER_REF
+                                        text: ":people"
+                                        children:
+                                          - key: SQL_PARAMETER_PREFIX
+                                            type: OPERATOR
+                                            text: ":"
+                                          - key: SQL_PARAMETER_NAME
+                                            type: ARRAY
+                                            text: "people"
+                                            children:
+                                              - type: NAME
+                                                text: "people"
+                                      - key: SQL_TABLEREF_ALIAS
+                                        type: OBJECT_SQL_ALIAS
+                                        text: "AS person"
+                                        children:
+                                          - key: SQL_ALIAS_NAME
+                                            type: NAME
+                                            text: "person"
+                                  - key: SQL_GRAPH_ELEMENT_TABLE_KEY
+                                    type: ARRAY
+                                    text: "KEY (id)"
+                                    children:
+                                      - type: NAME
+                                        text: "id"
+                                  - key: SQL_GRAPH_ELEMENT_TABLE_LABELS
+                                    type: ARRAY
+                                    text: ""
+                                    children:
+                                      - type: OBJECT_SQL_GRAPH_LABEL
+                                        text: ""
+                                        children:
+                                          - key: SQL_GRAPH_LABEL_DEFAULT
+                                            type: BOOL
+                                            value: 1
+                                          - key: SQL_GRAPH_LABEL_PROPERTIES
+                                            type: OBJECT_SQL_GRAPH_PROPERTIES
+                                            text: ""
+                                            children:
+                                              - key: SQL_GRAPH_PROPERTIES_ALL
+                                                type: BOOL
+                                                value: 1
+                          - key: SQL_PROPERTY_GRAPH_EDGE_TABLES
+                            type: ARRAY
+                            text: "EDGE TABLE..person\n  )"
+                            children:
+                              - type: OBJECT_SQL_GRAPH_ELEMENT_TABLE
+                                text: ":knows KEY..ION person"
+                                children:
+                                  - key: SQL_GRAPH_ELEMENT_TABLE_TABLE
+                                    type: OBJECT_SQL_TABLEREF
+                                    text: ":knows"
+                                    children:
+                                      - key: SQL_TABLEREF_TABLE
+                                        type: OBJECT_SQL_PARAMETER_REF
+                                        text: ":knows"
+                                        children:
+                                          - key: SQL_PARAMETER_PREFIX
+                                            type: OPERATOR
+                                            text: ":"
+                                          - key: SQL_PARAMETER_NAME
+                                            type: ARRAY
+                                            text: "knows"
+                                            children:
+                                              - type: NAME
+                                                text: "knows"
+                                  - key: SQL_GRAPH_ELEMENT_TABLE_KEY
+                                    type: ARRAY
+                                    text: "KEY (src, dst)"
+                                    children:
+                                      - type: NAME
+                                        text: "src"
+                                      - type: NAME
+                                        text: "dst"
+                                  - key: SQL_GRAPH_ELEMENT_TABLE_SOURCE
+                                    type: OBJECT_SQL_GRAPH_VERTEX_REFERENCE
+                                    text: "SOURCE person"
+                                    children:
+                                      - key: SQL_GRAPH_VERTEX_REFERENCE_NAME
+                                        type: NAME
+                                        text: "person"
+                                  - key: SQL_GRAPH_ELEMENT_TABLE_DESTINATION
+                                    type: OBJECT_SQL_GRAPH_VERTEX_REFERENCE
+                                    text: "DESTINATION person"
+                                    children:
+                                      - key: SQL_GRAPH_VERTEX_REFERENCE_NAME
+                                        type: NAME
+                                        text: "person"
+                                  - key: SQL_GRAPH_ELEMENT_TABLE_LABELS
+                                    type: ARRAY
+                                    text: ""
+                                    children:
+                                      - type: OBJECT_SQL_GRAPH_LABEL
+                                        text: ""
+                                        children:
+                                          - key: SQL_GRAPH_LABEL_DEFAULT
+                                            type: BOOL
+                                            value: 1
+                                          - key: SQL_GRAPH_LABEL_PROPERTIES
+                                            type: OBJECT_SQL_GRAPH_PROPERTIES
+                                            text: ""
+                                            children:
+                                              - key: SQL_GRAPH_PROPERTIES_ALL
+                                                type: BOOL
+                                                value: 1
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [27,28]
+        - text: [72,73]
+        - text: [88,89]
+        - text: [147,148]
+        - text: [151,152]
+        - text: [153,154]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
   - name: pgq_synonyms_and_properties
     input: |-
       WITH pg AS PROPERTY GRAPH (

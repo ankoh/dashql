@@ -60,21 +60,27 @@ sql_graph_vertex_table_list:
   }
     ;
 
+// The table of a vertex or edge table, a table name or a table parameter, with an optional alias.
+// The table reference covers the name or the parameter, not the alias.
+sql_graph_element_table_ref:
+    sql_qualified_name sql_opt_graph_element_table_alias {
+        ctx.object(@1, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_NAME, $1), attr(Key::SQL_TABLEREF_ALIAS, $2)])
+    }
+  | sql_table_param_ref sql_opt_graph_element_table_alias {
+      ctx.object(@1, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_TABLE, $1), attr(Key::SQL_TABLEREF_ALIAS, $2)])
+  }
+    ;
+
 sql_graph_vertex_table_definition:
-    sql_qualified_name sql_opt_graph_element_table_alias sql_opt_graph_element_table_key_clause
+    sql_graph_element_table_ref sql_opt_graph_element_table_key_clause
         sql_graph_element_table_label_and_properties {
-            let table = ctx.object(
-                @1,
-                NodeType::OBJECT_SQL_TABLEREF,
-                &[attr(Key::SQL_TABLEREF_NAME, $1), attr(Key::SQL_TABLEREF_ALIAS, $2)],
-            );
             ctx.object(
                 @$,
                 NodeType::OBJECT_SQL_GRAPH_ELEMENT_TABLE,
                 &[
-                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_TABLE, table),
-                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_KEY, $3),
-                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_LABELS, $4),
+                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_TABLE, $1),
+                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_KEY, $2),
+                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_LABELS, $3),
                 ],
             )
         }
@@ -124,23 +130,18 @@ sql_graph_edge_table_list:
     ;
 
 sql_graph_edge_table_definition:
-    sql_qualified_name sql_opt_graph_element_table_alias sql_opt_graph_element_table_key_clause
+    sql_graph_element_table_ref sql_opt_graph_element_table_key_clause
         sql_graph_source_vertex_table sql_graph_destination_vertex_table
         sql_graph_element_table_label_and_properties {
-            let table = ctx.object(
-                @1,
-                NodeType::OBJECT_SQL_TABLEREF,
-                &[attr(Key::SQL_TABLEREF_NAME, $1), attr(Key::SQL_TABLEREF_ALIAS, $2)],
-            );
             ctx.object(
                 @$,
                 NodeType::OBJECT_SQL_GRAPH_ELEMENT_TABLE,
                 &[
-                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_TABLE, table),
-                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_KEY, $3),
-                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_SOURCE, $4),
-                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_DESTINATION, $5),
-                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_LABELS, $6),
+                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_TABLE, $1),
+                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_KEY, $2),
+                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_SOURCE, $3),
+                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_DESTINATION, $4),
+                    attr(Key::SQL_GRAPH_ELEMENT_TABLE_LABELS, $5),
                 ],
             )
         }

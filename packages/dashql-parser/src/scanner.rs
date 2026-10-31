@@ -542,7 +542,8 @@ impl<'a> Lexer<'a> {
                 self.yyless(&mut loc, 1);
                 Some(Symbol::new(S_DOT_TRAILING, loc))
             }
-            // ?name, ?1 and ?"name" are named parameters, a standalone ? is a positional parameter
+            // A standalone ? is an unnamed parameter. ?name, ?1 and ?"name" are not parameters of Hyper,
+            // the grammar has no rule for QUESTION_MARK, so they are syntax errors.
             Initial::QuestionMark => match self.text.get(self.pos) {
                 Some(&c) if is_ident_cont(c) || c == b'"' => Some(Symbol::new(S_QUESTION_MARK, loc)),
                 _ => Some(Symbol::new(S_PARAM, loc)),

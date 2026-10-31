@@ -431,7 +431,7 @@ order by ts asc, workload_name asc`);
     it('formats table-valued arguments with named parameters', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);
-        script.insertTextAt(0, `select * from hybrid_search(TABLE("search_index__dlm"), $"_SEARCH_STRING") as v`);
+        script.insertTextAt(0, `select * from hybrid_search(TABLE("search_index__dlm"), :"_SEARCH_STRING") as v`);
         const config = new dashql.buffers.formatting.FormattingConfigT(
             dashql.buffers.formatting.FormattingDialect.HYPER,
             dashql.buffers.formatting.FormattingMode.COMPACT,
@@ -441,7 +441,7 @@ order by ts asc, workload_name asc`);
         const newScript = script.format(config, catalog, true);
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
-            `select * from hybrid_search(table("search_index__dlm"), $"_SEARCH_STRING") v;`
+            `select * from hybrid_search(table("search_index__dlm"), :"_SEARCH_STRING") v;`
         );
     });
 

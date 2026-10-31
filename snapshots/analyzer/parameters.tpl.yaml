@@ -1,0 +1,15 @@
+analyzer-snapshots:
+  # A table parameter and scalar parameters
+  - name: parameters_scalar_and_table
+    script:
+      input: select * from :source s where s.amount > :min and s.region = :region
+  # Every parameter form, named and positional
+  - name: parameters_forms
+    script:
+      input: select :a, :"b", :'c', $0, $1, ? from t where x in (?, ?)
+  # Table parameters in joins, derived tables, INSERT and DELETE
+  - name: parameters_tables
+    script:
+      input: |-
+        insert into :target select * from :source join (select * from $0 where y = :y) o on true;
+        delete from $1 where id = ?

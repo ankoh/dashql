@@ -132,6 +132,7 @@
 %type<Node> sql_param_name;
 %type<Node> sql_param_ref;
 %type<Node> sql_colon_param_ref;
+%type<Node> sql_table_param_ref;
 %type<Node> sql_preparable_stmt;
 %type<Node> sql_qual_all_op;
 %type<Node> sql_qual_op;

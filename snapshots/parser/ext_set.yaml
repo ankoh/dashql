@@ -140,7 +140,7 @@ parser-snapshots:
     input: |-
       SET variable = (
         'some' = 42,
-        'func' = somefunction($someparam),
+        'func' = somefunction(:someparam),
       );
     expected:
       statements:
@@ -193,18 +193,18 @@ parser-snapshots:
                                     text: "somefunction"
                               - key: SQL_FUNCTION_ARGUMENTS
                                 type: ARRAY
-                                text: "$someparam"
+                                text: ":someparam"
                                 children:
                                   - type: OBJECT_SQL_FUNCTION_ARG
-                                    text: "$someparam"
+                                    text: ":someparam"
                                     children:
                                       - key: SQL_FUNCTION_ARG_VALUE
                                         type: OBJECT_SQL_PARAMETER_REF
-                                        text: "$someparam"
+                                        text: ":someparam"
                                         children:
                                           - key: SQL_PARAMETER_PREFIX
                                             type: OPERATOR
-                                            text: "$"
+                                            text: ":"
                                           - key: SQL_PARAMETER_NAME
                                             type: ARRAY
                                             text: "someparam"

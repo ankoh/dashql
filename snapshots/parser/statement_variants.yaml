@@ -681,3 +681,182 @@ parser-snapshots:
           lines:
             - "Some text"
       comment-warnings: []
+
+  - name: insert_table_param
+    input: |-
+      insert into :target (a, b) select a, b from :source
+    expected:
+      statements:
+        - type: INSERT
+          ast-begin: 0
+          ast-size: 25
+          description:
+            text: "insert int..om :source"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert int..om :source"
+            children:
+              - key: SQL_INSERT_COLUMNS
+                type: ARRAY
+                text: "(a, b)"
+                children:
+                  - type: NAME
+                    text: "a"
+                  - type: NAME
+                    text: "b"
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "select a, ..om :source"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "a, b"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "a"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "b"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "b"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "b"
+                                children:
+                                  - type: NAME
+                                    text: "b"
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "from :source"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: ":source"
+                        children:
+                          - key: SQL_TABLEREF_TABLE
+                            type: OBJECT_SQL_PARAMETER_REF
+                            text: ":source"
+                            children:
+                              - key: SQL_PARAMETER_PREFIX
+                                type: OPERATOR
+                                text: ":"
+                              - key: SQL_PARAMETER_NAME
+                                type: ARRAY
+                                text: "source"
+                                children:
+                                  - type: NAME
+                                    text: "source"
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: ":target"
+                children:
+                  - key: SQL_TABLEREF_TABLE
+                    type: OBJECT_SQL_PARAMETER_REF
+                    text: ":target"
+                    children:
+                      - key: SQL_PARAMETER_PREFIX
+                        type: OPERATOR
+                        text: ":"
+                      - key: SQL_PARAMETER_NAME
+                        type: ARRAY
+                        text: "target"
+                        children:
+                          - type: NAME
+                            text: "target"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: delete_table_param
+    input: |-
+      delete from :target t where t.a = :a
+    expected:
+      statements:
+        - type: DELETE
+          ast-begin: 0
+          ast-size: 18
+          description:
+            text: "delete fro..e t.a = :a"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DELETE
+            text: "delete fro..e t.a = :a"
+            children:
+              - key: SQL_DELETE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: ":target t"
+                children:
+                  - key: SQL_TABLEREF_TABLE
+                    type: OBJECT_SQL_PARAMETER_REF
+                    text: ":target"
+                    children:
+                      - key: SQL_PARAMETER_PREFIX
+                        type: OPERATOR
+                        text: ":"
+                      - key: SQL_PARAMETER_NAME
+                        type: ARRAY
+                        text: "target"
+                        children:
+                          - type: NAME
+                            text: "target"
+                  - key: SQL_TABLEREF_ALIAS
+                    type: NAME
+                    text: "t"
+              - key: SQL_DELETE_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "t.a = :a"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "t.a = :a"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "t.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "t.a"
+                            children:
+                              - type: NAME
+                                text: "t"
+                              - type: NAME
+                                text: "a"
+                      - type: OBJECT_SQL_PARAMETER_REF
+                        text: ":a"
+                        children:
+                          - key: SQL_PARAMETER_PREFIX
+                            type: OPERATOR
+                            text: ":"
+                          - key: SQL_PARAMETER_NAME
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

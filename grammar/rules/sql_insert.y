@@ -1,20 +1,24 @@
 sql_insert_stmt:
-    INSERT INTO sql_qualified_name sql_insert_rest sql_insert_returning_clause {
-        let target = ctx.object(@3, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_NAME, $3)]);
+    INSERT INTO sql_insert_target sql_insert_rest sql_insert_returning_clause {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_INSERT,
-            ctx.concat2($4, &[attr(Key::SQL_INSERT_TARGET, target), attr(Key::SQL_INSERT_RETURNING, $5)]),
+            ctx.concat2($4, &[attr(Key::SQL_INSERT_TARGET, $3), attr(Key::SQL_INSERT_RETURNING, $5)]),
         )
     }
-  | sql_with_clause INSERT INTO sql_qualified_name sql_insert_rest sql_insert_returning_clause {
-      let target = ctx.object(@4, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_NAME, $4)]);
+  | sql_with_clause INSERT INTO sql_insert_target sql_insert_rest sql_insert_returning_clause {
       ctx.object(
           @$,
           NodeType::OBJECT_SQL_INSERT,
-          ctx.concat3($1, $5, &[attr(Key::SQL_INSERT_TARGET, target), attr(Key::SQL_INSERT_RETURNING, $6)]),
+          ctx.concat3($1, $5, &[attr(Key::SQL_INSERT_TARGET, $4), attr(Key::SQL_INSERT_RETURNING, $6)]),
       )
   }
+    ;
+
+// The table that an INSERT writes, a table name or a table parameter
+sql_insert_target:
+    sql_qualified_name  { ctx.object(@1, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_NAME, $1)]) }
+  | sql_table_param_ref { ctx.object(@1, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_TABLE, $1)]) }
     ;
 
 sql_insert_rest:

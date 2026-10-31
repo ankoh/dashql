@@ -843,6 +843,7 @@ sql_relation_expr:
   | sql_qualified_name STAR         { ctx.list(&[attr(Key::SQL_TABLEREF_NAME, $1), attr(Key::SQL_TABLEREF_NAME_STAR, bool_node(@2, true))]) }
   | ONLY sql_qualified_name         { ctx.list(&[attr(Key::SQL_TABLEREF_NAME, $2), attr(Key::SQL_TABLEREF_ONLY, bool_node(@1, true))]) }
   | ONLY LRB sql_qualified_name RRB { ctx.list(&[attr(Key::SQL_TABLEREF_NAME, $3), attr(Key::SQL_TABLEREF_ONLY, bool_node(@1, true))]) }
+  | sql_table_param_ref             { ctx.list(&[attr(Key::SQL_TABLEREF_TABLE, $1)]) }
     ;
 
 // Given "UPDATE foo set set ...", we have to decide without looking any
@@ -1757,38 +1758,11 @@ sql_b_expr:
 // inside parentheses, such as function arguments; that cannot introduce
 // ambiguity to the b_expr syntax.
 
+// The parameters of Hyper: $0, $1, ... are positional parameters, a standalone ? is an unnamed one.
+// Named parameters are the :name forms of sql_colon_param_ref. The scanner emits QUESTION_MARK for a ?
+// that is glued to a name or a number (?name, ?1), no rule takes it, so it is a syntax error.
 sql_param_ref:
-  DOLLAR sql_attr_name {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_PARAMETER_REF,
-          &[
-              attr(Key::SQL_PARAMETER_PREFIX, operator_node(@1)),
-              attr(Key::SQL_PARAMETER_NAME, ctx.array(@2, &[$2])),
-          ],
-      )
-  }
-  | QUESTION_MARK sql_attr_name {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_PARAMETER_REF,
-          &[
-              attr(Key::SQL_PARAMETER_PREFIX, operator_node(@1)),
-              attr(Key::SQL_PARAMETER_NAME, ctx.array(@2, &[$2])),
-          ],
-      )
-  }
-  | DOLLAR ICONST {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_PARAMETER_REF,
-          &[
-              attr(Key::SQL_PARAMETER_PREFIX, operator_node(@1)),
-              attr(Key::SQL_PARAMETER_NAME, ctx.array(@2, &[ctx.name_from_string_literal(@2)])),
-          ],
-      )
-  }
-  | QUESTION_MARK ICONST {
+    DOLLAR ICONST {
       ctx.object(
           @$,
           NodeType::OBJECT_SQL_PARAMETER_REF,
@@ -1824,6 +1798,13 @@ sql_colon_param_ref:
           ],
       )
   };
+
+// A parameter in place of a table, e.g. FROM :source.
+// The table reference holds it as its table, like a derived table or a table function.
+sql_table_param_ref:
+    sql_param_ref       { $1 }
+  | sql_colon_param_ref { $1 }
+    ;
 
 sql_c_expr:
     sql_columnref     { $1 }

@@ -66,3 +66,13 @@ parser-snapshots:
       -- Some text
       -- @end
       select 1;
+
+  # INSERT into a table parameter
+  - name: insert_table_param
+    input: |
+      insert into :target (a, b) select a, b from :source
+
+  # DELETE from a table parameter
+  - name: delete_table_param
+    input: |
+      delete from :target t where t.a = :a

@@ -10,6 +10,7 @@
 mod constants;
 mod function_calls;
 mod name_resolution;
+mod parameters;
 mod state;
 pub mod types;
 mod vis_tags;
@@ -62,6 +63,8 @@ pub struct AnalyzedScript {
     pub name_scopes_by_root_node: HashMap<u32, ScopeId>,
     /// The constant expression roots
     pub constant_expressions: Vec<ConstantExpression>,
+    /// The parameters, in the order of the script
+    pub parameters: Vec<Parameter>,
     /// The visualization specs
     pub visualization_specs: Vec<VisualizationSpec>,
     /// The schema-inference constraints
@@ -132,10 +135,13 @@ pub fn analyze(parsed: Arc<ParsedScript>, catalog: &Catalog) -> Result<AnalyzedS
         name_resolution.visit(&mut state, begin..end);
         function_calls::visit(&mut state, begin..end)?;
         constants.visit(&mut state, begin..end);
+        parameters::visit(&mut state, begin..end);
         begin = end;
     }
     name_resolution.finish(&mut state);
     constants.finish(&mut state);
+    // The AST is in post-order with sorted attributes, sort the parameters by their position in the text
+    state.out.parameters.sort_by_key(|p| p.location.offset());
     vis_tags::analyze(&mut state);
 
     let mut out = state.into_script();

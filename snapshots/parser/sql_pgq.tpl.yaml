@@ -18,6 +18,16 @@ parser-snapshots:
       )
       SELECT 1
 
+  - name: pgq_table_params
+    input: |-
+      WITH pg AS PROPERTY GRAPH (
+        VERTEX TABLES (:people AS person KEY (id))
+        EDGE TABLES (
+          :knows KEY (src, dst) SOURCE person DESTINATION person
+        )
+      )
+      SELECT 1
+
   - name: pgq_synonyms_and_properties
     input: |-
       WITH pg AS PROPERTY GRAPH (
