@@ -431,8 +431,9 @@
     min-width: 0;
 }
 
-/* The ":<script>" tag that mentions the script in the prompt, in the purple of script references in the composer */
+/* The ":<script>" tag that mentions the script in the prompt, in the dark of the backdrop on a light wash of it */
 .feed_entry_mention {
+    --feed_entry_mention_color: var(--background_color_80);
     display: inline-flex;
     align-items: center;
     flex-shrink: 1;
@@ -443,10 +444,10 @@
     /* Keep the tag clear of the icon buttons that follow it */
     margin-right: 6px;
     padding: 0 8px;
-    border: 1px solid color-mix(in srgb, #6f42c1 35%, transparent);
+    border: 1px solid var(--feed_entry_mention_color);
     border-radius: 6px;
-    background-color: color-mix(in srgb, #6f42c1 10%, transparent);
-    color: #6f42c1;
+    background-color: color-mix(in srgb, var(--feed_entry_mention_color) 10%, white);
+    color: var(--feed_entry_mention_color);
     font-family: var(--font_family);
     font-size: var(--font_size_caption);
     font-weight: 500;
@@ -464,15 +465,15 @@ button.feed_entry_mention {
 }
 
 .feed_entry_mention:hover:not([aria-disabled="true"]):not([data-editing]) {
-    background-color: color-mix(in srgb, #6f42c1 16%, transparent);
+    background-color: color-mix(in srgb, var(--feed_entry_mention_color) 16%, white);
 }
 
 .feed_entry_mention:active:not([aria-disabled="true"]):not([data-editing]) {
-    background-color: color-mix(in srgb, #6f42c1 22%, transparent);
+    background-color: color-mix(in srgb, var(--feed_entry_mention_color) 22%, white);
 }
 
 .feed_entry_mention:focus-visible {
-    outline: 2px solid color-mix(in srgb, #6f42c1 60%, transparent);
+    outline: 2px solid color-mix(in srgb, var(--feed_entry_mention_color) 60%, transparent);
     outline-offset: 1px;
 }
 
@@ -486,7 +487,7 @@ button.feed_entry_mention {
 
 /* While editing, the tag keeps its single border, only a darker one */
 .feed_entry_mention[data-editing] {
-    border-color: color-mix(in srgb, #6f42c1 65%, transparent);
+    border-color: var(--background_color_100);
     cursor: text;
 }
 
