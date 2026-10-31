@@ -11,11 +11,11 @@
 crate_core = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate", isolate = True)
 
 # Arrow IPC and value formatting for the shell (dashql_core_shell), without compression codecs
-crate_core.spec(package = "arrow-array", default_features = False, version = "=60.0.0")
-crate_core.spec(package = "arrow-buffer", default_features = False, version = "=60.0.0")
-crate_core.spec(package = "arrow-cast", default_features = False, version = "=60.0.0")
-crate_core.spec(package = "arrow-ipc", default_features = False, version = "=60.0.0")
-crate_core.spec(package = "arrow-schema", default_features = False, version = "=60.0.0")
+crate_core.spec(package = "arrow-array", default_features = False, version = "=60.1.0")
+crate_core.spec(package = "arrow-buffer", default_features = False, version = "=60.1.0")
+crate_core.spec(package = "arrow-cast", default_features = False, version = "=60.1.0")
+crate_core.spec(package = "arrow-ipc", default_features = False, version = "=60.1.0")
+crate_core.spec(package = "arrow-schema", default_features = False, version = "=60.1.0")
 crate_core.spec(package = "flatbuffers", version = "=25.12.19")
 
 # The agent server and its command line tool (//packages/dashql-cli)
