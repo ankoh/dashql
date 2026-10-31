@@ -69,6 +69,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseAlias
     catalog: |
@@ -139,6 +145,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseQualifiedColumns
     catalog: |
@@ -209,6 +221,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseIntoWith
     catalog: |
@@ -279,6 +297,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseIntoWithRecursive
     scripts:
@@ -340,6 +364,12 @@ planner-snapshots:
           target: seeds
           cte: seeds
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":seeds"
+              target: seeds
+              kind: fused
 
   - name: FuseInsertSelect
     catalog: |
@@ -415,6 +445,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseCreateTableAs
     catalog: |
@@ -489,6 +525,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseSelectInto
     hyper: skip
@@ -564,6 +606,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseExplain
     catalog: |
@@ -634,6 +682,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseSubqueries
     catalog: |
@@ -714,6 +768,18 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
+            - text: ":foo"
+              target: foo
+              kind: fused
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseDeleteSubquery
     catalog: |
@@ -787,6 +853,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseTwoStatements
     catalog: |
@@ -878,6 +950,15 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseChain
     catalog: |
@@ -983,6 +1064,17 @@ planner-snapshots:
           target: b
           cte: b
       diagnostics: []
+      checked-references:
+        - script: b
+          references:
+            - text: ":a"
+              target: a
+              kind: fused
+        - script: c
+          references:
+            - text: ":b"
+              target: b
+              kind: fused
 
   - name: FuseDiamond
     catalog: |
@@ -1128,6 +1220,25 @@ planner-snapshots:
           target: large
           cte: large
       diagnostics: []
+      checked-references:
+        - script: small
+          references:
+            - text: ":base"
+              target: base
+              kind: fused
+        - script: large
+          references:
+            - text: ":base"
+              target: base
+              kind: fused
+        - script: report
+          references:
+            - text: ":small"
+              target: small
+              kind: fused
+            - text: ":large"
+              target: large
+              kind: fused
 
   - name: FuseProducerWithCtes
     catalog: |
@@ -1198,6 +1309,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseProducerTrailingComment
     catalog: |
@@ -1272,6 +1389,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseProducerOfTable
     scripts:
@@ -1383,6 +1506,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseProducerBelow
     catalog: |
@@ -1453,6 +1582,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseQuotedNames
     catalog: |
@@ -1552,6 +1687,15 @@ planner-snapshots:
           target: Mixed Case
           cte: Mixed Case
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":\"brave_otter-2\""
+              target: brave_otter-2
+              kind: fused
+            - text: ":\"Mixed Case\""
+              target: Mixed Case
+              kind: fused
 
   - name: FuseCaseInsensitiveName
     catalog: |
@@ -1622,6 +1766,12 @@ planner-snapshots:
           target: Foo
           cte: Foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: Foo
+              kind: fused
 
   - name: FuseNameCollisions
     catalog: |
@@ -1762,6 +1912,22 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
+        - script: baz
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
+        - script: qux
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseRenamedWithoutAlias
     catalog: |
@@ -1838,6 +2004,12 @@ planner-snapshots:
           target: foo
           cte: foo_2
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseShadowedByCte
     catalog: |
@@ -1903,6 +2075,26 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: 'the query of foo.sql reads orders, which inserts.sql defines as a common table expression there'
+      checked-references:
+        - script: plain
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
+        - script: recursive
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - 'the query of foo.sql reads orders, which recursive.sql defines as a common table expression there'
+        - script: inserts
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - 'the query of foo.sql reads orders, which inserts.sql defines as a common table expression there'
 
   - name: FuseVisualization
     catalog: |
@@ -1974,6 +2166,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: FuseAccesses
     catalog: |
@@ -2072,6 +2270,12 @@ planner-snapshots:
           target: foo
           cte: foo
       diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: fused
 
   - name: ScalarParameter
     catalog: |

@@ -13,6 +13,7 @@ import { ButtonGroup } from '../../../ui/foundations/button_group.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../../ui/foundations/button.js';
 import { ScriptDiagnosticsButton } from './script_diagnostics.js';
 import { ScriptEditor } from './script_editor.js';
+import type { ScriptReferenceReport } from '../scripts/script_reference_check.js';
 import { ScriptConnectionPicker, type ScriptConnectionView } from './script_connection_picker.js';
 import { ScriptOutputDetails, type ScriptDetailsTab } from './script_output_details.js';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
@@ -33,6 +34,8 @@ interface ScriptDetailsEditorPaneProps {
     onPickConnection: (connectionId: string) => void;
     isFormattable: boolean;
     connectorType: ConnectorType;
+    /// The checked script references of the script
+    scriptReferences?: ScriptReferenceReport | null;
     hasPendingDiff: boolean;
     CheckIcon: Icon;
     CancelIcon: Icon;
@@ -77,7 +80,7 @@ export const ScriptDetailsEditorPane: React.FC<ScriptDetailsEditorPaneProps> = (
             )}
             <div className={styles.entry_card_trailing_actions}>
                 <ScriptDiagnosticsButton scriptData={props.scriptData} isFormattable={props.isFormattable}
-                    connectorType={props.connectorType} />
+                    connectorType={props.connectorType} references={props.scriptReferences ?? null} />
                 {props.formatMenu}
                 <IconButton
                     className={styles.entry_card_collapse_button}

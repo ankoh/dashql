@@ -19,7 +19,7 @@
 
 use crate::catalog_changes::{derive_catalog_change, CatalogChangeOptions};
 use crate::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
-use crate::script_references::{self, ReferenceKind, ScriptReferences};
+use crate::script_references::{self, ReferenceErrors, ReferenceKind, ScriptReferences};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::execution::{
     ExecutionGraphAccessMode as Mode, ExecutionGraphAccessT, ExecutionGraphCatalogObjectIDT, ExecutionGraphConnectionKind,
@@ -119,7 +119,17 @@ pub(crate) struct Prepared<'a> {
     pub(crate) analyzed: &'a Arc<AnalyzedScript>,
 }
 
-impl Prepared<'_> {
+impl<'a> Prepared<'a> {
+    /// The analysis of a script if it is current with the text, whatever catalog it was analyzed with. Script
+    /// references depend on the text only.
+    pub(crate) fn lenient(script: &'a Script) -> Option<Self> {
+        let (Some(scanned), Some(parsed), Some(analyzed)) = (&script.scanned, &script.parsed, &script.analyzed) else {
+            return None;
+        };
+        let current = Arc::ptr_eq(&analyzed.parsed, parsed) && Arc::ptr_eq(&parsed.scanned, scanned) && scanned.text_version == script.text_version();
+        current.then_some(Prepared { scanned, parsed, analyzed })
+    }
+
     /// Does the script parse without errors?
     pub(crate) fn parses(&self) -> bool {
         self.scanned.errors.is_empty() && self.parsed.errors.is_empty()
@@ -693,7 +703,8 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
                 }
             }
             for table_ref in &analyzed.table_references {
-                if table_ref.ast_statement_id != Some(statement_id as u32) {
+                // A table parameter reads its script through the script references
+                if table_ref.ast_statement_id != Some(statement_id as u32) || table_ref.reads_script_result() {
                     continue;
                 }
                 let Some(relation) = &table_ref.inner else {
@@ -754,7 +765,10 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
             for &(producer, producer_statement) in &fused.inlined {
                 let producer_analyzed = prepared[producer as usize].as_ref().unwrap().analyzed;
                 for table_ref in &producer_analyzed.table_references {
-                    if table_ref.ast_statement_id != Some(producer_statement) || is_cte_reference(producer_analyzed, table_ref) {
+                    if table_ref.ast_statement_id != Some(producer_statement)
+                        || is_cte_reference(producer_analyzed, table_ref)
+                        || table_ref.reads_script_result()
+                    {
                         continue;
                     }
                     let Some(relation) = &table_ref.inner else { continue };
@@ -1013,13 +1027,12 @@ fn text_span_t(span: TextSpan) -> TextSpanT {
 }
 
 /// A reporter for the diagnostics of script references
-pub(crate) struct Reporter<'s> {
+struct Reporter<'s> {
     state: &'s mut PlanState,
 }
 
-impl Reporter<'_> {
-    /// Report an error at the text of a script
-    pub(crate) fn error(&mut self, script: u32, text_span: Option<TextSpan>, message: String) {
+impl ReferenceErrors for Reporter<'_> {
+    fn error(&mut self, script: u32, text_span: Option<TextSpan>, message: String) {
         self.state.report(NONE, script, text_span, message, true);
     }
 }

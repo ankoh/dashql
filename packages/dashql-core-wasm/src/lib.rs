@@ -620,6 +620,17 @@ impl ScriptSession {
         finish!(self.inner.borrow_mut().analyze(&self.catalog.borrow()))
     }
 
+    /// The named table parameters of the analysis that reference scripts, with the script that each finds among
+    /// `names`: triples of the offset, the length and the script index (u32::MAX if none), in the offset unit
+    #[wasm_bindgen(js_name = findScriptReferences)]
+    pub fn find_script_references(&self, names: Vec<String>) -> Vec<u32> {
+        let mut out = Vec::new();
+        for (span, script) in self.inner.borrow().script_references(&names) {
+            out.extend([span.offset as u32, span.length as u32, script.map(|s| s as u32).unwrap_or(u32::MAX)]);
+        }
+        out
+    }
+
     /// Complete at the primary cursor, returns the packed `Completion`
     #[wasm_bindgen(js_name = completeAtCursor)]
     pub fn complete_at_cursor(&self, limit: usize, keyword_case: u8) -> Result<Vec<u8>, JsError> {
@@ -810,9 +821,11 @@ impl Default for SessionPlanRequest {
     }
 }
 
-/// Plan the current analysis of the scripts of a session across connections, returns the packed `ExecutionGraph`
-#[wasm_bindgen(js_name = planSession)]
-pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
+/// Borrow the catalogs and sessions of a request and pass the core request to `f`
+fn with_session_plan_request<R>(
+    request: &SessionPlanRequest,
+    f: impl FnOnce(&dashql_core_session::planner::SessionPlanRequest, &[std::cell::Ref<CoreScriptSession>]) -> R,
+) -> R {
     use dashql_core_session::planner::{ConnectionKind, PlanScope, PlannerConnection, PlannerScript};
     let catalogs: Vec<_> = request.connections.iter().map(|(_, _, catalog)| catalog.borrow()).collect();
     let sessions: Vec<_> = request.scripts.iter().map(|(_, _, session, _)| session.borrow()).collect();
@@ -841,13 +854,147 @@ pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
         Some(targets) => PlanScope::Targets(targets),
         None => PlanScope::Session,
     };
-    finish!(dashql_core_session::planner::plan_session(&dashql_core_session::planner::SessionPlanRequest {
+    let core = dashql_core_session::planner::SessionPlanRequest {
         connections: &connections,
         scripts: &scripts,
         scope,
         materialized: &request.materialized,
         mount_prefix: &request.mount_prefix,
-    }))
+    };
+    f(&core, &sessions)
+}
+
+/// Plan the current analysis of the scripts of a session across connections, returns the packed `ExecutionGraph`
+#[wasm_bindgen(js_name = planSession)]
+pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
+    with_session_plan_request(request, |core, _| finish!(dashql_core_session::planner::plan_session(core)))
+}
+
+/// Check the script references of the scripts of a session, returns the packed `ScriptReferenceCheck`. The text spans
+/// are in the offset unit of the session of each script. Ignores the targets, the materialized scripts and the mount
+/// prefix.
+#[wasm_bindgen(js_name = checkScriptReferences)]
+pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
+    use dashql_buffers::execution::{CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind};
+    use dashql_core_session::script_references::CheckedReferenceKind;
+    with_session_plan_request(request, |core, sessions| {
+        let checked = dashql_core_session::script_references::check_script_references(core);
+        let mut out = ScriptReferenceCheckT::default();
+        let scripts = checked
+            .into_iter()
+            .zip(sessions)
+            .map(|(script, session)| {
+                let spans = session.project_text_spans(script.references.iter().map(|r| r.text_span));
+                let mut packed = CheckedScriptT::default();
+                packed.checked = script.checked;
+                packed.text_version = script.text_version;
+                let references: Vec<_> = script
+                    .references
+                    .into_iter()
+                    .zip(spans)
+                    .filter_map(|(r, span)| {
+                        let span = span?;
+                        let mut t = CheckedScriptReferenceT::default();
+                        let mut text_span = dashql_buffers::parser::TextSpanT::default();
+                        text_span.offset = span.offset as u32;
+                        text_span.length = span.length as u32;
+                        t.text_span = Some(text_span);
+                        t.parameter = Some(r.parameter);
+                        t.script = r.script.unwrap_or(u32::MAX);
+                        t.kind = match r.kind {
+                            CheckedReferenceKind::Fused => ScriptReferenceKind::FUSED,
+                            CheckedReferenceKind::Materialized => ScriptReferenceKind::MATERIALIZED,
+                            CheckedReferenceKind::Invalid => ScriptReferenceKind::INVALID,
+                        };
+                        t.errors = (!r.errors.is_empty()).then_some(r.errors);
+                        Some(t)
+                    })
+                    .collect();
+                packed.references = (!references.is_empty()).then_some(references);
+                packed
+            })
+            .collect();
+        out.scripts = Some(scripts);
+        finish!(out)
+    })
+}
+
+/// The results of the scripts of a session that their table parameters read (`script_results::ScriptResults`)
+#[wasm_bindgen]
+pub struct ScriptResults {
+    /// The published results
+    current: RefCell<Option<std::sync::Arc<dashql_core::script_results::ScriptResults>>>,
+}
+
+#[wasm_bindgen]
+impl ScriptResults {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> ScriptResults {
+        ScriptResults { current: RefCell::new(None) }
+    }
+
+    /// Derive the results from the analyses of the scripts of a request and give them to their sessions. Returns the
+    /// indexes of the scripts whose analysis is outdated by the results, every script if the results changed. A
+    /// script whose analysis lags behind its text keeps its previous result.
+    pub fn publish(&self, request: &SessionPlanRequest) -> Vec<u32> {
+        use dashql_core::script_results::ScriptResults as CoreResults;
+        let previous = self.current.borrow().clone();
+        let derived = {
+            let sessions: Vec<_> = request.scripts.iter().map(|(_, _, session, _)| session.borrow()).collect();
+            let inputs: Vec<(&str, Option<&dashql_core::analyzer::AnalyzedScript>)> = request
+                .scripts
+                .iter()
+                .zip(&sessions)
+                .map(|((name, _, _, _), session)| {
+                    let script = session.script();
+                    let current = script.analyzed.as_ref().filter(|a| a.parsed.scanned.text_version == script.text_version());
+                    (name.as_str(), current.map(|a| a.as_ref()))
+                })
+                .collect();
+            CoreResults::derive(&inputs, previous.as_deref())
+        };
+        let results = match previous {
+            Some(previous) if previous.same_as(&derived) => previous,
+            _ => std::sync::Arc::new(derived),
+        };
+        *self.current.borrow_mut() = Some(results.clone());
+        let mut outdated = Vec::new();
+        for (i, (_, _, session, _)) in request.scripts.iter().enumerate() {
+            let mut session = session.borrow_mut();
+            let attached = session.script().script_results.as_ref().is_some_and(|r| std::sync::Arc::ptr_eq(r, &results));
+            if !attached {
+                session.set_script_results(Some(results.clone()));
+                // An analysis without table parameters reads no results
+                if !session.script().script_results_current() {
+                    outdated.push(i as u32);
+                }
+            }
+        }
+        outdated
+    }
+
+    /// Give the published results to a session that is no script of the session, e.g. a draft
+    pub fn attach(&self, session: &ScriptSession) -> bool {
+        let Some(results) = self.current.borrow().clone() else { return false };
+        let mut session = session.inner.borrow_mut();
+        if session.script().script_results.as_ref().is_some_and(|r| std::sync::Arc::ptr_eq(r, &results)) {
+            return false;
+        }
+        session.set_script_results(Some(results));
+        !session.script().script_results_current()
+    }
+}
+
+impl Default for ScriptResults {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Quote an identifier if it would not read back unquoted, e.g. the name of a script reference `:"foo-2"`
+#[wasm_bindgen(js_name = quoteIdentifier)]
+pub fn quote_identifier(text: &str) -> String {
+    dashql_core::utils::quote_identifier(text)
 }
 
 /// Read packed `CatalogChanges`, changes without effect are skipped

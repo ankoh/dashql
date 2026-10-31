@@ -118,6 +118,76 @@ describe('DashQL planner', () => {
         });
     }
 
+    it('checks the script references of a session in UTF-16 offsets', () => {
+        const local = dql!.createCatalog();
+        const remote = dql!.createCatalog();
+        try {
+            const foo = prepare(remote, 'select 1 as a');
+            const bar = prepare(local, "select 'é', * from :foo");
+            const baz = prepare(remote, 'select * from :bar, :nope');
+            const check = dql!.checkScriptReferences({
+                connections: [{ id: 'local', local: true, catalog: local }, { id: 'remote', local: false, catalog: remote }],
+                scripts: [
+                    { name: 'foo', connection: 1, session: foo },
+                    { name: 'bar', connection: 0, session: bar },
+                    { name: 'baz', connection: 1, session: baz },
+                ],
+            }).unpack() as execution.ScriptReferenceCheckT;
+            expect(check.scripts.map(s => s.checked)).toEqual([true, true, true]);
+            const [reference] = check.scripts[1].references;
+            expect(reference.kind).toBe(execution.ScriptReferenceKind.MATERIALIZED);
+            expect(reference.script).toBe(0);
+            expect(reference.textSpan!.offset).toBe("select 'é', * from ".length);
+            expect(reference.textSpan!.length).toBe(4);
+            const invalid = check.scripts[2].references;
+            expect(invalid.map(r => r.kind)).toEqual([execution.ScriptReferenceKind.INVALID, execution.ScriptReferenceKind.INVALID]);
+            expect(invalid[1].errors).toEqual(['unknown script :nope']);
+            expect(dql!.quoteIdentifier('foo-2')).toBe('"foo-2"');
+            expect(dql!.quoteIdentifier('foo')).toBe('foo');
+            for (const session of [foo, bar, baz]) session.destroy();
+        } finally {
+            local.destroy();
+            remote.destroy();
+        }
+    });
+
+    it('finds the script references of a session in its analysis', () => {
+        const catalog = dql!.createCatalog();
+        try {
+            const text = "select ':foo é' /* :foo */, * from :foo f, :Nope";
+            const session = prepare(catalog, text);
+            expect(session.findScriptReferences(['bar', 'foo'])).toEqual([
+                { from: text.indexOf(':foo f'), to: text.indexOf(':foo f') + 4, script: 1 },
+                { from: text.indexOf(':Nope'), to: text.indexOf(':Nope') + 5, script: null },
+            ]);
+            session.destroy();
+        } finally {
+            catalog.destroy();
+        }
+    });
+
+    it('publishes the results of scripts that table parameters read', () => {
+        const catalog = dql!.createCatalog();
+        const results = dql!.createScriptResults();
+        try {
+            const foo = prepare(catalog, 'select 1 as amount');
+            const bar = prepare(catalog, 'select f.amount from :foo f');
+            const scripts = [{ name: 'foo', session: foo }, { name: 'bar', session: bar }];
+            expect(results.publish(scripts)).toEqual([1]);
+            // The analysis of bar resolves the column through the result of foo
+            const columns = bar.analyze().semanticSpans.filter(span =>
+                span.kind === dashql.buffers.editor.EditorSemanticReferenceKind.COLUMN);
+            expect(columns.map(span => span.resolution)).toEqual([dashql.buffers.editor.EditorSemanticResolution.RESOLVED]);
+            // Unchanged results outdate nothing
+            foo.analyze();
+            expect(results.publish(scripts)).toEqual([]);
+            for (const session of [foo, bar]) session.destroy();
+        } finally {
+            results.destroy();
+            catalog.destroy();
+        }
+    });
+
     it('returns an owned empty graph', () => {
         const result = dql!.planSession({ connections: [], scripts: [] });
         const reader = result.read(new execution.ExecutionGraph());

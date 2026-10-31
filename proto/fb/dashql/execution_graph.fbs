@@ -153,3 +153,34 @@ table ExecutionGraph {
     materializations: [ExecutionGraphMaterialization];
     references: [ExecutionGraphScriptReference];
 }
+
+/// What a script reference reads, the check of the script references of a session
+enum ScriptReferenceKind: uint8 { FUSED, MATERIALIZED, INVALID }
+
+/// A table parameter of a script that references a script
+table CheckedScriptReference {
+    /// The parameter, with the prefix, in the offset unit of the script session
+    text_span: dashql.buffers.parser.TextSpan;
+    /// The parameter name, empty for a positional parameter
+    parameter: string;
+    /// The referenced script, absent if the name finds none
+    script: uint32 = 4294967295;
+    kind: ScriptReferenceKind;
+    /// The errors of the reference, the messages of the planner
+    errors: [string];
+}
+
+/// The checked script references of a script
+table CheckedScript {
+    /// Was the script checked? A script whose analysis is not current with its text is not.
+    checked: bool;
+    /// The text version of the analysis that was checked
+    text_version: uint64;
+    /// The table parameters of the script in text order
+    references: [CheckedScriptReference];
+}
+
+/// The checked script references of the scripts of a session, in session order
+table ScriptReferenceCheck {
+    scripts: [CheckedScript];
+}

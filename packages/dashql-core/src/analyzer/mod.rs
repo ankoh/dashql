@@ -20,6 +20,7 @@ pub use vis_tags::{has_vis_tags, statement_output_columns, vis_renderer_tag};
 
 use crate::catalog::*;
 use crate::error::Result;
+use crate::script_results::{ScriptResults, SCRIPT_RESULTS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
 use dashql_parser::names::{NameId, NameRegistry};
 use dashql_parser::parser::ParsedScript;
@@ -75,6 +76,8 @@ pub struct AnalyzedScript {
     pub inferred_table_schemas_by_name: HashMap<QualifiedKey, usize>,
     /// The names of the script for completion, shared with the catalog when the script is published
     pub(crate) name_search_index: Arc<NameSearchIndex>,
+    /// The results of the scripts of the session that table parameters read, the analysis is current with them only
+    pub script_results: Option<Arc<ScriptResults>>,
 }
 
 impl fmt::Debug for AnalyzedScript {
@@ -116,13 +119,23 @@ impl AnalyzedScript {
         if loc.entry == self.entry.catalog_entry_id {
             return self.entry.table_declarations.get(loc.index as usize);
         }
+        if loc.entry == SCRIPT_RESULTS_ENTRY_ID {
+            return self.script_results.as_ref()?.table(loc);
+        }
         self.snapshot.table(loc)
     }
 }
 
 /// Analyze a parsed script against a catalog
 pub fn analyze(parsed: Arc<ParsedScript>, catalog: &Catalog) -> Result<AnalyzedScript> {
+    analyze_with(parsed, catalog, None)
+}
+
+/// Analyze a parsed script against a catalog and the results of the scripts of its session, which its table
+/// parameters read
+pub fn analyze_with(parsed: Arc<ParsedScript>, catalog: &Catalog, script_results: Option<&Arc<ScriptResults>>) -> Result<AnalyzedScript> {
     let mut state = state::AnalysisState::new(&parsed, catalog);
+    state.out.script_results = script_results.cloned();
     let mut name_resolution = name_resolution::NameResolutionPass::new(&state);
     let mut constants = constants::ConstantPropagationPass::default();
 

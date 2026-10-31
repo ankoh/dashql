@@ -7,7 +7,12 @@ export enum CompletionCandidateType {
     COLUMN = 4,
     FUNCTION = 5,
     IDENTITY = 6,
+    /// The result of a script of the session, a table parameter `:foo`
+    SCRIPT = 7,
 }
+
+/// The catalog entry of the results of scripts, see `SCRIPT_RESULTS_ENTRY_ID` of the core
+export const SCRIPT_RESULTS_ENTRY_ID = 0xFFFFFFFE;
 
 export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
     "SQL",
@@ -17,6 +22,7 @@ export const CANDIDATE_TYPE_SYMBOL_TEXT: string[] = [
     "COL",
     "FN",
     "ID",
+    ":",
 ];
 
 export const CANDIDATE_TYPE_SYMBOL_BACKGROUND: string[] = [
@@ -27,6 +33,7 @@ export const CANDIDATE_TYPE_SYMBOL_BACKGROUND: string[] = [
     "#DD1141",
     "#0E7A00",
     "#666",
+    "#0969da",
 ];
 
 export function getCandidateTypeSymbolText(type: CompletionCandidateType) {

@@ -18,7 +18,6 @@ import {
     getSelectedScriptRef,
     SessionScripts,
     REJECT_PENDING_DIFF,
-    RENAME_SCRIPT,
     SELECT_SCRIPT,
     SET_SCRIPT_TEXT,
 } from '../scripts/session_scripts.js';
@@ -32,6 +31,8 @@ import { acceptPendingDiff, rejectPendingDiff } from '../scripts/editor/dashql_d
 import { SymbolIcon } from '../../../ui/foundations/symbol_icon.js';
 import { useLogger } from '../../../platform/logger/logger_provider.js';
 import { ScriptDiagnosticsButton } from './script_diagnostics.js';
+import { checkSessionScriptReferences } from '../scripts/script_reference_reports.js';
+import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { formatScriptEditor, formattingDialectForConnector, getKeywordCase, isScriptFormattable } from './script_format.js';
 import { ScriptActionMenu, type ScriptStorage } from './script_action_menu.js';
 import { ScriptDetailsEditorPane, ScriptDetailsOutputPane } from './script_details_panes.js';
@@ -48,6 +49,8 @@ export { ScriptDetailsTab as TabKey };
 export interface ScriptDetailsProps {
     sessionScripts: SessionScripts;
     modifySessionScripts: ModifySessionScripts;
+    /// The function that renames the references in the draft of the composer
+    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// The connection that the next script of the session runs on
     connection: ConnectionState | null;
     /// The connections that the scripts of the session run on
@@ -103,6 +106,10 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
         ? Object.values(props.sessionScripts.scriptRefs).find(entry => entry.scriptId === props.scriptId)
         : getSelectedScriptRef(props.sessionScripts);
     const scriptData = sessionEntry != null ? props.sessionScripts.scripts[sessionEntry.scriptId] : null;
+    const scriptReferences = React.useMemo(
+        () => scriptData != null ? checkSessionScriptReferences(props.sessionScripts).get(scriptData.scriptKey) ?? null : null,
+        [props.sessionScripts, scriptData],
+    );
     // The script runs on its own connection
     const scriptConnectionId = scriptData?.connection.connectionId ?? props.connection?.connectionId ?? null;
     const connection = scriptConnectionId == null ? null
@@ -215,8 +222,8 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
     const storage = React.useMemo<ScriptStorage>(() => ({
         fileName: scriptFileName,
         resolvePath: () => `${displayPath(sessionId, storageReader.getSessionLocation(sessionId))}/${STORAGE_SCRIPTS_FOLDER}/${scriptFileName}`,
-        onRename: name => props.modifySessionScripts({ type: RENAME_SCRIPT, value: { fileName: scriptFileName, newFileName: name } }),
-    }), [scriptFileName, sessionId, storageReader, props.modifySessionScripts]);
+        onRename: name => { void renameScript(props.sessionScripts, props.modifySessionScripts, scriptFileName, name, props.draftRenameRef?.current); },
+    }), [scriptFileName, sessionId, storageReader, props.sessionScripts, props.modifySessionScripts, props.draftRenameRef]);
     const handleExecute = React.useCallback(() => {
         if (connection?.connectionHealth !== ConnectionHealth.ONLINE) {
             connectionAttention?.request(props.sessionScripts.sessionId);
@@ -314,6 +321,7 @@ export const ScriptDetails: React.FC<ScriptDetailsProps> = (props) => {
                             onPickConnection={connectionId => pickConnection(scriptFileName, connectionId)}
                             isFormattable={isFormattable}
                             connectorType={scriptData?.connection.connectorInfo.connectorType ?? props.connection?.connectorInfo.connectorType}
+                            scriptReferences={scriptReferences}
                             hasPendingDiff={hasPendingDiff}
                             CheckIcon={CheckIcon}
                             CancelIcon={FormatXIcon}

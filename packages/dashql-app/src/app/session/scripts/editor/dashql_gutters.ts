@@ -4,6 +4,7 @@ import { foldedRanges } from '@codemirror/language';
 import { gutter, GutterMarker } from '@codemirror/view';
 import { Transaction, StateField, RangeSet, RangeSetBuilder } from '@codemirror/state';
 
+import { editorDiagnostics } from './dashql_script_references.js';
 import { DashQLProcessorPlugin, DashQLScriptKey } from './dashql_processor.js';
 import { findVegaLiteSpecs, isFolded, toggleVegaLiteSpecAtLine, VegaLiteFoldMarker } from './dashql_vis_folding.js';
 
@@ -52,7 +53,7 @@ const GutterState: StateField<State> = StateField.define<State>({
     update: (state: State, transaction: Transaction) => {
         // Program and folds untouched?
         const processor = transaction.state.field(DashQLProcessorPlugin);
-        const diagnostics = processor.editorUpdate?.diagnostics ?? null;
+        const diagnostics = editorDiagnostics(transaction.state);
         const vegaliteSpecs = processor.editorUpdate?.vegaliteSpecs ?? null;
         const folds = foldedRanges(transaction.state);
         if (

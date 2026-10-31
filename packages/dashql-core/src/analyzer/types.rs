@@ -140,6 +140,17 @@ pub struct TableReference {
     pub role: TableRole,
 }
 
+impl TableReference {
+    /// Does the table reference read the result of a script, a table parameter `:foo`? The planner reads it through
+    /// the script references, not as a relation.
+    pub fn reads_script_result(&self) -> bool {
+        self.inner
+            .as_ref()
+            .and_then(|r| r.resolved_table.as_ref())
+            .is_some_and(|t| t.catalog_table_id.unpack_table_id().origin == crate::script_results::SCRIPT_RESULTS_ENTRY_ID)
+    }
+}
+
 /// An explicit INSERT target column
 #[derive(Clone, Debug)]
 pub struct InsertTargetColumn {

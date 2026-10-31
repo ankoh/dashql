@@ -60,6 +60,34 @@ function rankCandidate(index: CatalogNameIndex, key: string, mentionedTables: Se
     return rank;
 }
 
+/// A character of the name of a script reference
+const SCRIPT_NAME_CHAR = /[\p{L}\p{N}_$-]/u;
+
+/// The hint for the name of a script reference `:foo` that ends at the cursor: the rest of the name of the only
+/// script, or of the shortest of a few scripts, that starts with the typed name. Undefined if the cursor is not at a
+/// script reference.
+function computeScriptReferenceHint(state: EditorState, text: string, offset: number, cursor: number): NLIdentifierHint | null | undefined {
+    let begin = offset;
+    while (begin > 0 && SCRIPT_NAME_CHAR.test(text[begin - 1])) {
+        --begin;
+    }
+    if (begin === 0 || text[begin - 1] !== SCRIPT_REFERENCE_PREFIX) {
+        return undefined;
+    }
+    // Not a cast or a time, `x::text` and `12:30`
+    if (begin > 1 && (WORD_CHAR.test(text[begin - 2]) || text[begin - 2] === SCRIPT_REFERENCE_PREFIX)) {
+        return undefined;
+    }
+    const typed = text.substring(begin, offset).toLowerCase();
+    const names = state.facet(NLScriptNames)
+        .filter(name => name.toLowerCase().startsWith(typed) && name.length > typed.length);
+    if (names.length === 0 || names.length > HINT_MAX_CANDIDATES || (typed.length === 0 && names.length > 1)) {
+        return null;
+    }
+    const name = [...names].sort((l, r) => l.length - r.length || (l < r ? -1 : 1))[0];
+    return { cursor, insert: name.substring(typed.length) };
+}
+
 /// Compute the completion hint for the word that ends at the cursor, if we are confident enough
 export function computeNLIdentifierHint(state: EditorState): NLIdentifierHint | null {
     const selection = state.selection.main;
@@ -74,16 +102,17 @@ export function computeNLIdentifierHint(state: EditorState): NLIdentifierHint | 
     if (offset < text.length && WORD_CHAR.test(text[offset])) {
         return null;
     }
+    // A script reference names a script, not a catalog object
+    const reference = computeScriptReferenceHint(state, text, offset, cursor);
+    if (reference !== undefined) {
+        return reference;
+    }
     let begin = offset;
     while (begin > 0 && WORD_CHAR.test(text[begin - 1])) {
         --begin;
     }
     const word = text.substring(begin, offset);
     if (word.length === 0 || !WORD_START.test(word[0])) {
-        return null;
-    }
-    // A script reference names a script, not a catalog object
-    if (begin > 0 && text[begin - 1] === SCRIPT_REFERENCE_PREFIX) {
         return null;
     }
     const index = state.facet(NLIdentifierIndex);

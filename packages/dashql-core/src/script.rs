@@ -8,7 +8,8 @@
 //! the catalog take it as an argument, and dropping a script does not modify the catalog: the owner
 //! drops the script from the catalog explicitly (`Catalog::drop_script`).
 
-use crate::analyzer::{analyze, AnalyzedScript};
+use crate::analyzer::{analyze_with, AnalyzedScript};
+use crate::script_results::ScriptResults;
 use crate::catalog::{Catalog, CatalogEntryId};
 use crate::completion::Completion;
 use crate::cursor::{ScriptCursor, ScriptView};
@@ -53,6 +54,8 @@ pub struct Script {
     pub parsed: Option<Arc<ParsedScript>>,
     /// The latest analyzed script
     pub analyzed: Option<Arc<AnalyzedScript>>,
+    /// The results of the scripts of the session that the table parameters read, the next analysis uses them
+    pub script_results: Option<Arc<ScriptResults>>,
     /// The text offset of the cursor, reset by every analysis
     cursor_offset: Option<usize>,
     /// The durations of the last scan, parse and analysis
@@ -102,6 +105,7 @@ impl Script {
             scanned: None,
             parsed: None,
             analyzed: None,
+            script_results: None,
             cursor_offset: None,
             timings: ProcessingTimings::default(),
         }
@@ -235,9 +239,23 @@ impl Script {
         };
         self.cursor_offset = None;
         let watch = Stopwatch::start();
-        self.analyzed = Some(Arc::new(analyze(parsed, catalog)?));
+        self.analyzed = Some(Arc::new(analyze_with(parsed, catalog, self.script_results.as_ref())?));
         self.timings.analyzer_ns = watch.elapsed_ns();
         Ok(())
+    }
+
+    /// Is the analysis current with the script results of the script? An analysis without table parameters reads
+    /// no results, any other was analyzed with the same results.
+    pub fn script_results_current(&self) -> bool {
+        let Some(analyzed) = self.analyzed.as_ref() else { return true };
+        if !analyzed.parameters.iter().any(|p| p.kind == crate::analyzer::ParameterKind::Table) {
+            return true;
+        }
+        match (analyzed.script_results.as_ref(), self.script_results.as_ref()) {
+            (None, None) => true,
+            (Some(l), Some(r)) => Arc::ptr_eq(l, r),
+            _ => false,
+        }
     }
 
     /// The parts of the script that a cursor reads

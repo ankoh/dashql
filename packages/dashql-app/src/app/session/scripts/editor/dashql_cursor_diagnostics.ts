@@ -4,6 +4,7 @@ import { Tooltip, showTooltip } from '@codemirror/view';
 import { Transaction, StateField } from '@codemirror/state';
 
 import { DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
+import { editorDiagnostics } from './dashql_script_references.js';
 
 interface CursorError {
     message: string;
@@ -11,8 +12,8 @@ interface CursorError {
     to: number;
 }
 
-function findErrorAtCursor(update: dashql.buffers.editor.EditorUpdateT | null | undefined, cursor: number): CursorError | null {
-    for (const diagnostic of update?.diagnostics ?? []) {
+function findErrorAtCursor(diagnostics: dashql.buffers.editor.EditorDiagnosticT[] | null, cursor: number): CursorError | null {
+    for (const diagnostic of diagnostics ?? []) {
         const loc = diagnostic.textSpan;
         if (loc == null) continue;
         const from = Number(loc.offset);
@@ -39,7 +40,7 @@ function createTooltip(error: CursorError): Tooltip {
 }
 
 interface CursorDiagnosticsSnapshot {
-    update: dashql.buffers.editor.EditorUpdateT | null | undefined;
+    update: dashql.buffers.editor.EditorDiagnosticT[] | null;
     pos: number;
     tooltip: Tooltip | null;
 }
@@ -49,7 +50,7 @@ const CursorDiagnosticsField = StateField.define<CursorDiagnosticsSnapshot>({
     update: (prev: CursorDiagnosticsSnapshot, transaction: Transaction) => {
         const pos = transaction.state.selection.main.head;
         const processor = transaction.state.field(DashQLProcessorPlugin);
-        const update = processor.editorUpdate;
+        const update = editorDiagnostics(transaction.state);
 
         // Nothing changed?
         if (update === prev.update && pos === prev.pos) {

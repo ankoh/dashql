@@ -17,16 +17,23 @@
 //! the outermost SELECT around the references, before the common table expressions the statement already has.
 
 use crate::compiler::read_executable_text_with;
-use crate::planner::{script_label, ConnectionKind, Prepared, Reporter, SessionPlanRequest};
+use crate::planner::{script_label, ConnectionKind, Prepared, SessionPlanRequest};
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
 use dashql_buffers::parser::{AttributeKey as Key, Node, NodeType, StatementType};
 use dashql_core::analyzer::ParameterKind;
+use dashql_core::script_results::{find_script, ScriptLookup};
 use dashql_core::utils::quote_identifier;
 use dashql_parser::attrs;
 use dashql_parser::keywords::Keyword;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
 use std::collections::{BTreeMap, BTreeSet};
+
+/// Receives the errors of script references
+pub(crate) trait ReferenceErrors {
+    /// Report an error at the text of a script
+    fn error(&mut self, script: u32, text_span: Option<TextSpan>, message: String);
+}
 
 /// What a script reference becomes
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -84,7 +91,7 @@ impl ScriptReferences {
     }
 
     /// Resolve the table parameters of a script to the scripts they reference
-    pub(crate) fn resolve(&mut self, reporter: &mut Reporter, request: &SessionPlanRequest, script: u32, prepared: &Prepared) {
+    pub(crate) fn resolve(&mut self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, script: u32, prepared: &Prepared) {
         let (scanned, parsed, analyzed) = (prepared.scanned, prepared.parsed, prepared.analyzed);
         let consumer = &request.scripts[script as usize];
         let mut out = Vec::new();
@@ -116,17 +123,14 @@ impl ScriptReferences {
                 continue;
             }
             // An exact name, or a single name that differs in case
-            let exact = request.scripts.iter().position(|s| !s.name.is_empty() && s.name == name);
-            let folded: Vec<usize> = (0..request.scripts.len()).filter(|&i| request.scripts[i].name.eq_ignore_ascii_case(&name) && !request.scripts[i].name.is_empty()).collect();
-            let producer = match (exact, &folded[..]) {
-                (Some(i), _) => i,
-                (None, &[i]) => i,
-                (None, []) => {
+            let producer = match find_script(request.scripts.iter().map(|s| s.name), &name) {
+                ScriptLookup::Found(i) => i,
+                ScriptLookup::Unknown => {
                     reporter.error(script, Some(text_span), format!("unknown script {label}"));
                     out.push(reference);
                     continue;
                 }
-                (None, _) => {
+                ScriptLookup::Ambiguous => {
                     reporter.error(script, Some(text_span), format!("the script reference {label} matches several scripts"));
                     out.push(reference);
                     continue;
@@ -205,7 +209,7 @@ impl ScriptReferences {
 
     /// Check the referenced scripts: they are a single query, references form no cycle, and a view does not scan a
     /// materialized result, neither directly nor through the queries it fuses
-    pub(crate) fn check(&self, reporter: &mut Reporter, request: &SessionPlanRequest, prepared: &[Option<Prepared>]) {
+    pub(crate) fn check(&self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, prepared: &[Option<Prepared>]) {
         for (script, references) in self.by_script.iter().enumerate() {
             let Some(consumer) = prepared[script].as_ref() else { continue };
             for r in references {
@@ -264,7 +268,7 @@ impl ScriptReferences {
         }
         let mut colors = vec![Color::White; self.by_script.len()];
         let mut path: Vec<u32> = Vec::new();
-        fn visit(this: &ScriptReferences, reporter: &mut Reporter, request: &SessionPlanRequest, script: u32, colors: &mut [Color], path: &mut Vec<u32>) {
+        fn visit(this: &ScriptReferences, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, script: u32, colors: &mut [Color], path: &mut Vec<u32>) {
             colors[script as usize] = Color::Gray;
             path.push(script);
             for r in this.of(script) {
@@ -288,6 +292,111 @@ impl ScriptReferences {
             }
         }
     }
+}
+
+/// What a checked script reference reads
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CheckedReferenceKind {
+    /// The query of the referenced script is fused into the statement
+    Fused,
+    /// The statement scans the materialized result of the referenced script
+    Materialized,
+    /// The reference has errors
+    Invalid,
+}
+
+/// A checked table parameter that references a script
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CheckedReference {
+    /// The parameter in the text of the script, with the prefix, in UTF-8 bytes
+    pub text_span: TextSpan,
+    /// The parameter name, empty for a positional parameter
+    pub parameter: String,
+    /// The referenced script, if the name finds one
+    pub script: Option<u32>,
+    /// What the reference reads
+    pub kind: CheckedReferenceKind,
+    /// The errors of the reference, the messages of the planner
+    pub errors: Vec<String>,
+}
+
+/// The checked script references of a script
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CheckedScript {
+    /// Was the script checked? A script whose analysis is not current with its text is not.
+    pub checked: bool,
+    /// The text version of the analysis that was checked
+    pub text_version: u64,
+    /// The table parameters of the script in text order
+    pub references: Vec<CheckedReference>,
+}
+
+/// Collects the errors of script references by script and text
+#[derive(Default)]
+struct CollectedErrors {
+    errors: BTreeMap<(u32, u32, u32), Vec<String>>,
+}
+
+impl ReferenceErrors for CollectedErrors {
+    fn error(&mut self, script: u32, text_span: Option<TextSpan>, message: String) {
+        let span = text_span.unwrap_or_default();
+        let messages = self.errors.entry((script, span.offset, span.length)).or_default();
+        if !messages.contains(&message) {
+            messages.push(message);
+        }
+    }
+}
+
+/// Check the script references of every script of a session whose analysis is current with its text, like a plan
+/// of the session would. Other scripts may be broken or stale meanwhile: a referenced script without a current
+/// analysis is read as a single SELECT. Ignores the scope, the order of the scripts and the catalogs.
+pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScript> {
+    let count = request.scripts.len();
+    let prepared: Vec<Option<Prepared>> = request.scripts.iter().map(|s| Prepared::lenient(s.script)).collect();
+    let mut references = ScriptReferences::new(count);
+    let mut errors = CollectedErrors::default();
+    for (i, p) in prepared.iter().enumerate() {
+        if let Some(p) = p {
+            references.resolve(&mut errors, request, i as u32, p);
+        }
+    }
+    references.check(&mut errors, request, &prepared);
+    let mut out = Vec::with_capacity(count);
+    for (i, p) in prepared.iter().enumerate() {
+        let Some(p) = p else {
+            out.push(CheckedScript::default());
+            continue;
+        };
+        let mut checked: Vec<CheckedReference> = references
+            .of(i as u32)
+            .iter()
+            .map(|r| {
+                let errors = errors.errors.remove(&(i as u32, r.text_span.offset, r.text_span.length)).unwrap_or_default();
+                let kind = match r.kind {
+                    _ if !errors.is_empty() => CheckedReferenceKind::Invalid,
+                    ReferenceKind::Fuse => CheckedReferenceKind::Fused,
+                    ReferenceKind::Materialize => CheckedReferenceKind::Materialized,
+                    ReferenceKind::Invalid => CheckedReferenceKind::Invalid,
+                };
+                CheckedReference { text_span: r.text_span, parameter: r.name.clone(), script: r.producer, kind, errors }
+            })
+            .collect();
+        // Errors of parameters that reference no script, e.g. positional ones
+        let rest: Vec<_> = errors.errors.keys().filter(|(s, _, _)| *s == i as u32).copied().collect();
+        for key in rest {
+            let (_, offset, length) = key;
+            checked.push(CheckedReference {
+                text_span: TextSpan { offset, length },
+                parameter: String::new(),
+                script: None,
+                kind: CheckedReferenceKind::Invalid,
+                errors: errors.errors.remove(&key).unwrap_or_default(),
+            });
+        }
+        checked.sort_by_key(|r| (r.text_span.offset, r.text_span.length));
+        out.push(CheckedScript { checked: true, text_version: p.scanned.text_version, references: checked });
+    }
+    out
 }
 
 /// A reference of a spliced statement
@@ -330,7 +439,7 @@ fn identifier(name: &str) -> String {
 
 /// The relation names that a statement uses unqualified, lower-cased
 fn relation_names(prepared: &Prepared, statement_id: u32, out: &mut BTreeSet<String>) {
-    for table_ref in prepared.analyzed.table_references.iter().filter(|t| t.ast_statement_id == Some(statement_id)) {
+    for table_ref in prepared.analyzed.table_references.iter().filter(|t| t.ast_statement_id == Some(statement_id) && !t.reads_script_result()) {
         let Some(relation) = &table_ref.inner else { continue };
         let name = &relation.table_name;
         if name.database_name.text.is_empty() && name.schema_name.text.is_empty() {

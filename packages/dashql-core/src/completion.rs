@@ -12,6 +12,7 @@ use crate::analyzer::{AnalyzedScript, ColumnResolution, ReferencedTable, ScopeId
 use crate::catalog::*;
 use crate::cursor::{CursorContext, NameComponentType, ScriptCursor, SymbolLocation};
 use crate::hash::HashMap;
+use crate::script_results::SCRIPT_RESULTS_ENTRY_ID;
 use crate::utils::topk::TopKHeap;
 use crate::utils::{ci_cmp, ci_find, ci_starts_with};
 use dashql_buffers::analyzer::NameTag;
@@ -445,7 +446,83 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     pub fn table(&self, loc: TableLoc) -> Option<&'a TableDeclaration> {
+        if loc.entry == SCRIPT_RESULTS_ENTRY_ID {
+            return self.analyzed()?.table(loc);
+        }
         self.entry_data(loc.entry)?.table_declarations.get(loc.index as usize)
+    }
+
+    /// Complete the name of a table parameter `:foo` in table position with the names of the scripts of the session
+    /// that have a result. Returns false if the cursor is not at the name of a table parameter.
+    fn complete_script_reference(&mut self, location: &crate::cursor::LocationInfo) -> bool {
+        let symbols = self.symbols();
+        let offset = self.cursor.text_offset as u32;
+        let ends_at = |s: &Symbol| s.location.offset + s.location.length == offset;
+        let is_name = |kind: SymbolKind| kind == S_IDENT || kind == S_SCONST;
+        // The colon and the name after it, if any
+        let current = location.current;
+        let (colon, name) = if current.symbol.kind == S_COLON && ends_at(&current.symbol) {
+            (current.symbol_id, None)
+        } else if is_name(current.symbol.kind)
+            && current.symbol_id > 0
+            && current.relative_pos != RelativeSymbolPosition::AFTER_SYMBOL
+            && current.relative_pos != RelativeSymbolPosition::BEFORE_SYMBOL
+        {
+            (current.symbol_id - 1, Some(current.symbol))
+        } else {
+            match location.previous {
+                Some(p) if p.relative_pos == RelativeSymbolPosition::END_OF_SYMBOL && p.symbol.kind == S_COLON => (p.symbol_id, None),
+                Some(p) if p.relative_pos == RelativeSymbolPosition::END_OF_SYMBOL && is_name(p.symbol.kind) && p.symbol_id > 0 => {
+                    (p.symbol_id - 1, Some(p.symbol))
+                }
+                _ => return false,
+            }
+        };
+        let Some(colon_symbol) = symbols.get(colon as usize) else { return false };
+        if colon_symbol.kind != S_COLON {
+            return false;
+        }
+        // The name follows the colon right away
+        if let Some(name) = name {
+            if colon_symbol.location.offset + colon_symbol.location.length != name.location.offset {
+                return false;
+            }
+        }
+        // A table position takes a join after the parameter, `where x = :y` and `insert into :t` take none
+        let expected = probe::parse_until_after(symbols, colon + 1, S_IDENT);
+        if !expected.contains(&S_JOIN) {
+            return false;
+        }
+        let Some(results) = self.analyzed().and_then(|a| a.script_results.clone()) else { return true };
+        let (prefix, target) = match name {
+            Some(name) => {
+                let text = self.text_at(name.location.offset, offset.saturating_sub(name.location.offset));
+                (trim_double_quotes(text).iter().copied().filter(|&c| c != b'\'').collect::<Vec<u8>>(), Self::symbol_location(&name))
+            }
+            None => (Vec::new(), SymbolSpan::new(offset, 0)),
+        };
+        self.strategy = CompletionStrategy::TABLE_REF;
+        for (index, script) in results.scripts.iter().enumerate() {
+            if script.table.is_none() || script.name.is_empty() {
+                continue;
+            }
+            let tags = if prefix.is_empty() {
+                CandidateTag::NONE.0
+            } else {
+                match match_tags(script.name.as_bytes(), &prefix) {
+                    Some(t) => t,
+                    None => continue,
+                }
+            };
+            let candidate = self.candidates.len();
+            self.candidates.push(Candidate::new(script.name.clone(), NameTag::TABLE_NAME.0, tags, target, target));
+            self.candidates_by_name.insert(script.name.clone(), candidate);
+            let loc = TableLoc { entry: SCRIPT_RESULTS_ENTRY_ID, index: index as u32 };
+            let object_id = QualifiedCatalogObjectId::table(CatalogTableId::new(SCRIPT_RESULTS_ENTRY_ID, index as u32));
+            self.add_object(candidate, tags, object_id, CandidateObjectRef::Table(loc));
+        }
+        self.select_top_candidates();
+        true
     }
 
     fn is_at_eof(&self, id: u32) -> bool {
@@ -503,6 +580,10 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
         let Some(location) = cursor.scanner_location else { return completion };
         completion.target_symbol = Some(location.current);
+        // The name of a table parameter, the scripts of the session
+        if completion.complete_script_reference(&location) {
+            return completion;
+        }
         let mut previous_symbol = location.previous;
 
         // Between symbols, or at the very beginning

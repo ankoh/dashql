@@ -127,6 +127,7 @@ DASHQL_CORE_UNIT_TESTS = [
     "hash_test",
     "name_tagging_test",
     "pack_test",
+    "script_results_test",
     "script_test",
     "signature_test",
     "string_conversion_test",

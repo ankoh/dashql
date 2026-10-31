@@ -16,7 +16,10 @@ export type DashQLBindings = Pick<
     | 'ScriptSession'
     | 'PlanViewModel'
     | 'SessionPlanRequest'
+    | 'ScriptResults'
     | 'planSession'
+    | 'checkScriptReferences'
+    | 'quoteIdentifier'
     | 'processBatch'
     | 'appendCatalogChangesSql'
     | 'qualifyCatalogChanges'
@@ -124,6 +127,8 @@ const EDITOR_UPDATE_TYPE = Symbol('EDITOR_UPDATE_TYPE');
 const SCRIPT_DIFF_TYPE = Symbol('SCRIPT_DIFF_TYPE');
 const SCRIPT_COMPILATION_TYPE = Symbol('SCRIPT_COMPILATION_TYPE');
 const EXECUTION_GRAPH_TYPE = Symbol('EXECUTION_GRAPH_TYPE');
+const SCRIPT_REFERENCE_CHECK_TYPE = Symbol('SCRIPT_REFERENCE_CHECK_TYPE');
+const SCRIPT_RESULTS_TYPE = Symbol('SCRIPT_RESULTS_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
 const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
 const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
@@ -251,9 +256,8 @@ export class DashQL {
         return new DashQLScriptSession(new Ptr(SCRIPT_SESSION_TYPE, this, native));
     }
 
-    /// Plan the scripts of a session across connections. The scripts reference each other by name with table
-    /// parameters (`:foo`), see docs/design/planner.md. Without targets, the plan covers the whole session.
-    public planSession(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.ExecutionGraph> {
+    /// Build the native request of a session plan, the caller frees it
+    private buildSessionPlanRequest(request: SessionPlanRequest): InstanceType<DashQLBindings['SessionPlanRequest']> {
         const native = new this.bindings.SessionPlanRequest();
         try {
             for (const connection of request.connections) {
@@ -276,10 +280,44 @@ export class DashQL {
             }
             native.setMaterialized(Uint32Array.from(request.materialized ?? []));
             native.setMountPrefix(request.mountPrefix ?? '');
+            return native;
+        } catch (e) {
+            native.free();
+            throw e;
+        }
+    }
+
+    /// Plan the scripts of a session across connections. The scripts reference each other by name with table
+    /// parameters (`:foo`), see docs/design/planner.md. Without targets, the plan covers the whole session.
+    public planSession(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.ExecutionGraph> {
+        const native = this.buildSessionPlanRequest(request);
+        try {
             return new FlatBufferPtr(EXECUTION_GRAPH_TYPE, this, this.bindings.planSession(native), () => new buffers.execution.ExecutionGraph());
         } finally {
             native.free();
         }
+    }
+
+    /// Check the script references of every script of a session whose analysis is current with its text, like a
+    /// plan of the session would, see docs/design/script_references.md. The text spans are in the offset unit of the
+    /// session of each script. Ignores the targets, the materialized scripts and the mount prefix.
+    public checkScriptReferences(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.ScriptReferenceCheck> {
+        const native = this.buildSessionPlanRequest(request);
+        try {
+            return new FlatBufferPtr(SCRIPT_REFERENCE_CHECK_TYPE, this, this.bindings.checkScriptReferences(native), () => new buffers.execution.ScriptReferenceCheck());
+        } finally {
+            native.free();
+        }
+    }
+
+    /// Create the results of the scripts of a session, which their table parameters read
+    public createScriptResults(): DashQLScriptResults {
+        return new DashQLScriptResults(new Ptr(SCRIPT_RESULTS_TYPE, this, new this.bindings.ScriptResults()));
+    }
+
+    /// Quote an identifier if it would not read back unquoted, e.g. the name of a script reference `:"foo-2"`
+    public quoteIdentifier(text: string): string {
+        return this.bindings.quoteIdentifier(text);
     }
 
     public createPlanViewModel(layoutConfig: buffers.view.PlanLayoutConfigT): DashQLPlanViewModel {
@@ -300,6 +338,50 @@ export class DashQL {
 }
 
 export const NULL_POINTER_EXCEPTION = new Error('tried to access a null pointer');
+
+/// A script of the results of a session
+export interface ScriptResultsScript {
+    /// The script name, `foo` for `foo.sql`
+    name: string;
+    /// The script session
+    session: DashQLScriptSession;
+}
+
+/// The results of the scripts of a session: the output columns of the scripts that are a single SELECT, which the
+/// table parameters `:foo` of the scripts read. The analyzer resolves columns through them and completion offers the
+/// names of the scripts after `:`. See docs/design/script_references.md.
+export class DashQLScriptResults {
+    public readonly ptr: Ptr<typeof SCRIPT_RESULTS_TYPE>;
+
+    public constructor(ptr: Ptr<typeof SCRIPT_RESULTS_TYPE>) {
+        this.ptr = ptr;
+    }
+    public destroy(): void {
+        this.ptr.destroy();
+    }
+    /// Derive the results from the analyses of the scripts and give them to their sessions. Returns the indexes of
+    /// the scripts whose analysis is outdated by the results.
+    public publish(scripts: ScriptResultsScript[]): number[] {
+        const api = this.ptr.api;
+        const native = new api.bindings.SessionPlanRequest();
+        try {
+            for (const script of scripts) {
+                if (script.session.ptr.api !== api) {
+                    throw new Error('script session belongs to a different DashQL instance');
+                }
+                native.addScript(script.name, 0, script.session.ptr.assertNotNull(), undefined);
+            }
+            return Array.from(this.ptr.assertNotNull().publish(native));
+        } finally {
+            native.free();
+        }
+    }
+    /// Give the results to a session that is no script of the session, e.g. a draft. Returns whether the analysis of
+    /// the session is outdated by them.
+    public attach(session: DashQLScriptSession): boolean {
+        return this.ptr.assertNotNull().attach(session.ptr.assertNotNull());
+    }
+}
 
 /// An owned native object of the wasm module
 export class Ptr<T extends symbol, O extends NativeObject = any> {
@@ -436,6 +518,19 @@ export class DashQLScriptSession {
 
     public getTextVersion(): bigint {
         return this.ptr.assertNotNull().textVersion();
+    }
+
+    /// The named table parameters of the analysis that reference scripts, `:foo`, with the index of the script that
+    /// each finds among `names` like the planner does, null if none. In text order and in the offset unit of the
+    /// session. Positional parameters and the targets of writes reference no script. Empty if the analysis lags
+    /// behind the text.
+    public findScriptReferences(names: readonly string[]): { from: number; to: number; script: number | null }[] {
+        const flat = this.ptr.assertNotNull().findScriptReferences([...names]);
+        const out: { from: number; to: number; script: number | null }[] = [];
+        for (let i = 0; i + 2 < flat.length; i += 3) {
+            out.push({ from: flat[i], to: flat[i] + flat[i + 1], script: flat[i + 2] === 0xFFFFFFFF ? null : flat[i + 2] });
+        }
+        return out;
     }
 
     public getStateRevision(): bigint {

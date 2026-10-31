@@ -132,7 +132,8 @@ database objects declared in the catalog already exist in the backend.
 ## Script References
 
 A table parameter `:foo` that is the table of a table reference references the script named `foo`, an exact
-name or the only name that differs in case. The connections decide what it becomes:
+name or the only name that differs in case (`script_results::find_script`, which the analyzer, completion and
+`check_script_references` share). The connections decide what it becomes:
 
 | Statement | Referenced script | Reference |
 |---|---|---|

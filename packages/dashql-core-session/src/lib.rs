@@ -8,6 +8,6 @@ pub mod batch;
 pub mod catalog_changes;
 pub mod compiler;
 pub mod planner;
-pub(crate) mod script_references;
+pub mod script_references;
 pub mod script_session;
 pub mod visualize;
