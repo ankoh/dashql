@@ -8,6 +8,7 @@
     min-height: 0;
     overflow: hidden;
     background: #ffffff;
+    outline: none;
 }
 
 .header {
@@ -71,12 +72,6 @@
     min-width: 0;
     min-height: 0;
     border-right: 1px solid var(--border_color_primary);
-}
-
-.mode_bar {
-    flex: 0 0 auto;
-    padding: 8px;
-    border-bottom: 1px solid var(--border_color_primary);
 }
 
 .editor_content {

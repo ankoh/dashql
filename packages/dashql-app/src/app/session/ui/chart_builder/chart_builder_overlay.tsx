@@ -93,8 +93,10 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
     const columns = React.useMemo(() => chartColumns(resultTable?.schema ?? null, encodedFields(spec)), [resultTable, spec]);
     const previewSpec = React.useMemo(() => ({ $schema: VEGA_LITE_SCHEMA, ...spec }) as unknown as TopLevelSpec, [spec]);
 
+    // Focus the dialog, not its first button
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,
+        initialFocusRef: dialogRef as React.RefObject<HTMLElement>,
         restoreFocusOnCleanUp: true,
     });
 
@@ -114,6 +116,7 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                 className={styles.dialog}
                 role="dialog"
                 aria-modal="true"
+                tabIndex={-1}
                 aria-label={`Visualize ${props.scriptName} as Chart`}
                 data-expanded={expanded || undefined}
                 data-testid="chart-builder-overlay"
@@ -127,6 +130,24 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                             <span className={styles.diagnostic_text}>{problems[0]}</span>
                         </div>
                     )}
+                    <SegmentedControl
+                        aria-label="Chart editor"
+                        size={SegmentedControlSize.Small}
+                        onChange={index => setMode(index as ChartBuilderMode)}
+                    >
+                        <SegmentedControl.IconButton
+                            icon={ToolsIcon}
+                            aria-label="Builder"
+                            selected={mode === ChartBuilderMode.Builder}
+                            data-testid="chart-mode-builder"
+                        />
+                        <SegmentedControl.IconButton
+                            icon={BracesIcon}
+                            aria-label="JSON"
+                            selected={mode === ChartBuilderMode.Json}
+                            data-testid="chart-mode-json"
+                        />
+                    </SegmentedControl>
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
@@ -148,26 +169,6 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                 </header>
                 <div className={styles.body}>
                     <div className={styles.editor_pane}>
-                        <div className={styles.mode_bar}>
-                            <SegmentedControl
-                                aria-label="Chart editor"
-                                size={SegmentedControlSize.Small}
-                                onChange={index => setMode(index as ChartBuilderMode)}
-                            >
-                                <SegmentedControl.IconButton
-                                    icon={ToolsIcon}
-                                    aria-label="Builder"
-                                    selected={mode === ChartBuilderMode.Builder}
-                                    data-testid="chart-mode-builder"
-                                />
-                                <SegmentedControl.IconButton
-                                    icon={BracesIcon}
-                                    aria-label="JSON"
-                                    selected={mode === ChartBuilderMode.Json}
-                                    data-testid="chart-mode-json"
-                                />
-                            </SegmentedControl>
-                        </div>
                         <div className={styles.editor_content}>
                             {mode === ChartBuilderMode.Builder ? (
                                 <ChartSpecBuilder

@@ -124,6 +124,11 @@ describe('ChartBuilderOverlay', () => {
         expect(byTestId('chart-mark-area')?.getAttribute('aria-pressed')).toBe('true');
     });
 
+    it('focuses the dialog instead of its first button', () => {
+        render({ onChange: vi.fn() });
+        expect(document.activeElement).toBe(byTestId('chart-builder-overlay'));
+    });
+
     it('sends composed views to the JSON', () => {
         render({ onChange: vi.fn(), visualizeQuery: vegaLite({ layer: [{ mark: 'bar' }, { mark: 'rule' }] }) });
         expect(byTestId('chart-builder-unsupported')).not.toBeNull();
