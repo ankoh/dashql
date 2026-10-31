@@ -371,7 +371,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             scriptName={displayName}
                             visualizeQuery={props.scriptData.annotations.visualizeQuery}
                             queryState={queryState}
-                            onChange={setVisSpec}
+                            onApply={setVisSpec}
                             onClose={closeChartBuilder}
                         />
                     )}

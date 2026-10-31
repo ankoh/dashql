@@ -368,7 +368,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         });
     }, [props.modifySessionScripts, props.sessionScripts.scripts]);
 
-    // The chart builder of a card writes every edit of the spec into the `@vis vegalite` tag of the script
+    // The chart builder of a card proposes its spec for the `@vis vegalite` tag of the script as a diff to accept or reject
     const handleSetVisSpec = React.useCallback((scriptKey: number, spec: string) => {
         props.modifySessionScripts({ type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec } });
     }, [props.modifySessionScripts]);

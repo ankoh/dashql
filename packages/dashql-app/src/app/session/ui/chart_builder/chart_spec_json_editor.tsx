@@ -30,6 +30,8 @@ interface Props {
     initialSpec: ChartSpec;
     /// A valid edit of the spec
     onChange: (spec: ChartSpec) => void;
+    /// Does the text fail to parse?
+    onErrorChange?: (failed: boolean) => void;
 }
 
 /// The JSON of the chart spec. Every edit that parses to an object updates the chart, others show the parse error.
@@ -37,6 +39,8 @@ export function ChartSpecJsonEditor(props: Props): React.ReactElement {
     const [error, setError] = React.useState<string | null>(null);
     const onChangeRef = React.useRef(props.onChange);
     onChangeRef.current = props.onChange;
+    const onErrorChangeRef = React.useRef(props.onErrorChange);
+    onErrorChangeRef.current = props.onErrorChange;
     const initialDoc = React.useMemo(() => JSON.stringify(props.initialSpec, null, 2), []);
 
     const extensions = React.useMemo<Extension[]>(() => [
@@ -54,8 +58,10 @@ export function ChartSpecJsonEditor(props: Props): React.ReactElement {
             const parsed = parseChartSpec(update.state.doc.toString());
             if ('error' in parsed) {
                 setError(parsed.error);
+                onErrorChangeRef.current?.(true);
             } else {
                 setError(null);
+                onErrorChangeRef.current?.(false);
                 onChangeRef.current(parsed.spec);
             }
         }),

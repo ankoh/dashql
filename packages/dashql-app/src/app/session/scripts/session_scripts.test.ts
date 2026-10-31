@@ -34,6 +34,7 @@ import {
     replaceSessionScriptsFromStorage,
     SET_SCRIPT_TEXT,
     SET_SCRIPT_VIS_SPEC,
+    REJECT_PENDING_DIFF,
     replaceScriptSessionText,
 } from './session_scripts.js';
 import { compileSessionQuery } from './script_compilation.js';
@@ -516,7 +517,7 @@ describe('V2 flat session script mutations', () => {
         expect(column?.resolution).toBe(core.buffers.editor.EditorSemanticResolution.RESOLVED);
     });
 
-    it('writes the chart spec of the builder into the @vis vegalite tag of the last statement', () => {
+    it('proposes the chart spec of the builder for the @vis vegalite tag of the last statement', () => {
         const writer = new RecordingWriter(logger, new SessionTestBackend());
         let current = state(['1_alpha.sql']);
         const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
@@ -526,13 +527,17 @@ describe('V2 flat session script mutations', () => {
         current = reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"bar"}' } }, writer);
         let text = current.scripts[scriptKey].scriptSession.getText();
         expect(text.startsWith('create table t (a int);')).toBe(true);
-        expect(text).toMatch(/^create table t \(a int\);\n\/\* @vis vegalite\s/);
+        expect(text).toMatch(/^create table t \(a int\);\n\/\*\*\n \* @vis vegalite\n/);
         const specOf = () => {
             const vis = current.scripts[scriptKey].annotations.visualizeQuery;
             return vis?.renderer === 'vegalite' ? vis.vegaLiteSpec as unknown as Record<string, unknown> : null;
         };
         expect(specOf()?.mark).toBe('bar');
         expect(writer.records.some(task => task.type.description === 'WRITE_SCRIPT')).toBe(true);
+        // The rewrite waits for the user like a formatting, rejecting it restores the script
+        expect(current.scripts[scriptKey].pendingDiff).not.toBeNull();
+        current = reduce(current, { type: REJECT_PENDING_DIFF, value: scriptKey });
+        expect(current.scripts[scriptKey].scriptSession.getText()).toBe('create table t (a int);\nselect 2 as x, 3 as y');
 
         // A card tag survives a rewrite of the renderer
         current = reduce(current, {

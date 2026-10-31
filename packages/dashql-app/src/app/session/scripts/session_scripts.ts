@@ -1018,8 +1018,8 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
         }
 
         case SET_SCRIPT_VIS_SPEC: {
-            // Rewrite the `@vis vegalite` tag of the charted statement against the current script session, so that a
-            // quick run of edits never rewrites stale text. The rewrite keeps the other tags, e.g. `@vis card`.
+            // Rewrite the `@vis vegalite` tag of the charted statement against the current script session.
+            // The rewrite keeps the other tags, e.g. `@vis card`, and is staged as a diff to accept or reject like a formatting.
             const { scriptKey, spec } = action.value;
             const scriptData = state.scripts[scriptKey];
             if (!scriptData) {
@@ -1041,7 +1041,7 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
             if (text === scriptData.scriptSession.getText()) {
                 return state;
             }
-            return reduceSessionScripts(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text } }, storage, logger);
+            return reduceSessionScripts(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text, withDiff: true } }, storage, logger);
         }
 
         case ACCEPT_PENDING_DIFF: {
