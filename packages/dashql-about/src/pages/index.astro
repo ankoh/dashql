@@ -1,16 +1,12 @@
 ---
-import Card from '../components/card.astro';
+import FeatureSection from '../components/feature_section.astro';
 import LinkButton from '../components/link_button.astro';
 import ParticleHero from '../components/particle_hero.astro';
-import PostList from '../components/post_list.astro';
 import SiteLayout from '../layouts/site_layout.astro';
-import { getPosts } from '../lib/posts';
 import styles from './page.module.css';
-
-const posts = (await getPosts()).slice(0, 3);
 ---
 
-<SiteLayout title="DashQL" description="DashQL, notes and progress from building a SQL workbench." underHeader>
+<SiteLayout title="DashQL" description="DashQL, it's all about SQL." underHeader>
     <ParticleHero>
         <h1 class={styles.headline}>
             <span class={styles.headline_setup}>It's all about <span class={styles.headline_sql}>SQL</span>...</span>
@@ -21,10 +17,20 @@ const posts = (await getPosts()).slice(0, 3);
             <span class={styles.note}>No signup required</span>
         </div>
     </ParticleHero>
-    <div class:list={[styles.section, styles.after_hero]}>
-        <Card title="Latest posts" dark>
-            <a slot="actions" href="/blog/">All posts →</a>
-            <PostList posts={posts} />
-        </Card>
-    </div>
+
+    <FeatureSection id="editor" eyebrow="Editor" title="An editor that understands SQL">
+        <p>DashQL parses and analyzes your scripts while you type. It completes names, resolves tables and columns, and points out what doesn't fit.</p>
+    </FeatureSection>
+
+    <FeatureSection id="hyper" eyebrow="Engine" title="Hyper, right in your browser">
+        <p>Queries run on Hyper, compiled to WebAssembly. Your data stays on your machine and results come back in milliseconds.</p>
+    </FeatureSection>
+
+    <FeatureSection id="visualize" eyebrow="Visualize" title="Charts that live in SQL comments">
+        <p>Describe a chart next to the query that feeds it. The visualization travels with the script and updates with every run.</p>
+    </FeatureSection>
+
+    <FeatureSection id="agents" eyebrow="Agents" title="Work alongside agents">
+        <p>Agents read and edit your scripts through DashQL, and you keep the overview of every change they make.</p>
+    </FeatureSection>
 </SiteLayout>

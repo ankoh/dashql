@@ -10,6 +10,7 @@ import favicon32 from '@dashql/favicons/favicon-32x32.png?url';
 import faviconIco from '@dashql/favicons/favicon.ico?url';
 import sharingImage from '@dashql/favicons/sharing-dashql.png?url';
 
+import { SHOW_BLOG } from '../lib/site';
 import theme from './theme.module.css';
 import styles from './site_layout.module.css';
 
@@ -35,7 +36,7 @@ const isBlog = path.startsWith('/blog');
         <title>{pageTitle}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={canonical} />
-        <link rel="alternate" type="application/rss+xml" title="DashQL Blog" href="/rss.xml" />
+        {SHOW_BLOG && <link rel="alternate" type="application/rss+xml" title="DashQL Blog" href="/rss.xml" />}
         <link rel="sitemap" href="/sitemap-index.xml" />
         <link rel="apple-touch-icon" sizes="180x180" href={appleTouchIcon} />
         <link rel="icon" type="image/png" sizes="32x32" href={favicon32} />
@@ -57,7 +58,7 @@ const isBlog = path.startsWith('/blog');
                     <span>DashQL</span>
                 </a>
                 <nav class={styles.nav} aria-label="Main navigation">
-                    <a class={styles.nav_link} href="/blog/" aria-current={isBlog ? 'page' : undefined}>Blog</a>
+                    {SHOW_BLOG && <a class={styles.nav_link} href="/blog/" aria-current={isBlog ? 'page' : undefined}>Blog</a>}
                 </nav>
                 <nav class={styles.segments} aria-label="DashQL apps">
                     <a class={styles.segment} href="https://dashql.app" aria-label="DashQL app">
@@ -77,8 +78,8 @@ const isBlog = path.startsWith('/blog');
         <footer class={styles.footer}>
             <span>© {new Date().getFullYear()} DashQL</span>
             <div class={styles.footer_links}>
-                <a href="/blog/">Blog</a>
-                <a href="/rss.xml">RSS</a>
+                {SHOW_BLOG && <a href="/blog/">Blog</a>}
+                {SHOW_BLOG && <a href="/rss.xml">RSS</a>}
                 <a href="https://github.com/ankoh/dashql">GitHub</a>
                 <a href="https://dashql.app">App</a>
             </div>

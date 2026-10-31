@@ -1,6 +1,7 @@
 /* A full-bleed opener with the particle flow of the DashQL mark on the dark backdrop of the site */
 .hero {
-    /* The flow reaches this far above and below the hero, under the header and under the content that follows */
+    /* The flow reaches this far above the hero, under the header. It extends as far below the hero to stay centered,
+       but the hero cuts it off at its bottom edge, which a hairline marks. */
     --hero_underflow: 10rem;
 
     position: relative;
@@ -11,6 +12,8 @@
     min-height: min(54vh, 470px);
     padding: calc(var(--header_height) + 2.5rem) max(1.5rem, calc((100% - var(--content_width)) / 2)) 3rem;
     color: var(--site_fg);
+    border-bottom: 1px solid var(--site_border);
+    clip-path: inset(calc(-1 * var(--hero_underflow)) 0 0 0);
 }
 
 /* Extends the same distance above and below the hero, so the flow stays centered on it */

@@ -1,0 +1,30 @@
+---
+import styles from './feature_section.module.css';
+
+interface Props {
+    /// The anchor of the section
+    id: string;
+    title: string;
+    /// A short label above the title
+    eyebrow?: string;
+    /// A caption below the animation
+    caption?: string;
+}
+
+const { id, title, eyebrow, caption } = Astro.props;
+const headingId = `${id}-heading`;
+---
+
+<section class={styles.section} id={id} aria-labelledby={headingId}>
+    <div class={styles.copy}>
+        {eyebrow && <p class={styles.eyebrow}>{eyebrow}</p>}
+        <h2 class={styles.title} id={headingId}>{title}</h2>
+        <slot />
+    </div>
+    <figure class={styles.visual}>
+        <slot name="visual">
+            <div class={styles.placeholder} aria-hidden="true">animation</div>
+        </slot>
+        {caption && <figcaption class={styles.caption}>{caption}</figcaption>}
+    </figure>
+</section>

@@ -10,12 +10,6 @@
     padding-top: 0;
 }
 
-/* The first card after the hero starts at its bottom edge, above the particle flow that runs on underneath */
-.after_hero {
-    position: relative;
-    z-index: 1;
-    padding-top: 0;
-}
 
 .narrow {
     max-width: calc(48rem + 3rem);

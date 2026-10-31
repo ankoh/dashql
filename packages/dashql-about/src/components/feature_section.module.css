@@ -1,0 +1,79 @@
+/* A section of the front page: the copy on the left, an animation on the right */
+.section {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    align-items: center;
+    gap: clamp(2.5rem, 6vw, 6rem);
+    width: min(100% - 3rem, var(--content_width));
+    margin-inline: auto;
+    padding-block: 5rem;
+    scroll-margin-top: var(--header_height);
+}
+
+.section + .section {
+    border-top: 1px solid var(--site_border);
+}
+
+.copy .eyebrow {
+    margin: 0 0 0.75rem;
+    font-family: var(--font_family_mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--hero_accent);
+}
+
+.title {
+    margin: 0 0 1.25rem;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+}
+
+.copy :where(p) {
+    margin: 0 0 1rem;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--site_fg_muted);
+}
+
+.visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    margin: 0;
+}
+
+/* Marks the spot of an animation that is still to come */
+.placeholder {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border: 1px dashed var(--site_border_strong);
+    border-radius: var(--border_radius);
+    font-family: var(--font_family_mono);
+    font-size: 0.85rem;
+    color: var(--site_fg_subtle);
+}
+
+.caption {
+    max-width: 34rem;
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    font-style: italic;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--site_fg_muted);
+}
+
+@media (max-width: 54rem) {
+    .section {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2rem;
+        padding-block: 3.5rem;
+    }
+}
