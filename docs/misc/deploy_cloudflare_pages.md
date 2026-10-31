@@ -85,17 +85,18 @@ route should return the app HTML, entrypoints should require revalidation, and f
 static assets should be immutable. Every `.br` WebAssembly response needs `Content-Encoding: br` and
 `Content-Type: application/wasm`.
 
-## about.dashql.app
+## dashql.org
 
-The website and blog (`//packages/dashql-about`, a static Astro site) is a second Direct Upload
-project. Trusted CI uploads `bazel-bin/packages/dashql-about/pages_deploy/` as the
-`dashql_about_pages` artifact, and the `about_pages_deploy` job of `publish.yml` deploys it with the
+The website and blog (`//packages/dashql-org`, a static Astro site) is a second Direct Upload
+project. Trusted CI uploads `bazel-bin/packages/dashql-org/pages_deploy/` as the
+`dashql_org_pages` artifact, and the `org_pages_deploy` job of `publish.yml` deploys it with the
 same `PAGES_DASHQL_*` secrets as the app.
 
-1. Create a Cloudflare Pages **Direct Upload** project named `dashql-about` with production branch
+1. Create a Cloudflare Pages **Direct Upload** project named `dashql-org` with production branch
    `main`.
-2. Run the main-branch workflow once, then add `about.dashql.app` in the project's **Custom
-   domains** settings.
+2. Run the main-branch workflow once, then add `dashql.org` in the project's **Custom
+   domains** settings. An apex domain needs `dashql.org` to be a zone in the same Cloudflare
+   account.
 
-The site needs no cross-origin isolation. `packages/dashql-about/public/_headers` only marks the
+The site needs no cross-origin isolation. `packages/dashql-org/public/_headers` only marks the
 fingerprinted files in `/_astro/*` as immutable.

@@ -1,7 +1,7 @@
 {
-  "name": "@ankoh/dashql-about",
+  "name": "@ankoh/dashql-org",
   "version": "0.0.0",
-  "description": "The DashQL website and blog at about.dashql.app",
+  "description": "The DashQL website and blog at dashql.org",
   "private": true,
   "type": "module",
   "license": "MPL-2.0",

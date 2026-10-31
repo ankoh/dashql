@@ -47,7 +47,7 @@ const xcodeLightTheme = {
 };
 
 export default defineConfig({
-    site: 'https://about.dashql.app',
+    site: 'https://dashql.org',
     output: 'static',
     build: { inlineStylesheets: 'never' },
     integrations: [mdx(), react(), sitemap()],

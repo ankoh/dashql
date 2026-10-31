@@ -1,10 +1,10 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@npm//packages/dashql-about:astro/package_json.bzl", astro_bin = "bin")
+load("@npm//packages/dashql-org:astro/package_json.bzl", astro_bin = "bin")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
-# The website and blog at about.dashql.app, a static Astro site.
+# The website and blog at dashql.org, a static Astro site.
 # Code, tokens and fonts shared with the app come from //packages/dashql-ui, the brand assets from //packages/dashql-app.
 
 npm_link_all_packages(name = "node_modules")
@@ -58,7 +58,7 @@ genrule(
     outs = ["astro.config.dev.ts"],
     cmd = """
         sed -e "s|__UI_PATH__|../../bazel-bin/node_modules/@ankoh/dashql-ui|g" \\
-            -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-about/dependencies/svg-symbols/symbols.generated.svg|g" \\
+            -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-org/dependencies/svg-symbols/symbols.generated.svg|g" \\
             $(location astro.config.tpl.ts) > $@
     """,
 )
@@ -77,12 +77,12 @@ astro_bin.astro(
     name = "pages",
     srcs = _astro_deps,
     args = ["build", "--config", "astro.config.generated.ts", "--outDir", "pages"],
-    chdir = "packages/dashql-about",
+    chdir = "packages/dashql-org",
     env = {"ASTRO_TELEMETRY_DISABLED": "1"},
     out_dirs = ["pages"],
 )
 
-# The Cloudflare Pages deployment of about.dashql.app
+# The Cloudflare Pages deployment of dashql.org
 copy_to_directory(
     name = "pages_deploy",
     srcs = [
@@ -102,7 +102,7 @@ astro_bin.astro_test(
     data = _astro_deps,
     args = ["check", "--config", "astro.config.generated.ts"],
     size = "small",
-    chdir = "packages/dashql-about",
+    chdir = "packages/dashql-org",
     env = {"ASTRO_TELEMETRY_DISABLED": "1"},
 )
 

@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-SITE_DIR="$BUILD_WORKSPACE_DIRECTORY/packages/dashql-about"
+SITE_DIR="$BUILD_WORKSPACE_DIRECTORY/packages/dashql-org"
 ASTRO_BIN="$SITE_DIR/node_modules/.bin/astro"
 
 if [ ! -x "$ASTRO_BIN" ]; then

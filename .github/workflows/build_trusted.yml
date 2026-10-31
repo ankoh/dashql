@@ -196,8 +196,8 @@ jobs:
 
             - uses: actions/upload-artifact@v7
               with:
-                name: dashql_about_pages
-                path: ./bazel-bin/packages/dashql-about/pages_deploy/
+                name: dashql_org_pages
+                path: ./bazel-bin/packages/dashql-org/pages_deploy/
                 retention-days: 1
 
     core_npm_release:

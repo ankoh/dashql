@@ -86,7 +86,7 @@ jobs:
                       --keep-canary 10
 
     pages_deploy:
-        name: Cloudflare Pages
+        name: Cloudflare Pages (dashql.app)
         if: inputs.publish_pages
         runs-on: ubuntu-26.04
         permissions:
@@ -116,15 +116,15 @@ jobs:
                   command: pages deploy ${{ runner.temp }}/artifacts/pages --project-name=dashql --branch=main --commit-hash=${{ inputs.commit }}
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
-    about_pages_deploy:
-        name: Cloudflare Pages (about.dashql.app)
+    org_pages_deploy:
+        name: Cloudflare Pages (dashql.org)
         if: inputs.publish_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
             deployments: write
         environment:
-            name: cloudflare-pages-about
+            name: cloudflare-pages-org
             url: ${{ steps.deployment.outputs.deployment-url }}
         steps:
             - uses: actions/checkout@v7
@@ -133,8 +133,8 @@ jobs:
 
             - uses: actions/download-artifact@v8
               with:
-                  name: dashql_about_pages
-                  path: ${{ runner.temp }}/artifacts/about_pages
+                  name: dashql_org_pages
+                  path: ${{ runner.temp }}/artifacts/org_pages
 
             - name: Deploy prebuilt website
               id: deployment
@@ -144,5 +144,5 @@ jobs:
                   accountId: ${{ secrets.PAGES_DASHQL_ACCOUNT_ID }}
                   workingDirectory: ${{ runner.temp }}
                   packageManager: npm
-                  command: pages deploy ${{ runner.temp }}/artifacts/about_pages --project-name=dashql-about --branch=main --commit-hash=${{ inputs.commit }}
+                  command: pages deploy ${{ runner.temp }}/artifacts/org_pages --project-name=dashql-org --branch=main --commit-hash=${{ inputs.commit }}
                   gitHubToken: ${{ secrets.GITHUB_TOKEN }}

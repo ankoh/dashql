@@ -46,7 +46,7 @@ bazel build //...
 |--------|---------|
 | `//packages/dashql-app:pages` | Web app bundle for Cloudflare Pages |
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
-| `//packages/dashql-about:pages_deploy` | Website and blog (about.dashql.app, Astro) for Cloudflare Pages |
+| `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
 | `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the particle flow shared by the app and the website |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
@@ -115,7 +115,7 @@ bazel test //...
 | `//packages/dashql-cli:tests` | `dashql` tests: agent server, harness adapters, agent commands, `lint` |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
-| `//packages/dashql-about:check` | `astro check` of the website |
+| `//packages/dashql-org:check` | `astro check` of the website |
 
 ### Test Output
 
@@ -247,11 +247,11 @@ The website runs its own Astro dev server on port 9003. It uses the `node_module
 Bazel builds the shared `@ankoh/dashql-ui` package and the SVG symbols it reads from `bazel-bin`:
 
 ```bash
-bazel run //packages/dashql-about:dev
+bazel run //packages/dashql-org:dev
 ```
 
 Without a terminal, for example when an agent starts it, Astro runs the dev server in the background. Stop it with
-`node_modules/.bin/astro dev stop` in `packages/dashql-about`.
+`node_modules/.bin/astro dev stop` in `packages/dashql-org`.
 
 Code and styles used by both the app and the website live in `packages/dashql-ui` and are imported as
 `@ankoh/dashql-ui/...`. Move code there instead of copying it between the two.

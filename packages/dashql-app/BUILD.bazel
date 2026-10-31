@@ -61,22 +61,22 @@ genrule(
     """,
     visibility = ["//visibility:private"],
 )
-# The brand assets are also used by the website (//packages/dashql-about)
+# The brand assets are also used by the website (//packages/dashql-org)
 exports_files(["utils/generate_svg_symbols.py"])
 filegroup(
     name = "svg_logo_files",
     srcs = glob(["static/svg/logo/*.svg"]),
-    visibility = ["//packages/dashql-about:__pkg__"],
+    visibility = ["//packages/dashql-org:__pkg__"],
 )
 copy_to_bin(
     name = "favicons",
     srcs = glob(["static/favicons/dashql/*"]),
-    visibility = ["//packages/dashql-about:__pkg__"],
+    visibility = ["//packages/dashql-org:__pkg__"],
 )
 filegroup(
     name = "svg_icon_files",
     srcs = glob(["static/svg/icons/*.svg"]),
-    visibility = ["//packages/dashql-about:__pkg__"],
+    visibility = ["//packages/dashql-org:__pkg__"],
 )
 genrule(
     name = "dep_svg_symbols",

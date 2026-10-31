@@ -31,11 +31,11 @@ bazel run --config=debug //packages/dashql-app:dev
 bazel build //packages/dashql-app:pages
 bazel build //packages/dashql-app:reloc
 
-# Astro dev server for the website and blog (about.dashql.app) on http://localhost:9003.
+# Astro dev server for the website and blog (dashql.org) on http://localhost:9003.
 # It runs from the node_modules of the workspace, run `pnpm install` once first.
-bazel run //packages/dashql-about:dev
+bazel run //packages/dashql-org:dev
 # Static build of the website for Cloudflare Pages
-bazel build //packages/dashql-about:pages_deploy
+bazel build //packages/dashql-org:pages_deploy
 
 # The native app can be cross-compiled for arm and x86
 bazel run //packages/dashql-native:mac_package_arm64

@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://about.dashql.app/sitemap-index.xml
