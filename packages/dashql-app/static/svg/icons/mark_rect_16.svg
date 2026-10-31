@@ -1,0 +1,6 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="mark_rect_16" viewBox="0 0 16 16">
+        <rect fill="currentColor" x="1.75" y="1.75" width="5.75" height="5.75" rx=".75"></rect><rect stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" x="9.25" y="2.5" width="4.25" height="4.25" rx=".5"></rect><rect stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" x="2.5" y="9.25" width="4.25" height="4.25" rx=".5"></rect><rect fill="currentColor" x="8.5" y="8.5" width="5.75" height="5.75" rx=".75"></rect>
+    </symbol>
+    <use xlink:href="#mark_rect_16" />
+</svg>

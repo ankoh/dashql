@@ -27,7 +27,7 @@ import { ensureSessionScriptAnalyzed, type ModifySessionScripts } from '../sessi
 import { scriptDisplayName } from '../session/scripts/script_types.js';
 import { runSessionScriptForResult } from '../session/ui/rerun_query.js';
 import { buildSchemaContext } from './agent_catalog.js';
-import { loadVega } from '../../ui/vegalite/vegalite_loader.js';
+import { checkVegaLiteSpec } from '../../ui/vegalite/vegalite_check.js';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
 import { CHART_IMAGE_HEIGHT, CHART_IMAGE_SCALE, CHART_IMAGE_WIDTH, renderVegaLitePng, type ChartImage } from '../../ui/vegalite/vegalite_image.js';
 import { DEFAULT_RUN_ROWS, RESULT_PAGE_ROWS, formatResultSlice, sliceResult } from './agent_result_format.js';
@@ -264,26 +264,6 @@ async function reportEdit(
     const lines = [`${verb} ${fileName}${on}: sha256 ${hash}, ${errors} error${errors === 1 ? '' : 's'}, ${diagnostics.length - errors} warning${diagnostics.length - errors === 1 ? '' : 's'}`];
     if (diagnostics.length > 0) lines.push(formatDiagnostics(fileName, diagnostics));
     return { text: lines.join('\n'), data: { script: fileName, ...data, connection: connectionId, sha256: hash, diagnostics } };
-}
-
-/// The logger that Vega-Lite reports problems to
-type VegaLiteLogger = NonNullable<NonNullable<Parameters<typeof import('vega-lite').compile>[1]>['logger']>;
-
-/// The problems of a Vega-Lite spec: the errors and warnings of compiling it without data
-export async function checkVegaLiteSpec(spec: Record<string, unknown>): Promise<string[]> {
-    const { vegaLite } = await loadVega();
-    const problems: string[] = [];
-    const collect = (...message: unknown[]) => {
-        problems.push(message.map(m => (typeof m === 'string' ? m : stringifyError(m))).join(' '));
-        return logger;
-    };
-    const logger: VegaLiteLogger = { level: () => logger, error: collect, warn: collect, info: () => logger, debug: () => logger };
-    try {
-        vegaLite.compile({ ...spec, data: { values: [] } } as Parameters<typeof vegaLite.compile>[0], { logger });
-    } catch (e: unknown) {
-        problems.push(stringifyError(e));
-    }
-    return problems;
 }
 
 /// Rewrite the `@vis` tag of the terminal query in a scratch script and analyze the result. Returns the

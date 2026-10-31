@@ -1,0 +1,6 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="mark_tick_16" viewBox="0 0 16 16">
+        <path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M2.75 4.5v7M5.5 4.5v7M7 4.5v7M10.5 4.5v7M13.25 4.5v7"></path>
+    </symbol>
+    <use xlink:href="#mark_tick_16" />
+</svg>

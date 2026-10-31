@@ -33,6 +33,7 @@ import {
     REORDER_SCRIPTS,
     replaceSessionScriptsFromStorage,
     SET_SCRIPT_TEXT,
+    SET_SCRIPT_VIS_SPEC,
     replaceScriptSessionText,
 } from './session_scripts.js';
 import { compileSessionQuery } from './script_compilation.js';
@@ -513,6 +514,39 @@ describe('V2 flat session script mutations', () => {
         const column = current.scripts[key('3_query.sql')].editorUpdate?.semanticSpans
             .find(span => span.kind === core.buffers.editor.EditorSemanticReferenceKind.COLUMN);
         expect(column?.resolution).toBe(core.buffers.editor.EditorSemanticResolution.RESOLVED);
+    });
+
+    it('writes the chart spec of the builder into the @vis vegalite tag of the last statement', () => {
+        const writer = new RecordingWriter(logger, new SessionTestBackend());
+        let current = state(['1_alpha.sql']);
+        const scriptKey = current.scriptRefs['1_alpha.sql'].scriptId;
+        current = reduce(current, { type: SET_SCRIPT_TEXT, value: { scriptKey, text: 'create table t (a int);\nselect 2 as x, 3 as y' } });
+
+        // A query without tags gets a new comment in front of the last statement
+        current = reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"bar"}' } }, writer);
+        let text = current.scripts[scriptKey].scriptSession.getText();
+        expect(text.startsWith('create table t (a int);')).toBe(true);
+        expect(text).toMatch(/^create table t \(a int\);\n\/\* @vis vegalite\s/);
+        const specOf = () => {
+            const vis = current.scripts[scriptKey].annotations.visualizeQuery;
+            return vis?.renderer === 'vegalite' ? vis.vegaLiteSpec as unknown as Record<string, unknown> : null;
+        };
+        expect(specOf()?.mark).toBe('bar');
+        expect(writer.records.some(task => task.type.description === 'WRITE_SCRIPT')).toBe(true);
+
+        // A card tag survives a rewrite of the renderer
+        current = reduce(current, {
+            type: SET_SCRIPT_TEXT,
+            value: { scriptKey, text: '/* @vis vegalite {"mark":"bar"}\n   @vis card width=4 height=2 */\nselect 2 as x, 3 as y' },
+        });
+        current = reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"line","encoding":{"x":{"field":"x"}}}' } });
+        text = current.scripts[scriptKey].scriptSession.getText();
+        expect(text).toContain('@vis card width=4 height=2');
+        expect(text).not.toContain('"bar"');
+        expect(specOf()).toMatchObject({ mark: 'line', encoding: { x: { field: 'x' } } });
+
+        // An unchanged spec leaves the state alone
+        expect(reduce(current, { type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec: '{"mark":"line","encoding":{"x":{"field":"x"}}}' } })).toBe(current);
     });
 
     it('keeps a failed analysis on the script instead of throwing', () => {

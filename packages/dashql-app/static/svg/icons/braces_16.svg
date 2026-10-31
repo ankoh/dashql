@@ -1,0 +1,6 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="braces_16" viewBox="0 0 16 16">
+        <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M5.25 2.25h-.5c-.83 0-1.5.67-1.5 1.5v2.5c0 .83-.67 1.75-1.5 1.75.83 0 1.5.92 1.5 1.75v2.5c0 .83.67 1.5 1.5 1.5h.5M10.75 2.25h.5c.83 0 1.5.67 1.5 1.5v2.5c0 .83.67 1.75 1.5 1.75-.83 0-1.5.92-1.5 1.75v2.5c0 .83-.67 1.5-1.5 1.5h-.5"></path>
+    </symbol>
+    <use xlink:href="#braces_16" />
+</svg>

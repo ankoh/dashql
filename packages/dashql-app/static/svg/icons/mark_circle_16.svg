@@ -1,0 +1,6 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="mark_circle_16" viewBox="0 0 16 16">
+        <circle fill="currentColor" cx="4" cy="11" r="2.25"></circle><circle fill="currentColor" cx="8" cy="5" r="2.25"></circle><circle fill="currentColor" cx="12.25" cy="9.5" r="2.25"></circle>
+    </symbol>
+    <use xlink:href="#mark_circle_16" />
+</svg>

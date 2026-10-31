@@ -83,6 +83,14 @@ function executionFormattingConfig(connectorType: ConnectorType): core.buffers.f
     );
 }
 
+/// The statement that a chart of the script visualizes, the last statement. Null when the script has no statement.
+/// Compilation errors, e.g. of other statements, do not matter here, the rewrite of a tag refuses unparsed scripts.
+export function chartStatementId(scriptSession: core.DashQLScriptSession): number | null {
+    const reader = scriptSession.compileQuery(executionFormattingConfig(ConnectorType.HYPER)).read();
+    const statementId = reader.terminalStatementId();
+    return statementId === 0xFFFFFFFF ? null : statementId;
+}
+
 export function compileVisualizeQuery(scriptSession: core.DashQLScriptSession, connectorType: ConnectorType,
     logger?: LoggerLike): ResolvedVisualizeQuery | null {
     const compiled = scriptSession.compileQuery(executionFormattingConfig(connectorType));

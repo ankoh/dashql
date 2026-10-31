@@ -1,0 +1,6 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="mark_text_16" viewBox="0 0 16 16">
+        <path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M3 3.25h10M8 3.25v9.5M6 12.75h4"></path>
+    </symbol>
+    <use xlink:href="#mark_text_16" />
+</svg>

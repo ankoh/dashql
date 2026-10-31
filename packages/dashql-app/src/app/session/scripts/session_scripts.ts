@@ -29,7 +29,7 @@ import type { ConnectionState } from '../../connections/connection_state.js';
 import { Logger, LoggerLike, stringifyError } from '../../../platform/logger/logger.js';
 import { ScriptAnnotations, ScriptRef, SessionMetadata as SessionMetadataType, ResolvedVisualizeQuery, createEmptyAnnotations, createScriptRef, generateScriptFileName, scriptDisplayName, uniqueScriptBase } from './script_types.js';
 
-import { compileVisualizeQuery } from './script_compilation.js';
+import { chartStatementId, compileVisualizeQuery } from './script_compilation.js';
 
 const LOG_CTX = 'session_scripts';
 
@@ -227,6 +227,7 @@ export const DELETE_SCRIPT = Symbol('DELETE_SCRIPT');
 export const RENAME_SCRIPT = Symbol('RENAME_SCRIPT');
 export const REORDER_SCRIPTS = Symbol('REORDER_SCRIPTS');
 export const SET_SCRIPT_TEXT = Symbol('SET_SCRIPT_TEXT');
+export const SET_SCRIPT_VIS_SPEC = Symbol('SET_SCRIPT_VIS_SPEC');
 export const ACCEPT_PENDING_DIFF = Symbol('ACCEPT_PENDING_DIFF');
 export const REJECT_PENDING_DIFF = Symbol('REJECT_PENDING_DIFF');
 export const RENAME_SESSION = Symbol('RENAME_SESSION');
@@ -252,6 +253,7 @@ export type SessionScriptsAction =
     | VariantKind<typeof RENAME_SCRIPT, { fileName: string, newFileName: string }>
     | VariantKind<typeof REORDER_SCRIPTS, string[]>
     | VariantKind<typeof SET_SCRIPT_TEXT, { scriptKey: ScriptKey, text: string, withDiff?: boolean }>
+    | VariantKind<typeof SET_SCRIPT_VIS_SPEC, { scriptKey: ScriptKey, spec: string }>
     | VariantKind<typeof ACCEPT_PENDING_DIFF, ScriptKey>
     | VariantKind<typeof REJECT_PENDING_DIFF, ScriptKey>
     | VariantKind<typeof RENAME_SESSION, string | null>
@@ -1013,6 +1015,33 @@ export function reduceSessionScripts(state: SessionScripts, action: SessionScrip
                 );
             }
             return nextState;
+        }
+
+        case SET_SCRIPT_VIS_SPEC: {
+            // Rewrite the `@vis vegalite` tag of the charted statement against the current script session, so that a
+            // quick run of edits never rewrites stale text. The rewrite keeps the other tags, e.g. `@vis card`.
+            const { scriptKey, spec } = action.value;
+            const scriptData = state.scripts[scriptKey];
+            if (!scriptData) {
+                logger.warn("SET_SCRIPT_VIS_SPEC references invalid script", { scriptKey: scriptKey.toString() }, LOG_CTX);
+                return state;
+            }
+            let text: string;
+            try {
+                const statementId = chartStatementId(scriptData.scriptSession);
+                if (statementId == null) {
+                    logger.warn("SET_SCRIPT_VIS_SPEC found no statement to chart", { scriptKey: scriptKey.toString() }, LOG_CTX);
+                    return state;
+                }
+                text = scriptData.scriptSession.rewriteVisRenderer(statementId, 'vegalite', spec);
+            } catch (e: unknown) {
+                logger.warn("SET_SCRIPT_VIS_SPEC failed to rewrite the chart tag", { scriptKey: scriptKey.toString(), error: String(e) }, LOG_CTX);
+                return state;
+            }
+            if (text === scriptData.scriptSession.getText()) {
+                return state;
+            }
+            return reduceSessionScripts(state, { type: SET_SCRIPT_TEXT, value: { scriptKey, text } }, storage, logger);
         }
 
         case ACCEPT_PENDING_DIFF: {

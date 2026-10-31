@@ -5,7 +5,7 @@ import { useSessionExecution } from '../../scripts/session_execution_provider.js
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '../../../../ui/foundations/symbol_icon.js';
-import { PaperAirplaneIcon, PlusIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
+import { GraphIcon, PaperAirplaneIcon, PlusIcon, SquareFillIcon } from '../../../../ui/foundations/symbol_icon.js';
 import type { RowComponentProps } from 'react-window';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -36,6 +36,7 @@ import { displayPath } from '../../../storage/session_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '../../../storage/storage_backend.js';
 import { ScriptConnectionPicker, type ScriptConnectionView } from '../script_connection_picker.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
+import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
 
 const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
@@ -79,6 +80,8 @@ export interface ScriptCardProps {
     onFormat: (scriptKey: number, text: string) => void;
     /// Replace the text of the script with the text of a snippet
     onApplySnippet: (scriptKey: number, text: string) => void;
+    /// Write a Vega-Lite spec of the chart builder into the `@vis vegalite` tag of the script
+    onSetVisSpec: (scriptKey: number, spec: string) => void;
     /// Can a question of the composer target the script?
     canTarget: boolean;
     /// Reference the script in the question of the composer
@@ -107,6 +110,7 @@ export interface ScriptCardDependencies {
     QueryResultRerunButton: typeof QueryResultRerunButton;
     EntryStatusBar: typeof EntryStatusBar;
     FeedEntryFooter: typeof FeedEntryFooter;
+    ChartBuilderOverlay: typeof ChartBuilderOverlay;
 }
 
 const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
@@ -123,6 +127,7 @@ const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
     QueryResultRerunButton,
     EntryStatusBar,
     FeedEntryFooter,
+    ChartBuilderOverlay,
 };
 
 // Memoized since every row of the feed re-renders whenever any script changes
@@ -264,6 +269,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const applySnippet = React.useCallback((text: string) => {
         if (scriptKey != null) props.onApplySnippet(scriptKey, text);
     }, [scriptKey, props.onApplySnippet]);
+    const [chartBuilderOpen, setChartBuilderOpen] = React.useState(false);
+    const setVisSpec = React.useCallback((spec: string) => {
+        if (scriptKey != null) props.onSetVisSpec(scriptKey, spec);
+    }, [scriptKey, props.onSetVisSpec]);
+    const closeChartBuilder = React.useCallback(() => setChartBuilderOpen(false), []);
 
     const displayName = scriptDisplayName(props.scriptFileName);
     // Is the name being edited in the tag of the card?
@@ -344,6 +354,27 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         onRenamingChange={setRenaming}
                         onRename={name => props.onRename(props.scriptFileName, name)}
                     />
+                    <IconButton
+                        variant={chartBuilderOpen ? ButtonVariant.Default : ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        onClick={(event) => { event.stopPropagation(); setChartBuilderOpen(true); }}
+                        aria-label={`Build a chart for ${displayName}`}
+                        aria-haspopup="dialog"
+                        aria-expanded={chartBuilderOpen}
+                        data-testid="script-chart"
+                        disabled={props.scriptData == null || hasPendingDiff}
+                    >
+                        <GraphIcon size={14} />
+                    </IconButton>
+                    {chartBuilderOpen && props.scriptData != null && (
+                        <dependencies.ChartBuilderOverlay
+                            scriptName={displayName}
+                            visualizeQuery={props.scriptData.annotations.visualizeQuery}
+                            queryState={queryState}
+                            onChange={setVisSpec}
+                            onClose={closeChartBuilder}
+                        />
+                    )}
                     <SnippetsOverlay
                         scriptName={displayName}
                         connectorType={props.connectorType}
@@ -509,6 +540,8 @@ export interface ScriptFeedRowProps {
     onFormat: (scriptKey: number, text: string) => void;
     /// Replace the text of a script with the text of a snippet
     onApplySnippet: (scriptKey: number, text: string) => void;
+    /// Write a Vega-Lite spec of the chart builder into the `@vis vegalite` tag of a script
+    onSetVisSpec: (scriptKey: number, spec: string) => void;
     /// Can a question of the composer target the scripts?
     canTarget: boolean;
     /// Reference a script in the question of the composer
@@ -673,6 +706,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     onRerun={props.onRerun}
                     onFormat={props.onFormat}
                     onApplySnippet={props.onApplySnippet}
+                    onSetVisSpec={props.onSetVisSpec}
                     canTarget={props.canTarget}
                     onTarget={props.onTarget}
                     onAcceptDiff={props.onAcceptDiff}

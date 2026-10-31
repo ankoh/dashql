@@ -1,0 +1,6 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="mark_area_16" viewBox="0 0 16 16">
+        <path fill="currentColor" d="M1.5 14.25V11l4-4.5L9 9l5.5-5.5v10.75Z" opacity=".35"></path><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M1.5 11l4-4.5L9 9l5.5-5.5"></path>
+    </symbol>
+    <use xlink:href="#mark_area_16" />
+</svg>

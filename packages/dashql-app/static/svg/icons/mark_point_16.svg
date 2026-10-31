@@ -1,0 +1,6 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="mark_point_16" viewBox="0 0 16 16">
+        <circle stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" cx="4" cy="11" r="1.75"></circle><circle stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" cx="8" cy="5" r="1.75"></circle><circle stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" cx="12.25" cy="9.5" r="1.75"></circle>
+    </symbol>
+    <use xlink:href="#mark_point_16" />
+</svg>

@@ -23,7 +23,7 @@ import {
 } from '@dnd-kit/sortable';
 
 import { ConnectionHealth, ConnectionState } from '../../../connections/connection_state.js';
-import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/session_scripts.js';
+import { getSelectedScriptRef, getScriptRefs, newScriptConnection, SessionScripts, type ScriptData, SELECT_SCRIPT, CREATE_SCRIPT, DELETE_SCRIPT, RENAME_SCRIPT, REORDER_SCRIPTS, SET_SCRIPT_TEXT, SET_SCRIPT_VIS_SPEC, ACCEPT_PENDING_DIFF, REJECT_PENDING_DIFF } from '../../scripts/session_scripts.js';
 import { useQueryExecutor } from '../../../connections/query_executor.js';
 import { type ModifySessionScripts } from '../../scripts/session_scripts_registry.js';
 import { scriptDisplayName } from '../../scripts/script_types.js';
@@ -368,6 +368,11 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         });
     }, [props.modifySessionScripts, props.sessionScripts.scripts]);
 
+    // The chart builder of a card writes every edit of the spec into the `@vis vegalite` tag of the script
+    const handleSetVisSpec = React.useCallback((scriptKey: number, spec: string) => {
+        props.modifySessionScripts({ type: SET_SCRIPT_VIS_SPEC, value: { scriptKey, spec } });
+    }, [props.modifySessionScripts]);
+
     // Accept / reject a staged rewrite from the feed. Accept keeps the new text; reject restores the
     // prior text and re-analyzes.
     const handleAcceptDiff = React.useCallback((scriptKey: number) => {
@@ -648,6 +653,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onRerun: handleRerunEntry,
         onFormat: handleFormat,
         onApplySnippet: handleApplySnippet,
+        onSetVisSpec: handleSetVisSpec,
         canTarget: composerAgent.available,
         onTarget: handleTargetScript,
         onAcceptDiff: handleAcceptDiff,
@@ -661,7 +667,7 @@ export const SessionFeed: React.FC<SessionFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, composerAgent.available, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
+    }), [entries, props.active, scriptConnections, props.sessionScripts.scripts, props.sessionScripts.scriptFocus.fileName, props.sessionScripts.settings.cacheQueryResults, scriptDebugMode, formattingDebugMode, keywordCase, compactLayout, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleShowStatus, handleShowTable, handleShowVisualization, handleShowDetails, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, composerAgent.available, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight, bottomInset]);
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 
     // An empty session greets the user with the composer in place of the feed.

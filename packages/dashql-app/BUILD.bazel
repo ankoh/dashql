@@ -233,6 +233,7 @@ _vite_web_deps = [
     ":dep_svg_symbols",
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/@codemirror/commands",
+    "//:node_modules/@codemirror/lang-json",
     "//:node_modules/@codemirror/language",
     "//:node_modules/@codemirror/search",
     "//:node_modules/@codemirror/state",

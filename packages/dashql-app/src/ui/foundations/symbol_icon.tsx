@@ -95,6 +95,7 @@ export function SymbolIcon(symbol: string): Icon {
 }
 
 export const AlertIcon = createIcon({ 16: 'alert_16' });
+export const BracesIcon = createIcon({ 16: 'braces_16' });
 export const BookIcon = createIcon({ 16: 'book_16', 24: 'book_24' });
 export const CheckIcon = createIcon({ 16: 'check_16', 24: 'check_24' });
 export const ChecklistIcon = createIcon({ 16: 'checklist_16' });
@@ -141,6 +142,7 @@ export const SquareFillIcon = createIcon({ 16: 'square_fill_16' });
 export const SyncIcon = createIcon({ 16: 'sync_16' });
 export const TableIcon = createIcon({ 16: 'table_16' });
 export const ThreeBarsIcon = createIcon({ 16: 'three_bars_16' });
+export const ToolsIcon = createIcon({ 16: 'tools_16', 24: 'tools_24' });
 export const TrashIcon = createIcon({ 16: 'trash_16', 24: 'trash_24' });
 export const TriangleDownIcon = createIcon({ 16: 'triangle_down_16', 24: 'triangle_down_24' });
 export const UnlinkIcon = createIcon({ 16: 'unlink_16' });
