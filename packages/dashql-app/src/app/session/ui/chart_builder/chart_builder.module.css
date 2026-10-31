@@ -227,8 +227,9 @@
     display: flex;
     flex-wrap: wrap;
     margin: 0;
-    padding: 0;
-    gap: 4px;
+    /* The chips have borders, give them room from the heading and the next section */
+    padding: 6px 0 4px;
+    gap: 6px 8px;
     list-style: none;
 }
 
