@@ -14,6 +14,10 @@ Please consult relevant docs in that directory before making changes.
     - `docs/agents/build_rust_coverage.md`
     - `docs/agents/rust_analyzer.md` (rust-project.json for rust-analyzer)
 
-- Rust core (parser design, parse-tree change rules, inherited C++ quirks)
+- Rust core (parser design, parse-tree change rules, quirks inherited from the former C++ core)
     - `docs/design/core_parser.md`
     - `docs/design/core_quirks.md`
+
+- Third-party notices
+    - `NOTICE` lists vendored third-party code and assets with their licenses. Add an entry when you
+      vendor something, and remove it when that code is deleted.
