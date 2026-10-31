@@ -35,3 +35,9 @@ npm_link_package(
     name = "node_modules/@ankoh/dashql-core",
     src = "//packages/dashql-core-js:npm_package",
 )
+
+# The code, tokens and fonts shared by //packages/dashql-app and //packages/dashql-about.
+npm_link_package(
+    name = "node_modules/@ankoh/dashql-ui",
+    src = "//packages/dashql-ui:npm_package",
+)

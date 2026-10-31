@@ -16,6 +16,8 @@ export default vite.defineConfig(({ mode, command }) => {
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
     const CORE_PATH = path.resolve(rootDir, "__CORE_PATH__");
+    // The package root of @ankoh/dashql-ui, the code, tokens and fonts shared with the website
+    const UI_PATH = path.resolve(rootDir, "__UI_PATH__");
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
     const SHELL_JS_PATH = path.resolve(rootDir, "__SHELL_JS_PATH__");
@@ -235,6 +237,12 @@ export default vite.defineConfig(({ mode, command }) => {
                 { find: /^@ankoh\/dashql-core$/, replacement: path.join(CORE_PATH, 'index.js') },
                 { find: /^@ankoh\/dashql-core\/buffers$/, replacement: path.join(CORE_PATH, 'buffers.js') },
                 { find: /^@ankoh\/dashql-core\/browser-worker$/, replacement: path.join(CORE_PATH, 'browser_worker.js') },
+                {
+                    find: /^@ankoh\/dashql-ui\/particle_flow$/,
+                    replacement: path.join(UI_PATH, 'dist/particle_flow/attach_particle_flow.js'),
+                },
+                { find: /^@ankoh\/dashql-ui\/xcode$/, replacement: path.join(UI_PATH, 'dist/editor/xcode_palette.js') },
+                { find: /^@ankoh\/dashql-ui\/((fonts|styles)\/.*\.css)$/, replacement: path.join(UI_PATH, '$1') },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
                 { find: /@ankoh\/dashql-jsonschema/, replacement: JSONSCHEMA_PATH },
                 {
@@ -294,6 +302,7 @@ export default vite.defineConfig(({ mode, command }) => {
                 ].concat((() => {
                     const paths = [
                         CORE_PATH,
+                        UI_PATH,
                         PROTOBUF_PATH,
                         path.dirname(SHELL_JS_PATH),
                         path.dirname(SHELL_WASM_PATH),
@@ -313,6 +322,8 @@ export default vite.defineConfig(({ mode, command }) => {
                 '@ankoh/dashql-core',
                 '@ankoh/dashql-core/buffers',
                 '@ankoh/dashql-core/browser-worker',
+                '@ankoh/dashql-ui/particle_flow',
+                '@ankoh/dashql-ui/xcode',
                 '@dashql/hyperdb-wasm?url',
                 '@dashql/hyperdb-wasm-js?url',
                 '@dashql/hyperdb-wasm-worker?url',

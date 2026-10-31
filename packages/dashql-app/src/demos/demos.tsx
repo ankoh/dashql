@@ -13,8 +13,9 @@ import { DASHQL_FLAVOR, type AppFlavor } from '../app/flavor/flavors.js';
 import { DEMOS, type DemoEntry } from './demo_registry.js';
 import * as styles from './demos.module.css';
 
-import '../../static/fonts/fonts.css';
-import '../styles/colors.css';
+import '@ankoh/dashql-ui/fonts/fonts.css';
+import '@ankoh/dashql-ui/styles/colors.css';
+import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 import '../styles/flavors/sidb.css';
 

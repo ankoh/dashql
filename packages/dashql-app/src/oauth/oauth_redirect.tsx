@@ -26,7 +26,8 @@ import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platfor
 import { decodeOAuthState, getOAuthStateFlavor, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
 import { getRequestedFlavor } from '../app/flavor/flavor_resolution.js';
 
-import '../../static/fonts/fonts.css';
+import '@ankoh/dashql-ui/fonts/fonts.css';
+import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 import '../styles/flavors/sidb.css';
 

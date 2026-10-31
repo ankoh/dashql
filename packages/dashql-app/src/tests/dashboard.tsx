@@ -25,8 +25,9 @@ import {
 } from './protocol.js';
 import { BLOCKED_BROWSER_TEST_FILES, BROWSER_TEST_FILES } from './test_modules.js';
 import styles from './dashboard.module.css';
-import '../../static/fonts/fonts.css';
-import '../styles/colors.css';
+import '@ankoh/dashql-ui/fonts/fonts.css';
+import '@ankoh/dashql-ui/styles/colors.css';
+import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 
 declare global {

@@ -1,14 +1,17 @@
 import { tags as t } from '@lezer/highlight';
+import { xcodeDarkPalette as dark, xcodeLightPalette as light } from '@ankoh/dashql-ui/xcode';
 import { createTheme, CreateThemeOptions } from './theme.js';
 
+/// The colors live in @ankoh/dashql-ui, the code blocks of the website use them too
+
 export const defaultSettingsXcodeLight: CreateThemeOptions['settings'] = {
-    background: '#fff',
-    foreground: '#3D3D3D',
-    selection: '#BBDFFF',
-    selectionMatch: '#BBDFFF',
-    gutterBackground: '#fff',
-    gutterForeground: '#AFAFAF',
-    lineHighlight: '#d5e6ff69',
+    background: light.background,
+    foreground: light.foreground,
+    selection: light.selection,
+    selectionMatch: light.selectionMatch,
+    gutterBackground: light.gutterBackground,
+    gutterForeground: light.gutterForeground,
+    lineHighlight: light.lineHighlight,
 };
 
 export function xcodeLightInit(options?: Partial<CreateThemeOptions>) {
@@ -20,16 +23,16 @@ export function xcodeLightInit(options?: Partial<CreateThemeOptions>) {
             ...settings,
         },
         styles: [
-            { tag: [t.comment, t.quote], color: '#707F8D' },
-            { tag: [t.typeName, t.typeOperator], color: '#aa0d91' },
-            { tag: [t.keyword], color: '#aa0d91', fontWeight: 'bold' },
-            { tag: [t.propertyName], color: '#032f62' },
-            { tag: [t.string, t.meta], color: '#D23423' },
-            { tag: [t.name], color: '#032f62' },
-            { tag: [t.typeName], color: '#522BB2' },
-            { tag: [t.variableName], color: '#23575C' },
-            { tag: [t.definition(t.variableName)], color: '#327A9E' },
-            { tag: [t.regexp, t.link], color: '#0e0eff' },
+            { tag: [t.comment, t.quote], color: light.comment },
+            { tag: [t.typeName, t.typeOperator], color: light.typeOperator },
+            { tag: [t.keyword], color: light.keyword, fontWeight: 'bold' },
+            { tag: [t.propertyName], color: light.propertyName },
+            { tag: [t.string, t.meta], color: light.string },
+            { tag: [t.name], color: light.name },
+            { tag: [t.typeName], color: light.typeName },
+            { tag: [t.variableName], color: light.variableName },
+            { tag: [t.definition(t.variableName)], color: light.variableDefinition },
+            { tag: [t.regexp, t.link], color: light.link },
             ...styles,
         ],
     });
@@ -38,12 +41,12 @@ export function xcodeLightInit(options?: Partial<CreateThemeOptions>) {
 export const xcodeLight = xcodeLightInit();
 
 export const defaultSettingsXcodeDark: CreateThemeOptions['settings'] = {
-    background: '#292A30',
-    foreground: '#CECFD0',
-    caret: '#fff',
-    selection: '#727377',
-    selectionMatch: '#727377',
-    lineHighlight: '#ffffff0f',
+    background: dark.background,
+    foreground: dark.foreground,
+    caret: dark.caret,
+    selection: dark.selection,
+    selectionMatch: dark.selectionMatch,
+    lineHighlight: dark.lineHighlight,
 };
 
 export const xcodeDarkInit = (options?: Partial<CreateThemeOptions>) => {
@@ -55,15 +58,15 @@ export const xcodeDarkInit = (options?: Partial<CreateThemeOptions>) => {
             ...settings,
         },
         styles: [
-            { tag: [t.comment, t.quote], color: '#7F8C98' },
-            { tag: [t.keyword], color: '#FF7AB2', fontWeight: 'bold' },
-            { tag: [t.propertyName], color: '#6BAA9F' },
-            { tag: [t.string, t.meta], color: '#FF8170' },
-            { tag: [t.typeName], color: '#DABAFF' },
-            { tag: [t.definition(t.variableName)], color: '#6BDFFF' },
-            { tag: [t.name], color: '#6BAA9F' },
-            { tag: [t.variableName], color: '#ACF2E4' },
-            { tag: [t.regexp, t.link], color: '#FF8170' },
+            { tag: [t.comment, t.quote], color: dark.comment },
+            { tag: [t.keyword], color: dark.keyword, fontWeight: 'bold' },
+            { tag: [t.propertyName], color: dark.propertyName },
+            { tag: [t.string, t.meta], color: dark.string },
+            { tag: [t.typeName], color: dark.typeName },
+            { tag: [t.definition(t.variableName)], color: dark.variableDefinition },
+            { tag: [t.name], color: dark.name },
+            { tag: [t.variableName], color: dark.variableName },
+            { tag: [t.regexp, t.link], color: dark.link },
             ...styles,
         ],
     });

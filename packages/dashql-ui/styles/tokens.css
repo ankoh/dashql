@@ -1,0 +1,105 @@
+/* The semantic tokens of DashQL, shared by the app and the website. Flavors of the app override them. */
+
+:root {
+    /* The greys of the app carry a slight tint of this hue. Flavors can shift the hue or drop the tint with 0. */
+    --neutral_hue: 210;
+    --neutral_tint: 1;
+
+    --base_color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
+    --background_color_primary: hsl(var(--neutral_hue), calc(24.7% * var(--neutral_tint)), 31.8%);
+    --border_color_primary: hsl(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%);
+    --border_radius: 8px;
+
+    --font_size_badge: 0.65rem;
+    --font_size_micro: 0.7rem;
+    --font_size_caption: 0.75rem;
+    --font_size_compact: 0.78rem;
+    --font_size_small: 0.8rem;
+    --font_size_body: 0.85rem;
+    --font_size_subtitle: 0.9rem;
+    --font_size_editor: 0.95rem;
+    --font_size_title: 1rem;
+
+    --font_family: 'Instrument Sans', sans-serif;
+    --font_family_mono: 'JetBrains Mono', monospace;
+
+    --navbar_hover_background_color: rgba(0, 0, 0, 0.2);
+    --shell_background_color: rgba(0, 0, 0, 0.2);
+
+    --button_fg: hsl(var(--neutral_hue), calc(24% * var(--neutral_tint)), 22%);
+    --button_fg_inverted: rgb(255, 255, 255);
+    --button_hover_fg: rgb(255, 255, 255);
+    --button_hover_fg_inverted: hsl(var(--neutral_hue), calc(24% * var(--neutral_tint)), 32%);
+    --button_hover_bg: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
+    --button_hover_bg_inverted: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 6%);
+
+    --button_primary_bg: #1f883d;
+    --button_primary_bg_hover: #1a7f37;
+    /* Pressed or with an open menu */
+    --button_primary_bg_active: hsl(137, 66%, 28%);
+    --button_primary_bg_disabled: #94d3a2;
+
+    /* The colors of status indicators, like the status icons of scripts and the health dots of connections */
+    --status_color_in_progress: #9a6700;
+    --status_color_success: #1f883d;
+    --status_color_failed: #cf222e;
+    --status_color_other: #6e7781;
+
+    --background_color_80: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 24%);
+    --background_color_100: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%);
+    --background: radial-gradient(circle at 50% 50%, var(--background_color_80) 20%, transparent 80%),
+        conic-gradient(
+            from 45deg at 50% 50%,
+            var(--background_color_100) 0%,
+            var(--background_color_80) 25%,
+            var(--background_color_100) 50%,
+            var(--background_color_80) 75%,
+            var(--background_color_100) 100%
+        );
+
+    /* Backdrop of pages with a lot of empty space, like the session feed: a soft light in the middle,
+       a faint dot grid, and a vignette that fades the grid out toward the edges. Centered in the element it paints. */
+    --stage_color: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 97%);
+    --stage_light: radial-gradient(ellipse 65% 70% at 50% 50%, hsl(var(--neutral_hue), calc(30% * var(--neutral_tint)), 98.1%) 0%, var(--stage_color) 60%);
+    --stage_dot_grid: radial-gradient(circle, hsla(var(--neutral_hue), calc(24% * var(--neutral_tint)), 30%, 0.1) 0.8px, transparent 1.3px) center / 22px 22px;
+    --stage_vignette: radial-gradient(ellipse 70% 75% at 50% 50%, hsla(var(--neutral_hue), calc(27% * var(--neutral_tint)), 96.1%, 0) 45%, hsl(var(--neutral_hue), calc(27% * var(--neutral_tint)), 96.1%) 100%);
+    --stage_background: var(--stage_vignette), var(--stage_dot_grid), var(--stage_light), var(--stage_color);
+
+    /* The accent of focus rings and focused borders */
+    --focus_outline_color: #0969da;
+    --focus_border_color: var(--focus_outline_color);
+
+    /* The colors of the agent: the three stops of the gradient of its frame, the accent of its icons and the
+       accent of its text. Flavors derive them from their accent. */
+    --agent_gradient_1: var(--base_color_blue_3);
+    --agent_gradient_2: #3cc4d9;
+    --agent_gradient_3: var(--base_color_blue_4);
+    --agent_accent: var(--base_color_blue_5);
+    --agent_accent_text: var(--base_color_blue_6);
+
+    /* The colors of charts: the color of a single series and the categorical colors of series in the order they are
+       assigned. Flavors override them, adjacent categorical colors must stay apart for color-blind readers. */
+    --chart_color_primary: var(--base_color_blue_5);
+    --chart_color_1: var(--base_color_blue_5);
+    --chart_color_2: var(--base_color_orange_4);
+    --chart_color_3: var(--base_color_purple_5);
+    --chart_color_4: var(--base_color_green_5);
+    --chart_color_5: var(--base_color_pink_4);
+    --chart_color_6: var(--base_color_yellow_4);
+    --chart_color_7: var(--base_color_blue_3);
+    --chart_color_8: var(--base_color_orange_6);
+
+    --logo_color_salesforce: rgb(0, 161, 224);
+
+    /* --shell_prompt_color: the color of the shell prompt, bold in the terminal foreground color if unset */
+
+    --log_border_color: hsl(var(--neutral_hue), calc(17.5% * var(--neutral_tint)), 84.3%);
+
+    /* The muted text and icon color of the controls in card headers, status bars and toolbars */
+    --card_control_color: hsl(var(--neutral_hue), calc(12% * var(--neutral_tint)), 36%);
+
+    --shadow_small: 0 1px 0 hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.04);
+    --shadow_medium: 0 3px 6px hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%, 0.15);
+    --shadow_large: 0 8px 24px hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%, 0.2);
+    --shadow_extra_large: 0 12px 28px hsla(var(--neutral_hue), calc(9% * var(--neutral_tint)), 58.6%, 0.3);
+}

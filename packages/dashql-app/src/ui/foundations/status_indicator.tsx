@@ -14,7 +14,7 @@ export enum IndicatorStatus {
     Skip,
 }
 
-// The status colors are theme tokens of globals.css, flavors can override them
+// The status colors are theme tokens of @ankoh/dashql-ui/styles/tokens.css, flavors can override them
 export const STATUS_COLOR_IN_PROGRESS = 'var(--status_color_in_progress)';
 export const STATUS_COLOR_SUCCESS = 'var(--status_color_success)';
 export const STATUS_COLOR_FAILED = 'var(--status_color_failed)';

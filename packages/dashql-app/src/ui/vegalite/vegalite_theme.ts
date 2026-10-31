@@ -4,7 +4,7 @@ import type { EmbedOptions } from 'vega-embed';
 import './vegalite_tooltip.css';
 
 /// The categorical colors of series in the order they are assigned, as chart color tokens of the app.
-/// The tokens default to the base colors in globals.css, flavors override them.
+/// The tokens default to the base colors in @ankoh/dashql-ui/styles/tokens.css, flavors override them.
 /// The default order is validated: adjacent colors stay apart for color-blind readers (CVD ΔE >= 16).
 export const CATEGORICAL_COLOR_TOKENS = [
     '--chart_color_1',

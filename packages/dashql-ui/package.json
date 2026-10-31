@@ -1,0 +1,20 @@
+{
+  "name": "@ankoh/dashql-ui",
+  "version": "0.0.0",
+  "description": "Design tokens, fonts, the editor palette and the particle flow shared by the DashQL app and website",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "exports": {
+    "./particle_flow": {
+      "types": "./dist/particle_flow/attach_particle_flow.d.ts",
+      "import": "./dist/particle_flow/attach_particle_flow.js"
+    },
+    "./xcode": {
+      "types": "./dist/editor/xcode_palette.d.ts",
+      "import": "./dist/editor/xcode_palette.js"
+    },
+    "./fonts/*.css": "./fonts/*.css",
+    "./styles/*.css": "./styles/*.css"
+  }
+}

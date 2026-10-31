@@ -48,8 +48,9 @@ import { SessionImportProvider } from './session/persistence/session_import_prov
 import { SessionExecutionProvider } from './session/scripts/session_execution_provider.js';
 import { AgentBridgeProvider } from './agent/agent_bridge.js';
 
-import '../../static/fonts/fonts.css';
-import '../styles/colors.css';
+import '@ankoh/dashql-ui/fonts/fonts.css';
+import '@ankoh/dashql-ui/styles/colors.css';
+import '@ankoh/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 import '../styles/flavors/sidb.css';
 
