@@ -74,14 +74,14 @@ describe('scanner decorations', () => {
             },
         );
 
-        expect(quiet).toEqual(['@vis', 'vegalite', '"mark"', '"bar"', '"size"', '3', '@vis', 'card', 'width', '2']);
+        expect(quiet).toEqual(['@vis', 'vegalite', '"mark"', '"bar"', '"size"', '3', '@vis', 'card', 'width', '2', '@end']);
         expect(loud).toEqual(['select', '1', 'select', '2']);
         session.destroy();
         catalog.destroy();
     });
 
-    it('highlights the text of a @description apart from its comment markers and tags', () => {
-        const text = '-- @description\n-- Two lines\n-- of text.\n-- @end\nselect 1; -- plain\n/* @description Block. */ select 2';
+    it('highlights the tags alike and the text of a @description apart from its comment markers', () => {
+        const text = '-- @description\n-- Two lines\n-- of text.\n-- @end\nselect 1; -- plain\n/* @description Block.\n   @vis table */ select 2';
         const catalog = dql!.createCatalog();
         const session = dql!.createScriptSession(catalog);
         session.replaceText(0n, text);
@@ -93,6 +93,7 @@ describe('scanner decorations', () => {
 
         const description: string[] = [];
         const markers: string[] = [];
+        const tags: string[] = [];
         const comments: string[] = [];
         buildDecorationsForRanges(state, update, [{ from: 0, to: text.length }]).between(
             0,
@@ -101,12 +102,14 @@ describe('scanner decorations', () => {
                 const classes = value.spec.class.split(' ');
                 if (classes.includes('dashql-comment-description')) description.push(text.slice(from, to));
                 else if (classes.includes('dashql-comment-tag')) markers.push(text.slice(from, to));
+                else if (classes.includes('dashql-comment-token')) tags.push(text.slice(from, to));
                 else if (classes.includes('comment')) comments.push(text.slice(from, to));
             },
         );
 
         expect(description).toEqual(['Two lines', 'of text.', 'Block.']);
-        expect(markers).toEqual(['-- @description', '-- ', '-- ', '-- @end', '/* @description ', ' */']);
+        expect(tags).toEqual(['@description', '@end', '@description', '@vis', 'table']);
+        expect(markers).toEqual(['-- ', '-- ', '-- ', '-- ', '/* ', ' ', '\n   ', ' ', ' */']);
         expect(comments).toEqual(['-- plain']);
         session.destroy();
         catalog.destroy();

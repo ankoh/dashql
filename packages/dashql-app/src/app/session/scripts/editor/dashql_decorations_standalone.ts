@@ -48,28 +48,30 @@ function buildTagDecorations(state: EditorState, extraClass: string | null): Map
 /// The tag of the comment regions that describe a script, their text reads like prose
 const DESCRIPTION_TAG = 'description';
 
-/// A piece of a `@description` region: a line of its text, or the comment markers and tags around them
-interface DescriptionPiece {
+/// A piece of a tagged comment region: the comment markers around its lines, or a line of a `@description`
+interface TagPiece {
     from: number;
     to: number;
-    text: boolean;
+    prose: boolean;
 }
 
-/// The pieces of the `@description` regions of an update, sorted by offset
-function descriptionPieces(update: dashql.buffers.editor.EditorUpdateT): DescriptionPiece[] {
-    const pieces: DescriptionPiece[] = [];
+/// The pieces of the tagged comment regions of an update, sorted by offset. The lines of tags other than
+/// `@description` are no pieces, they keep the highlighting of comments.
+function tagPieces(update: dashql.buffers.editor.EditorUpdateT): TagPiece[] {
+    const pieces: TagPiece[] = [];
     for (const tag of update.commentTags) {
-        if (tag.name !== DESCRIPTION_TAG || tag.textSpan == null) continue;
+        if (tag.textSpan == null) continue;
+        const prose = tag.name === DESCRIPTION_TAG;
         let at = Number(tag.textSpan.offset);
         for (const line of tag.lines) {
             const from = Number(line.offset);
             const to = Number(line.offset + line.length);
-            if (from > at) pieces.push({ from: at, to: from, text: false });
-            pieces.push({ from, to, text: true });
+            if (from > at) pieces.push({ from: at, to: from, prose: false });
+            if (prose) pieces.push({ from, to, prose: true });
             at = to;
         }
         const end = Number(tag.textSpan.offset + tag.textSpan.length);
-        if (end > at) pieces.push({ from: at, to: end, text: false });
+        if (end > at) pieces.push({ from: at, to: end, prose: false });
     }
     return pieces;
 }
@@ -86,12 +88,12 @@ export function buildDecorationsForRanges(
 ): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>();
     const decorations = buildTagDecorations(state, null);
-    // The tokens of `@vis` tags in comments are highlighted quieter than the SQL around them
+    // The tags and the tokens of their content are highlighted quieter than the SQL around them
     const commentTokenDecorations = buildTagDecorations(state, 'dashql-comment-token');
-    // The text of a `@description` keeps the color of the text, its comment markers and tags step back
-    const descriptionText = Decoration.mark({ class: 'dashql-comment dashql-comment-description' });
-    const descriptionMarker = buildTagDecorations(state, 'dashql-comment-tag').get(commentTag)!;
-    const pieces = descriptionPieces(update);
+    // The comment markers of every tagged region step back, the text of a `@description` keeps the color of the text
+    const proseDecoration = Decoration.mark({ class: 'dashql-comment dashql-comment-description' });
+    const markerDecoration = buildTagDecorations(state, 'dashql-comment-tag').get(commentTag)!;
+    const pieces = tagPieces(update);
     let pieceCursor = 0;
     const addComment = (from: number, to: number, decoration: Decoration) => {
         let at = from;
@@ -101,7 +103,7 @@ export function buildDecorationsForRanges(
             const pieceFrom = Math.max(piece.from, at);
             const pieceTo = Math.min(piece.to, to);
             if (pieceFrom > at) builder.add(at, pieceFrom, decoration);
-            builder.add(pieceFrom, pieceTo, piece.text ? descriptionText : descriptionMarker);
+            builder.add(pieceFrom, pieceTo, piece.prose ? proseDecoration : markerDecoration);
             at = pieceTo;
         }
         if (to > at) builder.add(at, to, decoration);

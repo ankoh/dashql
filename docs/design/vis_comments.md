@@ -168,10 +168,12 @@ e.g. about a `field` that is no output column or about `data`. `Script::rewrite_
 the renderer tag of the terminal query (`vegalite`, `markdown` or `table`) or adds one, and consolidates
 the annotation like the other rewrites (see Rewriting tags); the spec is printed compactly (see Formatting).
 
-The editor highlights `@vis` tags like code (`vis_highlight.rs`): the syntax spans of such a comment are
-split into the tag and kind (keywords), JSON keys and `card` keys (identifiers), JSON strings, numbers
-and booleans (literals) and `{{field}}` placeholders (identifiers). Other editors show the tags as plain
-comments.
+The editor highlights comment tags like code (`vis_highlight.rs`), so the tags of an annotation read
+alike: every tag (`@description`, `@metadata`, `@vis` and an `@end` of older scripts) is a keyword, the JSON of
+`@metadata` and `vegalite` is split into keys (identifiers) and strings, numbers and booleans
+(literals), the kind of a `@vis` tag is a keyword, `card` keys and `{{field}}` placeholders are
+identifiers. The comment markers of every tagged region step back, the text of a `@description` keeps
+the color of text. Other editors show the tags as plain comments.
 
 Highlighting, completion and the spans of analyzer warnings read the JSON of `vegalite` tags with the same
 scanner (`vis_text.rs`) over the content lines of the tag joined into one text. It never fails: unclosed
