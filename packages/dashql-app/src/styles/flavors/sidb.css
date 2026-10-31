@@ -12,9 +12,6 @@
     --neutral_hue: 186;
     --neutral_tint: 1;
 
-    --font_family: 'Instrument Sans', sans-serif;
-    --font_family_mono: 'JetBrains Mono', monospace;
-
     --base_color: var(--sidb_ink);
 
     --background_color_primary: hsl(190, 46%, 24%);

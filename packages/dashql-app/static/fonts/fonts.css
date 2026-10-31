@@ -1,24 +1,6 @@
 /* -------------------------------------------------------------------- */
 
-/* The fonts of the dashql flavor, variable fonts with all weights in one file */
-
-@font-face {
-    font-family: 'Geist';
-    font-style: normal;
-    font-weight: 100 900;
-    src: url(./Geist-Variable.ttf) format('truetype');
-}
-
-@font-face {
-    font-family: 'Geist Mono';
-    font-style: normal;
-    font-weight: 100 900;
-    src: url(./GeistMono-Variable.ttf) format('truetype');
-}
-
-/* -------------------------------------------------------------------- */
-
-/* The fonts of the sidb flavor. Browsers only download a face when the page uses it. */
+/* The fonts of all flavors. Browsers only download a face when the page uses it. */
 
 @font-face {
     font-family: 'Instrument Sans';
